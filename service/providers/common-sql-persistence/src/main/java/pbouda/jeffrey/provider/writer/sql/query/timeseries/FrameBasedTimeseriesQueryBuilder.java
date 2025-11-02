@@ -38,8 +38,8 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
                 .addColumn("CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(" + valueType + ")) AS pair")
                 .from("events")
                 .where(sqlFormatter.profileAndType(profileId, eventType))
-                .groupBy("(events.start_timestamp_from_beginning / 1000)", "stacktraces.stacktrace_id")
-                .orderBy("stacktraces.stacktrace_id")
+                .groupBy("(events.start_timestamp_from_beginning / 1000)", "stacktraces.stacktrace_hash")
+                .orderBy("stacktraces.stacktrace_hash")
                 .merge(sqlFormatter.stacktraces());
 
         this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(sqlFormatter, innerBuilder, false) {

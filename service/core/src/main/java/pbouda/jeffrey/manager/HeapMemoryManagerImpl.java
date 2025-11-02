@@ -21,13 +21,13 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.heap.AllocationTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryOverviewData;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesType;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
@@ -41,11 +41,11 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
             Type.OBJECT_ALLOCATION_SAMPLE);
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
-    public HeapMemoryManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
+    public HeapMemoryManagerImpl(ProfileInfo profileInfo, ProfileEventStreamRepository eventStreamRepository) {
         this.profileInfo = profileInfo;
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
@@ -71,7 +71,7 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
             case ALLOCATION -> new AllocationTimeseriesBuilder(timeRange, timeseriesType);
         };
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(builder);
     }

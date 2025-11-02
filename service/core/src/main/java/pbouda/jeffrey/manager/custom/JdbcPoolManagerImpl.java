@@ -29,7 +29,7 @@ import pbouda.jeffrey.manager.custom.model.jdbc.pool.PoolConfiguration;
 import pbouda.jeffrey.manager.custom.model.jdbc.pool.PoolEventStatistics;
 import pbouda.jeffrey.manager.custom.model.jdbc.pool.PoolStatistics;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.SecondValueTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
@@ -49,11 +49,11 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
             Type.POOLED_JDBC_CONNECTION_CREATED, "Connection Created");
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
-    public JdbcPoolManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
+    public JdbcPoolManagerImpl(ProfileInfo profileInfo, ProfileEventStreamRepository eventStreamRepository) {
         this.profileInfo = profileInfo;
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
@@ -63,7 +63,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withJsonFields();
 
         List<JdbcPoolStatisticsBuilder.PoolStats> poolStats =
-                eventRepository.newEventStreamerFactory(configurer)
+                eventStreamRepository.newEventStreamerFactory(configurer)
                         .newGenericStreamer()
                         .startStreaming(new JdbcPoolStatisticsBuilder());
 
@@ -76,7 +76,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withJsonFields();
 
         List<JdbcPooledEventBuilder.Pool> poolsEvents =
-                eventRepository.newEventStreamerFactory(poolConfigurer)
+                eventStreamRepository.newEventStreamerFactory(poolConfigurer)
                         .newGenericStreamer()
                         .startStreaming(new JdbcPooledEventBuilder());
 
@@ -190,7 +190,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withTimeRange(timeRange);
 
         TimeseriesData timeseriesData =
-                eventRepository.newEventStreamerFactory(configurer)
+                eventStreamRepository.newEventStreamerFactory(configurer)
                         .newFilterableTimeseriesStreamer()
                         .startStreaming(new SecondValueTimeseriesBuilder("Events", timeRange));
 

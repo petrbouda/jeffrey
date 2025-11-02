@@ -25,6 +25,7 @@ import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.time.Duration;
 import java.util.*;
@@ -97,6 +98,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
     private static ThreadField field(String value, String type) {
         return new ThreadField(value, type);
@@ -108,8 +110,11 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
     public DbBasedThreadProvider(
             ProfileInfo profileInfo,
-            ProfileEventRepository eventRepository) {
+            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventStreamRepository) {
+
         this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
         this.profileInfo = profileInfo;
     }
 
@@ -121,7 +126,7 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
                 .withJsonFields()
                 .withThreads();
 
-        List<ThreadRecord> records = eventRepository.newEventStreamerFactory(configurer)
+        List<ThreadRecord> records = eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new ThreadsRecordBuilder());
 
@@ -219,11 +224,11 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
         // Calculate all events happened for this thread
         long eventsCount = parked.size()
-                           + blocked.size()
-                           + waiting.size()
-                           + sleep.size()
-                           + socketRead.size()
-                           + socketWrite.size();
+                + blocked.size()
+                + waiting.size()
+                + sleep.size()
+                + socketRead.size()
+                + socketWrite.size();
 
         // Calculate the total duration of all lifespan events (total time of the thread being active)
         long totalDuration = active.stream()

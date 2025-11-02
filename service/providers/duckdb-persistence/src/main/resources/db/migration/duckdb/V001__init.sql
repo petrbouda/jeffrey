@@ -163,18 +163,17 @@ CREATE TABLE IF NOT EXISTS frames
 
 CREATE TABLE IF NOT EXISTS stacktraces
 (
-    profile_id      VARCHAR NOT NULL,
-    stack_hash      BIGINT NOT NULL,    -- Hash of frame_hashes array for deduplication
-    type_id         INTEGER NOT NULL,   -- Numerical representation of the stacktrace type
-    frame_hashes    BIGINT[],           -- Array of references to frames table
-    tag_ids         INTEGER[],          -- Array of tags for categorization and filtering
-    PRIMARY KEY (profile_id, stack_hash)
+    profile_id        VARCHAR NOT NULL,
+    stacktrace_hash   BIGINT NOT NULL,    -- Hash of frame_hashes array for deduplication
+    type_id           INTEGER NOT NULL,   -- Numerical representation of the stacktrace type
+    frame_hashes      BIGINT[],           -- Array of references to frames table
+    tag_ids           INTEGER[],          -- Array of tags for categorization and filtering
+    PRIMARY KEY (profile_id, stacktrace_hash)
 );
 
 CREATE TABLE IF NOT EXISTS events
 (
     profile_id                     VARCHAR,
-    event_id                       BIGINT,
     event_type                     VARCHAR,
     start_timestamp                TIMESTAMPTZ NOT NULL,
     start_timestamp_from_beginning BIGINT NOT NULL,
@@ -182,14 +181,13 @@ CREATE TABLE IF NOT EXISTS events
     samples                        BIGINT NOT NULL,
     weight                         BIGINT,
     weight_entity                  VARCHAR,
-    stack_hash                     BIGINT,  -- Reference to stacktraces.stack_hash
+    stacktrace_hash                BIGINT,  -- Reference to stacktraces.stacktrace_hash
     thread_id                      BIGINT,  -- Hash value
-    fields                         JSON,     -- JSON fields for event-specific data
-    PRIMARY KEY (profile_id, event_id)
+    fields                         JSON     -- JSON fields for event-specific data
 );
 
 -- Optimized indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_events_stack_hash ON events(stack_hash);
+CREATE INDEX IF NOT EXISTS idx_events_stacktrace_hash ON events(stacktrace_hash);
 CREATE INDEX IF NOT EXISTS idx_events_composite ON events(profile_id, event_type, start_timestamp_from_beginning);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX IF NOT EXISTS idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);

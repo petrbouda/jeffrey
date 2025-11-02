@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.provider.writer.sql.query;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.streamer.EventStreamer;
@@ -27,8 +25,6 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 
 public class JdbcEventStreamer<T> implements EventStreamer<T> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcEventStreamer.class);
 
     private final DatabaseClient databaseClient;
     private final RowMapper<T> mapper;

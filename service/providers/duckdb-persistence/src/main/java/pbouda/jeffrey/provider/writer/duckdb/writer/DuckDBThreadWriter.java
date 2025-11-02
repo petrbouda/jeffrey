@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.writer.duckdb.writer;
 
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
-import pbouda.jeffrey.provider.api.DataSourceUtils;
 import pbouda.jeffrey.provider.api.model.EventThread;
 import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
@@ -33,16 +32,14 @@ import static pbouda.jeffrey.provider.writer.duckdb.writer.DuckDBAppenderUtils.n
 public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash> {
 
     private final String profileId;
-    private final DuckDBConnection connection;
 
     public DuckDBThreadWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("threads", batchSize, StatementLabel.INSERT_THREADS);
-        this.connection = DataSourceUtils.connection(dataSource, DuckDBConnection.class);
+        super("threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
         this.profileId = profileId;
     }
 
     @Override
-    public void execute(List<EventThreadWithHash> batch) throws Exception {
+    public void execute(DuckDBConnection connection, List<EventThreadWithHash> batch) throws Exception {
         try (DuckDBAppender appender = connection.createAppender("threads")) {
             for (EventThreadWithHash entity : batch) {
                 EventThread thread = entity.eventThread();
@@ -63,10 +60,5 @@ public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash
                 appender.endRow();
             }
         }
-    }
-
-    @Override
-    public void close() {
-        DataSourceUtils.close(connection);
     }
 }

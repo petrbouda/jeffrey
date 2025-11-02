@@ -102,7 +102,7 @@ public class JdbcEventStreamerFactory implements EventStreamerFactory {
         configurer.withIncludeFrames();
 
         QueryBuilder queryBuilder = queryBuilderFactory.createGenericQueryBuilder(configurer, baseFields)
-                .addGroupBy("events.stacktrace_id")
+                .addGroupBy("events.stacktrace_hash")
                 .addGroupBy("events.weight_entity");
 
         return new JdbcEventStreamer<>(databaseClient, new FlamegraphRecordRowMapper(configurer), queryBuilder);

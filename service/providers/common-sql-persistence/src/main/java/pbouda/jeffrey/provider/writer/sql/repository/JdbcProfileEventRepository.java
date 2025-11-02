@@ -24,17 +24,12 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.query.GenericRecordRowMapper;
-import pbouda.jeffrey.provider.writer.sql.query.JdbcEventStreamerFactory;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
-import pbouda.jeffrey.provider.writer.sql.query.builder.DefaultQueryBuilderFactory;
-import pbouda.jeffrey.provider.writer.sql.query.builder.NativeLeakQueryBuilderFactory;
-import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -94,23 +89,13 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     private final DatabaseClient databaseClient;
 
     public JdbcProfileEventRepository(
-            SQLFormatter sqlFormatter, String profileId, DatabaseClientProvider databaseClientProvider) {
+            SQLFormatter sqlFormatter,
+            String profileId,
+            DatabaseClientProvider databaseClientProvider) {
+
         this.sqlFormatter = sqlFormatter;
         this.profileId = profileId;
         this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
-    }
-
-    @Override
-    public EventStreamerFactory newEventStreamerFactory(EventQueryConfigurer configurer) {
-        List<Type> types = configurer.eventTypes();
-
-        QueryBuilderFactory queryBuilderFactory;
-        if (types.size() == 1 && types.getFirst() == Type.NATIVE_LEAK) {
-            queryBuilderFactory = new NativeLeakQueryBuilderFactory(sqlFormatter, profileId);
-        } else {
-            queryBuilderFactory = new DefaultQueryBuilderFactory(sqlFormatter, profileId);
-        }
-        return new JdbcEventStreamerFactory(databaseClient, configurer, queryBuilderFactory);
     }
 
     @Override

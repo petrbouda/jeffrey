@@ -27,6 +27,8 @@ import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
 import pbouda.jeffrey.provider.writer.sql.SQLProfileInitializer;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
+import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
+import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolverImpl;
 import pbouda.jeffrey.provider.writer.sqlite.SQLiteSQLFormatter;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -107,7 +109,8 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(sqlFormatter, coreDatabaseClientProvider, clock);
+        QueryBuilderFactoryResolver queryBuilderFactoryResolver = new QueryBuilderFactoryResolverImpl(sqlFormatter);
+        return new JdbcRepositories(sqlFormatter, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
     }
 
     @Override

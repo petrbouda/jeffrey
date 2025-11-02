@@ -25,7 +25,7 @@ import pbouda.jeffrey.manager.custom.builder.JdbcOverviewEventBuilder;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.JdbcSlowStatement;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -45,11 +45,11 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
             Type.JDBC_STREAM);
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
-    public JdbcStatementManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
+    public JdbcStatementManagerImpl(ProfileInfo profileInfo, ProfileEventStreamRepository eventStreamRepository) {
         this.profileInfo = profileInfo;
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
@@ -94,7 +94,7 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
             statementFilter = (_, s) -> s.equalsIgnoreCase(statementName);
         }
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, statementFilter));
     }

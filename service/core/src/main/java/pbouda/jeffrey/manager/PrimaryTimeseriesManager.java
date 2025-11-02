@@ -23,20 +23,21 @@ import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
 
 public class PrimaryTimeseriesManager implements TimeseriesManager {
 
     private final RelativeTimeRange timeRange;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
     public PrimaryTimeseriesManager(
             ProfilingStartEnd profilingStartEnd,
-            ProfileEventRepository eventRepository) {
+            ProfileEventStreamRepository eventStreamRepository) {
 
         this.timeRange = new RelativeTimeRange(profilingStartEnd);
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
@@ -49,7 +50,7 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withWeight(params.useWeight())
                 .withThreads(params.threadMode());
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newSimpleTimeseriesStreamer()
                 .startStreaming(TimeseriesResolver.resolve(params));
     }

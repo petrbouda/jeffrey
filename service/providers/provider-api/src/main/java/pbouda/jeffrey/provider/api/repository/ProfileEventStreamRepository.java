@@ -16,30 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jfrparser.db.type;
+package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.provider.api.streamer.EventStreamerFactory;
 
-import java.util.List;
+public interface ProfileEventStreamRepository {
 
-public class DbJfrStackTrace implements JfrStackTrace {
+    EventStreamerFactory newEventStreamerFactory(EventQueryConfigurer configurer);
 
-    private final long id;
-    private final List<DbJfrStackFrame> frames;
-
-    public DbJfrStackTrace(long id, List<DbJfrStackFrame> frames) {
-        this.id = id;
-        this.frames = frames;
-    }
-
-    @Override
-    public long id() {
-        return id;
-    }
-
-    @Override
-    public List<? extends JfrStackFrame> frames() {
-        return frames;
-    }
 }

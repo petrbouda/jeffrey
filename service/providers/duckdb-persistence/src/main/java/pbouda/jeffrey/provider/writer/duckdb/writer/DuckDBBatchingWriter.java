@@ -18,11 +18,15 @@
 
 package pbouda.jeffrey.provider.writer.duckdb.writer;
 
+import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.provider.api.DataSourceUtils;
 import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +36,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     private static final Logger LOG = LoggerFactory.getLogger(DuckDBBatchingWriter.class);
 
     private final String tableName;
+    private final DataSource dataSource;
     private final int batchSize;
     private final StatementLabel statementLabel;
 
@@ -39,10 +44,12 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
     public DuckDBBatchingWriter(
             String tableName,
+            DataSource dataSource,
             int batchSize,
             StatementLabel statementLabel) {
 
         this.tableName = tableName;
+        this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.statementLabel = statementLabel;
     }
@@ -63,7 +70,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
         }
     }
 
-    protected abstract void execute(List<T> events) throws Exception;
+    protected abstract void execute(DuckDBConnection connection, List<T> events) throws Exception;
 
     private void sendBatch(List<T> batch) {
         if (batch.isEmpty()) {
@@ -73,8 +80,9 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
         long start = System.nanoTime();
 
-        try {
-            execute(batch);
+        try (Connection connection = dataSource.getConnection()) {
+            DuckDBConnection unwrapped = DataSourceUtils.unwrapConnection(connection, DuckDBConnection.class);
+            execute(unwrapped, batch);
         } catch (Exception e) {
             LOG.error("Failed to insert batch of items: type={} size={}",
                     tableName, batch.size(), e);

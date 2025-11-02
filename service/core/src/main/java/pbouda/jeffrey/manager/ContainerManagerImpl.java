@@ -18,23 +18,20 @@
 
 package pbouda.jeffrey.manager;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.manager.builder.ContainerConfigurationEventBuilder;
 import pbouda.jeffrey.manager.model.container.ContainerConfigurationData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
 public class ContainerManagerImpl implements ContainerManager {
 
-    private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
-    public ContainerManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
-        this.profileInfo = profileInfo;
-        this.eventRepository = eventRepository;
+    public ContainerManagerImpl(ProfileEventStreamRepository eventStreamRepository) {
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
@@ -43,7 +40,7 @@ public class ContainerManagerImpl implements ContainerManager {
                 .withEventTypes(List.of(Type.CONTAINER_CONFIGURATION))
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new ContainerConfigurationEventBuilder());
     }

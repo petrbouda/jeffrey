@@ -26,6 +26,8 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
+import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
+import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolverImpl;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
@@ -116,7 +118,8 @@ public abstract class SQLPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Repositories repositories() {
-        return new JdbcRepositories(sqlFormatter, coreDatabaseClientProvider, clock);
+        QueryBuilderFactoryResolver queryBuilderFactoryResolver = new QueryBuilderFactoryResolverImpl(sqlFormatter);
+        return new JdbcRepositories(sqlFormatter, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
     }
 
     @Override

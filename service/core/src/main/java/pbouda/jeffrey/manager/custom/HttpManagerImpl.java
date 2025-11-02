@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.manager.custom.builder.HttpOverviewEventBuilder;
 import pbouda.jeffrey.manager.custom.model.http.HttpOverviewData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.util.function.Predicate;
 
@@ -33,11 +33,11 @@ public class HttpManagerImpl implements HttpManager {
     private static final int MAX_SLOW_REQUESTS = 20;
 
     private final ProfileInfo profileInfo;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
-    public HttpManagerImpl(ProfileInfo profileInfo, ProfileEventRepository eventRepository) {
+    public HttpManagerImpl(ProfileInfo profileInfo, ProfileEventStreamRepository eventStreamRepository) {
         this.profileInfo = profileInfo;
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
@@ -63,7 +63,7 @@ public class HttpManagerImpl implements HttpManager {
             uriFilter = uri::equals;
         }
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new HttpOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, uriFilter));
     }

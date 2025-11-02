@@ -32,6 +32,7 @@ import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
@@ -44,17 +45,20 @@ public class ThreadManagerImpl implements ThreadManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ThreadInfoProvider threadInfoProvider;
 
     public ThreadManagerImpl(
             ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventStreamRepository,
             ProfileEventTypeRepository eventTypeRepository,
             ThreadInfoProvider threadInfoProvider) {
 
         this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
         this.eventTypeRepository = eventTypeRepository;
         this.threadInfoProvider = threadInfoProvider;
     }
@@ -95,7 +99,7 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withEventType(Type.JAVA_THREAD_STATISTICS)
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new ThreadTimeseriesBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd())));
     }
@@ -132,7 +136,7 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withThreads()
                 .withJsonFields();
 
-        ThreadCpuLoads result = eventRepository.newEventStreamerFactory(configurer)
+        ThreadCpuLoads result = eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new CPULoadBuilder(limit));
 

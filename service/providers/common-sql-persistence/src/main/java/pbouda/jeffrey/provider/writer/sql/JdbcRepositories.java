@@ -18,36 +18,12 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileGraphRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileRepository;
-import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
-import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
-import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
+import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcGlobalSchedulerRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileCacheRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileEventRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileEventTypeRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileGraphRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfilerRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProjectRecordingRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProjectRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProjectRepositoryRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProjectSchedulerRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcProjectsRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcWorkspaceRepository;
-import pbouda.jeffrey.provider.writer.sql.repository.JdbcWorkspacesRepository;
+import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactory;
+import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
+import pbouda.jeffrey.provider.writer.sql.repository.*;
 
 import java.time.Clock;
 
@@ -55,17 +31,29 @@ public class JdbcRepositories implements Repositories {
 
     private final SQLFormatter sqlFormatter;
     private final DatabaseClientProvider databaseClientProvider;
+    private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final Clock clock;
 
-    public JdbcRepositories(SQLFormatter sqlFormatter, DatabaseClientProvider databaseClientProvider, Clock clock) {
+    public JdbcRepositories(
+            SQLFormatter sqlFormatter,
+            QueryBuilderFactoryResolver queryBuilderFactoryResolver,
+            DatabaseClientProvider databaseClientProvider,
+            Clock clock) {
+
         this.sqlFormatter = sqlFormatter;
         this.databaseClientProvider = databaseClientProvider;
+        this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.clock = clock;
     }
 
     @Override
     public ProfileEventRepository newEventRepository(String profileId) {
         return new JdbcProfileEventRepository(sqlFormatter, profileId, databaseClientProvider);
+    }
+
+    @Override
+    public ProfileEventStreamRepository newEventStreamRepository(String profileId) {
+        return new JdbcProfileEventStreamRepository(queryBuilderFactoryResolver, profileId, databaseClientProvider);
     }
 
     @Override

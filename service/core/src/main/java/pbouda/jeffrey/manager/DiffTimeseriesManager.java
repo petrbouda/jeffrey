@@ -19,10 +19,9 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfilingStartEnd;
-import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
@@ -31,8 +30,8 @@ import java.time.Duration;
 
 public class DiffTimeseriesManager implements TimeseriesManager {
 
-    private final ProfileEventRepository primaryEventRepository;
-    private final ProfileEventRepository secondaryEventRepository;
+    private final ProfileEventStreamRepository primaryEventRepository;
+    private final ProfileEventStreamRepository secondaryEventRepository;
 
     private final RelativeTimeRange primaryTimeRange;
     private final RelativeTimeRange secondaryTimeRange;
@@ -40,8 +39,8 @@ public class DiffTimeseriesManager implements TimeseriesManager {
     public DiffTimeseriesManager(
             ProfilingStartEnd primaryStartEnd,
             ProfilingStartEnd secondaryStartEnd,
-            ProfileEventRepository primaryEventRepository,
-            ProfileEventRepository secondaryEventRepository) {
+            ProfileEventStreamRepository primaryEventRepository,
+            ProfileEventStreamRepository secondaryEventRepository) {
 
         this.primaryEventRepository = primaryEventRepository;
         this.secondaryEventRepository = secondaryEventRepository;
@@ -59,7 +58,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
 
     private static TimeseriesData processTimeseries(
             Generate generate,
-            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventStreamRepository,
             RelativeTimeRange timeRange) {
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
@@ -70,7 +69,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newSimpleTimeseriesStreamer()
                 .startStreaming(new SimpleTimeseriesBuilder(timeRange));
     }

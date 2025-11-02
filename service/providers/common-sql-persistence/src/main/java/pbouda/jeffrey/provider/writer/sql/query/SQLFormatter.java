@@ -67,7 +67,7 @@ public abstract class SQLFormatter {
         SQLBuilder builder = new SQLBuilder()
                 .leftJoin("stacktrace_tags tags", and(
                         eq("events.profile_id", c("tags.profile_id")),
-                        eq("events.stacktrace_id", c("tags.stacktrace_id"))));
+                        eq("events.stacktrace_hash", c("tags.stacktrace_id"))));
 
         List<StacktraceTag> included = partitioned.get(true);
         if (!included.isEmpty()) {
@@ -97,7 +97,7 @@ public abstract class SQLFormatter {
         if (includeStacktraces) {
             builder.join("stacktraces", and(
                     eq("events.profile_id", c("stacktraces.profile_id")),
-                    eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))));
+                    eq("events.stacktrace_hash", c("stacktraces.stacktrace_hash"))));
         }
 
         return builder;
@@ -163,13 +163,13 @@ public abstract class SQLFormatter {
 
     public SQLBuilder stacktraces() {
         return new SQLBuilder()
-                .addColumn("stacktraces.stacktrace_id")
-                .groupBy("stacktraces.stacktrace_id")
+                .addColumn("stacktraces.stacktrace_hash")
+                .groupBy("stacktraces.stacktrace_hash")
                 .addColumn("stacktraces.frames")
                 .groupBy("stacktraces.frames")
                 .join("stacktraces", and(
                         eq("events.profile_id", c("stacktraces.profile_id")),
-                        eq("events.stacktrace_id", c("stacktraces.stacktrace_id"))));
+                        eq("events.stacktrace_hash", c("stacktraces.stacktrace_hash"))));
     }
 
     public SQLBuilder timeRangeOptional(Duration from, Duration until) {

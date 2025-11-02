@@ -21,17 +21,17 @@ package pbouda.jeffrey.frameir;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
 
 public class RecordsFrameIterator {
 
     private final GraphParameters graphParameters;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
-    public RecordsFrameIterator(GraphParameters graphParameters, ProfileEventRepository eventRepository) {
+    public RecordsFrameIterator(GraphParameters graphParameters, ProfileEventStreamRepository eventStreamRepository) {
         this.graphParameters = graphParameters;
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     public Frame iterate() {
@@ -49,7 +49,7 @@ public class RecordsFrameIterator {
                 .withThreads(graphParameters.threadMode())
                 .withSpecifiedThread(graphParameters.threadInfo());
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newFlamegraphStreamer()
                 .startStreaming(frameBuilder);
     }

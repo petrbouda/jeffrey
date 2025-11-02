@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.writer.duckdb.writer;
 
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
-import pbouda.jeffrey.provider.api.DataSourceUtils;
 import pbouda.jeffrey.provider.api.model.EventFrame;
 import pbouda.jeffrey.provider.api.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
@@ -31,16 +30,14 @@ import java.util.List;
 public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> {
 
     private final String profileId;
-    private final DuckDBConnection connection;
 
     public DuckDBFrameWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("frames", batchSize, StatementLabel.INSERT_FRAMES);
+        super("frames", dataSource, batchSize, StatementLabel.INSERT_FRAMES);
         this.profileId = profileId;
-        this.connection = DataSourceUtils.connection(dataSource, DuckDBConnection.class);
     }
 
     @Override
-    public void execute(List<EventFrameWithHash> batch) throws Exception {
+    public void execute(DuckDBConnection connection, List<EventFrameWithHash> batch) throws Exception {
         try (DuckDBAppender appender = connection.createAppender("frames")) {
             for (EventFrameWithHash entity : batch) {
                 EventFrame frame = entity.frame();
@@ -63,10 +60,5 @@ public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> 
                 appender.endRow();
             }
         }
-    }
-
-    @Override
-    public void close() {
-        DataSourceUtils.close(connection);
     }
 }

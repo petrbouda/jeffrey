@@ -20,19 +20,19 @@ package pbouda.jeffrey.flamegraph.provider;
 
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
 import pbouda.jeffrey.timeseries.TimeseriesType;
 
 public class TimeseriesDataProvider {
 
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
     private final TimeseriesType timeseriesType;
     private final GraphParameters graphParameters;
 
-    public TimeseriesDataProvider(ProfileEventRepository eventRepository, GraphParameters graphParameters) {
-        this.eventRepository = eventRepository;
+    public TimeseriesDataProvider(ProfileEventStreamRepository eventStreamRepository, GraphParameters graphParameters) {
+        this.eventStreamRepository = eventStreamRepository;
         this.graphParameters = graphParameters;
         this.timeseriesType = TimeseriesType.resolve(graphParameters);
     }
@@ -49,11 +49,11 @@ public class TimeseriesDataProvider {
                 .withSpecifiedThread(graphParameters.threadInfo());
 
         if (timeseriesType == TimeseriesType.SIMPLE) {
-            return eventRepository.newEventStreamerFactory(configurer)
+            return eventStreamRepository.newEventStreamerFactory(configurer)
                     .newSimpleTimeseriesStreamer()
                     .startStreaming(TimeseriesResolver.resolve(graphParameters));
         } else {
-            return eventRepository.newEventStreamerFactory(configurer)
+            return eventStreamRepository.newEventStreamerFactory(configurer)
                     .newFrameBasedTimeseriesStreamer()
                     .startStreaming(TimeseriesResolver.resolve(graphParameters));
         }

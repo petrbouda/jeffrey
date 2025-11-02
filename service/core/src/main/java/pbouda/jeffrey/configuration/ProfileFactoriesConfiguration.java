@@ -177,7 +177,7 @@ public class ProfileFactoriesConfiguration {
         return profileInfo ->
                 new SubSecondManagerImpl(
                         profileInfo,
-                        new DbBasedSubSecondGeneratorImpl(repositories.newEventRepository(profileInfo.id())));
+                        new DbBasedSubSecondGeneratorImpl(repositories.newEventStreamRepository(profileInfo.id())));
     }
 
     @Bean
@@ -185,7 +185,7 @@ public class ProfileFactoriesConfiguration {
         return profileInfo ->
                 new PrimaryTimeseriesManager(
                         profileInfo.profilingStartEnd(),
-                        repositories.newEventRepository(profileInfo.id()));
+                        repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean
@@ -194,8 +194,8 @@ public class ProfileFactoriesConfiguration {
                 new DiffTimeseriesManager(
                         primary.profilingStartEnd(),
                         secondary.profilingStartEnd(),
-                        repositories.newEventRepository(primary.id()),
-                        repositories.newEventRepository(secondary.id()));
+                        repositories.newEventStreamRepository(primary.id()),
+                        repositories.newEventStreamRepository(secondary.id()));
     }
 
     @Bean
@@ -210,14 +210,15 @@ public class ProfileFactoriesConfiguration {
     public ThreadManager.Factory threadInfoFactory(Repositories repositories) {
         return profileInfo -> {
             ProfileEventRepository eventRepository = repositories.newEventRepository(profileInfo.id());
+            ProfileEventStreamRepository eventStreamRepository = repositories.newEventStreamRepository(profileInfo.id());
             ProfileEventTypeRepository eventTypeRepository = repositories.newEventTypeRepository(profileInfo.id());
 
             return new ThreadManagerImpl(
                     profileInfo,
-                    eventRepository,
+                    eventStreamRepository,
                     eventTypeRepository,
                     new CachingThreadProvider(
-                            new DbBasedThreadProvider(profileInfo, eventRepository),
+                            new DbBasedThreadProvider(profileInfo, eventRepository, eventStreamRepository),
                             repositories.newProfileCacheRepository(profileInfo.id())));
         };
     }
@@ -252,25 +253,27 @@ public class ProfileFactoriesConfiguration {
                 new JITCompilationManagerImpl(
                         profileInfo,
                         repositories.newEventTypeRepository(profileInfo.id()),
-                        repositories.newEventRepository(profileInfo.id()));
+                        repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean
     public GarbageCollectionManager.Factory gcManagerFactory(Repositories repositories) {
         return profileInfo -> new GarbageCollectionManagerImpl(
-                profileInfo, repositories.newEventRepository(profileInfo.id()));
+                profileInfo,
+                repositories.newEventRepository(profileInfo.id()),
+                repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean
     public ContainerManager.Factory containerManagerFactory(Repositories repositories) {
-        return profileInfo -> new ContainerManagerImpl(
-                profileInfo, repositories.newEventRepository(profileInfo.id()));
+        return profileInfo ->
+                new ContainerManagerImpl(repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean
     public HeapMemoryManager.Factory heapMemoryManagerFactory(Repositories repositories) {
         return profileInfo -> new HeapMemoryManagerImpl(
-                profileInfo, repositories.newEventRepository(profileInfo.id()));
+                profileInfo, repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean

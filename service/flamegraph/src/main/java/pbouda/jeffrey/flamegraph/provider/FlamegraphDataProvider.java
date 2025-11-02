@@ -24,20 +24,20 @@ import pbouda.jeffrey.flamegraph.api.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.frameir.FrameBuilderResolver;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 
 public class FlamegraphDataProvider {
 
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
     private final FrameBuilder frameBuilder;
     private final FlameGraphBuilder flamegraphBuilder;
     private final GraphParameters graphParameters;
 
     private FlamegraphDataProvider(
-            ProfileEventRepository eventRepository, GraphParameters graphParameters, FrameBuilder frameBuilder) {
+            ProfileEventStreamRepository eventStreamRepository, GraphParameters graphParameters, FrameBuilder frameBuilder) {
 
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
         this.graphParameters = graphParameters;
         this.frameBuilder = frameBuilder;
         this.flamegraphBuilder = resolveFlamegraphBuilder(graphParameters);
@@ -48,15 +48,15 @@ public class FlamegraphDataProvider {
      * {@link FrameBuilder} based on the event type and the graph parameters. Then it starts processing the records
      * from the event repository and builds the flamegraph.
      *
-     * @param eventRepository repository to fetch all the records for processing
+     * @param eventStreamRepository repository to fetch all the records for processing
      * @param params          configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
-    public static FlamegraphDataProvider primary(ProfileEventRepository eventRepository, GraphParameters params) {
+    public static FlamegraphDataProvider primary(ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
         FrameBuilder builder = new FrameBuilderResolver(params, false)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventRepository, params, builder);
+        return new FlamegraphDataProvider(eventStreamRepository, params, builder);
     }
 
     /**
@@ -64,15 +64,15 @@ public class FlamegraphDataProvider {
      * resolves the {@link FrameBuilder} based on the event type and the graph parameters.
      * Then it starts processing the records from the event repository and builds the flamegraph.
      *
-     * @param eventRepository repository to fetch all the records for processing
+     * @param eventStreamRepository repository to fetch all the records for processing
      * @param params          configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
-    public static FlamegraphDataProvider differential(ProfileEventRepository eventRepository, GraphParameters params) {
+    public static FlamegraphDataProvider differential(ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
         FrameBuilder builder = new FrameBuilderResolver(params, true)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventRepository, params, builder);
+        return new FlamegraphDataProvider(eventStreamRepository, params, builder);
     }
 
     /**
@@ -101,7 +101,7 @@ public class FlamegraphDataProvider {
                 .withSpecifiedThread(graphParameters.threadInfo())
                 .withWeight(graphParameters.useWeight());
 
-        Frame frame = eventRepository.newEventStreamerFactory(configurer)
+        Frame frame = eventStreamRepository.newEventStreamerFactory(configurer)
                 .newFlamegraphStreamer()
                 .startStreaming(frameBuilder);
 

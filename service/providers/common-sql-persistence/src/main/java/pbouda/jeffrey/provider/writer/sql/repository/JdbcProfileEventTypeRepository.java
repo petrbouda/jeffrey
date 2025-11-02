@@ -78,7 +78,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     //language=SQL
     private static final String FIELDS_BY_SINGLE_EVENT = """
-            SELECT event_types.name, event_types.label, events.fields::jsonb AS event_fields FROM events
+            SELECT event_types.name, event_types.label, events.fields::JSON AS event_fields FROM events
             INNER JOIN event_types ON events.event_type = event_types.name
             WHERE events.profile_id = (:profile_id) AND events.event_type = (:code) LIMIT 1""";
 

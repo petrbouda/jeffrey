@@ -55,28 +55,37 @@ public abstract class DataSourceUtils {
     }
 
     /**
-     * Unwrap the given DataSource to the specified class.
+     * Get a connection from the given datasource.
      *
-     * @param dataSource the DataSource to unwrap
+     * @param dataSource the datasource to get the connection from
+     */
+    public static Connection connection(DataSource dataSource) {
+        try {
+            return dataSource.getConnection();
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot get connection from the database", e);
+        }
+    }
+
+    /**
+     * Unwrap the given connection to the given class.
+     *
+     * @param connection the connection to unwrap
      * @param clazz      the class to unwrap to
      * @param <T>        the type of the class
-     * @return the unwrapped DataSource
-     * @throws IllegalArgumentException if the DataSource cannot be unwrapped to the specified class
+     * @return the unwrapped connection
      */
-    public static <T> T connection(DataSource dataSource, Class<T> clazz) {
+    public static <T> T unwrapConnection(Connection connection, Class<T> clazz) {
         try {
-            Connection connection = dataSource.getConnection();
-            try {
-                if (connection.isWrapperFor(clazz)) {
-                    return connection.unwrap(clazz);
-                } else {
-                    throw new IllegalArgumentException("Data source is not a wrapper: expected=" + clazz.getName() + " actual=" + connection.getClass().getName());
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot unwrap data source: expected=" + clazz.getName() + " actual=" + connection.getClass().getName(), e);
+            if (connection.isWrapperFor(clazz)) {
+                return connection.unwrap(clazz);
+            } else {
+                throw new IllegalArgumentException(
+                        "Connection is not a wrapper: expected=" + clazz.getName() + " actual=" + connection.getClass().getName());
             }
         } catch (Exception e) {
-            throw new RuntimeException("Cannot get connection from data source", e);
+            throw new RuntimeException(
+                    "Cannot unwrap connection: expected=" + clazz.getName() + " actual=" + connection.getClass().getName(), e);
         }
     }
 }

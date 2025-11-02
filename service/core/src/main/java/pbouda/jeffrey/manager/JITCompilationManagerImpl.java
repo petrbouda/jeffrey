@@ -30,7 +30,7 @@ import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
 import pbouda.jeffrey.common.event.JITCompilationStats;
 import pbouda.jeffrey.common.event.JITLongCompilation;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
@@ -45,21 +45,21 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventTypeRepository eventTypeRepository;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
 
     public JITCompilationManagerImpl(
             ProfileInfo profileInfo,
             ProfileEventTypeRepository eventTypeRepository,
-            ProfileEventRepository eventRepository) {
+            ProfileEventStreamRepository eventStreamRepository) {
 
         this.profileInfo = profileInfo;
         this.eventTypeRepository = eventTypeRepository;
-        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
     public JITCompilationStats statistics() {
-        Optional<GenericRecord> statsOpt = eventRepository.latest(Type.COMPILER_STATISTICS);
+        Optional<GenericRecord> statsOpt = eventStreamRepository.latest(Type.COMPILER_STATISTICS);
         if (statsOpt.isEmpty()) {
             return null;
         }
@@ -89,7 +89,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withEventType(Type.COMPILATION)
                 .withJsonFields();
 
-        return eventRepository.newEventStreamerFactory(configurer)
+        return eventStreamRepository.newEventStreamerFactory(configurer)
                 .newGenericStreamer()
                 .startStreaming(new JITLongCompilationBuilder(limit));
     }
@@ -103,7 +103,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withTimeRange(timeRange)
                 .filterStacktraceType(StacktraceType.JVM_JIT);
 
-        TimeseriesData timeseriesData = eventRepository.newEventStreamerFactory(configurer)
+        TimeseriesData timeseriesData = eventStreamRepository.newEventStreamerFactory(configurer)
                 .newSimpleTimeseriesStreamer()
                 .startStreaming(new SimpleTimeseriesBuilder("JIT Samples", timeRange));
 

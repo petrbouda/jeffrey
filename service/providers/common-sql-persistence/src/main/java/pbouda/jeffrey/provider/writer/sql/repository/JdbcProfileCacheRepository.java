@@ -32,6 +32,7 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Blob;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Optional;
@@ -97,28 +98,38 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
 
     public static <T> RowMapper<T> typedMapper(Class<T> type) {
         return (rs, _) -> {
+            Blob blob = null;
             try {
-                String stream = rs.getString("content");
-                if (stream != null) {
-                    return Json.read(stream, type);
+                blob = rs.getBlob("content");
+                if (blob != null) {
+                    return Json.read(streamToString(blob.getBinaryStream()), type);
                 }
                 return null;
             } catch (SQLException e) {
-                throw new RuntimeException("Cannot retrieve a content", e);
+                throw new RuntimeException("Cannot retrieve a binary content", e);
+            } finally {
+               if (blob != null) {
+                   blob.free();
+               }
             }
         };
     }
 
     public static <T> RowMapper<T> typedMapper(TypeReference<T> type) {
         return (rs, _) -> {
+            Blob blob = null;
             try {
-                String stream = rs.getString("content");
-                if (stream != null) {
-                    return Json.read(stream, type);
+                blob = rs.getBlob("content");
+                if (blob != null) {
+                    return Json.read(streamToString(blob.getBinaryStream()), type);
                 }
                 return null;
             } catch (SQLException e) {
-                throw new RuntimeException("Cannot retrieve a content", e);
+                throw new RuntimeException("Cannot retrieve a binary content", e);
+            } finally {
+                if (blob != null) {
+                    blob.free();
+                }
             }
         };
     }

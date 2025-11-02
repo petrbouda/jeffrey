@@ -34,17 +34,16 @@ import static pbouda.jeffrey.provider.writer.duckdb.writer.DuckDBAppenderUtils.n
 public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventType> {
 
     private final String profileId;
-    private final DuckDBConnection connection;
 
     public DuckDBEventTypeWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("event_types", batchSize, StatementLabel.INSERT_EVENT_TYPES);
-        this.connection = DataSourceUtils.connection(dataSource, DuckDBConnection.class);
+        super("event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
         this.profileId = profileId;
     }
 
     @Override
-    public void execute(List<EnhancedEventType> batch) throws Exception {
-        try (DuckDBAppender appender = connection.createAppender("event_types")) {
+    public void execute(DuckDBConnection connection, List<EnhancedEventType> batch) throws Exception {
+        DuckDBConnection unwrapped = DataSourceUtils.unwrapConnection(connection, DuckDBConnection.class);
+        try (DuckDBAppender appender = unwrapped.createAppender("event_types")) {
             for (EnhancedEventType entity : batch) {
                 EventType eventType = entity.eventType();
 
@@ -82,10 +81,5 @@ public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventTyp
                 appender.endRow();
             }
         }
-    }
-
-    @Override
-    public void close() {
-        DataSourceUtils.close(connection);
     }
 }

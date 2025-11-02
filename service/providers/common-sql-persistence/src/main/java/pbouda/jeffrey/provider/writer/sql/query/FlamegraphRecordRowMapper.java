@@ -34,12 +34,10 @@ public class FlamegraphRecordRowMapper implements RowMapper<FlamegraphRecord> {
 
     private final Type eventType;
     private final boolean useThreads;
-    private final boolean useWeight;
 
     public FlamegraphRecordRowMapper(EventQueryConfigurer configurer) {
         this.eventType = configurer.eventTypes().getFirst();
         this.useThreads = configurer.threads();
-        this.useWeight = configurer.useWeight();
     }
 
     @Override

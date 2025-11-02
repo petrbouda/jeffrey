@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.writer.duckdb.writer;
 
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
-import pbouda.jeffrey.provider.api.DataSourceUtils;
 import pbouda.jeffrey.provider.api.model.writer.EventStacktraceWithHash;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
@@ -30,16 +29,14 @@ import java.util.List;
 public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktraceWithHash> {
 
     private final String profileId;
-    private final DuckDBConnection connection;
 
     public DuckDBStacktraceWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("stacktraces", batchSize, StatementLabel.INSERT_STACKTRACES);
+        super("stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
         this.profileId = profileId;
-        this.connection = DataSourceUtils.connection(dataSource, DuckDBConnection.class);
     }
 
     @Override
-    public void execute(List<EventStacktraceWithHash> batch) throws Exception {
+    public void execute(DuckDBConnection connection, List<EventStacktraceWithHash> batch) throws Exception {
         try (DuckDBAppender appender = connection.createAppender("stacktraces")) {
             for (EventStacktraceWithHash entity : batch) {
                 appender.beginRow();
@@ -56,10 +53,5 @@ public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktrace
                 appender.endRow();
             }
         }
-    }
-
-    @Override
-    public void close() {
-        DataSourceUtils.close(connection);
     }
 }
