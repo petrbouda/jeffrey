@@ -115,14 +115,15 @@ public class SingleThreadHasher {
     }
 
     /**
-     * Hash EventThread using profile_id and the name field.
-     * Ensures threads are scoped per profile.
+     * Hash EventThread using profile_id, name, osId, and javaId fields.
+     * Ensures threads are scoped per profile and uniquely identified by all thread attributes.
      */
     public long hashThread(String profileId, EventThread thread) {
         byte[] profileIdBytes = safeGetBytes(profileId);
         byte[] nameBytes = safeGetBytes(thread.name());
 
-        int totalSize = 4 + profileIdBytes.length + 4 + nameBytes.length;
+        // Calculate size: profile_id + name + osId (8 bytes) + javaId (8 bytes)
+        int totalSize = 4 + profileIdBytes.length + 4 + nameBytes.length + 8 + 8;
         byte[] bytes = new byte[totalSize];
 
         int offset = 0;
@@ -130,6 +131,10 @@ public class SingleThreadHasher {
         offset = writeString(bytes, offset, profileIdBytes);
         // Write thread name (length + bytes)
         offset = writeString(bytes, offset, nameBytes);
+        // Write osId (8 bytes, use 0 if null)
+        offset = writeLong(bytes, offset, thread.osId() != null ? thread.osId() : 0L);
+        // Write javaId (8 bytes, use 0 if null)
+        offset = writeLong(bytes, offset, thread.javaId() != null ? thread.javaId() : 0L);
 
         return HASHER.hash(bytes, 0, offset, 0);
     }

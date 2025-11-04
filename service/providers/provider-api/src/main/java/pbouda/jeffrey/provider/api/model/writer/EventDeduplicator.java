@@ -7,6 +7,7 @@ public class EventDeduplicator {
 
     private final ConcurrentMap<Long, Boolean> frameUsed = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, Boolean> stacktraceUsed = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, Boolean> threadUsed = new ConcurrentHashMap<>();
 
     public Boolean checkAndAddFrame(long value) {
         return checkAndAdd(value, frameUsed);
@@ -14,6 +15,10 @@ public class EventDeduplicator {
 
     public Boolean checkAndAddStacktrace(long value) {
         return checkAndAdd(value, stacktraceUsed);
+    }
+
+    public Boolean checkAndAddThread(long value) {
+        return checkAndAdd(value, threadUsed);
     }
 
     /**

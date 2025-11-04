@@ -38,13 +38,29 @@ public abstract class FlamegraphMapperUtils {
         Struct threadStruct = (Struct) rs.getObject("thread");
         if (threadStruct != null) {
             Object[] attrs = threadStruct.getAttributes();
-            return new DbJfrThread(
-                    (Long) attrs[0],   // os_id
-                    (Long) attrs[1],   // java_id
-                    (String) attrs[2], // name
-                    (Boolean) attrs[3] // is_virtual
-            );
+            if (attrs != null && attrs.length >= 4) {
+                long osId = toLong(attrs[0]);
+                long javaId = toLong(attrs[1]);
+                String name = (String) attrs[2];
+                boolean isVirtual = toBoolean(attrs[3]);
+
+                return new DbJfrThread(osId, javaId, name, isVirtual);
+            }
         }
         return null;
+    }
+
+    private static long toLong(Object value) {
+        if (value == null) {
+            return -1L;
+        }
+        return ((Number) value).longValue();
+    }
+
+    private static boolean toBoolean(Object value) {
+        if (value == null) {
+            return false;
+        }
+        return (Boolean) value;
     }
 }

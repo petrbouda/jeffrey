@@ -60,6 +60,7 @@ public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash
                 appender.append(thread.isVirtual());
                 appender.endRow();
             }
+            appender.flush();
         }
     }
 }

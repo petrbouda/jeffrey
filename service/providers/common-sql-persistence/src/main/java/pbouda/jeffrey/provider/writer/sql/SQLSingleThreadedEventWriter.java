@@ -129,7 +129,9 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     @Override
     public long onEventThread(EventThread thread) {
         long hash = hasher.hashThread(profileId, thread);
-        eventThreads.add(new EventThreadWithHash(hash, thread));
+        if (deduplicator.checkAndAddThread(hash)) {
+            eventThreads.add(new EventThreadWithHash(hash, thread));
+        }
         return hash;
     }
 

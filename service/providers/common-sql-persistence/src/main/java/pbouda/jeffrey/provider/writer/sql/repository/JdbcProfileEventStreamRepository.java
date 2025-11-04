@@ -153,9 +153,11 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         }
 
         if (configurer.threads()) {
-            if (configurer.specifiedThread() != null) {
-                baseParams.addValue("java_thread_id", configurer.specifiedThread());
-            }
+            Long javaThreadId = configurer.specifiedThread() != null
+                    ? configurer.specifiedThread().javaId()
+                    : null;
+
+            baseParams.addValue("java_thread_id", javaThreadId);
 
             String sql = configurer.useWeight()
                     ? DuckDBFlamegraphQueries.STACKTRACE_DETAILS_BY_THREAD_AND_WEIGHT_ENTITY
