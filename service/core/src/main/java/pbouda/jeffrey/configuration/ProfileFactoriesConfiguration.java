@@ -123,12 +123,13 @@ public class ProfileFactoriesConfiguration {
 
         return (profileInfo) -> {
             ProfileEventRepository eventsRepository = repositories.newEventRepository(profileInfo.id());
+            ProfileEventStreamRepository eventsStreamRepository = repositories.newEventStreamRepository(profileInfo.id());
             ProfileEventTypeRepository eventsTypeRepository = repositories.newEventTypeRepository(profileInfo.id());
             ProfileCacheRepository cacheRepository = repositories.newProfileCacheRepository(profileInfo.id());
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileInfo);
 
             Guardian guardian = new Guardian(
-                    profileInfo, eventsRepository, eventsTypeRepository, settingsProvider.get());
+                    profileInfo, eventsRepository, eventsStreamRepository, eventsTypeRepository, settingsProvider.get());
 
             GuardianProvider guardianProvider = new CachingGuardianProvider(
                     cacheRepository, new ParsingGuardianProvider(guardian));
@@ -141,7 +142,7 @@ public class ProfileFactoriesConfiguration {
     public FlamegraphManager.Factory flamegraphFactory(Repositories repositories) {
         return profileInfo -> {
             ProfileEventTypeRepository eventTypeRepository = repositories.newEventTypeRepository(profileInfo.id());
-            ProfileEventRepository eventRepository = repositories.newEventRepository(profileInfo.id());
+            ProfileEventStreamRepository eventRepository = repositories.newEventStreamRepository(profileInfo.id());
             ProfileGraphRepository profileGraphRepository = repositories.newProfileGraphRepository(profileInfo.id());
             GraphRepositoryManager.Factory graphRepositoryManagerFactory = flamegraphManager ->
                     new GraphRepositoryManagerImpl(flamegraphManager, profileGraphRepository);
@@ -165,8 +166,8 @@ public class ProfileFactoriesConfiguration {
                     repositories.newEventTypeRepository(primary.id()),
                     repositories.newEventTypeRepository(secondary.id()),
                     new DbBasedDiffgraphGenerator(
-                            repositories.newEventRepository(primary.id()),
-                            repositories.newEventRepository(secondary.id())),
+                            repositories.newEventStreamRepository(primary.id()),
+                            repositories.newEventStreamRepository(secondary.id())),
                     graphRepositoryManagerFactory
             );
         };
@@ -215,6 +216,7 @@ public class ProfileFactoriesConfiguration {
 
             return new ThreadManagerImpl(
                     profileInfo,
+                    eventRepository,
                     eventStreamRepository,
                     eventTypeRepository,
                     new CachingThreadProvider(
@@ -253,6 +255,7 @@ public class ProfileFactoriesConfiguration {
                 new JITCompilationManagerImpl(
                         profileInfo,
                         repositories.newEventTypeRepository(profileInfo.id()),
+                        repositories.newEventRepository(profileInfo.id()),
                         repositories.newEventStreamRepository(profileInfo.id()));
     }
 

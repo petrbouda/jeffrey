@@ -29,8 +29,8 @@ public class BatchingThreadWriter extends BatchingWriter<EventThreadWithHash> {
 
     //language=SQL
     private static final String INSERT_THREADS = """
-            INSERT INTO threads (profile_id, thread_id, name, os_id, java_id, is_virtual)
-            VALUES (:profile_id, :thread_id, :name, :os_id , :java_id, :is_virtual)""";
+            INSERT INTO threads (profile_id, thread_hash, name, os_id, java_id, is_virtual)
+            VALUES (:profile_id, :thread_hash, :name, :os_id , :java_id, :is_virtual)""";
 
     private final String profileId;
 
@@ -44,7 +44,7 @@ public class BatchingThreadWriter extends BatchingWriter<EventThreadWithHash> {
         EventThread eventThread = entity.eventThread();
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("thread_id", entity.hash())
+                .addValue("thread_hash", entity.hash())
                 .addValue("name", eventThread.name())
                 .addValue("os_id", eventThread.osId())
                 .addValue("java_id", eventThread.javaId())

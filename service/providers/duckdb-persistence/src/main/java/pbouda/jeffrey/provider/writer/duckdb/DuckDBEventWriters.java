@@ -15,11 +15,12 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBFrameWriter frameWriter;
 
     public DuckDBEventWriters(DataSource dataSource, String profileId, int batchSize) {
-        this.eventWriter = new DuckDBEventWriter(dataSource, profileId, batchSize);
-        this.eventTypeWriter = new DuckDBEventTypeWriter(dataSource, profileId, batchSize);
-        this.stacktraceWriter = new DuckDBStacktraceWriter(dataSource, profileId, batchSize);
-        this.threadWriter = new DuckDBThreadWriter(dataSource, profileId, batchSize);
-        this.frameWriter = new DuckDBFrameWriter(dataSource, profileId, batchSize);
+        AsyncSingleWriter writer = new AsyncSingleWriter();
+        this.eventWriter = new DuckDBEventWriter(writer, dataSource, profileId, batchSize);
+        this.eventTypeWriter = new DuckDBEventTypeWriter(writer, dataSource, profileId, batchSize);
+        this.stacktraceWriter = new DuckDBStacktraceWriter(writer, dataSource, profileId, batchSize);
+        this.threadWriter = new DuckDBThreadWriter(writer, dataSource, profileId, batchSize);
+        this.frameWriter = new DuckDBFrameWriter(writer, dataSource, profileId, batchSize);
     }
 
     @Override

@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
-import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
 
 public class RecordsFrameIterator {
 
@@ -49,8 +49,6 @@ public class RecordsFrameIterator {
                 .withThreads(graphParameters.threadMode())
                 .withSpecifiedThread(graphParameters.threadInfo());
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newFlamegraphStreamer()
-                .startStreaming(frameBuilder);
+        return eventStreamRepository.flamegraphStreamer(configurer, frameBuilder);
     }
 }

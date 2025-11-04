@@ -63,8 +63,7 @@ public class HttpManagerImpl implements HttpManager {
             uriFilter = uri::equals;
         }
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new HttpOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, uriFilter));
+        return eventStreamRepository.genericStreaming(
+                configurer, new HttpOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, uriFilter));
     }
 }

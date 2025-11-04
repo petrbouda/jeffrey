@@ -35,8 +35,10 @@ public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventTyp
 
     private final String profileId;
 
-    public DuckDBEventTypeWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
+    public DuckDBEventTypeWriter(
+            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
+
+        super(asyncSingleWriter, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
         this.profileId = profileId;
     }
 

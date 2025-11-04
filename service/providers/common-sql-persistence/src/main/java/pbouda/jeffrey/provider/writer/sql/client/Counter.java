@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql.client;
 
-import pbouda.jeffrey.provider.api.streamer.model.*;
+import pbouda.jeffrey.provider.api.repository.model.*;
 
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;

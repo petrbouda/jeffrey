@@ -63,9 +63,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withJsonFields();
 
         List<JdbcPoolStatisticsBuilder.PoolStats> poolStats =
-                eventStreamRepository.newEventStreamerFactory(configurer)
-                        .newGenericStreamer()
-                        .startStreaming(new JdbcPoolStatisticsBuilder());
+                eventStreamRepository.genericStreaming(configurer, new JdbcPoolStatisticsBuilder());
 
         EventQueryConfigurer poolConfigurer = new EventQueryConfigurer()
                 .withEventTypes(List.of(
@@ -76,9 +74,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withJsonFields();
 
         List<JdbcPooledEventBuilder.Pool> poolsEvents =
-                eventStreamRepository.newEventStreamerFactory(poolConfigurer)
-                        .newGenericStreamer()
-                        .startStreaming(new JdbcPooledEventBuilder());
+                eventStreamRepository.genericStreaming(poolConfigurer, new JdbcPooledEventBuilder());
 
         List<JdbcPoolData> jdbcPoolList = new ArrayList<>();
         for (JdbcPoolStatisticsBuilder.PoolStats poolStat : poolStats) {
@@ -189,10 +185,8 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
                 .withEventType(eventType)
                 .withTimeRange(timeRange);
 
-        TimeseriesData timeseriesData =
-                eventStreamRepository.newEventStreamerFactory(configurer)
-                        .newFilterableTimeseriesStreamer()
-                        .startStreaming(new SecondValueTimeseriesBuilder("Events", timeRange));
+        TimeseriesData timeseriesData = eventStreamRepository
+                .filterableTimeseriesStreamer(configurer, new SecondValueTimeseriesBuilder("Events", timeRange));
 
         return timeseriesData.series().getFirst();
     }

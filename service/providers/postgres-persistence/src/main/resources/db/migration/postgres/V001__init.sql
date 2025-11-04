@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS events
     weight                         BIGINT,
     weight_entity                  TEXT,
     stacktrace_id                  BIGINT,
-    thread_id                      BIGINT,
+    thread_hash                      BIGINT,
     fields                         JSONB,
     PRIMARY KEY (profile_id, event_id)
 );
@@ -209,13 +209,13 @@ CREATE TABLE IF NOT EXISTS stacktrace_tags
 CREATE TABLE IF NOT EXISTS threads
 (
     profile_id TEXT    NOT NULL,
-    thread_id  BIGINT  NOT NULL,
+    thread_hash  BIGINT  NOT NULL,
     name       TEXT    NOT NULL,
 --     virtual threads does not have os_id
     os_id      BIGINT,
     java_id    BIGINT,
     is_virtual BOOLEAN NOT NULL,
-    PRIMARY KEY (profile_id, thread_id)
+    PRIMARY KEY (profile_id, thread_hash)
 );
 
 CREATE TABLE IF NOT EXISTS workspaces

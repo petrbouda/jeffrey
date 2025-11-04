@@ -30,7 +30,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
-import pbouda.jeffrey.provider.writer.sql.query.JdbcEventStreamer;
+import pbouda.jeffrey.provider.writer.sql.repository.JdbcProfileEventStreamRepository;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -124,7 +124,7 @@ public class JfrEventListenerInitializer implements ApplicationListener<Applicat
         }
         String methodName = frame.getMethod().getType().getName();
         return methodName.startsWith("pbouda.jeffrey")
-               && !(methodName.startsWith(JdbcEventStreamer.class.getName())
-                    || methodName.startsWith(DatabaseClient.class.getName()));
+                && !(methodName.startsWith(JdbcProfileEventStreamRepository.class.getName())
+                || methodName.startsWith(DatabaseClient.class.getName()));
     }
 }

@@ -23,8 +23,8 @@ import pbouda.jeffrey.generator.subsecond.db.SingleResult;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondCollectorUtils;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondRecordBuilder;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
 
@@ -40,10 +40,7 @@ public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
                 .withEventType(config.eventType())
                 .withTimeRange(config.timeRange());
 
-        SingleResult result = eventStreamRepository.newEventStreamerFactory(configurer)
-                .newSubSecondStreamer()
-                .startStreaming(new SubSecondRecordBuilder());
-
+        SingleResult result = eventStreamRepository.subSecondStreamer(configurer, new SubSecondRecordBuilder());
         return SubSecondCollectorUtils.finisher(result);
     }
 }

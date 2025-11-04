@@ -16,18 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer.model;
+package pbouda.jeffrey.provider.api.repository.model;
 
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.jfrparser.api.type.JfrThread;
-
-public record FlamegraphRecord(
-        Type type,
-        JfrStackTrace stackTrace,
-        JfrThread thread,
-        JfrClass weightEntity,
-        long samples,
-        long weight) {
+public record SubSecondRecord(long timestampFromStart, long value) {
 }

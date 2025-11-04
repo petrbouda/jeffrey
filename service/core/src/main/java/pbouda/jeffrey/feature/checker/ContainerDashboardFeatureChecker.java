@@ -26,7 +26,7 @@ import pbouda.jeffrey.feature.FeatureCheckResult;
 import pbouda.jeffrey.feature.FeatureType;
 import pbouda.jeffrey.common.event.ContainerConfiguration;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 import java.util.Map;
 import java.util.Optional;

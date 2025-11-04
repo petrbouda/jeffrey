@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.RecordedClassMapper;
 import pbouda.jeffrey.common.model.FrameType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
-import pbouda.jeffrey.provider.api.streamer.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
 
 import java.util.List;
 

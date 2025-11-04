@@ -22,4 +22,8 @@ import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 
 public record DbJfrStackFrame(
         DbJfrMethod method, String type, int lineNumber, int bytecodeIndex) implements JfrStackFrame {
+
+    public DbJfrStackFrame(String className, String methodName, String type, int lineNumber, int bytecodeIndex) {
+        this(new DbJfrMethod(className, methodName), type, lineNumber, bytecodeIndex);
+    }
 }

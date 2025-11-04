@@ -20,8 +20,8 @@ package pbouda.jeffrey.provider.writer.sql.query.timeseries;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
-import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.api.repository.model.SecondValue;
+import pbouda.jeffrey.provider.api.repository.model.TimeseriesRecord;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,10 +40,11 @@ public class TimeseriesRecordRowMapper implements RowMapper<TimeseriesRecord> {
             secondValues.add(new SecondValue(Long.parseLong(secondValue[0]), Long.parseLong(secondValue[1])));
         }
 
-        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
-                r.getLong("stacktrace_id"),
-                r.getString("frames"));
-
-        return new TimeseriesRecord(stacktrace, secondValues);
+        throw new UnsupportedOperationException();
+//        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
+//                r.getLong("stacktrace_id"),
+//                r.getString("frames"));
+//
+//        return new TimeseriesRecord(stacktrace, secondValues);
     }
 }

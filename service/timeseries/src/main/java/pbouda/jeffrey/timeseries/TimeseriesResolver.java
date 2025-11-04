@@ -21,7 +21,7 @@ package pbouda.jeffrey.timeseries;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.streamer.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.api.repository.model.TimeseriesRecord;
 
 public abstract class TimeseriesResolver {
 

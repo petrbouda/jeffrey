@@ -21,12 +21,11 @@ package pbouda.jeffrey.profile.guardian;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.RecordingEventSource;
-import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.GarbageCollectorType;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.common.settings.ActiveSettings;
 import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformation;
@@ -37,6 +36,7 @@ import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
 import java.util.ArrayList;
@@ -49,17 +49,20 @@ public class Guardian {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ActiveSettings activeSettings;
 
     public Guardian(
             ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventStreamRepository,
             ProfileEventTypeRepository eventTypeRepository,
             ActiveSettings activeSettings) {
 
         this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
         this.eventTypeRepository = eventTypeRepository;
         this.activeSettings = activeSettings;
     }
@@ -78,8 +81,8 @@ public class Guardian {
                 .build();
 
         List<GuardianGroup> groups = List.of(
-                new ExecutionSampleGuardianGroup(profileInfo, eventRepository, activeSettings, 1000),
-                new AllocationGuardianGroup(profileInfo, eventRepository, activeSettings, 1000)
+                new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
+                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000)
         );
 
         List<GuardianResult> results = new ArrayList<>();
@@ -87,13 +90,7 @@ public class Guardian {
             EventSummary eventSummary = selectEventSummary(group, eventSummaries);
 
             if (eventSummary != null) {
-                Type eventType = Type.fromCode(eventSummary.name());
-
-                GraphParameters parameters = GraphParameters.builder()
-                        .withEventType(eventType)
-                        .build();
-
-                List<GuardianResult> groupResults = group.execute(parameters, eventSummary, preconditions);
+                List<GuardianResult> groupResults = group.execute(eventSummary, preconditions);
                 results.addAll(groupResults);
             }
         }

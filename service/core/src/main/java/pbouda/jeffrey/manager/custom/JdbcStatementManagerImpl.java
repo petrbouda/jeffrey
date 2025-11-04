@@ -30,7 +30,6 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 public class JdbcStatementManagerImpl implements JdbcStatementManager {
 
@@ -94,8 +93,7 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
             statementFilter = (_, s) -> s.equalsIgnoreCase(statementName);
         }
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, statementFilter));
+        return eventStreamRepository.genericStreaming(
+                configurer, new JdbcOverviewEventBuilder(timeRange, MAX_SLOW_REQUESTS, statementFilter));
     }
 }

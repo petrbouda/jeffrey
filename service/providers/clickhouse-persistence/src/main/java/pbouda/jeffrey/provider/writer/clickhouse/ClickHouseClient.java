@@ -122,7 +122,7 @@ public class ClickHouseClient {
     private static TableSchema createThreadsSchema() {
         return new TableSchema(List.of(
                 ClickHouseColumn.of("profile_id", "String"),
-                ClickHouseColumn.of("thread_id", "UInt32"),
+                ClickHouseColumn.of("thread_hash", "UInt32"),
                 ClickHouseColumn.of("name", "String"),
                 ClickHouseColumn.of("os_id", "Nullable(UInt32)"),
                 ClickHouseColumn.of("java_id", "Nullable(UInt32)"),
@@ -153,7 +153,6 @@ public class ClickHouseClient {
     private static TableSchema createEventsSchema() {
         return new TableSchema(List.of(
                 ClickHouseColumn.of("profile_id", "String"),
-                ClickHouseColumn.of("event_id", "UInt64"),
                 ClickHouseColumn.of("event_type", "LowCardinality(String)"),
                 ClickHouseColumn.of("start_timestamp", "DateTime64(9)"),
                 ClickHouseColumn.of("start_timestamp_from_beginning", "UInt64"),
@@ -163,8 +162,8 @@ public class ClickHouseClient {
                 ClickHouseColumn.of("samples", "UInt32"),
                 ClickHouseColumn.of("weight", "Nullable(UInt64)"),
                 ClickHouseColumn.of("weight_entity", "LowCardinality(String)"),
-                ClickHouseColumn.of("stack_hash", "Nullable(UInt64)"),
-                ClickHouseColumn.of("thread_id", "Nullable(UInt32)"),
+                ClickHouseColumn.of("stacktrace_hash", "Nullable(UInt64)"),
+                ClickHouseColumn.of("thread_hash", "Nullable(UInt64)"),
                 ClickHouseColumn.of("fields", "String")
         ));
     }

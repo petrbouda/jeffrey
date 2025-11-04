@@ -18,13 +18,14 @@
 
 package pbouda.jeffrey.provider.api;
 
+import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.api.model.writer.*;
 
 public interface EventWriters extends AutoCloseable {
 
     DatabaseWriter<EnhancedEventType> eventTypes();
 
-    DatabaseWriter<EventWithId> events();
+    DatabaseWriter<Event> events();
 
     DatabaseWriter<EventStacktraceWithHash> stacktraces();
 

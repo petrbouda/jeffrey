@@ -35,6 +35,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DuckDBBatchingWriter.class);
 
+    private final AsyncSingleWriter asyncSingleWriter;
     private final String tableName;
     private final DataSource dataSource;
     private final int batchSize;
@@ -43,11 +44,13 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     private final List<T> batch = new ArrayList<>();
 
     public DuckDBBatchingWriter(
+            AsyncSingleWriter asyncSingleWriter,
             String tableName,
             DataSource dataSource,
             int batchSize,
             StatementLabel statementLabel) {
 
+        this.asyncSingleWriter = asyncSingleWriter;
         this.tableName = tableName;
         this.dataSource = dataSource;
         this.batchSize = batchSize;
@@ -78,19 +81,22 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             return;
         }
 
-        long start = System.nanoTime();
+        List<T> copiedBatch = List.copyOf(batch);
+        asyncSingleWriter.execute(() -> {
+            long start = System.nanoTime();
 
-        try (Connection connection = dataSource.getConnection()) {
-            DuckDBConnection unwrapped = DataSourceUtils.unwrapConnection(connection, DuckDBConnection.class);
-            execute(unwrapped, batch);
-        } catch (Exception e) {
-            LOG.error("Failed to insert batch of items: type={} size={}",
-                    tableName, batch.size(), e);
-        }
+            try (Connection connection = dataSource.getConnection()) {
+                DuckDBConnection unwrapped = DataSourceUtils.unwrapConnection(connection, DuckDBConnection.class);
+                execute(unwrapped, copiedBatch);
+            } catch (Exception e) {
+                LOG.error("Failed to insert batch of items: type={} size={}",
+                        tableName, copiedBatch.size(), e);
+            }
 
-        long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-        LOG.info("Batch of items has been flushed: type={} size={} elapsed_ms={}",
-                tableName, batch.size(), millis);
+            long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+            LOG.info("Batch of items has been flushed: type={} size={} elapsed_ms={}",
+                    tableName, copiedBatch.size(), millis);
+        });
 
         this.batch.clear();
     }

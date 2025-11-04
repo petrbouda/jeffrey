@@ -33,8 +33,9 @@ public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash
 
     private final String profileId;
 
-    public DuckDBThreadWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
+    public DuckDBThreadWriter(
+            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
+        super(asyncSingleWriter, "threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
         this.profileId = profileId;
     }
 
@@ -47,7 +48,7 @@ public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash
                 appender.beginRow();
                 // profile_id - VARCHAR NOT NULL
                 appender.append(profileId);
-                // thread_id - BIGINT NOT NULL
+                // thread_hash - BIGINT NOT NULL
                 appender.append(entity.hash());
                 // name - VARCHAR NOT NULL
                 appender.append(thread.name());

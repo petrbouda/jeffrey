@@ -24,16 +24,16 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.concurrent.CompletableFuture;
 
 public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventRepository;
 
-    public DbBasedFlamegraphGenerator(ProfileEventRepository eventRepository) {
+    public DbBasedFlamegraphGenerator(ProfileEventStreamRepository eventRepository) {
         this.eventRepository = eventRepository;
     }
 

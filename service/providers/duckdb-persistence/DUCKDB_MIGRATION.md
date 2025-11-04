@@ -85,7 +85,7 @@ CREATE TABLE events (
     weight UBIGINT,
     weight_entity VARCHAR,
     stack_hash UBIGINT, -- Reference to stacktraces.stack_hash
-    thread_id UINTEGER,
+    thread_hash UINTEGER,
     fields JSON, -- JSON fields for event-specific data
     PRIMARY KEY (profile_id, event_id)
 );
@@ -338,9 +338,9 @@ public class DuckDBMigrationService {
                     appender.append(stackHash != null ?
                         BigInteger.valueOf(stackHash) : null);                           // stack_hash UBIGINT
 
-                    Object threadId = rs.getObject("thread_id");
+                    Object threadId = rs.getObject("thread_hash");
                     appender.append(threadId != null ?
-                        ((Number) threadId).intValue() : null);                          // thread_id UINTEGER
+                        ((Number) threadId).intValue() : null);                          // thread_hash UINTEGER
 
                     appender.append(rs.getString("fields"));                             // fields JSON (as VARCHAR)
 
@@ -585,7 +585,7 @@ public class DuckDBEventRepository {
                 appender.append(event.getWeightEntity());                      // weight_entity VARCHAR
                 appender.append(event.getStackHash() != null ?
                     BigInteger.valueOf(event.getStackHash()) : null);          // stack_hash UBIGINT
-                appender.append(event.getThreadId());                          // thread_id UINTEGER
+                appender.append(event.getThreadId());                          // thread_hash UINTEGER
                 appender.append(event.getFieldsJson());                        // fields JSON (as VARCHAR)
                 appender.endRow();
             }

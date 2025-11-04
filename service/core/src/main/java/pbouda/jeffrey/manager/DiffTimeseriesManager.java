@@ -69,9 +69,7 @@ public class DiffTimeseriesManager implements TimeseriesManager {
         /*
          * Create a query to the database with all the necessary parameters from the config.
          */
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newSimpleTimeseriesStreamer()
-                .startStreaming(new SimpleTimeseriesBuilder(timeRange));
+        return eventStreamRepository.timeseriesStreamer(configurer, new SimpleTimeseriesBuilder(timeRange));
     }
 
     private static ProfilingStartEnd calculateSecondaryStartEnd(

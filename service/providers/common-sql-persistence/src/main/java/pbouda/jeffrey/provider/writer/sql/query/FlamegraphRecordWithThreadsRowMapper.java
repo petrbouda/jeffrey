@@ -10,7 +10,8 @@ import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public record FlamegraphRecordRowMapper(Type eventType, boolean useWeight) implements RowMapper<FlamegraphRecord> {
+public record FlamegraphRecordWithThreadsRowMapper(
+        Type eventType, boolean useWeight) implements RowMapper<FlamegraphRecord> {
 
     @Override
     public FlamegraphRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -25,7 +26,7 @@ public record FlamegraphRecordRowMapper(Type eventType, boolean useWeight) imple
         return new FlamegraphRecord(
                 eventType,
                 stacktrace,
-                null,
+                FlamegraphMapperUtils.getThread(rs),
                 weightEntity,
                 rs.getLong("total_samples"),
                 rs.getLong("total_weight")

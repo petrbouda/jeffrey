@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.event.*;
 import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.gc.configuration.*;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 public class GCConfigurationEventBuilder implements RecordBuilder<GenericRecord, GCConfigurationData> {
 

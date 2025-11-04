@@ -150,7 +150,7 @@ public abstract class SQLFormatter {
                 .addColumn("threads.name")
                 .join("threads", and(
                         eq("events.profile_id", c("threads.profile_id")),
-                        eq("events.thread_id", c("threads.thread_id"))));
+                        eq("events.thread_hash", c("threads.thread_hash"))));
     }
 
     public SQLBuilder eventTypes() {

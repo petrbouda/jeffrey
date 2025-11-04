@@ -30,7 +30,7 @@ import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.gc.*;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;

@@ -30,8 +30,9 @@ public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktrace
 
     private final String profileId;
 
-    public DuckDBStacktraceWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
+    public DuckDBStacktraceWriter(
+            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
+        super(asyncSingleWriter, "stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
         this.profileId = profileId;
     }
 

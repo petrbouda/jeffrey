@@ -345,14 +345,15 @@ public class DatabaseClient {
         return exists;
     }
 
-    public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
+    public <T> void queryStream(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> mapper, Consumer<T> consumer) {
         Counter counter = new Counter();
 
         JdbcStreamEvent event = new JdbcStreamEvent(statement.name().toLowerCase(), groupLabel);
         event.sql = sql;
         event.begin();
 
-        try (Stream<T> queryStream = delegate.queryForStream(sql, Map.of(), mapper)) {
+        try (Stream<T> queryStream = delegate.queryForStream(sql, paramSource, mapper)) {
             queryStream.peek(counter).forEach(consumer);
         } catch (Exception e) {
             event.isSuccess = false;
@@ -362,9 +363,14 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.rows = counter.rows();
                 event.samples = counter.samples();
+                event.params = paramSourceToJson(paramSource);
                 event.commit();
             }
         }
+    }
+
+    public <T> void queryStream(StatementLabel statement, String sql,  RowMapper<T> mapper, Consumer<T> consumer) {
+        queryStream(statement, sql, null, mapper, consumer);
     }
 
     public void walCheckpoint() {

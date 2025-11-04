@@ -88,7 +88,7 @@ CREATE TABLE jfr_events
     weight                         Nullable(UInt64),
     weight_entity                  LowCardinality(String),
     stacktrace_id                  Nullable(UInt64),
-    thread_id                      Nullable(UInt32),
+    thread_hash                    Nullable(UInt32),
     fields                         String, -- JSON fields for event-specific data
     ingestion_time                 DateTime64(9) DEFAULT now64()
 ) ENGINE = MergeTree()
@@ -243,7 +243,7 @@ public class ClickHouseEventRepositoryV2 {
         String sql = """
             INSERT INTO jfr_events (
                 profile_id, event_id, event_type, timestamp, timestamp_from_beginning,
-                samples, weight, weight_entity, stacktrace_id, thread_id, fields
+                samples, weight, weight_entity, stacktrace_id, thread_hash, fields
             ) FORMAT RowBinary
             """;
 

@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.model.EventTypeName;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.model.container.ContainerConfigurationData;
 import pbouda.jeffrey.common.event.ContainerConfiguration;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 public class ContainerConfigurationEventBuilder implements RecordBuilder<GenericRecord, ContainerConfigurationData> {
 

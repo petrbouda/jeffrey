@@ -28,7 +28,7 @@ import pbouda.jeffrey.manager.model.heap.HeapMemoryTimeseriesType;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -71,8 +71,6 @@ public class HeapMemoryManagerImpl implements HeapMemoryManager {
             case ALLOCATION -> new AllocationTimeseriesBuilder(timeRange, timeseriesType);
         };
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(builder);
+        return eventStreamRepository.genericStreaming(configurer, builder);
     }
 }

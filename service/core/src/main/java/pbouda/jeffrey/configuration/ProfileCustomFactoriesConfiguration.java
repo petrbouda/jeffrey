@@ -29,18 +29,18 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public JdbcPoolManager.Factory jdbcPoolManagerFactory(Repositories repositories) {
         return profileInfo -> new JdbcPoolManagerImpl(
-                profileInfo, repositories.newEventRepository(profileInfo.id()));
+                profileInfo, repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean
     public JdbcStatementManager.Factory jdbcStatementManagerFactory(Repositories repositories) {
         return profileInfo -> new JdbcStatementManagerImpl(
-                profileInfo, repositories.newEventRepository(profileInfo.id()));
+                profileInfo, repositories.newEventStreamRepository(profileInfo.id()));
     }
 
     @Bean
     public HttpManager.Factory httpManagerFactory(Repositories repositories) {
         return profileInfo -> new HttpManagerImpl(
-                profileInfo, repositories.newEventRepository(profileInfo.id()));
+                profileInfo, repositories.newEventStreamRepository(profileInfo.id()));
     }
 }

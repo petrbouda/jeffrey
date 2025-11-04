@@ -28,7 +28,9 @@ import java.util.List;
 
 public interface GuardianGroup {
 
-    List<GuardianResult> execute(GraphParameters parameters, EventSummary eventSummary, Preconditions preconditions);
+    List<GuardianResult> execute(EventSummary eventSummary, Preconditions preconditions);
 
     List<Type> applicableTypes();
+
+    GraphParameters graphParameters();
 }

@@ -44,13 +44,13 @@ SETTINGS index_granularity = 8192;
 CREATE TABLE IF NOT EXISTS threads
 (
     profile_id String,
-    thread_id  UInt32,
+    thread_hash  UInt32,
     name       String,
     os_id      Nullable(UInt32),       -- Virtual threads don't have os_id
     java_id    Nullable(UInt32),
     is_virtual Bool
 ) ENGINE = ReplacingMergeTree()
-ORDER BY (profile_id, thread_id)
+ORDER BY (profile_id, thread_hash)
 SETTINGS index_granularity = 8192;
 
 -- Event types configuration and metadata
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS events
     weight                         Nullable(UInt64),
     weight_entity                  LowCardinality(String),
     stack_hash                     Nullable(UInt64),
-    thread_id                      Nullable(UInt32),
+    thread_hash                      Nullable(UInt32),
     fields                         String              -- JSON fields for event-specific data
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMM(start_timestamp)

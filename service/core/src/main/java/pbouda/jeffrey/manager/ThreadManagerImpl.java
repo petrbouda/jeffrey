@@ -34,7 +34,7 @@ import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.Comparator;
@@ -99,9 +99,8 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withEventType(Type.JAVA_THREAD_STATISTICS)
                 .withJsonFields();
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new ThreadTimeseriesBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd())));
+        return eventStreamRepository.genericStreaming(
+                configurer, new ThreadTimeseriesBuilder(new RelativeTimeRange(profileInfo.profilingStartEnd())));
     }
 
     @Override
@@ -136,9 +135,7 @@ public class ThreadManagerImpl implements ThreadManager {
                 .withThreads()
                 .withJsonFields();
 
-        ThreadCpuLoads result = eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new CPULoadBuilder(limit));
+        ThreadCpuLoads result = eventStreamRepository.genericStreaming(configurer, new CPULoadBuilder(limit));
 
         return new ThreadCpuLoads(result.user(), result.system());
     }

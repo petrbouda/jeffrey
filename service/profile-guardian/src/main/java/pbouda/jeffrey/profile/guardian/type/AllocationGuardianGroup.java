@@ -18,13 +18,14 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
+import pbouda.jeffrey.common.config.GraphParameters;
+import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSettings;
-import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class AllocationGuardianGroup extends AbstractGuardianGroup {
 
     public AllocationGuardianGroup(
             ProfileInfo profileInfo,
-            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
             long minimumSamples) {
 
@@ -45,6 +46,14 @@ public class AllocationGuardianGroup extends AbstractGuardianGroup {
                 Type.OBJECT_ALLOCATION_SAMPLE,
                 Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
                 Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+    }
+
+    @Override
+    public GraphParameters graphParameters() {
+        return GraphParameters.builder()
+                .withEventType(Type.EXECUTION_SAMPLE)
+                .withUseWeight(true)
+                .build();
     }
 
     @Override

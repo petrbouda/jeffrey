@@ -25,7 +25,8 @@ public interface SingleThreadedEventWriter {
     /**
      * This method needs to be called for every thread that participates in pushing data to writer.
      */
-    void onThreadStart();
+    default void onThreadStart() {
+    }
 
     /**
      * This method is called when an event is received.

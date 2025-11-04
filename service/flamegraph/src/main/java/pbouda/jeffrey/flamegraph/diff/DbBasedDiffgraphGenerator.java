@@ -29,7 +29,7 @@ import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.DiffTreeGenerator;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
@@ -37,12 +37,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
-    private final ProfileEventRepository primaryRepository;
-    private final ProfileEventRepository secondaryRepository;
+    private final ProfileEventStreamRepository primaryRepository;
+    private final ProfileEventStreamRepository secondaryRepository;
 
     public DbBasedDiffgraphGenerator(
-            ProfileEventRepository primaryRepository,
-            ProfileEventRepository secondaryRepository) {
+            ProfileEventStreamRepository primaryRepository,
+            ProfileEventStreamRepository secondaryRepository) {
 
         this.primaryRepository = primaryRepository;
         this.secondaryRepository = secondaryRepository;

@@ -23,13 +23,11 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
-import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.provider.writer.sql.repository.Mappers;
 
 import java.sql.ResultSet;
@@ -80,12 +78,13 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
             eventTypeLabel = rs.getString("label");
         }
 
-        JfrStackTrace stackTrace = null;
-        if (useStackTraces) {
-            long stacktraceId = rs.getLong("stacktrace_id");
-            String frames = rs.getString("frames");
-            stackTrace = new DbJfrStackTrace(stacktraceId, frames);
-        }
+        // There is no use-case for GenericRecord to have stack trace
+        // JfrStackTrace stackTrace = null;
+        // if (useStackTraces) {
+        //     long stacktraceId = rs.getLong("stacktrace_id");
+        //     String frames = rs.getString("frames");
+        //     stackTrace = new DbJfrStackTrace(stacktraceId, frames);
+        // }
 
         JfrClass weightEntityClass = null;
         if (weightEntity != null) {
@@ -103,7 +102,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
                 timestamp,
                 Duration.ofMillis(timestampFromStart),
                 duration != null ? Duration.ofNanos(duration) : null,
-                stackTrace,
+                null,
                 thread,
                 weightEntityClass,
                 samples,

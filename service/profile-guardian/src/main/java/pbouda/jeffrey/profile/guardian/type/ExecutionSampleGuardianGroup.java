@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSettings;
@@ -28,7 +29,7 @@ import pbouda.jeffrey.profile.guardian.guard.app.RegexOverheadGuard;
 import pbouda.jeffrey.profile.guardian.guard.gc.*;
 import pbouda.jeffrey.profile.guardian.guard.jit.JITCompilationGuard;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class ExecutionSampleGuardianGroup extends AbstractGuardianGroup {
 
     public ExecutionSampleGuardianGroup(
             ProfileInfo profileInfo,
-            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
             long minimumSamples) {
 
@@ -46,6 +47,13 @@ public class ExecutionSampleGuardianGroup extends AbstractGuardianGroup {
     @Override
     public List<Type> applicableTypes() {
         return List.of(Type.EXECUTION_SAMPLE);
+    }
+
+    @Override
+    public GraphParameters graphParameters() {
+        return GraphParameters.builder()
+                .withEventType(Type.EXECUTION_SAMPLE)
+                .build();
     }
 
     @Override

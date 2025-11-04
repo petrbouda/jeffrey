@@ -160,44 +160,44 @@ CREATE TABLE IF NOT EXISTS events
     samples                        INTEGER NOT NULL,
     weight                         INTEGER,
     weight_entity                  TEXT,
-    stacktrace_id                  INTEGER,
-    thread_id                      INTEGER,
+    stacktrace_hash                  INTEGER,
+    thread_hash                      INTEGER,
     fields                         JSONB,
     PRIMARY KEY (profile_id, event_id)
 );
 
-CREATE INDEX idx_events_event_type_start_timestamp_from_beginning ON events(profile_id, event_type, start_timestamp_from_beginning, stacktrace_id);
+CREATE INDEX idx_events_event_type_start_timestamp_from_beginning ON events(profile_id, event_type, start_timestamp_from_beginning, stacktrace_hash);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 
 CREATE TABLE IF NOT EXISTS stacktraces
 (
     profile_id    TEXT    NOT NULL,
-    stacktrace_id INTEGER NOT NULL,
+    stacktrace_hash INTEGER NOT NULL,
     type_id       INTEGER NOT NULL,
     frames        TEXT    NOT NULL,
-    PRIMARY KEY (profile_id, stacktrace_id)
+    PRIMARY KEY (profile_id, stacktrace_hash)
 );
-CREATE INDEX idx_stacktraces_lookup ON stacktraces(profile_id, stacktrace_id);
+CREATE INDEX idx_stacktraces_lookup ON stacktraces(profile_id, stacktrace_hash);
 
 CREATE TABLE IF NOT EXISTS stacktrace_tags
 (
     profile_id    TEXT    NOT NULL,
-    stacktrace_id INTEGER NOT NULL,
+    stacktrace_hash INTEGER NOT NULL,
     tag_id        INTEGER NOT NULL,
-    PRIMARY KEY (profile_id, stacktrace_id, tag_id)
+    PRIMARY KEY (profile_id, stacktrace_hash, tag_id)
 );
 
 CREATE TABLE IF NOT EXISTS threads
 (
     profile_id TEXT    NOT NULL,
-    thread_id  INTEGER NOT NULL,
+    thread_hash  INTEGER NOT NULL,
     name       TEXT    NOT NULL,
 --     virtual threads does not have os_id
     os_id      INTEGER,
     java_id    INTEGER,
     is_virtual BOOLEAN NOT NULL,
-    PRIMARY KEY (profile_id, thread_id)
+    PRIMARY KEY (profile_id, thread_hash)
 );
 
 CREATE TABLE IF NOT EXISTS workspaces

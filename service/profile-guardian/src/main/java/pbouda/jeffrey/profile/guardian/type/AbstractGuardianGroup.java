@@ -30,6 +30,7 @@ import pbouda.jeffrey.profile.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.traverse.FrameTraversal;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,14 +38,14 @@ import java.util.List;
 public abstract class AbstractGuardianGroup implements GuardianGroup {
 
     private final String profileId;
-    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventRepository;
     private final ActiveSettings settings;
     private final String totalSamplesGuardName;
     private final long minimumSamples;
 
     public AbstractGuardianGroup(
             ProfileInfo profileInfo,
-            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
             String totalSamplesGuardName,
             long minimumSamples) {
@@ -59,7 +60,9 @@ public abstract class AbstractGuardianGroup implements GuardianGroup {
     abstract List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo);
 
     @Override
-    public List<GuardianResult> execute(GraphParameters params, EventSummary eventSummary, Preconditions preconditions) {
+    public List<GuardianResult> execute(EventSummary eventSummary, Preconditions preconditions) {
+        GraphParameters params = graphParameters();
+
         Guard.ProfileInfo profileInfo = new Guard.ProfileInfo(profileId, params.eventType());
         List<? extends Guard> candidateGuards = candidateGuards(profileInfo);
 

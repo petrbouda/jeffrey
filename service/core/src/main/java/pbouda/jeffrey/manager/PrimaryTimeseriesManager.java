@@ -22,7 +22,6 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
@@ -50,8 +49,6 @@ public class PrimaryTimeseriesManager implements TimeseriesManager {
                 .withWeight(params.useWeight())
                 .withThreads(params.threadMode());
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newSimpleTimeseriesStreamer()
-                .startStreaming(TimeseriesResolver.resolve(params));
+        return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(params));
     }
 }

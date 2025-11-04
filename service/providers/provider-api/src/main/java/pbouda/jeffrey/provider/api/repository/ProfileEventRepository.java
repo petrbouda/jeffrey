@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 import java.util.List;
 import java.util.Optional;

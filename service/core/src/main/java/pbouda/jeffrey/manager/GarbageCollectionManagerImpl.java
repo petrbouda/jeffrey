@@ -23,7 +23,6 @@ import pbouda.jeffrey.common.GarbageCollectorType;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.builder.ConcurrentGCOverviewEventBuilder;
 import pbouda.jeffrey.manager.builder.G1GCOverviewEventBuilder;
 import pbouda.jeffrey.manager.builder.GCConfigurationEventBuilder;
@@ -32,10 +31,11 @@ import pbouda.jeffrey.manager.model.gc.GCOverviewData;
 import pbouda.jeffrey.manager.model.gc.GCTimeseriesBuilder;
 import pbouda.jeffrey.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.manager.model.gc.configuration.GCConfigurationData;
+import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
@@ -95,9 +95,7 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
             case ZGENERATIONAL -> concurrentGCBuilder(GarbageCollectorType.ZGENERATIONAL, timeRange);
         };
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(builder);
+        return eventStreamRepository.genericStreaming(configurer, builder);
     }
 
     private NonConcurrentGCOverviewEventBuilder nonConcurrentGCBuilder(GarbageCollectorType gcType, RelativeTimeRange timeRange) {
@@ -126,9 +124,7 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 .withEventType(Type.GARBAGE_COLLECTION)
                 .withJsonFields();
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new GCTimeseriesBuilder(timeRange, timeseriesType));
+        return eventStreamRepository.genericStreaming(configurer, new GCTimeseriesBuilder(timeRange, timeseriesType));
     }
 
     @Override
@@ -143,8 +139,6 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
                 ))
                 .withJsonFields();
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new GCConfigurationEventBuilder());
+        return eventStreamRepository.genericStreaming(configurer, new GCConfigurationEventBuilder());
     }
 }

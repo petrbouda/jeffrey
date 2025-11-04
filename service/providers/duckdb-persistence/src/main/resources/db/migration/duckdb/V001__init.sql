@@ -182,26 +182,25 @@ CREATE TABLE IF NOT EXISTS events
     weight                         BIGINT,
     weight_entity                  VARCHAR,
     stacktrace_hash                BIGINT,  -- Reference to stacktraces.stacktrace_hash
-    thread_id                      BIGINT,  -- Hash value
+    thread_hash                    BIGINT,  -- Hash value
     fields                         JSON     -- JSON fields for event-specific data
 );
 
 -- Optimized indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_events_stacktrace_hash ON events(stacktrace_hash);
-CREATE INDEX IF NOT EXISTS idx_events_composite ON events(profile_id, event_type, start_timestamp_from_beginning);
+CREATE INDEX IF NOT EXISTS idx_events_composite ON events(profile_id, event_type, start_timestamp_from_beginning, stacktrace_hash);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX IF NOT EXISTS idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 
 CREATE TABLE IF NOT EXISTS threads
 (
-    profile_id VARCHAR  NOT NULL,
-    thread_id  BIGINT   NOT NULL,
-    name       VARCHAR  NOT NULL,
+    profile_id  VARCHAR  NOT NULL,
+    thread_hash BIGINT   NOT NULL,
+    name        VARCHAR  NOT NULL,
     -- virtual threads does not have os_id
-    os_id      BIGINT,
-    java_id    BIGINT,
-    is_virtual BOOLEAN  NOT NULL,
-    PRIMARY KEY (profile_id, thread_id)
+    os_id       BIGINT,
+    java_id     BIGINT,
+    is_virtual  BOOLEAN  NOT NULL,
+    PRIMARY KEY (profile_id, thread_hash)
 );
 
 --

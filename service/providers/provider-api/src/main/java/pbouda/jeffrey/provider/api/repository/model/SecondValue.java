@@ -16,20 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer;
+package pbouda.jeffrey.provider.api.repository.model;
 
-
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-
-public interface EventStreamer<T> {
-
-    /**
-     * Starts streaming the events from the database, mapping them to the provided type and building
-     * a result using the RecordBuilder.
-     *
-     * @param builder The RecordBuilder to use for processing the records.
-     * @param <R>     The type of the result produced by the RecordBuilder.
-     * @return The result produced by the RecordBuilder after processing all records.
-     */
-    <R> R startStreaming(RecordBuilder<T, R> builder);
+public record SecondValue(long second, long value) {
 }

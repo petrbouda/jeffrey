@@ -18,28 +18,9 @@
 
 package pbouda.jeffrey.jfrparser.db.type;
 
-import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 
 import java.util.List;
 
-public class DbJfrStackTrace implements JfrStackTrace {
-
-    private final long id;
-    private final List<DbJfrStackFrame> frames;
-
-    public DbJfrStackTrace(long id, List<DbJfrStackFrame> frames) {
-        this.id = id;
-        this.frames = frames;
-    }
-
-    @Override
-    public long id() {
-        return id;
-    }
-
-    @Override
-    public List<? extends JfrStackFrame> frames() {
-        return frames;
-    }
+public record DbJfrStackTrace(long id, List<DbJfrStackFrame> frames) implements JfrStackTrace {
 }

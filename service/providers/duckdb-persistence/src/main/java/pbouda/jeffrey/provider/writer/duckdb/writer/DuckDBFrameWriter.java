@@ -31,8 +31,8 @@ public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> 
 
     private final String profileId;
 
-    public DuckDBFrameWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("frames", dataSource, batchSize, StatementLabel.INSERT_FRAMES);
+    public DuckDBFrameWriter(AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
+        super(asyncSingleWriter, "frames", dataSource, batchSize, StatementLabel.INSERT_FRAMES);
         this.profileId = profileId;
     }
 

@@ -21,7 +21,7 @@ package pbouda.jeffrey.provider.writer.sql.query.timeseries;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.provider.api.streamer.model.SecondValue;
+import pbouda.jeffrey.provider.api.repository.model.SecondValue;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

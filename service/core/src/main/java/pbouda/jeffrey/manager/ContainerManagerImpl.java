@@ -40,8 +40,6 @@ public class ContainerManagerImpl implements ContainerManager {
                 .withEventTypes(List.of(Type.CONTAINER_CONFIGURATION))
                 .withJsonFields();
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new ContainerConfigurationEventBuilder());
+        return eventStreamRepository.genericStreaming(configurer, new ContainerConfigurationEventBuilder());
     }
 }

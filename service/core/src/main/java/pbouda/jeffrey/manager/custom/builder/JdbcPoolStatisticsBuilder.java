@@ -20,7 +20,7 @@ package pbouda.jeffrey.manager.custom.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.List;

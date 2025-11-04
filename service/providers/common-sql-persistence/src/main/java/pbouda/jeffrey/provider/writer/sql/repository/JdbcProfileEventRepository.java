@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
@@ -68,7 +68,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 threads.name,
                 threads.is_virtual
                 FROM events
-                LEFT JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_id = threads.thread_id)
+                LEFT JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash)
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
             AND events.start_timestamp_from_beginning = (
                 SELECT MAX(start_timestamp_from_beginning) FROM events

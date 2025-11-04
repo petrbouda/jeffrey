@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.writer.sql;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
+import pbouda.jeffrey.provider.api.model.writer.EventDeduplicator;
 import pbouda.jeffrey.provider.writer.sql.calculated.EventCalculator;
 
 import java.util.List;
@@ -33,18 +34,19 @@ public class SQLEventWriter implements EventWriter {
 
     private final String profileId;
     private final Supplier<EventWriters> eventWriters;
-    private final ProfileSequences sequences;
+    private final EventDeduplicator deduplicator;
 
     public SQLEventWriter(String profileId, Supplier<EventWriters> eventWriters) {
         this.profileId = profileId;
         this.eventWriters = eventWriters;
-        this.sequences = new ProfileSequences();
+        this.deduplicator = new EventDeduplicator();
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
         EventWriters writersProvider = eventWriters.get();
-        SQLSingleThreadedEventWriter eventWriter = new SQLSingleThreadedEventWriter(profileId, writersProvider, sequences);
+        SQLSingleThreadedEventWriter eventWriter =
+                new SQLSingleThreadedEventWriter(profileId, writersProvider, deduplicator);
         writers.add(eventWriter);
         return eventWriter;
     }

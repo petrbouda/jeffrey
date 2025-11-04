@@ -23,7 +23,7 @@ import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.List;

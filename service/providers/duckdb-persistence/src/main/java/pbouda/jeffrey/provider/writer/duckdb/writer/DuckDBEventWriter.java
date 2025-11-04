@@ -21,7 +21,6 @@ package pbouda.jeffrey.provider.writer.duckdb.writer;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import pbouda.jeffrey.provider.api.model.Event;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
 import javax.sql.DataSource;
@@ -30,25 +29,23 @@ import java.util.List;
 
 import static pbouda.jeffrey.provider.writer.duckdb.writer.DuckDBAppenderUtils.nullableAppend;
 
-public class DuckDBEventWriter extends DuckDBBatchingWriter<EventWithId> {
+public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
 
     private final String profileId;
 
-    public DuckDBEventWriter(DataSource dataSource, String profileId, int batchSize) {
-        super("events", dataSource, batchSize, StatementLabel.INSERT_EVENTS);
+    public DuckDBEventWriter(
+            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
+        super(asyncSingleWriter, "events", dataSource, batchSize, StatementLabel.INSERT_EVENTS);
         this.profileId = profileId;
     }
 
     @Override
-    public void execute(DuckDBConnection connection, List<EventWithId> batch) throws Exception {
+    public void execute(DuckDBConnection connection, List<Event> batch) throws Exception {
         try (DuckDBAppender appender = connection.createAppender("events")) {
-            for (EventWithId eventWithId : batch) {
-                Event event = eventWithId.event();
+            for (Event event : batch) {
                 appender.beginRow();
                 // profile_id - VARCHAR
                 appender.append(profileId);
-                // event_it - BIGINT
-                appender.append(eventWithId.id());
                 // event_type - VARCHAR
                 appender.append(event.eventType());
                 // start_timestamp - TIMESTAMP_MS NOT NULL
@@ -65,7 +62,7 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<EventWithId> {
                 nullableAppend(appender, event.weightEntity());
                 // stack_hash - BIGINT (nullable) - maps from stacktraceId
                 nullableAppend(appender, event.stacktraceId());
-                // thread_id - BIGINT (nullable) - hash value
+                // thread_hash - BIGINT (nullable) - hash value
                 nullableAppend(appender, event.threadId());
                 // fields - JSON (nullable)
                 nullableAppend(appender, event.fields() != null ? event.fields().toString() : null);

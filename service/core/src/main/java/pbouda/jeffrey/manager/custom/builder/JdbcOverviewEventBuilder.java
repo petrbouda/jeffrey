@@ -25,7 +25,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.manager.custom.model.jdbc.statement.*;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;

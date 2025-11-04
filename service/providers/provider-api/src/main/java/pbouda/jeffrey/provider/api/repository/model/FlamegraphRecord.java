@@ -16,32 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer.model;
+package pbouda.jeffrey.provider.api.repository.model;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
-import java.time.Duration;
-import java.time.Instant;
-
-public record GenericRecord(
+public record FlamegraphRecord(
         Type type,
-        String typeLabel,
-        Instant startTimestamp,
-        Duration timestampFromStart,
-        Duration duration,
         JfrStackTrace stackTrace,
         JfrThread thread,
         JfrClass weightEntity,
         long samples,
-        long sampleWeight,
-        ObjectNode jsonFields) {
-
-    public ThreadInfo threadInfo() {
-        return new ThreadInfo(thread.osThreadId(), thread.javaThreadId(), thread.name());
-    }
+        long weight) {
 }

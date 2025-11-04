@@ -21,18 +21,19 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.event.JITCompilationStats;
+import pbouda.jeffrey.common.event.JITLongCompilation;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.manager.builder.JITLongCompilationBuilder;
-import pbouda.jeffrey.common.event.JITCompilationStats;
-import pbouda.jeffrey.common.event.JITLongCompilation;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.streamer.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
@@ -45,21 +46,24 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventTypeRepository eventTypeRepository;
+    private final ProfileEventRepository eventRepository;
     private final ProfileEventStreamRepository eventStreamRepository;
 
     public JITCompilationManagerImpl(
             ProfileInfo profileInfo,
             ProfileEventTypeRepository eventTypeRepository,
+            ProfileEventRepository eventRepository,
             ProfileEventStreamRepository eventStreamRepository) {
 
         this.profileInfo = profileInfo;
         this.eventTypeRepository = eventTypeRepository;
+        this.eventRepository = eventRepository;
         this.eventStreamRepository = eventStreamRepository;
     }
 
     @Override
     public JITCompilationStats statistics() {
-        Optional<GenericRecord> statsOpt = eventStreamRepository.latest(Type.COMPILER_STATISTICS);
+        Optional<GenericRecord> statsOpt = eventRepository.latest(Type.COMPILER_STATISTICS);
         if (statsOpt.isEmpty()) {
             return null;
         }
@@ -89,9 +93,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withEventType(Type.COMPILATION)
                 .withJsonFields();
 
-        return eventStreamRepository.newEventStreamerFactory(configurer)
-                .newGenericStreamer()
-                .startStreaming(new JITLongCompilationBuilder(limit));
+        return eventStreamRepository.genericStreaming(configurer, new JITLongCompilationBuilder(limit));
     }
 
     @Override
@@ -103,9 +105,8 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .withTimeRange(timeRange)
                 .filterStacktraceType(StacktraceType.JVM_JIT);
 
-        TimeseriesData timeseriesData = eventStreamRepository.newEventStreamerFactory(configurer)
-                .newSimpleTimeseriesStreamer()
-                .startStreaming(new SimpleTimeseriesBuilder("JIT Samples", timeRange));
+        TimeseriesData timeseriesData = eventStreamRepository
+                .timeseriesStreamer(configurer, new SimpleTimeseriesBuilder("JIT Samples", timeRange));
 
         return timeseriesData.series().getFirst();
     }

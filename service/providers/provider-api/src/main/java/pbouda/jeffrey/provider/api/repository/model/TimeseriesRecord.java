@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.streamer.model;
+package pbouda.jeffrey.provider.api.repository.model;
 
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 

@@ -20,11 +20,11 @@ package pbouda.jeffrey.provider.writer.sql.writer;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import pbouda.jeffrey.provider.api.model.writer.EventWithId;
+import pbouda.jeffrey.provider.api.model.Event;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 
-public class BatchingEventWriter extends BatchingWriter<EventWithId> {
+public class BatchingEventWriter extends BatchingWriter<Event> {
 
     //language=SQL
     private static final String INSERT_EVENT = """
@@ -38,7 +38,7 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 weight,
                 weight_entity,
                 stacktrace_id,
-                thread_id,
+                thread_hash,
                 fields
             ) VALUES (
                 :profile_id,
@@ -50,19 +50,18 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 :weight,
                 :weight_entity,
                 :stacktrace_id,
-                :thread_id,
+                :thread_hash,
                 jsonb(:fields))""";
 
     private final String profileId;
 
     public BatchingEventWriter(DatabaseClient databaseClient, String profileId, int batchSize) {
-        super(EventWithId.class, databaseClient, INSERT_EVENT, batchSize, StatementLabel.INSERT_EVENTS);
+        super(Event.class, databaseClient, INSERT_EVENT, batchSize, StatementLabel.INSERT_EVENTS);
         this.profileId = profileId;
     }
 
     @Override
-    protected SqlParameterSource queryMapper(EventWithId eventWithId) {
-        var event = eventWithId.event();
+    protected SqlParameterSource queryMapper(Event event) {
         return new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("event_type", event.eventType())
@@ -73,7 +72,7 @@ public class BatchingEventWriter extends BatchingWriter<EventWithId> {
                 .addValue("weight", event.weight())
                 .addValue("weight_entity", event.weightEntity())
                 .addValue("stacktrace_id", event.stacktraceId())
-                .addValue("thread_id", event.threadId())
+                .addValue("thread_hash", event.threadId())
                 .addValue("fields", event.fields().toString());
     }
 }

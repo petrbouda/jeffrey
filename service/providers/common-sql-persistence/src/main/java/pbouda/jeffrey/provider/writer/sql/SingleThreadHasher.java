@@ -52,11 +52,11 @@ public class SingleThreadHasher {
 
         // Calculate total size needed
         int totalSize = 4 + profileIdBytes.length  // length (4 bytes) + profile_id string
-                + 4 + classBytes.length      // length (4 bytes) + class string
+                + 4 + classBytes.length    // length (4 bytes) + class string
                 + 4 + methodBytes.length   // length (4 bytes) + method string
                 + 4 + typeBytes.length     // length (4 bytes) + type string
-                + 8                        // bci (8 bytes)
-                + 8;                       // line (8 bytes)
+                + 8                        // line (8 bytes)
+                + 8;                       // bci (8 bytes)
 
         // Grow buffer if needed (rare after warmup)
         if (buffer.length < totalSize) {
