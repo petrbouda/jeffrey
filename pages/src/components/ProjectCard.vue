@@ -16,23 +16,32 @@
       <!-- Project Name -->
       <h3 class="project-name">{{ project.name }}</h3>
 
+      <!-- Alert Badge -->
+      <div v-if="project.alertCount > 0" class="alert-section">
+        <Badge
+          :value="`${project.alertCount} Alert${project.alertCount > 1 ? 's' : ''}`"
+          variant="red"
+          size="s"
+          icon="bi bi-exclamation-triangle-fill"
+          :uppercase="false"
+        />
+      </div>
+
       <!-- Metrics Row -->
       <div class="metrics-row">
-        <div class="metric">
+        <div class="metric date">
           <i class="bi bi-calendar3"></i>
           <span>{{ formatDate(project.createdAt) }}</span>
         </div>
         <div class="metric">
           <i class="bi bi-people-fill"></i>
-          <span>{{ project.profileCount }}</span>
+          <span class="metric-label">Profiles:</span>
+          <span class="metric-value">{{ project.profileCount }}</span>
         </div>
         <div class="metric">
           <i class="bi bi-camera-video-fill"></i>
-          <span>{{ project.recordingCount || 0 }}</span>
-        </div>
-        <div v-if="project.alertCount > 0" class="metric alert">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          <span>{{ project.alertCount }}</span>
+          <span class="metric-label">Recordings:</span>
+          <span class="metric-value">{{ project.recordingCount || 0 }}</span>
         </div>
       </div>
 
@@ -142,7 +151,11 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+    year: 'numeric'
+  }) + ' ' + date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
   });
 };
 
@@ -268,6 +281,12 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   line-height: 1.2;
 }
 
+/* Alert Section */
+.alert-section {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
 /* Metrics Row */
 .metrics-row {
   display: flex;
@@ -289,12 +308,20 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   color: #9ca3af;
 }
 
-.metric.alert {
-  color: #dc2626;
+.metric.date {
+  font-weight: 500;
+  color: #374151;
 }
 
-.metric.alert i {
-  color: #dc2626;
+.metric-label {
+  font-weight: 500;
+  color: #6b7280;
+  margin-left: 2px;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #374151;
 }
 
 /* Additional Info */
