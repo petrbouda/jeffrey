@@ -90,8 +90,8 @@ class FrameBasedTimeseriesQueryBuilderTest {
                 .withStacktraceTags(List.of(StacktraceTag.EXCLUDE_IDLE))
                 .build();
 
-        assertTrue(query.contains("LEFT JOIN stacktrace_tags tags"));
-        assertTrue(query.contains("(tags.tag_id NOT IN (0) OR tags.tag_id IS NULL)"));
+        assertTrue(query.contains("INNER JOIN stacktraces ON"));
+        assertTrue(query.contains("(stacktraces.tag_ids IS NULL OR array_length(stacktraces.tag_ids) = 0 OR NOT list_has_any(stacktraces.tag_ids, [0]))"));
     }
 
     @Test
@@ -108,7 +108,7 @@ class FrameBasedTimeseriesQueryBuilderTest {
                 .build();
 
         String expectedQuery =
-                "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (SELECT CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(events.weight)) AS pair, stacktraces.stacktrace_hash, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_hash = tags.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.start_timestamp_from_beginning >= 2000 AND events.start_timestamp_from_beginning < 10000) AND stacktraces.type_id IN (100, 0) AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) GROUP BY (events.start_timestamp_from_beginning / 1000), stacktraces.stacktrace_hash, stacktraces.stacktrace_hash, stacktraces.frames ORDER BY stacktraces.stacktrace_hash) GROUP BY stacktrace_id";
+                "SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames  FROM (SELECT CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(events.weight)) AS pair, stacktraces.stacktrace_hash, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.start_timestamp_from_beginning >= 2000 AND events.start_timestamp_from_beginning < 10000) AND stacktraces.type_id IN (100, 0) AND (stacktraces.tag_ids IS NULL OR array_length(stacktraces.tag_ids) = 0 OR NOT list_has_any(stacktraces.tag_ids, [0])) GROUP BY (events.start_timestamp_from_beginning / 1000), stacktraces.stacktrace_hash, stacktraces.stacktrace_hash, stacktraces.frames ORDER BY stacktraces.stacktrace_hash) GROUP BY stacktrace_id";
         assertEquals(expectedQuery, query);
     }
 

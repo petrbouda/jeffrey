@@ -69,21 +69,27 @@ public class GenericQueryBuilder implements QueryBuilder {
             builder.merge(sqlFormatter.timeRangeOptional(timeRange.start(), timeRange.end()));
         }
 
+        // Track if stacktraces join is needed
+        boolean hasStacktraceTags = configurer.filterStacktraceTags() != null && !configurer.filterStacktraceTags().isEmpty();
+        boolean hasStacktraceTypes = configurer.filterStacktraceTypes() != null && !configurer.filterStacktraceTypes().isEmpty();
+        boolean needsStacktracesJoin = hasStacktraceTags || hasStacktraceTypes;
+
         if (configurer.includeFrames()) {
             builder.merge(sqlFormatter.stacktraces());
+        } else if (needsStacktracesJoin) {
+            // Add stacktraces join since it's needed for tags/types filtering but not added by includeFrames
+            builder.join("stacktraces", SQLBuilder.and(
+                    SQLBuilder.eq("events.profile_id", SQLBuilder.c("stacktraces.profile_id")),
+                    SQLBuilder.eq("events.stacktrace_hash", SQLBuilder.c("stacktraces.stacktrace_hash"))));
         }
 
-        if (configurer.filterStacktraceTypes() != null && !configurer.filterStacktraceTypes().isEmpty()) {
-            if (configurer.includeFrames()) {
-                // Just add the filter, join already exists
-                builder.merge(sqlFormatter.stacktraceTypesFilterOnly(configurer.filterStacktraceTypes()));
-            } else {
-                // Need to add join if not already added by includeFrames
-                builder.merge(sqlFormatter.stacktraceTypes(configurer.filterStacktraceTypes(), true));
-            }
+        if (hasStacktraceTypes) {
+            // Just add the filter, join already exists (added above or by includeFrames)
+            builder.merge(sqlFormatter.stacktraceTypesFilterOnly(configurer.filterStacktraceTypes()));
         }
 
-        if (configurer.filterStacktraceTags() != null && !configurer.filterStacktraceTags().isEmpty()) {
+        if (hasStacktraceTags) {
+            // Just add the filter, join already exists (added above or by includeFrames)
             builder.merge(sqlFormatter.stacktraceTags(configurer.filterStacktraceTags()));
         }
 

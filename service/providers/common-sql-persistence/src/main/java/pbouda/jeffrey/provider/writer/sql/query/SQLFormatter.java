@@ -64,10 +64,7 @@ public abstract class SQLFormatter {
         Map<Boolean, List<StacktraceTag>> partitioned = stacktraceTags.stream()
                 .collect(Collectors.partitioningBy(StacktraceTag::includes));
 
-        SQLBuilder builder = new SQLBuilder()
-                .leftJoin("stacktrace_tags tags", and(
-                        eq("events.profile_id", c("tags.profile_id")),
-                        eq("events.stacktrace_hash", c("tags.stacktrace_id"))));
+        SQLBuilder builder = new SQLBuilder();
 
         List<StacktraceTag> included = partitioned.get(true);
         if (!included.isEmpty()) {
@@ -75,7 +72,12 @@ public abstract class SQLFormatter {
                     .map(StacktraceTag::id)
                     .toList();
 
-            builder.and(inInts("tags.tag_id", includedIds));
+            // Check if stacktraces.tag_ids array contains ANY of the included IDs
+            String arrayLiteral = includedIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", ", "[", "]"));
+
+            builder.and(SQLBuilder.raw("list_has_any(stacktraces.tag_ids, " + arrayLiteral + ")"));
         }
 
         List<StacktraceTag> excluded = partitioned.get(false);
@@ -84,7 +86,16 @@ public abstract class SQLFormatter {
                     .map(StacktraceTag::id)
                     .toList();
 
-            builder.and(notInOrNullInts("tags.tag_id", excludedIds));
+            // Check that stacktraces.tag_ids array does NOT contain ANY of the excluded IDs
+            // Also treat NULL or empty arrays as not having excluded tags
+            String arrayLiteral = excludedIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", ", "[", "]"));
+
+            builder.and(SQLBuilder.raw(
+                    "(stacktraces.tag_ids IS NULL OR " +
+                    "array_length(stacktraces.tag_ids) = 0 OR " +
+                    "NOT list_has_any(stacktraces.tag_ids, " + arrayLiteral + "))"));
         }
 
         return builder;

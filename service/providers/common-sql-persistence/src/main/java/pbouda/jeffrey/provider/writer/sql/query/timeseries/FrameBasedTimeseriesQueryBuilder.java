@@ -42,7 +42,7 @@ public class FrameBasedTimeseriesQueryBuilder implements TimeseriesQueryBuilder 
                 .orderBy("stacktraces.stacktrace_hash")
                 .merge(sqlFormatter.stacktraces());
 
-        this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(sqlFormatter, innerBuilder, false) {
+        this.innerQueryBuilder = new AbstractTimeseriesQueryBuilder(sqlFormatter, innerBuilder, true) {
         };
     }
 

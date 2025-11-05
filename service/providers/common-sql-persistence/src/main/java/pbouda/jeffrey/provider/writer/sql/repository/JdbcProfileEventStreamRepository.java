@@ -21,6 +21,8 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import pbouda.jeffrey.common.model.StacktraceTag;
+import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
@@ -40,6 +42,8 @@ import pbouda.jeffrey.provider.writer.sql.query.timeseries.FilterableTimeseriesR
 import pbouda.jeffrey.provider.writer.sql.query.timeseries.TimeseriesRecordRowMapper;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static pbouda.jeffrey.provider.writer.sql.GroupLabel.PROFILE_EVENTS;
 
@@ -90,10 +94,17 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     @Override
     public <T> T timeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
-        return startStreaming(
-                factory.createSimpleTimeseriesQueryBuilder(configurer),
+
+        MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
+
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBTimeseriesQueries.SIMPLE_TIMESERIES_QUERY,
+                baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
-                builder);
+                builder::onRecord);
+
+        return builder.build();
     }
 
     @Override
@@ -137,20 +148,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private static FlamegraphOptions flamegraphResolver(
             String profileId, Type eventType, EventQueryConfigurer configurer) {
 
-        MapSqlParameterSource baseParams = new MapSqlParameterSource()
-                .addValue("profile_id", profileId)
-                .addValue("event_type", eventType.code());
-
-        RelativeTimeRange timeRange = configurer.timeRange();
-        if (timeRange != null) {
-            baseParams = baseParams
-                    .addValue("from_time", timeRange.start() != null ? timeRange.start().toMillis() : null)
-                    .addValue("to_time", timeRange.end() != null ? timeRange.end().toMillis() : null);
-        } else {
-            baseParams = baseParams
-                    .addValue("from_time", null)
-                    .addValue("to_time", null);
-        }
+        MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
 
         if (configurer.threads()) {
             Long javaThreadId = configurer.specifiedThread() != null
@@ -173,5 +171,58 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
             return new FlamegraphOptions(
                     sql, baseParams, new FlamegraphRecordRowMapper(eventType, configurer.useWeight()));
         }
+    }
+
+    private static MapSqlParameterSource createBaseParams(String profileId, EventQueryConfigurer configurer) {
+        // Flamegraph is always for a single event type
+        Type eventType = configurer.eventTypes().getFirst();
+
+        MapSqlParameterSource baseParams = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("event_type", eventType.code());
+
+        RelativeTimeRange timeRange = configurer.timeRange();
+        if (timeRange != null) {
+            baseParams = baseParams
+                    .addValue("from_time", timeRange.start() != null ? timeRange.start().toMillis() : null)
+                    .addValue("to_time", timeRange.end() != null ? timeRange.end().toMillis() : null);
+        } else {
+            baseParams = baseParams
+                    .addValue("from_time", null)
+                    .addValue("to_time", null);
+        }
+
+        List<StacktraceType> stacktraceTypes = configurer.filterStacktraceTypes();
+        if (stacktraceTypes != null && !stacktraceTypes.isEmpty()) {
+            List<Integer> typeIds = stacktraceTypes.stream()
+                    .map(StacktraceType::id)
+                    .toList();
+            baseParams = baseParams.addValue("stacktrace_types", typeIds);
+        } else {
+            baseParams = baseParams.addValue("stacktrace_types", null);
+        }
+
+        List<StacktraceTag> stacktraceTags = configurer.filterStacktraceTags();
+        if (stacktraceTags != null && !stacktraceTags.isEmpty()) {
+            Map<Boolean, List<StacktraceTag>> partitioned = stacktraceTags.stream()
+                    .collect(Collectors.partitioningBy(StacktraceTag::includes));
+
+            List<Integer> includedTagIds = partitioned.get(true).stream()
+                    .map(StacktraceTag::id)
+                    .toList();
+            List<Integer> excludedTagIds = partitioned.get(false).stream()
+                    .map(StacktraceTag::id)
+                    .toList();
+
+            baseParams = baseParams
+                    .addValue("included_tags", includedTagIds.isEmpty() ? null : includedTagIds)
+                    .addValue("excluded_tags", excludedTagIds.isEmpty() ? null : excludedTagIds);
+        } else {
+            baseParams = baseParams
+                    .addValue("included_tags", null)
+                    .addValue("excluded_tags", null);
+        }
+
+        return baseParams;
     }
 }

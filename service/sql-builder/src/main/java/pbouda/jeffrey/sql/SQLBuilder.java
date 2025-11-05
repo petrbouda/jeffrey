@@ -367,6 +367,17 @@ public class SQLBuilder {
         return new NotExistsCondition(subqueryBuilder);
     }
 
+    /**
+     * Creates a raw SQL condition.
+     * Use with caution as it bypasses SQL builder safety mechanisms.
+     *
+     * @param sql the raw SQL expression
+     * @return a RawCondition wrapping the SQL
+     */
+    public static Condition raw(String sql) {
+        return new RawCondition(sql);
+    }
+
     public static ValueType l(Object value) {
         return switch (value) {
             case String str -> new StringLiteral(str);

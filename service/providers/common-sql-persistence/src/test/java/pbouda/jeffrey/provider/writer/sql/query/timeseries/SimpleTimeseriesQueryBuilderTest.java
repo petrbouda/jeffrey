@@ -100,7 +100,7 @@ class SimpleTimeseriesQueryBuilderTest {
                 .withStacktraceTags(stacktraceTags)
                 .build();
 
-        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.samples) as value FROM events LEFT JOIN stacktrace_tags tags ON (events.profile_id = tags.profile_id AND events.stacktrace_hash = tags.stacktrace_id) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (tags.tag_id NOT IN (0) OR tags.tag_id IS NULL) GROUP BY seconds ORDER BY seconds";
+        String expectedQuery = "SELECT (events.start_timestamp_from_beginning / 1000) AS seconds, sum(events.samples) as value FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (stacktraces.tag_ids IS NULL OR array_length(stacktraces.tag_ids) = 0 OR NOT list_has_any(stacktraces.tag_ids, [0])) GROUP BY seconds ORDER BY seconds";
 
         assertEquals(expectedQuery, query);
     }

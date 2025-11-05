@@ -30,6 +30,9 @@ public abstract class DuckDBFlamegraphQueries {
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
+                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY e.profile_id, s.stacktrace_hash
             ) agg
             INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
@@ -69,6 +72,9 @@ public abstract class DuckDBFlamegraphQueries {
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
+                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY e.profile_id, s.stacktrace_hash, e.weight_entity
             ) agg
             INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
@@ -115,6 +121,9 @@ public abstract class DuckDBFlamegraphQueries {
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
+                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY e.profile_id, e.thread_hash, s.stacktrace_hash
             ) agg
             INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
@@ -164,6 +173,9 @@ public abstract class DuckDBFlamegraphQueries {
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
+                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY e.profile_id, e.thread_hash, s.stacktrace_hash, e.weight_entity
             ) agg
             INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash

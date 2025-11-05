@@ -67,6 +67,12 @@ public abstract class AbstractTimeseriesQueryBuilder implements TimeseriesQueryB
     @Override
     public TimeseriesQueryBuilder withStacktraceTags(List<StacktraceTag> stacktraceTags) {
         if (stacktraceTags != null && !stacktraceTags.isEmpty()) {
+            // Ensure stacktraces join is present since we need stacktraces.tag_ids column
+            if (!includeStacktraces) {
+                builder.join("stacktraces", SQLBuilder.and(
+                        SQLBuilder.eq("events.profile_id", SQLBuilder.c("stacktraces.profile_id")),
+                        SQLBuilder.eq("events.stacktrace_hash", SQLBuilder.c("stacktraces.stacktrace_hash"))));
+            }
             builder.merge(sqlFormatter.stacktraceTags(stacktraceTags));
         }
         return this;
