@@ -20,24 +20,25 @@ public abstract class DuckDBFlamegraphQueries {
                 agg.total_weight
             FROM (
                 SELECT
-                    e.profile_id,
                     s.stacktrace_hash,
+                    s.frame_hashes,
                     SUM(e.samples) AS total_samples,
                     SUM(e.weight) AS total_weight
                 FROM events e
-                INNER JOIN stacktraces s ON e.profile_id = s.profile_id AND s.stacktrace_hash = e.stacktrace_hash
+                INNER JOIN stacktraces s
+                    ON e.profile_id = s.profile_id
+                    AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
-                GROUP BY e.profile_id, s.stacktrace_hash
+                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                GROUP BY s.stacktrace_hash, s.frame_hashes
             ) agg
-            INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN UNNEST(s.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
-            INNER JOIN frames f ON f.profile_id = s.profile_id AND f.frame_hash = t_unnest.frame_hash
+            CROSS JOIN UNNEST(agg.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
+            INNER JOIN frames f ON f.profile_id = :profile_id AND f.frame_hash = t_unnest.frame_hash
             GROUP BY agg.stacktrace_hash, agg.total_samples, agg.total_weight;
             """;
 
@@ -61,25 +62,26 @@ public abstract class DuckDBFlamegraphQueries {
                 agg.total_weight
             FROM (
                 SELECT
-                    e.profile_id,
                     s.stacktrace_hash,
+                    s.frame_hashes,
                     e.weight_entity,
                     SUM(e.samples) AS total_samples,
                     SUM(e.weight) AS total_weight
                 FROM events e
-                INNER JOIN stacktraces s ON e.profile_id = s.profile_id AND s.stacktrace_hash = e.stacktrace_hash
+                INNER JOIN stacktraces s
+                    ON e.profile_id = s.profile_id
+                    AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
-                GROUP BY e.profile_id, s.stacktrace_hash, e.weight_entity
+                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity
             ) agg
-            INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN UNNEST(s.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
-            INNER JOIN frames f ON f.profile_id = s.profile_id AND f.frame_hash = t_unnest.frame_hash
+            CROSS JOIN UNNEST(agg.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
+            INNER JOIN frames f ON f.profile_id = :profile_id AND f.frame_hash = t_unnest.frame_hash
             GROUP BY agg.stacktrace_hash, agg.weight_entity, agg.total_samples, agg.total_weight;
             """;
 
@@ -102,8 +104,6 @@ public abstract class DuckDBFlamegraphQueries {
                 agg.total_weight
             FROM (
                 SELECT
-                    e.profile_id,
-                    e.thread_hash,
                     STRUCT_PACK(
                         os_id := ANY_VALUE(t.os_id),
                         java_id := ANY_VALUE(t.java_id),
@@ -111,24 +111,26 @@ public abstract class DuckDBFlamegraphQueries {
                         is_virtual := ANY_VALUE(t.is_virtual)
                     ) AS thread,
                     s.stacktrace_hash,
+                    s.frame_hashes,
                     SUM(e.samples) AS total_samples,
                     SUM(e.weight) AS total_weight
                 FROM events e
                 INNER JOIN threads t ON e.profile_id = t.profile_id AND t.thread_hash = e.thread_hash
-                INNER JOIN stacktraces s ON e.profile_id = s.profile_id AND s.stacktrace_hash = e.stacktrace_hash
+                INNER JOIN stacktraces s
+                    ON e.profile_id = s.profile_id
+                    AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
-                GROUP BY e.profile_id, e.thread_hash, s.stacktrace_hash
+                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes
             ) agg
-            INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN UNNEST(s.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
-            INNER JOIN frames f ON f.profile_id = s.profile_id AND f.frame_hash = t_unnest.frame_hash
+            CROSS JOIN UNNEST(agg.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
+            INNER JOIN frames f ON f.profile_id = :profile_id AND f.frame_hash = t_unnest.frame_hash
             GROUP BY agg.thread, agg.stacktrace_hash, agg.total_samples, agg.total_weight;
             """;
 
@@ -153,8 +155,6 @@ public abstract class DuckDBFlamegraphQueries {
                 agg.total_weight
             FROM (
                 SELECT
-                    e.profile_id,
-                    e.thread_hash,
                     STRUCT_PACK(
                         os_id := ANY_VALUE(t.os_id),
                         java_id := ANY_VALUE(t.java_id),
@@ -162,25 +162,27 @@ public abstract class DuckDBFlamegraphQueries {
                         is_virtual := ANY_VALUE(t.is_virtual)
                     ) AS thread,
                     s.stacktrace_hash,
+                    s.frame_hashes,
                     e.weight_entity,
                     SUM(e.samples) AS total_samples,
                     SUM(e.weight) AS total_weight
                 FROM events e
                 INNER JOIN threads t ON e.profile_id = t.profile_id AND t.thread_hash = e.thread_hash
-                INNER JOIN stacktraces s ON e.profile_id = s.profile_id AND s.stacktrace_hash = e.stacktrace_hash
+                INNER JOIN stacktraces s
+                    ON e.profile_id = s.profile_id
+                    AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
-                    AND (:included_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR list_has_any(s.tag_ids, [:included_tags]))
-                    AND (:excluded_tags IS NULL OR s.tag_ids IS NULL OR array_length(s.tag_ids) = 0 OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
-                GROUP BY e.profile_id, e.thread_hash, s.stacktrace_hash, e.weight_entity
+                    AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes, e.weight_entity
             ) agg
-            INNER JOIN stacktraces s ON agg.profile_id = s.profile_id AND agg.stacktrace_hash = s.stacktrace_hash
-            CROSS JOIN UNNEST(s.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
-            INNER JOIN frames f ON f.profile_id = s.profile_id AND f.frame_hash = t_unnest.frame_hash
+            CROSS JOIN UNNEST(agg.frame_hashes) WITH ORDINALITY AS t_unnest(frame_hash, idx)
+            INNER JOIN frames f ON f.profile_id = :profile_id AND f.frame_hash = t_unnest.frame_hash
             GROUP BY agg.thread, agg.stacktrace_hash, agg.weight_entity, agg.total_samples, agg.total_weight;
             """;
 
