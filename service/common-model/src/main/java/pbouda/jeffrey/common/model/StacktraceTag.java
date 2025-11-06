@@ -18,9 +18,7 @@
 
 package pbouda.jeffrey.common.model;
 
-import java.util.Optional;
-
-public enum  StacktraceTag {
+public enum StacktraceTag {
     EXCLUDE_IDLE(0, false),
     UNSAFE_ALLOCATION(1, true);
 
@@ -30,7 +28,7 @@ public enum  StacktraceTag {
     private final boolean includes;
 
     /**
-     * @param id ID of the tag to optimize the space in DB and avoid storing duplicated strings
+     * @param id       ID of the tag to optimize the space in DB and avoid storing duplicated strings
      * @param includes tag includes or excludes records from the database (mapped to IN or NOT IN clause)
      */
     StacktraceTag(int id, boolean includes) {
@@ -44,14 +42,5 @@ public enum  StacktraceTag {
 
     public boolean includes() {
         return includes;
-    }
-
-    public static Optional<StacktraceTag> fromId(int id) {
-        for (StacktraceTag tag : VALUES) {
-            if (tag.id() == id) {
-                return Optional.of(tag);
-            }
-        }
-        return Optional.empty();
     }
 }
