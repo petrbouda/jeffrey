@@ -119,10 +119,17 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     @Override
     public <T> T frameBasedTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
-        return startStreaming(
-                factory.createFrameBasedTimeseriesQueryBuilder(configurer),
+
+        MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
+
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBTimeseriesQueries.FRAME_BASED_TIMESERIES_QUERY,
+                baseParams,
                 new TimeseriesRecordRowMapper(),
-                builder);
+                builder::onRecord);
+
+        return builder.build();
     }
 
     @Override

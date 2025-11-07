@@ -40,11 +40,10 @@ public class TimeseriesRecordRowMapper implements RowMapper<TimeseriesRecord> {
             secondValues.add(new SecondValue(Long.parseLong(secondValue[0]), Long.parseLong(secondValue[1])));
         }
 
-        throw new UnsupportedOperationException();
-//        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
-//                r.getLong("stacktrace_id"),
-//                r.getString("frames"));
-//
-//        return new TimeseriesRecord(stacktrace, secondValues);
+        DbJfrStackTrace stacktrace = new DbJfrStackTrace(
+                r.getLong("stacktrace_id"),
+                r.getString("frames"));
+
+        return new TimeseriesRecord(stacktrace, secondValues);
     }
 }

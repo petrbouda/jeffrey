@@ -8,12 +8,32 @@ public abstract class DuckDBTimeseriesQueries {
             FROM events
                 INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id
                     AND events.stacktrace_hash = stacktraces.stacktrace_hash)
-            WHERE (events.profile_id = :profile_id
-                AND events.event_type = :event_type)
-                AND (events.start_timestamp_from_beginning >= :from_time AND events.start_timestamp_from_beginning < :to_time)
+            WHERE (events.profile_id = :profile_id AND events.event_type = :event_type)
+                AND (:from_time IS NULL OR events.start_timestamp_from_beginning >= :from_time)
+                AND (:to_time IS NULL OR events.start_timestamp_from_beginning <= :to_time)
                 AND (:stacktrace_types IS NULL OR stacktraces.type_id IN (:stacktrace_types))
                 AND (:included_tags IS NULL OR list_has_any(stacktraces.tag_ids, [:included_tags]))
                 AND (:excluded_tags IS NULL OR NOT list_has_any(stacktraces.tag_ids, [:excluded_tags]))
             GROUP BY seconds ORDER BY seconds
+            """;
+
+    //language=SQL
+    public static final String FRAME_BASED_TIMESERIES_QUERY = """
+            SELECT GROUP_CONCAT(pair, ';') AS event_values, stacktrace_id, frames
+            FROM (SELECT CONCAT((events.start_timestamp_from_beginning / 1000), ',', sum(events.samples)) AS pair,
+                         stacktraces.stacktrace_hash,
+                         stacktraces.frames_hashes
+                  FROM events
+                           INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id 
+                                AND events.stacktrace_hash = stacktraces.stacktrace_hash)
+                  WHERE (events.profile_id = :profile_id AND events.event_type = :event_type)
+                    AND (:from_time IS NULL OR events.start_timestamp_from_beginning >= :from_time)
+                    AND (:to_time IS NULL OR events.start_timestamp_from_beginning <= :to_time)
+                    AND (:stacktrace_types IS NULL OR stacktraces.type_id IN (:stacktrace_types))
+                    AND (:included_tags IS NULL OR list_has_any(stacktraces.tag_ids, [:included_tags]))
+                    AND (:excluded_tags IS NULL OR NOT list_has_any(stacktraces.tag_ids, [:excluded_tags]))
+                  GROUP BY (events.start_timestamp_from_beginning / 1000), stacktraces.stacktrace_hash, stacktraces.frame_hashes
+                  ORDER BY stacktraces.stacktrace_hash)
+            GROUP BY stacktrace_id
             """;
 }

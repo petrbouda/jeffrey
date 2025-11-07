@@ -18,12 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql.client;
 
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcDeleteEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcExecuteEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcInsertEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStreamEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcUpdateEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -38,7 +33,6 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import javax.sql.DataSource;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -369,7 +363,7 @@ public class DatabaseClient {
         }
     }
 
-    public <T> void queryStream(StatementLabel statement, String sql,  RowMapper<T> mapper, Consumer<T> consumer) {
+    public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
         queryStream(statement, sql, null, mapper, consumer);
     }
 
@@ -381,8 +375,8 @@ public class DatabaseClient {
 
     private static String paramSourceToJson(SqlParameterSource paramSource) {
         if (paramSource != null
-            && paramSource.getParameterNames() != null
-            && paramSource.getParameterNames().length > 0) {
+                && paramSource.getParameterNames() != null
+                && paramSource.getParameterNames().length > 0) {
 
             ObjectNode json = Json.createObject();
             for (String paramName : paramSource.getParameterNames()) {
