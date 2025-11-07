@@ -22,7 +22,9 @@ import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.provider.api.repository.model.SecondValue;
 import pbouda.jeffrey.provider.api.repository.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.writer.sql.query.FlamegraphMapperUtils;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -31,18 +33,28 @@ import java.util.List;
 public class TimeseriesRecordRowMapper implements RowMapper<TimeseriesRecord> {
 
     @Override
-    public TimeseriesRecord mapRow(ResultSet r, int rn) throws SQLException {
-        String[] eventValues = r.getString("event_values").split(";");
-
+    public TimeseriesRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
+        // Read event_values as array of structs instead of parsing strings
+        Array eventValuesArray = rs.getArray("event_values");
         List<SecondValue> secondValues = new ArrayList<>();
-        for (String eventValue : eventValues) {
-            String[] secondValue = eventValue.split(",");
-            secondValues.add(new SecondValue(Long.parseLong(secondValue[0]), Long.parseLong(secondValue[1])));
+
+        if (eventValuesArray != null) {
+            Object[] objects = (Object[]) eventValuesArray.getArray();
+            secondValues = new ArrayList<>(objects.length);
+
+            for (Object obj : objects) {
+                java.sql.Struct struct = (java.sql.Struct) obj;
+                Object[] attrs = struct.getAttributes();
+                secondValues.add(new SecondValue(
+                    ((Number) attrs[0]).longValue(),  // second
+                    ((Number) attrs[1]).longValue()   // value
+                ));
+            }
         }
 
         DbJfrStackTrace stacktrace = new DbJfrStackTrace(
-                r.getLong("stacktrace_id"),
-                r.getString("frames"));
+                rs.getLong("stacktrace_hash"),
+                FlamegraphMapperUtils.getStackFrames(rs));
 
         return new TimeseriesRecord(stacktrace, secondValues);
     }
