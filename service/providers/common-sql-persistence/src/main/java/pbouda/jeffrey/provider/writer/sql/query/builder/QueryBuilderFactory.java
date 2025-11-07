@@ -20,20 +20,9 @@ package pbouda.jeffrey.provider.writer.sql.query.builder;
 
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.writer.sql.query.GenericQueryBuilder;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.TimeseriesQueryBuilder;
-
-import java.util.List;
 
 public interface QueryBuilderFactory {
 
     GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer);
-
-    GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer, List<String> baseFields);
-
-    TimeseriesQueryBuilder createSimpleTimeseriesQueryBuilder(EventQueryConfigurer configurer);
-
-    TimeseriesQueryBuilder createFrameBasedTimeseriesQueryBuilder(EventQueryConfigurer configurer);
-
-    TimeseriesQueryBuilder createFilterableTimeseriesQueryBuilder(EventQueryConfigurer configurer);
 
 }

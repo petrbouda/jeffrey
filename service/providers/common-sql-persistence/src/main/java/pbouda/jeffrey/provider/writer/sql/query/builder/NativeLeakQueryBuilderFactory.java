@@ -57,13 +57,12 @@ public class NativeLeakQueryBuilderFactory implements QueryBuilderFactory {
                 .merge(builder);
     }
 
-    @Override
     public GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer, List<String> baseFields) {
         return new GenericQueryBuilder(sqlFormatter, profileId, configurer, List.of(Type.MALLOC), baseFields)
                 .merge(builder);
     }
 
-    @Override
+//    @Override
     public TimeseriesQueryBuilder createSimpleTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
         return new SimpleTimeseriesQueryBuilder(
                 sqlFormatter, profileId, Type.MALLOC, configurer.useWeight())
@@ -74,7 +73,7 @@ public class NativeLeakQueryBuilderFactory implements QueryBuilderFactory {
                 .merge(builder);
     }
 
-    @Override
+//    @Override
     public TimeseriesQueryBuilder createFrameBasedTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
         return new FrameBasedTimeseriesQueryBuilder(
                 sqlFormatter, profileId, Type.MALLOC, configurer.useWeight())
@@ -84,7 +83,7 @@ public class NativeLeakQueryBuilderFactory implements QueryBuilderFactory {
                 .merge(builder);
     }
 
-    @Override
+//    @Override
     public TimeseriesQueryBuilder createFilterableTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
         return new FrameBasedTimeseriesQueryBuilder(
                 sqlFormatter, profileId, Type.MALLOC, configurer.useWeight())

@@ -21,12 +21,6 @@ package pbouda.jeffrey.provider.writer.sql.query.builder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.writer.sql.query.GenericQueryBuilder;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.FilterableTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.FrameBasedTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.SimpleTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.TimeseriesQueryBuilder;
-
-import java.util.List;
 
 public class DefaultQueryBuilderFactory implements QueryBuilderFactory {
 
@@ -41,38 +35,5 @@ public class DefaultQueryBuilderFactory implements QueryBuilderFactory {
     @Override
     public GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer) {
         return new GenericQueryBuilder(sqlFormatter, profileId, configurer);
-    }
-
-    @Override
-    public GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer, List<String> baseFields) {
-        return new GenericQueryBuilder(sqlFormatter, profileId, configurer, configurer.eventTypes(), baseFields);
-    }
-
-    @Override
-    public TimeseriesQueryBuilder createSimpleTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new SimpleTimeseriesQueryBuilder(
-                sqlFormatter, profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
-                .withSpecifiedThread(configurer.specifiedThread())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags());
-    }
-
-    @Override
-    public TimeseriesQueryBuilder createFrameBasedTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new FrameBasedTimeseriesQueryBuilder(
-                sqlFormatter, profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags());
-    }
-
-    @Override
-    public TimeseriesQueryBuilder createFilterableTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new FilterableTimeseriesQueryBuilder(
-                sqlFormatter, profileId, configurer.eventTypes().getFirst(), configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags());
     }
 }

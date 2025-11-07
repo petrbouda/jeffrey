@@ -32,10 +32,7 @@ import pbouda.jeffrey.provider.api.repository.model.*;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
-import pbouda.jeffrey.provider.writer.sql.query.FlamegraphRecordRowMapper;
-import pbouda.jeffrey.provider.writer.sql.query.FlamegraphRecordWithThreadsRowMapper;
-import pbouda.jeffrey.provider.writer.sql.query.GenericRecordRowMapper;
-import pbouda.jeffrey.provider.writer.sql.query.QueryBuilder;
+import pbouda.jeffrey.provider.writer.sql.query.*;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactory;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
 import pbouda.jeffrey.provider.writer.sql.query.timeseries.FilterableTimeseriesRecordRowMapper;
@@ -79,16 +76,16 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     public <T> T subSecondStreamer(EventQueryConfigurer configurer, RecordBuilder<SubSecondRecord, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
 
-        String valueField = configurer.useWeight()
-                ? "events.weight as value"
-                : "events.samples as value";
+        MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
 
-        List<String> baseFields = List.of("events.start_timestamp_from_beginning", valueField);
-
-        return startStreaming(
-                factory.createGenericQueryBuilder(configurer, baseFields),
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBSubSecondQueries.simpleSubSecondQuery(configurer.useWeight()),
+                baseParams,
                 (r, _) -> new SubSecondRecord(r.getLong("start_timestamp_from_beginning"), r.getLong("value")),
-                builder);
+                builder::onRecord);
+
+        return builder.build();
     }
 
     @Override
@@ -99,7 +96,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBTimeseriesQueries.SIMPLE_TIMESERIES_QUERY,
+                DuckDBTimeseriesQueries.simpleTimeseriesQuery(configurer.useWeight()),
                 baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
@@ -110,10 +107,17 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     @Override
     public <T> T filterableTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<SecondValue, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
-        return startStreaming(
-                factory.createFilterableTimeseriesQueryBuilder(configurer),
+
+        MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
+
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBTimeseriesQueries.filterableTimeseriesQuery(configurer.useWeight()),
+                baseParams,
                 new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter()),
-                builder);
+                builder::onRecord);
+
+        return builder.build();
     }
 
     @Override
@@ -124,7 +128,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBTimeseriesQueries.FRAME_BASED_TIMESERIES_QUERY,
+                DuckDBTimeseriesQueries.frameBasedTimeseriesQuery(configurer.useWeight()),
                 baseParams,
                 new TimeseriesRecordRowMapper(),
                 builder::onRecord);
