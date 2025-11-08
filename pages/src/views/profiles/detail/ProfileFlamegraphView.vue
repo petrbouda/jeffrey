@@ -49,6 +49,12 @@ const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 
 const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
 
 onBeforeMount(() => {
+  // Scroll the workspace-content container to top
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+
   let flamegraphClient
   if (queryParams.graphMode === GraphType.PRIMARY) {
     flamegraphClient = new PrimaryFlamegraphClient(
