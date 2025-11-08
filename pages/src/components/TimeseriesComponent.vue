@@ -39,7 +39,6 @@ const props = defineProps<{
 const searchValue = ref<string | null>(null);
 
 const graphTypeValue = ref('Area');
-const graphTypeOptions = ref(['Area', 'Bar']);
 
 let searchPreloader: HTMLElement
 

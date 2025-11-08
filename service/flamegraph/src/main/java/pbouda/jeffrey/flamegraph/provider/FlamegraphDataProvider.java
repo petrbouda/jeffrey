@@ -24,8 +24,8 @@ import pbouda.jeffrey.flamegraph.api.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.frameir.FrameBuilderResolver;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 public class FlamegraphDataProvider {
 
@@ -49,7 +49,7 @@ public class FlamegraphDataProvider {
      * from the event repository and builds the flamegraph.
      *
      * @param eventStreamRepository repository to fetch all the records for processing
-     * @param params          configuration for the flamegraph.
+     * @param params                configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
     public static FlamegraphDataProvider primary(ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
@@ -65,7 +65,7 @@ public class FlamegraphDataProvider {
      * Then it starts processing the records from the event repository and builds the flamegraph.
      *
      * @param eventStreamRepository repository to fetch all the records for processing
-     * @param params          configuration for the flamegraph.
+     * @param params                configuration for the flamegraph.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
     public static FlamegraphDataProvider differential(ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {

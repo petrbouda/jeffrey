@@ -32,7 +32,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     private readonly baseUrl: string;
     private readonly eventType: string;
     private readonly useThreadMode: boolean;
-    private readonly useWeight: boolean;
+    private readonly useWeight: boolean | null;
     private readonly excludeNonJavaSamples: boolean;
     private readonly excludeIdleSamples: boolean;
     private readonly onlyUnsafeAllocationSamples: boolean;
@@ -44,7 +44,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         profileId: string,
         eventType: string,
         useThreadMode: boolean,
-        useWeight: boolean,
+        useWeight: boolean | null,
         excludeNonJavaSamples: boolean,
         excludeIdleSamples: boolean,
         onlyUnsafeAllocationSamples: boolean,
@@ -59,21 +59,6 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         this.excludeIdleSamples = excludeIdleSamples;
         this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
         this.threadInfo = threadInfo
-    }
-
-    static onlyEventType(workspaceId: string, projectId: string, profileId: string, eventType: string): PrimaryFlamegraphClient {
-        return new PrimaryFlamegraphClient(
-            workspaceId,
-            projectId,
-            profileId,
-            eventType,
-            false,
-            false,
-            false,
-            false,
-            false,
-            null
-        )
     }
 
     provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {

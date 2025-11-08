@@ -17,7 +17,7 @@
  */
 
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
+import nt from "@/services/flamegraphs/client/FlamegraphClient";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
 

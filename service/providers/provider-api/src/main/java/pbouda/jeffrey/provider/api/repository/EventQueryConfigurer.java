@@ -35,7 +35,7 @@ public class EventQueryConfigurer {
     private boolean withJsonFields;
     private Predicate<ObjectNode> withJsonFieldsFilter;
     private boolean withEventTypeInfo;
-    private boolean useWeight;
+    private Boolean useWeight;
     private boolean withThreads;
     private boolean includeFrames;
     private ThreadInfo specifiedThread;

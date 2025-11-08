@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
+import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import ThreadRowData from "@/services/thread/model/ThreadRowData";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
@@ -65,6 +65,33 @@ let threadRow: ThreadRow
 let flamegraphTooltip: FlamegraphTooltip
 
 let graphUpdater: GraphUpdater
+
+/**
+ * Determines whether to use weight based on the event type.
+ * By default, use weight for allocation and blocking events.
+ *
+ * @param eventCode the event type code
+ * @returns true if weight should be used, false otherwise
+ */
+function resolveWeight(eventCode: string | undefined): boolean {
+  if (!eventCode) {
+    return false
+  }
+
+  const isAllocationEvent =
+    eventCode === 'jdk.ObjectAllocationInNewTLAB' ||
+    eventCode === 'jdk.ObjectAllocationOutsideTLAB' ||
+    eventCode === 'jdk.ObjectAllocationSample'
+
+  const isBlockingEvent =
+    eventCode === 'jdk.JavaMonitorEnter' ||
+    eventCode === 'jdk.JavaMonitorWait' ||
+    eventCode === 'jdk.ThreadPark'
+
+  return isAllocationEvent || isBlockingEvent
+}
+
+const useWeightValue = computed(() => resolveWeight(selectedEventCode.value))
 
 onMounted(() => {
   // Initialize thread row
@@ -171,7 +198,7 @@ const showFlamegraph = (eventCode: string) => {
       props.primaryProfileId,
       eventCode,
       true,
-      false,
+      null,
       false,
       false,
       false,
@@ -440,7 +467,7 @@ function createContextMenuItems() {
           <TimeseriesComponent
               :graph-type="GraphType.PRIMARY"
               :event-type="selectedEventCode"
-              :use-weight="false"
+              :use-weight="useWeightValue"
               :with-search="null"
               :search-enabled="true"
               :zoom-enabled="true"
@@ -448,7 +475,7 @@ function createContextMenuItems() {
           <FlamegraphComponent
               :with-timeseries="true"
               :with-search="null"
-              :use-weight="false"
+              :use-weight="useWeightValue"
               :use-guardian="null"
               :time-range="null"
               :save-enabled="false"

@@ -32,7 +32,7 @@ public record GenerateFlamegraphRequest(
         TimeRangeRequest timeRange,
         String search,
         boolean useThreadMode,
-        boolean useWeight,
+        Boolean useWeight,
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,

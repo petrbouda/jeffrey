@@ -33,7 +33,7 @@ public class GraphParametersBuilder {
     private ThreadInfo threadInfo;
     private String searchPattern;
     private boolean threadMode;
-    private boolean collectWeight;
+    private Boolean collectWeight;
     private boolean excludeNonJavaSamples;
     private boolean excludeIdleSamples;
     private boolean onlyUnsafeAllocationSamples;
@@ -67,7 +67,7 @@ public class GraphParametersBuilder {
         return this;
     }
 
-    public GraphParametersBuilder withUseWeight(boolean collectWeight) {
+    public GraphParametersBuilder withUseWeight(Boolean collectWeight) {
         this.collectWeight = collectWeight;
         return this;
     }

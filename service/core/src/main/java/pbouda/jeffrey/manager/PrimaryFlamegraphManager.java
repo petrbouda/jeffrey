@@ -19,6 +19,7 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.config.GraphParameters;
+import pbouda.jeffrey.common.config.GraphParametersBuilder;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
@@ -71,6 +72,25 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     @Override
     public GraphData generate(GraphParameters params) {
-        return generator.generate(params);
+        // Adjust the useWeight parameter based on event type if not explicitly set
+        GraphParameters adjustedParams = params.toBuilder()
+                .withUseWeight(resolveWeight(params))
+                .build();
+
+        return generator.generate(adjustedParams);
+    }
+
+    /**
+     * By default, use weight for allocation and blocking events if the weight is not explicitly specified.
+     *
+     * @param params original graph parameters
+     * @return true if weight should be used, false otherwise
+     */
+    private static boolean resolveWeight(GraphParameters params) {
+        if (params.useWeight() != null) {
+            return params.useWeight();
+        }
+
+        return params.eventType().isAllocationEvent() || params.eventType().isBlockingEvent();
     }
 }

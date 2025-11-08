@@ -35,7 +35,7 @@ public record GraphParameters(
         ThreadInfo threadInfo,
         String searchPattern,
         boolean threadMode,
-        boolean useWeight,
+        Boolean useWeight,
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
@@ -69,6 +69,23 @@ public record GraphParameters(
 
     public boolean containsSearchPattern() {
         return searchPattern != null;
+    }
+
+    public GraphParametersBuilder toBuilder() {
+        return builder()
+                .withEventType(eventType)
+                .withTimeRange(timeRange)
+                .withThreadInfo(threadInfo)
+                .withSearchPattern(searchPattern)
+                .withThreadMode(threadMode)
+                .withUseWeight(useWeight)
+                .withExcludeNonJavaSamples(excludeNonJavaSamples)
+                .withExcludeIdleSamples(excludeIdleSamples)
+                .withOnlyUnsafeAllocationSamples(onlyUnsafeAllocationSamples)
+                .withParseLocation(parseLocations)
+                .withMarkers(markers)
+                .withGraphType(graphType)
+                .withGraphComponents(graphComponents);
     }
 
     public static GraphParametersBuilder builder() {
