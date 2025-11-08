@@ -245,7 +245,7 @@ public class EventQueryConfigurer {
     }
 
     public boolean useWeight() {
-        return useWeight;
+        return useWeight != null && useWeight;
     }
 
     public boolean threads() {

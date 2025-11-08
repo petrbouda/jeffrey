@@ -19,7 +19,6 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.common.config.GraphParametersBuilder;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
@@ -45,21 +44,13 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     private final ProfileEventTypeRepository eventTypeRepository;
     private final GraphGenerator generator;
-    private final GraphRepositoryManager.Factory graphRepositoryManagerFactory;
 
     public PrimaryFlamegraphManager(
             ProfileEventTypeRepository eventTypeRepository,
-            GraphGenerator generator,
-            GraphRepositoryManager.Factory graphRepositoryManagerFactory) {
+            GraphGenerator generator) {
 
         this.eventTypeRepository = eventTypeRepository;
         this.generator = generator;
-        this.graphRepositoryManagerFactory = graphRepositoryManagerFactory;
-    }
-
-    @Override
-    public GraphRepositoryManager graphRepositoryManager() {
-        return graphRepositoryManagerFactory.apply(this);
     }
 
     @Override

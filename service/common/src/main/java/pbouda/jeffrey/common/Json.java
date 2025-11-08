@@ -166,22 +166,6 @@ public abstract class Json {
         }
     }
 
-    public static JsonNode readTree(InputStream stream) {
-        try {
-            return mapper().readTree(stream);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static ArrayNode readToArrayNode(String obj) {
-        try {
-            return (ArrayNode) mapper().readTree(obj);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static ObjectNode readObjectNode(String obj) {
         try {
             return (ObjectNode) mapper().readTree(obj);

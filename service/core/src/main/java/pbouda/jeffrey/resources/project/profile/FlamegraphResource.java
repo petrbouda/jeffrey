@@ -24,9 +24,9 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.GraphType;
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.common.model.time.TimeRange;
 import pbouda.jeffrey.common.model.time.UndefinedTimeRange;
@@ -47,12 +47,6 @@ public class FlamegraphResource {
     public FlamegraphResource(ProfileInfo profileInfo, FlamegraphManager flamegraphManager) {
         this.profileInfo = profileInfo;
         this.flamegraphManager = flamegraphManager;
-    }
-
-    @Path("/repository")
-    public FlamegraphRepositoryResource flamegraphRepositoryResource() {
-        return new FlamegraphRepositoryResource(
-                profileInfo, flamegraphManager.graphRepositoryManager(), GraphType.PRIMARY);
     }
 
     @POST

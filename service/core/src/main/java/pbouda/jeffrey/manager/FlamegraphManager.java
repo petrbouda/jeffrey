@@ -37,8 +37,6 @@ public interface FlamegraphManager {
     interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, FlamegraphManager> {
     }
 
-    GraphRepositoryManager graphRepositoryManager();
-
     List<EventSummaryResult> eventSummaries();
 
     GraphData generate(GraphParameters graphParameters);

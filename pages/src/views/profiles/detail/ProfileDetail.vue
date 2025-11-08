@@ -232,14 +232,6 @@
                     <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
                        title="Select a secondary profile to enable this page"></i>
                   </a>
-                  <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/flamegraphs/saved`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-bookmark"></i>
-                    <span>Saved</span>
-                  </router-link>
                 </div>
               </div>
 

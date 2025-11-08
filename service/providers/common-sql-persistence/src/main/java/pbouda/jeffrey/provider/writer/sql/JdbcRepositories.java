@@ -77,11 +77,6 @@ public class JdbcRepositories implements Repositories {
     }
 
     @Override
-    public ProfileGraphRepository newProfileGraphRepository(String profileId) {
-        return new JdbcProfileGraphRepository(profileId, databaseClientProvider);
-    }
-
-    @Override
     public ProjectRepository newProjectRepository(String projectId) {
         return new JdbcProjectRepository(projectId, databaseClientProvider, clock);
     }

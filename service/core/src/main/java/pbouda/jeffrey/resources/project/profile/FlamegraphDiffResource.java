@@ -46,12 +46,6 @@ public class FlamegraphDiffResource {
         this.diffFlamegraphManager = diffFlamegraphManager;
     }
 
-    @Path("/repository")
-    public FlamegraphRepositoryResource flamegraphRepositoryResource() {
-        return new FlamegraphRepositoryResource(
-                profileInfo, diffFlamegraphManager.graphRepositoryManager(), GraphType.DIFFERENTIAL);
-    }
-
     @POST
     public GraphData generate(GenerateFlamegraphRequest request) {
         Instant recordingStart = profileInfo.profilingStartedAt();

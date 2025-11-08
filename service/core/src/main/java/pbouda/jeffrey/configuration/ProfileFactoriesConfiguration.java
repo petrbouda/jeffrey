@@ -143,32 +143,19 @@ public class ProfileFactoriesConfiguration {
         return profileInfo -> {
             ProfileEventTypeRepository eventTypeRepository = repositories.newEventTypeRepository(profileInfo.id());
             ProfileEventStreamRepository eventRepository = repositories.newEventStreamRepository(profileInfo.id());
-            ProfileGraphRepository profileGraphRepository = repositories.newProfileGraphRepository(profileInfo.id());
-            GraphRepositoryManager.Factory graphRepositoryManagerFactory = flamegraphManager ->
-                    new GraphRepositoryManagerImpl(flamegraphManager, profileGraphRepository);
-
-            return new PrimaryFlamegraphManager(
-                    eventTypeRepository,
-                    new DbBasedFlamegraphGenerator(eventRepository),
-                    graphRepositoryManagerFactory
-            );
+            return new PrimaryFlamegraphManager(eventTypeRepository, new DbBasedFlamegraphGenerator(eventRepository));
         };
     }
 
     @Bean
     public FlamegraphManager.DifferentialFactory differentialGraphFactory(Repositories repositories) {
         return (primary, secondary) -> {
-            ProfileGraphRepository profileGraphRepository = repositories.newProfileGraphRepository(primary.id());
-            GraphRepositoryManager.Factory graphRepositoryManagerFactory = flamegraphManager ->
-                    new GraphRepositoryManagerImpl(flamegraphManager, profileGraphRepository);
-
             return new DiffFlamegraphManagerImpl(
                     repositories.newEventTypeRepository(primary.id()),
                     repositories.newEventTypeRepository(secondary.id()),
                     new DbBasedDiffgraphGenerator(
                             repositories.newEventStreamRepository(primary.id()),
-                            repositories.newEventStreamRepository(secondary.id())),
-                    graphRepositoryManagerFactory
+                            repositories.newEventStreamRepository(secondary.id()))
             );
         };
     }

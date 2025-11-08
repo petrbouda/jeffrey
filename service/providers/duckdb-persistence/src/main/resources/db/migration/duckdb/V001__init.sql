@@ -106,17 +106,6 @@ CREATE TABLE IF NOT EXISTS profiles
     PRIMARY KEY (profile_id)
 );
 
-CREATE TABLE IF NOT EXISTS saved_graphs
-(
-    profile_id  VARCHAR NOT NULL,
-    id          VARCHAR NOT NULL,
-    name        VARCHAR,
-    params      BLOB    NOT NULL,
-    content     BLOB    NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (profile_id, id)
-);
-
 CREATE TABLE IF NOT EXISTS cache
 (
     profile_id  VARCHAR NOT NULL,

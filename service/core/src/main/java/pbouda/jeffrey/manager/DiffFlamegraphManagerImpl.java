@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
@@ -42,23 +42,15 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
     private final ProfileEventTypeRepository primaryEventTypeRepository;
     private final ProfileEventTypeRepository secondaryEventTypeRepository;
     private final GraphGenerator generator;
-    private final GraphRepositoryManager.Factory graphRepositoryManagerFactory;
 
     public DiffFlamegraphManagerImpl(
             ProfileEventTypeRepository primaryEventTypeRepository,
             ProfileEventTypeRepository secondaryEventTypeRepository,
-            GraphGenerator generator,
-            GraphRepositoryManager.Factory graphRepositoryManagerFactory) {
+            GraphGenerator generator) {
 
         this.primaryEventTypeRepository = primaryEventTypeRepository;
         this.secondaryEventTypeRepository = secondaryEventTypeRepository;
         this.generator = generator;
-        this.graphRepositoryManagerFactory = graphRepositoryManagerFactory;
-    }
-
-    @Override
-    public GraphRepositoryManager graphRepositoryManager() {
-        return graphRepositoryManagerFactory.apply(this);
     }
 
     @Override

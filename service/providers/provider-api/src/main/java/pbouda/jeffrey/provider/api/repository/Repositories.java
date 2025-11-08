@@ -30,8 +30,6 @@ public interface Repositories {
 
     ProfileCacheRepository newProfileCacheRepository(String profileId);
 
-    ProfileGraphRepository newProfileGraphRepository(String profileId);
-
     ProjectRepository newProjectRepository(String projectId);
 
     ProjectRecordingRepository newProjectRecordingRepository(String projectId);
