@@ -87,6 +87,12 @@ let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
 let useWeight = queryParams.useWeight === 'true'
 
 onBeforeMount(() => {
+  // Scroll the workspace-content container to top
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+
   // Add event listener for Bootstrap modal hidden event
   document.addEventListener('hidden.bs.modal', (event) => {
     if (event.target && event.target.id === 'flamegraphModal') {

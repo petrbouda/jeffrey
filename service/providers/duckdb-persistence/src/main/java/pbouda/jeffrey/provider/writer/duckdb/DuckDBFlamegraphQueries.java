@@ -23,7 +23,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
-                    AND (:stacktrace_types IS NULL OR s.type_id = ANY(:stacktrace_types))
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY s.stacktrace_hash, s.frame_hashes
@@ -71,7 +71,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     AND e.event_type = :event_type
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
-                    AND (:stacktrace_types IS NULL OR s.type_id = ANY(:stacktrace_types))
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity
@@ -126,7 +126,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                    AND (:stacktrace_types IS NULL OR s.type_id = ANY(:stacktrace_types))
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes
@@ -183,7 +183,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
-                    AND (:stacktrace_types IS NULL OR s.type_id = ANY(:stacktrace_types))
+                    AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
                 GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes, e.weight_entity
