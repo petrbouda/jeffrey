@@ -16,15 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.writer.postgres;
+package pbouda.jeffrey.provider.writer.duckdb;
 
-import pbouda.jeffrey.provider.writer.sql.SQLPersistenceProvider;
+import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 
-public class PostgresPersistenceProvider extends SQLPersistenceProvider {
+import java.util.function.BiFunction;
+import java.util.regex.Pattern;
 
-    private static final String DATABASE_NAME = "postgres";
+public class DuckDBSQLFormatter extends SQLFormatter {
 
-    public PostgresPersistenceProvider() {
-        super(DATABASE_NAME, new PostgresSQLFormatter(), new PostgresDataSourceProvider(), false);
+    private static final BiFunction<String, String, String> JSONB_COLUMN_FORMATTER =
+            (String columnName, String resultName) -> "json(" + columnName + ") AS " + resultName;
+
+    private static final Pattern JSONB_PATTERN = Pattern.compile("([a-zA-Z_][a-zA-Z0-9_.]*)::jsonb");
+
+    public DuckDBSQLFormatter() {
+        super(JSONB_COLUMN_FORMATTER);
+    }
+
+    @Override
+    public String formatJson(String sql) {
+        return JSONB_PATTERN.matcher(sql).replaceAll("json($1)");
     }
 }

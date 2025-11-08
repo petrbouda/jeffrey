@@ -1,12 +1,14 @@
-package pbouda.jeffrey.provider.writer.sql.repository;
+package pbouda.jeffrey.provider.writer.duckdb;
 
-public abstract class DuckDBFlamegraphQueries {
+import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
+
+public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
 
     /**
      * Aggregate all events for each stacktrace across all threads. Returns one row per stacktrace with aggregated samples and weight.
      */
     //language=SQL
-    public static final String STACKTRACE_DETAILS = """
+    public static final String SIMPLE = """
             WITH filtered_data AS (
                 SELECT
                     s.stacktrace_hash,
@@ -53,7 +55,7 @@ public abstract class DuckDBFlamegraphQueries {
      * Useful for analyzing allocations grouped by memory addresses (e.g., NativeLeaks).
      */
     //language=SQL
-    public static final String STACKTRACE_DETAILS_BY_WEIGHT_ENTITY = """
+    public static final String BY_WEIGHT = """
             WITH filtered_data AS (
                 SELECT
                     s.stacktrace_hash,
@@ -101,7 +103,7 @@ public abstract class DuckDBFlamegraphQueries {
      * Group events by thread first, then by stacktrace. Returns one row per (thread, stacktrace) combination with thread details and aggregated metrics.
      */
     //language=SQL
-    public static final String STACKTRACE_DETAILS_BY_THREAD = """
+    public static final String BY_THREAD = """
             WITH filtered_data AS (
                 SELECT
                     STRUCT_PACK(
@@ -157,7 +159,7 @@ public abstract class DuckDBFlamegraphQueries {
      * Useful for analyzing per-thread allocations grouped by memory addresses (e.g., NativeLeaks).
      */
     //language=SQL
-    public static final String STACKTRACE_DETAILS_BY_THREAD_AND_WEIGHT_ENTITY = """
+    public static final String BY_THREAD_AND_WEIGHT = """
             WITH filtered_data AS (
                 SELECT
                     STRUCT_PACK(
@@ -210,4 +212,23 @@ public abstract class DuckDBFlamegraphQueries {
             CROSS JOIN frame_lookup fl;
             """;
 
+    @Override
+    public String simple() {
+        return SIMPLE;
+    }
+
+    @Override
+    public String byWeight() {
+        return BY_WEIGHT;
+    }
+
+    @Override
+    public String byThread() {
+        return BY_THREAD;
+    }
+
+    @Override
+    public String byThreadAndWeight() {
+        return BY_THREAD_AND_WEIGHT;
+    }
 }

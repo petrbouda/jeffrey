@@ -35,8 +35,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>sqlite-persistence</artifactId>
+            <groupId>pbouda.jeffrey</groupId>
+            <artifactId>common-sql-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

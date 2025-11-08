@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sql;
 
 import pbouda.jeffrey.provider.api.repository.*;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
+import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactory;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
@@ -30,17 +31,20 @@ import java.time.Clock;
 public class JdbcRepositories implements Repositories {
 
     private final SQLFormatter sqlFormatter;
+    private final ComplexQueries complexQueries;
     private final DatabaseClientProvider databaseClientProvider;
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final Clock clock;
 
     public JdbcRepositories(
             SQLFormatter sqlFormatter,
+            ComplexQueries complexQueries,
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
             DatabaseClientProvider databaseClientProvider,
             Clock clock) {
 
         this.sqlFormatter = sqlFormatter;
+        this.complexQueries = complexQueries;
         this.databaseClientProvider = databaseClientProvider;
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.clock = clock;
@@ -53,7 +57,8 @@ public class JdbcRepositories implements Repositories {
 
     @Override
     public ProfileEventStreamRepository newEventStreamRepository(String profileId) {
-        return new JdbcProfileEventStreamRepository(queryBuilderFactoryResolver, profileId, databaseClientProvider);
+        return new JdbcProfileEventStreamRepository(
+                complexQueries, queryBuilderFactoryResolver, profileId, databaseClientProvider);
     }
 
     @Override

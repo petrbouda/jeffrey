@@ -36,7 +36,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sqlite-persistence</artifactId>
+            <artifactId>duckdb-persistence</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>

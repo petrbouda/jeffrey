@@ -36,10 +36,8 @@
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>
         <module>jfr-parser</module>
-        <module>sqlite-persistence</module>
         <module>clickhouse-persistence</module>
         <module>common-sql-persistence</module>
-        <module>postgres-persistence</module>
         <module>duckdb-persistence</module>
     </modules>
 </project>

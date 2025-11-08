@@ -22,13 +22,11 @@ import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
-import pbouda.jeffrey.provider.writer.sql.SQLPersistenceProvider;
-import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -37,7 +35,7 @@ public class ClickHousePersistenceProvider implements PersistenceProvider {
     private static final int DEFAULT_BATCH_SIZE = 3000;
     private static final String DATABASE_NAME = "clickhouse";
 
-    private final SQLPersistenceProvider corePersistenceProvider = new SQLitePersistenceProvider();
+    private final DuckDBPersistenceProvider corePersistenceProvider = new DuckDBPersistenceProvider();
 
     private ClickHouseClient clickHouseClient;
     private Function<String, EventWriter> eventWriterFactory;

@@ -99,7 +99,7 @@ jeffrey/
 - `profile_id` gathers all data related to a specific profile
 
 ### Database Schema
-- read database schema from `service/providers/sqlite-persistence/src/main/resources/db/migration/V001__init.sql`
+- read database schema from `service/providers/duckdb-persistence/src/main/resources/db/migration/V001__init.sql`
 - JSONB `fields` column in the `events` table contains event-specific data with the following structure based on JFR event types:
 
 #### Flight Recorder Events

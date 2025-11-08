@@ -48,8 +48,6 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
 import pbouda.jeffrey.provider.writer.clickhouse.ClickHousePersistenceProvider;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
-import pbouda.jeffrey.provider.writer.postgres.PostgresPersistenceProvider;
-import pbouda.jeffrey.provider.writer.sqlite.SQLitePersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
@@ -102,11 +100,7 @@ public class AppConfiguration {
             Clock clock) {
 
         PersistenceProvider persistenceProvider;
-        if (databaseName.equalsIgnoreCase("sqlite")) {
-            persistenceProvider = new SQLitePersistenceProvider();
-        } else if (databaseName.equalsIgnoreCase("postgres")) {
-            persistenceProvider = new PostgresPersistenceProvider();
-        } else if (databaseName.equalsIgnoreCase("clickhouse")) {
+        if (databaseName.equalsIgnoreCase("clickhouse")) {
             persistenceProvider = new ClickHousePersistenceProvider();
         } else if (databaseName.equalsIgnoreCase("duckdb")) {
             persistenceProvider = new DuckDBPersistenceProvider();

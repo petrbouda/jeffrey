@@ -27,9 +27,10 @@ import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
 import pbouda.jeffrey.provider.writer.sql.SQLProfileInitializer;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
+import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
+import pbouda.jeffrey.provider.writer.sql.query.SimpleComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolverImpl;
-import pbouda.jeffrey.provider.writer.sqlite.SQLiteSQLFormatter;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
@@ -44,7 +45,7 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     private static final int DEFAULT_BATCH_SIZE = 3000;
 
     private final DataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
-    private final SQLiteSQLFormatter sqlFormatter = new SQLiteSQLFormatter();
+    private final DuckDBSQLFormatter sqlFormatter = new DuckDBSQLFormatter();
 
     private DatabaseClientProvider coreDatabaseClientProvider;
     private DataSource eventsDataSource;
@@ -67,7 +68,6 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
 
         // Start JFR recording for Connection Pool statistics
         JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
-
 
         this.coreDatabaseClientProvider = new DatabaseClientProvider(
                 dataSourceProvider.core(properties.core()), false);
@@ -110,7 +110,13 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     @Override
     public Repositories repositories() {
         QueryBuilderFactoryResolver queryBuilderFactoryResolver = new QueryBuilderFactoryResolverImpl(sqlFormatter);
-        return new JdbcRepositories(sqlFormatter, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
+        ComplexQueries complexQueries = new SimpleComplexQueries(
+                new DuckDBFlamegraphQueries(),
+                new DuckDBTimeseriesQueries(),
+                new DuckDBSubSecondQueries());
+
+        return new JdbcRepositories(
+                sqlFormatter, complexQueries, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
     }
 
     @Override

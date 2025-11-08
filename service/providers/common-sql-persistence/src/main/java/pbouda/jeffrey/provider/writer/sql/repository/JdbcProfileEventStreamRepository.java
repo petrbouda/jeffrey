@@ -49,15 +49,18 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private record FlamegraphOptions(String sql, SqlParameterSource paramSource, RowMapper<FlamegraphRecord> mapper) {
     }
 
+    private final ComplexQueries complexQueries;
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final String profileId;
     private final DatabaseClient databaseClient;
 
     public JdbcProfileEventStreamRepository(
+            ComplexQueries complexQueries,
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
             String profileId,
             DatabaseClientProvider databaseClientProvider) {
 
+        this.complexQueries = complexQueries;
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.profileId = profileId;
         this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
@@ -80,7 +83,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBSubSecondQueries.simpleSubSecondQuery(configurer.useWeight()),
+                complexQueries.subSecond().simple(configurer.useWeight()),
                 baseParams,
                 (r, _) -> new SubSecondRecord(r.getLong("start_timestamp_from_beginning"), r.getLong("value")),
                 builder::onRecord);
@@ -96,7 +99,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBTimeseriesQueries.simpleTimeseriesQuery(configurer.useWeight()),
+                complexQueries.timeseries().simple(configurer.useWeight()),
                 baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
@@ -112,7 +115,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBTimeseriesQueries.filterableTimeseriesQuery(configurer.useWeight()),
+                complexQueries.timeseries().filterable(configurer.useWeight()),
                 baseParams,
                 new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter()),
                 builder::onRecord);
@@ -128,7 +131,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBTimeseriesQueries.frameBasedTimeseriesQuery(configurer.useWeight()),
+                complexQueries.timeseries().frameBased(configurer.useWeight()),
                 baseParams,
                 new TimeseriesRecordRowMapper(),
                 builder::onRecord);
@@ -156,11 +159,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         return builder.build();
     }
 
-    private static FlamegraphOptions flamegraphResolver(
+    private FlamegraphOptions flamegraphResolver(
             String profileId, Type eventType, EventQueryConfigurer configurer) {
 
         MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
 
+        ComplexQueries.Flamegraph flamegraphQueries = complexQueries.flamegraph();
         if (configurer.threads()) {
             Long javaThreadId = configurer.specifiedThread() != null
                     ? configurer.specifiedThread().javaId()
@@ -169,15 +173,15 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
             baseParams.addValue("java_thread_id", javaThreadId);
 
             String sql = configurer.useWeight()
-                    ? DuckDBFlamegraphQueries.STACKTRACE_DETAILS_BY_THREAD_AND_WEIGHT_ENTITY
-                    : DuckDBFlamegraphQueries.STACKTRACE_DETAILS_BY_THREAD;
+                    ? flamegraphQueries.byThreadAndWeight()
+                    : flamegraphQueries.byThread();
 
             return new FlamegraphOptions(
                     sql, baseParams, new FlamegraphRecordWithThreadsRowMapper(eventType, configurer.useWeight()));
         } else {
             String sql = configurer.useWeight()
-                    ? DuckDBFlamegraphQueries.STACKTRACE_DETAILS_BY_WEIGHT_ENTITY
-                    : DuckDBFlamegraphQueries.STACKTRACE_DETAILS;
+                    ? flamegraphQueries.byWeight()
+                    : flamegraphQueries.simple();
 
             return new FlamegraphOptions(
                     sql, baseParams, new FlamegraphRecordRowMapper(eventType, configurer.useWeight()));
