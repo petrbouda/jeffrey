@@ -60,9 +60,6 @@ const { workspaceId, projectId } = useNavigation();
 
 let guards = ref<GuardResponse[]>([]);
 
-// No longer needed as we're removing tooltips
-let autoAnalysisCard: HTMLElement
-
 const showFlamegraphDialog = ref(false);
 let activeGuardVisualization: GuardVisualization;
 
@@ -189,6 +186,7 @@ const click_flamegraph = (guard: GuardAnalysisResult) => {
     
     activeGuardVisualization = guard.visualization
     let flamegraphClient = new GuardianFlamegraphClient(
+        route.params.workspaceId as string,
         route.params.projectId as string,
         guard.visualization.primaryProfileId,
         guard.visualization.eventType,
@@ -313,7 +311,7 @@ function select_icon(guard: GuardAnalysisResult) {
   }
 }
 
-function select_color(guard: GuardAnalysisResult, type: string, shade: number) {
+function select_color(guard: GuardAnalysisResult, type: string) {
   // For Bootstrap, we'll convert to their color system
   // type can be "text" or "bg"
   if (guard.severity === "OK") {
@@ -436,7 +434,7 @@ function needsNavigation(itemCount: number): boolean {
               
               <!-- Status indicator -->
               <div class="guardian-card-status">
-                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text', 700)]"></i>
+                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"></i>
               </div>
               
               <!-- Card content -->
@@ -596,7 +594,7 @@ function needsNavigation(itemCount: number): boolean {
               
               <!-- Status indicator -->
               <div class="guardian-card-status">
-                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text', 700)]"></i>
+                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"></i>
               </div>
               
               <!-- Card content -->
