@@ -20,11 +20,9 @@ package pbouda.jeffrey.provider.writer.sql.query.builder;
 
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.GenericQueryBuilder;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.FrameBasedTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.SimpleTimeseriesQueryBuilder;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.TimeseriesQueryBuilder;
 import pbouda.jeffrey.sql.SQLBuilder;
 
 import java.util.List;
@@ -32,6 +30,7 @@ import java.util.List;
 public class NativeLeakQueryBuilderFactory implements QueryBuilderFactory {
 
     private final SQLFormatter sqlFormatter;
+    private final ComplexQueries complexQueries;
     private final String profileId;
 
     //language=sql
@@ -44,8 +43,9 @@ public class NativeLeakQueryBuilderFactory implements QueryBuilderFactory {
 
     private final SQLBuilder builder;
 
-    public NativeLeakQueryBuilderFactory(SQLFormatter sqlFormatter, String profileId) {
+    public NativeLeakQueryBuilderFactory(SQLFormatter sqlFormatter, ComplexQueries complexQueries, String profileId) {
         this.sqlFormatter = sqlFormatter;
+        this.complexQueries = complexQueries;
         this.profileId = profileId;
         this.builder = new SQLBuilder()
                 .where(SQLBuilder.notExists(FREE_EVENT_EXISTS.replace("<<profile_id>>", profileId)));
@@ -57,39 +57,8 @@ public class NativeLeakQueryBuilderFactory implements QueryBuilderFactory {
                 .merge(builder);
     }
 
-    public GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer, List<String> baseFields) {
-        return new GenericQueryBuilder(sqlFormatter, profileId, configurer, List.of(Type.MALLOC), baseFields)
-                .merge(builder);
-    }
-
-//    @Override
-    public TimeseriesQueryBuilder createSimpleTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new SimpleTimeseriesQueryBuilder(
-                sqlFormatter, profileId, Type.MALLOC, configurer.useWeight())
-                .withSpecifiedThread(configurer.specifiedThread())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags())
-                .merge(builder);
-    }
-
-//    @Override
-    public TimeseriesQueryBuilder createFrameBasedTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new FrameBasedTimeseriesQueryBuilder(
-                sqlFormatter, profileId, Type.MALLOC, configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags())
-                .merge(builder);
-    }
-
-//    @Override
-    public TimeseriesQueryBuilder createFilterableTimeseriesQueryBuilder(EventQueryConfigurer configurer) {
-        return new FrameBasedTimeseriesQueryBuilder(
-                sqlFormatter, profileId, Type.MALLOC, configurer.useWeight())
-                .withTimeRange(configurer.timeRange())
-                .withStacktraceTypes(configurer.filterStacktraceTypes())
-                .withStacktraceTags(configurer.filterStacktraceTags())
-                .merge(builder);
+    @Override
+    public ComplexQueries complexQueries() {
+        return complexQueries;
     }
 }

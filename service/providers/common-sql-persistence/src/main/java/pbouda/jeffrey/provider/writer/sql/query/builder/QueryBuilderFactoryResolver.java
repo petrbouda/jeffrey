@@ -25,5 +25,4 @@ import java.util.List;
 public interface QueryBuilderFactoryResolver {
 
     QueryBuilderFactory resolve(String profileId, List<Type> eventTypes);
-
 }

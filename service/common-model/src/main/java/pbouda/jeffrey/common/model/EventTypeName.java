@@ -24,7 +24,7 @@ public abstract class EventTypeName {
     public static final String WALL_CLOCK_SAMPLE = "profiler.WallClockSample";
     public static final String MALLOC = "profiler.Malloc";
     public static final String FREE = "profiler.Free";
-    public static final String NATIVE_LEAK = "profiler.NativeLeak";
+    public static final String NATIVE_LEAK = "jeffrey.NativeLeak";
     public static final String JAVA_MONITOR_ENTER = "jdk.JavaMonitorEnter";
     public static final String JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait";
     public static final String THREAD_START = "jdk.ThreadStart";

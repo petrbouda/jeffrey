@@ -74,7 +74,10 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
         this.eventsDataSource = dataSourceProvider.events(properties.events());
 
         this.eventWriterFactory = profileId -> {
-            return new SQLEventWriter(profileId, () -> new DuckDBEventWriters(eventsDataSource, profileId, batchSize));
+            return new SQLEventWriter(
+                    profileId,
+                    coreDatabaseClientProvider,
+                    () -> new DuckDBEventWriters(eventsDataSource, profileId, batchSize));
         };
     }
 
@@ -109,14 +112,21 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
 
     @Override
     public Repositories repositories() {
-        QueryBuilderFactoryResolver queryBuilderFactoryResolver = new QueryBuilderFactoryResolverImpl(sqlFormatter);
-        ComplexQueries complexQueries = new SimpleComplexQueries(
+        ComplexQueries defaultComplexQueries = new SimpleComplexQueries(
                 new DuckDBFlamegraphQueries(),
                 new DuckDBTimeseriesQueries(),
                 new DuckDBSubSecondQueries());
 
+        ComplexQueries nativeComplexQueries = new SimpleComplexQueries(
+                new DuckDBNativeFlamegraphQueries(),
+                new DuckDBNativeTimeseriesQueries(),
+                new DuckDBNativeSubSecondQueries());
+
+        QueryBuilderFactoryResolver queryBuilderFactoryResolver = new QueryBuilderFactoryResolverImpl(
+                sqlFormatter, defaultComplexQueries, nativeComplexQueries);
+
         return new JdbcRepositories(
-                sqlFormatter, complexQueries, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
+                sqlFormatter, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
     }
 
     @Override

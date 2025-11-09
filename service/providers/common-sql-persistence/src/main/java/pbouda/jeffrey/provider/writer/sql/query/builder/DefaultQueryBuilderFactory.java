@@ -19,21 +19,29 @@
 package pbouda.jeffrey.provider.writer.sql.query.builder;
 
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.GenericQueryBuilder;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 
 public class DefaultQueryBuilderFactory implements QueryBuilderFactory {
 
     private final SQLFormatter sqlFormatter;
+    private final ComplexQueries complexQueries;
     private final String profileId;
 
-    public DefaultQueryBuilderFactory(SQLFormatter sqlFormatter, String profileId) {
+    public DefaultQueryBuilderFactory(SQLFormatter sqlFormatter, ComplexQueries complexQueries, String profileId) {
         this.sqlFormatter = sqlFormatter;
+        this.complexQueries = complexQueries;
         this.profileId = profileId;
     }
 
     @Override
     public GenericQueryBuilder createGenericQueryBuilder(EventQueryConfigurer configurer) {
         return new GenericQueryBuilder(sqlFormatter, profileId, configurer);
+    }
+
+    @Override
+    public ComplexQueries complexQueries() {
+        return complexQueries;
     }
 }

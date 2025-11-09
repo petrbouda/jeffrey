@@ -49,18 +49,15 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private record FlamegraphOptions(String sql, SqlParameterSource paramSource, RowMapper<FlamegraphRecord> mapper) {
     }
 
-    private final ComplexQueries complexQueries;
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final String profileId;
     private final DatabaseClient databaseClient;
 
     public JdbcProfileEventStreamRepository(
-            ComplexQueries complexQueries,
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
             String profileId,
             DatabaseClientProvider databaseClientProvider) {
 
-        this.complexQueries = complexQueries;
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.profileId = profileId;
         this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
@@ -83,7 +80,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                complexQueries.subSecond().simple(configurer.useWeight()),
+                factory.complexQueries().subSecond().simple(configurer.useWeight()),
                 baseParams,
                 (r, _) -> new SubSecondRecord(r.getLong("start_timestamp_from_beginning"), r.getLong("value")),
                 builder::onRecord);
@@ -99,7 +96,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                complexQueries.timeseries().simple(configurer.useWeight()),
+                factory.complexQueries().timeseries().simple(configurer.useWeight()),
                 baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
@@ -115,7 +112,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                complexQueries.timeseries().filterable(configurer.useWeight()),
+                factory.complexQueries().timeseries().filterable(configurer.useWeight()),
                 baseParams,
                 new FilterableTimeseriesRecordRowMapper(configurer.jsonFieldsFilter()),
                 builder::onRecord);
@@ -131,7 +128,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                complexQueries.timeseries().frameBased(configurer.useWeight()),
+                factory.complexQueries().timeseries().frameBased(configurer.useWeight()),
                 baseParams,
                 new TimeseriesRecordRowMapper(),
                 builder::onRecord);
@@ -141,13 +138,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
     @Override
     public <T> T flamegraphStreamer(EventQueryConfigurer configurer, RecordBuilder<FlamegraphRecord, T> builder) {
-        // TODO: Native flamegraph will have a special handling very likely
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
 
         // Flamegraph is always for a single event type
         Type eventType = configurer.eventTypes().getFirst();
 
-        FlamegraphOptions options = flamegraphResolver(profileId, eventType, configurer);
+        FlamegraphOptions options = flamegraphResolver(profileId, factory, eventType, configurer);
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS, options.sql, options.paramSource, options.mapper, builder::onRecord);
 
@@ -160,11 +156,11 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     }
 
     private FlamegraphOptions flamegraphResolver(
-            String profileId, Type eventType, EventQueryConfigurer configurer) {
+            String profileId, QueryBuilderFactory factory, Type eventType, EventQueryConfigurer configurer) {
 
         MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
 
-        ComplexQueries.Flamegraph flamegraphQueries = complexQueries.flamegraph();
+        ComplexQueries.Flamegraph flamegraphQueries = factory.complexQueries().flamegraph();
         if (configurer.threads()) {
             Long javaThreadId = configurer.specifiedThread() != null
                     ? configurer.specifiedThread().javaId()

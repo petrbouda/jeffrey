@@ -25,12 +25,6 @@
       </div>
       <div class="title-section">
         <h3 class="card-title">{{ title }}</h3>
-        <div class="card-meta" v-if="!enabled || Utils.parseBoolean(event.primary.calculated)">
-          <span class="status-indicator">
-            <span :class="['status-dot', getStatusClass()]"></span>
-            {{ getStatusText() }}
-          </span>
-        </div>
       </div>
     </div>
 
@@ -258,16 +252,6 @@ const getIconClass = () => {
   return 'bi bi-fire';
 };
 
-const getStatusClass = () => {
-  return props.enabled ? 'status-active' : 'status-inactive';
-};
-
-const getStatusText = () => {
-  if (!props.enabled) return 'Unavailable';
-  if (Utils.parseBoolean(props.event.primary.calculated)) return 'Calculated';
-  return 'Available';
-};
-
 const containsSecondary = () => {
   return props.event.secondary != null;
 };
@@ -391,38 +375,6 @@ const switchIdleSamples = () => {
   color: #212529;
   margin: 0;
   line-height: 1.2;
-}
-
-.card-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #6c757d;
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.status-dot.status-active {
-  background-color: #10b981;
-}
-
-.status-dot.status-inactive {
-  background-color: #ef4444;
 }
 
 /* Actions */
@@ -574,12 +526,6 @@ const switchIdleSamples = () => {
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .card-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.375rem;
-  }
-
   .detail-row {
     flex-direction: column;
     align-items: flex-start;

@@ -23,6 +23,8 @@ import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.writer.EventDeduplicator;
 import pbouda.jeffrey.provider.writer.sql.calculated.EventCalculator;
+import pbouda.jeffrey.provider.writer.sql.calculated.NativeLeakEventCalculator;
+import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,11 +35,14 @@ public class SQLEventWriter implements EventWriter {
     private final List<SQLSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
     private final String profileId;
+    private final DatabaseClientProvider databaseClientProvider;
     private final Supplier<EventWriters> eventWriters;
     private final EventDeduplicator deduplicator;
 
-    public SQLEventWriter(String profileId, Supplier<EventWriters> eventWriters) {
+    public SQLEventWriter(
+            String profileId, DatabaseClientProvider databaseClientProvider, Supplier<EventWriters> eventWriters) {
         this.profileId = profileId;
+        this.databaseClientProvider = databaseClientProvider;
         this.eventWriters = eventWriters;
         this.deduplicator = new EventDeduplicator();
     }
@@ -69,16 +74,16 @@ public class SQLEventWriter implements EventWriter {
          */
         try (EventWriters writersProvider = eventWriters.get()) {
             // Calculate artificial events and write them to the database
-            resolveEventCalculators(writersProvider).stream().filter(EventCalculator::applicable).forEach(EventCalculator::publish);
+            resolveEventCalculators(writersProvider).stream()
+                    .filter(EventCalculator::applicable)
+                    .forEach(EventCalculator::publish);
         }
     }
 
     private List<EventCalculator> resolveEventCalculators(EventWriters writersProvider) {
-        return List.of();
-        // TODO: Enable NativeLeakEventCalculator again! with Specified EventDatabaseClient (SQLite and Clickhouse implementation)
-//        return List.of(new NativeLeakEventCalculator(
-//                profileId,
-//                databaseClientProvider,
-//                writersProvider.eventTypes()));
+        return List.of(new NativeLeakEventCalculator(
+                profileId,
+                databaseClientProvider,
+                writersProvider.eventTypes()));
     }
 }

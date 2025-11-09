@@ -55,7 +55,7 @@ public class ClickHousePersistenceProvider implements PersistenceProvider {
 
         this.clickHouseClient = new ClickHouseClient(clickhouseUri);
         this.eventWriterFactory = profileId -> {
-            return new SQLEventWriter(profileId, () -> new ClickHouseEventWriters(clickHouseClient, profileId, batchSize));
+            return new SQLEventWriter(profileId, null, () -> new ClickHouseEventWriters(clickHouseClient, profileId, batchSize));
         };
     }
 
