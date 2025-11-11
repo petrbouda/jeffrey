@@ -110,9 +110,9 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     @Override
     public Repositories repositories() {
         ComplexQueries defaultComplexQueries = new SimpleComplexQueries(
-                new DuckDBFlamegraphQueries(),
-                new DuckDBTimeseriesQueries(),
-                new DuckDBSubSecondQueries());
+                DuckDBFlamegraphQueries.of(),
+                DuckDBTimeseriesQueries.of(),
+                DuckDBSubSecondQueries.of());
 
         ComplexQueries nativeComplexQueries = new SimpleComplexQueries(
                 new DuckDBNativeFlamegraphQueries(),

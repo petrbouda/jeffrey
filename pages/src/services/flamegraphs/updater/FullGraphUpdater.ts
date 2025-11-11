@@ -37,7 +37,7 @@ export default class FullGraphUpdater extends GraphUpdater {
 
         this.httpClient.provideBoth(GraphComponents.BOTH, null, null)
             .then(data => {
-                this.flamegraphOnInitCallback(data.flamegraph, null);
+                this.flamegraphOnInitCallback(data.flamegraph);
                 this.timeseriesOnInitCallback(data.timeseries);
 
                 this.flamegraphOnUpdateFinishedCallback();
@@ -51,7 +51,7 @@ export default class FullGraphUpdater extends GraphUpdater {
 
         this.httpClient.provide(timeRange)
             .then(data => {
-                this.flamegraphOnZoomCallback(data, timeRange);
+                this.flamegraphOnZoomCallback(data);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -62,7 +62,7 @@ export default class FullGraphUpdater extends GraphUpdater {
 
         this.httpClient.provide(null)
             .then(data => {
-                this.flamegraphOnResetZoomCallback(data, null);
+                this.flamegraphOnResetZoomCallback(data);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }

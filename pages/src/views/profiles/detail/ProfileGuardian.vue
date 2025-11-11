@@ -510,7 +510,6 @@ function needsNavigation(itemCount: number): boolean {
               :use-weight="activeGuardVisualization.useWeight"
               :use-guardian="activeGuardVisualization"
               :time-range="null"
-              :save-enabled="false"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"/>

@@ -4,6 +4,41 @@ import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 
 public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
 
+    private static final String PLACEHOLDER_FILTERS = "<<additional_filters>>";
+    private static final String PLACEHOLDER_EVENT_TYPE = "<<event_type>>";
+
+    private final String simple;
+    private final String byWeight;
+    private final String byThread;
+    private final String byThreadAndWeight;
+
+    private DuckDBFlamegraphQueries(String eventType, String additionalFilters) {
+        this.simple = SIMPLE
+                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
+                .replace(PLACEHOLDER_FILTERS, additionalFilters);
+        this.byWeight = BY_WEIGHT
+                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
+                .replace(PLACEHOLDER_FILTERS, additionalFilters);
+        this.byThread = BY_THREAD
+                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
+                .replace(PLACEHOLDER_FILTERS, additionalFilters);
+        this.byThreadAndWeight = BY_THREAD_AND_WEIGHT
+                .replace(PLACEHOLDER_EVENT_TYPE, eventType)
+                .replace(PLACEHOLDER_FILTERS, additionalFilters);
+    }
+
+    public static DuckDBFlamegraphQueries of() {
+        return new DuckDBFlamegraphQueries(":event_type", "");
+    }
+
+    public static DuckDBFlamegraphQueries of(String eventType, String additionalFilters) {
+        return new DuckDBFlamegraphQueries(addQuotes(eventType), additionalFilters);
+    }
+
+    public static String addQuotes(String value) {
+        return "'" + value + "'";
+    }
+
     /**
      * Aggregate all events for each stacktrace across all threads. Returns one row per stacktrace with aggregated samples and weight.
      */
@@ -20,12 +55,13 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     ON e.profile_id = s.profile_id
                     AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
-                    AND e.event_type = :event_type
+                    AND e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                <<additional_filters>>
                 GROUP BY s.stacktrace_hash, s.frame_hashes
             ),
             frame_lookup AS (
@@ -68,12 +104,13 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     ON e.profile_id = s.profile_id
                     AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
-                    AND e.event_type = :event_type
+                    AND e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<additional_filters>>
                 GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity
             ),
             frame_lookup AS (
@@ -122,13 +159,14 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     ON e.profile_id = s.profile_id
                     AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
-                    AND e.event_type = :event_type
+                    AND e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<additional_filters>>
                 GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes
             ),
             frame_lookup AS (
@@ -179,13 +217,14 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                     ON e.profile_id = s.profile_id
                     AND e.stacktrace_hash = s.stacktrace_hash
                 WHERE e.profile_id = :profile_id
-                    AND e.event_type = :event_type
+                    AND e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
                     AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
                     AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))
+                    <<additional_filters>>
                 GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes, e.weight_entity
             ),
             frame_lookup AS (
@@ -214,21 +253,21 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
 
     @Override
     public String simple() {
-        return SIMPLE;
+        return simple;
     }
 
     @Override
     public String byWeight() {
-        return BY_WEIGHT;
+        return byWeight;
     }
 
     @Override
     public String byThread() {
-        return BY_THREAD;
+        return byThread;
     }
 
     @Override
     public String byThreadAndWeight() {
-        return BY_THREAD_AND_WEIGHT;
+        return byThreadAndWeight;
     }
 }

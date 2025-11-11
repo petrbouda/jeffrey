@@ -83,28 +83,21 @@ export default class TimeseriesGraph {
     }
 
     changeGraphType(type: string) {
-        if (type === "Bar") {
-            this.chart!.updateOptions({
-                chart: {
-                    type: type.toLowerCase()
-                },
-                fill: {
-                    type: "solid"
-                }
-            })
-        } else {
-            this.chart!.updateOptions({
-                chart: {
-                    type: type.toLowerCase()
-                },
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        opacityFrom: 0.3,
-                        opacityTo: 0.5,
-                    }
-                }
-            })
+        // Store current series (including search results if active) and zoom state
+        const currentSeries = this.chart!.w.config.series;
+        const currentZoom = this.currentZoom;
+
+        // Destroy the existing chart
+        this.chart!.destroy();
+
+        // Recreate the chart with the new type
+        const options = this.#options(currentSeries, this.stacked, this.zoomCallback, type);
+        this.chart = new ApexCharts(this.element, options);
+        this.chart.render();
+
+        // Restore zoom if it existed
+        if (currentZoom != null) {
+            this.chart.zoomX(currentZoom.min, currentZoom.max);
         }
     }
 
@@ -146,7 +139,6 @@ export default class TimeseriesGraph {
             },
             colors: ['#0000ff', Flamegraph.HIGHLIGHTED_COLOR],
             fill: {
-                type: 'gradient',
                 gradient: {
                     opacityFrom: 0.3,
                     opacityTo: 0.5,

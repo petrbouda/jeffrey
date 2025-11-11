@@ -193,7 +193,6 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
               :with-search="null"
               :use-weight="useWeight"
               :use-guardian="null"
-              :save-enabled="true"
               scrollable-wrapper-class="flamegraphModal"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"/>

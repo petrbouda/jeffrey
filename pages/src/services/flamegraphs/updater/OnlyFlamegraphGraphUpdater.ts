@@ -33,7 +33,7 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
         this.flamegraphOnUpdateStartedCallback();
         this.httpClient.provide(this.timeRange)
             .then(data => {
-                this.flamegraphOnInitCallback(data, this.timeRange);
+                this.flamegraphOnInitCallback(data);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -43,7 +43,7 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
         this.httpClient.provide(timeRange)
             .then(data => {
-                this.flamegraphOnZoomCallback(data, timeRange);
+                this.flamegraphOnZoomCallback(data);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }
@@ -53,7 +53,7 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
         this.httpClient.provide(null)
             .then(data => {
-                this.flamegraphOnResetZoomCallback(data, this.timeRange);
+                this.flamegraphOnResetZoomCallback(data);
                 this.flamegraphOnUpdateFinishedCallback();
             });
     }

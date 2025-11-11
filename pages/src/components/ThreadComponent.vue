@@ -478,7 +478,6 @@ function createContextMenuItems() {
               :use-weight="useWeightValue"
               :use-guardian="null"
               :time-range="null"
-              :save-enabled="false"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"/>
