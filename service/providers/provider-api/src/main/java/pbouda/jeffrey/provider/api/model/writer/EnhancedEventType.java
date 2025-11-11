@@ -27,8 +27,6 @@ public record EnhancedEventType(
         EventType eventType,
         RecordingEventSource source,
         String subtype,
-        long samples,
-        Long weight,
         boolean calculated,
         boolean containsStackTraces,
         Map<String, String> extras,

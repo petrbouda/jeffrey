@@ -30,8 +30,6 @@ public class EventTypeBuilder {
     private EventType eventType;
     private RecordingEventSource source = RecordingEventSource.JDK;
     private String subtype;
-    private long samples = 0;
-    private Long weight = 0L;
     private boolean calculated = false;
     private boolean containsStackTraces = false;
     private Map<String, String> extras;
@@ -41,20 +39,6 @@ public class EventTypeBuilder {
         EventTypeBuilder builder = new EventTypeBuilder();
         builder.eventType = eventType;
         return builder;
-    }
-
-    public EventTypeBuilder mergeWith(EventTypeBuilder builder) {
-        addSamples(builder.samples);
-        addWeight(builder.weight);
-        return this;
-    }
-
-    public long getSamples() {
-        return samples;
-    }
-
-    public Long getWeight() {
-        return weight;
     }
 
     public EventType getEventType() {
@@ -76,16 +60,6 @@ public class EventTypeBuilder {
         return this;
     }
 
-    public EventTypeBuilder addSamples(long samples) {
-        this.samples += samples;
-        return this;
-    }
-
-    public EventTypeBuilder addWeight(Long weight) {
-        this.weight += weight;
-        return this;
-    }
-
     public EventTypeBuilder withCalculated(boolean calculated) {
         this.calculated = calculated;
         return this;
@@ -103,6 +77,6 @@ public class EventTypeBuilder {
 
     public EnhancedEventType build() {
         return new EnhancedEventType(
-                eventType, source, subtype, samples, weight, calculated, containsStackTraces, extras, params);
+                eventType, source, subtype, calculated, containsStackTraces, extras, params);
     }
 }

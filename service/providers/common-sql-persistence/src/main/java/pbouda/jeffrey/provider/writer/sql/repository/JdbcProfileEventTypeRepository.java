@@ -31,11 +31,13 @@ import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
+import pbouda.jeffrey.provider.writer.sql.calculated.EventSummaryCalculator;
+import pbouda.jeffrey.provider.writer.sql.calculated.NativeLeakEventSummaryCalculator;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 
-import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -70,7 +72,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 rs.getLong("samples"),
                 rs.getLong("weight"),
                 rs.getBoolean("has_stacktrace"),
-                rs.getBoolean("calculated"),
+                false,
                 toNullableList(rs.getString("categories")),
                 toNullableMap(rs.getString("extras")),
                 toNullableMap(rs.getString("settings")));
@@ -87,16 +89,61 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             "SELECT columns FROM event_types WHERE profile_id = (:profile_id) AND name = (:code) LIMIT 1";
 
     //language=SQL
-    private static final String EVENT_SUMMARIES =
-            "SELECT * FROM event_types WHERE profile_id = (:profile_id) AND name IN (:codes)";
+    private static final String EVENT_SUMMARIES_BY_CODES = """
+            WITH aggregated_events AS (
+                SELECT
+                    event_type,
+                    SUM(samples) as samples,
+                    SUM(weight) as weight
+                FROM events
+                WHERE profile_id = (:profile_id) AND event_type IN (:codes)
+                GROUP BY event_type
+            )
+            SELECT
+                et.name,
+                et.label,
+                et.source,
+                et.subtype,
+                COALESCE(ae.samples, 0) as samples,
+                COALESCE(ae.weight, 0) as weight,
+                et.has_stacktrace,
+                et.categories,
+                et.extras,
+                et.settings
+            FROM event_types et
+            LEFT JOIN aggregated_events ae ON et.name = ae.event_type
+            WHERE et.profile_id = (:profile_id) AND et.name IN (:codes)""";
 
     //language=SQL
-    private static final String EVENT_TYPES_BY_ID =
-            "SELECT * FROM event_types WHERE profile_id = (:profile_id)";
+    private static final String EVENT_SUMMARIES = """
+            WITH aggregated_events AS (
+                SELECT
+                    event_type,
+                    SUM(samples) as samples,
+                    SUM(weight) as weight
+                FROM events
+                WHERE profile_id = (:profile_id)
+                GROUP BY event_type
+            )
+            SELECT
+                et.name,
+                et.label,
+                et.source,
+                et.subtype,
+                COALESCE(ae.samples, 0) as samples,
+                COALESCE(ae.weight, 0) as weight,
+                et.has_stacktrace,
+                et.categories,
+                et.extras,
+                et.settings
+            FROM event_types et
+            LEFT JOIN aggregated_events ae ON et.name = ae.event_type
+            WHERE et.profile_id = (:profile_id)""";
 
     private final SQLFormatter sqlFormatter;
     private final String profileId;
     private final DatabaseClient databaseClient;
+    private final List<EventSummaryCalculator> commonCalculators;
 
     public JdbcProfileEventTypeRepository(
             SQLFormatter sqlFormatter, String profileId, DatabaseClientProvider databaseClientProvider) {
@@ -104,10 +151,14 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         this.sqlFormatter = sqlFormatter;
         this.profileId = profileId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_EVENT_TYPES);
+        this.commonCalculators = List.of(new NativeLeakEventSummaryCalculator(profileId, databaseClientProvider));
     }
 
     @Override
     public Optional<EventTypeWithFields> singleFieldsByEventType(Type type) {
+        /*
+         * Calculated event types are not included, it's not need at the time of the implementation.
+         */
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("code", type.code());
@@ -121,6 +172,26 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
     @Override
     public List<FieldDescription> eventColumns(Type type) {
+        Optional<List<FieldDescription>> calculatedEventColumnsOpt = findCalculatedEventColumns(type);
+        // Return calculated columns if present
+        if (calculatedEventColumnsOpt.isPresent()) {
+            return calculatedEventColumnsOpt.get();
+        }
+
+        // Fallback to database stored columns
+        Optional<List<FieldDescription>> databaseEventColumnsOpt = findDatabaseEventColumns(type);
+        return databaseEventColumnsOpt.orElse(List.of());
+    }
+
+    private Optional<List<FieldDescription>> findCalculatedEventColumns(Type type) {
+        return commonCalculators.stream()
+                .filter(calculator ->  type.equals(calculator.type()))
+                .filter(EventSummaryCalculator::applicable)
+                .map(EventSummaryCalculator::fieldDescriptions)
+                .findAny();
+    }
+
+    private Optional<List<FieldDescription>> findDatabaseEventColumns(Type type) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("code", type.code());
@@ -129,8 +200,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 Json.read(rs.getString("columns"), FIELD_DESC);
 
         return databaseClient.querySingle(
-                StatementLabel.COLUMNS_BY_SINGLE_EVENT, COLUMNS_BY_SINGLE_EVENT, paramSource, columns)
-                .orElse(List.of());
+                        StatementLabel.COLUMNS_BY_SINGLE_EVENT, COLUMNS_BY_SINGLE_EVENT, paramSource, columns);
     }
 
     @Override
@@ -143,8 +213,16 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
                 .addValue("profile_id", profileId)
                 .addValue("codes", codes);
 
-        return databaseClient.query(
-                StatementLabel.EVENT_SUMMARIES, EVENT_SUMMARIES, paramSource, EVENT_SUMMARY_MAPPER);
+        List<EventSummary> eventSummaries = databaseClient.query(
+                StatementLabel.EVENT_SUMMARIES, EVENT_SUMMARIES_BY_CODES, paramSource, EVENT_SUMMARY_MAPPER);
+
+        List<EventSummary> calculatedEventSummaries = commonCalculators.stream()
+                .filter(calculator -> types.contains(calculator.type()))
+                .filter(EventSummaryCalculator::applicable)
+                .map(EventSummaryCalculator::eventSummary)
+                .toList();
+
+        return combine(eventSummaries, calculatedEventSummaries);
     }
 
     @Override
@@ -152,8 +230,22 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId);
 
-        return databaseClient.query(
-                StatementLabel.FIND_EVENT_TYPE, EVENT_TYPES_BY_ID, paramSource, EVENT_SUMMARY_MAPPER);
+        List<EventSummary> eventSummaries = databaseClient.query(
+                StatementLabel.FIND_EVENT_TYPE, EVENT_SUMMARIES, paramSource, EVENT_SUMMARY_MAPPER);
+
+        List<EventSummary> calculatedEventSummaries = commonCalculators.stream()
+                .filter(EventSummaryCalculator::applicable)
+                .map(EventSummaryCalculator::eventSummary)
+                .toList();
+
+        return combine(eventSummaries, calculatedEventSummaries);
+    }
+
+    private static List<EventSummary> combine(List<EventSummary> database, List<EventSummary> calculated) {
+        List<EventSummary> combined = new ArrayList<>();
+        combined.addAll(database);
+        combined.addAll(calculated);
+        return combined;
     }
 
     private static Map<String, String> toNullableMap(String json) {

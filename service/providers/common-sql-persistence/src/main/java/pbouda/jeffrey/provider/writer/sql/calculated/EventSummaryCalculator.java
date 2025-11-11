@@ -18,9 +18,19 @@
 
 package pbouda.jeffrey.provider.writer.sql.calculated;
 
-public interface EventCalculator {
+import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 
-    void publish();
+import java.util.List;
+
+public interface EventSummaryCalculator {
+
+    EventSummary eventSummary();
+
+    List<FieldDescription> fieldDescriptions();
 
     boolean applicable();
+
+    Type type();
 }

@@ -18,14 +18,14 @@
 
 package pbouda.jeffrey.provider.writer.sql.calculated;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.DatabaseWriter;
-import pbouda.jeffrey.provider.api.model.EventType;
-import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
+import pbouda.jeffrey.provider.api.model.FieldDescription;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
@@ -33,7 +33,11 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import java.util.List;
 
-public class NativeLeakEventCalculator implements EventCalculator {
+public class NativeLeakEventSummaryCalculator implements EventSummaryCalculator {
+
+    private static final TypeReference<List<FieldDescription>> FIELD_DESC =
+            new TypeReference<List<FieldDescription>>() {
+            };
 
     private record SamplesAndWeight(long samples, long weight) {
     }
@@ -60,62 +64,56 @@ public class NativeLeakEventCalculator implements EventCalculator {
             )""";
 
     private final DatabaseClient databaseClient;
-    private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
 
     private final MapSqlParameterSource profileIdParams;
 
-    public NativeLeakEventCalculator(
+    public NativeLeakEventSummaryCalculator(
             String profileId,
-            DatabaseClientProvider databaseClientProvider,
-            DatabaseWriter<EnhancedEventType> eventTypeWriter) {
+            DatabaseClientProvider databaseClientProvider) {
 
         this.profileIdParams = new MapSqlParameterSource("profile_id", profileId);
         this.databaseClient = databaseClientProvider.provide(GroupLabel.NATIVE_LEAK_EVENTS);
-        this.eventTypeWriter = eventTypeWriter;
     }
 
     @Override
-    public void publish() {
+    public EventSummary eventSummary() {
         SamplesAndWeight samplesAndWeight = databaseClient.querySingle(
                 StatementLabel.FIND_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
                 SELECT_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
                 profileIdParams,
                 samplesAndWeightMapper()).get();
 
-        List<String> mallocColumns = databaseClient.query(
-                StatementLabel.FIND_MALLOC_EVENT_TYPE_COLUMNS,
-                SELECT_MALLOC_EVENT_TYPE_COLUMNS,
-                profileIdParams,
-                mallocColumnsMapper());
-
-        EventType eventType = new EventType(
+        return new EventSummary(
                 Type.NATIVE_LEAK.code(),
                 "Native Leak",
-                null,
-                "Malloc allocations without corresponding Free events",
-                List.of("Java Virtual Machine", "Native Memory"),
-                Json.readTree(mallocColumns.getFirst()));
-
-        EnhancedEventType enhancedEventType = new EnhancedEventType(
-                eventType,
                 RecordingEventSource.ASYNC_PROFILER,
                 null,
                 samplesAndWeight.samples,
                 samplesAndWeight.weight,
                 true,
                 true,
+                List.of("Java Virtual Machine", "Native Memory"),
                 null,
                 null);
-
-        eventTypeWriter.insert(enhancedEventType);
     }
 
-    private RowMapper<String> mallocColumnsMapper() {
-        return (rs, __) -> rs.getString("columns");
+    @Override
+    public List<FieldDescription> fieldDescriptions() {
+        List<String> columns = databaseClient.query(
+                StatementLabel.FIND_MALLOC_EVENT_TYPE_COLUMNS,
+                SELECT_MALLOC_EVENT_TYPE_COLUMNS,
+                profileIdParams,
+                mallocColumnsMapper());
+
+        return Json.read(columns.getFirst(), FIELD_DESC);
     }
 
     private RowMapper<SamplesAndWeight> samplesAndWeightMapper() {
         return (rs, _) -> new SamplesAndWeight(rs.getLong("samples"), rs.getLong("weight"));
+    }
+
+    private RowMapper<String> mallocColumnsMapper() {
+        return (rs, __) -> rs.getString("columns");
     }
 
     @Override
@@ -123,5 +121,11 @@ public class NativeLeakEventCalculator implements EventCalculator {
         long count = databaseClient.queryLong(
                 StatementLabel.MALLOC_AND_FREE_EXISTS, MALLOC_AND_FREE_EXISTS, profileIdParams);
         return count == 2;
+    }
+
+
+    @Override
+    public Type type() {
+        return Type.NATIVE_LEAK;
     }
 }

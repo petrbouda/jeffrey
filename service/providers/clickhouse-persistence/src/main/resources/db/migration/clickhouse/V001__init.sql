@@ -64,8 +64,6 @@ CREATE TABLE IF NOT EXISTS event_types
     categories     Nullable(String),
     source         LowCardinality(String),
     subtype        Nullable(LowCardinality(String)),
-    samples        UInt64,
-    weight         Nullable(UInt64),
     has_stacktrace Bool,
     calculated     Bool,
     extras         Nullable(String),

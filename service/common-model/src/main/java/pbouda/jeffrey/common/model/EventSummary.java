@@ -33,4 +33,8 @@ public record EventSummary(
         List<String> categories,
         Map<String, String> extras,
         Map<String, String> settings) {
+
+    public Type type() {
+        return Type.fromCode(name);
+    }
 }

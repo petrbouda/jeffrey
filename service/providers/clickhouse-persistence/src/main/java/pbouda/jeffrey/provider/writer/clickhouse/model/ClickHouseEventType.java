@@ -27,8 +27,6 @@ public record ClickHouseEventType(
         String categories,     // Nullable
         int source,
         String subtype,        // Nullable
-        long samples,
-        Long weight,           // Nullable
         boolean hasStacktrace,
         boolean calculated,
         String extras,         // Nullable

@@ -25,25 +25,10 @@ import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;
 import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
-import pbouda.jeffrey.provider.writer.sql.enhancer.EventTypeEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.ExecutionSamplesExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.ExecutionSamplesWeightEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.MonitorEnterExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.MonitorWaitExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.NativeMallocAllocationSamplesExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.ThreadParkExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.TlabAllocationSamplesExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.WallClockSamplesExtraEnhancer;
-import pbouda.jeffrey.provider.writer.sql.enhancer.WallClockSamplesWeightEnhancer;
+import pbouda.jeffrey.provider.writer.sql.enhancer.*;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class WriterResultCollector {
@@ -148,9 +133,7 @@ public class WriterResultCollector {
                     .filter(type -> type.getEventType().name().equals(builder.getEventType().name()))
                     .findFirst();
 
-            if (builderOpt.isPresent()) {
-                builderOpt.get().mergeWith(builder);
-            } else {
+            if (builderOpt.isEmpty()) {
                 mergedBuilders.add(builder);
             }
         });

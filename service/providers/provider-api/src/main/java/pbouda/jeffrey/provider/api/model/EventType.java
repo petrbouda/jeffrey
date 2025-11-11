@@ -19,6 +19,7 @@
 package pbouda.jeffrey.provider.api.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import pbouda.jeffrey.common.model.Type;
 
 import java.util.List;
 
@@ -29,4 +30,8 @@ public record EventType(
         String description,
         List<String> categories,
         JsonNode columns) {
+
+    public Type type() {
+        return Type.fromCode(name);
+    }
 }

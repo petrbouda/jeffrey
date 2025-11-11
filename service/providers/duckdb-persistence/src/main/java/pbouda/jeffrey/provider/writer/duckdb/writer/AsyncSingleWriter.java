@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadFactory;
 
 public class AsyncSingleWriter {
 
+    private static final int PARALLELISM = 4;
+
     private final Executor executor;
 
     private static class LoggingUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
@@ -22,12 +24,12 @@ public class AsyncSingleWriter {
 
     private static final ThreadFactory threadFactory = Thread.ofPlatform()
             .daemon(true)
-            .name("async-duckdb-writer")
+            .name("async-duckdb-writer", 0)
             .uncaughtExceptionHandler(new LoggingUncaughtExceptionHandler())
             .factory();
 
     public AsyncSingleWriter() {
-        this(Executors.newSingleThreadExecutor(threadFactory));
+        this(Executors.newFixedThreadPool(PARALLELISM, threadFactory));
     }
 
     public AsyncSingleWriter(Executor executor) {
