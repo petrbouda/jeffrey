@@ -108,7 +108,7 @@ export default abstract class FlamegraphTooltip {
         if (EventTypes.isAllocationEventType(eventType)) {
             return FormattingService.formatBytes(value)
         } else if (EventTypes.isBlockingEventType(eventType)) {
-            return FormattingService.formatDuration(value)
+            return FormattingService.formatDuration2Units(value)
         } else {
             return value
         }
@@ -119,7 +119,7 @@ export default abstract class FlamegraphTooltip {
     }
 
     static format_duration(value: number, base: number) {
-        return FormattingService.formatDuration(value) + ' (' + FlamegraphTooltip.pct(value, base) + '%)'
+        return FormattingService.formatDuration2Units(value) + ' (' + FlamegraphTooltip.pct(value, base) + '%)'
     }
 
     static pct(a: number, b: number) {

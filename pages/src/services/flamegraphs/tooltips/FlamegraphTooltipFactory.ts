@@ -35,6 +35,8 @@ export default class FlamegraphTooltipFactory {
             || EventTypes.isNativeLeakEventType(eventType)) {
 
             return new BasicWithWeightFlamegraphTooltip(eventType, useWeight, "Allocated", FlamegraphTooltip.format_bytes)
+        } else if (EventTypes.isMethodTraceEventType(eventType)) {
+            return new BasicWithWeightFlamegraphTooltip(eventType, useWeight, "Latency", FlamegraphTooltip.format_duration)
         } else if (EventTypes.isBlockingEventType(eventType)) {
             return new BasicWithWeightFlamegraphTooltip(eventType, useWeight, "Blocked Time", FlamegraphTooltip.format_duration)
         } else {

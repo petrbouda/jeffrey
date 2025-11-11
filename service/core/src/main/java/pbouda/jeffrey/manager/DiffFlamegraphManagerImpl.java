@@ -35,6 +35,7 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.EXECUTION_SAMPLE,
             Type.WALL_CLOCK_SAMPLE,
+            Type.METHOD_TRACE,
             Type.OBJECT_ALLOCATION_SAMPLE,
             Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
             Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);

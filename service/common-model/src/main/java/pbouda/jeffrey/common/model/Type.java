@@ -32,6 +32,7 @@ public record Type(String code, boolean calculated) {
     // Real events
     public static final Type EXECUTION_SAMPLE = new Type(EventTypeName.EXECUTION_SAMPLE);
     public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE);
+    public static final Type METHOD_TRACE = new Type(EventTypeName.METHOD_TRACE);
     public static final Type MALLOC = new Type(EventTypeName.MALLOC);
     public static final Type FREE = new Type(EventTypeName.FREE);
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER);
@@ -118,6 +119,7 @@ public record Type(String code, boolean calculated) {
         KNOWN_TYPES = Stream.of(
                 EXECUTION_SAMPLE,
                 WALL_CLOCK_SAMPLE,
+                METHOD_TRACE,
                 MALLOC,
                 FREE,
                 NATIVE_LEAK,
@@ -204,6 +206,10 @@ public record Type(String code, boolean calculated) {
         return Type.JAVA_MONITOR_ENTER.equals(this)
                 || Type.JAVA_MONITOR_WAIT.equals(this)
                 || Type.THREAD_PARK.equals(this);
+    }
+
+    public boolean isMethodTraceEvent() {
+        return Type.METHOD_TRACE.equals(this);
     }
 
     /**

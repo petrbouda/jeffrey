@@ -32,6 +32,7 @@ public class WeightExtractorRegistry {
     static {
         REGISTRY = new HashMap<>();
         REGISTRY.put(NATIVE_LEAK, WeightExtractor.allocation("size"));
+        REGISTRY.put(METHOD_TRACE, WeightExtractor.duration());
         REGISTRY.put(MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
         REGISTRY.put(FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
         REGISTRY.put(JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));

@@ -138,6 +138,10 @@ public abstract class DurationUtils {
         return format(Duration.ofNanos(duration));
     }
 
+    public static String formatNanos2Units(long duration) {
+        return format2parts(Duration.ofNanos(duration));
+    }
+
     /**
      * Formats a Duration object into a string representation showing only the two most significant parts.
      * For example, "2d 5h" or "3m 45s" instead of showing all non-zero duration parts.

@@ -36,6 +36,28 @@
                       route-name="subsecond"
                       button-text="Show SubSecond Graph"/>
 
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTracesEvents" :key="index"
+                      title="Method Traces"
+                      color=blue
+                      icon="sprint"
+                      :thread-mode-opt="false"
+                      :thread-mode-selected="false"
+                      weight-desc="Total Time"
+                      :weight-opt="false"
+                      :weight-selected="false"
+                      :weight-formatter="FormattingService.formatDuration2Units"
+                      :exclude-non-java-samples-opt="false"
+                      :exclude-non-java-samples-selected="false"
+                      :exclude-idle-samples-opt="false"
+                      :exclude-idle-samples-selected="false"
+                      :only-unsafe-allocation-samples-opt="false"
+                      :only-unsafe-allocation-samples-selected="false"
+                      :graph-mode="GraphType.PRIMARY"
+                      :event="event"
+                      :enabled="loaded"
+                      route-name="subsecond"
+                      button-text="Show SubSecond Graph"/>
+
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
                       color="purple"
@@ -98,6 +120,7 @@ import DashboardHeader from '@/components/DashboardHeader.vue';
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []
 const wallClockEvents: EventSummary[] = []
+const methodTraceEvents: EventSummary[] = []
 
 const loaded = ref<boolean>(false)
 
@@ -120,6 +143,8 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
       objectAllocationEvents.push(event)
     } else if (EventTypes.isWallClock(event.code)) {
       wallClockEvents.push(event)
+    } else if (EventTypes.isMethodTraceEventType(event.code)) {
+      methodTraceEvents.push(event)
     }
   }
 }

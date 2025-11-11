@@ -38,7 +38,10 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, FlamegraphData> {
             weight -> BytesUtils.format(weight) + " Allocated";
 
     private static final Function<Long, String> BLOCKING_FORMATTER =
-            weight -> DurationUtils.formatNanos(weight) + " Blocked";
+            weight -> DurationUtils.formatNanos2Units(weight) + " Blocked";
+
+    private static final Function<Long, String> LATENCY_FORMATTER =
+            weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
 
     private static final double MAX_LEVEL = 1000;
 
@@ -60,6 +63,10 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, FlamegraphData> {
 
     public static FlameGraphBuilder blocking(boolean withMarker) {
         return new FlameGraphBuilder(withMarker, BLOCKING_FORMATTER);
+    }
+
+    public static FlameGraphBuilder latency(boolean withMarker) {
+        return new FlameGraphBuilder(withMarker, LATENCY_FORMATTER);
     }
 
     /**

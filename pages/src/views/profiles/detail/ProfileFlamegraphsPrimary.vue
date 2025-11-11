@@ -34,6 +34,26 @@
                       :event="event"
                       :enabled="loaded"/>
 
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTraceEvents" :key="index"
+                      title="Method Traces"
+                      color="blue"
+                      icon="sprint"
+                      :thread-mode-opt="true"
+                      :thread-mode-selected="false"
+                      weight-desc="Total Time"
+                      :weight-opt="true"
+                      :weight-selected="true"
+                      :weight-formatter="FormattingService.formatDuration2Units"
+                      :exclude-non-java-samples-opt="false"
+                      :exclude-non-java-samples-selected="false"
+                      :exclude-idle-samples-opt="false"
+                      :exclude-idle-samples-selected="false"
+                      :only-unsafe-allocation-samples-opt="false"
+                      :only-unsafe-allocation-samples-selected="false"
+                      :graph-mode="GraphType.PRIMARY"
+                      :event="event"
+                      :enabled="loaded"/>
+
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
                       color="purple"
@@ -151,6 +171,7 @@ import { useNavigation } from '@/composables/useNavigation';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []
+const methodTraceEvents: EventSummary[] = []
 const blockingEvents: EventSummary[] = []
 const wallClockEvents: EventSummary[] = []
 const nativeAllocationEvents: EventSummary[] = []
@@ -173,6 +194,8 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
   for (const event of eventTypes) {
     if (EventTypes.isExecutionEventType(event.code)) {
       executionSampleEvents.push(event)
+    } else if (EventTypes.isMethodTraceEventType(event.code)) {
+      methodTraceEvents.push(event)
     } else if (EventTypes.isAllocationEventType(event.code)) {
       objectAllocationEvents.push(event)
     } else if (EventTypes.isBlockingEventType(event.code)) {

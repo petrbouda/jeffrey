@@ -34,6 +34,26 @@
                       :event="event"
                       :enabled="loaded"/>
 
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTracesEvents" :key="index"
+                      title="Method Traces"
+                      color="blue"
+                      icon="sprint"
+                      :thread-mode-opt="false"
+                      :thread-mode-selected="false"
+                      weight-desc="Total Time"
+                      :weight-opt="false"
+                      :weight-selected="false"
+                      :weight-formatter="FormattingService.formatDuration2Units"
+                      :exclude-non-java-samples-opt="false"
+                      :exclude-non-java-samples-selected="false"
+                      :exclude-idle-samples-opt="false"
+                      :exclude-idle-samples-selected="false"
+                      :only-unsafe-allocation-samples-opt="false"
+                      :only-unsafe-allocation-samples-selected="false"
+                      :graph-mode="GraphType.DIFFERENTIAL"
+                      :event="event"
+                      :enabled="loaded"/>
+
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
                       color="purple"
@@ -92,6 +112,7 @@ import DashboardHeader from '@/components/DashboardHeader.vue';
 
 const objectAllocationEvents = ref<EventSummary[]>([])
 const executionSampleEvents = ref<EventSummary[]>([])
+const methodTracesEvents = ref<EventSummary[]>([])
 const wallClockEvents = ref<EventSummary[]>([])
 
 const route = useRoute();
@@ -121,6 +142,8 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
       objectAllocationEvents.value.push(event)
     } else if (EventTypes.isWallClock(event.code)) {
       wallClockEvents.value.push(event)
+    } else if (EventTypes.isMethodTraceEventType(event.code)) {
+      methodTracesEvents.value.push(event)
     }
   }
 }

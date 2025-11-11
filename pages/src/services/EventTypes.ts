@@ -18,6 +18,7 @@
 
 export default class EventTypes {
     static EXECUTION_SAMPLE = 'jdk.ExecutionSample'
+    static METHOD_TRACE = 'jdk.MethodTrace'
     static OBJECT_ALLOCATION_IN_NEW_TLAB = "jdk.ObjectAllocationInNewTLAB"
     static OBJECT_ALLOCATION_OUTSIDE_TLAB = "jdk.ObjectAllocationOutsideTLAB"
     static OBJECT_ALLOCATION_SAMPLE = "jdk.ObjectAllocationSample"
@@ -76,6 +77,10 @@ export default class EventTypes {
 
     static isExecutionEventType(code: string) {
         return code === this.EXECUTION_SAMPLE
+    }
+
+    static isMethodTraceEventType(code: string) {
+        return code === this.METHOD_TRACE
     }
 
     static isMallocAllocationEventType(code: string) {

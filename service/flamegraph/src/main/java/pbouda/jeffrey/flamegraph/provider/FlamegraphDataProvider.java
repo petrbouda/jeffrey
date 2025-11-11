@@ -116,6 +116,8 @@ public class FlamegraphDataProvider {
             return FlameGraphBuilder.allocation(withMarker);
         } else if (params.eventType().isBlockingEvent()) {
             return FlameGraphBuilder.blocking(withMarker);
+        } else if (params.eventType().isMethodTraceEvent()) {
+            return FlameGraphBuilder.latency(withMarker);
         } else {
             return FlameGraphBuilder.simple(withMarker);
         }
