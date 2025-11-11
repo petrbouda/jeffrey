@@ -20,7 +20,7 @@
                       icon="sprint"
                       :thread-mode-opt="false"
                       :thread-mode-selected="false"
-                      weight-desc="Total Time on CPU"
+                      :weight-desc="null"
                       :weight-opt="false"
                       :weight-selected="false"
                       :weight-formatter="FormattingService.formatDuration2Units"
@@ -36,7 +36,7 @@
                       route-name="subsecond"
                       button-text="Show SubSecond Graph"/>
 
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTracesEvents" :key="index"
+      <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTraceEvents" :key="index"
                       title="Method Traces"
                       color=blue
                       icon="sprint"
@@ -64,7 +64,7 @@
                       icon="alarm"
                       :thread-mode-opt="false"
                       :thread-mode-selected="false"
-                      weight-desc="Total Time"
+                      :weight-desc="null"
                       :weight-opt="false"
                       :weight-selected="false"
                       :weight-formatter="FormattingService.formatDuration2Units"

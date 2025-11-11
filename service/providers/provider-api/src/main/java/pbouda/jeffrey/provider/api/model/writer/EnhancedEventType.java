@@ -27,7 +27,6 @@ public record EnhancedEventType(
         EventType eventType,
         RecordingEventSource source,
         String subtype,
-        boolean calculated,
         boolean containsStackTraces,
         Map<String, String> extras,
         Map<String, String> settings) {

@@ -79,9 +79,6 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
 
         // Every sample is weighted by the period of the interval/period (depending on the source)
         long periodInNanos = periodOpt.get().toNanos();
-
-        return builder
-//                .addWeight(builder.getSamples() * periodInNanos)
-                .putExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
+        return builder.putExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
     }
 }

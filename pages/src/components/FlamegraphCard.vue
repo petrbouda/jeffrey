@@ -210,7 +210,7 @@ interface Props {
   threadModeSelected: boolean;
   weightOpt: boolean;
   weightSelected: boolean;
-  weightDesc: string;
+  weightDesc: string | null;
   weightFormatter: (bytes: number) => string;
   excludeNonJavaSamplesOpt: boolean;
   excludeNonJavaSamplesSelected: boolean;

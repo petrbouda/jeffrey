@@ -45,7 +45,6 @@ public class ClickHouseEventTypeWriter extends ClickHouseBatchingWriter<Enhanced
                 entity.source().getId(),
                 entity.subtype(),
                 entity.containsStackTraces(),
-                entity.calculated(),
                 Json.toJson(entity.extras()),
                 Json.toJson(entity.settings()),
                 entity.eventType().columns().toString()

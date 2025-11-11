@@ -60,11 +60,6 @@ public class EventTypeBuilder {
         return this;
     }
 
-    public EventTypeBuilder withCalculated(boolean calculated) {
-        this.calculated = calculated;
-        return this;
-    }
-
     public EventTypeBuilder putExtras(Map<String, String> extras) {
         this.extras = new HashMap<>(extras);
         return this;
@@ -77,6 +72,6 @@ public class EventTypeBuilder {
 
     public EnhancedEventType build() {
         return new EnhancedEventType(
-                eventType, source, subtype, calculated, containsStackTraces, extras, params);
+                eventType, source, subtype, containsStackTraces, extras, params);
     }
 }

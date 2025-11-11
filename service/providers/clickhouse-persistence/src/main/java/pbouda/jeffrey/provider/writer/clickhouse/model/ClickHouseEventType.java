@@ -28,7 +28,6 @@ public record ClickHouseEventType(
         int source,
         String subtype,        // Nullable
         boolean hasStacktrace,
-        boolean calculated,
         String extras,         // Nullable
         String settings,       // Nullable
         String columns         // Nullable
