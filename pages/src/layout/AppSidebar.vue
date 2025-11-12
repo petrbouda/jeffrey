@@ -92,6 +92,9 @@ async function fetchProjectDetails() {
   try {
     projectInfo.value = await projectClient.get();
     isLoading.value = false;
+    MessageBus.emit(MessageBus.JOBS_COUNT_CHANGED, projectInfo.value.jobCount);
+    MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, projectInfo.value.profileCount);
+    MessageBus.emit(MessageBus.RECORDINGS_COUNT_CHANGED, projectInfo.value.recordingCount);
   } catch (error) {
     console.error('Failed to load project details:', error);
     isLoading.value = false;
@@ -100,13 +103,13 @@ async function fetchProjectDetails() {
 
 // Component lifecycle hooks
 onMounted(async () => {
-  await fetchProjectDetails();
-  await checkInitializingProfiles();
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
   MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
   MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, fetchProjectDetails);
   MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
+  await fetchProjectDetails();
+  await checkInitializingProfiles();
 });
 
 // Start polling for profile status when initialization starts
