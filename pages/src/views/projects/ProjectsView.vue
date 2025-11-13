@@ -42,7 +42,7 @@
                   </div>
                   <Badge
                       v-if="workspace.status === WorkspaceStatus.UNAVAILABLE"
-                      :value="'UNAVAILABLE'"
+                      :value="'X'"
                       variant="red"
                       size="s"
                   />

@@ -23,7 +23,7 @@ import HttpUtils from '@/services/HttpUtils';
 export default class ProfilerClient {
     private static baseUrl: string = GlobalVars.internalUrl + '/profiler/settings'
 
-    static upsert(workspaceId: string, projectId: string, agentSettings: string): Promise<void> {
+    static upsert(workspaceId: string | null, projectId: string | null, agentSettings: string): Promise<void> {
         const content = {
             workspaceId: workspaceId,
             projectId: projectId,

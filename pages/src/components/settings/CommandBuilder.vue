@@ -102,7 +102,7 @@
                     </div>
 
                     <div v-if="agentMode === 'jeffrey'">
-                      <div class="form-help">Using AsyncProfiler agent provided by Jeffrey installation.</div>
+                      <div class="form-help">Using AsyncProfiler agent embedded in Jeffrey.</div>
                     </div>
 
                     <div v-if="agentMode === 'custom'">

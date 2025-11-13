@@ -181,7 +181,6 @@ public enum StatementLabel {
     /**
      * {@link GroupLabel#PROFILER}
      */
-    INSERT_PROFILER_SETTINGS,
-    UPDATE_PROFILER_SETTINGS,
+    UPSERT_PROFILER_SETTINGS,
     FIND_PROFILER_SETTINGS,
 }

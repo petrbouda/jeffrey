@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
@@ -32,7 +33,6 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -56,8 +56,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     // Workspace Events SQL
     //language=SQL
     private static final String INSERT_WORKSPACE_EVENT = """
-            INSERT INTO workspace_events (origin_event_id, workspace_id, project_id, event_type, content, origin_created_at, created_at)
-            VALUES (:origin_event_id, :workspace_id, :project_id, :event_type, :content, :origin_created_at, :created_at)
+            INSERT INTO workspace_events (event_id, origin_event_id, workspace_id, project_id, event_type, content, origin_created_at, created_at)
+            VALUES (:event_id, :origin_event_id, :workspace_id, :project_id, :event_type, :content, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -136,10 +136,14 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             return;
         }
 
+        Instant instant = clock.instant();
+        long nanos = instant.getEpochSecond() * 1_000_000_000L + instant.getNano();
+
         MapSqlParameterSource[] paramSources = new MapSqlParameterSource[workspaceEvents.size()];
         for (int i = 0; i < workspaceEvents.size(); i++) {
             WorkspaceEvent event = workspaceEvents.get(i);
             paramSources[i] = new MapSqlParameterSource()
+                    .addValue("event_id", nanos)
                     .addValue("origin_event_id", event.originEventId())
                     .addValue("workspace_id", event.workspaceId())
                     .addValue("project_id", event.projectId())

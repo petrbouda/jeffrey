@@ -60,7 +60,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         SqlParameterSource params = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
                 .addValue("id", IDGenerator.generate())
-                .addValue("type", repositoryInfo.type())
+                .addValue("type", repositoryInfo.type().name())
                 .addValue("finished_session_detection_file", repositoryInfo.finishedSessionDetectionFile());
 
         databaseClient.insert(StatementLabel.INSERT_REPOSITORY, INSERT_REPOSITORY, params);

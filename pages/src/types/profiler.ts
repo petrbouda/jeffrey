@@ -61,7 +61,7 @@ export const PROFILER_CONSTANTS = {
   lockUnits: ['us', 'ms', 's', 'm', 'h', 'd'] as const,
   intervalUnits: ['us', 'ms'] as const,
   defaultConfig: {
-    agentPath: '${JEFFREY_PROFILER}',
+    agentPath: '%{JEFFREY_PROFILER_PATH}',
     agentPathCustom: '',
     event: 'ctimer',
     wallValue: null,

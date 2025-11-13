@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS workspace_event_consumers
     consumer_id       VARCHAR PRIMARY KEY,
     workspace_id      VARCHAR,
     last_offset       BIGINT,
-    last_execution_at BIGINT,
+    last_execution_at TIMESTAMPTZ,
     created_at        TIMESTAMPTZ NOT NULL
 );
 
@@ -253,4 +253,4 @@ CREATE TABLE IF NOT EXISTS profiler_settings
     agent_settings  VARCHAR NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_profiler_settings ON profiler_settings(workspace_id, project_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiler_settings ON profiler_settings(project_id, workspace_id, profiler_id);

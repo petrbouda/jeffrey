@@ -24,9 +24,7 @@ import java.util.Optional;
 
 public interface ProfilerRepository {
 
-    void insertSettings(ProfilerInfo profiler);
-
-    void updateSettings(ProfilerInfo profiler);
+    void upsertSettings(ProfilerInfo profiler);
 
     Optional<ProfilerInfo> findSettings(ProfilerInfo profiler);
 }

@@ -28,21 +28,15 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.util.Optional;
 
 public class JdbcProfilerRepository implements ProfilerRepository {
 
     //language=SQL
-    private static final String INSERT_SETTINGS = """
+    private static final String UPSERT_SETTINGS = """
             INSERT INTO profiler_settings (profiler_id, workspace_id, project_id, agent_settings)
-            VALUES (:profiler_id, :workspace_id, :project_id, :agent_settings)""";
-
-    //language=SQL
-    private static final String UPDATE_SETTINGS = """
-            UPDATE profiler_settings
-            SET agent_settings = :agent_settings
-            WHERE profiler_id = :profiler_id""";
+            VALUES (:profiler_id, :workspace_id, :project_id, :agent_settings)
+            ON CONFLICT (profiler_id, workspace_id, project_id) DO UPDATE SET agent_settings = EXCLUDED.agent_settings""";
 
     //language=SQL
     private static final String FIND_SETTINGS = """
@@ -56,22 +50,14 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     }
 
     @Override
-    public void insertSettings(ProfilerInfo profiler) {
+    public void upsertSettings(ProfilerInfo profiler) {
         SqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profiler_id", profiler.id())
                 .addValue("workspace_id", profiler.workspaceId())
                 .addValue("project_id", profiler.projectId())
                 .addValue("agent_settings", profiler.agentSettings());
 
-        databaseClient.insert(StatementLabel.INSERT_PROFILER_SETTINGS, INSERT_SETTINGS, paramSource);
-    }
-
-    @Override
-    public void updateSettings(ProfilerInfo profiler) {
-        SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("profiler_id", profiler.agentSettings());
-
-        databaseClient.insert(StatementLabel.UPDATE_PROFILER_SETTINGS, UPDATE_SETTINGS, paramSource);
+        databaseClient.insert(StatementLabel.UPSERT_PROFILER_SETTINGS, UPSERT_SETTINGS, paramSource);
     }
 
     @Override
