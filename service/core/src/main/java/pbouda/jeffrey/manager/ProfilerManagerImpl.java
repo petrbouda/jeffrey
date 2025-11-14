@@ -21,6 +21,9 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.model.ProfilerInfo;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
+import java.util.List;
+import java.util.Optional;
+
 public class ProfilerManagerImpl implements ProfilerManager {
 
     private final ProfilerRepository profilerRepository;
@@ -32,5 +35,15 @@ public class ProfilerManagerImpl implements ProfilerManager {
     @Override
     public void upsertSettings(ProfilerInfo profiler) {
         profilerRepository.upsertSettings(profiler);
+    }
+
+    @Override
+    public Optional<ProfilerInfo> findSettings(String workspaceId, String projectId) {
+        return profilerRepository.findSettings(workspaceId, projectId);
+    }
+
+    @Override
+    public List<ProfilerInfo> findAllSettings() {
+        return profilerRepository.findAllSettings();
     }
 }

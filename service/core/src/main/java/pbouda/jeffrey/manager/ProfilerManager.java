@@ -20,6 +20,9 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProfilerInfo;
 
+import java.util.List;
+import java.util.Optional;
+
 public interface ProfilerManager {
 
     /**
@@ -28,4 +31,18 @@ public interface ProfilerManager {
      * @param profiler the profiler information to be inserted
      */
     void upsertSettings(ProfilerInfo profiler);
+
+    /**
+     * Retrieves the profiler information.
+     *
+     * @return the profiler information
+     */
+    Optional<ProfilerInfo> findSettings(String workspaceId, String projectId);
+
+    /**
+     * Retrieves all profiler settings.
+     *
+     * @return a list of all profiler settings
+     */
+    List<ProfilerInfo> findAllSettings();
 }

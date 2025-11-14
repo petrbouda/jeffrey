@@ -18,15 +18,20 @@
 
 package pbouda.jeffrey.resources;
 
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProfilerInfo;
 import pbouda.jeffrey.manager.ProfilerManager;
 
+import java.util.List;
+import java.util.Optional;
+
 public class ProfilerResource {
 
-    public record ProfilerSettingsRequest(
+    public record ProfilerSettingsEntity(
             String workspaceId,
             String projectId,
             String agentSettings) {
@@ -40,7 +45,7 @@ public class ProfilerResource {
 
     @POST
     @Path("settings")
-    public void upsertSettings(ProfilerSettingsRequest request) {
+    public void upsertSettings(ProfilerSettingsEntity request) {
         ProfilerInfo profilerInfo = new ProfilerInfo(
                 IDGenerator.generate(),
                 request.workspaceId,
@@ -48,5 +53,22 @@ public class ProfilerResource {
                 request.agentSettings);
 
         profilerManager.upsertSettings(profilerInfo);
+    }
+
+    @GET
+    @Path("settings/all")
+    public List<ProfilerSettingsEntity> findAllSettings() {
+        return profilerManager.findAllSettings().stream()
+                .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()))
+                .toList();
+    }
+
+    @GET
+    @Path("settings")
+    public Optional<ProfilerSettingsEntity> findSettings(
+            @QueryParam("workspaceId") String workspaceId,
+            @QueryParam("projectId") String projectId) {
+        return profilerManager.findSettings(workspaceId, projectId)
+                .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()));
     }
 }

@@ -20,11 +20,14 @@ package pbouda.jeffrey.provider.api.repository;
 
 import pbouda.jeffrey.common.model.ProfilerInfo;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ProfilerRepository {
 
     void upsertSettings(ProfilerInfo profiler);
 
-    Optional<ProfilerInfo> findSettings(ProfilerInfo profiler);
+    Optional<ProfilerInfo> findSettings(String workspaceId, String projectId);
+
+    List<ProfilerInfo> findAllSettings();
 }

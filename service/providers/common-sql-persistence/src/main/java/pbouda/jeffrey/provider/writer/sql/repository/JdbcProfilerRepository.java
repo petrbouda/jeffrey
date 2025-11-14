@@ -28,6 +28,7 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
+import java.util.List;
 import java.util.Optional;
 
 public class JdbcProfilerRepository implements ProfilerRepository {
@@ -42,6 +43,9 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     private static final String FIND_SETTINGS = """
             SELECT * FROM profiler_settings
             WHERE workspace_id = :workspace_id AND project_id = :project_id""";
+
+    //language=SQL
+    private static final String FIND_ALL_SETTINGS = "SELECT * FROM profiler_settings";
 
     private final DatabaseClient databaseClient;
 
@@ -61,13 +65,19 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     }
 
     @Override
-    public Optional<ProfilerInfo> findSettings(ProfilerInfo profiler) {
+    public Optional<ProfilerInfo> findSettings(String workspaceId, String projectId) {
         SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", profiler.workspaceId())
-                .addValue("project_id", profiler.projectId());
+                .addValue("workspace_id", workspaceId)
+                .addValue("project_id", projectId);
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_PROFILER_SETTINGS, FIND_SETTINGS, paramSource, settingsMapper());
+    }
+
+    @Override
+    public List<ProfilerInfo> findAllSettings() {
+        return databaseClient.query(
+                StatementLabel.FIND_PROFILER_SETTINGS, FIND_ALL_SETTINGS, settingsMapper());
     }
 
     private static RowMapper<ProfilerInfo> settingsMapper() {
