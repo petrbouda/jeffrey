@@ -705,7 +705,7 @@ onMounted(async () => {
 /* Responsive Design */
 
 /* Large screens: 3 columns */
-@media (max-width: 1200px) {
+@media (max-width: 1600px) {
   .workspace-selection-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -716,7 +716,7 @@ onMounted(async () => {
 }
 
 /* Medium screens: 2 columns */
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
   .workspace-selection-grid {
     grid-template-columns: repeat(2, 1fr);
   }
