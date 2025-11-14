@@ -19,6 +19,7 @@
 import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
+import ProfilerSettings from "@/services/model/ProfilerSettings.ts";
 
 export default class ProfilerClient {
     private static baseUrl: string = GlobalVars.internalUrl + '/profiler/settings'
@@ -31,6 +32,26 @@ export default class ProfilerClient {
         };
 
         return axios.post(ProfilerClient.baseUrl, content, HttpUtils.JSON_HEADERS)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static fetchAll(): Promise<ProfilerSettings> {
+        return axios.get(ProfilerClient.baseUrl + "/all",  HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    static fetch(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
+        const data = {
+            params: {
+                workspaceId: workspaceId,
+                projectId: projectId
+            },
+            headers: {
+                Accept: 'application/json'
+            }
+        }
+
+        return axios.get(ProfilerClient.baseUrl, data)
             .then(HttpUtils.RETURN_DATA);
     }
 }

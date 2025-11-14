@@ -1,7 +1,41 @@
 <template>
   <div>
-    <!-- Step Progress Indicator -->
-    <div class="step-progress-card mb-4">
+    <!-- Mode Toggle -->
+    <div class="mode-toggle-card mb-4">
+      <div class="mode-toggle-content">
+        <div class="mode-tabs">
+          <button
+              class="mode-tab"
+              :class="{ 'active': viewMode === 'configure' }"
+              @click="viewMode = 'configure'">
+            <i class="bi bi-gear-fill"></i>
+            Configure Settings
+          </button>
+          <button
+            class="mode-tab"
+            :class="{ 'active': viewMode === 'view' }"
+            @click="viewMode = 'view'"
+          >
+            <i class="bi bi-eye-fill"></i>
+            View Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW MODE -->
+    <div v-if="viewMode === 'view'">
+      <div class="profiler-settings-main-card mb-4">
+        <div class="profiler-settings-main-content">
+          <ProfilerSettingsHierarchy />
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURE MODE -->
+    <div v-if="viewMode === 'configure'">
+      <!-- Step Progress Indicator -->
+      <div class="step-progress-card mb-4">
       <div class="step-progress-content">
         <div class="step-indicators">
           <div class="step-indicator" :class="{ 'active': currentStep === 1, 'completed': currentStep > 1 }">
@@ -131,6 +165,19 @@
                     </div>
                   </div>
                 </div>
+
+                <div class="scope-option-card" :class="{ 'selected': applicationScope === 'projects' }" @click="applicationScope = 'projects'">
+                  <div class="scope-option-header">
+                    <input type="radio" v-model="applicationScope" value="projects" />
+                    <div class="scope-option-info">
+                      <i class="bi bi-diagram-3-fill"></i>
+                      <div>
+                        <h6 class="scope-option-title">Apply to Selected Projects</h6>
+                        <p class="scope-option-description">Choose specific projects from local workspaces</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -168,6 +215,121 @@
               </div>
             </div>
 
+            <!-- Project Selection (when projects scope is selected) -->
+            <div v-if="applicationScope === 'projects'" class="project-selection-section">
+              <!-- Step 1: Select Workspaces -->
+              <h5 class="workspace-section-title">Step 1: Select Local Workspaces</h5>
+              <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
+                <i class="bi bi-info-circle"></i>
+                <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
+              </div>
+              <div v-else class="workspace-selection-grid">
+                <div
+                  v-for="workspace in localWorkspaces"
+                  :key="workspace.id"
+                  class="workspace-selection-card"
+                  :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
+                  @click="toggleWorkspaceSelection(workspace.id)"
+                >
+                  <div class="workspace-selection-header">
+                    <input
+                      type="checkbox"
+                      :checked="selectedWorkspaces.includes(workspace.id)"
+                      @click.stop
+                      @change="toggleWorkspaceSelection(workspace.id)"
+                    />
+                    <div class="workspace-selection-info">
+                      <i class="bi bi-folder-fill"></i>
+                      <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
+                    </div>
+                  </div>
+                  <div class="workspace-selection-description">
+                    {{ workspace.description || `Projects for ${workspace.name}` }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 2: Select Projects -->
+              <div v-if="selectedWorkspaces.length > 0" class="projects-list-section">
+                <h5 class="workspace-section-title">Step 2: Select Projects</h5>
+
+                <!-- Loading state -->
+                <div v-if="isLoadingProjects" class="loading-projects-message">
+                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <span>Loading projects...</span>
+                </div>
+
+                <!-- Projects grouped by workspace -->
+                <div v-else>
+                  <div
+                    v-for="workspaceId in selectedWorkspaces"
+                    :key="workspaceId"
+                    class="workspace-projects-group"
+                  >
+                    <div class="workspace-group-header">
+                      <div class="workspace-group-title">
+                        <i class="bi bi-folder-fill"></i>
+                        <span>{{ getWorkspaceName(workspaceId) }}</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn-select-all-projects"
+                        @click="selectAllProjectsInWorkspace(workspaceId)"
+                      >
+                        <i :class="areAllProjectsSelectedInWorkspace(workspaceId) ? 'bi bi-check-square-fill' : 'bi bi-square'"></i>
+                        {{ areAllProjectsSelectedInWorkspace(workspaceId) ? 'Deselect All' : 'Select All' }}
+                      </button>
+                    </div>
+
+                    <!-- No projects message -->
+                    <div
+                      v-if="!projectsByWorkspace.get(workspaceId) || projectsByWorkspace.get(workspaceId).length === 0"
+                      class="no-projects-message"
+                    >
+                      <i class="bi bi-info-circle"></i>
+                      <span>No projects available in this workspace</span>
+                    </div>
+
+                    <!-- Project cards -->
+                    <div v-else class="project-selection-grid">
+                      <div
+                        v-for="project in projectsByWorkspace.get(workspaceId)"
+                        :key="project.id"
+                        class="project-selection-card"
+                        :class="{ 'selected': isProjectSelected(workspaceId, project.id) }"
+                        @click="toggleProjectSelection(workspaceId, project.id)"
+                      >
+                        <div class="project-selection-header">
+                          <input
+                            type="checkbox"
+                            :checked="isProjectSelected(workspaceId, project.id)"
+                            @click.stop
+                            @change="toggleProjectSelection(workspaceId, project.id)"
+                          />
+                          <div class="project-selection-info">
+                            <i class="bi bi-diagram-3-fill"></i>
+                            <h6 class="project-selection-name">{{ project.name }}</h6>
+                          </div>
+                        </div>
+                        <div class="project-selection-meta">
+                          <span class="project-meta-item">
+                            <i class="bi bi-person-vcard"></i>
+                            {{ project.profileCount }} {{ project.profileCount === 1 ? 'profile' : 'profiles' }}
+                          </span>
+                          <span class="project-meta-item">
+                            <i class="bi bi-record-circle"></i>
+                            {{ project.recordingCount }} {{ project.recordingCount === 1 ? 'recording' : 'recordings' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Apply Actions -->
             <div class="apply-actions">
               <button
@@ -193,18 +355,27 @@
 
       </div>
     </div>
+    </div>
+    <!-- END CONFIGURE MODE -->
+
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import ToastService from '@/services/ToastService';
 import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
+import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHierarchy.vue';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import WorkspaceType from '@/services/workspace/model/WorkspaceType';
 import type Workspace from '@/services/workspace/model/Workspace';
 import ProfilerClient from '@/services/ProfilerClient';
+import ProjectsClient from '@/services/ProjectsClient';
+import type Project from '@/services/model/Project';
+
+// Mode management
+const viewMode = ref<'view' | 'configure'>('configure');
 
 // Step management
 const currentStep = ref(1); // 1: Configure Command, 2: Builder, 3: Apply
@@ -214,9 +385,14 @@ const hasVisitedBuilder = ref(false);
 const finalCommand = ref('');
 
 // Step 3: Application Scope
-const applicationScope = ref<'global' | 'workspaces'>('global');
+const applicationScope = ref<'global' | 'workspaces' | 'projects'>('global');
 const selectedWorkspaces = ref<string[]>([]);
 const workspaces = ref<Workspace[]>([]);
+
+// Project selection
+const selectedProjects = ref<Array<{workspaceId: string, projectId: string}>>([]);
+const projectsByWorkspace = ref<Map<string, Project[]>>(new Map());
+const isLoadingProjects = ref(false);
 
 // Agent mode for mutual exclusion
 const agentMode = ref<'jeffrey' | 'custom'>('jeffrey');
@@ -256,6 +432,7 @@ const resetBuilderState = () => {
   hasVisitedBuilder.value = false;
 };
 
+
 // Workspace management
 const localWorkspaces = computed(() =>
   workspaces.value.filter(w => w.type === WorkspaceType.LOCAL)
@@ -270,11 +447,107 @@ const toggleWorkspaceSelection = (workspaceId: string) => {
   }
 };
 
+// Project management
+const loadProjectsForWorkspaces = async () => {
+  if (selectedWorkspaces.value.length === 0) {
+    projectsByWorkspace.value = new Map();
+    return;
+  }
+
+  isLoadingProjects.value = true;
+  try {
+    const projectsMap = new Map<string, Project[]>();
+
+    // Load projects for each selected workspace
+    for (const workspaceId of selectedWorkspaces.value) {
+      const projects = await ProjectsClient.list(workspaceId);
+      projectsMap.set(workspaceId, projects);
+    }
+
+    projectsByWorkspace.value = projectsMap;
+  } catch (error) {
+    console.error('Failed to load projects:', error);
+    ToastService.error('Failed to load projects', 'Cannot load projects from the server.');
+  } finally {
+    isLoadingProjects.value = false;
+  }
+};
+
+const toggleProjectSelection = (workspaceId: string, projectId: string) => {
+  const index = selectedProjects.value.findIndex(
+    p => p.workspaceId === workspaceId && p.projectId === projectId
+  );
+
+  if (index === -1) {
+    selectedProjects.value.push({ workspaceId, projectId });
+  } else {
+    selectedProjects.value.splice(index, 1);
+  }
+};
+
+const isProjectSelected = (workspaceId: string, projectId: string): boolean => {
+  return selectedProjects.value.some(
+    p => p.workspaceId === workspaceId && p.projectId === projectId
+  );
+};
+
+const selectAllProjectsInWorkspace = (workspaceId: string) => {
+  const projects = projectsByWorkspace.value.get(workspaceId) || [];
+
+  // Check if all projects in this workspace are already selected
+  const allSelected = projects.every(project =>
+    isProjectSelected(workspaceId, project.id)
+  );
+
+  if (allSelected) {
+    // Deselect all projects from this workspace
+    selectedProjects.value = selectedProjects.value.filter(
+      p => p.workspaceId !== workspaceId
+    );
+  } else {
+    // Select all projects from this workspace
+    projects.forEach(project => {
+      if (!isProjectSelected(workspaceId, project.id)) {
+        selectedProjects.value.push({ workspaceId, projectId: project.id });
+      }
+    });
+  }
+};
+
+const areAllProjectsSelectedInWorkspace = (workspaceId: string): boolean => {
+  const projects = projectsByWorkspace.value.get(workspaceId) || [];
+  if (projects.length === 0) return false;
+
+  return projects.every(project => isProjectSelected(workspaceId, project.id));
+};
+
+const getWorkspaceName = (workspaceId: string): string => {
+  const workspace = workspaces.value.find(w => w.id === workspaceId);
+  return workspace?.name || 'Unknown Workspace';
+};
+
+// Watch for workspace selection changes in 'projects' mode
+watch([selectedWorkspaces, applicationScope], async ([newWorkspaces, newScope], [oldWorkspaces]) => {
+  if (newScope === 'projects') {
+    // Clear selected projects when workspaces change
+    if (JSON.stringify(newWorkspaces) !== JSON.stringify(oldWorkspaces)) {
+      selectedProjects.value = [];
+    }
+    await loadProjectsForWorkspaces();
+  }
+}, { deep: true });
+
 const canApplyConfiguration = computed(() => {
   if (applicationScope.value === 'global') {
     return true;
   }
-  return selectedWorkspaces.value.length > 0;
+  if (applicationScope.value === 'workspaces') {
+    return selectedWorkspaces.value.length > 0;
+  }
+  if (applicationScope.value === 'projects') {
+    return selectedProjects.value.length > 0;
+  }
+  return false;
 });
 
 // Apply configuration
@@ -284,7 +557,7 @@ const applyConfiguration = async () => {
       // Global configuration: workspaceId = null, projectId = null
       await ProfilerClient.upsert(null, null, finalCommand.value);
       ToastService.success('Configuration Applied', 'Profiler configuration has been applied globally.');
-    } else {
+    } else if (applicationScope.value === 'workspaces') {
       // Workspace-specific configuration: apply to each selected workspace
       const promises = selectedWorkspaces.value.map(workspaceId =>
         ProfilerClient.upsert(workspaceId, null, finalCommand.value)
@@ -292,12 +565,22 @@ const applyConfiguration = async () => {
 
       await Promise.all(promises);
       ToastService.success('Configuration Applied', `Profiler configuration has been applied to ${selectedWorkspaces.value.length} workspace(s).`);
+    } else if (applicationScope.value === 'projects') {
+      // Project-specific configuration: apply to each selected project
+      const promises = selectedProjects.value.map(({workspaceId, projectId}) =>
+        ProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
+      );
+
+      await Promise.all(promises);
+      ToastService.success('Configuration Applied', `Profiler configuration has been applied to ${selectedProjects.value.length} project(s).`);
     }
 
     // Reset to step 1 after successful application
     currentStep.value = 1;
     applicationScope.value = 'global';
     selectedWorkspaces.value = [];
+    selectedProjects.value = [];
+    projectsByWorkspace.value = new Map();
   } catch (error) {
     console.error('Failed to apply configuration:', error);
     ToastService.error('Application Failed', 'Failed to apply profiler configuration. Please try again.');
@@ -1259,12 +1542,19 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.command-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
 .command-preview {
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.15);
   border-radius: 8px;
   padding: 14px 16px;
-  margin-top: 8px;
 }
 
 .command-preview code {
@@ -1285,7 +1575,7 @@ onMounted(() => {
 
 .scope-option-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -1363,31 +1653,31 @@ onMounted(() => {
 
 .workspace-selection-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 .workspace-selection-card {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border: 2px solid rgba(94, 100, 255, 0.3);
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 2px solid rgba(94, 100, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
 }
 
 .workspace-selection-card:hover {
-  background: linear-gradient(135deg, #e8eaf6, #c5cae9);
-  border-color: rgba(94, 100, 255, 0.4);
+  border-color: rgba(94, 100, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
 }
 
 .workspace-selection-card.selected {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  border-color: #4c52ff;
-  color: white;
-  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.3);
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  border-color: #5e64ff;
+  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
 
 .workspace-selection-header {
@@ -1401,15 +1691,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .workspace-selection-info i {
   font-size: 0.9rem;
   color: #5e64ff;
-}
-
-.workspace-selection-card.selected .workspace-selection-info i {
-  color: white;
+  flex-shrink: 0;
 }
 
 .workspace-selection-name {
@@ -1417,20 +1706,20 @@ onMounted(() => {
   font-weight: 600;
   color: #1a237e;
   margin: 0;
-}
-
-.workspace-selection-card.selected .workspace-selection-name {
-  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace-selection-description {
   font-size: 0.75rem;
   color: #283593;
-  line-height: 1.4;
-}
-
-.workspace-selection-card.selected .workspace-selection-description {
-  color: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  flex: 1;
 }
 
 /* Apply Actions */
@@ -1443,13 +1732,202 @@ onMounted(() => {
   justify-content: space-between;
 }
 
+/* Project Selection Styling */
+.project-selection-section {
+  margin-top: 20px;
+}
+
+.projects-list-section {
+  margin-top: 24px;
+}
+
+.loading-projects-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(94, 100, 255, 0.05);
+  border: 1px solid rgba(94, 100, 255, 0.15);
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.workspace-projects-group {
+  margin-bottom: 24px;
+}
+
+.workspace-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.workspace-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.workspace-group-title i {
+  color: #5e64ff;
+  font-size: 0.9rem;
+}
+
+.btn-select-all-projects {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(94, 100, 255, 0.1);
+  border: 1px solid rgba(94, 100, 255, 0.3);
+  border-radius: 6px;
+  color: #5e64ff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-select-all-projects:hover {
+  background: rgba(94, 100, 255, 0.2);
+  border-color: rgba(94, 100, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.no-projects-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(94, 100, 255, 0.03);
+  border: 1px dashed rgba(94, 100, 255, 0.15);
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.no-projects-message i {
+  color: rgba(94, 100, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.project-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.project-selection-card {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 2px solid rgba(94, 100, 255, 0.15);
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-selection-card:hover {
+  border-color: rgba(94, 100, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
+}
+
+.project-selection-card.selected {
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  border-color: #5e64ff;
+  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
+}
+
+.project-selection-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.project-selection-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.project-selection-info i {
+  font-size: 0.95rem;
+  color: #5e64ff;
+}
+
+.project-selection-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.project-selection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.project-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-meta-item i {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
 /* Responsive Design */
+
+/* Large screens: 4 columns */
+@media (max-width: 1400px) {
+  .workspace-selection-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .project-selection-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Medium screens: 3 columns */
+@media (max-width: 1024px) {
+  .workspace-selection-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .project-selection-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tablet and below */
 @media (max-width: 768px) {
   .scope-option-cards {
     grid-template-columns: 1fr;
   }
 
   .workspace-selection-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-selection-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1469,6 +1947,94 @@ onMounted(() => {
     height: 30px;
     margin: 0;
   }
+
+  .workspace-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .btn-select-all-projects {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Mobile: 1 column */
+@media (max-width: 480px) {
+  .workspace-selection-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-selection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mode Toggle Styling */
+.mode-toggle-card {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(10px);
+}
+
+.mode-toggle-content {
+  padding: 20px 28px;
+  display: flex;
+  justify-content: center;
+}
+
+.mode-tabs {
+  display: flex;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mode-tab i {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.mode-tab:hover {
+  background: rgba(241, 245, 249, 0.8);
+  color: #475569;
+}
+
+.mode-tab:hover i {
+  opacity: 1;
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  color: white;
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
+  font-weight: 600;
+}
+
+.mode-tab.active i {
+  opacity: 1;
+  color: white;
 }
 
 </style>
