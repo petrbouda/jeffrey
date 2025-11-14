@@ -52,6 +52,27 @@
         </div>
       </div>
 
+      <!-- No Global Settings Note -->
+      <div v-if="activeLevel === 'global' && !activeCommand" class="config-output-section">
+        <div class="config-output config-output-info">
+          <div class="config-output-header">
+            <div class="config-output-label">
+              <i class="bi bi-globe2"></i>
+              <span>Global Configuration</span>
+            </div>
+          </div>
+          <div class="config-output-content">
+            <div class="uses-global-note">
+              <i class="bi bi-info-circle"></i>
+              <div class="uses-global-text">
+                <strong>No Global Settings Configured</strong>
+                <p>No global configuration has been set. Configure settings in the 'Configure' tab to apply them globally.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Global Settings -->
       <div class="scope-options">
         <div class="scope-section-title">Global Settings</div>
@@ -348,10 +369,8 @@ onMounted(async () => {
   await loadWorkspaces();
   isLoading.value = false;
 
-  // Automatically select Global Configuration if it exists
-  if (globalSettings.value?.agentSettings) {
-    setActiveCommand('global', globalSettings.value.agentSettings);
-  }
+  // Always auto-select Global Configuration
+  setActiveCommand('global', globalSettings.value?.agentSettings || null);
 });
 </script>
 
