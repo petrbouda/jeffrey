@@ -165,29 +165,15 @@
                   <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
                 </div>
                 <div v-else class="workspace-selection-grid">
-                  <div
+                  <ProfilerSelectionCard
                       v-for="workspace in localWorkspaces"
                       :key="workspace.id"
-                      class="workspace-selection-card"
-                      :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
-                      @click="toggleWorkspaceSelection(workspace.id)"
-                  >
-                    <div class="workspace-selection-header">
-                      <input
-                          type="checkbox"
-                          :checked="selectedWorkspaces.includes(workspace.id)"
-                          @click.stop
-                          @change="toggleWorkspaceSelection(workspace.id)"
-                      />
-                      <div class="workspace-selection-info">
-                        <i class="bi bi-folder-fill"></i>
-                        <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
-                      </div>
-                    </div>
-                    <div class="workspace-selection-description">
-                      {{ workspace.description || `Projects for ${workspace.name}` }}
-                    </div>
-                  </div>
+                      :name="workspace.name"
+                      icon="bi-folder-fill"
+                      :selected="selectedWorkspaces.includes(workspace.id)"
+                      selection-type="checkbox"
+                      @select="toggleWorkspaceSelection(workspace.id)"
+                  />
                 </div>
               </div>
 
@@ -200,29 +186,15 @@
                   <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
                 </div>
                 <div v-else class="workspace-selection-grid">
-                  <div
+                  <ProfilerSelectionCard
                       v-for="workspace in localWorkspaces"
                       :key="workspace.id"
-                      class="workspace-selection-card"
-                      :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
-                      @click="toggleWorkspaceSelection(workspace.id)"
-                  >
-                    <div class="workspace-selection-header">
-                      <input
-                          type="checkbox"
-                          :checked="selectedWorkspaces.includes(workspace.id)"
-                          @click.stop
-                          @change="toggleWorkspaceSelection(workspace.id)"
-                      />
-                      <div class="workspace-selection-info">
-                        <i class="bi bi-folder-fill"></i>
-                        <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
-                      </div>
-                    </div>
-                    <div class="workspace-selection-description">
-                      {{ workspace.description || `Projects for ${workspace.name}` }}
-                    </div>
-                  </div>
+                      :name="workspace.name"
+                      icon="bi-folder-fill"
+                      :selected="selectedWorkspaces.includes(workspace.id)"
+                      selection-type="checkbox"
+                      @select="toggleWorkspaceSelection(workspace.id)"
+                  />
                 </div>
 
                 <!-- Step 2: Select Projects -->
@@ -270,36 +242,15 @@
 
                       <!-- Project cards -->
                       <div v-else class="project-selection-grid">
-                        <div
+                        <ProfilerSelectionCard
                             v-for="project in projectsByWorkspace.get(workspaceId)"
                             :key="project.id"
-                            class="project-selection-card"
-                            :class="{ 'selected': isProjectSelected(workspaceId, project.id) }"
-                            @click="toggleProjectSelection(workspaceId, project.id)"
-                        >
-                          <div class="project-selection-header">
-                            <input
-                                type="checkbox"
-                                :checked="isProjectSelected(workspaceId, project.id)"
-                                @click.stop
-                                @change="toggleProjectSelection(workspaceId, project.id)"
-                            />
-                            <div class="project-selection-info">
-                              <i class="bi bi-diagram-3-fill"></i>
-                              <h6 class="project-selection-name">{{ project.name }}</h6>
-                            </div>
-                          </div>
-                          <div class="project-selection-meta">
-                          <span class="project-meta-item">
-                            <i class="bi bi-person-vcard"></i>
-                            {{ project.profileCount }} {{ project.profileCount === 1 ? 'profile' : 'profiles' }}
-                          </span>
-                            <span class="project-meta-item">
-                            <i class="bi bi-record-circle"></i>
-                            {{ project.recordingCount }} {{ project.recordingCount === 1 ? 'recording' : 'recordings' }}
-                          </span>
-                          </div>
-                        </div>
+                            :name="project.name"
+                            icon="bi-diagram-3-fill"
+                            :selected="isProjectSelected(workspaceId, project.id)"
+                            selection-type="checkbox"
+                            @select="toggleProjectSelection(workspaceId, project.id)"
+                        />
                       </div>
                     </div>
                   </div>
@@ -342,6 +293,7 @@ import {computed, onMounted, ref, watch} from 'vue';
 import ToastService from '@/services/ToastService';
 import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
+import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHierarchy.vue';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import WorkspaceType from '@/services/workspace/model/WorkspaceType';
@@ -1763,70 +1715,6 @@ onMounted(() => {
   gap: 12px;
 }
 
-.workspace-selection-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 2px solid rgba(94, 100, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-}
-
-.workspace-selection-card:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
-}
-
-.workspace-selection-card.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
-  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
-}
-
-.workspace-selection-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.workspace-selection-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.workspace-selection-info i {
-  font-size: 0.9rem;
-  color: #5e64ff;
-  flex-shrink: 0;
-}
-
-.workspace-selection-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a237e;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-selection-description {
-  font-size: 0.75rem;
-  color: #283593;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  flex: 1;
-}
 
 /* Apply Actions */
 .apply-actions {
@@ -1867,37 +1755,37 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
   border: 1px solid rgba(94, 100, 255, 0.2);
   border-radius: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .workspace-group-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
+  gap: 6px;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #374151;
 }
 
 .workspace-group-title i {
   color: #5e64ff;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .btn-select-all-projects {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 4px;
+  padding: 4px 10px;
   background: rgba(94, 100, 255, 0.1);
   border: 1px solid rgba(94, 100, 255, 0.3);
   border-radius: 6px;
   color: #5e64ff;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1933,76 +1821,10 @@ onMounted(() => {
   gap: 12px;
 }
 
-.project-selection-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 2px solid rgba(94, 100, 255, 0.15);
-  border-radius: 10px;
-  padding: 14px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.project-selection-card:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
-}
-
-.project-selection-card.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
-  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
-}
-
-.project-selection-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.project-selection-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.project-selection-info i {
-  font-size: 0.95rem;
-  color: #5e64ff;
-}
-
-.project-selection-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-}
-
-.project-selection-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.project-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.project-meta-item i {
-  font-size: 0.7rem;
-  opacity: 0.8;
-}
-
 /* Responsive Design */
 
-/* Large screens: 4 columns */
-@media (max-width: 1400px) {
+/* Large screens: 3 columns */
+@media (max-width: 1200px) {
   .workspace-selection-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -2012,8 +1834,8 @@ onMounted(() => {
   }
 }
 
-/* Medium screens: 3 columns */
-@media (max-width: 1024px) {
+/* Medium screens: 2 columns */
+@media (max-width: 900px) {
   .workspace-selection-grid {
     grid-template-columns: repeat(2, 1fr);
   }

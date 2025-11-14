@@ -91,31 +91,16 @@
           <span>No workspaces available</span>
         </div>
         <div v-else class="workspace-selection-grid">
-          <div
+          <ProfilerSelectionCard
             v-for="workspace in workspaces"
             :key="workspace.id"
-            class="workspace-selection-card"
-            :class="{
-              'selected': selectedWorkspaceId === workspace.id
-            }"
-            @click="handleWorkspaceClick(workspace)"
-          >
-            <div class="workspace-selection-header">
-              <input
-                type="radio"
-                :checked="selectedWorkspaceId === workspace.id"
-                @click.stop
-              />
-              <div class="workspace-selection-info">
-                <i class="bi bi-folder-fill"></i>
-                <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
-              </div>
-            </div>
-            <div class="workspace-selection-description">
-              <span v-if="workspace.hasCustomSettings" class="badge-custom">Custom Settings</span>
-              <span v-else class="badge-uses-global">Uses Global</span>
-            </div>
-          </div>
+            :name="workspace.name"
+            icon="bi-folder-fill"
+            :selected="selectedWorkspaceId === workspace.id"
+            selection-type="radio"
+            :badge="workspace.hasCustomSettings ? 'CUSTOM' : 'GLOBAL'"
+            @select="handleWorkspaceClick(workspace)"
+          />
         </div>
       </div>
 
@@ -136,37 +121,16 @@
         </div>
 
         <div v-else class="project-selection-grid">
-          <div
+          <ProfilerSelectionCard
             v-for="project in projectsWithOverrides"
             :key="project.id"
-            class="project-selection-card"
-            :class="{
-              'selected': activeLevel === 'project' && activeProjectId === project.id
-            }"
-            @click="setActiveCommand('project', project.agentSettings || null, selectedWorkspaceId, project.id, project.name)"
-          >
-            <div class="project-selection-header">
-              <input
-                type="radio"
-                :checked="activeLevel === 'project' && activeProjectId === project.id"
-                @click.stop
-              />
-              <div class="project-selection-info">
-                <i class="bi bi-diagram-3-fill"></i>
-                <h6 class="project-selection-name">{{ project.name }}</h6>
-              </div>
-            </div>
-            <div class="project-selection-meta">
-              <span class="project-meta-item">
-                <i class="bi bi-person-vcard"></i>
-                {{ project.profileCount }} {{ project.profileCount === 1 ? 'profile' : 'profiles' }}
-              </span>
-              <span class="project-meta-item">
-                <i class="bi bi-record-circle"></i>
-                {{ project.recordingCount }} {{ project.recordingCount === 1 ? 'recording' : 'recordings' }}
-              </span>
-            </div>
-          </div>
+            :name="project.name"
+            icon="bi-diagram-3-fill"
+            :selected="activeLevel === 'project' && activeProjectId === project.id"
+            selection-type="radio"
+            badge="CUSTOM"
+            @select="setActiveCommand('project', project.agentSettings || null, selectedWorkspaceId, project.id, project.name)"
+          />
         </div>
       </div>
     </div>
@@ -175,6 +139,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import WorkspaceType from '@/services/workspace/model/WorkspaceType';
 import ProfilerClient from '@/services/ProfilerClient';
@@ -695,90 +660,6 @@ onMounted(async () => {
   gap: 12px;
 }
 
-.workspace-selection-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 2px solid rgba(94, 100, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-}
-
-.workspace-selection-card:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
-}
-
-.workspace-selection-card.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
-  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
-}
-
-.workspace-selection-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.workspace-selection-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.workspace-selection-info i {
-  font-size: 0.9rem;
-  color: #5e64ff;
-  flex-shrink: 0;
-}
-
-.workspace-selection-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1a237e;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-selection-description {
-  font-size: 0.75rem;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.badge-custom {
-  background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  border: 1px solid rgba(94, 100, 255, 0.3);
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.badge-uses-global {
-  background: rgba(156, 163, 175, 0.1);
-  color: #6b7280;
-  border: 1px solid rgba(156, 163, 175, 0.3);
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
 
 /* Project Selection - matching Apply Configuration */
 .project-selection-section {
@@ -817,101 +698,41 @@ onMounted(async () => {
 
 .project-selection-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-}
-
-.project-selection-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 2px solid rgba(94, 100, 255, 0.15);
-  border-radius: 10px;
-  padding: 14px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.project-selection-card:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
-}
-
-.project-selection-card.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
-  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
-}
-
-.project-selection-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.project-selection-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.project-selection-info i {
-  font-size: 0.95rem;
-  color: #5e64ff;
-}
-
-.project-selection-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-}
-
-.project-selection-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.project-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.project-meta-item i {
-  font-size: 0.7rem;
-  opacity: 0.8;
 }
 
 /* Responsive Design */
-@media (max-width: 1400px) {
+
+/* Large screens: 3 columns */
+@media (max-width: 1200px) {
   .workspace-selection-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .project-selection-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 1024px) {
+/* Medium screens: 2 columns */
+@media (max-width: 900px) {
   .workspace-selection-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .project-selection-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
+/* Tablet and below */
 @media (max-width: 768px) {
   .workspace-selection-grid {
     grid-template-columns: 1fr;
   }
 
   .project-selection-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .workspace-selection-grid {
     grid-template-columns: 1fr;
   }
 }
