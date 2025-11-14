@@ -12,9 +12,9 @@
             Configure Settings
           </button>
           <button
-            class="mode-tab"
-            :class="{ 'active': viewMode === 'view' }"
-            @click="viewMode = 'view'"
+              class="mode-tab"
+              :class="{ 'active': viewMode === 'view' }"
+              @click="viewMode = 'view'"
           >
             <i class="bi bi-eye-fill"></i>
             View Settings
@@ -27,334 +27,331 @@
     <div v-if="viewMode === 'view'">
       <div class="profiler-settings-main-card mb-4">
         <div class="profiler-settings-main-content">
-          <ProfilerSettingsHierarchy />
+          <ProfilerSettingsHierarchy/>
         </div>
       </div>
     </div>
 
     <!-- CONFIGURE MODE -->
     <div v-if="viewMode === 'configure'">
-      <!-- Step Progress Indicator -->
-      <div class="step-progress-card mb-4">
-      <div class="step-progress-content">
-        <div class="step-indicators">
-          <div class="step-indicator" :class="{ 'active': currentStep === 1, 'completed': currentStep > 1 }">
-            <div class="step-icon">
-              <i class="bi bi-terminal-fill"></i>
-            </div>
-            <span class="step-label">Configure Command</span>
-          </div>
-          <div class="step-connector" :class="{ 'active': currentStep > 1 && currentStep !== 2 }"></div>
-          <div class="step-indicator optional-step" :class="{ 'active': currentStep === 2, 'visited': hasVisitedBuilder }">
-            <div class="step-icon">
-              <i class="bi bi-ui-checks-grid"></i>
-            </div>
-            <span class="step-label">Build Configuration</span>
-            <span class="optional-badge">Optional</span>
-          </div>
-          <div class="step-connector" :class="{ 'active': currentStep === 3 }"></div>
-          <div class="step-indicator" :class="{ 'active': currentStep === 3, 'completed': currentStep > 3 }">
-            <div class="step-icon">
-              <i class="bi bi-globe2"></i>
-            </div>
-            <span class="step-label">Apply Settings</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Settings Card -->
-    <div class="profiler-settings-main-card mb-4">
-      <div class="profiler-settings-main-content">
-
-        <!-- Step 1: Command Configuration Panel -->
-        <div v-if="currentStep === 1" class="command-configuration-step">
-          <div class="step-header">
-            <div class="step-header-status header-primary">
-              <div class="step-type-info">
+      <!-- Main Settings Card -->
+      <div class="profiler-settings-main-card mb-4">
+        <div class="pt-5 pb-3">
+          <div class="step-indicators">
+            <div class="step-indicator" :class="{ 'active': currentStep === 1, 'completed': currentStep > 1 }">
+              <div class="step-icon">
                 <i class="bi bi-terminal-fill"></i>
-                <span>COMMAND CONFIGURATION</span>
               </div>
+              <span class="step-label">Configure Command</span>
             </div>
-            <div class="step-header-content">
-              <div class="step-header-main">
-                <div class="step-header-info">
-                  <h4 class="step-header-title">AsyncProfiler Command</h4>
-                  <div class="step-header-description">
-                    Enter your AsyncProfiler command directly or use the builder to create one
-                  </div>
-                </div>
+            <div class="step-connector" :class="{ 'active': currentStep > 1 && currentStep !== 2 }"></div>
+            <div class="step-indicator optional-step"
+                 :class="{ 'active': currentStep === 2, 'visited': hasVisitedBuilder }">
+              <div class="step-icon">
+                <i class="bi bi-ui-checks-grid"></i>
               </div>
+              <span class="step-label">Build Configuration</span>
+              <span class="optional-badge">Optional</span>
             </div>
-          </div>
-
-          <ConfigureCommand
-            v-model="finalCommand"
-            @open-builder="openBuilder"
-            @accept-command="proceedToApply"
-            @clear="resetBuilderState"
-          />
-        </div>
-
-        <!-- Step 2: Builder Mode -->
-        <div v-if="currentStep === 2" class="builder-step">
-          <CommandBuilder
-            :agent-mode="agentMode"
-            @cancel="cancelBuilder"
-            @accept-command="acceptBuilderCommand"
-          />
-        </div>
-
-        <!-- Step 3: Application Scope -->
-        <div v-if="currentStep === 3" class="application-step">
-          <div class="step-header">
-            <div class="step-header-status header-primary">
-              <div class="step-type-info">
+            <div class="step-connector" :class="{ 'active': currentStep === 3 }"></div>
+            <div class="step-indicator" :class="{ 'active': currentStep === 3, 'completed': currentStep > 3 }">
+              <div class="step-icon">
                 <i class="bi bi-globe2"></i>
-                <span>APPLICATION SCOPE</span>
               </div>
-            </div>
-            <div class="step-header-content">
-              <div class="step-header-main">
-                <div class="step-header-info">
-                  <h4 class="step-header-title">Apply Profiler Configuration</h4>
-                  <div class="step-header-description">
-                    Choose where to apply your AsyncProfiler configuration
-                  </div>
-                </div>
-              </div>
+              <span class="step-label">Apply Settings</span>
             </div>
           </div>
+        </div>
 
-          <div class="scope-selection-section">
-            <!-- Final Command Display -->
-            <div class="final-command-display">
-              <label class="command-label">Command to Apply</label>
-              <div class="command-preview">
-                <code>{{ finalCommand }}</code>
+        <div class="profiler-settings-main-content">
+
+          <!-- Step 1: Command Configuration Panel -->
+          <div v-if="currentStep === 1" class="command-configuration-step">
+            <div class="step-header">
+              <div class="step-header-status header-primary">
+                <div class="step-type-info">
+                  <i class="bi bi-terminal-fill"></i>
+                  <span>COMMAND CONFIGURATION</span>
+                </div>
               </div>
-            </div>
-
-            <!-- Scope Options -->
-            <div class="scope-options">
-              <h5 class="scope-section-title">Application Scope</h5>
-
-              <div class="scope-option-cards">
-                <div class="scope-option-card" :class="{ 'selected': applicationScope === 'global' }" @click="applicationScope = 'global'">
-                  <div class="scope-option-header">
-                    <input type="radio" v-model="applicationScope" value="global" />
-                    <div class="scope-option-info">
-                      <i class="bi bi-globe2"></i>
-                      <div>
-                        <h6 class="scope-option-title">Apply Globally</h6>
-                        <p class="scope-option-description">Apply to all workspaces and future projects</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="scope-option-card" :class="{ 'selected': applicationScope === 'workspaces' }" @click="applicationScope = 'workspaces'">
-                  <div class="scope-option-header">
-                    <input type="radio" v-model="applicationScope" value="workspaces" />
-                    <div class="scope-option-info">
-                      <i class="bi bi-folder-fill"></i>
-                      <div>
-                        <h6 class="scope-option-title">Apply to Selected Workspaces</h6>
-                        <p class="scope-option-description">Choose specific local workspaces to apply configuration</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="scope-option-card" :class="{ 'selected': applicationScope === 'projects' }" @click="applicationScope = 'projects'">
-                  <div class="scope-option-header">
-                    <input type="radio" v-model="applicationScope" value="projects" />
-                    <div class="scope-option-info">
-                      <i class="bi bi-diagram-3-fill"></i>
-                      <div>
-                        <h6 class="scope-option-title">Apply to Selected Projects</h6>
-                        <p class="scope-option-description">Choose specific projects from local workspaces</p>
-                      </div>
+              <div class="step-header-content">
+                <div class="step-header-main">
+                  <div class="step-header-info">
+                    <h4 class="step-header-title">AsyncProfiler Command</h4>
+                    <div class="step-header-description">
+                      Enter your AsyncProfiler command directly or use the builder to create one
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Workspace Selection (when workspaces scope is selected) -->
-            <div v-if="applicationScope === 'workspaces'" class="workspace-selection-section">
-              <h5 class="workspace-section-title">Select Local Workspaces</h5>
-              <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
-                <i class="bi bi-info-circle"></i>
-                <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
-              </div>
-              <div v-else class="workspace-selection-grid">
-                <div
-                  v-for="workspace in localWorkspaces"
-                  :key="workspace.id"
-                  class="workspace-selection-card"
-                  :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
-                  @click="toggleWorkspaceSelection(workspace.id)"
-                >
-                  <div class="workspace-selection-header">
-                    <input
-                      type="checkbox"
-                      :checked="selectedWorkspaces.includes(workspace.id)"
-                      @click.stop
-                      @change="toggleWorkspaceSelection(workspace.id)"
-                    />
-                    <div class="workspace-selection-info">
-                      <i class="bi bi-folder-fill"></i>
-                      <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
+            <ConfigureCommand
+                v-model="finalCommand"
+                @open-builder="openBuilder"
+                @accept-command="proceedToApply"
+                @clear="resetBuilderState"
+            />
+          </div>
+
+          <!-- Step 2: Builder Mode -->
+          <div v-if="currentStep === 2" class="builder-step">
+            <CommandBuilder
+                :agent-mode="agentMode"
+                @cancel="cancelBuilder"
+                @accept-command="acceptBuilderCommand"
+            />
+          </div>
+
+          <!-- Step 3: Application Scope -->
+          <div v-if="currentStep === 3" class="application-step">
+            <div class="scope-selection-section">
+              <!-- Final Command Display -->
+              <div class="config-output-section">
+                <div class="config-output" @click="copyFinalCommand" title="Click to copy command">
+                  <div class="config-output-header">
+                    <div class="config-output-label">
+                      <i class="bi bi-terminal-fill"></i>
+                      <span>Command to Apply</span>
+                    </div>
+                    <div class="config-output-copy-hint">
+                      <i class="bi bi-clipboard"></i>
                     </div>
                   </div>
-                  <div class="workspace-selection-description">
-                    {{ workspace.description || `Projects for ${workspace.name}` }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Project Selection (when projects scope is selected) -->
-            <div v-if="applicationScope === 'projects'" class="project-selection-section">
-              <!-- Step 1: Select Workspaces -->
-              <h5 class="workspace-section-title">Step 1: Select Local Workspaces</h5>
-              <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
-                <i class="bi bi-info-circle"></i>
-                <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
-              </div>
-              <div v-else class="workspace-selection-grid">
-                <div
-                  v-for="workspace in localWorkspaces"
-                  :key="workspace.id"
-                  class="workspace-selection-card"
-                  :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
-                  @click="toggleWorkspaceSelection(workspace.id)"
-                >
-                  <div class="workspace-selection-header">
-                    <input
-                      type="checkbox"
-                      :checked="selectedWorkspaces.includes(workspace.id)"
-                      @click.stop
-                      @change="toggleWorkspaceSelection(workspace.id)"
-                    />
-                    <div class="workspace-selection-info">
-                      <i class="bi bi-folder-fill"></i>
-                      <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
-                    </div>
-                  </div>
-                  <div class="workspace-selection-description">
-                    {{ workspace.description || `Projects for ${workspace.name}` }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Step 2: Select Projects -->
-              <div v-if="selectedWorkspaces.length > 0" class="projects-list-section">
-                <h5 class="workspace-section-title">Step 2: Select Projects</h5>
-
-                <!-- Loading state -->
-                <div v-if="isLoadingProjects" class="loading-projects-message">
-                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                  <span>Loading projects...</span>
-                </div>
-
-                <!-- Projects grouped by workspace -->
-                <div v-else>
-                  <div
-                    v-for="workspaceId in selectedWorkspaces"
-                    :key="workspaceId"
-                    class="workspace-projects-group"
-                  >
-                    <div class="workspace-group-header">
-                      <div class="workspace-group-title">
-                        <i class="bi bi-folder-fill"></i>
-                        <span>{{ getWorkspaceName(workspaceId) }}</span>
+                  <div class="config-output-content">
+                    <div class="compact-output">
+                      <div class="config-output-text">
+                        {{ finalCommand }}
                       </div>
-                      <button
-                        type="button"
-                        class="btn-select-all-projects"
-                        @click="selectAllProjectsInWorkspace(workspaceId)"
-                      >
-                        <i :class="areAllProjectsSelectedInWorkspace(workspaceId) ? 'bi bi-check-square-fill' : 'bi bi-square'"></i>
-                        {{ areAllProjectsSelectedInWorkspace(workspaceId) ? 'Deselect All' : 'Select All' }}
-                      </button>
                     </div>
+                  </div>
+                </div>
+              </div>
 
-                    <!-- No projects message -->
-                    <div
-                      v-if="!projectsByWorkspace.get(workspaceId) || projectsByWorkspace.get(workspaceId).length === 0"
-                      class="no-projects-message"
-                    >
-                      <i class="bi bi-info-circle"></i>
-                      <span>No projects available in this workspace</span>
-                    </div>
+              <!-- Scope Options -->
+              <div class="scope-options">
+                <div class="scope-section-title">Application Scope</div>
 
-                    <!-- Project cards -->
-                    <div v-else class="project-selection-grid">
-                      <div
-                        v-for="project in projectsByWorkspace.get(workspaceId)"
-                        :key="project.id"
-                        class="project-selection-card"
-                        :class="{ 'selected': isProjectSelected(workspaceId, project.id) }"
-                        @click="toggleProjectSelection(workspaceId, project.id)"
-                      >
-                        <div class="project-selection-header">
-                          <input
-                            type="checkbox"
-                            :checked="isProjectSelected(workspaceId, project.id)"
-                            @click.stop
-                            @change="toggleProjectSelection(workspaceId, project.id)"
-                          />
-                          <div class="project-selection-info">
-                            <i class="bi bi-diagram-3-fill"></i>
-                            <h6 class="project-selection-name">{{ project.name }}</h6>
-                          </div>
+                <div class="scope-option-cards">
+                  <div class="scope-option-card" :class="{ 'selected': applicationScope === 'global' }"
+                       @click="applicationScope = 'global'">
+                    <div class="scope-option-header">
+                      <input type="radio" v-model="applicationScope" value="global"/>
+                      <div class="scope-option-info">
+                        <i class="bi bi-globe2"></i>
+                        <div>
+                          <h6 class="scope-option-title">Apply Globally</h6>
+                          <p class="scope-option-description">Apply to all workspaces and future projects</p>
                         </div>
-                        <div class="project-selection-meta">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="scope-option-card" :class="{ 'selected': applicationScope === 'workspaces' }"
+                       @click="applicationScope = 'workspaces'">
+                    <div class="scope-option-header">
+                      <input type="radio" v-model="applicationScope" value="workspaces"/>
+                      <div class="scope-option-info">
+                        <i class="bi bi-folder-fill"></i>
+                        <div>
+                          <h6 class="scope-option-title">Apply to Selected Workspaces</h6>
+                          <p class="scope-option-description">Choose specific local workspaces to apply
+                            configuration</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="scope-option-card" :class="{ 'selected': applicationScope === 'projects' }"
+                       @click="applicationScope = 'projects'">
+                    <div class="scope-option-header">
+                      <input type="radio" v-model="applicationScope" value="projects"/>
+                      <div class="scope-option-info">
+                        <i class="bi bi-diagram-3-fill"></i>
+                        <div>
+                          <h6 class="scope-option-title">Apply to Selected Projects</h6>
+                          <p class="scope-option-description">Choose specific projects from local workspaces</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Workspace Selection (when workspaces scope is selected) -->
+              <div v-if="applicationScope === 'workspaces'" class="workspace-selection-section">
+                <div class="workspace-section-title">Select Local Workspaces</div>
+                <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
+                  <i class="bi bi-info-circle"></i>
+                  <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
+                </div>
+                <div v-else class="workspace-selection-grid">
+                  <div
+                      v-for="workspace in localWorkspaces"
+                      :key="workspace.id"
+                      class="workspace-selection-card"
+                      :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
+                      @click="toggleWorkspaceSelection(workspace.id)"
+                  >
+                    <div class="workspace-selection-header">
+                      <input
+                          type="checkbox"
+                          :checked="selectedWorkspaces.includes(workspace.id)"
+                          @click.stop
+                          @change="toggleWorkspaceSelection(workspace.id)"
+                      />
+                      <div class="workspace-selection-info">
+                        <i class="bi bi-folder-fill"></i>
+                        <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
+                      </div>
+                    </div>
+                    <div class="workspace-selection-description">
+                      {{ workspace.description || `Projects for ${workspace.name}` }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Project Selection (when projects scope is selected) -->
+              <div v-if="applicationScope === 'projects'" class="project-selection-section">
+                <!-- Step 1: Select Workspaces -->
+                <div class="workspace-section-title">Step 1: Select Local Workspaces</div>
+                <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
+                  <i class="bi bi-info-circle"></i>
+                  <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
+                </div>
+                <div v-else class="workspace-selection-grid">
+                  <div
+                      v-for="workspace in localWorkspaces"
+                      :key="workspace.id"
+                      class="workspace-selection-card"
+                      :class="{ 'selected': selectedWorkspaces.includes(workspace.id) }"
+                      @click="toggleWorkspaceSelection(workspace.id)"
+                  >
+                    <div class="workspace-selection-header">
+                      <input
+                          type="checkbox"
+                          :checked="selectedWorkspaces.includes(workspace.id)"
+                          @click.stop
+                          @change="toggleWorkspaceSelection(workspace.id)"
+                      />
+                      <div class="workspace-selection-info">
+                        <i class="bi bi-folder-fill"></i>
+                        <h6 class="workspace-selection-name">{{ workspace.name }}</h6>
+                      </div>
+                    </div>
+                    <div class="workspace-selection-description">
+                      {{ workspace.description || `Projects for ${workspace.name}` }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 2: Select Projects -->
+                <div v-if="selectedWorkspaces.length > 0" class="projects-list-section">
+                  <div class="workspace-section-title">Step 2: Select Projects</div>
+
+                  <!-- Loading state -->
+                  <div v-if="isLoadingProjects" class="loading-projects-message">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading projects...</span>
+                  </div>
+
+                  <!-- Projects grouped by workspace -->
+                  <div v-else>
+                    <div
+                        v-for="workspaceId in selectedWorkspaces"
+                        :key="workspaceId"
+                        class="workspace-projects-group"
+                    >
+                      <div class="workspace-group-header">
+                        <div class="workspace-group-title">
+                          <i class="bi bi-folder-fill"></i>
+                          <span>{{ getWorkspaceName(workspaceId) }}</span>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn-select-all-projects"
+                            @click="selectAllProjectsInWorkspace(workspaceId)"
+                        >
+                          <i :class="areAllProjectsSelectedInWorkspace(workspaceId) ? 'bi bi-check-square-fill' : 'bi bi-square'"></i>
+                          {{ areAllProjectsSelectedInWorkspace(workspaceId) ? 'Deselect All' : 'Select All' }}
+                        </button>
+                      </div>
+
+                      <!-- No projects message -->
+                      <div
+                          v-if="!projectsByWorkspace.get(workspaceId) || projectsByWorkspace.get(workspaceId).length === 0"
+                          class="no-projects-message"
+                      >
+                        <i class="bi bi-info-circle"></i>
+                        <span>No projects available in this workspace</span>
+                      </div>
+
+                      <!-- Project cards -->
+                      <div v-else class="project-selection-grid">
+                        <div
+                            v-for="project in projectsByWorkspace.get(workspaceId)"
+                            :key="project.id"
+                            class="project-selection-card"
+                            :class="{ 'selected': isProjectSelected(workspaceId, project.id) }"
+                            @click="toggleProjectSelection(workspaceId, project.id)"
+                        >
+                          <div class="project-selection-header">
+                            <input
+                                type="checkbox"
+                                :checked="isProjectSelected(workspaceId, project.id)"
+                                @click.stop
+                                @change="toggleProjectSelection(workspaceId, project.id)"
+                            />
+                            <div class="project-selection-info">
+                              <i class="bi bi-diagram-3-fill"></i>
+                              <h6 class="project-selection-name">{{ project.name }}</h6>
+                            </div>
+                          </div>
+                          <div class="project-selection-meta">
                           <span class="project-meta-item">
                             <i class="bi bi-person-vcard"></i>
                             {{ project.profileCount }} {{ project.profileCount === 1 ? 'profile' : 'profiles' }}
                           </span>
-                          <span class="project-meta-item">
+                            <span class="project-meta-item">
                             <i class="bi bi-record-circle"></i>
                             {{ project.recordingCount }} {{ project.recordingCount === 1 ? 'recording' : 'recordings' }}
                           </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Apply Actions -->
-            <div class="apply-actions">
-              <button
-                type="button"
-                class="btn-back-to-command"
-                @click="backToCommand"
-              >
-                <i class="bi bi-arrow-left"></i>
-                Back to Command
-              </button>
-              <button
-                type="button"
-                class="btn-apply-configuration"
-                @click="applyConfiguration"
-                :disabled="!canApplyConfiguration"
-              >
-                <i class="bi bi-check-circle-fill"></i>
-                Apply Configuration
-              </button>
+              <!-- Apply Actions -->
+              <div class="apply-actions">
+                <button
+                    type="button"
+                    class="btn-back-to-command"
+                    @click="backToCommand"
+                >
+                  <i class="bi bi-arrow-left"></i>
+                  Back to Command
+                </button>
+                <button
+                    type="button"
+                    class="btn-apply-configuration"
+                    @click="applyConfiguration"
+                    :disabled="!canApplyConfiguration"
+                >
+                  <i class="bi bi-check-circle-fill"></i>
+                  Apply Configuration
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
-    </div>
     </div>
     <!-- END CONFIGURE MODE -->
 
@@ -390,16 +387,12 @@ const selectedWorkspaces = ref<string[]>([]);
 const workspaces = ref<Workspace[]>([]);
 
 // Project selection
-const selectedProjects = ref<Array<{workspaceId: string, projectId: string}>>([]);
+const selectedProjects = ref<Array<{ workspaceId: string, projectId: string }>>([]);
 const projectsByWorkspace = ref<Map<string, Project[]>>(new Map());
 const isLoadingProjects = ref(false);
 
 // Agent mode for mutual exclusion
 const agentMode = ref<'jeffrey' | 'custom'>('jeffrey');
-
-
-
-
 
 
 // Navigation methods
@@ -435,7 +428,7 @@ const resetBuilderState = () => {
 
 // Workspace management
 const localWorkspaces = computed(() =>
-  workspaces.value.filter(w => w.type === WorkspaceType.LOCAL)
+    workspaces.value.filter(w => w.type === WorkspaceType.LOCAL)
 );
 
 const toggleWorkspaceSelection = (workspaceId: string) => {
@@ -475,11 +468,11 @@ const loadProjectsForWorkspaces = async () => {
 
 const toggleProjectSelection = (workspaceId: string, projectId: string) => {
   const index = selectedProjects.value.findIndex(
-    p => p.workspaceId === workspaceId && p.projectId === projectId
+      p => p.workspaceId === workspaceId && p.projectId === projectId
   );
 
   if (index === -1) {
-    selectedProjects.value.push({ workspaceId, projectId });
+    selectedProjects.value.push({workspaceId, projectId});
   } else {
     selectedProjects.value.splice(index, 1);
   }
@@ -487,7 +480,7 @@ const toggleProjectSelection = (workspaceId: string, projectId: string) => {
 
 const isProjectSelected = (workspaceId: string, projectId: string): boolean => {
   return selectedProjects.value.some(
-    p => p.workspaceId === workspaceId && p.projectId === projectId
+      p => p.workspaceId === workspaceId && p.projectId === projectId
   );
 };
 
@@ -496,19 +489,19 @@ const selectAllProjectsInWorkspace = (workspaceId: string) => {
 
   // Check if all projects in this workspace are already selected
   const allSelected = projects.every(project =>
-    isProjectSelected(workspaceId, project.id)
+      isProjectSelected(workspaceId, project.id)
   );
 
   if (allSelected) {
     // Deselect all projects from this workspace
     selectedProjects.value = selectedProjects.value.filter(
-      p => p.workspaceId !== workspaceId
+        p => p.workspaceId !== workspaceId
     );
   } else {
     // Select all projects from this workspace
     projects.forEach(project => {
       if (!isProjectSelected(workspaceId, project.id)) {
-        selectedProjects.value.push({ workspaceId, projectId: project.id });
+        selectedProjects.value.push({workspaceId, projectId: project.id});
       }
     });
   }
@@ -535,7 +528,7 @@ watch([selectedWorkspaces, applicationScope], async ([newWorkspaces, newScope], 
     }
     await loadProjectsForWorkspaces();
   }
-}, { deep: true });
+}, {deep: true});
 
 const canApplyConfiguration = computed(() => {
   if (applicationScope.value === 'global') {
@@ -550,6 +543,19 @@ const canApplyConfiguration = computed(() => {
   return false;
 });
 
+// Copy final command to clipboard
+const copyFinalCommand = async () => {
+  if (finalCommand.value) {
+    try {
+      await navigator.clipboard.writeText(finalCommand.value);
+      ToastService.success('Copied!', 'Command copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      ToastService.error('Copy Failed', 'Could not copy to clipboard');
+    }
+  }
+};
+
 // Apply configuration
 const applyConfiguration = async () => {
   try {
@@ -560,7 +566,7 @@ const applyConfiguration = async () => {
     } else if (applicationScope.value === 'workspaces') {
       // Workspace-specific configuration: apply to each selected workspace
       const promises = selectedWorkspaces.value.map(workspaceId =>
-        ProfilerClient.upsert(workspaceId, null, finalCommand.value)
+          ProfilerClient.upsert(workspaceId, null, finalCommand.value)
       );
 
       await Promise.all(promises);
@@ -568,7 +574,7 @@ const applyConfiguration = async () => {
     } else if (applicationScope.value === 'projects') {
       // Project-specific configuration: apply to each selected project
       const promises = selectedProjects.value.map(({workspaceId, projectId}) =>
-        ProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
+          ProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
       );
 
       await Promise.all(promises);
@@ -1115,46 +1121,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.config-output-content {
-}
-
-.compact-output {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.compact-output .config-output-text {
-  margin-top: 0;
-  border-radius: 10px;
-  padding: 12px 14px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px dashed rgba(245, 158, 11, 0.25);
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: #1f2937;
-  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  cursor: pointer;
-}
-
-.compact-output .config-output-text:hover {
-  border-color: rgba(245, 158, 11, 0.4);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.15);
-}
-
-.config-output-text {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8rem;
-  color: #374151;
-  line-height: 1.6;
-  word-break: break-all;
-  white-space: pre-wrap;
-  display: block;
-  margin: 0;
-  padding: 0;
-  border: none;
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -1279,7 +1245,7 @@ onMounted(() => {
   backdrop-filter: blur(10px);
 }
 
-.step-progress-content {
+.{
   padding: 20px 28px;
 }
 
@@ -1535,49 +1501,134 @@ onMounted(() => {
 
 /* Scope Selection Styling */
 .scope-selection-section {
-  margin-top: 20px;
+  margin-top: 0;
 }
 
-.final-command-display {
-  margin-bottom: 24px;
+/* Command Display - Modern & Compact Design (matching View Settings) */
+.config-output-section {
+  margin-bottom: 20px;
 }
 
-.command-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
+.config-output {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 2px solid rgba(94, 100, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.04);
+  cursor: pointer;
 }
 
-.command-preview {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  padding: 14px 16px;
+.config-output:hover {
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.15);
+  transform: translateY(-1px);
 }
 
-.command-preview code {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+.config-output-header {
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(94, 100, 255, 0.15);
+  min-height: 36px;
+}
+
+.config-output-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
   font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.config-output-label i {
+  color: #5e64ff;
+  font-size: 0.9rem;
+}
+
+.config-output-copy-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.config-output-copy-hint i {
+  font-size: 0.85rem;
+}
+
+.config-output:hover .config-output-copy-hint {
+  opacity: 1;
+  color: #5e64ff;
+}
+
+.config-output-content {
+  padding: 12px 14px;
+  background: rgba(94, 100, 255, 0.02);
+}
+
+.compact-output {
+  display: flex;
+  flex-direction: column;
+}
+
+.compact-output .config-output-text {
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(94, 100, 255, 0.05);
+  border: 1px solid rgba(94, 100, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.6;
   color: #374151;
-  background: none;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 500;
   word-break: break-all;
+  white-space: pre-wrap;
+  transition: all 0.15s ease;
+}
+
+.compact-output .config-output-text:hover {
+  background: rgba(94, 100, 255, 0.08);
+  border-color: rgba(94, 100, 255, 0.2);
 }
 
 .scope-section-title,
 .workspace-section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scope-section-title::before,
+.workspace-section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border-radius: 2px;
 }
 
 .scope-option-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .scope-option-card {
@@ -1642,19 +1693,25 @@ onMounted(() => {
 .no-workspaces-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  color: #6b7280;
-  font-size: 0.85rem;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), rgba(94, 100, 255, 0.01));
+  border: 1px dashed rgba(94, 100, 255, 0.2);
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.no-workspaces-message i {
+  color: #5e64ff;
+  opacity: 0.5;
+  font-size: 0.9rem;
 }
 
 .workspace-selection-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .workspace-selection-card {
@@ -1744,13 +1801,13 @@ onMounted(() => {
 .loading-projects-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.04), rgba(94, 100, 255, 0.02));
+  border: 1px solid rgba(94, 100, 255, 0.1);
+  border-radius: 6px;
   color: #6b7280;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .workspace-projects-group {
@@ -1806,18 +1863,18 @@ onMounted(() => {
 .no-projects-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(94, 100, 255, 0.03);
-  border: 1px dashed rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  color: #6b7280;
-  font-size: 0.85rem;
-  font-style: italic;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), rgba(94, 100, 255, 0.01));
+  border: 1px dashed rgba(94, 100, 255, 0.2);
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.8rem;
 }
 
 .no-projects-message i {
-  color: rgba(94, 100, 255, 0.6);
+  color: #5e64ff;
+  opacity: 0.5;
   font-size: 0.9rem;
 }
 

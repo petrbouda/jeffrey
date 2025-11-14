@@ -10,16 +10,51 @@
 
     <div v-else>
       <!-- Active Command Display -->
-      <div v-if="activeCommand" class="final-command-display">
-        <label class="command-label">{{ activeCommandLabel }}</label>
-        <div class="command-preview">
-          <code>{{ activeCommand }}</code>
+      <div v-if="activeCommand" class="config-output-section">
+        <div class="config-output" @click="copyCommand" title="Click to copy command">
+          <div class="config-output-header">
+            <div class="config-output-label">
+              <i :class="activeCommandIcon"></i>
+              <span>{{ activeCommandLabel }}</span>
+            </div>
+            <div class="config-output-copy-hint">
+              <i class="bi bi-clipboard"></i>
+            </div>
+          </div>
+          <div class="config-output-content">
+            <div class="compact-output">
+              <div class="config-output-text">
+                {{ activeCommand }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Uses Global Settings Note -->
+      <div v-if="showUsesGlobalNote" class="config-output-section">
+        <div class="config-output config-output-info">
+          <div class="config-output-header">
+            <div class="config-output-label">
+              <i class="bi bi-folder-fill"></i>
+              <span>Workspace Configuration ({{ usesGlobalWorkspaceName }})</span>
+            </div>
+          </div>
+          <div class="config-output-content">
+            <div class="uses-global-note">
+              <i class="bi bi-arrow-up-circle"></i>
+              <div class="uses-global-text">
+                <strong>Uses Global Settings</strong>
+                <p>No custom configuration set. Inherits from Global level.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Global Settings -->
       <div class="scope-options">
-        <h5 class="scope-section-title">Global Settings</h5>
+        <div class="scope-section-title">Global Settings</div>
         <div class="scope-option-cards">
           <div
             class="scope-option-card"
@@ -50,7 +85,7 @@
 
       <!-- Workspaces -->
       <div class="workspace-selection-section">
-        <h5 class="workspace-section-title">Workspaces</h5>
+        <div class="workspace-section-title">Workspaces</div>
         <div v-if="workspaces.length === 0" class="no-workspaces-message">
           <i class="bi bi-info-circle"></i>
           <span>No workspaces available</span>
@@ -86,7 +121,7 @@
 
       <!-- Projects with Custom Settings -->
       <div v-if="selectedWorkspaceId" class="project-selection-section">
-        <h5 class="workspace-section-title">Projects with Custom Settings in {{ selectedWorkspaceName }}</h5>
+        <div class="workspace-section-title">Projects with Custom Settings in {{ selectedWorkspaceName }}</div>
 
         <div v-if="isLoadingProjects" class="loading-projects-message">
           <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
@@ -172,10 +207,23 @@ const activeCommandLabel = ref<string>('');
 const activeLevel = ref<'global' | 'workspace' | 'project' | null>(null);
 const activeWorkspaceId = ref<string | null>(null);
 const activeProjectId = ref<string | null>(null);
+const showUsesGlobalNote = ref(false);
+const usesGlobalWorkspaceName = ref<string>('');
 
 const selectedWorkspaceName = computed(() => {
   const workspace = workspaces.value.find(w => w.id === selectedWorkspaceId.value);
   return workspace?.name || 'Unknown Workspace';
+});
+
+const activeCommandIcon = computed(() => {
+  if (activeLevel.value === 'global') {
+    return 'bi-globe2';
+  } else if (activeLevel.value === 'workspace') {
+    return 'bi-folder-fill';
+  } else if (activeLevel.value === 'project') {
+    return 'bi-diagram-3-fill';
+  }
+  return 'bi-gear-fill';
 });
 
 const setActiveCommand = (
@@ -189,6 +237,7 @@ const setActiveCommand = (
   activeLevel.value = level;
   activeWorkspaceId.value = workspaceId || null;
   activeProjectId.value = projectId || null;
+  showUsesGlobalNote.value = false;
 
   // Set label based on level
   if (level === 'global') {
@@ -201,6 +250,18 @@ const setActiveCommand = (
     activeCommandLabel.value = `Workspace Configuration (${workspace?.name || 'Unknown'})`;
   } else if (level === 'project') {
     activeCommandLabel.value = `Project Configuration (${projectName || 'Unknown'})`;
+  }
+};
+
+const copyCommand = async () => {
+  if (activeCommand.value) {
+    try {
+      await navigator.clipboard.writeText(activeCommand.value);
+      ToastService.success('Copied!', 'Command copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      ToastService.error('Copy Failed', 'Could not copy to clipboard');
+    }
   }
 };
 
@@ -262,6 +323,7 @@ const handleWorkspaceClick = async (workspace: WorkspaceWithSettings) => {
     activeCommand.value = null;
     activeLevel.value = null;
     activeWorkspaceId.value = null;
+    showUsesGlobalNote.value = false;
   } else {
     // Select new workspace (automatically deselects any previous one)
     selectedWorkspaceId.value = workspace.id;
@@ -270,6 +332,14 @@ const handleWorkspaceClick = async (workspace: WorkspaceWithSettings) => {
     // Set active command if workspace has custom settings
     if (workspace.hasCustomSettings && workspace.agentSettings) {
       setActiveCommand('workspace', workspace.agentSettings, workspace.id);
+      showUsesGlobalNote.value = false;
+    } else {
+      // Show note if workspace uses global settings
+      activeCommand.value = null;
+      activeLevel.value = null;
+      activeWorkspaceId.value = null;
+      showUsesGlobalNote.value = true;
+      usesGlobalWorkspaceName.value = workspace.name;
     }
   }
 };
@@ -312,6 +382,11 @@ onMounted(async () => {
   await loadAllSettings();
   await loadWorkspaces();
   isLoading.value = false;
+
+  // Automatically select Global Configuration if it exists
+  if (globalSettings.value?.agentSettings) {
+    setActiveCommand('global', globalSettings.value.agentSettings);
+  }
 });
 </script>
 
@@ -321,66 +396,200 @@ onMounted(async () => {
 .profiler-hierarchy {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .loading-state {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 24px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 12px;
+  gap: 10px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.04), rgba(94, 100, 255, 0.02));
+  border: 1px solid rgba(94, 100, 255, 0.1);
+  border-radius: 8px;
   color: #6b7280;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   justify-content: center;
 }
 
-/* Command Display - matching final-command-display from Apply Configuration */
-.final-command-display {
-  margin-bottom: 24px;
+/* Command Display - Modern & Compact Design */
+.config-output-section {
+  margin-bottom: 20px;
 }
 
-.command-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
+.config-output {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 2px solid rgba(94, 100, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.04);
+  cursor: pointer;
 }
 
-.command-preview {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  padding: 14px 16px;
+.config-output:hover {
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.15);
+  transform: translateY(-1px);
 }
 
-.command-preview code {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+.config-output.config-output-info {
+  cursor: default;
+}
+
+.config-output.config-output-info:hover {
+  transform: none;
+}
+
+.config-output-header {
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(94, 100, 255, 0.15);
+  min-height: 36px;
+}
+
+.config-output-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
   font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.config-output-label i {
+  color: #5e64ff;
+  font-size: 0.9rem;
+}
+
+.config-output-copy-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.config-output-copy-hint i {
+  font-size: 0.85rem;
+}
+
+.config-output:hover .config-output-copy-hint {
+  opacity: 1;
+  color: #5e64ff;
+}
+
+.config-output-content {
+  padding: 12px 14px;
+  background: rgba(94, 100, 255, 0.02);
+}
+
+.compact-output {
+  display: flex;
+  flex-direction: column;
+}
+
+.compact-output .config-output-text {
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(94, 100, 255, 0.05);
+  border: 1px solid rgba(94, 100, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.6;
   color: #374151;
-  background: none;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 500;
   word-break: break-all;
+  white-space: pre-wrap;
+  transition: all 0.15s ease;
+}
+
+.compact-output .config-output-text:hover {
+  background: rgba(94, 100, 255, 0.08);
+  border-color: rgba(94, 100, 255, 0.2);
+}
+
+/* Uses Global Note */
+.uses-global-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(94, 100, 255, 0.05);
+  border: 1px solid rgba(94, 100, 255, 0.1);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.uses-global-note:hover {
+  background: rgba(94, 100, 255, 0.08);
+  border-color: rgba(94, 100, 255, 0.2);
+}
+
+.uses-global-note > i {
+  font-size: 1.3rem;
+  color: #5e64ff;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.uses-global-text {
+  flex: 1;
+}
+
+.uses-global-text strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #1f2937;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.uses-global-text p {
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* Scope Options - matching Apply Configuration */
 .scope-options {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .scope-section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scope-section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border-radius: 2px;
 }
 
 .scope-option-cards {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .scope-option-card {
@@ -443,28 +652,47 @@ onMounted(async () => {
 }
 
 .workspace-section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border-radius: 2px;
 }
 
 .no-workspaces-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  color: #6b7280;
-  font-size: 0.85rem;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), rgba(94, 100, 255, 0.01));
+  border: 1px dashed rgba(94, 100, 255, 0.2);
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.no-workspaces-message i {
+  color: #5e64ff;
+  opacity: 0.5;
+  font-size: 0.9rem;
 }
 
 .workspace-selection-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .workspace-selection-card {
@@ -560,26 +788,31 @@ onMounted(async () => {
 .loading-projects-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.04), rgba(94, 100, 255, 0.02));
+  border: 1px solid rgba(94, 100, 255, 0.1);
+  border-radius: 6px;
   color: #6b7280;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .no-projects-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: rgba(94, 100, 255, 0.03);
-  border: 1px dashed rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  color: #6b7280;
-  font-size: 0.85rem;
-  font-style: italic;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), rgba(94, 100, 255, 0.01));
+  border: 1px dashed rgba(94, 100, 255, 0.2);
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.no-projects-message i {
+  color: #5e64ff;
+  opacity: 0.5;
+  font-size: 0.9rem;
 }
 
 .project-selection-grid {
