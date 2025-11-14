@@ -6,12 +6,14 @@
         <textarea
           v-model="localCommand"
           class="command-textarea"
-          placeholder="Enter AsyncProfiler command (e.g., -agentpath:/path/to/libasyncProfiler.so=start,event=ctimer,wall=10ms,loop=15m,file=profile.jfr) or use the builder below..."
           rows="4"
           @input="$emit('update:modelValue', localCommand)"
         ></textarea>
         <div class="command-help">
           You can manually enter your command or use the visual builder to construct it step by step.
+        </div>
+        <div class="command-help">
+        Example: -agentpath:/path/to/libasyncProfiler.so=start,event=ctimer,wall=10ms,loop=15m,file=profile.jfr
         </div>
       </div>
 

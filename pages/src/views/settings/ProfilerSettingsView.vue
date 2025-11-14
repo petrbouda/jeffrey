@@ -1,42 +1,42 @@
 <template>
   <div>
-    <!-- Mode Toggle -->
-    <div class="mode-toggle-card mb-4">
-      <div class="mode-toggle-content">
-        <div class="mode-tabs">
+    <!-- Main Card with Integrated Header -->
+    <div class="profiler-settings-main-card mb-4">
+      <!-- Integrated Header with Mode Tabs -->
+      <div class="profiler-settings-header">
+        <div class="header-title-section">
+          <h4 class="header-title">Profiler Settings</h4>
+          <p class="header-description">Configure and view AsyncProfiler settings</p>
+        </div>
+        <div class="header-tabs">
           <button
-              class="mode-tab"
-              :class="{ 'active': viewMode === 'configure' }"
-              @click="viewMode = 'configure'">
+            class="header-tab"
+            :class="{ 'active': viewMode === 'configure' }"
+            @click="viewMode = 'configure'">
             <i class="bi bi-gear-fill"></i>
-            Configure Settings
+            <span>Configure</span>
           </button>
           <button
-              class="mode-tab"
-              :class="{ 'active': viewMode === 'view' }"
-              @click="viewMode = 'view'"
-          >
+            class="header-tab"
+            :class="{ 'active': viewMode === 'view' }"
+            @click="viewMode = 'view'">
             <i class="bi bi-eye-fill"></i>
-            View Settings
+            <span>View</span>
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- VIEW MODE -->
-    <div v-if="viewMode === 'view'">
-      <div class="profiler-settings-main-card mb-4">
-        <div class="profiler-settings-main-content">
+      <!-- Content Area -->
+      <div class="profiler-settings-main-content">
+        <!-- VIEW MODE -->
+        <div v-if="viewMode === 'view'">
           <ProfilerSettingsHierarchy/>
         </div>
-      </div>
-    </div>
 
-    <!-- CONFIGURE MODE -->
-    <div v-if="viewMode === 'configure'">
-      <!-- Main Settings Card -->
-      <div class="profiler-settings-main-card mb-4">
-        <div class="pt-5 pb-3">
+        <!-- CONFIGURE MODE -->
+        <div v-if="viewMode === 'configure'">
+          <!-- Step Progress -->
+          <div class="pt-2 pb-2">
           <div class="step-indicators">
             <div class="step-indicator" :class="{ 'active': currentStep === 1, 'completed': currentStep > 1 }">
               <div class="step-icon">
@@ -63,29 +63,8 @@
           </div>
         </div>
 
-        <div class="profiler-settings-main-content">
-
           <!-- Step 1: Command Configuration Panel -->
           <div v-if="currentStep === 1" class="command-configuration-step">
-            <div class="step-header">
-              <div class="step-header-status header-primary">
-                <div class="step-type-info">
-                  <i class="bi bi-terminal-fill"></i>
-                  <span>COMMAND CONFIGURATION</span>
-                </div>
-              </div>
-              <div class="step-header-content">
-                <div class="step-header-main">
-                  <div class="step-header-info">
-                    <h4 class="step-header-title">AsyncProfiler Command</h4>
-                    <div class="step-header-description">
-                      Enter your AsyncProfiler command directly or use the builder to create one
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <ConfigureCommand
                 v-model="finalCommand"
                 @open-builder="openBuilder"
@@ -349,12 +328,12 @@
               </div>
             </div>
           </div>
-
         </div>
+        <!-- END CONFIGURE MODE -->
       </div>
+      <!-- END Content Area -->
     </div>
-    <!-- END CONFIGURE MODE -->
-
+    <!-- END Main Card -->
   </div>
 </template>
 
@@ -624,6 +603,77 @@ onMounted(() => {
   padding: 24px 28px;
 }
 
+/* Integrated Header with Tabs */
+.profiler-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
+}
+
+.header-title-section {
+  flex: 1;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.header-description {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.header-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(94, 100, 255, 0.1);
+}
+
+.header-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.header-tab i {
+  font-size: 0.75rem;
+}
+
+.header-tab:hover:not(.active) {
+  background: rgba(248, 250, 252, 0.8);
+  color: #374151;
+}
+
+.header-tab.active {
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  color: white;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
+}
+
+.header-tab.active i {
+  color: white;
+}
 
 /* Mode Tabs Styling */
 .mode-tabs {
@@ -1136,9 +1186,21 @@ onMounted(() => {
     flex-direction: column;
   }
 
-
   .mode-tabs {
     align-self: center;
+  }
+
+  /* Integrated header responsive */
+  .profiler-settings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .header-tabs {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -1236,19 +1298,6 @@ onMounted(() => {
 }
 
 /* Step Progress Styling */
-.step-progress-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04),
-  0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
-}
-
-.{
-  padding: 20px 28px;
-}
-
 .step-indicators {
   display: flex;
   align-items: center;

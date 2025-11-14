@@ -1,5 +1,5 @@
 <template>
-  <div class="command-builder">
+  <div class="command-builder pt-4">
     <div class="step-header">
       <div class="step-header-status header-primary clickable-header" @click="toggleHelp">
         <div class="step-type-info">
