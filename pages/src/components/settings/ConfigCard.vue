@@ -2,14 +2,17 @@
   <div
     class="config-card"
     :class="[
-      cardType === 'required' ? 'required-card card-always-enabled' : 'optional-card',
-      { 'card-enabled': isEnabled, 'card-collapsed': !isEnabled && cardType !== 'required' },
+      cardType === 'required' ? 'required-card' : 'optional-card',
+      {
+        'card-enabled': isEnabled,
+        'card-collapsed': collapsible ? !isExpanded : (!isEnabled && cardType !== 'required')
+      },
       `theme-${colorTheme}`
     ]"
   >
     <div
       class="config-card-header"
-      :class="{ 'clickable-header': cardType !== 'required' }"
+      :class="{ 'clickable-header': collapsible || cardType === 'optional' }"
       @click="handleHeaderClick"
     >
       <div class="card-title-group">
@@ -19,18 +22,21 @@
           <span class="card-subtitle">{{ subtitle }}</span>
         </div>
       </div>
-      <span v-if="cardType === 'required'" class="required-label">Required</span>
-      <label v-else class="toggle-switch" @click.stop>
-        <input
-          type="checkbox"
-          class="toggle-input"
-          :checked="isEnabled"
-          @change="$emit('toggle', $event.target.checked)"
-        >
-        <span class="toggle-slider"></span>
-      </label>
+      <div class="card-header-controls">
+        <span v-if="cardType === 'required'" class="required-label">Required</span>
+        <label v-if="cardType === 'optional'" class="toggle-switch" @click.stop>
+          <input
+            type="checkbox"
+            class="toggle-input"
+            :checked="isEnabled"
+            @change="$emit('toggle', $event.target.checked)"
+          >
+          <span class="toggle-slider"></span>
+        </label>
+        <i v-if="collapsible" :class="`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'} collapse-icon`"></i>
+      </div>
     </div>
-    <div v-if="isEnabled || cardType === 'required'" class="config-card-body">
+    <div v-if="collapsible ? isExpanded : (isEnabled || cardType === 'required')" class="config-card-body">
       <slot></slot>
     </div>
   </div>
@@ -44,21 +50,30 @@ interface Props {
   cardType?: 'required' | 'optional';
   isEnabled?: boolean;
   colorTheme?: 'default' | 'blue' | 'yellow';
+  collapsible?: boolean;
+  isExpanded?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   cardType: 'optional',
   isEnabled: false,
-  colorTheme: 'default'
+  colorTheme: 'default',
+  collapsible: false,
+  isExpanded: true
 });
 
 const emit = defineEmits<{
   toggle: [enabled: boolean];
+  'toggle-collapse': [];
 }>();
 
 const handleHeaderClick = () => {
-  // Only allow header click toggling for optional cards
-  if (props.cardType === 'optional') {
+  // Handle collapse for collapsible cards
+  if (props.collapsible) {
+    emit('toggle-collapse');
+  }
+  // Handle enable/disable toggle for optional cards
+  else if (props.cardType === 'optional') {
     emit('toggle', !props.isEnabled);
   }
 };
@@ -196,6 +211,12 @@ const handleHeaderClick = () => {
   font-weight: 400;
 }
 
+.card-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .required-label {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: white;
@@ -205,6 +226,21 @@ const handleHeaderClick = () => {
   border-radius: 12px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+.collapse-icon {
+  color: #6b7280;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clickable-header:hover .collapse-icon {
+  color: #374151;
+}
+
+.card-collapsed .collapse-icon {
+  color: #94a3b8;
 }
 
 /* Card Body */

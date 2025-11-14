@@ -84,6 +84,9 @@
                     card-type="required"
                     :is-enabled="true"
                     color-theme="blue"
+                    :collapsible="true"
+                    :is-expanded="mandatoryPanelsExpanded.agentPath"
+                    @toggle-collapse="mandatoryPanelsExpanded.agentPath = !mandatoryPanelsExpanded.agentPath"
                 >
                   <div class="interval-block">
                     <div class="agent-mode-selector">
@@ -125,6 +128,9 @@
                     card-type="required"
                     :is-enabled="true"
                     color-theme="yellow"
+                    :collapsible="true"
+                    :is-expanded="mandatoryPanelsExpanded.outputFile"
+                    @toggle-collapse="mandatoryPanelsExpanded.outputFile = !mandatoryPanelsExpanded.outputFile"
                 >
                   <div class="form-group">
                     <input
@@ -146,6 +152,9 @@
                     card-type="required"
                     :is-enabled="true"
                     color-theme="yellow"
+                    :collapsible="true"
+                    :is-expanded="mandatoryPanelsExpanded.loopDuration"
+                    @toggle-collapse="mandatoryPanelsExpanded.loopDuration = !mandatoryPanelsExpanded.loopDuration"
                 >
                   <div class="form-group">
                     <div class="input-group">
@@ -623,6 +632,12 @@ const agentMode = ref(props.agentMode);
 // Help section state
 const isHelpExpanded = ref(false);
 
+// Mandatory panels collapse state (collapsed by default since defaults should be used in most cases)
+const mandatoryPanelsExpanded = ref({
+  agentPath: false,
+  outputFile: false,
+  loopDuration: false
+});
 
 // Use the profiler configuration composable
 const { config, optionStates, builderTokens, generateFromBuilder, addMethodPattern, removeMethodPattern } = useProfilerConfig();
