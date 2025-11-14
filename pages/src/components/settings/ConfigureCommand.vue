@@ -93,11 +93,23 @@ const clearCommand = () => {
 }
 
 .command-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.command-label::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border-radius: 2px;
 }
 
 .command-textarea {

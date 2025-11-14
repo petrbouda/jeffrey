@@ -265,6 +265,15 @@ const handleHeaderClick = () => {
   border-bottom-color: rgba(94, 100, 255, 0.1);
 }
 
+/* Required cards always have solid borders, even when collapsed */
+.required-card.card-collapsed {
+  border-style: solid;
+}
+
+.required-card.card-collapsed .config-card-header {
+  border-bottom-style: solid;
+}
+
 .card-collapsed .card-title {
   color: #6b7280;
 }

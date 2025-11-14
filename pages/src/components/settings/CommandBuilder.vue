@@ -71,7 +71,6 @@
             <div class="config-section required-section">
               <div class="section-header">
                 <h6 class="section-title">
-                  <i class="bi bi-sliders me-2"></i>
                   Mandatory Options
                 </h6>
               </div>
@@ -183,7 +182,6 @@
             <div class="config-section optional-section">
               <div class="section-header">
                 <h6 class="section-title">
-                  <i class="bi bi-sliders me-2"></i>
                   Event Options
                 </h6>
               </div>
@@ -420,7 +418,6 @@
             <div class="config-section optional-section">
               <div class="section-header">
                 <h6 class="section-title">
-                  <i class="bi bi-gear me-2"></i>
                   Advanced Options
                 </h6>
               </div>
@@ -1133,18 +1130,23 @@ generateConfig();
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #6b7280;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   display: flex;
   align-items: center;
-  letter-spacing: -0.01em;
+  gap: 8px;
 }
 
-.section-title i {
-  color: #5e64ff;
-  margin-right: 8px;
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border-radius: 2px;
 }
 
 .config-cards-stack {

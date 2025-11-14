@@ -253,4 +253,4 @@ CREATE TABLE IF NOT EXISTS profiler_settings
     agent_settings  VARCHAR NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_profiler_settings ON profiler_settings(project_id, workspace_id, profiler_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiler_settings ON profiler_settings(workspace_id, project_id);

@@ -37,7 +37,7 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     private static final String UPSERT_SETTINGS = """
             INSERT INTO profiler_settings (profiler_id, workspace_id, project_id, agent_settings)
             VALUES (:profiler_id, :workspace_id, :project_id, :agent_settings)
-            ON CONFLICT (profiler_id, workspace_id, project_id) DO UPDATE SET agent_settings = EXCLUDED.agent_settings""";
+            ON CONFLICT (workspace_id, project_id) DO UPDATE SET agent_settings = EXCLUDED.agent_settings""";
 
     //language=SQL
     private static final String FIND_SETTINGS = """
