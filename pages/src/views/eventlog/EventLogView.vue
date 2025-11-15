@@ -8,23 +8,16 @@
             <span class="workspace-label">Event Logs</span>
           </div>
           <div class="workspace-cards-grid">
-            <div 
+            <WorkspaceSelectionCard
               v-for="workspace in workspaces"
               :key="workspace.id"
-              class="workspace-card"
-              :class="{ 'active': selectedWorkspace === workspace.id }"
-              @click="selectWorkspace(workspace.id)"
-            >
-              <div class="workspace-card-content">
-                <div class="workspace-card-header">
-                  <h6 class="workspace-name">{{ workspace.name }}</h6>
-                  <span class="workspace-badge">{{ getWorkspaceEventCount(workspace.id) }}</span>
-                </div>
-                <div class="workspace-card-description">
-                  {{ getWorkspaceDescription(workspace) }}
-                </div>
-              </div>
-            </div>
+              :name="workspace.name"
+              :description="getWorkspaceDescription(workspace)"
+              :selected="selectedWorkspace === workspace.id"
+              :workspace-type="workspace.type"
+              :badge-value="getWorkspaceEventCount(workspace.id)"
+              @select="selectWorkspace(workspace.id)"
+            />
           </div>
         </div>
       </div>
@@ -196,6 +189,7 @@ import WorkspaceType from '@/services/workspace/model/WorkspaceType';
 import { EventContentParser } from '@/services/EventContentParser';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
+import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import Badge from '@/components/Badge.vue';
 import BaseModal from '@/components/BaseModal.vue';
 
@@ -518,85 +512,7 @@ onMounted(async () => {
   gap: 12px;
 }
 
-.workspace-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02);
-
-  &:hover:not(.active) {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 6px 16px rgba(0, 0, 0, 0.06),
-      0 2px 8px rgba(94, 100, 255, 0.1);
-    border-color: rgba(94, 100, 255, 0.2);
-  }
-
-  &.active {
-    background: linear-gradient(135deg, #5e64ff, #4c52ff);
-    border-color: #5e64ff;
-    transform: translateY(-1px);
-    box-shadow: 
-      0 6px 20px rgba(94, 100, 255, 0.3),
-      0 2px 8px rgba(94, 100, 255, 0.2);
-
-    .workspace-name {
-      color: white;
-    }
-
-    .workspace-card-description {
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .workspace-badge {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-    }
-  }
-
-}
-
-.workspace-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.workspace-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-  letter-spacing: 0.01em;
-}
-
-.workspace-card-description {
-  font-size: 0.75rem;
-  color: #6b7280;
-  line-height: 1.4;
-  margin: 0;
-}
-
-.workspace-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 20px;
-  padding: 0 6px;
-  background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
+/* Workspace card styles moved to WorkspaceSelectionCard component */
 
 /* Events List */
 .events-list {
