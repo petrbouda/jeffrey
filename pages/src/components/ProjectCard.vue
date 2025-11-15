@@ -27,12 +27,16 @@
         />
       </div>
 
-      <!-- Metrics Row -->
-      <div class="metrics-row">
+      <!-- Date Row -->
+      <div class="date-row">
         <div class="metric date">
           <i class="bi bi-calendar3"></i>
           <span>{{ formatDate(project.createdAt) }}</span>
         </div>
+      </div>
+
+      <!-- Counts Row -->
+      <div class="counts-row">
         <div class="metric">
           <i class="bi bi-people-fill"></i>
           <span class="metric-label">Profiles:</span>
@@ -43,15 +47,16 @@
           <span class="metric-label">Recordings:</span>
           <span class="metric-value">{{ project.recordingCount || 0 }}</span>
         </div>
+        <div class="metric">
+          <i class="bi bi-layers-fill"></i>
+          <span class="metric-label">Sessions:</span>
+          <span class="metric-value">{{ project.sessionCount || 0 }}</span>
+        </div>
       </div>
 
       <!-- Additional Info -->
-      <div class="additional-info">
-        <div v-if="project.sessionCount" class="info-item">
-          <i class="bi bi-layers-fill"></i>
-          <span>{{ project.sessionCount }} session{{ project.sessionCount > 1 ? 's' : '' }}</span>
-        </div>
-        <div v-if="project.status" class="info-item">
+      <div v-if="project.status" class="additional-info">
+        <div class="info-item">
           <i class="bi bi-activity"></i>
           <span>{{ formatStatus(project.status) }}</span>
         </div>
@@ -287,8 +292,14 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   margin-bottom: 8px;
 }
 
-/* Metrics Row */
-.metrics-row {
+/* Date Row */
+.date-row {
+  display: flex;
+  align-items: center;
+}
+
+/* Counts Row */
+.counts-row {
   display: flex;
   align-items: center;
   gap: 16px;
