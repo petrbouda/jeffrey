@@ -417,6 +417,8 @@ const getWorkspaceDescription = (workspace: Workspace | undefined) => {
 const handleProjectCreated = async () => {
   // Refresh project list to include the new project
   await refreshProjects();
+  // Refresh workspaces to update project counts
+  await refreshWorkspaces();
 };
 
 

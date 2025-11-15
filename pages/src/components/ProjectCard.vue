@@ -2,9 +2,8 @@
   <div class="project-card" @click="moveToProject(project.id)">
     <!-- Status Header -->
     <div class="status-header" :class="getHeaderClass">
-      <div class="workspace-type">
-        <i :class="getWorkspaceIcon"></i>
-        <span>{{ getWorkspaceLabel }}</span>
+      <div class="project-header-name">
+        <span>{{ project.name }}</span>
       </div>
       <div v-if="showCriticalWarning" class="critical-warning" :title="getCriticalWarningTooltip">
         <i :class="getCriticalWarningIcon"></i>
@@ -13,8 +12,6 @@
 
     <!-- Card Body -->
     <div class="card-body">
-      <!-- Project Name -->
-      <h3 class="project-name">{{ project.name }}</h3>
 
       <!-- Status -->
       <div v-if="project.status" class="status-row">
@@ -217,26 +214,31 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
 
 /* Status Header */
 .status-header {
-  height: 32px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
-  font-size: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.02em;
   color: white;
 }
 
-.workspace-type {
+.project-header-name {
   display: flex;
   align-items: center;
-  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
-.workspace-type i {
-  font-size: 10px;
+.project-header-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .critical-warning {
@@ -277,15 +279,6 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-/* Project Name */
-.project-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-  line-height: 1.2;
 }
 
 /* Status Row */
