@@ -30,4 +30,6 @@ public interface ProfilerRepository {
     Optional<ProfilerInfo> findSettings(String workspaceId, String projectId);
 
     List<ProfilerInfo> findAllSettings();
+
+    void deleteSettings(String workspaceId, String projectId);
 }

@@ -183,4 +183,5 @@ public enum StatementLabel {
      */
     UPSERT_PROFILER_SETTINGS,
     FIND_PROFILER_SETTINGS,
+    DELETE_PROFILER_SETTINGS,
 }

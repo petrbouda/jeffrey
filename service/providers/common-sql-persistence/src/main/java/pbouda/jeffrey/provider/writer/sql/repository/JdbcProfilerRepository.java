@@ -47,6 +47,11 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     //language=SQL
     private static final String FIND_ALL_SETTINGS = "SELECT * FROM profiler_settings";
 
+    //language=SQL
+    private static final String DELETE_SETTINGS = """
+            DELETE FROM profiler_settings
+            WHERE workspace_id = :workspace_id AND project_id = :project_id""";
+
     private final DatabaseClient databaseClient;
 
     public JdbcProfilerRepository(DatabaseClientProvider databaseClientProvider) {
@@ -78,6 +83,15 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     public List<ProfilerInfo> findAllSettings() {
         return databaseClient.query(
                 StatementLabel.FIND_PROFILER_SETTINGS, FIND_ALL_SETTINGS, settingsMapper());
+    }
+
+    @Override
+    public void deleteSettings(String workspaceId, String projectId) {
+        SqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId)
+                .addValue("project_id", projectId);
+
+        databaseClient.delete(StatementLabel.DELETE_PROFILER_SETTINGS, DELETE_SETTINGS, paramSource);
     }
 
     private static RowMapper<ProfilerInfo> settingsMapper() {

@@ -54,4 +54,16 @@ export default class ProfilerClient {
         return axios.get(ProfilerClient.baseUrl, data)
             .then(HttpUtils.RETURN_DATA);
     }
+
+    static delete(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
+        const data = {
+            params: {
+                workspaceId: workspaceId,
+                projectId: projectId
+            }
+        }
+
+        return axios.delete(ProfilerClient.baseUrl, data)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

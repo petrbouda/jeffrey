@@ -46,4 +46,9 @@ public class ProfilerManagerImpl implements ProfilerManager {
     public List<ProfilerInfo> findAllSettings() {
         return profilerRepository.findAllSettings();
     }
+
+    @Override
+    public void deleteSettings(String workspaceId, String projectId) {
+        profilerRepository.deleteSettings(workspaceId, projectId);
+    }
 }

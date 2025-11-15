@@ -7,6 +7,14 @@
     <span v-if="badge" class="selection-badge" :class="`badge-${badge.toLowerCase()}`">
       {{ badge }}
     </span>
+    <button
+      v-if="deletable && badge === 'CUSTOM'"
+      class="delete-button"
+      @click.stop="$emit('delete')"
+      title="Delete custom settings"
+    >
+      <i class="bi bi-trash"></i>
+    </button>
     <div class="selection-header">
       <input
         :type="selectionType"
@@ -29,15 +37,18 @@ interface Props {
   selected: boolean;
   selectionType?: 'checkbox' | 'radio';
   badge?: 'CUSTOM' | 'GLOBAL' | null;
+  deletable?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
   selectionType: 'checkbox',
-  badge: null
+  badge: null,
+  deletable: false
 });
 
 defineEmits<{
   select: [];
+  delete: [];
 }>();
 </script>
 
@@ -119,5 +130,41 @@ defineEmits<{
 .badge-global {
   background: linear-gradient(135deg, #10b981, #059669);
   color: white;
+}
+
+.delete-button {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profiler-selection-card:hover .delete-button {
+  opacity: 1;
+}
+
+.delete-button:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: scale(1.05);
+}
+
+.delete-button:active {
+  transform: scale(0.95);
+}
+
+.delete-button i {
+  font-size: 0.85rem;
 }
 </style>

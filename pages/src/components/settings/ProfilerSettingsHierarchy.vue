@@ -11,20 +11,64 @@
     <div v-else>
       <!-- Active Command Display -->
       <div v-if="activeCommand" class="config-output-section">
-        <div class="config-output" @click="copyCommand" title="Click to copy command">
+        <div class="config-output">
           <div class="config-output-header">
-            <div class="config-output-label">
-              <i :class="activeCommandIcon"></i>
-              <span>{{ activeCommandLabel }}</span>
+            <div class="config-breadcrumbs">
+              <!-- Global -->
+              <div
+                class="breadcrumb-item"
+                :class="{ 'active': activeLevel === 'global' }"
+                @click="navigateToBreadcrumb('global')"
+              >
+                <i class="bi bi-globe2"></i>
+                <span>Global</span>
+              </div>
+
+              <!-- Workspace -->
+              <template v-if="activeLevel === 'workspace' || activeLevel === 'project'">
+                <i class="bi bi-chevron-right breadcrumb-separator"></i>
+                <div
+                  class="breadcrumb-item"
+                  :class="{ 'active': activeLevel === 'workspace' }"
+                  @click="navigateToBreadcrumb('workspace')"
+                >
+                  <i class="bi bi-folder-fill"></i>
+                  <span>{{ getWorkspaceName(activeWorkspaceId) }}</span>
+                </div>
+              </template>
+
+              <!-- Project -->
+              <template v-if="activeLevel === 'project'">
+                <i class="bi bi-chevron-right breadcrumb-separator"></i>
+                <div
+                  class="breadcrumb-item active"
+                >
+                  <i class="bi bi-diagram-3-fill"></i>
+                  <span>{{ activeProjectName }}</span>
+                </div>
+              </template>
             </div>
-            <div class="config-output-copy-hint">
-              <i class="bi bi-clipboard"></i>
+
+            <div class="config-actions">
+              <button
+                v-if="canDeleteCurrentConfig"
+                class="action-button delete-button"
+                @click.stop="deleteCurrentConfig"
+                title="Delete custom settings"
+              >
+                <i class="bi bi-trash"></i>
+                <span>Delete</span>
+              </button>
             </div>
           </div>
-          <div class="config-output-content">
+          <div class="config-output-content" @click="copyCommand" title="Click to copy command">
             <div class="compact-output">
               <div class="config-output-text">
                 {{ activeCommand }}
+              </div>
+              <div class="config-output-copy-hint">
+                <i class="bi bi-clipboard"></i>
+                <span>Click to copy</span>
               </div>
             </div>
           </div>
@@ -35,12 +79,29 @@
       <div v-if="showUsesGlobalNote" class="config-output-section">
         <div class="config-output config-output-info">
           <div class="config-output-header">
-            <div class="config-output-label">
-              <i class="bi bi-folder-fill"></i>
-              <span>Workspace Configuration ({{ usesGlobalWorkspaceName }})</span>
+            <div class="config-breadcrumbs">
+              <!-- Global -->
+              <div
+                class="breadcrumb-item"
+                @click="navigateToBreadcrumb('global')"
+              >
+                <i class="bi bi-globe2"></i>
+                <span>Global</span>
+              </div>
+
+              <!-- Workspace -->
+              <i class="bi bi-chevron-right breadcrumb-separator"></i>
+              <div class="breadcrumb-item active">
+                <i class="bi bi-folder-fill"></i>
+                <span>{{ usesGlobalWorkspaceName }}</span>
+              </div>
+            </div>
+
+            <div class="config-actions">
+              <!-- No delete button for workspaces using global settings -->
             </div>
           </div>
-          <div class="config-output-content">
+          <div class="config-output-content-info">
             <div class="uses-global-note">
               <i class="bi bi-arrow-up-circle"></i>
               <div class="uses-global-text">
@@ -56,12 +117,19 @@
       <div v-if="activeLevel === 'global' && !activeCommand" class="config-output-section">
         <div class="config-output config-output-info">
           <div class="config-output-header">
-            <div class="config-output-label">
-              <i class="bi bi-globe2"></i>
-              <span>Global Configuration</span>
+            <div class="config-breadcrumbs">
+              <!-- Global -->
+              <div class="breadcrumb-item active">
+                <i class="bi bi-globe2"></i>
+                <span>Global</span>
+              </div>
+            </div>
+
+            <div class="config-actions">
+              <!-- No delete button for global settings -->
             </div>
           </div>
-          <div class="config-output-content">
+          <div class="config-output-content-info">
             <div class="uses-global-note">
               <i class="bi bi-info-circle"></i>
               <div class="uses-global-text">
@@ -193,6 +261,7 @@ const activeCommandLabel = ref<string>('');
 const activeLevel = ref<'global' | 'workspace' | 'project' | null>(null);
 const activeWorkspaceId = ref<string | null>(null);
 const activeProjectId = ref<string | null>(null);
+const activeProjectName = ref<string>('');
 const showUsesGlobalNote = ref(false);
 const usesGlobalWorkspaceName = ref<string>('');
 
@@ -212,6 +281,28 @@ const activeCommandIcon = computed(() => {
   return 'bi-gear-fill';
 });
 
+const canDeleteCurrentConfig = computed(() => {
+  // Can only delete CUSTOM workspace or project settings, not global
+  if (activeLevel.value === 'global') {
+    return false;
+  }
+  if (activeLevel.value === 'workspace') {
+    const workspace = workspaces.value.find(w => w.id === activeWorkspaceId.value);
+    return workspace?.hasCustomSettings || false;
+  }
+  if (activeLevel.value === 'project') {
+    // Projects in the list always have custom settings
+    return true;
+  }
+  return false;
+});
+
+const getWorkspaceName = (workspaceId: string | null): string => {
+  if (!workspaceId) return 'Unknown';
+  const workspace = workspaces.value.find(w => w.id === workspaceId);
+  return workspace?.name || 'Unknown';
+};
+
 const setActiveCommand = (
   level: 'global' | 'workspace' | 'project',
   command: string | null,
@@ -223,6 +314,7 @@ const setActiveCommand = (
   activeLevel.value = level;
   activeWorkspaceId.value = workspaceId || null;
   activeProjectId.value = projectId || null;
+  activeProjectName.value = projectName || '';
   showUsesGlobalNote.value = false;
 
   // Set label based on level
@@ -236,6 +328,44 @@ const setActiveCommand = (
     activeCommandLabel.value = `Workspace Configuration (${workspace?.name || 'Unknown'})`;
   } else if (level === 'project') {
     activeCommandLabel.value = `Project Configuration (${projectName || 'Unknown'})`;
+  }
+};
+
+const navigateToBreadcrumb = (level: 'global' | 'workspace' | 'project') => {
+  if (level === 'global') {
+    // Navigate to global
+    setActiveCommand('global', globalSettings.value?.agentSettings || null);
+    selectedWorkspaceId.value = null;
+    projectsWithOverrides.value = [];
+  } else if (level === 'workspace' && activeWorkspaceId.value) {
+    // Navigate to workspace
+    const workspace = workspaces.value.find(w => w.id === activeWorkspaceId.value);
+    if (workspace) {
+      if (workspace.hasCustomSettings && workspace.agentSettings) {
+        setActiveCommand('workspace', workspace.agentSettings, workspace.id);
+      } else {
+        // Show uses global note
+        activeCommand.value = null;
+        activeLevel.value = null;
+        showUsesGlobalNote.value = true;
+        usesGlobalWorkspaceName.value = workspace.name;
+      }
+    }
+  }
+  // Project level is not clickable (it's the current item)
+};
+
+const deleteCurrentConfig = async () => {
+  if (activeLevel.value === 'workspace' && activeWorkspaceId.value) {
+    const workspace = workspaces.value.find(w => w.id === activeWorkspaceId.value);
+    if (workspace) {
+      await handleWorkspaceDelete(workspace);
+    }
+  } else if (activeLevel.value === 'project' && activeProjectId.value) {
+    const project = projectsWithOverrides.value.find(p => p.id === activeProjectId.value);
+    if (project) {
+      await handleProjectDelete(project);
+    }
   }
 };
 
@@ -363,6 +493,90 @@ const loadProjectsWithOverrides = async (workspaceId: string) => {
   }
 };
 
+const handleWorkspaceDelete = async (workspace: WorkspaceWithSettings) => {
+  // Only allow deletion of CUSTOM workspace settings
+  if (!workspace.hasCustomSettings) {
+    ToastService.warning('Cannot Delete', 'Global settings cannot be deleted. You can only modify them in the Configure tab.');
+    return;
+  }
+
+  // Confirm deletion
+  const confirmed = confirm(
+    `Are you sure you want to delete custom settings for workspace "${workspace.name}"?\n\n` +
+    'This will revert the workspace to using global settings.'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    // Delete workspace settings (workspaceId set, projectId is null)
+    await ProfilerClient.delete(workspace.id, null);
+
+    ToastService.success('Deleted', `Custom settings for workspace "${workspace.name}" have been deleted.`);
+
+    // Reload all settings and workspaces
+    await loadAllSettings();
+    await loadWorkspaces();
+
+    // Clear active command if the deleted workspace was selected
+    if (activeLevel.value === 'workspace' && activeWorkspaceId.value === workspace.id) {
+      activeCommand.value = null;
+      activeLevel.value = null;
+      activeWorkspaceId.value = null;
+      showUsesGlobalNote.value = false;
+    }
+
+    // Clear workspace selection and projects
+    if (selectedWorkspaceId.value === workspace.id) {
+      selectedWorkspaceId.value = null;
+      projectsWithOverrides.value = [];
+    }
+  } catch (error) {
+    console.error('Failed to delete workspace settings:', error);
+    ToastService.error('Delete Failed', 'Could not delete workspace settings.');
+  }
+};
+
+const handleProjectDelete = async (project: ProjectWithSettings) => {
+  // Confirm deletion
+  const confirmed = confirm(
+    `Are you sure you want to delete custom settings for project "${project.name}"?\n\n` +
+    'This will revert the project to using workspace or global settings.'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    // Delete project settings (both workspaceId and projectId are set)
+    await ProfilerClient.delete(selectedWorkspaceId.value, project.id);
+
+    ToastService.success('Deleted', `Custom settings for project "${project.name}" have been deleted.`);
+
+    // Reload all settings
+    await loadAllSettings();
+
+    // Reload projects for the current workspace
+    if (selectedWorkspaceId.value) {
+      await loadProjectsWithOverrides(selectedWorkspaceId.value);
+    }
+
+    // Clear active command if the deleted project was selected
+    if (activeLevel.value === 'project' && activeProjectId.value === project.id) {
+      activeCommand.value = null;
+      activeLevel.value = null;
+      activeProjectId.value = null;
+      showUsesGlobalNote.value = false;
+    }
+  } catch (error) {
+    console.error('Failed to delete project settings:', error);
+    ToastService.error('Delete Failed', 'Could not delete project settings.');
+  }
+};
+
 onMounted(async () => {
   isLoading.value = true;
   await loadAllSettings();
@@ -427,51 +641,124 @@ onMounted(async () => {
 
 .config-output-header {
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  padding: 8px 14px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(94, 100, 255, 0.15);
-  min-height: 36px;
+  min-height: 42px;
+  gap: 12px;
 }
 
-.config-output-label {
+/* Breadcrumbs */
+.config-breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #1f2937;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
-.config-output-label i {
-  color: #5e64ff;
-  font-size: 0.9rem;
-}
-
-.config-output-copy-hint {
+.breadcrumb-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
   color: #6b7280;
-  font-size: 0.75rem;
-  opacity: 0.6;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
-.config-output-copy-hint i {
+.breadcrumb-item i {
   font-size: 0.85rem;
+  color: #5e64ff;
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
-.config-output:hover .config-output-copy-hint {
+.breadcrumb-item:hover {
+  background: rgba(94, 100, 255, 0.08);
+  color: #374151;
+}
+
+.breadcrumb-item:hover i {
+  opacity: 1;
+}
+
+.breadcrumb-item.active {
+  color: #1f2937;
+  font-weight: 600;
+  cursor: default;
+  background: rgba(94, 100, 255, 0.1);
+}
+
+.breadcrumb-item.active i {
   opacity: 1;
   color: #5e64ff;
 }
 
+.breadcrumb-separator {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+/* Action Buttons */
+.config-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.action-button i {
+  font-size: 0.8rem;
+}
+
+.delete-button {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.delete-button:hover {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.delete-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(220, 38, 38, 0.3);
+}
+
 .config-output-content {
+  padding: 12px 14px;
+  background: rgba(94, 100, 255, 0.02);
+  cursor: pointer;
+}
+
+.config-output-content-info {
   padding: 12px 14px;
   background: rgba(94, 100, 255, 0.02);
 }
@@ -479,6 +766,7 @@ onMounted(async () => {
 .compact-output {
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .compact-output .config-output-text {
@@ -500,6 +788,30 @@ onMounted(async () => {
 .compact-output .config-output-text:hover {
   background: rgba(94, 100, 255, 0.08);
   border-color: rgba(94, 100, 255, 0.2);
+}
+
+.compact-output .config-output-copy-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 6px 12px;
+  color: #6b7280;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.compact-output .config-output-copy-hint i {
+  font-size: 0.85rem;
+}
+
+.config-output-content:hover .config-output-copy-hint {
+  opacity: 1;
+  background: rgba(94, 100, 255, 0.05);
+  color: #5e64ff;
 }
 
 /* Uses Global Note */

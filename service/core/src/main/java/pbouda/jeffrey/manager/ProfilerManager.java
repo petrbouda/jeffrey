@@ -45,4 +45,12 @@ public interface ProfilerManager {
      * @return a list of all profiler settings
      */
     List<ProfilerInfo> findAllSettings();
+
+    /**
+     * Deletes profiler settings for the specified workspace and project.
+     *
+     * @param workspaceId the workspace ID
+     * @param projectId   the project ID
+     */
+    void deleteSettings(String workspaceId, String projectId);
 }

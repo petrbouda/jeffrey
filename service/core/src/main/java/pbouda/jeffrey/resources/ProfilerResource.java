@@ -18,10 +18,7 @@
 
 package pbouda.jeffrey.resources;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProfilerInfo;
 import pbouda.jeffrey.manager.ProfilerManager;
@@ -70,5 +67,13 @@ public class ProfilerResource {
             @QueryParam("projectId") String projectId) {
         return profilerManager.findSettings(workspaceId, projectId)
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()));
+    }
+
+    @DELETE
+    @Path("settings")
+    public void deleteSettings(
+            @QueryParam("workspaceId") String workspaceId,
+            @QueryParam("projectId") String projectId) {
+        profilerManager.deleteSettings(workspaceId, projectId);
     }
 }
