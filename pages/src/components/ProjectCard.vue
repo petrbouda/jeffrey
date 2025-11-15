@@ -16,6 +16,15 @@
       <!-- Project Name -->
       <h3 class="project-name">{{ project.name }}</h3>
 
+      <!-- Status -->
+      <div v-if="project.status" class="status-row">
+        <div class="metric status-metric" :class="`status-${project.status.toLowerCase()}`">
+          <i class="bi bi-activity"></i>
+          <span class="metric-label">Status:</span>
+          <span class="metric-value">{{ formatStatus(project.status) }}</span>
+        </div>
+      </div>
+
       <!-- Alert Badge -->
       <div v-if="project.alertCount > 0" class="alert-section">
         <Badge
@@ -51,14 +60,6 @@
           <i class="bi bi-layers-fill"></i>
           <span class="metric-label">Sessions:</span>
           <span class="metric-value">{{ project.sessionCount || 0 }}</span>
-        </div>
-      </div>
-
-      <!-- Additional Info -->
-      <div v-if="project.status" class="additional-info">
-        <div class="info-item">
-          <i class="bi bi-activity"></i>
-          <span>{{ formatStatus(project.status) }}</span>
         </div>
       </div>
     </div>
@@ -278,12 +279,52 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   gap: 12px;
 }
 
+/* Project Name */
 .project-name {
   font-size: 16px;
   font-weight: 600;
   color: #111827;
   margin: 0;
   line-height: 1.2;
+}
+
+/* Status Row */
+.status-row {
+  display: flex;
+}
+
+/* Status Metric with Color Indicators */
+.status-metric {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.status-metric.status-active .metric-value {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.status-metric.status-active i {
+  color: #f59e0b;
+}
+
+.status-metric.status-finished .metric-value {
+  color: #059669;
+  font-weight: 700;
+}
+
+.status-metric.status-finished i {
+  color: #10b981;
+}
+
+.status-metric.status-unknown .metric-value {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.status-metric.status-unknown i {
+  color: #9ca3af;
 }
 
 /* Alert Section */
@@ -335,27 +376,4 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   color: #374151;
 }
 
-/* Additional Info */
-.additional-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: auto;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #9ca3af;
-  padding: 2px 6px;
-  background: #f9fafb;
-  border-radius: 4px;
-}
-
-.info-item i {
-  font-size: 10px;
-}
 </style>
