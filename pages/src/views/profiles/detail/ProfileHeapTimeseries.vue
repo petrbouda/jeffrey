@@ -16,10 +16,10 @@
 
   <div v-else>
     <!-- Header Section -->
-    <DashboardHeader
+    <PageHeader
       title="Heap Memory Timeseries"
       description="Time-series analysis of heap memory usage, allocation patterns, and GC impact"
-      icon="graph-up-arrow">
+      icon="bi-graph-up-arrow">
       <template #actions>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-primary" @click="refreshData">
@@ -27,7 +27,7 @@
           </button>
         </div>
       </template>
-    </DashboardHeader>
+    </PageHeader>
 
     <!-- Heap Memory Timeseries Section -->
     <ChartSectionWithTabs
@@ -70,7 +70,7 @@ import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import ProfileHeapMemoryClient from '@/services/profile/heap/ProfileHeapMemoryClient';
 import HeapMemoryTimeseriesType from '@/services/profile/heap/HeapMemoryTimeseriesType';

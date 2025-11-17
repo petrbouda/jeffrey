@@ -1,7 +1,7 @@
 <template>
   <!-- Container Not Available State -->
-  <ContainerNotAvailableAlert 
-    v-if="isContainerDashboardDisabled"
+  <ContainerNotAvailableAlert
+      v-if="isContainerDashboardDisabled"
   />
 
   <!-- Loading State -->
@@ -21,10 +21,10 @@
 
   <div v-else>
     <!-- Header Section -->
-    <DashboardHeader
+    <PageHeader
         title="Container Configuration"
         description="JFR-based analysis of container configuration and settings"
-        icon="server"
+        icon="bi-server"
     >
       <template #actions>
         <div class="d-flex gap-2">
@@ -33,7 +33,7 @@
           </button>
         </div>
       </template>
-    </DashboardHeader>
+    </PageHeader>
 
     <!-- Configuration Overview Cards -->
     <div class="configuration-grid mb-4" v-if="configData?.configuration">
@@ -151,10 +151,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, withDefaults, defineProps } from 'vue';
-import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import {computed, defineProps, onMounted, ref, withDefaults} from 'vue';
+import {useRoute} from 'vue-router';
+import {useNavigation} from '@/composables/useNavigation';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import ProfileContainerClient from '@/services/profile/container/ProfileContainerClient';
 import ContainerConfigurationData from '@/services/profile/container/ContainerConfigurationData';
@@ -172,7 +172,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+const {workspaceId, projectId} = useNavigation();
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);
@@ -235,12 +235,12 @@ const formatCpuShares = (shares: number | undefined): string => {
 
 const getMemoryRequest = (config: any): string => {
   if (!config) return '-';
-  
+
   // If Memory Soft Limit exists and is not 0, use it as Request
   if (config.memorySoftLimit && config.memorySoftLimit !== 0 && config.memorySoftLimit !== -1) {
     return formatMemoryLimit(config.memorySoftLimit);
   }
-  
+
   // Otherwise, use Memory Limit as both Request and Limit
   return formatMemoryLimit(config.memoryLimit);
 };
@@ -347,7 +347,7 @@ onMounted(() => {
   .configuration-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .config-sections-grid {
     grid-template-columns: 1fr;
   }

@@ -1,105 +1,94 @@
 <template>
-  <div class="row g-4">
-    <!-- Page Header -->
-    <div class="col-12">
-      <div class="d-flex align-items-center mb-3">
-        <i class="bi bi-person-vcard fs-4 me-2 text-primary"></i>
-        <h3 class="mb-0">Profiles</h3>
-      </div>
-      <p class="text-muted mb-2">
-        View and analyze performance profiles created from recordings. Profiles provide
-        <span class="fst-italic">detailed insights into application behavior and performance metrics</span>.
-      </p>
-    </div>
-
-    <!-- Profiles List Header -->
-    <div class="col-12">
-      <!-- Search Box -->
-      <div class="search-box mb-3">
-        <div class="input-group input-group-sm phoenix-search">
-          <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
-            <i class="bi bi-search text-primary"></i>
-          </span>
-          <input
-              type="text"
-              class="form-control border-0 py-2"
-              placeholder="Search profiles..."
-              v-model="searchQuery"
-              @input="filterProfiles"
-          >
-        </div>
-      </div>
-
-      <!-- Loading Indicator -->
-      <div v-if="loading" class="text-center py-4">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <p class="mt-2">Loading profiles...</p>
-      </div>
-
-      <!-- Profiles Table -->
-      <div v-else class="table-responsive">
-        <table class="table table-hover border">
-          <thead class="table-light">
-          <tr>
-            <th style="width: 5%"></th>
-            <th style="width: 60%">Name</th>
-            <th style="width: 20%">Created at</th>
-            <th style="width: 15%" class="text-end">Actions</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="profile in filteredProfiles" :key="profile.id" :class="{ 'table-secondary': profile.deleting || !profile.enabled }">
-            <td>
-              <router-link :to="generateProfileUrl('overview', profile.id)"
-                           class="btn btn-primary btn-sm"
-                           data-bs-toggle="tooltip"
-                           @click="selectProfile"
-                           title="View Profile"
-                           :class="{ 'disabled': profile.deleting || !profile.enabled }"
-                           :style="{ 'pointer-events': (profile.deleting || !profile.enabled) ? 'none' : 'auto' }">
-                <i class="bi bi-eye"></i>
-              </router-link>
-            </td>
-            <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
-              {{ profile.name }}
-              <Badge class="ms-2" :value="profile.eventSource || RecordingEventSource.JDK" :variant="getSourceVariant(profile.eventSource || RecordingEventSource.JDK)" size="xs" />
-              <Badge v-if="profile.deleting" value="Deleting" variant="red" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
-              <Badge v-else-if="!profile.enabled" value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
-              <!-- Source type badge - assuming 'JDK' for demonstration -->
-              <!-- Note: The sourceType property may need to be added to the Profile model -->
-            </td>
-            <td :class="{ 'text-muted': profile.deleting || !profile.enabled }">{{ profile.createdAt }}</td>
-            <td>
-              <div class="d-flex gap-2 justify-content-end">
-                <button class="btn btn-outline-secondary btn-sm"
-                        @click="editProfile(profile)"
-                        data-bs-toggle="tooltip"
-                        title="Edit Profile"
-                        :disabled="profile.deleting || !profile.enabled">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-danger btn-sm"
-                        @click="deleteProfile(profile)"
-                        data-bs-toggle="tooltip"
-                        title="Delete Profile"
-                        :disabled="profile.deleting">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="filteredProfiles.length === 0 && !loading">
-            <td colspan="4" class="text-center py-3">
-              No profiles found. Create a new profile to get started.
-            </td>
-          </tr>
-          </tbody>
-        </table>
+  <PageHeader
+    title="Profiles"
+    description="View and analyze performance profiles created from recordings. Profiles provide detailed insights into application behavior and performance metrics."
+    icon="bi-person-vcard"
+  >
+    <!-- Search Box -->
+    <div class="search-box mb-3">
+      <div class="input-group input-group-sm phoenix-search">
+        <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
+          <i class="bi bi-search text-primary"></i>
+        </span>
+        <input
+            type="text"
+            class="form-control border-0 py-2"
+            placeholder="Search profiles..."
+            v-model="searchQuery"
+            @input="filterProfiles"
+        >
       </div>
     </div>
-  </div>
+
+    <!-- Loading Indicator -->
+    <div v-if="loading" class="text-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading profiles...</p>
+    </div>
+
+    <!-- Profiles Table -->
+    <div v-else class="table-responsive">
+      <table class="table table-hover border">
+        <thead class="table-light">
+        <tr>
+          <th style="width: 5%"></th>
+          <th style="width: 60%">Name</th>
+          <th style="width: 20%">Created at</th>
+          <th style="width: 15%" class="text-end">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="profile in filteredProfiles" :key="profile.id" :class="{ 'table-secondary': profile.deleting || !profile.enabled }">
+          <td>
+            <router-link :to="generateProfileUrl('overview', profile.id)"
+                         class="btn btn-primary btn-sm"
+                         data-bs-toggle="tooltip"
+                         @click="selectProfile"
+                         title="View Profile"
+                         :class="{ 'disabled': profile.deleting || !profile.enabled }"
+                         :style="{ 'pointer-events': (profile.deleting || !profile.enabled) ? 'none' : 'auto' }">
+              <i class="bi bi-eye"></i>
+            </router-link>
+          </td>
+          <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
+            {{ profile.name }}
+            <Badge class="ms-2" :value="profile.eventSource || RecordingEventSource.JDK" :variant="getSourceVariant(profile.eventSource || RecordingEventSource.JDK)" size="xs" />
+            <Badge v-if="profile.deleting" value="Deleting" variant="red" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
+            <Badge v-else-if="!profile.enabled" value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
+            <!-- Source type badge - assuming 'JDK' for demonstration -->
+            <!-- Note: The sourceType property may need to be added to the Profile model -->
+          </td>
+          <td :class="{ 'text-muted': profile.deleting || !profile.enabled }">{{ profile.createdAt }}</td>
+          <td>
+            <div class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-outline-secondary btn-sm"
+                      @click="editProfile(profile)"
+                      data-bs-toggle="tooltip"
+                      title="Edit Profile"
+                      :disabled="profile.deleting || !profile.enabled">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-danger btn-sm"
+                      @click="deleteProfile(profile)"
+                      data-bs-toggle="tooltip"
+                      title="Delete Profile"
+                      :disabled="profile.deleting">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr v-if="filteredProfiles.length === 0 && !loading">
+          <td colspan="4" class="text-center py-3">
+            No profiles found. Create a new profile to get started.
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </PageHeader>
 
   <!-- Edit Profile Modal -->
   <div class="modal fade" id="editProfileModal" tabindex="-1"
@@ -168,6 +157,7 @@ import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
 import { useNavigation } from '@/composables/useNavigation';
 

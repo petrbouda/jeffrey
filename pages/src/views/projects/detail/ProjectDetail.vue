@@ -11,12 +11,13 @@
 
         <div class="scrollbar" style="height: 100%;">
           <!-- Workspace Header -->
-          <div class="workspace-context p-3 border"
+          <div class="workspace-context p-2 border"
                :class="{
                  'workspace-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
                  'workspace-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
                  'workspace-local': workspaceInfo?.type === WorkspaceType.LOCAL
                }"
+
                v-if="!sidebarCollapsed">
             <div class="workspace-info">
               <div class="workspace-title-container">

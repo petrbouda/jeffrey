@@ -6,11 +6,11 @@
     <p class="mt-2">Loading subsecond data...</p>
   </div>
 
-  <div v-else class="subsecond-differential-container">
-    <DashboardHeader 
+  <div v-else>
+    <PageHeader 
       title="Differential SubSecond Graphs"
       description="Compare time-based performance data between primary and secondary profiles at sub-second intervals"
-      icon="file-bar-graph"
+      icon="bi-file-bar-graph"
     />
 
     <div class="flamegraph-grid">
@@ -34,7 +34,7 @@
                       :event="event"
                       :enabled="loaded"
                       route-name="subsecond"
-                      button-text="Show SubSecond Graph"/>
+                      button-text="Show SubSecond Graph" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTracesEvents" :key="index"
                       title="Method Traces"
@@ -56,7 +56,7 @@
                       :event="event"
                       :enabled="loaded"
                       route-name="subsecond"
-                      button-text="Show SubSecond Graph"/>
+                      button-text="Show SubSecond Graph" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
@@ -78,7 +78,7 @@
                       :event="event"
                       :enabled="loaded"
                       route-name="subsecond"
-                      button-text="Show SubSecond Graph"/>
+                      button-text="Show SubSecond Graph" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
                       title="Allocation Samples"
@@ -116,7 +116,7 @@ import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []
@@ -173,11 +173,6 @@ function categorizeEventTypes(eventTypes: EventSummary[]) {
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-}
-
-.subsecond-differential-container {
-  border: none;
-  overflow: hidden;
 }
 
 /* Modern responsive grid for flamegraph cards */

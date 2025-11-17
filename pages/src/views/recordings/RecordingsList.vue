@@ -12,6 +12,7 @@ import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const toast = ToastService;
 const recordings = ref<Recording[]>([]);
@@ -357,18 +358,12 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 </script>
 
 <template>
-  <!-- Page Header -->
-  <div class="col-12">
-    <div class="d-flex align-items-center mb-3">
-      <i class="bi bi-calendar-check fs-4 me-2 text-primary"></i>
-      <h3 class="mb-0">Recordings</h3>
-    </div>
-    <p class="text-muted mb-4">
-      Contains the recordings uploaded to the server. You can create folders to organize your recordings.
-    </p>
-  </div>
-
-  <!-- File Upload Panel -->
+  <PageHeader
+    title="Recordings"
+    description="Contains the recordings uploaded to the server. You can create folders to organize your recordings."
+    icon="bi-record-circle"
+  >
+    <!-- File Upload Panel -->
   <div class="col-12">
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header bg-light d-flex justify-content-between align-items-center cursor-pointer py-3"
@@ -802,6 +797,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
         </div>
       </div>
     </div>
+  </PageHeader>
 </template>
 
 <style scoped>

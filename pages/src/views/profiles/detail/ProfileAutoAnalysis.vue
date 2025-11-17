@@ -1,10 +1,9 @@
 <template>
-  <div class="container-fluid p-0">
-    <DashboardHeader 
+    <PageHeader 
       title="Auto Analysis"
       description="Calculated Auto-analysis from the events"
-      icon="robot"
-    />
+      icon="bi-robot"
+    >
 
     <!-- Results Grid Section -->
     <div id="autoAnalysisCard" class="guardian-grid mt-4">
@@ -104,7 +103,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -114,7 +113,7 @@ import { useRoute } from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
 import AnalysisResult from "@/services/model/AnalysisResult.ts";
 import * as bootstrap from 'bootstrap';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();

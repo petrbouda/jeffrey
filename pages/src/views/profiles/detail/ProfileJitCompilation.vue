@@ -17,95 +17,95 @@
 
     <div v-else>
       <!-- Header Section with Stats Overview -->
-      <DashboardHeader
+      <PageHeader
           title="JIT Compilation"
           description="Real-time insights into Java Just-In-Time compilation performance"
-          icon="lightning-charge-fill"
+          icon="bi-lightning-charge-fill"
       />
 
-      <!-- Main Dashboard Grid -->
-      <div class="dashboard-grid">
-        <!-- Row 1: Dashboard Cards -->
-        <div class="dashboard-row">
-          <DashboardCard
-              title="Compilations"
-              :value="statisticsData!!.compileCount"
-              variant="highlight"
-              :valueA="statisticsData!!.standardCompileCount"
-              :valueB="statisticsData!!.osrCompileCount"
-              labelA="Standard"
-              labelB="OSR"
-              comparison="a-greater"
-          >
-            <template #title-action>
-              <i class="bi bi-info-circle text-muted compilation-info-icon" 
-                 @click="showCompilationsModal"
-                 title="Click for detailed explanation of Standard vs OSR Compilation"
-                 style="cursor: pointer;"></i>
-            </template>
-          </DashboardCard>
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+          <!-- Row 1: Dashboard Cards -->
+          <div class="dashboard-row">
+            <DashboardCard
+                title="Compilations"
+                :value="statisticsData!!.compileCount"
+                variant="highlight"
+                :valueA="statisticsData!!.standardCompileCount"
+                :valueB="statisticsData!!.osrCompileCount"
+                labelA="Standard"
+                labelB="OSR"
+                comparison="a-greater"
+            >
+              <template #title-action>
+                <i class="bi bi-info-circle text-muted compilation-info-icon"
+                   @click="showCompilationsModal"
+                   title="Click for detailed explanation of Standard vs OSR Compilation"
+                   style="cursor: pointer;"></i>
+              </template>
+            </DashboardCard>
 
-          <DashboardCard
-              title="Failed Compilations"
-              :value="statisticsData!!.bailoutCount + statisticsData!!.invalidatedCount"
-              variant="danger"
-              :valueA="statisticsData!!.bailoutCount"
-              :valueB="statisticsData!!.invalidatedCount"
-              labelA="Bailouts"
-              labelB="Invalidations"
-              comparison="a-greater"
-          >
-            <template #title-action>
-              <i class="bi bi-info-circle text-muted compilation-info-icon" 
-                 ref="tooltipIcon"
-                 @click="showTooltipModal"
-                 title="Click for detailed explanation of Bailouts vs Invalidations"
-                 style="cursor: pointer;"></i>
-            </template>
-          </DashboardCard>
-        </div>
-
-        <!-- Row 2: Code Size Card and Compilation Time Card -->
-        <div class="dashboard-row mb-4">
-          <DashboardCard
-              title="Memory Usage (nMethods)"
-              :value="FormattingService.formatBytes(statisticsData!!.nmethodsSize)"
-              :valueA="FormattingService.formatBytes(statisticsData!!.nmethodCodeSize)"
-              :valueB="FormattingService.formatBytes(statisticsData!!.nmethodsSize - statisticsData!!.nmethodCodeSize)"
-              labelA="Code"
-              labelB="Metadata"
-              variant="info"
-              comparison="a-greater"
-          >
-            <template #title-action>
-              <i class="bi bi-info-circle text-muted compilation-info-icon" 
-                 @click="showNMethodsModal"
-                 title="Click for detailed explanation of nMethods"
-                 style="cursor: pointer;"></i>
-            </template>
-          </DashboardCard>
-
-          <DashboardCard
-              title="Peak Compilation Time"
-              :value="FormattingService.formatDuration2Units(statisticsData!!.peakTimeSpent)"
-              variant="warning"
-              :valueA="FormattingService.formatDuration2Units(statisticsData!!.totalTimeSpent)"
-              labelA="Total Time"
-          />
-        </div>
-
-        <!-- Row 3: Time Series Graph -->
-        <div class="chart-card mb-4">
-          <div class="chart-card-header">
-            <h5>JIT Compilation Activity by CPU Samples</h5>
+            <DashboardCard
+                title="Failed Compilations"
+                :value="statisticsData!!.bailoutCount + statisticsData!!.invalidatedCount"
+                variant="danger"
+                :valueA="statisticsData!!.bailoutCount"
+                :valueB="statisticsData!!.invalidatedCount"
+                labelA="Bailouts"
+                labelB="Invalidations"
+                comparison="a-greater"
+            >
+              <template #title-action>
+                <i class="bi bi-info-circle text-muted compilation-info-icon"
+                   ref="tooltipIcon"
+                   @click="showTooltipModal"
+                   title="Click for detailed explanation of Bailouts vs Invalidations"
+                   style="cursor: pointer;"></i>
+              </template>
+            </DashboardCard>
           </div>
-          <div class="chart-container">
-            <ApexTimeSeriesChart
-                :primaryData="timeseriesData?.data"
-                :primaryTitle="timeseriesData?.name"
-                :visibleMinutes="15" />
+
+          <!-- Row 2: Code Size Card and Compilation Time Card -->
+          <div class="dashboard-row mb-4">
+            <DashboardCard
+                title="Memory Usage (nMethods)"
+                :value="FormattingService.formatBytes(statisticsData!!.nmethodsSize)"
+                :valueA="FormattingService.formatBytes(statisticsData!!.nmethodCodeSize)"
+                :valueB="FormattingService.formatBytes(statisticsData!!.nmethodsSize - statisticsData!!.nmethodCodeSize)"
+                labelA="Code"
+                labelB="Metadata"
+                variant="info"
+                comparison="a-greater"
+            >
+              <template #title-action>
+                <i class="bi bi-info-circle text-muted compilation-info-icon"
+                   @click="showNMethodsModal"
+                   title="Click for detailed explanation of nMethods"
+                   style="cursor: pointer;"></i>
+              </template>
+            </DashboardCard>
+
+            <DashboardCard
+                title="Peak Compilation Time"
+                :value="FormattingService.formatDuration2Units(statisticsData!!.peakTimeSpent)"
+                variant="warning"
+                :valueA="FormattingService.formatDuration2Units(statisticsData!!.totalTimeSpent)"
+                labelA="Total Time"
+            />
           </div>
-        </div>
+
+          <!-- Row 3: Time Series Graph -->
+          <div class="chart-card mb-4">
+            <div class="chart-card-header">
+              <h5>JIT Compilation Activity by CPU Samples</h5>
+            </div>
+            <div class="chart-container">
+              <ApexTimeSeriesChart
+                  :primaryData="timeseriesData?.data"
+                  :primaryTitle="timeseriesData?.name"
+                  :visibleMinutes="15"/>
+            </div>
+          </div>
 
         <!-- Row 4: Long Compilation Table -->
         <div class="data-table-card">
@@ -176,7 +176,7 @@
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
-        
+
         <div class="compilation-modal-body">
           <div class="compilation-terms-content">
             <div class="term-section">
@@ -192,7 +192,7 @@
                 <li>Shows up in logs as "made not entrant" or "made zombie"</li>
               </ul>
             </div>
-            
+
             <div class="term-section">
               <h6 class="term-heading">
                 <i class="bi bi-x-circle text-danger me-2"></i>
@@ -206,7 +206,7 @@
                 <li>Results in recompilation on next invocation rather than immediate fallback</li>
               </ul>
             </div>
-            
+
             <div class="key-difference">
               <div class="alert alert-info">
                 <i class="bi bi-lightbulb text-info me-2"></i>
@@ -215,7 +215,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="compilation-modal-footer">
           <button type="button" class="btn btn-secondary" @click="closeModal">Close</button>
         </div>
@@ -234,7 +234,7 @@
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
-        
+
         <div class="compilation-modal-body">
           <div class="compilation-terms-content">
             <p>In Java JIT compilation, nMethods represent the compiled native code form of Java methods. They have two main components:</p>
@@ -252,7 +252,7 @@
                 <li>May contain inline caches and optimized instruction sequences</li>
               </ul>
             </div>
-            
+
             <div class="term-section">
               <h6 class="term-heading">
                 <i class="bi bi-layers text-success me-2"></i>
@@ -269,7 +269,7 @@
                 <li>Relocation information for references to other code</li>
               </ul>
             </div>
-            
+
             <div class="key-difference">
               <div class="alert alert-info">
                 <i class="bi bi-lightbulb text-info me-2"></i>
@@ -278,7 +278,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="compilation-modal-footer">
           <button type="button" class="btn btn-secondary" @click="closeNMethodsModal">Close</button>
         </div>
@@ -297,11 +297,11 @@
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
-        
+
         <div class="compilation-modal-body">
           <div class="compilation-terms-content">
             <p>In Java JIT compilation, there are two primary compilation methods:</p>
-            
+
             <div class="term-section">
               <h6 class="term-heading">
                 <i class="bi bi-arrow-right-circle text-primary me-2"></i>
@@ -317,7 +317,7 @@
                 <li>Generated when methods are called frequently</li>
               </ul>
             </div>
-            
+
             <div class="term-section">
               <h6 class="term-heading">
                 <i class="bi bi-arrow-repeat text-success me-2"></i>
@@ -336,16 +336,18 @@
                 </ul>
               </ul>
             </div>
-            
+
             <div class="key-difference">
               <div class="alert alert-info">
                 <i class="bi bi-lightbulb text-info me-2"></i>
-                <strong>Both compilation types</strong> produce nMethods with machine code and metadata, but their triggers, entry points, and optimization approaches differ significantly. The HotSpot JVM uses both approaches to ensure optimal performance in different scenarios.
+                <strong>Both compilation types</strong> produce nMethods with machine code and metadata, but their
+                triggers, entry points, and optimization approaches differ significantly. The HotSpot JVM uses both
+                approaches to ensure optimal performance in different scenarios.
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="compilation-modal-footer">
           <button type="button" class="btn btn-secondary" @click="closeCompilationsModal">Close</button>
         </div>
@@ -355,10 +357,10 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref, nextTick} from 'vue';
+import {onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import {useNavigation} from '@/composables/useNavigation';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
@@ -369,7 +371,7 @@ import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+const {workspaceId, projectId} = useNavigation();
 const loading = ref(true);
 const error = ref(false);
 const statisticsData = ref<JITCompilationData>();
@@ -388,7 +390,7 @@ const showCompilationsInfoModal = ref(false);
 onMounted(async () => {
   // Add ESC key listener
   document.addEventListener('keydown', handleEscapeKey);
-  
+
   try {
     const profileId = route.params.profileId as string;
 
@@ -408,7 +410,7 @@ onMounted(async () => {
     statisticsData.value = statisticsDataResult;
     timeseriesData.value = timeseriesDataResult;
     compilationsData.value = compilationsDataResult;
-    
+
     // Data loaded successfully
     loading.value = false;
     chartLoading.value = false;
@@ -482,8 +484,8 @@ const getClassMethodName = (method: string): string => {
   // Get only the class name (last segment before the method)
   const lastClassDotIndex = packagePath.lastIndexOf('.');
   const className = lastClassDotIndex !== -1 ?
-    packagePath.substring(lastClassDotIndex + 1) :
-    packagePath;
+      packagePath.substring(lastClassDotIndex + 1) :
+      packagePath;
 
   return `${className}.${methodNameWithParams}`;
 };
@@ -777,7 +779,7 @@ const getTierClass = (level: number): string => {
     margin: 0.5rem;
     max-height: 95vh;
   }
-  
+
   .compilation-modal-header,
   .compilation-modal-body,
   .compilation-modal-footer {

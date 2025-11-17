@@ -1,10 +1,9 @@
 <template>
-  <div class="container-fluid p-0">
-    <DashboardHeader 
+    <PageHeader 
       title="Event Types"
       description="Overview of profile event types"
-      icon="list-check"
-    />
+      icon="bi-list-check"
+    >
 
     <!-- Loading state -->
     <div v-if="loading" class="row">
@@ -187,7 +186,6 @@
         </div>
       </div>
     </div>
-  </div>
 
   <!-- Flamegraph Modal -->
   <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel" aria-hidden="true">
@@ -205,7 +203,7 @@
               :with-search="null"
               :search-enabled="true"
               :zoom-enabled="true"
-              :graph-updater="graphUpdater"/>
+              :graph-updater="graphUpdater" />
           <FlamegraphComponent
               :with-timeseries="true"
               :with-search="null"
@@ -214,11 +212,12 @@
               :time-range="null"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"/>
+              :graph-updater="graphUpdater" />
         </div>
       </div>
     </div>
   </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -237,7 +236,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import GraphType from '@/services/flamegraphs/GraphType';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
 
 // Props definition

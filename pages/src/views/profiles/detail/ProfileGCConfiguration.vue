@@ -16,11 +16,10 @@
 
   <div v-else>
     <!-- Header Section -->
-    <DashboardHeader
+    <PageHeader
         title="Garbage Collection Configuration"
         description="JFR-based analysis of garbage collection configuration and settings"
-        icon="gear"
-    >
+        icon="bi-gear">
       <template #actions>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-primary" @click="refreshData">
@@ -28,7 +27,7 @@
           </button>
         </div>
       </template>
-    </DashboardHeader>
+    </PageHeader>
 
     <!-- Configuration Overview Cards -->
     <div class="configuration-grid mb-4">
@@ -267,15 +266,15 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import {useNavigation} from '@/composables/useNavigation';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
 import GCConfigurationData from '@/services/profile/gc/GCConfigurationData';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+const {workspaceId, projectId} = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 const configData = ref<GCConfigurationData>();

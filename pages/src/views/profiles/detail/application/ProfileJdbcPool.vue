@@ -8,9 +8,9 @@
     />
 
     <div v-else>
-      <DashboardHeader
+      <PageHeader
         title="JDBC Connection Pools"
-        icon="layers"
+        icon="bi-layers"
       />
     
     <!-- Loading state -->
@@ -186,7 +186,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, withDefaults, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
@@ -223,7 +223,11 @@ const isJdbcPoolDisabled = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileJdbcPoolClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileJdbcPoolClient(
+  route.params.workspaceId as string,
+  route.params.projectId as string,
+  route.params.profileId as string
+);
 
 // Computed property for tabs
 const eventTabs = computed(() => {

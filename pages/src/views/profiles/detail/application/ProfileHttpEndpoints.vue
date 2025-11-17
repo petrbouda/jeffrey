@@ -8,7 +8,7 @@
     />
 
     <div v-else>
-      <DashboardHeader title="Endpoint Details" icon="share"/>
+      <PageHeader title="Endpoint Details" icon="bi-share" />
 
     <!-- URI Display with Navigation -->
     <div v-if="selectedUriForDetail" class="uri-display-large">
@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import {computed, ref, watch, withDefaults, defineProps} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
@@ -129,7 +129,12 @@ const isHttpDashboardDisabled = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileHttpClient(mode, route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileHttpClient(
+  mode,
+  route.params.workspaceId as string,
+  route.params.projectId as string,
+  route.params.profileId as string
+);
 
 const slowestRequests = computed(() => {
   if (!singleUriData.value || !selectedUriForDetail.value) return [];

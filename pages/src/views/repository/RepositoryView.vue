@@ -23,6 +23,7 @@ import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
 import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
 import Workspace from "@/services/workspace/model/Workspace.ts";
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 // Using formatFileType from Utils class
 
@@ -555,15 +556,12 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
   <!-- Repository Disabled State for Sandbox Workspace -->
   <RepositoryDisabledAlert v-if="isSandboxWorkspace"/>
 
-  <div v-else class="row g-4">
-    <!-- Page Header -->
-    <div class="col-12">
-      <div class="d-flex align-items-center mb-2">
-        <i class="bi bi-database fs-4 me-2 text-primary"></i>
-        <h3 class="mb-0">Remote Repository</h3>
-      </div>
-    </div>
-
+  <PageHeader
+    v-else
+    title="Remote Repository"
+    description="View and manage recordings stored in the remote repository"
+    icon="bi-folder"
+  >
     <!-- Repository Statistics Cards -->
     <div class="col-12" v-if="!isLoading && currentRepository">
       <RepositoryStatistics :statistics="repositoryStatistics"/>
@@ -809,7 +807,6 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
         </div>
       </div>
     </div>
-  </div>
 
   <!-- Loading Placeholder -->
   <div class="container-fluid p-4" v-if="isLoading && !currentRepository">
@@ -832,6 +829,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
       </div>
     </div>
   </div>
+  </PageHeader>
 
   <!-- Delete Session Confirmation Modal -->
   <ConfirmationDialog

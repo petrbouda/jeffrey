@@ -1,10 +1,9 @@
 <template>
-  <div class="container-fluid p-0">
-    <DashboardHeader 
+    <PageHeader 
       title="JVM Performance Analysis"
       description="Analyze and visualize JVM/HotSpot Performance Counters data"
-      icon="speedometer2"
-    />
+      icon="bi-speedometer2"
+    >
 
     <!-- Loading state -->
     <div v-if="loading" class="row">
@@ -583,7 +582,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -593,7 +592,7 @@ import FormattingService from '@/services/FormattingService';
 import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();

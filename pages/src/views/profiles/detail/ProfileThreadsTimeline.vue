@@ -1,12 +1,11 @@
 <template>
   <div class="threads-timeline-container">
-    <DashboardHeader 
+    <PageHeader
       title="Threads Timeline"
       description="View and analyze thread activities over time"
-      icon="clock-history"
+      icon="bi-clock-history"
     />
-
-    <div class="d-flex align-items-center mb-3">
+      <div class="d-flex align-items-center mb-3">
       <div class="input-group search-container me-3" style="max-width: 60%;">
         <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
         <input 
@@ -15,7 +14,7 @@
           placeholder="Filter threads..." 
           v-model="fulltextFilter"
           @input="onFilterChange($event.target.value)"
-        />
+        >
         <button 
           v-if="fulltextFilter" 
           class="btn btn-outline-secondary clear-btn" 
@@ -51,13 +50,13 @@
 
     <div class="thread-components-container" :key="forceRenderThreads">
       <div class="thread-row-wrapper" v-for="(threadRow, index) in threadRows" :key="index">
-        <ThreadComponent 
+        <ThreadComponent
           v-if="threadRow.threadInfo.name.includes(fulltextFilterAfterTimeout)"
           :index="index"
           :project-id="projectId"
           :primary-profile-id="profileId"
           :thread-common="threadCommon as ThreadCommon"
-          :thread-row="threadRow"/>
+          :thread-row="threadRow" />
       </div>
       
       <div v-if="filteredThreadCount === 0" class="no-threads-message">
@@ -180,7 +179,7 @@ import ThreadCommon from "@/services/thread/model/ThreadCommon";
 import ThreadRowData from "@/services/thread/model/ThreadRowData";
 import Konva from "konva";
 import ThreadRow from "@/services/thread/ThreadRow";
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
 
 // Props definition

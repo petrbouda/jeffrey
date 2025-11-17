@@ -7,17 +7,17 @@
   </div>
 
   <div v-else class="flamegraphs-primary-container">
-    <DashboardHeader 
+    <PageHeader 
       title="Primary Flamegraphs"
       description="View and analyze performance data Flamegraphs" 
-      icon="fire"
-    />
+      icon="bi-fire"
+    >
 
     <div class="flamegraph-grid">
       <FlamegraphCard v-if="loaded" v-for="(event, index) in executionSampleEvents" :key="index"
                       title="Execution Samples"
                       color="blue"
-                      icon="sprint"
+                      icon="bi-sprint"
                       :thread-mode-opt="true"
                       :thread-mode-selected="false"
                       :weight-desc="null"
@@ -32,12 +32,12 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTraceEvents" :key="index"
                       title="Method Traces"
                       color="blue"
-                      icon="sprint"
+                      icon="bi-sprint"
                       :thread-mode-opt="true"
                       :thread-mode-selected="false"
                       weight-desc="Total Time"
@@ -52,12 +52,12 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
                       color="purple"
-                      icon="alarm"
+                      icon="bi-alarm"
                       :thread-mode-opt="true"
                       :thread-mode-selected="true"
                       :weight-desc="null"
@@ -72,12 +72,12 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
                       title="Allocation Samples"
                       color="green"
-                      icon="memory"
+                      icon="bi-memory"
                       :thread-mode-opt="true"
                       :thread-mode-selected="false"
                       weight-desc="Total Allocation"
@@ -92,12 +92,12 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in nativeAllocationEvents" :key="index"
                       title="Native Allocation Samples"
                       color="pink"
-                      icon="memory"
+                      icon="bi-memory"
                       :thread-mode-opt="true"
                       :thread-mode-selected="false"
                       weight-desc="Total Allocation"
@@ -112,12 +112,12 @@
                       :only-unsafe-allocation-samples-selected="true"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in nativeLeakEvents" :key="index"
                       title="Native Allocation Leaks"
                       color="pink"
-                      icon="memory"
+                      icon="bi-memory"
                       :thread-mode-opt="true"
                       :thread-mode-selected="false"
                       weight-desc="Total Allocation"
@@ -132,12 +132,12 @@
                       :only-unsafe-allocation-samples-selected="true"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in blockingEvents" :key="index"
                       :title="event.label"
                       color="red"
-                      icon="lock"
+                      icon="bi-lock"
                       :thread-mode-opt="true"
                       :thread-mode-selected="false"
                       :weight-opt="true"
@@ -152,8 +152,9 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.PRIMARY"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
     </div>
+  </PageHeader>
   </div>
 </template>
 
@@ -166,7 +167,7 @@ import {useRoute} from "vue-router";
 import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import { useNavigation } from '@/composables/useNavigation';
 
 const objectAllocationEvents: EventSummary[] = []

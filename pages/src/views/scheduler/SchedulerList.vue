@@ -30,6 +30,7 @@ import JobCard from "@/components/JobCard.vue";
 import RepositorySessionCleanerModal from "@/components/scheduler/modal/RepositorySessionCleanerModal.vue";
 import PeriodicRecordingGeneratorModal from "@/components/scheduler/modal/PeriodicRecordingGeneratorModal.vue";
 import CopyRecordingGeneratorModal from "@/components/scheduler/modal/CopyRecordingGeneratorModal.vue";
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const { workspaceId, projectId } = useNavigation();
 const currentProject = ref<SettingsResponse | null>(null);
@@ -153,19 +154,11 @@ const handleCreateJob = (jobType: string) => {
 </script>
 
 <template>
-  <div class="row g-4">
-    <!-- Page Header -->
-    <div class="col-12">
-      <div class="d-flex align-items-center mb-3">
-        <i class="bi bi-calendar-check fs-4 me-2 text-primary"></i>
-        <h3 class="mb-0">Scheduler</h3>
-      </div>
-      <p class="text-muted mb-2">
-        Creates periodical jobs to manage data belonging to the given project, such as
-        <span class="fst-italic">removing unnecessary old files from the repository</span>.
-      </p>
-    </div>
-
+  <PageHeader
+    title="Scheduler"
+    description="Creates periodical jobs to manage data belonging to the given project, such as removing unnecessary old files from the repository."
+    icon="bi-calendar-check"
+  >
     <!-- Job Types Card -->
     <div class="col-12">
       <div class="card shadow-sm border-0">
@@ -380,7 +373,7 @@ const handleCreateJob = (jobType: string) => {
         </div>
       </div>
     </div>
-  </div>
+  </PageHeader>
 
   <!-- Modal Components -->
   <RepositorySessionCleanerModal

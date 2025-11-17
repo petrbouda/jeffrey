@@ -23,7 +23,7 @@ import InformationClient from '@/services/InformationClient';
 import FormattingService from "@/services/FormattingService";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
@@ -129,12 +129,11 @@ const selectSection = () => {
 </script>
 
 <template>
-  <div class="container-fluid p-0">
-    <DashboardHeader 
-      title="Profile Configuration"
-      description="View the content of configuration events"
-      icon="gear-fill"
-    />
+  <PageHeader
+    title="Profile Configuration"
+    description="View the content of configuration events"
+    icon="bi-gear-fill"
+  >
 
     <div class="config-container">
       <!-- Tab navigation -->
@@ -185,7 +184,7 @@ const selectSection = () => {
         </div>
       </div>
     </div>
-  </div>
+  </PageHeader>
 </template>
 
 <style scoped>

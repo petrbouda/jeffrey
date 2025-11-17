@@ -6,11 +6,11 @@
     <p class="mt-2">Loading SubSecond data...</p>
   </div>
 
-  <div v-else class="flamegraphs-primary-container">
-    <DashboardHeader 
+  <div v-else>
+    <PageHeader 
       title="Primary SubSecond Graphs"
       description="View and analyze time-based performance data at sub-second intervals"
-      icon="bar-chart"
+      icon="bi-bar-chart"
     />
 
     <div class="flamegraph-grid">
@@ -34,7 +34,7 @@
                       :event="event"
                       :enabled="loaded"
                       route-name="subsecond"
-                      button-text="Show SubSecond Graph"/>
+                      button-text="Show SubSecond Graph" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTraceEvents" :key="index"
                       title="Method Traces"
@@ -56,7 +56,7 @@
                       :event="event"
                       :enabled="loaded"
                       route-name="subsecond"
-                      button-text="Show SubSecond Graph"/>
+                      button-text="Show SubSecond Graph" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
@@ -78,7 +78,7 @@
                       :event="event"
                       :enabled="loaded"
                       route-name="subsecond"
-                      button-text="Show SubSecond Graph"/>
+                      button-text="Show SubSecond Graph" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
                       title="Allocation Samples"
@@ -115,7 +115,7 @@ import { useNavigation } from '@/composables/useNavigation';
 import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const objectAllocationEvents: EventSummary[] = []
 const executionSampleEvents: EventSummary[] = []

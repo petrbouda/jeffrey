@@ -1,16 +1,9 @@
 <template>
-  <div class="row g-4">
-    <!-- Page Header -->
-    <div class="col-12">
-      <div class="d-flex align-items-center mb-3">
-        <i class="bi bi-sliders fs-4 me-2 text-primary"></i>
-        <h3 class="mb-0">Settings</h3>
-      </div>
-      <p class="text-muted mb-2">
-        Configure project settings and manage project properties.
-      </p>
-    </div>
-    
+  <PageHeader
+    title="Settings"
+    description="Configure project settings and manage project properties."
+    icon="bi-sliders"
+  >
     <!-- Settings Card -->
     <div class="col-12">
       <div class="card shadow-sm border-0 mb-4">
@@ -85,8 +78,8 @@
         </div>
       </div>
     </div>
-  </div>
-  
+  </PageHeader>
+
   <!-- Confirmation Modal -->
   <div class="modal fade" :class="{ 'show d-block': showDeleteConfirmation }" tabindex="-1" 
        aria-labelledby="deleteConfirmationModal" :aria-hidden="!showDeleteConfirmation">
@@ -139,6 +132,7 @@ import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
 import ProjectClient from '@/services/ProjectClient';
 import ToastService from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const router = useRouter();

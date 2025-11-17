@@ -8,42 +8,42 @@
 
   <div v-else class="threads-container">
     <!-- Header Section -->
-    <DashboardHeader
+    <PageHeader
         title="Thread Statistics"
         description="View and analyze thread dumps and states"
-        icon="graph-up"
-    />
+        icon="bi-graph-up"
+    >
 
     <!-- Summary Stats -->
     <div class="statistics-cards mb-4">
       <StatCard
           title="Total Threads"
           :value="threadStats.accumulated"
-          icon="people"
+          icon="bi-people"
           variant="primary"
       />
       <StatCard
           title="Peak Active Threads"
           :value="threadStats.peak"
-          icon="bar-chart"
+          icon="bi-bar-chart"
           variant="success"
       />
       <StatCard
           title="Thread Sleep"
           :value="threadStats.sleepCount || 0"
-          icon="moon"
+          icon="bi-moon"
           variant="danger"
       />
       <StatCard
           title="Thread Parks"
           :value="threadStats.parkCount || 0"
-          icon="p-square"
+          icon="bi-p-square"
           variant="danger"
       />
       <StatCard
           title="Monitor Blocks"
           :value="threadStats.monitorBlockCount || 0"
-          icon="lock"
+          icon="bi-lock"
           variant="danger"
       />
     </div>
@@ -51,7 +51,7 @@
     <!-- Thread Activity Chart -->
     <ChartSection
         title="Active Threads Over Time"
-        icon="graph-up"
+        icon="bi-graph-up"
         :full-width="true"
     >
       <ApexTimeSeriesChart
@@ -177,7 +177,7 @@
                 :with-search="null"
                 :search-enabled="true"
                 :zoom-enabled="true"
-                :graph-updater="graphUpdater"/>
+                :graph-updater="graphUpdater" />
             <FlamegraphComponent
                 :with-timeseries="true"
                 :with-search="null"
@@ -186,12 +186,13 @@
                 :time-range="null"
                 scrollableWrapperClass="scrollable-wrapper"
                 :flamegraph-tooltip="flamegraphTooltip"
-                :graph-updater="graphUpdater"/>
+                :graph-updater="graphUpdater" />
           </div>
         </div>
       </div>
     </div>
     <div class="modal-backdrop fade show" v-if="showFlamegraphModal"></div>
+  </PageHeader>
   </div>
 </template>
 
@@ -206,7 +207,7 @@ import { useNavigation } from '@/composables/useNavigation';
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import StatCard from '@/components/StatCard.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';

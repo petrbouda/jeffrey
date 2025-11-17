@@ -1,10 +1,9 @@
 <template>
-  <div class="container-fluid p-0">
-    <DashboardHeader 
+    <PageHeader 
       title="Events"
       description="View and analyze profile events"
-      icon="collection"
-    />
+      icon="bi-collection"
+    >
 
     <!-- Event Type Selector -->
     <div class="mb-4">
@@ -139,7 +138,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -150,7 +149,7 @@ import EventFieldDescription from '@/services/viewer/model/EventFieldDescription
 import FormattingService from '@/services/FormattingService';
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();

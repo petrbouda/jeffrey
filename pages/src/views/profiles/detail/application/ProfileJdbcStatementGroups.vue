@@ -8,7 +8,7 @@
     />
 
     <div v-else>
-      <DashboardHeader title="JDBC Statement Groups" icon="collection" />
+      <PageHeader title="JDBC Statement Groups" icon="bi-collection" />
 
     <!-- Group Display with Navigation -->
     <div v-if="selectedGroupForDetail" class="group-display-large">
@@ -192,7 +192,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, withDefaults, defineProps } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
@@ -244,7 +244,11 @@ const isJdbcStatementsDisabled = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileJdbcStatementClient(
+  route.params.workspaceId as string,
+  route.params.projectId as string,
+  route.params.profileId as string
+);
 
 // Computed property for timeline tabs
 const timelineTabs = computed(() => {

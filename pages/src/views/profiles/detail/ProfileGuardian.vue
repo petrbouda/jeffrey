@@ -36,7 +36,7 @@ import GuardAnalysisResult from "@/services/flamegraphs/model/guard/GuardAnalysi
 import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse";
 import GuardVisualization from "@/services/flamegraphs/model/guard/GuardVisualization";
 import * as bootstrap from 'bootstrap';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
 
 // Props definition
@@ -382,13 +382,11 @@ function needsNavigation(itemCount: number): boolean {
 </script>
 
 <template>
-  <div class="container-fluid p-0">
-    <DashboardHeader 
-      title="Guardian Analysis"
-      description="Automated analysis and recommendations for your profile based on traversing Flamegraphs"
-      icon="shield-fill-check"
-    />
-    
+  <PageHeader
+    title="Guardian Analysis"
+    description="Automated analysis and recommendations for your profile based on traversing Flamegraphs"
+    icon="bi-shield-check"
+  >
     <div id="autoAnalysisCard">
       <div v-for="guardWithCategory in guards" class="guardian-category mb-4">
       <!-- Modern category header with navigation only when needed -->
@@ -481,7 +479,6 @@ function needsNavigation(itemCount: number): boolean {
         </CardCarousel>
       </div>
     </div>
-  </div>
   </div>
 
   <!-- Tooltip element removed -->
@@ -644,6 +641,7 @@ function needsNavigation(itemCount: number): boolean {
       </div>
     </div>
   </div>
+  </PageHeader>
 </template>
 
 <style scoped>

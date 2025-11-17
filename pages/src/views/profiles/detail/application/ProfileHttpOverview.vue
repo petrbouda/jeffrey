@@ -1,56 +1,56 @@
 <template>
   <div>
     <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert 
-      v-if="isHttpDashboardDisabled"
-      :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
-      eventType="HTTP exchange"
+    <CustomDisabledFeatureAlert
+        v-if="isHttpDashboardDisabled"
+        :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+        eventType="HTTP exchange"
     />
 
     <div v-else>
-      <DashboardHeader :title="mode === 'client' ? 'HTTP Client Exchange' : 'HTTP Server Exchange'" icon="globe"/>
+      <PageHeader :title="mode === 'client' ? 'HTTP Client Exchange' : 'HTTP Server Exchange'" icon="bi-globe"/>
 
       <!-- Loading state -->
       <div v-if="isLoading" class="p-4 text-center">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Error state -->
-    <div v-else-if="error" class="p-4 text-center">
-      <div class="alert alert-danger" role="alert">
-        Error loading HTTP data: {{ error }}
+      <!-- Error state -->
+      <div v-else-if="error" class="p-4 text-center">
+        <div class="alert alert-danger" role="alert">
+          Error loading HTTP data: {{ error }}
+        </div>
       </div>
-    </div>
 
-    <!-- Dashboard content -->
-    <div v-if="httpOverviewData" class="dashboard-container">
-      <!-- HTTP Overview Cards -->
-      <DashboardSection :http-header="httpOverviewData.header"/>
+      <!-- Dashboard content -->
+      <div v-if="httpOverviewData" class="dashboard-container">
+        <!-- HTTP Overview Cards -->
+        <DashboardSection :http-header="httpOverviewData.header"/>
 
-      <!-- HTTP Metrics Timeline -->
-      <HttpTimeseries
-          :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
-          :request-count-data="httpOverviewData?.requestCountSerie.data || []"/>
+        <!-- HTTP Metrics Timeline -->
+        <HttpTimeseries
+            :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
+            :request-count-data="httpOverviewData?.requestCountSerie.data || []"/>
 
-      <!-- HTTP Endpoints List -->
-      <HttpEndpointList
-          :endpoints="httpOverviewData?.uris || []"
-          :selected-endpoint="selectedEndpoint"
-          @endpoint-click="navigateToUri"/>
+        <!-- HTTP Endpoints List -->
+        <HttpEndpointList
+            :endpoints="httpOverviewData?.uris || []"
+            :selected-endpoint="selectedEndpoint"
+            @endpoint-click="navigateToUri"/>
 
-      <!-- Status Codes and Methods Distribution -->
-      <HttpDistributionCharts
-          :status-codes="httpOverviewData?.statusCodes || []"
-          :methods="httpOverviewData?.methods || []"
-          :total-requests="httpOverviewData?.header.requestCount || 0"/>
+        <!-- Status Codes and Methods Distribution -->
+        <HttpDistributionCharts
+            :status-codes="httpOverviewData?.statusCodes || []"
+            :methods="httpOverviewData?.methods || []"
+            :total-requests="httpOverviewData?.header.requestCount || 0"/>
 
-      <!-- Slowest HTTP Requests -->
-      <HttpSlowestRequests
-          :requests="getSortedSlowRequests()"
-          :total-request-count="httpOverviewData?.header.requestCount || 0"/>
-    </div>
+        <!-- Slowest HTTP Requests -->
+        <HttpSlowestRequests
+            :requests="getSortedSlowRequests()"
+            :total-request-count="httpOverviewData?.header.requestCount || 0"/>
+      </div>
 
       <!-- No data state -->
       <div v-else class="p-4 text-center">
@@ -62,10 +62,9 @@
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, ref, computed, withDefaults, defineProps} from 'vue';
+import {computed, defineProps, nextTick, onMounted, ref, withDefaults} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
@@ -87,7 +86,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const httpOverviewData = ref<HttpOverviewData | null>(null);
@@ -104,8 +102,13 @@ const isHttpDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(featureType);
 });
 
-// Client initialization - will be set after workspace/project IDs are available
-let client: ProfileHttpClient;
+// Client initialization
+const client = new ProfileHttpClient(
+  mode,
+  route.params.workspaceId as string,
+  route.params.projectId as string,
+  route.params.profileId as string
+);
 
 
 // Helper functions

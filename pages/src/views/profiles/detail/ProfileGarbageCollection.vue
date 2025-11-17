@@ -16,10 +16,10 @@
 
   <div v-else>
     <!-- Header Section -->
-    <DashboardHeader
+    <PageHeader
         title="Garbage Collection Analysis"
         description="Comprehensive analysis of garbage collection events and performance"
-        icon="recycle">
+        icon="bi-recycle">
       <template #actions>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-primary" @click="refreshData">
@@ -27,7 +27,7 @@
           </button>
         </div>
       </template>
-    </DashboardHeader>
+    </PageHeader>
 
     <!-- Key Metrics Row -->
     <div class="metrics-grid mb-4">
@@ -270,7 +270,7 @@ import {useRoute} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ApexCharts from 'apexcharts';
 import DashboardCard from '@/components/DashboardCard.vue';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import Badge from '@/components/Badge.vue';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';

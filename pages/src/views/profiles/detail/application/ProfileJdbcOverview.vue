@@ -8,7 +8,7 @@
     />
 
     <div v-else>
-      <DashboardHeader title="JDBC Statements Overview" icon="database"/>
+      <PageHeader title="JDBC Statements Overview" icon="bi-database"/>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="p-4 text-center">
@@ -86,7 +86,7 @@
 <script setup lang="ts">
 import {nextTick, onMounted, ref, computed, withDefaults, defineProps} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
@@ -125,7 +125,11 @@ const isJdbcStatementsDisabled = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileJdbcStatementClient(route.params.projectId as string, route.params.profileId as string);
+const client = new ProfileJdbcStatementClient(
+  route.params.workspaceId as string,
+  route.params.projectId as string,
+  route.params.profileId as string
+);
 
 const getStatementGroupsData = () => {
   if (!jdbcOverviewData.value) return [];

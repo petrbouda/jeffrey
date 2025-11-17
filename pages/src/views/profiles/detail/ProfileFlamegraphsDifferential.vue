@@ -6,11 +6,11 @@
     <p class="mt-2">Loading flamegraph data...</p>
   </div>
 
-  <div v-else class="flamegraphs-differential-container">
-    <DashboardHeader 
+  <div v-else>
+    <PageHeader 
       title="Differential Flamegraphs"
       description="Compare performance data between primary and secondary profiles using Flamegraphs"
-      icon="file-diff"
+      icon="bi-file-diff"
     />
 
     <div class="flamegraph-grid">
@@ -32,7 +32,7 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.DIFFERENTIAL"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTracesEvents" :key="index"
                       title="Method Traces"
@@ -52,12 +52,12 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.DIFFERENTIAL"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
                       title="Wall-Clock Samples"
                       color="purple"
-                      icon="alarm"
+                      icon="bi-alarm"
                       :thread-mode-opt="false"
                       :thread-mode-selected="true"
                       :weight-desc="null"
@@ -72,12 +72,12 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.DIFFERENTIAL"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
 
       <FlamegraphCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
                       title="Allocation Samples"
                       color="green"
-                      icon="memory"
+                      icon="bi-memory"
                       :thread-mode-opt="false"
                       :thread-mode-selected="false"
                       weight-desc="Total Allocation"
@@ -92,7 +92,7 @@
                       :only-unsafe-allocation-samples-selected="false"
                       :graph-mode="GraphType.DIFFERENTIAL"
                       :event="event"
-                      :enabled="loaded"/>
+                      :enabled="loaded" />
     </div>
   </div>
 </template>
@@ -108,7 +108,7 @@ import EventSummary from "@/services/flamegraphs/model/EventSummary";
 import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
 import EventTypes from "@/services/EventTypes.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
-import DashboardHeader from '@/components/DashboardHeader.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const objectAllocationEvents = ref<EventSummary[]>([])
 const executionSampleEvents = ref<EventSummary[]>([])
