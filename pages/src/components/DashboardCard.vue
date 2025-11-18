@@ -63,18 +63,18 @@ const props = defineProps<{
 .dashboard-card {
   display: flex;
   align-items: center;
-  padding: 1.25rem;
-  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  border-left: 4px solid transparent;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
   text-align: center;
 }
 
 .dashboard-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-card.highlight {
@@ -101,13 +101,13 @@ const props = defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #f5f8ff;
   color: #4285F4;
-  margin-right: 1rem;
-  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  font-size: 1.125rem;
 }
 
 .dashboard-card.danger .dashboard-icon {
@@ -121,23 +121,24 @@ const props = defineProps<{
 }
 
 .dashboard-title {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #444;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .dashboard-value {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: #111;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
+  line-height: 1.2;
 }
 
 .dashboard-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #777;
 }
 
@@ -146,9 +147,9 @@ const props = defineProps<{
   display: flex;
   align-items: center;
   justify-content: space-around;
-  margin-top: 0.5rem;
-  padding: 0.5rem 0;
-  border-top: 1px dashed #e0e0e0;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0 0.15rem 0;
+  border-top: 1px dashed #e5e5e5;
 }
 
 /* Single value styling to match dual values */
@@ -169,17 +170,19 @@ const props = defineProps<{
 }
 
 .value-label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #666;
   text-transform: uppercase;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.1rem;
+  letter-spacing: 0.3px;
 }
 
 .value-number {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #333;
+  line-height: 1.2;
 }
 
 .value-divider {
@@ -187,13 +190,13 @@ const props = defineProps<{
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: 0 10px;
+  padding: 0 8px;
 }
 
 .divider-line-vertical {
   width: 1px;
-  height: 30px;
-  background-color: #e0e0e0;
+  height: 24px;
+  background-color: #e5e5e5;
 }
 
 /* Card variants affect value colors */

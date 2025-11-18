@@ -105,6 +105,22 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     }
 
     @Override
+    public <T> T timeseriesSearchingStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesSearchRecord, T> builder) {
+        QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
+
+        MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
+
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                factory.complexQueries().timeseries().simpleSearch(configurer.useWeight()),
+                baseParams,
+                (r, _) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")),
+                builder::onRecord);
+
+        return builder.build();
+    }
+
+    @Override
     public <T> T filterableTimeseriesStreamer(EventQueryConfigurer configurer, RecordBuilder<SecondValue, T> builder) {
         QueryBuilderFactory factory = queryBuilderFactoryResolver.resolve(profileId, configurer.eventTypes());
 
@@ -201,6 +217,12 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
             baseParams = baseParams
                     .addValue("from_time", null)
                     .addValue("to_time", null);
+        }
+
+        if (configurer.searchPattern() != null && !configurer.searchPattern().isBlank()) {
+            baseParams = baseParams.addValue("search_pattern", configurer.searchPattern());
+        } else {
+            baseParams = baseParams.addValue("search_pattern", null);
         }
 
         List<StacktraceType> stacktraceTypes = configurer.filterStacktraceTypes();

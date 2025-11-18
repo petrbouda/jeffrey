@@ -17,6 +17,8 @@ public interface ComplexQueries {
 
         String simple(boolean useWeight);
 
+        String simpleSearch(boolean useWeight);
+
         String filterable(boolean useWeight);
 
         String frameBased(boolean useWeight);

@@ -25,73 +25,28 @@
 
         <!-- Main Dashboard Grid -->
         <div class="dashboard-grid">
-          <!-- Row 1: Dashboard Cards -->
-          <div class="dashboard-row">
-            <DashboardCard
-                title="Compilations"
-                :value="statisticsData!!.compileCount"
-                variant="highlight"
-                :valueA="statisticsData!!.standardCompileCount"
-                :valueB="statisticsData!!.osrCompileCount"
-                labelA="Standard"
-                labelB="OSR"
-                comparison="a-greater"
-            >
-              <template #title-action>
+          <!-- Stats Table -->
+          <div class="mb-4">
+            <StatsTable :metrics="metricsData">
+              <template #title-action-0>
                 <i class="bi bi-info-circle text-muted compilation-info-icon"
                    @click="showCompilationsModal"
                    title="Click for detailed explanation of Standard vs OSR Compilation"
                    style="cursor: pointer;"></i>
               </template>
-            </DashboardCard>
-
-            <DashboardCard
-                title="Failed Compilations"
-                :value="statisticsData!!.bailoutCount + statisticsData!!.invalidatedCount"
-                variant="danger"
-                :valueA="statisticsData!!.bailoutCount"
-                :valueB="statisticsData!!.invalidatedCount"
-                labelA="Bailouts"
-                labelB="Invalidations"
-                comparison="a-greater"
-            >
-              <template #title-action>
+              <template #title-action-1>
                 <i class="bi bi-info-circle text-muted compilation-info-icon"
-                   ref="tooltipIcon"
                    @click="showTooltipModal"
                    title="Click for detailed explanation of Bailouts vs Invalidations"
                    style="cursor: pointer;"></i>
               </template>
-            </DashboardCard>
-          </div>
-
-          <!-- Row 2: Code Size Card and Compilation Time Card -->
-          <div class="dashboard-row mb-4">
-            <DashboardCard
-                title="Memory Usage (nMethods)"
-                :value="FormattingService.formatBytes(statisticsData!!.nmethodsSize)"
-                :valueA="FormattingService.formatBytes(statisticsData!!.nmethodCodeSize)"
-                :valueB="FormattingService.formatBytes(statisticsData!!.nmethodsSize - statisticsData!!.nmethodCodeSize)"
-                labelA="Code"
-                labelB="Metadata"
-                variant="info"
-                comparison="a-greater"
-            >
-              <template #title-action>
+              <template #title-action-2>
                 <i class="bi bi-info-circle text-muted compilation-info-icon"
                    @click="showNMethodsModal"
                    title="Click for detailed explanation of nMethods"
                    style="cursor: pointer;"></i>
               </template>
-            </DashboardCard>
-
-            <DashboardCard
-                title="Peak Compilation Time"
-                :value="FormattingService.formatDuration2Units(statisticsData!!.peakTimeSpent)"
-                variant="warning"
-                :valueA="FormattingService.formatDuration2Units(statisticsData!!.totalTimeSpent)"
-                labelA="Total Time"
-            />
+            </StatsTable>
           </div>
 
           <!-- Row 3: Time Series Graph -->
@@ -361,7 +316,7 @@ import {onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import DashboardCard from '@/components/DashboardCard.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
@@ -369,6 +324,7 @@ import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
+import {computed} from 'vue';
 
 const route = useRoute();
 const {workspaceId, projectId} = useNavigation();
@@ -385,6 +341,81 @@ const timeseriesData = ref<Serie>();
 const showModal = ref(false);
 const showNMethodsInfoModal = ref(false);
 const showCompilationsInfoModal = ref(false);
+
+// Computed metrics for StatsTable
+const metricsData = computed(() => {
+  if (!statisticsData.value) return [];
+
+  return [
+    {
+      icon: 'lightning-charge-fill',
+      title: 'Compilations',
+      value: statisticsData.value.compileCount,
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'Standard',
+          value: statisticsData.value.standardCompileCount,
+          color: '#4285F4'
+        },
+        {
+          label: 'OSR',
+          value: statisticsData.value.osrCompileCount,
+          color: '#4285F4'
+        }
+      ]
+    },
+    {
+      icon: 'exclamation-triangle-fill',
+      title: 'Failed Compilations',
+      value: statisticsData.value.bailoutCount + statisticsData.value.invalidatedCount,
+      variant: 'danger' as const,
+      breakdown: [
+        {
+          label: 'Bailouts',
+          value: statisticsData.value.bailoutCount,
+          color: '#EA4335'
+        },
+        {
+          label: 'Invalidations',
+          value: statisticsData.value.invalidatedCount,
+          color: '#EA4335'
+        }
+      ]
+    },
+    {
+      icon: 'memory',
+      title: 'Memory Usage (nMethods)',
+      value: FormattingService.formatBytes(statisticsData.value.nmethodsSize),
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Code',
+          value: FormattingService.formatBytes(statisticsData.value.nmethodCodeSize),
+          color: '#34A853'
+        },
+        {
+          label: 'Metadata',
+          value: FormattingService.formatBytes(statisticsData.value.nmethodsSize - statisticsData.value.nmethodCodeSize),
+          color: '#34A853'
+        }
+      ]
+    },
+    {
+      icon: 'clock-fill',
+      title: 'Peak Compilation Time',
+      value: FormattingService.formatDuration2Units(statisticsData.value.peakTimeSpent),
+      variant: 'warning' as const,
+      breakdown: [
+        {
+          label: 'Total Time',
+          value: FormattingService.formatDuration2Units(statisticsData.value.totalTimeSpent),
+          color: '#FBBC05'
+        }
+      ]
+    }
+  ];
+});
 
 // Load JIT compilation data on component mount
 onMounted(async () => {
@@ -521,13 +552,6 @@ const getTierClass = (level: number): string => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
-}
-
-/* Dashboard Cards Row */
-.dashboard-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
 }
 
 /* Data Table Card */
@@ -788,17 +812,7 @@ const getTierClass = (level: number): string => {
 }
 
 /* Responsive Adjustments */
-@media (max-width: 992px) {
-  .dashboard-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
-  .dashboard-row {
-    grid-template-columns: 1fr;
-  }
-
   .chart-container {
     height: 430px;
   }

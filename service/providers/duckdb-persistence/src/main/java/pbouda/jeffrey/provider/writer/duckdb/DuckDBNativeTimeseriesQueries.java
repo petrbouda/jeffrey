@@ -14,6 +14,11 @@ public class DuckDBNativeTimeseriesQueries implements ComplexQueries.Timeseries 
     }
 
     @Override
+    public String simpleSearch(boolean useWeight) {
+        return QUERIES.simpleSearch(useWeight);
+    }
+
+    @Override
     public String filterable(boolean useWeight) {
         return QUERIES.filterable(useWeight);
     }

@@ -23,6 +23,7 @@ import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
+import pbouda.jeffrey.timeseries.TimeseriesSearchBuilder;
 import pbouda.jeffrey.timeseries.TimeseriesType;
 
 public class TimeseriesDataProvider {
@@ -46,10 +47,14 @@ public class TimeseriesDataProvider {
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())
                 .withWeight(graphParameters.useWeight())
+                .withSearchPattern(graphParameters.searchPattern())
                 .withSpecifiedThread(graphParameters.threadInfo());
 
         if (timeseriesType == TimeseriesType.SIMPLE) {
             return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
+        } else if (timeseriesType == TimeseriesType.SEARCHING) {
+            TimeseriesSearchBuilder builder = new TimeseriesSearchBuilder(graphParameters.timeRange());
+            return eventStreamRepository.timeseriesSearchingStreamer(configurer, builder);
         } else {
             return eventStreamRepository.frameBasedTimeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
         }

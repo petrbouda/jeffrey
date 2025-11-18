@@ -41,6 +41,7 @@ public class EventQueryConfigurer {
     private ThreadInfo specifiedThread;
     private List<Type> eventTypes;
     private RelativeTimeRange timeRange;
+    private String searchPattern;
 
     /**
      * Include all types of events in the event-stream.
@@ -212,6 +213,11 @@ public class EventQueryConfigurer {
         return this;
     }
 
+    public EventQueryConfigurer withSearchPattern(String searchPattern) {
+        this.searchPattern = searchPattern;
+        return this;
+    }
+
     public List<Type> eventTypes() {
         return eventTypes;
     }
@@ -254,5 +260,9 @@ public class EventQueryConfigurer {
 
     public ThreadInfo specifiedThread() {
         return specifiedThread;
+    }
+
+    public String searchPattern() {
+        return searchPattern;
     }
 }
