@@ -187,27 +187,28 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
         return new DuckDBTimeseriesQueries(addQuotes(eventType), additionalFilters);
     }
 
+    private static String replaceValueField(String sql, boolean useWeight) {
+        String valueField = useWeight ? "e.weight" : "e.samples";
+        return sql.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+    }
+
     @Override
     public String simple(boolean useWeight) {
-        String valueField = useWeight ? "e.weight" : "e.samples";
-        return simple.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+        return replaceValueField(simple, useWeight);
     }
 
     @Override
     public String simpleSearch(boolean useWeight) {
-        String valueField = useWeight ? "e.weight" : "e.samples";
-        return simpleSearch.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+        return replaceValueField(simpleSearch, useWeight);
     }
 
     @Override
     public String filterable(boolean useWeight) {
-        String valueField = useWeight ? "e.weight" : "e.samples";
-        return filterable.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+        return replaceValueField(filterable, useWeight);
     }
 
     @Override
     public String frameBased(boolean useWeight) {
-        String valueField = useWeight ? "e.weight" : "e.samples";
-        return frameBased.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+        return replaceValueField(frameBased, useWeight);
     }
 }
