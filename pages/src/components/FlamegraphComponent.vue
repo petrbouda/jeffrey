@@ -30,16 +30,16 @@ import MessageBus from "@/services/MessageBus.ts";
 
 const props = defineProps<{
   withTimeseries: boolean
-  withSearch: string | null
   useWeight: boolean
   useGuardian: any | null
   scrollableWrapperClass: string | null
   flamegraphTooltip: FlamegraphTooltip
   graphUpdater: GraphUpdater
 }>()
-const searchValue = ref<string | null>(null);
-const searchMatched = ref<string | null>(null);
 const guardMatched = ref<GuardMatched | null>(null);
+
+// Track current search term for zoom updates
+let currentSearchValue: string | null = null;
 
 // Variables for Save Dialog
 let resizeTimer: number | null = null;
@@ -184,7 +184,7 @@ onMounted(() => {
 
   let zoomUpdate = (data: FlamegraphData) => {
     flamegraphUpdate(data)
-    search(searchValue.value)
+    search(currentSearchValue)
   }
 
   props.graphUpdater.registerFlamegraphCallbacks(
@@ -194,8 +194,7 @@ onMounted(() => {
       search,
       () => {
         flamegraph.resetSearch();
-        searchMatched.value = null;
-        searchValue.value = null;
+        currentSearchValue = null;
       },
       zoomUpdate,
       zoomUpdate
@@ -218,61 +217,33 @@ onUnmounted(() => {
 
 function search(value: string | null) {
   if (Utils.isNotBlank(value)) {
-    searchValue.value = value!.trim()
-    searchMatched.value = flamegraph.search(searchValue.value);
+    currentSearchValue = value!.trim()
+    const matched = flamegraph.search(currentSearchValue);
+    props.graphUpdater.reportMatched(matched);
   } else {
-    searchValue.value = null
+    currentSearchValue = null
   }
-}
-
-function resetSearch() {
-  props.graphUpdater.resetSearch();
 }
 </script>
 
 <template>
   <div style="text-align: left; padding-bottom: 10px;padding-top: 10px">
     <div class="row">
-      <div class="col-5 d-flex">
+      <div class="col-6 d-flex">
         <button class="btn btn-outline-secondary mt-2 me-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
           <i class="bi bi-arrows-angle-expand"></i> Reset Zoom
         </button>
-        <div class="mt-2 border rounded-2 px-2 py-1 align-items-center d-flex" 
+        <div class="mt-2 border rounded-2 px-2 py-1 align-items-center d-flex"
                 :style="{'background-color': guardMatched?.color, 'color': '#fff', 'border-color': guardMatched?.color}"
                 v-if="guardMatched != null">
           <strong>Guard Matched: {{ guardMatched.percent }}%</strong>
         </div>
       </div>
 
-      <div class="col-1 d-flex justify-content-end" v-if="preloaderActive && searchMatched != null">
-        <div class="d-flex align-items-center mt-2">
-          <div class="spinner-border spinner-border-sm text-primary" style="height: 20px; width: 20px"
-               role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-
-      <div id="search_output" class="position-relative" :class="(preloaderActive && searchMatched != null) ? 'col-1' : 'col-2'">
-        <button class="btn btn-outline-info mt-2 position-absolute end-0 matched-button"
-                @click="resetSearch()" v-if="searchMatched != null"
-                title="Reset Search"
-                :style="{'color': '#cc00cc', 'border-color': '#cc00cc'}">
-          {{ `Matched: ` + searchMatched + `%` }}
-        </button>
-      </div>
-
-      <div class="col-5 d-flex" style="float: right">
-        <div class="d-flex align-items-center me-2 mt-2" v-if="preloaderActive && searchMatched == null">
-          <div class="spinner-border spinner-border-sm text-primary" style="height: 20px; width: 20px"
-               role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-        <div class="input-group mt-2 flex-grow-1">
-          <button class="btn btn-primary d-flex align-items-center" @click="search(searchValue)">Search</button>
-          <input type="text" class="form-control" v-model="searchValue" @keydown.enter="search(searchValue)"
-                 placeholder="Full-text search in Flamegraph">
+      <div class="col-6 d-flex justify-content-end align-items-center">
+        <div class="spinner-border spinner-border-sm text-primary me-4" style="height: 20px; width: 20px"
+             role="status" v-if="preloaderActive">
+          <span class="visually-hidden">Loading...</span>
         </div>
       </div>
     </div>
@@ -335,36 +306,4 @@ function resetSearch() {
   background-color: #f8f9fa;
 }
 
-/* Fix for equal height of button and input */
-.input-group {
-  display: flex;
-  align-items: stretch;
-}
-
-.input-group .btn,
-.input-group .form-control {
-  height: 38px; /* Standard Bootstrap input height */
-  line-height: 1.5;
-}
-
-.input-group .btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-/* Hover style for the Matched button */
-.matched-button:hover {
-  background-color: #cc00cc !important;
-  color: white !important;
-  border-color: #cc00cc !important;
-}
-
-/* Remove blue border and shadow from search input on focus */
-.input-group .form-control:focus {
-  border-color: #ced4da !important;
-  box-shadow: none !important;
-}
 </style>

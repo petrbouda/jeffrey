@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import router from "@/router";
 import {onBeforeMount} from "vue";
 import SecondaryProfileService from "@/services/SecondaryProfileService";
@@ -82,23 +83,23 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, true)
+  graphUpdater.setTimeseriesSearchEnabled(queryParams.graphMode === GraphType.PRIMARY)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)
 });
 </script>
 
 <template>
   <div style="padding-left: 5px; padding-right: 5px;">
+    <SearchBarComponent
+        :graph-updater="graphUpdater"/>
     <TimeseriesComponent
         :graph-type="queryParams.graphMode as string"
         :event-type="eventType"
         :use-weight="useWeight"
-        :with-search="null"
-        :search-enabled="queryParams.graphMode === GraphType.PRIMARY"
         :zoom-enabled="true"
         :graph-updater="graphUpdater"/>
     <FlamegraphComponent
         :with-timeseries="queryParams.graphMode === GraphType.PRIMARY"
-        :with-search="null"
         :use-weight="useWeight"
         :use-guardian="null"
         :scrollable-wrapper-class="null"

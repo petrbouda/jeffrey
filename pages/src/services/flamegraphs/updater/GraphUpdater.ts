@@ -75,6 +75,35 @@ export default abstract class GraphUpdater {
     protected timeseriesOnResetZoomCallback: () => void = () => {
     };
 
+    protected searchBarOnMatchedCallback: (matched: string | null) => void = () => {
+    };
+
+    protected searchBarOnUpdateStartedCallback: () => void = () => {
+    };
+
+    protected searchBarOnUpdateFinishedCallback: () => void = () => {
+    };
+
+    protected timeseriesSearchEnabled: boolean = true;
+
+    public setTimeseriesSearchEnabled(enabled: boolean): void {
+        this.timeseriesSearchEnabled = enabled;
+    }
+
+    public registerSearchBarCallbacks(
+        onUpdateStarted: () => void,
+        onUpdateFinished: () => void,
+        onMatched: (matched: string | null) => void
+    ): void {
+        this.searchBarOnUpdateStartedCallback = onUpdateStarted;
+        this.searchBarOnUpdateFinishedCallback = onUpdateFinished;
+        this.searchBarOnMatchedCallback = onMatched;
+    }
+
+    public reportMatched(matched: string | null): void {
+        this.searchBarOnMatchedCallback(matched);
+    }
+
     public registerFlamegraphCallbacks(
         onUpdateStarted: () => void,
         onUpdateFinished: () => void,

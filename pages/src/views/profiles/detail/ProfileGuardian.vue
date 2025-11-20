@@ -497,16 +497,12 @@ function needsNavigation(itemCount: number): boolean {
               :graph-type="GraphType.PRIMARY"
               :event-type="activeGuardVisualization.eventType"
               :use-weight="activeGuardVisualization.useWeight"
-              :with-search="null"
-              :search-enabled="false"
               :zoom-enabled="true"
               :graph-updater="graphUpdater"/>
           <FlamegraphComponent
               :with-timeseries="true"
-              :with-search="null"
               :use-weight="activeGuardVisualization.useWeight"
               :use-guardian="activeGuardVisualization"
-              :time-range="null"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"/>

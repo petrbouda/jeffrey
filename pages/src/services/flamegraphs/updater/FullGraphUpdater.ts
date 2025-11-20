@@ -69,20 +69,31 @@ export default class FullGraphUpdater extends GraphUpdater {
 
     public updateWithSearch(expression: string): void {
         this.flamegraphOnUpdateStartedCallback();
-        this.timeseriesOnUpdateStartedCallback();
+        this.searchBarOnUpdateStartedCallback();
 
-        this.httpClient.provideTimeseries(expression)
-            .then(data => {
-                this.flamegraphOnSearchCallback(expression);
-                this.timeseriesOnSearchCallback(data);
+        if (this.timeseriesSearchEnabled) {
+            this.timeseriesOnUpdateStartedCallback();
 
-                this.flamegraphOnUpdateFinishedCallback();
-                this.timeseriesOnUpdateFinishedCallback();
-            });
+            this.httpClient.provideTimeseries(expression)
+                .then(data => {
+                    this.flamegraphOnSearchCallback(expression);
+                    this.timeseriesOnSearchCallback(data);
+
+                    this.flamegraphOnUpdateFinishedCallback();
+                    this.timeseriesOnUpdateFinishedCallback();
+                    this.searchBarOnUpdateFinishedCallback();
+                });
+        } else {
+            // Only search in flamegraph, no timeseries update
+            this.flamegraphOnSearchCallback(expression);
+            this.flamegraphOnUpdateFinishedCallback();
+            this.searchBarOnUpdateFinishedCallback();
+        }
     }
 
     public resetSearch(): void {
         this.flamegraphOnResetSearchCallback();
         this.timeseriesOnResetSearchCallback();
+        this.searchBarOnMatchedCallback(null);
     }
 }

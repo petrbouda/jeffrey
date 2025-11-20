@@ -468,16 +468,12 @@ function createContextMenuItems() {
               :graph-type="GraphType.PRIMARY"
               :event-type="selectedEventCode"
               :use-weight="useWeightValue"
-              :with-search="null"
-              :search-enabled="true"
               :zoom-enabled="true"
               :graph-updater="graphUpdater"/>
           <FlamegraphComponent
               :with-timeseries="true"
-              :with-search="null"
               :use-weight="useWeightValue"
               :use-guardian="null"
-              :time-range="null"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"/>

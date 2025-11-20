@@ -190,7 +190,6 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
           <FlamegraphComponent
               v-if="showDialog"
               :with-timeseries="false"
-              :with-search="null"
               :use-weight="useWeight"
               :use-guardian="null"
               scrollable-wrapper-class="flamegraphModal"
