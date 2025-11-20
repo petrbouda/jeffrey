@@ -64,7 +64,8 @@
                   >
                     <i class="bi bi-shield-check"></i>
                     <span>Guardian Analysis</span>
-                    <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xs" class="ms-auto" />
+                    <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xs"
+                           class="ms-auto"/>
                   </router-link>
                   <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/auto-analysis`"
@@ -73,7 +74,8 @@
                   >
                     <i class="bi bi-robot"></i>
                     <span>Auto Analysis</span>
-                    <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()" variant="danger" size="xs" class="ms-auto" />
+                    <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()"
+                           variant="danger" size="xs" class="ms-auto"/>
                   </router-link>
                   <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/event-types`"
@@ -92,7 +94,6 @@
                     <span>Events</span>
                   </router-link>
                   <router-link
-                      v-if="hasPerformanceCounters"
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/performance-counters`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
@@ -133,12 +134,13 @@
                   </router-link>
                   <!-- Heap Memory with Submenu -->
                   <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent" 
-                         @click="toggleHeapMemorySubmenu" 
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleHeapMemorySubmenu"
                          :class="{ 'active': $route.path.includes('/heap-memory'), 'expanded': heapMemorySubmenuExpanded }">
                       <i class="bi bi-memory"></i>
                       <span>Heap Memory</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': heapMemorySubmenuExpanded }"></i>
+                      <i class="bi bi-chevron-right submenu-arrow"
+                         :class="{ 'rotated': heapMemorySubmenuExpanded }"></i>
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': heapMemorySubmenuExpanded }">
                       <router-link
@@ -153,8 +155,8 @@
                   </div>
                   <!-- Garbage Collection with Submenu -->
                   <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent" 
-                         @click="toggleGCSubmenu" 
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleGCSubmenu"
                          :class="{ 'active': $route.path.includes('/garbage-collection'), 'expanded': gcSubmenuExpanded }">
                       <i class="bi bi-recycle"></i>
                       <span>Garbage Collection</span>
@@ -189,8 +191,8 @@
                   </div>
                   <!-- Container with Submenu -->
                   <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent" 
-                         @click="toggleContainerSubmenu" 
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleContainerSubmenu"
                          :class="{ 'active': $route.path.includes('/container'), 'expanded': containerSubmenuExpanded, 'disabled-feature': isFeatureDisabled('container') }">
                       <i class="bi bi-server"></i>
                       <span>Container</span>
@@ -267,12 +269,13 @@
                 <div class="nav-items">
                   <!-- HTTP Server Exchange with Submenu -->
                   <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent" 
-                         @click="toggleHttpServerSubmenu" 
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleHttpServerSubmenu"
                          :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode !== 'client', 'expanded': httpServerSubmenuExpanded, 'disabled-feature': isFeatureDisabled('http-server') }">
                       <i class="bi bi-cloud-arrow-down"></i>
                       <span>HTTP Server Exchange</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpServerSubmenuExpanded }"></i>
+                      <i class="bi bi-chevron-right submenu-arrow"
+                         :class="{ 'rotated': httpServerSubmenuExpanded }"></i>
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': httpServerSubmenuExpanded }">
                       <router-link
@@ -295,12 +298,13 @@
                   </div>
                   <!-- HTTP Client Exchange with Submenu -->
                   <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent" 
-                         @click="toggleHttpClientSubmenu" 
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleHttpClientSubmenu"
                          :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode === 'client', 'expanded': httpClientSubmenuExpanded, 'disabled-feature': isFeatureDisabled('http-client') }">
                       <i class="bi bi-cloud-arrow-up"></i>
                       <span>HTTP Client Exchange</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': httpClientSubmenuExpanded }"></i>
+                      <i class="bi bi-chevron-right submenu-arrow"
+                         :class="{ 'rotated': httpClientSubmenuExpanded }"></i>
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': httpClientSubmenuExpanded }">
                       <router-link
@@ -323,8 +327,8 @@
                   </div>
                   <!-- JDBC Statements with Submenu -->
                   <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent" 
-                         @click="toggleJdbcSubmenu" 
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleJdbcSubmenu"
                          :class="{ 'active': $route.path.includes('/application/jdbc'), 'expanded': jdbcSubmenuExpanded, 'disabled-feature': isFeatureDisabled('jdbc-statements') }">
                       <i class="bi bi-database"></i>
                       <span>JDBC Statements</span>
@@ -428,14 +432,14 @@
 
       <!-- Secondary Profile Selection Modal -->
       <SecondaryProfileSelectionModal
-        v-model:show="showSecondaryProfileSelectionModal"
-        :current-project-id="projectId"
-        :current-profile-id="profileId"
-        :current-secondary-profile-id="selectedSecondaryProfileId"
-        :current-secondary-project-id="selectedSecondaryProjectId"
-        :workspace-id="workspaceId"
-        @profile-selected="handleSecondaryProfileSelected"
-        @profile-cleared="handleSecondaryProfileCleared"
+          v-model:show="showSecondaryProfileSelectionModal"
+          :current-project-id="projectId"
+          :current-profile-id="profileId"
+          :current-secondary-profile-id="selectedSecondaryProfileId"
+          :current-secondary-project-id="selectedSecondaryProjectId"
+          :workspace-id="workspaceId"
+          @profile-selected="handleSecondaryProfileSelected"
+          @profile-cleared="handleSecondaryProfileCleared"
       />
 
 
@@ -459,7 +463,7 @@
 <script setup lang="ts">
 import {onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+import {useNavigation} from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/model/Profile.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
@@ -470,13 +474,12 @@ import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelecti
 import MessageBus from "@/services/MessageBus.ts";
 import GuardianClient from "@/services/guardian/GuardianClient";
 import AutoAnalysisClient from "@/services/AutoAnalysisClient";
-import ProfilePerformanceCountersClient from "@/services/ProfilePerformanceCountersClient";
 import ProfileFeaturesClient from "@/services/profile/features/ProfileFeaturesClient";
 import FeatureType from "@/services/profile/features/FeatureType";
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId, generateProjectUrl } = useNavigation();
+const {workspaceId, projectId, generateProjectUrl} = useNavigation();
 const profileId = route.params.profileId as string;
 const profileService = new ProjectProfileClient(workspaceId.value!, projectId.value!);
 
@@ -490,7 +493,6 @@ const sidebarCollapsed = ref(false);
 const showSecondaryProfileSelectionModal = ref(false);
 const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
-const hasPerformanceCounters = ref<boolean>(true); // Default to true until checked
 const disabledFeatures = ref<FeatureType[]>([]);
 
 // Mapping function to determine which features are associated with menu items
@@ -551,7 +553,7 @@ watch(() => route.path, (newPath) => {
   if (newPath.includes('/container')) {
     containerSubmenuExpanded.value = true;
   }
-}, { immediate: true });
+}, {immediate: true});
 
 onMounted(async () => {
   try {
@@ -580,15 +582,6 @@ onMounted(async () => {
     } catch (error) {
       console.error('Failed to load auto analysis data:', error);
       autoAnalysisWarningCount.value = 0;
-    }
-
-    // Check if performance counters data exists
-    try {
-      const exists = await ProfilePerformanceCountersClient.exists(workspaceId.value!, projectId.value!, profileId);
-      hasPerformanceCounters.value = exists === true;
-    } catch (error) {
-      console.error('Failed to check performance counters existence:', error);
-      hasPerformanceCounters.value = false;
     }
 
     // Load disabled features from API
@@ -707,7 +700,7 @@ const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
     router.push(`/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/${type}/differential`);
   } else {
     // Show a toast message that secondary profile selection is required
-    ToastService.warn('No Secondary Profile','Please select a secondary profile for comparison');
+    ToastService.warn('No Secondary Profile', 'Please select a secondary profile for comparison');
 
     // Highlight the secondary profile selection bar with red color without scrolling
     const selectionBar = document.querySelector('.secondary-profile-bar');
@@ -940,13 +933,13 @@ const handleSecondaryProfileCleared = () => {
 .nav-item-parent {
   cursor: pointer;
   position: relative;
-  
+
   .submenu-arrow {
     margin-left: auto;
     transition: transform 0.2s ease;
     font-size: 0.7rem;
   }
-  
+
   .submenu-arrow.rotated {
     transform: rotate(90deg);
   }
@@ -972,26 +965,26 @@ const handleSecondaryProfileCleared = () => {
   transition: all 0.2s ease;
   background-color: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(94, 100, 255, 0.08);
-  
+
   &:hover {
     background-color: rgba(94, 100, 255, 0.06);
     border-color: rgba(94, 100, 255, 0.15);
     transform: translateX(2px);
     box-shadow: 0 2px 4px rgba(94, 100, 255, 0.1);
   }
-  
+
   &.active {
     background-color: rgba(94, 100, 255, 0.12);
     border-color: #5e64ff;
     color: #5e64ff;
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(94, 100, 255, 0.15);
-    
+
     i {
       color: #5e64ff;
     }
   }
-  
+
   i {
     font-size: 0.8rem;
     width: 1rem;
@@ -1270,15 +1263,13 @@ const handleSecondaryProfileCleared = () => {
   position: relative;
   border: 2px solid #e2e8f0;
   padding: 3px;
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04),
+  inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
   &:hover {
     border-color: #5e64ff;
-    box-shadow:
-      0 4px 12px rgba(94, 100, 255, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 }
 
@@ -1293,10 +1284,9 @@ const handleSecondaryProfileCleared = () => {
   border-radius: 7px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
-  box-shadow:
-    0 3px 8px rgba(94, 100, 255, 0.25),
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 3px 8px rgba(94, 100, 255, 0.25),
+  0 1px 2px rgba(0, 0, 0, 0.1),
+  inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transform: translateX(0);
 }
 
@@ -1474,7 +1464,6 @@ const handleSecondaryProfileCleared = () => {
     transition: all 0.25s ease;
     color: #6b7280;
     line-height: 1.1;
-    //margin-left: 1.5rem; /* Align with title text */
   }
 
   &::after {

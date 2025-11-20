@@ -24,6 +24,7 @@ import Utils from "@/services/Utils";
 import GraphType from "@/services/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import CardCarousel from "@/components/CardCarousel.vue";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
@@ -194,7 +195,8 @@ const click_flamegraph = (guard: GuardAnalysisResult) => {
         guard.visualization.markers
     )
 
-    graphUpdater = new FullGraphUpdater(flamegraphClient)
+    graphUpdater = new FullGraphUpdater(flamegraphClient, false)
+    graphUpdater.setTimeseriesSearchEnabled(false)
     flamegraphTooltip = FlamegraphTooltipFactory.create(guard.visualization.eventType, guard.visualization.useWeight, false)
 
     // Delayed the initialization of the graphUpdater to ensure that the modal is fully rendered
@@ -493,6 +495,8 @@ function needsNavigation(itemCount: number): boolean {
         </div>
         <div id="scrollable-wrapper" class="modal-body pr-2 pl-2"
              v-if="showFlamegraphDialog && activeGuardVisualization">
+          <SearchBarComponent
+              :graph-updater="graphUpdater"/>
           <TimeseriesComponent
               :graph-type="GraphType.PRIMARY"
               :event-type="activeGuardVisualization.eventType"

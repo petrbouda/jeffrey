@@ -227,28 +227,6 @@ function search(value: string | null) {
 </script>
 
 <template>
-  <div style="text-align: left; padding-bottom: 10px;padding-top: 10px">
-    <div class="row">
-      <div class="col-6 d-flex">
-        <button class="btn btn-outline-secondary mt-2 me-2" title="Reset Zoom" @click="flamegraph.resetZoom()">
-          <i class="bi bi-arrows-angle-expand"></i> Reset Zoom
-        </button>
-        <div class="mt-2 border rounded-2 px-2 py-1 align-items-center d-flex"
-                :style="{'background-color': guardMatched?.color, 'color': '#fff', 'border-color': guardMatched?.color}"
-                v-if="guardMatched != null">
-          <strong>Guard Matched: {{ guardMatched.percent }}%</strong>
-        </div>
-      </div>
-
-      <div class="col-6 d-flex justify-content-end align-items-center">
-        <div class="spinner-border spinner-border-sm text-primary me-4" style="height: 20px; width: 20px"
-             role="status" v-if="preloaderActive">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <canvas id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>

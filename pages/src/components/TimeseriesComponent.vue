@@ -77,25 +77,23 @@ const changeGraphType = () => {
 </script>
 
 <template>
-  <div class="row">
-    <div class="col-6 d-flex">
-      <button class="btn btn-outline-secondary mt-2 me-2" title="Reset Zoom" @click="resetTimeseriesZoom()">
-        <i class="bi bi-arrows-angle-expand"></i> Reset Zoom
+  <div class="row align-items-center py-2">
+    <div class="col-6 d-flex align-items-center">
+      <button class="icon-btn me-2" title="Reset Zoom" @click="resetTimeseriesZoom()">
+        <i class="bi bi-arrows-angle-expand"></i>
       </button>
-      <div class="btn-group mt-2" role="group">
-        <button
-          type="button"
-          class="btn"
-          :class="graphTypeValue === 'Area' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="graphTypeValue = 'Area'; changeGraphType()">
-          Area
+      <div class="icon-toggle">
+        <button class="toggle-icon"
+                :class="{ active: graphTypeValue === 'Area' }"
+                title="Area Graph"
+                @click="graphTypeValue = 'Area'; changeGraphType()">
+          <i class="bi bi-graph-up"></i>
         </button>
-        <button
-          type="button"
-          class="btn"
-          :class="graphTypeValue === 'Bar' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="graphTypeValue = 'Bar'; changeGraphType()">
-          Bar
+        <button class="toggle-icon"
+                :class="{ active: graphTypeValue === 'Bar' }"
+                title="Bar Graph"
+                @click="graphTypeValue = 'Bar'; changeGraphType()">
+          <i class="bi bi-bar-chart"></i>
         </button>
       </div>
     </div>
@@ -110,4 +108,54 @@ const changeGraphType = () => {
 </template>
 
 <style scoped>
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #64748b;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #374151;
+}
+
+.icon-toggle {
+  display: inline-flex;
+  background-color: #f1f5f9;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-icon:hover:not(.active) {
+  color: #374151;
+}
+
+.toggle-icon.active {
+  background-color: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
 </style>

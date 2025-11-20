@@ -1,14 +1,15 @@
 <template>
-  <div class="container-fluid p-0">
-    <!-- Header Section -->
-    <div class="mb-4">
-      <h2 class="performance-counters-title">
-        <i class="bi bi-speedometer2 me-2"></i>
-        Performance Counters
-      </h2>
-      <p class="text-muted fs-6">Overview of JVM/HotSpot Performance Counters and Metrics</p>
-    </div>
+  <!-- Performance Counters Not Available State -->
+  <PerformanceCountersNotAvailableAlert
+      v-if="isPerformanceCountersDisabled"
+  />
 
+  <PageHeader
+      v-else
+      title="Performance Counters"
+      description="Overview of JVM/HotSpot Performance Counters and Metrics"
+      icon="bi-speedometer2"
+  >
     <!-- Loading state -->
     <div v-if="loading" class="row">
       <div class="col-12">
@@ -172,7 +173,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -183,9 +184,26 @@ import * as bootstrap from 'bootstrap';
 import ProfilePerformanceCountersClient from '@/services/ProfilePerformanceCountersClient';
 import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
 import PerformanceCounterEnhanced from "@/services/model/PerformanceCounterEnhanced.ts";
+import FeatureType from '@/services/profile/features/FeatureType';
+import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
+import type { PropType } from 'vue';
+
+// Define props
+const props = defineProps({
+  disabledFeatures: {
+    type: Array as PropType<string[]>,
+    default: () => []
+  }
+});
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
+
+// Check if performance counters dashboard is disabled
+const isPerformanceCountersDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.PERF_COUNTERS_DASHBOARD);
+});
 
 // State
 const loading = ref(true);
@@ -418,7 +436,10 @@ const collapseAll = () => {
 };
 
 onMounted(() => {
-  loadPerformanceCounters();
+  // Only load data if the feature is not disabled
+  if (!isPerformanceCountersDisabled.value) {
+    loadPerformanceCounters();
+  }
   
   // Initialize Bootstrap tooltips after the DOM has been updated
   nextTick(() => {
