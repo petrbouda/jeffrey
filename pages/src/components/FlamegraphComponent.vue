@@ -177,7 +177,6 @@ onMounted(() => {
     // Initialize context menu items after flamegraph is available
     contextMenuItems.value = FlamegraphContextMenu.resolve(
         () => props.graphUpdater.updateWithSearch(flamegraph.getContextFrame()?.title || ''),
-        () => search(flamegraph.getContextFrame()?.title || ''),
         () => flamegraph.resetZoom()
     );
   };

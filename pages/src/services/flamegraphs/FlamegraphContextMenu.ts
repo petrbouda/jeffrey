@@ -20,30 +20,21 @@ import {MenuItem} from "primevue/menuitem";
 
 export default class FlamegraphContextMenu {
 
-    static resolve(timeseriesSearchCallback: () => void, searchCallback: () => void, resetCallback: () => void): MenuItem[] {
+    static resolve(timeseriesSearchCallback: () => void, resetCallback: () => void): MenuItem[] {
         return this.contextMenuItems(
             timeseriesSearchCallback,
-            searchCallback,
             resetCallback
         )
     }
 
-    static contextMenuItems(searchInTimeseries: () => void, searchInFlamegraph: () => void, resetZoom: () => void): MenuItem[] {
+    static contextMenuItems(searchInTimeseries: () => void, resetZoom: () => void): MenuItem[] {
         let contextMenuItems: MenuItem[] = []
 
         if (searchInTimeseries != null) {
             contextMenuItems.push({
-                label: 'Search in Timeseries',
+                label: 'Search the Frame',
                 icon: 'pi pi-chart-bar',
                 command: searchInTimeseries
-            })
-        }
-
-        if (searchInFlamegraph != null) {
-            contextMenuItems.push({
-                label: 'Search in Flamegraph',
-                icon: 'pi pi-align-center',
-                command: searchInFlamegraph
             })
         }
 
