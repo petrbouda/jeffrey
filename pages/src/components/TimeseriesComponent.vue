@@ -62,6 +62,15 @@ onMounted(() => {
       () => timeseries.resetZoom()
   )
 
+  // Register control callbacks for SearchBarComponent
+  props.graphUpdater.registerTimeseriesControlCallbacks(
+      () => resetTimeseriesZoom(),
+      (type: string) => {
+        graphTypeValue.value = type;
+        timeseries.changeGraphType(type);
+      }
+  )
+
   // must be kept in `onMounted` to correctly resolve the element `timeseries`
   timeseries = new TimeseriesGraph(
       props.eventType,
@@ -71,89 +80,12 @@ onMounted(() => {
       props.useWeight,
       props.zoomEnabled);
 });
-
-const changeGraphType = () => {
-  timeseries.changeGraphType(graphTypeValue.value);
-}
 </script>
 
 <template>
-  <div class="row align-items-center py-2">
-    <div class="col-6 d-flex align-items-center">
-      <button class="icon-btn me-2" title="Reset Zoom" @click="resetTimeseriesZoom()">
-        <i class="bi bi-arrows-angle-expand"></i>
-      </button>
-      <div class="icon-toggle">
-        <button class="toggle-icon"
-                :class="{ active: graphTypeValue === 'Area' }"
-                title="Area Graph"
-                @click="graphTypeValue = 'Area'; changeGraphType()">
-          <i class="bi bi-graph-up"></i>
-        </button>
-        <button class="toggle-icon"
-                :class="{ active: graphTypeValue === 'Bar' }"
-                title="Bar Graph"
-                @click="graphTypeValue = 'Bar'; changeGraphType()">
-          <i class="bi bi-bar-chart"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <LoadingIndicator v-if="isLoading" text="Generating Timeseries..."/>
-
   <div id="timeseries"></div>
 </template>
 
 <style scoped>
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid #e2e8f0;
-  background-color: #ffffff;
-  color: #64748b;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.icon-btn:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #374151;
-}
-
-.icon-toggle {
-  display: inline-flex;
-  background-color: #f1f5f9;
-  border-radius: 4px;
-  padding: 2px;
-}
-
-.toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.toggle-icon:hover:not(.active) {
-  color: #374151;
-}
-
-.toggle-icon.active {
-  background-color: #ffffff;
-  color: #1e293b;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
 </style>

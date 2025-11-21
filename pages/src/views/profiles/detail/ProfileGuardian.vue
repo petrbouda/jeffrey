@@ -496,7 +496,8 @@ function needsNavigation(itemCount: number): boolean {
         <div id="scrollable-wrapper" class="modal-body pr-2 pl-2"
              v-if="showFlamegraphDialog && activeGuardVisualization">
           <SearchBarComponent
-              :graph-updater="graphUpdater"/>
+              :graph-updater="graphUpdater"
+              :with-timeseries="true"/>
           <TimeseriesComponent
               :graph-type="GraphType.PRIMARY"
               :event-type="activeGuardVisualization.eventType"

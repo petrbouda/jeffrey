@@ -91,7 +91,8 @@ onBeforeMount(() => {
 <template>
   <div style="padding-left: 5px; padding-right: 5px;">
     <SearchBarComponent
-        :graph-updater="graphUpdater"/>
+        :graph-updater="graphUpdater"
+        :with-timeseries="true"/>
     <TimeseriesComponent
         :graph-type="queryParams.graphMode as string"
         :event-type="eventType"
