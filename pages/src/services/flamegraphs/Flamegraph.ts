@@ -272,6 +272,12 @@ export default class Flamegraph {
         this.draw(this.levels[0][0], 0, this.currentPattern!);
     }
 
+    close() {
+        this.removeAllHighlight()
+        this.tooltip.hideTooltip()
+        this.contextMenu.hide()
+    }
+
     private draw(root: Frame, rootLevel: number, pattern: RegExp) {
         this.clearCanvas();
         this.visibleFrames = Flamegraph.initializeLevels(this.depth);

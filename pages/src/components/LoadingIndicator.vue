@@ -1,0 +1,50 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<template>
+  <div class="loading-indicator">
+    <div class="spinner-border spinner-border-sm text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <span class="loading-text">{{ text }}</span>
+  </div>
+</template>
+
+<script setup lang="ts">
+defineProps<{
+  text: string
+}>();
+</script>
+
+<style scoped>
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.loading-text {
+  margin-left: 8px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+</style>

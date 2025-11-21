@@ -24,6 +24,7 @@ import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 import ToastService from "@/services/ToastService.ts";
+import LoadingIndicator from "@/components/LoadingIndicator.vue";
 
 const props = defineProps<{
   useWeight: boolean
@@ -97,12 +98,9 @@ const changeGraphType = () => {
         </button>
       </div>
     </div>
-    <div class="col-6 d-flex justify-content-end align-items-center">
-      <div class="spinner-border spinner-border-sm text-primary me-4" style="height: 20px; width: 20px" role="status" v-if="isLoading">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
   </div>
+
+  <LoadingIndicator v-if="isLoading" text="Generating Timeseries..."/>
 
   <div id="timeseries"></div>
 </template>

@@ -27,6 +27,7 @@ import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
 import GuardMatched from "@/services/flamegraphs/model/guard/GuardMatched";
 import MessageBus from "@/services/MessageBus.ts";
+import LoadingIndicator from "@/components/LoadingIndicator.vue";
 
 const props = defineProps<{
   withTimeseries: boolean
@@ -164,6 +165,10 @@ onMounted(() => {
   }
 
   let flamegraphUpdate = (data: FlamegraphData) => {
+    if (flamegraph != null) {
+      flamegraph.close()
+    }
+
     // Create custom show method for our context menu
     const customContextMenu = {
       show: (event: MouseEvent) => showContextMenu(event),
@@ -226,6 +231,8 @@ function search(value: string | null) {
 </script>
 
 <template>
+  <LoadingIndicator v-if="preloaderActive" text="Generating Flamegraph..."/>
+
   <canvas id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
