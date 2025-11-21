@@ -6,7 +6,7 @@
     >
 
     <!-- Results Grid Section -->
-    <div id="autoAnalysisCard" class="guardian-grid mt-4">
+    <div id="autoAnalysisCard" class="guardian-grid">
       <div v-for="(rule, index) in rules" :key="index" 
            class="guardian-card" 
            :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"

@@ -164,7 +164,13 @@ export default class TimeseriesGraph {
                     show: true,
                     format: 'MMM dd HH:mm:ss',
                 },
-            }
+            },
+            legend: {
+                show: true,
+                showForSingleSeries: true,
+                position: 'top',
+                horizontalAlign: 'right'
+            },
         };
     }
 }

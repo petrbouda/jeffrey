@@ -59,8 +59,8 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 SELECT LIST(DISTINCT f.frame_hash) AS matched_hashes
                 FROM frames f
                 WHERE f.profile_id = :profile_id
-                    AND (f.class_name ILIKE '%' || :search_pattern || '%'
-                         OR f.method_name ILIKE '%' || :search_pattern || '%')
+                    AND (f.class_name LIKE '%' || :search_pattern || '%'
+                         OR f.method_name LIKE '%' || :search_pattern || '%')
                     AND EXISTS (
                         SELECT 1
                         FROM relevant_stacktraces rs

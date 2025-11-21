@@ -30,6 +30,7 @@ defineProps<Props>();
 import MessageBus from '@/services/MessageBus';
 import Utils from '@/services/Utils';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
+import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import router from "@/router";
 import GraphType from "@/services/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
@@ -187,6 +188,10 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
           <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+          <SearchBarComponent
+              v-if="showDialog"
+              :graph-updater="graphUpdater"
+              :with-timeseries="false"/>
           <FlamegraphComponent
               v-if="showDialog"
               :with-timeseries="false"
