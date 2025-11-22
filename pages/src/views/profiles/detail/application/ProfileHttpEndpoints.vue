@@ -245,15 +245,7 @@ watch(() => route.query.uri, (newUri) => {
   margin-right: 1rem;
 }
 
-.dashboard-container {
-  padding: 1.5rem;
-}
-
 @media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-
   .uri-display-large {
     flex-direction: column;
     align-items: stretch;

@@ -38,7 +38,6 @@ public class ClickHouseEventWriter extends ClickHouseBatchingWriter<Event, Click
                 profileId,
                 event.eventType(),
                 event.startTimestamp(),
-                event.startTimestampFromBeginning(),
                 event.duration(),
                 event.samples(),
                 event.weight(),

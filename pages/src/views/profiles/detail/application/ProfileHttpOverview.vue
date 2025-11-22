@@ -27,7 +27,9 @@
       <!-- Dashboard content -->
       <div v-if="httpOverviewData" class="dashboard-container">
         <!-- HTTP Overview Cards -->
-        <DashboardSection :http-header="httpOverviewData.header"/>
+        <div class="mb-4">
+          <StatsTable :metrics="metricsData" />
+        </div>
 
         <!-- HTTP Metrics Timeline -->
         <HttpTimeseries
@@ -71,9 +73,10 @@ import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
-import DashboardSection from "@/components/DashboardSection.vue";
+import StatsTable from '@/components/StatsTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
+import FormattingService from '@/services/FormattingService';
 
 // Define props
 interface Props {
@@ -100,6 +103,83 @@ const mode = (route.query.mode as 'client' | 'server') || 'server';
 const isHttpDashboardDisabled = computed(() => {
   const featureType = mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
   return props.disabledFeatures.includes(featureType);
+});
+
+// Computed metrics for StatsTable
+const metricsData = computed(() => {
+  if (!httpOverviewData.value?.header) return [];
+
+  const header = httpOverviewData.value.header;
+
+  return [
+    {
+      icon: 'globe',
+      title: 'Total Requests',
+      value: header.requestCount || 0,
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Requests',
+          value: header.requestCount || 0,
+          color: '#4285F4'
+        }
+      ]
+    },
+    {
+      icon: 'clock-fill',
+      title: 'Response Time',
+      value: FormattingService.formatDuration2Units(header.maxResponseTime),
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'P99',
+          value: FormattingService.formatDuration2Units(header.p99ResponseTime),
+          color: '#FBBC05'
+        },
+        {
+          label: 'P95',
+          value: FormattingService.formatDuration2Units(header.p95ResponseTime),
+          color: '#FBBC05'
+        }
+      ]
+    },
+    {
+      icon: 'check-circle-fill',
+      title: 'Success Rate',
+      value: `${((header.successRate || 0) * 100).toFixed(1)}%`,
+      variant: (header.successRate || 0) === 1 ? 'success' as const : header.count5xx > 0 ? 'danger' as const : 'warning' as const,
+      breakdown: [
+        {
+          label: '4xx Errors',
+          value: header.count4xx || 0,
+          color: '#EA4335'
+        },
+        {
+          label: '5xx Errors',
+          value: header.count5xx || 0,
+          color: '#EA4335'
+        }
+      ]
+    },
+    {
+      icon: 'arrow-left-right',
+      title: 'Data Transferred',
+      value: header.totalBytesTransferred < 0 ? '?' : FormattingService.formatBytes(header.totalBytesTransferred),
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Received',
+          value: header.totalBytesReceived < 0 ? '?' : FormattingService.formatBytes(header.totalBytesReceived),
+          color: '#34A853'
+        },
+        {
+          label: 'Sent',
+          value: header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent),
+          color: '#34A853'
+        }
+      ]
+    }
+  ];
 });
 
 // Client initialization
@@ -158,13 +238,4 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-container {
-  padding: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-}
 </style>

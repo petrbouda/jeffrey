@@ -49,7 +49,6 @@ public class JfrEventReader implements EventProcessor<Void> {
             new IdleStacktraceTagResolver()
     );
 
-    private final long recordingStartedAt;
     private final SingleThreadedEventWriter writer;
 
     private final Map<Long, EventThread> threads = new HashMap<>();
@@ -63,12 +62,8 @@ public class JfrEventReader implements EventProcessor<Void> {
 
     private final Map<String, jdk.jfr.EventType> eventTypeMap = new HashMap<>();
 
-    public JfrEventReader(
-            SingleThreadedEventWriter writer,
-            Instant recordingStartedAt) {
-
+    public JfrEventReader(SingleThreadedEventWriter writer) {
         this.writer = writer;
-        this.recordingStartedAt = recordingStartedAt.toEpochMilli();
         this.eventFieldsMapper = new EventFieldsToJsonMapper();
     }
 
@@ -142,7 +137,6 @@ public class JfrEventReader implements EventProcessor<Void> {
         Event newEvent = new Event(
                 type.code(),
                 startTime,
-                startTime.minusMillis(recordingStartedAt).toEpochMilli(),
                 (duration == null || duration.isZero()) ? null : duration.toNanos(),
                 samples,
                 weight,

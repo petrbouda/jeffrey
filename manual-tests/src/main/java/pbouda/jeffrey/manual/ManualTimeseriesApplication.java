@@ -2,19 +2,7 @@ package pbouda.jeffrey.manual;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
-import pbouda.jeffrey.flamegraph.api.FlamegraphData;
-import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.frameir.FrameBuilder;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
-import pbouda.jeffrey.provider.api.repository.model.SecondValue;
-import pbouda.jeffrey.provider.api.repository.model.TimeseriesRecord;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBDataSourceProvider;
-import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
-import pbouda.jeffrey.provider.writer.sql.query.FlamegraphRecordRowMapper;
-import pbouda.jeffrey.provider.writer.sql.query.timeseries.TimeseriesRecordRowMapper;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -30,10 +18,7 @@ public class ManualTimeseriesApplication {
                 "pool-size", "1"
         ));
 
-        String flamegraphSql = ExperimentalDuckDBTimeseriesQueries
-                .of()
-//                .of("jdk.ExecutionSample", "", true)
-                .simpleWithSearchBreakdown(false);
+        String flamegraphSql = "----";
 
         var client = new NamedParameterJdbcTemplate(datasource);
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -56,9 +41,6 @@ public class ManualTimeseriesApplication {
     }
 
     public record TimeseriesSearchRecord(long second, long total, long matched) {
-        public long unmatched() {
-            return total - matched;
-        }
     }
 
     private static void execute(NamedParameterJdbcTemplate client, String flamegraphSql, MapSqlParameterSource params) {

@@ -39,13 +39,11 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
     private final boolean useThreads;
     private final boolean useEventTypeInfo;
-    private final boolean useStackTraces;
     private final boolean useJsonFields;
 
     public GenericRecordRowMapper(EventQueryConfigurer configurer) {
         this.useThreads = configurer.threads();
         this.useEventTypeInfo = configurer.eventTypeInfo();
-        this.useStackTraces = configurer.includeFrames();
         this.useJsonFields = configurer.jsonFields();
     }
 
@@ -78,14 +76,6 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
             eventTypeLabel = rs.getString("label");
         }
 
-        // There is no use-case for GenericRecord to have stack trace
-        // JfrStackTrace stackTrace = null;
-        // if (useStackTraces) {
-        //     long stacktraceId = rs.getLong("stacktrace_id");
-        //     String frames = rs.getString("frames");
-        //     stackTrace = new DbJfrStackTrace(stacktraceId, frames);
-        // }
-
         JfrClass weightEntityClass = null;
         if (weightEntity != null) {
             weightEntityClass = DbJfrMethod.ofClass(weightEntity);
@@ -102,7 +92,6 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
                 timestamp,
                 Duration.ofMillis(timestampFromStart),
                 duration != null ? Duration.ofNanos(duration) : null,
-                null,
                 thread,
                 weightEntityClass,
                 samples,

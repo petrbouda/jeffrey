@@ -30,7 +30,7 @@ public class GenericQueryBuilder implements QueryBuilder {
     private static final List<String> BASE_FIELDS = List.of(
             "events.event_type",
             "events.start_timestamp",
-            "events.start_timestamp_from_beginning",
+            "EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning",
             "events.duration",
             "events.samples",
             "events.weight",
@@ -38,6 +38,7 @@ public class GenericQueryBuilder implements QueryBuilder {
 
     private final SQLBuilder builder;
     private final SQLFormatter sqlFormatter;
+    private final String profileId;
 
     public GenericQueryBuilder(SQLFormatter sqlFormatter, String profileId, EventQueryConfigurer configurer) {
         this(sqlFormatter, profileId, configurer, configurer.eventTypes(), BASE_FIELDS);
@@ -49,6 +50,7 @@ public class GenericQueryBuilder implements QueryBuilder {
 
     public GenericQueryBuilder(
             SQLFormatter sqlFormatter, String profileId, EventQueryConfigurer configurer, List<Type> eventTypes, List<String> baseFields) {
+        this.profileId = profileId;
 
         if (eventTypes == null || eventTypes.isEmpty()) {
             throw new IllegalArgumentException("Event types must be specified in the configurer.");
@@ -67,30 +69,6 @@ public class GenericQueryBuilder implements QueryBuilder {
         RelativeTimeRange timeRange = configurer.timeRange();
         if (timeRange != null) {
             builder.merge(sqlFormatter.timeRangeOptional(timeRange.start(), timeRange.end()));
-        }
-
-        // Track if stacktraces join is needed
-        boolean hasStacktraceTags = configurer.filterStacktraceTags() != null && !configurer.filterStacktraceTags().isEmpty();
-        boolean hasStacktraceTypes = configurer.filterStacktraceTypes() != null && !configurer.filterStacktraceTypes().isEmpty();
-        boolean needsStacktracesJoin = hasStacktraceTags || hasStacktraceTypes;
-
-        if (configurer.includeFrames()) {
-            builder.merge(sqlFormatter.stacktraces());
-        } else if (needsStacktracesJoin) {
-            // Add stacktraces join since it's needed for tags/types filtering but not added by includeFrames
-            builder.join("stacktraces", SQLBuilder.and(
-                    SQLBuilder.eq("events.profile_id", SQLBuilder.c("stacktraces.profile_id")),
-                    SQLBuilder.eq("events.stacktrace_hash", SQLBuilder.c("stacktraces.stacktrace_hash"))));
-        }
-
-        if (hasStacktraceTypes) {
-            // Just add the filter, join already exists (added above or by includeFrames)
-            builder.merge(sqlFormatter.stacktraceTypesFilterOnly(configurer.filterStacktraceTypes()));
-        }
-
-        if (hasStacktraceTags) {
-            // Just add the filter, join already exists (added above or by includeFrames)
-            builder.merge(sqlFormatter.stacktraceTags(configurer.filterStacktraceTags()));
         }
 
         if (configurer.threads()) {
@@ -128,6 +106,6 @@ public class GenericQueryBuilder implements QueryBuilder {
 
     @Override
     public String build() {
-        return builder.build();
+        return builder.build(profileId);
     }
 }

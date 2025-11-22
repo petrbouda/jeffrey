@@ -82,7 +82,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 StatementLabel.STREAM_EVENTS,
                 factory.complexQueries().subSecond().simple(configurer.useWeight()),
                 baseParams,
-                (r, _) -> new SubSecondRecord(r.getLong("start_timestamp_from_beginning"), r.getLong("value")),
+                (r, _) -> new SubSecondRecord(r.getLong("start_ms_offset"), r.getLong("value")),
                 builder::onRecord);
 
         return builder.build();

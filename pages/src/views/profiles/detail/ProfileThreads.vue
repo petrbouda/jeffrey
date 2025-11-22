@@ -15,37 +15,8 @@
     >
 
     <!-- Summary Stats -->
-    <div class="statistics-cards mb-4">
-      <StatCard
-          title="Total Threads"
-          :value="threadStats.accumulated"
-          icon="bi-people"
-          variant="primary"
-      />
-      <StatCard
-          title="Peak Active Threads"
-          :value="threadStats.peak"
-          icon="bi-bar-chart"
-          variant="success"
-      />
-      <StatCard
-          title="Thread Sleep"
-          :value="threadStats.sleepCount || 0"
-          icon="bi-moon"
-          variant="danger"
-      />
-      <StatCard
-          title="Thread Parks"
-          :value="threadStats.parkCount || 0"
-          icon="bi-p-square"
-          variant="danger"
-      />
-      <StatCard
-          title="Monitor Blocks"
-          :value="threadStats.monitorBlockCount || 0"
-          icon="bi-lock"
-          variant="danger"
-      />
+    <div class="mb-4">
+      <StatsTable :metrics="metricsData" />
     </div>
 
     <!-- Thread Activity Chart -->
@@ -193,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, onUnmounted, ref} from 'vue';
+import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
@@ -204,7 +175,7 @@ import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
 import AllocatingThread from '@/services/thread/model/AllocatingThread';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import StatCard from '@/components/StatCard.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
 import GraphType from '@/services/flamegraphs/GraphType';
@@ -245,6 +216,57 @@ let flamegraphModalInstance: bootstrap.Modal | null = null;
 
 // State for allocation type from ThreadStatisticsResponse
 const allocationType = ref<string>("");
+
+// Computed metrics for StatsTable
+const metricsData = computed(() => {
+  if (!threadStats.value) return [];
+
+  return [
+    {
+      icon: 'people-fill',
+      title: 'Thread Statistics',
+      value: threadStats.value.accumulated,
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'Total Threads',
+          value: threadStats.value.accumulated,
+          color: '#4285F4'
+        },
+        {
+          label: 'Peak Active',
+          value: threadStats.value.peak,
+          color: '#4285F4'
+        }
+      ]
+    },
+    {
+      icon: 'pause-circle-fill',
+      title: 'Blocking Events',
+      value: (threadStats.value.sleepCount || 0) +
+             (threadStats.value.parkCount || 0) +
+             (threadStats.value.monitorBlockCount || 0),
+      variant: 'danger' as const,
+      breakdown: [
+        {
+          label: 'Sleep',
+          value: threadStats.value.sleepCount || 0,
+          color: '#EA4335'
+        },
+        {
+          label: 'Parks',
+          value: threadStats.value.parkCount || 0,
+          color: '#EA4335'
+        },
+        {
+          label: 'Monitor',
+          value: threadStats.value.monitorBlockCount || 0,
+          color: '#EA4335'
+        }
+      ]
+    }
+  ];
+});
 
 // Load thread statistics data
 const loadThreadStatistics = async (): Promise<void> => {
@@ -426,14 +448,6 @@ onMounted(() => {
   color: #333;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
-
-/* Statistics Cards Grid */
-.statistics-cards {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
-}
-
 
 /* Common Table Styles for both allocation and CPU tables */
 

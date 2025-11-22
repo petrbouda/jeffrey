@@ -18,15 +18,15 @@
 
 package pbouda.jeffrey.feature.checker;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.event.ContainerConfiguration;
 import pbouda.jeffrey.common.event.ContainerIOUsage;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.feature.FeatureCheckResult;
 import pbouda.jeffrey.feature.FeatureType;
-import pbouda.jeffrey.common.event.ContainerConfiguration;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 
 import java.util.Map;
 import java.util.Optional;
@@ -47,26 +47,26 @@ public class ContainerDashboardFeatureChecker implements FeatureChecker {
     }
 
     private boolean containerIOIsUsed() {
-        Optional<GenericRecord> configurationOpt = eventRepository.latest(Type.CONTAINER_IO_USAGE);
+        Optional<ObjectNode> configurationOpt = eventRepository.latestJsonFields(Type.CONTAINER_IO_USAGE);
         if (configurationOpt.isEmpty()) {
             return false;
         }
-        ContainerIOUsage usage = Json.treeToValue(configurationOpt.get().jsonFields(), ContainerIOUsage.class);
+        ContainerIOUsage usage = Json.treeToValue(configurationOpt.get(), ContainerIOUsage.class);
         return usage.dataTransferred() != null || usage.serviceRequests() != null;
     }
 
     private boolean containerIsConfigured() {
-        Optional<GenericRecord> configurationOpt = eventRepository.latest(Type.CONTAINER_CONFIGURATION);
+        Optional<ObjectNode> configurationOpt = eventRepository.latestJsonFields(Type.CONTAINER_CONFIGURATION);
         if (configurationOpt.isEmpty()) {
             return false;
         }
         ContainerConfiguration container = Json.treeToValue(
-                configurationOpt.get().jsonFields(), ContainerConfiguration.class);
+                configurationOpt.get(), ContainerConfiguration.class);
 
         return container.cpuQuota() != null
-               || container.cpuShares() != -1
-               || container.memorySoftLimit() != 0
-               || container.memoryLimit() != -1
-               || container.swapMemoryLimit() != -1;
+                || container.cpuShares() != -1
+                || container.memorySoftLimit() != 0
+                || container.memoryLimit() != -1
+                || container.swapMemoryLimit() != -1;
     }
 }

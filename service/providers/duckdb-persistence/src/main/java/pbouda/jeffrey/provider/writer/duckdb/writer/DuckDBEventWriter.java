@@ -50,8 +50,6 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
                 appender.append(event.eventType());
                 // start_timestamp - TIMESTAMP_MS NOT NULL
                 appender.append(event.startTimestamp().atOffset(ZoneOffset.UTC));
-                // start_timestamp_from_beginning - BIGINT NOT NULL
-                appender.append(event.startTimestampFromBeginning());
                 // duration - BIGINT (nullable)
                 nullableAppend(appender, event.duration());
                 // samples - BIGINT NOT NULL

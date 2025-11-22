@@ -25,7 +25,6 @@ import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
-import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 import pbouda.jeffrey.provider.api.model.parser.RecordingTypeSpecificData;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
@@ -57,7 +56,7 @@ public class JfrRecordingEventParser implements RecordingEventParser {
 
 
     @Override
-    public ParserResult start(EventWriter eventWriter, IngestionContext context, Path recording) {
+    public ParserResult start(EventWriter eventWriter, Path recording) {
         String folderName = clock.instant().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
         Path profileTempFolder = this.recordingsTempDir.resolve(folderName);
 
@@ -67,18 +66,16 @@ public class JfrRecordingEventParser implements RecordingEventParser {
         LOG.info("Created the profile's temporary folder: {}", profileTempFolder);
         try {
             List<Path> recordingChunks = Recordings.splitRecording(recording, profileTempFolder);
-            return _start(eventWriter, context, recordingChunks);
+            return _start(eventWriter, recordingChunks);
         } finally {
             FileSystemUtils.removeDirectory(profileTempFolder);
             LOG.info("Removed the profile's temporary folder: {}", profileTempFolder);
         }
     }
 
-    private ParserResult _start(EventWriter eventWriter, IngestionContext context, List<Path> recordings) {
+    private ParserResult _start(EventWriter eventWriter, List<Path> recordings) {
         Supplier<EventProcessor<Void>> eventProcessor = () -> {
-            return new JfrEventReader(
-                    eventWriter.newSingleThreadedWriter(),
-                    context.profilingStart());
+            return new JfrEventReader(eventWriter.newSingleThreadedWriter());
         };
 
         JdkRecordingIterators.parallelAndWait(recordings, eventProcessor);

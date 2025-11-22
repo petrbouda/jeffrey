@@ -69,9 +69,14 @@ public enum StatementLabel {
     /**
      * {@link GroupLabel#PROFILE_EVENTS}
      */
-    FIND_LATEST_EVENT,
+    FIND_LATEST_JSON,
     FIND_ALL_LATEST_EVENTS,
     STREAM_EVENTS,
+
+    /**
+     * {@link GroupLabel#ALLOCATING_THREADS}
+     */
+    ALLOCATING_THREADS,
 
     /**
      * {@link GroupLabel#PROFILE_EVENT_TYPES}

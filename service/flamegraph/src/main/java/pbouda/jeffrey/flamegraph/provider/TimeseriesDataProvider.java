@@ -42,7 +42,6 @@ public class TimeseriesDataProvider {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(graphParameters.eventType())
                 .withTimeRange(graphParameters.timeRange())
-                .withIncludeFrames(timeseriesType != TimeseriesType.SIMPLE)
                 .filterStacktraceTypes(graphParameters.stacktraceTypes())
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())

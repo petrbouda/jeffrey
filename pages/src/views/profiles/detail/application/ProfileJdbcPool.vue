@@ -361,10 +361,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-container {
-  padding: 1.5rem;
-}
-
 .dashboard-section {
   margin-bottom: 2rem;
 }
@@ -602,10 +598,6 @@ onMounted(() => {
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
-  }
-  
-  .dashboard-container {
-    padding: 1rem;
   }
 }
 </style>

@@ -48,7 +48,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -62,7 +62,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer, configurer.eventTypes(), customFields);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.start_timestamp, events.samples FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.start_timestamp, events.samples FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -81,21 +81,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (events.start_timestamp_from_beginning >= 1000 AND events.start_timestamp_from_beginning < 5000)";
-        assertEquals(expectedQuery, query);
-    }
-
-    @Test
-    @DisplayName("Should include stacktraces when frames are enabled")
-    void shouldIncludeStacktracesWhenFramesEnabled() {
-        EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventType(EVENT_TYPE)
-                .withIncludeFrames();
-
-        GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
-        String query = builder.build();
-
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, stacktraces.stacktrace_hash, stacktraces.frames FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY stacktraces.stacktrace_hash, stacktraces.frames";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (EPOCH_MS(events.start_timestamp - fs.first_ts) >= 1000 AND EPOCH_MS(events.start_timestamp - fs.first_ts) < 5000)";
         assertEquals(expectedQuery, query);
     }
 
@@ -109,7 +95,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND stacktraces.type_id IN (100, 0)";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -123,7 +109,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND (stacktraces.tag_ids IS NULL OR array_length(stacktraces.tag_ids) = 0 OR NOT list_has_any(stacktraces.tag_ids, [0]))";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -137,7 +123,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash) CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -151,7 +137,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND threads.java_id = 2";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash) CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND threads.java_id = 2";
         assertEquals(expectedQuery, query);
     }
 
@@ -165,7 +151,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, event_types.label FROM events INNER JOIN event_types ON (events.profile_id = event_types.profile_id AND events.event_type = event_types.name) WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, event_types.label FROM events INNER JOIN event_types ON (events.profile_id = event_types.profile_id AND events.event_type = event_types.name) CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -179,7 +165,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, json(events.fields) AS event_fields FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, json(events.fields) AS event_fields FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample')";
         assertEquals(expectedQuery, query);
     }
 
@@ -192,7 +178,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type IN ('jdk.ExecutionSample', 'jdk.ObjectAllocationInNewTLAB'))";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type IN ('jdk.ExecutionSample', 'jdk.ObjectAllocationInNewTLAB'))";
         assertEquals(expectedQuery, query);
     }
 
@@ -208,7 +194,7 @@ class GenericQueryBuilderTest {
                 .addGroupBy("events.thread_hash")
                 .build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY events.start_timestamp, events.thread_hash";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY events.start_timestamp, events.thread_hash";
         assertEquals(expectedQuery, query);
     }
 
@@ -224,7 +210,7 @@ class GenericQueryBuilderTest {
                 .addOrderBy("events.duration DESC")
                 .build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') ORDER BY events.start_timestamp ASC, events.duration DESC";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') ORDER BY events.start_timestamp ASC, events.duration DESC";
         assertEquals(expectedQuery, query);
     }
 
@@ -239,7 +225,6 @@ class GenericQueryBuilderTest {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(List.of(Type.EXECUTION_SAMPLE, Type.OBJECT_ALLOCATION_IN_NEW_TLAB))
                 .withTimeRange(timeRange)
-                .withIncludeFrames()
                 .withThreads()
                 .withEventTypeInfo()
                 .withJsonFields()
@@ -253,7 +238,7 @@ class GenericQueryBuilderTest {
                 .addOrderBy("events.start_timestamp ASC")
                 .build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, stacktraces.stacktrace_hash, stacktraces.frames, threads.java_id, threads.os_id, threads.is_virtual, threads.name, event_types.label, json(events.fields) AS event_fields FROM events INNER JOIN stacktraces ON (events.profile_id = stacktraces.profile_id AND events.stacktrace_hash = stacktraces.stacktrace_hash) INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash) INNER JOIN event_types ON (events.profile_id = event_types.profile_id AND events.event_type = event_types.name) WHERE (events.profile_id = 'test-profile-123' AND events.event_type IN ('jdk.ExecutionSample', 'jdk.ObjectAllocationInNewTLAB')) AND (events.start_timestamp_from_beginning >= 2000 AND events.start_timestamp_from_beginning < 10000) AND stacktraces.type_id IN (100) AND (stacktraces.tag_ids IS NULL OR array_length(stacktraces.tag_ids) = 0 OR NOT list_has_any(stacktraces.tag_ids, [0])) AND threads.java_id = 2 GROUP BY stacktraces.stacktrace_hash, stacktraces.frames, events.start_timestamp ORDER BY events.start_timestamp ASC";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity, threads.java_id, threads.os_id, threads.is_virtual, threads.name, event_types.label, json(events.fields) AS event_fields FROM events INNER JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash) INNER JOIN event_types ON (events.profile_id = event_types.profile_id AND events.event_type = event_types.name) CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type IN ('jdk.ExecutionSample', 'jdk.ObjectAllocationInNewTLAB')) AND (EPOCH_MS(events.start_timestamp - fs.first_ts) >= 2000 AND EPOCH_MS(events.start_timestamp - fs.first_ts) < 10000) AND threads.java_id = 2 GROUP BY events.start_timestamp ORDER BY events.start_timestamp ASC";
         assertEquals(expectedQuery, query);
     }
 
@@ -276,7 +261,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND events.start_timestamp_from_beginning >= 1000";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND EPOCH_MS(events.start_timestamp - fs.first_ts) >= 1000";
         assertEquals(expectedQuery, query);
     }
 
@@ -292,7 +277,7 @@ class GenericQueryBuilderTest {
         GenericQueryBuilder builder = new GenericQueryBuilder(new TestSQLFormatter(), PROFILE_ID, configurer);
         String query = builder.build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND events.start_timestamp_from_beginning < 5000";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') AND EPOCH_MS(events.start_timestamp - fs.first_ts) < 5000";
         assertEquals(expectedQuery, query);
     }
 
@@ -310,7 +295,7 @@ class GenericQueryBuilderTest {
                 .addOrderBy("events.duration DESC")
                 .build();
 
-        String expectedQuery = "SELECT events.event_type, events.start_timestamp, events.start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY events.start_timestamp, events.thread_hash ORDER BY events.start_timestamp ASC, events.duration DESC";
+        String expectedQuery = "WITH first_sample AS (\n    SELECT MIN(start_timestamp) AS first_ts\n    FROM events\n    WHERE profile_id = 'test-profile-123'\n)\nSELECT events.event_type, events.start_timestamp, EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_timestamp_from_beginning, events.duration, events.samples, events.weight, events.weight_entity FROM events CROSS JOIN first_sample fs WHERE (events.profile_id = 'test-profile-123' AND events.event_type = 'jdk.ExecutionSample') GROUP BY events.start_timestamp, events.thread_hash ORDER BY events.start_timestamp ASC, events.duration DESC";
         assertEquals(expectedQuery, query);
     }
 }

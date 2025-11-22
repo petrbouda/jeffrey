@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS events
     event_id                       UInt64,
     event_type                     LowCardinality(String),
     start_timestamp                DateTime64(9),
-    start_timestamp_from_beginning UInt64,
     duration                       Nullable(UInt64),
     samples                        UInt32,
     weight                         Nullable(UInt64),
@@ -90,7 +89,7 @@ CREATE TABLE IF NOT EXISTS events
     fields                         String              -- JSON fields for event-specific data
 ) ENGINE = MergeTree()
 PARTITION BY toYYYYMM(start_timestamp)
-ORDER BY (profile_id, event_type, start_timestamp_from_beginning, stack_hash)
+ORDER BY (profile_id, event_type, start_timestamp, stack_hash)
 SETTINGS index_granularity = 8192;
 
 -- Frame search indexes for pattern matching
@@ -98,7 +97,7 @@ CREATE INDEX IF NOT EXISTS idx_frames_class_name ON frames (class_name) TYPE tok
 CREATE INDEX IF NOT EXISTS idx_frames_method_name ON frames (method_name) TYPE tokenbf_v1(10240, 3, 0);
 
 -- Event filtering indexes
-CREATE INDEX IF NOT EXISTS idx_events_time_range ON events (profile_id, event_type, start_timestamp_from_beginning);
+CREATE INDEX IF NOT EXISTS idx_events_time_range ON events (profile_id, event_type, start_timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_weight_entity ON events (profile_id, event_type, weight_entity) TYPE bloom_filter(0.01);
 
 -- Stacktrace lookup optimization

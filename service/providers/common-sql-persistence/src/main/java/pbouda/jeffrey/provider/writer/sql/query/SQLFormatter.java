@@ -18,29 +18,16 @@
 
 package pbouda.jeffrey.provider.writer.sql.query;
 
-import pbouda.jeffrey.common.model.StacktraceTag;
-import pbouda.jeffrey.common.model.StacktraceType;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.sql.Condition;
 import pbouda.jeffrey.sql.SQLBuilder;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
-import static pbouda.jeffrey.sql.SQLBuilder.and;
-import static pbouda.jeffrey.sql.SQLBuilder.c;
-import static pbouda.jeffrey.sql.SQLBuilder.eq;
-import static pbouda.jeffrey.sql.SQLBuilder.gte;
-import static pbouda.jeffrey.sql.SQLBuilder.in;
-import static pbouda.jeffrey.sql.SQLBuilder.inInts;
-import static pbouda.jeffrey.sql.SQLBuilder.l;
-import static pbouda.jeffrey.sql.SQLBuilder.lt;
-import static pbouda.jeffrey.sql.SQLBuilder.notInOrNullInts;
+import static pbouda.jeffrey.sql.SQLBuilder.*;
 
 public abstract class SQLFormatter {
 
@@ -59,74 +46,6 @@ public abstract class SQLFormatter {
      * @return the formatted SQL string specifically for the given database
      */
     public abstract String formatJson(String sql);
-
-    public SQLBuilder stacktraceTags(List<StacktraceTag> stacktraceTags) {
-        Map<Boolean, List<StacktraceTag>> partitioned = stacktraceTags.stream()
-                .collect(Collectors.partitioningBy(StacktraceTag::includes));
-
-        SQLBuilder builder = new SQLBuilder();
-
-        List<StacktraceTag> included = partitioned.get(true);
-        if (!included.isEmpty()) {
-            List<Integer> includedIds = included.stream()
-                    .map(StacktraceTag::id)
-                    .toList();
-
-            // Check if stacktraces.tag_ids array contains ANY of the included IDs
-            String arrayLiteral = includedIds.stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(", ", "[", "]"));
-
-            builder.and(SQLBuilder.raw("list_has_any(stacktraces.tag_ids, " + arrayLiteral + ")"));
-        }
-
-        List<StacktraceTag> excluded = partitioned.get(false);
-        if (!excluded.isEmpty()) {
-            List<Integer> excludedIds = excluded.stream()
-                    .map(StacktraceTag::id)
-                    .toList();
-
-            // Check that stacktraces.tag_ids array does NOT contain ANY of the excluded IDs
-            // Also treat NULL or empty arrays as not having excluded tags
-            String arrayLiteral = excludedIds.stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(", ", "[", "]"));
-
-            builder.and(SQLBuilder.raw(
-                    "(stacktraces.tag_ids IS NULL OR " +
-                    "array_length(stacktraces.tag_ids) = 0 OR " +
-                    "NOT list_has_any(stacktraces.tag_ids, " + arrayLiteral + "))"));
-        }
-
-        return builder;
-    }
-
-    public SQLBuilder stacktraceTypes(List<StacktraceType> stacktraceTypes, boolean includeStacktraces) {
-        SQLBuilder builder = new SQLBuilder()
-                .merge(stacktraceTypesFilterOnly(stacktraceTypes));
-
-        if (includeStacktraces) {
-            builder.join("stacktraces", and(
-                    eq("events.profile_id", c("stacktraces.profile_id")),
-                    eq("events.stacktrace_hash", c("stacktraces.stacktrace_hash"))));
-        }
-
-        return builder;
-    }
-
-    public SQLBuilder stacktraceTypesFilterOnly(List<StacktraceType> stacktraceTypes) {
-        List<Integer> typeIds = stacktraceTypes.stream()
-                .map(StacktraceType::id)
-                .toList();
-
-        return new SQLBuilder().and(inInts("stacktraces.type_id", typeIds));
-    }
-
-    public SQLBuilder timeRange(RelativeTimeRange timeRange) {
-        return new SQLBuilder()
-                .and(gte("events.start_timestamp_from_beginning", l(timeRange.start().toMillis())))
-                .and(lt("events.start_timestamp_from_beginning", l(timeRange.end().toMillis())));
-    }
 
     public SQLBuilder eventFields() {
         return new SQLBuilder()
@@ -172,24 +91,13 @@ public abstract class SQLFormatter {
                         eq("events.event_type", c("event_types.name"))));
     }
 
-    public SQLBuilder stacktraces() {
-        return new SQLBuilder()
-                .addColumn("stacktraces.stacktrace_hash")
-                .groupBy("stacktraces.stacktrace_hash")
-                .addColumn("stacktraces.frames")
-                .groupBy("stacktraces.frames")
-                .join("stacktraces", and(
-                        eq("events.profile_id", c("stacktraces.profile_id")),
-                        eq("events.stacktrace_hash", c("stacktraces.stacktrace_hash"))));
-    }
-
     public SQLBuilder timeRangeOptional(Duration from, Duration until) {
         SQLBuilder builder = new SQLBuilder();
         if (from != null) {
-            builder.and(gte("events.start_timestamp_from_beginning", l(from.toMillis())));
+            builder.and(gte("EPOCH_MS(events.start_timestamp - fs.first_ts)", l(from.toMillis())));
         }
         if (until != null) {
-            builder.and(lt("events.start_timestamp_from_beginning", l(until.toMillis())));
+            builder.and(lt("EPOCH_MS(events.start_timestamp - fs.first_ts)", l(until.toMillis())));
         }
         return builder;
     }

@@ -19,12 +19,14 @@
 package pbouda.jeffrey.provider.writer.sql.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.AllocatingThread;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
@@ -39,41 +41,28 @@ import static pbouda.jeffrey.provider.writer.sql.GroupLabel.PROFILE_EVENTS;
 public class JdbcProfileEventRepository implements ProfileEventRepository {
 
     //language=SQL
-    private final String SINGLE_LATEST_QUERY = """
-            SELECT
-                events.event_type,
-                events.start_timestamp,
-                events.start_timestamp_from_beginning,
-                events.duration,
-                events.samples,
-                events.weight,
-                events.weight_entity,
-                events.fields::jsonb AS event_fields
-                FROM events
+    private final String LATEST_JSON_QUERY = """
+            SELECT events.fields::jsonb AS event_fields
+            FROM events
             WHERE events.profile_id = :profile_id AND events.event_type = :event_type
-            ORDER BY events.start_timestamp_from_beginning DESC LIMIT 1""";
+            ORDER BY events.start_timestamp DESC LIMIT 1""";
 
     //language=SQL
-    private final String ALL_LATEST_QUERY = """
+    private final String ALLOCATING_THREADS_QUERY = """
             SELECT
-                events.event_type,
-                events.start_timestamp,
-                events.start_timestamp_from_beginning,
-                events.duration,
-                events.samples,
                 events.weight,
-                events.weight_entity,
                 threads.os_id,
                 threads.java_id,
-                threads.name,
-                threads.is_virtual
-                FROM events
-                LEFT JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash)
-            WHERE events.profile_id = :profile_id AND events.event_type = :event_type
-            AND events.start_timestamp_from_beginning = (
-                SELECT MAX(start_timestamp_from_beginning) FROM events
-                WHERE profile_id = :profile_id AND event_type = :event_type
-            )""";
+                threads.name
+            FROM events
+            LEFT JOIN threads ON (events.profile_id = threads.profile_id AND events.thread_hash = threads.thread_hash)
+            WHERE events.profile_id = :profile_id AND events.event_type = 'jdk.ThreadAllocationStatistics'
+                AND events.start_timestamp = (
+                    SELECT MAX(start_timestamp) FROM events
+                    WHERE profile_id = :profile_id AND event_type = 'jdk.ThreadAllocationStatistics'
+                )
+            ORDER BY events.weight DESC LIMIT :limit
+            """;
 
     //language=SQL
     private static final String FIELDS_BY_EVENT = """
@@ -99,37 +88,34 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     }
 
     @Override
-    public Optional<GenericRecord> latest(Type type) {
-        EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventType(type)
-                .withJsonFields();
-
+    public Optional<ObjectNode> latestJsonFields(Type type) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
                 .addValue("event_type", type.code());
 
         return databaseClient.querySingle(
-                StatementLabel.FIND_LATEST_EVENT,
-                sqlFormatter.formatJson(SINGLE_LATEST_QUERY),
+                StatementLabel.FIND_LATEST_JSON,
+                sqlFormatter.formatJson(LATEST_JSON_QUERY),
                 params,
-                new GenericRecordRowMapper(configurer));
+                (rs, _) -> (ObjectNode) Json.readTree(rs.getString("event_fields")));
     }
 
     @Override
-    public List<GenericRecord> allLatest(Type type) {
-        EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventType(type)
-                .withThreads();
-
+    public List<AllocatingThread> allocatingThreads(int limit) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("event_type", type.code());
+                .addValue("limit", limit);
 
         return databaseClient.query(
-                StatementLabel.FIND_ALL_LATEST_EVENTS,
-                ALL_LATEST_QUERY,
+                StatementLabel.ALLOCATING_THREADS,
+                ALLOCATING_THREADS_QUERY,
                 params,
-                new GenericRecordRowMapper(configurer));
+                (rs, _) -> new AllocatingThread(
+                        new ThreadInfo(
+                                rs.getLong("os_id"),
+                                rs.getLong("java_id"),
+                                rs.getString("name")),
+                        rs.getLong("weight")));
     }
 
     @Override

@@ -25,6 +25,14 @@ import java.util.List;
 
 public class SQLBuilder {
 
+    private static final String FIRST_SAMPLE_CTE = """
+            WITH first_sample AS (
+                SELECT MIN(start_timestamp) AS first_ts
+                FROM events
+                WHERE profile_id = '<<profile_id>>'
+            )
+            """;
+
     private final List<String> selectColumns = new ArrayList<>();
     private final List<String> fromTables = new ArrayList<>();
     private final List<Join> joins = new ArrayList<>();
@@ -218,8 +226,11 @@ public class SQLBuilder {
         return !this.selectColumns.isEmpty();
     }
 
-    public String build() {
+    public String build(String profileId) {
         StringBuilder sql = new StringBuilder();
+
+        // CTE for first sample timestamp
+        sql.append(FIRST_SAMPLE_CTE.replace("<<profile_id>>", profileId));
 
         // SELECT clause
         sql.append("SELECT ");
@@ -239,6 +250,9 @@ public class SQLBuilder {
         for (Join join : joins) {
             sql.append(" ").append(join.toSql());
         }
+
+        // CROSS JOIN first_sample CTE (must be last join)
+        sql.append(" CROSS JOIN first_sample fs");
 
         // WHERE clause
         if (!whereConditions.isEmpty()) {
@@ -355,16 +369,8 @@ public class SQLBuilder {
         return new ExistsCondition(subquery);
     }
 
-    public static Condition exists(SQLBuilder subqueryBuilder) {
-        return new ExistsCondition(subqueryBuilder);
-    }
-
     public static Condition notExists(String subquery) {
         return new NotExistsCondition(subquery);
-    }
-
-    public static Condition notExists(SQLBuilder subqueryBuilder) {
-        return new NotExistsCondition(subqueryBuilder);
     }
 
     /**

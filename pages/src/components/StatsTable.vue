@@ -99,7 +99,7 @@ const getVariantColor = (variant?: string): string => {
 
 .stats-row {
   display: grid;
-  grid-template-columns: auto 1fr 200px;
+  grid-template-columns: auto 1fr 280px;
   gap: 0.875rem;
   align-items: center;
   padding: 0.75rem 1rem;
@@ -200,9 +200,10 @@ const getVariantColor = (variant?: string): string => {
 }
 
 .breakdown-value {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.1;
+  text-align: right;
 }
 
 /* Responsive adjustments */

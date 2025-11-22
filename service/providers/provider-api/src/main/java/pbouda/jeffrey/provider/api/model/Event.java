@@ -25,7 +25,6 @@ import java.time.Instant;
 public record Event(
         String eventType,
         Instant startTimestamp,
-        long startTimestampFromBeginning,
         Long duration,
         long samples,
         Long weight,

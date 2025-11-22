@@ -1,5 +1,4 @@
 <template>
-  <div>
     <PageHeader
       title="JDBC Statements"
       icon="bi-database"

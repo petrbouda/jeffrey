@@ -12,12 +12,18 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     //language=SQL
     private static final String SIMPLE = """
-            SELECT (e.start_timestamp_from_beginning / 1000) AS seconds, SUM(<<target_value>>) AS value
+            WITH first_sample AS (
+                SELECT MIN(start_timestamp) AS first_ts
+                FROM events
+                WHERE profile_id = :profile_id
+            )
+            SELECT (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds, SUM(<<target_value>>) AS value
             FROM events e
+            CROSS JOIN first_sample fs
             WHERE e.profile_id = :profile_id
                 AND e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
-                AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
+                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
+                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
                 AND EXISTS (
                     SELECT 1
                     FROM stacktraces s
@@ -34,16 +40,22 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     //language=SQL
     private static final String SIMPLE_SEARCH = """
-            WITH relevant_events AS (
+            WITH first_sample AS (
+                SELECT MIN(start_timestamp) AS first_ts
+                FROM events
+                WHERE profile_id = :profile_id
+            ),
+            relevant_events AS (
                 SELECT
                     e.stacktrace_hash,
-                    e.start_timestamp_from_beginning,
+                    (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
                     <<target_value>> AS event_value
                 FROM events e
+                CROSS JOIN first_sample fs
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
-                    AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
+                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
+                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
             ),
             relevant_stacktraces AS (
                 SELECT s.stacktrace_hash, s.frame_hashes
@@ -74,7 +86,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 WHERE list_has_any(rs.frame_hashes, mfh.matched_hashes)
             )
             SELECT
-                (re.start_timestamp_from_beginning / 1000) AS seconds,
+                re.seconds,
                 SUM(re.event_value) AS total_value,
                 SUM(re.event_value) FILTER (WHERE ms.stacktrace_hash IS NOT NULL) AS matched_value
             FROM relevant_events re
@@ -86,15 +98,21 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     //language=SQL
     private static final String FILTERABLE = """
+            WITH first_sample AS (
+                SELECT MIN(start_timestamp) AS first_ts
+                FROM events
+                WHERE profile_id = :profile_id
+            )
             SELECT
-                (e.start_timestamp_from_beginning / 1000) AS seconds,
+                (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
                 <<target_value>> AS samples,
                 e.fields AS event_fields
             FROM events e
+            CROSS JOIN first_sample fs
             WHERE e.profile_id = :profile_id
                 AND e.event_type = <<event_type>>
-                AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
-                AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
+                AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
+                AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
                 AND EXISTS (
                     SELECT 1
                     FROM stacktraces s
@@ -110,9 +128,14 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
 
     //language=SQL
     private static final String FRAME_BASED = """
-            WITH filtered_data AS (
+            WITH first_sample AS (
+                SELECT MIN(start_timestamp) AS first_ts
+                FROM events
+                WHERE profile_id = :profile_id
+            ),
+            filtered_data AS (
                 SELECT
-                    (e.start_timestamp_from_beginning / 1000) AS seconds,
+                    (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds,
                     s.stacktrace_hash,
                     s.frame_hashes,
                     SUM(<<target_value>>) AS samples
@@ -120,10 +143,11 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                 INNER JOIN stacktraces s
                     ON e.profile_id = s.profile_id
                     AND e.stacktrace_hash = s.stacktrace_hash
+                CROSS JOIN first_sample fs
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = <<event_type>>
-                    AND (:from_time IS NULL OR e.start_timestamp_from_beginning >= :from_time)
-                    AND (:to_time IS NULL OR e.start_timestamp_from_beginning <= :to_time)
+                    AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
+                    AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
                     AND (:stacktrace_types IS NULL OR s.type_id IN (:stacktrace_types))
                     AND (:included_tags IS NULL OR list_has_any(s.tag_ids, [:included_tags]))
                     AND (:excluded_tags IS NULL OR NOT list_has_any(s.tag_ids, [:excluded_tags]))

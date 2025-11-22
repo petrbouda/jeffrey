@@ -155,7 +155,6 @@ public class ClickHouseClient {
                 ClickHouseColumn.of("profile_id", "String"),
                 ClickHouseColumn.of("event_type", "LowCardinality(String)"),
                 ClickHouseColumn.of("start_timestamp", "DateTime64(9)"),
-                ClickHouseColumn.of("start_timestamp_from_beginning", "UInt64"),
                 ClickHouseColumn.of("end_timestamp", "Nullable(DateTime64(9))"),
                 ClickHouseColumn.of("end_timestamp_from_beginning", "Nullable(UInt64)"),
                 ClickHouseColumn.of("duration", "Nullable(UInt64)"),

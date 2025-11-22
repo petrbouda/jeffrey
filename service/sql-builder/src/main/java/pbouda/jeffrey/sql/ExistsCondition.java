@@ -18,17 +18,7 @@
 
 package pbouda.jeffrey.sql;
 
-public class ExistsCondition implements Condition {
-
-    private final String subquery;
-
-    public ExistsCondition(String subquery) {
-        this.subquery = subquery;
-    }
-
-    public ExistsCondition(SQLBuilder subqueryBuilder) {
-        this.subquery = subqueryBuilder.build();
-    }
+public record ExistsCondition(String subquery) implements Condition {
 
     @Override
     public String toSql() {

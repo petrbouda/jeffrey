@@ -37,4 +37,5 @@ public enum GroupLabel {
     NATIVE_LEAK_EVENTS,
     WORKSPACES,
     EXTERNAL_WORKSPACES,
+    ALLOCATING_THREADS,
 }

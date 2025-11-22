@@ -94,7 +94,6 @@ public class FlamegraphDataProvider {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(graphParameters.eventType())
                 .withTimeRange(graphParameters.timeRange())
-                .withIncludeFrames()
                 .filterStacktraceTypes(graphParameters.stacktraceTypes())
                 .filterStacktraceTags(graphParameters.stacktraceTags())
                 .withThreads(graphParameters.threadMode())

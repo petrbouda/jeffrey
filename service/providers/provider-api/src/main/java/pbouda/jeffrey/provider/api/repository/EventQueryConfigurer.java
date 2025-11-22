@@ -37,7 +37,6 @@ public class EventQueryConfigurer {
     private boolean withEventTypeInfo;
     private Boolean useWeight;
     private boolean withThreads;
-    private boolean includeFrames;
     private ThreadInfo specifiedThread;
     private List<Type> eventTypes;
     private RelativeTimeRange timeRange;
@@ -72,26 +71,6 @@ public class EventQueryConfigurer {
      */
     public EventQueryConfigurer withTimeRange(RelativeTimeRange timeRange) {
         this.timeRange = timeRange;
-        return this;
-    }
-
-    /**
-     * Include frames to the output entity.
-     *
-     * @return instance of the event-stream configurer
-     */
-    public EventQueryConfigurer withIncludeFrames() {
-        return withIncludeFrames(true);
-    }
-
-    /**
-     * Include frames to the output entity.
-     *
-     * @param withStacktraceFrames boolean value whether to include frames
-     * @return instance of the event-stream configurer
-     */
-    public EventQueryConfigurer withIncludeFrames(boolean withStacktraceFrames) {
-        this.includeFrames = withStacktraceFrames;
         return this;
     }
 
@@ -198,16 +177,6 @@ public class EventQueryConfigurer {
      *
      * @return instance of the event-stream configurer
      */
-    public EventQueryConfigurer withWeight() {
-        useWeight = true;
-        return this;
-    }
-
-    /**
-     * Event-stream will use weight instead of samples, if the output entity supports only one type of value.
-     *
-     * @return instance of the event-stream configurer
-     */
     public EventQueryConfigurer withWeight(boolean useWeight) {
         this.useWeight = useWeight;
         return this;
@@ -232,10 +201,6 @@ public class EventQueryConfigurer {
 
     public List<StacktraceTag> filterStacktraceTags() {
         return stacktraceTags;
-    }
-
-    public boolean includeFrames() {
-        return includeFrames;
     }
 
     public boolean jsonFields() {

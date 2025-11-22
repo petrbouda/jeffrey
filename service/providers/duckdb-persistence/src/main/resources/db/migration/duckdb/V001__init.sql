@@ -162,7 +162,6 @@ CREATE TABLE IF NOT EXISTS events
     profile_id                     VARCHAR,
     event_type                     VARCHAR,
     start_timestamp                TIMESTAMPTZ NOT NULL,
-    start_timestamp_from_beginning BIGINT NOT NULL,
     duration                       BIGINT,
     samples                        BIGINT NOT NULL,
     weight                         BIGINT,
@@ -173,7 +172,7 @@ CREATE TABLE IF NOT EXISTS events
 );
 
 -- Optimized indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_events_composite ON events(profile_id, event_type, start_timestamp_from_beginning, stacktrace_hash);
+CREATE INDEX IF NOT EXISTS idx_events_composite ON events(profile_id, event_type, start_timestamp, stacktrace_hash);
 -- To effectively process calculated events (NativeLeaks - stores address as weight_entity)
 CREATE INDEX IF NOT EXISTS idx_events_event_type_weight_entity ON events(profile_id, event_type, weight_entity);
 

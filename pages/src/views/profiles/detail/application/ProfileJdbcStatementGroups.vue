@@ -543,10 +543,6 @@ watch(() => route.query.group, (newGroup) => {
   margin-right: 1rem;
 }
 
-.dashboard-container {
-  padding: 1.5rem;
-}
-
 .statement-placeholder {
   min-height: 300px;
   display: flex;
@@ -568,10 +564,6 @@ watch(() => route.query.group, (newGroup) => {
 }
 
 @media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-
   .group-display-large {
     flex-direction: column;
     align-items: stretch;

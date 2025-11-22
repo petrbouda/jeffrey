@@ -33,7 +33,6 @@ import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
@@ -63,7 +62,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     @Override
     public JITCompilationStats statistics() {
-        Optional<GenericRecord> statsOpt = eventRepository.latest(Type.COMPILER_STATISTICS);
+        Optional<ObjectNode> statsOpt = eventRepository.latestJsonFields(Type.COMPILER_STATISTICS);
         if (statsOpt.isEmpty()) {
             return null;
         }
@@ -81,7 +80,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
                 .getOrDefault("threshold", "-1");
         Duration threshold = DurationUtils.parse(thresholdInString);
 
-        ObjectNode fields = statsOpt.get().jsonFields();
+        ObjectNode fields = (ObjectNode) statsOpt.get();
         fields.put("compileMethodThreshold", threshold.toMillis());
 
         return Json.treeToValue(fields, JITCompilationStats.class);

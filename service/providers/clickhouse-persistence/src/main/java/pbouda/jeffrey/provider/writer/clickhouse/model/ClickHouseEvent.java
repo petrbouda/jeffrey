@@ -24,7 +24,6 @@ public record ClickHouseEvent(
         String profileId,
         String eventType,
         Instant startTimestamp,
-        long startTimestampFromBeginning,
         Long duration,                     // Nullable
         long samples,
         Long weight,                       // Nullable

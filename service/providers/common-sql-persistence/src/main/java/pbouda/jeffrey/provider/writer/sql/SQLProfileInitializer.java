@@ -26,7 +26,6 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.ProfileInitializer;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
-import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
@@ -87,8 +86,6 @@ public class SQLProfileInitializer implements ProfileInitializer {
         // Profile name is by default the recording name
         String profileName = recording.recordingName();
 
-        IngestionContext ingestionContext = new IngestionContext(recording.recordingStartedAt());
-
         String profileId = IDGenerator.generate();
         Instant profileCreatedAt = clock.instant();
 
@@ -105,9 +102,7 @@ public class SQLProfileInitializer implements ProfileInitializer {
         profileRepository.insertProfile(insertProfile);
 
         EventWriter eventWriter = eventWriterFactory.apply(profileId);
-        ParserResult parserResult = recordingEventParser.start(
-                eventWriter, ingestionContext, recordingPathOpt.get());
-
+        ParserResult parserResult = recordingEventParser.start(eventWriter, recordingPathOpt.get());
         eventWriter.onComplete();
 
         // Finish the initialization of the profile

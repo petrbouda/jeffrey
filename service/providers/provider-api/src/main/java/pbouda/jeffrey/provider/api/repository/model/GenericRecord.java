@@ -34,7 +34,6 @@ public record GenericRecord(
         Instant startTimestamp,
         Duration timestampFromStart,
         Duration duration,
-        JfrStackTrace stackTrace,
         JfrThread thread,
         JfrClass weightEntity,
         long samples,

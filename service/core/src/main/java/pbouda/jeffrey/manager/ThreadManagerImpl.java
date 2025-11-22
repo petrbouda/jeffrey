@@ -25,7 +25,6 @@ import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.manager.builder.CPULoadBuilder;
 import pbouda.jeffrey.manager.builder.ThreadTimeseriesBuilder;
-import pbouda.jeffrey.manager.model.thread.AllocatingThread;
 import pbouda.jeffrey.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.manager.model.thread.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
@@ -34,7 +33,7 @@ import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.AllocatingThread;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.Comparator;
@@ -65,13 +64,12 @@ public class ThreadManagerImpl implements ThreadManager {
 
     @Override
     public ThreadStats threadStatistics() {
-        Optional<GenericRecord> latestOpt = eventRepository.latest(Type.JAVA_THREAD_STATISTICS);
+        Optional<ObjectNode> latestOpt = eventRepository.latestJsonFields(Type.JAVA_THREAD_STATISTICS);
         if (latestOpt.isEmpty()) {
             return null;
         }
 
-        GenericRecord latest = latestOpt.get();
-        ObjectNode jsonNodes = latest.jsonFields();
+        ObjectNode jsonNodes = latestOpt.get();
         long currAccumulated = jsonNodes.get("accumulatedCount").asLong();
         long currPeak = jsonNodes.get("peakCount").asLong();
 
@@ -105,16 +103,7 @@ public class ThreadManagerImpl implements ThreadManager {
 
     @Override
     public List<AllocatingThread> threadsAllocatingMemory(int limit) {
-        List<GenericRecord> allLatest = eventRepository.allLatest(Type.THREAD_ALLOCATION_STATISTICS);
-
-        List<AllocatingThread> result = allLatest.stream()
-                .map(r -> new AllocatingThread(r.threadInfo(), r.sampleWeight()))
-                .toList();
-
-        return result.stream()
-                .sorted(Comparator.comparing(AllocatingThread::allocatedBytes).reversed())
-                .limit(limit)
-                .toList();
+        return eventRepository.allocatingThreads(limit);
     }
 
     @Override

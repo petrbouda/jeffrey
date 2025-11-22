@@ -329,7 +329,7 @@
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent"
                          @click="toggleJdbcSubmenu"
-                         :class="{ 'active': $route.path.includes('/application/jdbc'), 'expanded': jdbcSubmenuExpanded, 'disabled-feature': isFeatureDisabled('jdbc-statements') }">
+                         :class="{ 'active': $route.path.includes('/application/jdbc/'), 'expanded': jdbcSubmenuExpanded, 'disabled-feature': isFeatureDisabled('jdbc-statements') }">
                       <i class="bi bi-database"></i>
                       <span>JDBC Statements</span>
                       <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': jdbcSubmenuExpanded }"></i>
@@ -541,7 +541,7 @@ watch(() => route.path, (newPath) => {
       httpServerSubmenuExpanded.value = true;
     }
   }
-  if (newPath.includes('/application/jdbc')) {
+  if (newPath.includes('/application/jdbc/')) {
     jdbcSubmenuExpanded.value = true;
   }
   if (newPath.includes('/heap-memory')) {

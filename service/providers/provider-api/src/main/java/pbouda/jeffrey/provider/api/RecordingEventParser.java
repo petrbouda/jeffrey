@@ -18,13 +18,12 @@
 
 package pbouda.jeffrey.provider.api;
 
-import pbouda.jeffrey.provider.api.model.IngestionContext;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 
 import java.nio.file.Path;
 
 public interface RecordingEventParser {
 
-    ParserResult start(EventWriter eventWriter, IngestionContext context, Path recording);
+    ParserResult start(EventWriter eventWriter, Path recording);
 
 }

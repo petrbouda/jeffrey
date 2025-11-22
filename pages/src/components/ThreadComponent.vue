@@ -31,6 +31,7 @@ import FullGraphUpdater from "@/services/flamegraphs/updater/FullGraphUpdater";
 import GraphType from "@/services/flamegraphs/GraphType.ts";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import * as bootstrap from 'bootstrap';
 
 const props = defineProps<{
@@ -464,6 +465,9 @@ function createContextMenuItems() {
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
         <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
+          <SearchBarComponent
+              :graph-updater="graphUpdater"
+              :with-timeseries="true"/>
           <TimeseriesComponent
               :graph-type="GraphType.PRIMARY"
               :event-type="selectedEventCode"

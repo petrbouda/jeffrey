@@ -19,17 +19,18 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.api.repository.model.AllocatingThread;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ProfileEventRepository {
 
-    Optional<GenericRecord> latest(Type type);
+    Optional<ObjectNode> latestJsonFields(Type type);
 
-    List<GenericRecord> allLatest(Type type);
+    List<AllocatingThread> allocatingThreads(int limit);
 
     List<JsonNode> eventsByTypeWithFields(Type type);
 

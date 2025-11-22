@@ -180,10 +180,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-container {
-  padding: 1.5rem;
-}
-
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 1rem;

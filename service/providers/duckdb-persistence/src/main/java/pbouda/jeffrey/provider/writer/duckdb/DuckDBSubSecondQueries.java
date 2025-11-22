@@ -8,12 +8,18 @@ public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
 
     //language=SQL
     private static final String SIMPLE = """
-            SELECT events.start_timestamp_from_beginning, %s as value
+            WITH first_sample AS (
+                SELECT MIN(start_timestamp) AS first_ts
+                FROM events
+                WHERE profile_id = :profile_id
+            )
+            SELECT EPOCH_MS(e.start_timestamp - fs.first_ts) AS start_ms_offset, %s AS value
                FROM events
+               CROSS JOIN first_sample fs
                WHERE (events.profile_id = :profile_id
                  AND events.event_type = <<event_type>>)
-                 AND (:from_time IS NULL OR events.start_timestamp_from_beginning >= :from_time)
-                 AND (:to_time IS NULL OR events.start_timestamp_from_beginning <= :to_time)
+                 AND (:from_time IS NULL OR EPOCH_MS(events.start_timestamp - fs.first_ts) >= :from_time)
+                 AND (:to_time IS NULL OR EPOCH_MS(events.start_timestamp - fs.first_ts) <= :to_time)
                  <<additional_filters>>
             """;
 

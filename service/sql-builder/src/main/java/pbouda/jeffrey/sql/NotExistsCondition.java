@@ -18,17 +18,7 @@
 
 package pbouda.jeffrey.sql;
 
-public class NotExistsCondition implements Condition {
-
-    private final String subquery;
-
-    public NotExistsCondition(String subquery) {
-        this.subquery = subquery;
-    }
-
-    public NotExistsCondition(SQLBuilder subqueryBuilder) {
-        this.subquery = subqueryBuilder.build();
-    }
+public record NotExistsCondition(String subquery) implements Condition {
 
     @Override
     public String toSql() {

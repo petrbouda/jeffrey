@@ -25,7 +25,7 @@ public class ManualApplication {
                 "pool-size", "1"
         ));
 
-        String flamegraphSql = ExperimentalDuckDBQueries.STACKTRACE_DETAILS;
+        String flamegraphSql = "----";
 
         var client = new NamedParameterJdbcTemplate(datasource);
         MapSqlParameterSource params = new MapSqlParameterSource()

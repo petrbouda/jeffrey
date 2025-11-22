@@ -22,6 +22,7 @@ import cafe.jeffrey.jfr.events.jdbc.statement.*;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -364,7 +365,7 @@ public class DatabaseClient {
     }
 
     public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
-        queryStream(statement, sql, null, mapper, consumer);
+        queryStream(statement, sql, new EmptySqlParameterSource(), mapper, consumer);
     }
 
     public void walCheckpoint() {
