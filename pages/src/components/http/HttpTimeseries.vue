@@ -19,9 +19,9 @@
 <template>
   <ChartSection title="HTTP Metrics Timeline" icon="graph-up" :full-width="true" container-class="apex-chart-container">
     <ApexTimeSeriesChart
-      :primary-data="responseTimeData"
+      :primary-data="props.responseTimeData"
       primary-title="Response Time"
-      :secondary-data="requestCountData"
+      :secondary-data="props.requestCountData"
       secondary-title="Request Count"
       :visible-minutes="15"
       :independentSecondaryAxis="true"
@@ -42,15 +42,3 @@ interface Props {
 
 const props = defineProps<Props>();
 </script>
-
-<style scoped>
-.apex-chart-container {
-  height: 400px;
-}
-
-@media (max-width: 768px) {
-  .apex-chart-container {
-    height: 300px;
-  }
-}
-</style>

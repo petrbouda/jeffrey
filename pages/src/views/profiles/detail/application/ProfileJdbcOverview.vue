@@ -46,12 +46,10 @@
 
 
       <!-- Statement Groups Section -->
-      <ChartSection title="Statement Groups" icon="collection" :full-width="true">
-        <JdbcGroupList 
+      <JdbcGroupList
           :groups="jdbcOverviewData.groups"
           :selected-group="null"
           @group-click="handleGroupClick" />
-      </ChartSection>
 
       <!-- JDBC Distribution Charts -->
       <JdbcDistributionCharts

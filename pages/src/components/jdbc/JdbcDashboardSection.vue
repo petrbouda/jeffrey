@@ -18,58 +18,66 @@
 
 <template>
   <section class="dashboard-section">
-    <div class="dashboard-grid">
-      <DashboardCard
-        title="Total Statements"
-        :value="jdbcHeader.statementCount || 0"
-        variant="info"
-      />
-      <DashboardCard
-        title="Execution Time"
-        :value="FormattingService.formatDuration2Units(jdbcHeader.maxExecutionTime)"
-        :valueA="FormattingService.formatDuration2Units(jdbcHeader.p99ExecutionTime)"
-        :valueB="FormattingService.formatDuration2Units(jdbcHeader.p95ExecutionTime)"
-        labelA="P99"
-        labelB="P95"
-        variant="highlight"
-      />
-      <DashboardCard
-        title="Success Rate"
-        :value="`${(jdbcHeader.successRate * 100 || 0).toFixed(1)}%`"
-        :valueA="jdbcHeader.errorCount"
-        labelA="Errors"
-        :variant="(jdbcHeader.successRate || 0) >= 0.99 ? 'success' : jdbcHeader.errorCount > 0 ? 'danger' : 'warning'"
-      />
-    </div>
+    <StatsTable :metrics="metricsData" />
   </section>
 </template>
 
 <script setup lang="ts">
-import DashboardCard from '@/components/DashboardCard.vue';
+import { computed } from 'vue';
+import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from '@/services/FormattingService.ts';
 import JdbcHeader from '@/services/profile/custom/jdbc/JdbcHeader.ts';
 
-defineProps<{
+const props = defineProps<{
   jdbcHeader: JdbcHeader;
 }>();
+
+const metricsData = computed(() => {
+  const header = props.jdbcHeader;
+
+  return [
+    {
+      icon: 'database',
+      title: 'Total Statements',
+      value: header.statementCount || 0,
+      variant: (header.successRate || 0) >= 0.99 ? 'info' as const : header.errorCount > 0 ? 'danger' as const : 'warning' as const,
+      breakdown: [
+        {
+          label: 'Success',
+          value: `${((header.successRate || 0) * 100).toFixed(1)}%`,
+          color: (header.successRate || 0) >= 0.99 ? '#34A853' : '#FBBC05'
+        },
+        {
+          label: 'Errors',
+          value: header.errorCount || 0,
+          color: header.errorCount > 0 ? '#EA4335' : '#28a745'
+        }
+      ]
+    },
+    {
+      icon: 'clock-fill',
+      title: 'Execution Time',
+      value: FormattingService.formatDuration2Units(header.maxExecutionTime),
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'P99',
+          value: FormattingService.formatDuration2Units(header.p99ExecutionTime),
+          color: '#FBBC05'
+        },
+        {
+          label: 'P95',
+          value: FormattingService.formatDuration2Units(header.p95ExecutionTime),
+          color: '#FBBC05'
+        }
+      ]
+    }
+  ];
+});
 </script>
 
 <style scoped>
 .dashboard-section {
   margin-bottom: 2rem;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

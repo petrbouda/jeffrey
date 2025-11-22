@@ -79,38 +79,7 @@
 
         <!-- Configuration Section -->
         <section class="dashboard-section">
-          <div class="dashboard-grid">
-            <DashboardCard
-              title="Peak Connections"
-              :value="selectedPool.statistics.peakConnectionCount"
-              :valueA="selectedPool.configuration.maxConnectionCount"
-              :valueB="selectedPool.configuration.minConnectionCount"
-              labelA="Configured MAX"
-              labelB="Configured MIN"
-              variant="highlight"
-            />
-            <DashboardCard
-              title="Max Active Connections"
-              :value="selectedPool.statistics.peakActiveConnectionCount"
-              :valueA="selectedPool.statistics.avgActiveConnectionCount"
-              labelA="Average"
-              variant="info"
-            />
-            <DashboardCard
-              title="Timeouts"
-              :value="selectedPool.statistics.timeoutsCount"
-              :valueA="`${(selectedPool.statistics.timeoutRate * 100).toFixed(3)}%`"
-              labelA="Rate"
-              :variant="selectedPool.statistics.timeoutsCount > 0 ? 'danger' : 'success'"
-            />
-            <DashboardCard
-              title="Max Pending Threads"
-              :value="selectedPool.statistics.maxPendingThreadCount"
-              :valueA="`${selectedPool.statistics.pendingPeriodsPercent.toFixed(1)}%`"
-              labelA="Time with a pending thread"
-              :variant="selectedPool.statistics.pendingPeriodsPercent > 10 ? 'warning' : 'success'"
-            />
-          </div>
+          <StatsTable :metrics="poolMetricsData" />
         </section>
 
         <!-- Event Charts Section -->
@@ -187,7 +156,7 @@
 import { ref, computed, onMounted, withDefaults, defineProps } from 'vue';
 import { useRoute } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import DashboardCard from '@/components/DashboardCard.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
@@ -237,6 +206,74 @@ const eventTabs = computed(() => {
     label: event.eventName,
     icon: 'graph-up'
   }));
+});
+
+// Computed metrics for StatsTable
+const poolMetricsData = computed(() => {
+  if (!selectedPool.value) return [];
+
+  const stats = selectedPool.value.statistics;
+  const config = selectedPool.value.configuration;
+
+  return [
+    {
+      icon: 'layers-fill',
+      title: 'Peak Connections',
+      value: stats.peakConnectionCount,
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'Configured MAX',
+          value: config.maxConnectionCount,
+          color: '#4285F4'
+        },
+        {
+          label: 'Configured MIN',
+          value: config.minConnectionCount,
+          color: '#4285F4'
+        }
+      ]
+    },
+    {
+      icon: 'activity',
+      title: 'Max Active Connections',
+      value: stats.peakActiveConnectionCount,
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Average',
+          value: stats.avgActiveConnectionCount,
+          color: '#34A853'
+        }
+      ]
+    },
+    {
+      icon: 'exclamation-triangle-fill',
+      title: 'Timeouts',
+      value: stats.timeoutsCount,
+      variant: stats.timeoutsCount > 0 ? 'danger' as const : 'success' as const,
+      breakdown: [
+        {
+          label: 'Rate',
+          value: `${(stats.timeoutRate * 100).toFixed(1)}%`,
+          color: stats.timeoutsCount > 0 ? '#EA4335' : '#28a745'
+        }
+      ]
+    },
+    {
+      icon: 'hourglass-split',
+      title: 'Max Pending Threads',
+      value: stats.maxPendingThreadCount,
+      variant: stats.pendingPeriodsPercent > 10 ? 'warning' as const : 'success' as const,
+      breakdown: [
+        {
+          label: 'Pending Time',
+          value: `${stats.pendingPeriodsPercent.toFixed(1)}%`,
+          color: stats.pendingPeriodsPercent > 10 ? '#FBBC05' : '#28a745'
+        }
+      ]
+    }
+  ];
 });
 
 // Methods
@@ -524,13 +561,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
 /* Table styles - Copied from ProfileEventTypes.vue */
 .event-tree-table {
   width: 100%;
@@ -595,9 +625,4 @@ onMounted(() => {
   height: 3rem;
 }
 
-@media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>
