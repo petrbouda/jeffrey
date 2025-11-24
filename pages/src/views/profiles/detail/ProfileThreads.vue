@@ -141,6 +141,9 @@
             <button type="button" class="btn-close" @click="closeFlamegraphModal" aria-label="Close"></button>
           </div>
           <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphModal">
+            <SearchBarComponent
+                :graph-updater="graphUpdater"
+                :with-timeseries="true"/>
             <TimeseriesComponent
                 :graph-type="GraphType.PRIMARY"
                 :event-type="selectedEventCode"
@@ -178,6 +181,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
+import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import GraphType from '@/services/flamegraphs/GraphType';
 import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
