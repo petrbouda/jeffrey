@@ -39,95 +39,106 @@
       <!-- Top Allocating Threads -->
       <div class="data-table-card">
         <div class="chart-card-header">
-          <h5>Top Allocators</h5>
+          <h5><i class="bi bi-memory me-2"></i>Top Allocators</h5>
         </div>
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-            <tr>
-              <th>Thread Name</th>
-              <th class="text-end">Allocated Memory</th>
-              <th class="text-end pe-3">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="(thread, index) in topAllocatingThreads" :key="index" class="allocation-row">
-              <td class="thread-name">{{ thread.threadInfo.name }}</td>
-              <td class="allocation-value">{{ FormattingService.formatBytes(thread.allocatedBytes) }}</td>
-              <td class="text-end pe-3">
-                <button
-                    class="btn btn-sm btn-outline-secondary allocation-flame-btn"
-                    @click="viewThreadAllocationFlamegraph(thread)"
-                    title="View thread allocation flamegraph"
-                    :disabled="!allocationType"
-                >
-                  <i class="bi bi-fire"></i>
-                </button>
-              </td>
-            </tr>
-            <tr v-if="topAllocatingThreads.length === 0">
-              <td colspan="3" class="empty-message">No allocation data available</td>
-            </tr>
-            </tbody>
-          </table>
+        <div class="thread-list">
+          <div v-for="(thread, index) in topAllocatingThreads"
+               :key="index"
+               class="thread-item">
+            <div class="thread-info">
+              <span class="thread-name" :title="thread.threadInfo.name">
+                {{ thread.threadInfo.name }}
+              </span>
+            </div>
+            <div class="thread-actions">
+              <span class="allocation-badge">
+                {{ FormattingService.formatBytes(thread.allocatedBytes) }}
+              </span>
+              <button
+                  class="flame-btn"
+                  @click="viewThreadAllocationFlamegraph(thread)"
+                  title="View thread allocation flamegraph"
+                  :disabled="!allocationType"
+              >
+                <i class="bi bi-fire"></i>
+              </button>
+            </div>
+          </div>
+          <div v-if="topAllocatingThreads.length === 0" class="empty-message">
+            <i class="bi bi-inbox"></i>
+            <span>No allocation data available</span>
+          </div>
         </div>
       </div>
 
       <!-- Top CPU Load Threads -->
       <div class="data-table-card">
         <div class="chart-card-header">
-          <h5>Top CPU Load Threads</h5>
+          <h5><i class="bi bi-cpu me-2"></i>Top CPU Load Threads</h5>
         </div>
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Thread Name</th>
-              <th class="text-end">CPU Load (%)</th>
-              <th class="text-end pe-3">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            <!-- User CPU Load Section -->
-            <tr class="section-header">
-              <td colspan="4" class="section-title">User CPU Load</td>
-            </tr>
-            <tr v-for="(thread, index) in topUserCpuThreads" :key="`user-${index}`" class="cpu-row">
-              <td class="timestamp">{{ formatTimestamp(thread.timestamp) }}</td>
-              <td class="thread-name">{{ thread.threadInfo.name }}</td>
-              <td class="cpu-value">{{ (thread.cpuLoad * 100).toFixed(2) }}%</td>
-              <td class="text-end pe-3">
-                <button
-                    class="btn btn-sm btn-outline-secondary allocation-flame-btn"
-                    @click="viewThreadCpuProfile(thread)"
-                    title="View thread CPU flamegraph"
-                >
-                  <i class="bi bi-fire"></i>
-                </button>
-              </td>
-            </tr>
 
-            <!-- System CPU Load Section -->
-            <tr class="section-header">
-              <td colspan="4" class="section-title">System CPU Load</td>
-            </tr>
-            <tr v-for="(thread, index) in topSystemCpuThreads" :key="`system-${index}`" class="cpu-row">
-              <td class="timestamp">{{ formatTimestamp(thread.timestamp) }}</td>
-              <td class="thread-name">{{ thread.threadInfo.name }}</td>
-              <td class="cpu-value">{{ (thread.cpuLoad * 100).toFixed(2) }}%</td>
-              <td class="text-end pe-3">
+        <!-- User CPU Load Section -->
+        <div class="cpu-section">
+          <div class="section-header">
+            <i class="bi bi-person-fill"></i>
+            <span>User CPU Load</span>
+          </div>
+          <div class="thread-list">
+            <div v-for="(thread, index) in topUserCpuThreads"
+                 :key="`user-${index}`"
+                 class="thread-item cpu-item">
+              <div class="thread-info">
+                <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
+                <span class="thread-name" :title="thread.threadInfo.name">
+                  {{ thread.threadInfo.name }}
+                </span>
+              </div>
+              <div class="thread-actions">
+                <span class="cpu-badge">
+                  {{ (thread.cpuLoad * 100).toFixed(2) }}%
+                </span>
                 <button
-                    class="btn btn-sm btn-outline-secondary allocation-flame-btn"
+                    class="flame-btn"
                     @click="viewThreadCpuProfile(thread)"
                     title="View thread CPU flamegraph"
                 >
                   <i class="bi bi-fire"></i>
                 </button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System CPU Load Section -->
+        <div class="cpu-section">
+          <div class="section-header">
+            <i class="bi bi-gear-fill"></i>
+            <span>System CPU Load</span>
+          </div>
+          <div class="thread-list">
+            <div v-for="(thread, index) in topSystemCpuThreads"
+                 :key="`system-${index}`"
+                 class="thread-item cpu-item">
+              <div class="thread-info">
+                <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
+                <span class="thread-name" :title="thread.threadInfo.name">
+                  {{ thread.threadInfo.name }}
+                </span>
+              </div>
+              <div class="thread-actions">
+                <span class="cpu-badge">
+                  {{ (thread.cpuLoad * 100).toFixed(2) }}%
+                </span>
+                <button
+                    class="flame-btn"
+                    @click="viewThreadCpuProfile(thread)"
+                    title="View thread CPU flamegraph"
+                >
+                  <i class="bi bi-fire"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -455,245 +466,256 @@ onMounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* Common Table Styles for both allocation and CPU tables */
+/* Thread Tables Container */
+.thread-tables-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Card Container */
+.data-table-card {
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+  border-left: 3px solid #4285F4;
+}
+
+.data-table-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.data-table-card .chart-card-header {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background-color: #fafbfc;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.data-table-card .chart-card-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.data-table-card .chart-card-header h5 i {
+  color: #4285F4;
+  font-size: 1rem;
+}
+
+/* Thread List */
+.thread-list {
+  padding: 0;
+}
+
+.thread-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #f1f3f5;
+  transition: all 0.15s ease;
+}
+
+.thread-item:last-child {
+  border-bottom: none;
+}
+
+.thread-item:hover {
+  background-color: rgba(66, 133, 244, 0.04);
+  padding-left: 1.1rem;
+}
+
+.thread-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
 
 .thread-name {
   font-weight: 500;
+  font-size: 0.8rem;
+  color: #2c3e50;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px;
 }
 
-.timestamp {
+.thread-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+/* Badges */
+.allocation-badge,
+.cpu-badge {
+  padding: 0.2rem 0.6rem;
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8rem;
-  color: #6c757d;
+  font-size: 0.7rem;
+  font-weight: 600;
   white-space: nowrap;
+  border: 1px solid rgba(234, 67, 53, 0.2);
 }
 
-.allocation-value,
-.cpu-value {
-  text-align: right;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8125rem;
-}
-
-.cpu-value {
+.allocation-badge {
+  background-color: rgba(234, 67, 53, 0.08);
   color: #dc3545;
 }
 
-/* Allocation flamegraph button styling */
-.allocation-flame-btn {
+.cpu-badge {
+  background-color: rgba(234, 67, 53, 0.08);
+  color: #dc3545;
+  min-width: 55px;
+  text-align: center;
+}
+
+.timestamp-badge {
+  padding: 0.15rem 0.5rem;
+  background-color: #f7f9fc;
+  border: 1px solid #e9ecef;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.65rem;
+  color: #6c757d;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Flamegraph Button */
+.flame-btn {
   width: 28px;
   height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
   padding: 0;
-  border-radius: 5px;
-  transition: all 0.2s ease;
   border: 1px solid #dee2e6;
-  color: #4285F4;
-}
-
-.allocation-flame-btn:hover {
-  background-color: #f8f9fa;
-  border-color: #4285F4;
-  color: #4285F4;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
-}
-
-.allocation-flame-btn:focus {
-  box-shadow: 0 0 0 0.2rem rgba(66, 133, 244, 0.25);
-}
-
-/* Compact allocation table styling */
-.data-table-card .table {
-  margin-bottom: 0;
-}
-
-.data-table-card .table th {
-  background: #f7f9fc;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: #555;
-  border-top: none;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e9ecef;
-  white-space: nowrap;
-}
-
-.data-table-card .table th:last-child {
-  text-align: right;
-  padding-right: 0.75rem;
-}
-
-.allocation-row {
-  transition: background-color 0.15s;
-}
-
-.allocation-row:hover {
-  background-color: rgba(66, 133, 244, 0.03);
-}
-
-.allocation-row td {
-  font-size: 0.8rem;
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid #f1f3f5;
-  color: #495057;
-  vertical-align: middle;
-  line-height: 1.3;
-}
-
-.allocation-row td.thread-name {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-  color: #2c3e50;
-}
-
-.allocation-row td.allocation-value {
-  text-align: right;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #dc3545;
-  white-space: nowrap;
-}
-
-.allocation-row td:last-child {
-  padding-right: 0.75rem;
-  text-align: right;
-}
-
-/* CPU Load Table specific styling */
-.cpu-row {
-  transition: background-color 0.15s;
-}
-
-.cpu-row:hover {
-  background-color: rgba(66, 133, 244, 0.03);
-}
-
-.cpu-row td {
-  font-size: 0.8rem;
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid #f1f3f5;
-  color: #495057;
-  vertical-align: middle;
-  line-height: 1.3;
-}
-
-.cpu-row td.timestamp {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.75rem;
-  color: #6c757d;
-  white-space: nowrap;
-}
-
-.cpu-row td.thread-name {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-  color: #2c3e50;
-}
-
-.cpu-row td.cpu-value {
-  text-align: right;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #dc3545;
-  white-space: nowrap;
-}
-
-.cpu-row td:last-child {
-  padding-right: 0.75rem;
-  text-align: right;
-}
-
-/* Section header styling for CPU table */
-.section-header td {
-  padding: 0.5rem 0.75rem !important;
-  border-bottom: 1px solid #e9ecef !important;
-}
-
-.section-header .section-title {
-  background-color: #f7f9fc;
-  font-weight: 600;
-  color: #555;
-  text-align: left;
-  font-size: 0.8rem;
-  letter-spacing: 0.03em;
-  border-left: 3px solid #4285F4;
-  padding-left: 0.5rem;
-  margin: 0;
-}
-
-/* Thread Tables Container */
-.thread-tables-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.data-table-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  border-left: 4px solid #4285F4;
-}
-
-.data-table-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.data-table-card .chart-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
   background-color: white;
-  border-bottom: 1px solid #f0f0f0;
+  color: #4285F4;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.data-table-card .chart-card-header h5 {
-  margin: 0;
-  font-size: 1.1rem;
+.flame-btn:hover:not(:disabled) {
+  background-color: #4285F4;
+  border-color: #4285F4;
+  color: white;
+  box-shadow: 0 1px 3px rgba(66, 133, 244, 0.3);
+}
+
+.flame-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.flame-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+/* CPU Sections */
+.cpu-section {
+  padding: 0;
+}
+
+.cpu-section:not(:last-child) {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  background-color: #f7f9fc;
+  border-bottom: 1px solid #e9ecef;
   font-weight: 600;
-  color: #333;
+  font-size: 0.75rem;
+  color: #555;
+  letter-spacing: 0.02em;
+}
+
+.section-header i {
+  color: #4285F4;
+  font-size: 0.85rem;
+}
+
+.cpu-item .thread-info {
+  gap: 0.5rem;
+}
+
+.cpu-item .thread-name {
+  font-size: 0.8rem;
+}
+
+/* Empty State */
+.empty-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  color: #6c757d;
+  font-size: 0.8rem;
+  gap: 0.4rem;
+}
+
+.empty-message i {
+  font-size: 1.5rem;
+  color: #dee2e6;
 }
 
 /* Responsive Adjustments */
 @media (max-width: 992px) {
-  .statistics-cards {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .thread-tables-container {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .statistics-cards {
-    grid-template-columns: repeat(2, 1fr);
+  .thread-item {
+    padding: 0.4rem 0.8rem;
+  }
+
+  .thread-item:hover {
+    padding-left: 0.9rem;
+  }
+
+  .thread-name {
+    font-size: 0.75rem;
+  }
+
+  .allocation-badge,
+  .cpu-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+  }
+
+  .flame-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
   }
 }
 
 @media (max-width: 576px) {
-  .statistics-cards {
-    grid-template-columns: 1fr;
+  .thread-actions {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .timestamp-badge {
+    font-size: 0.6rem;
   }
 }
 </style>
