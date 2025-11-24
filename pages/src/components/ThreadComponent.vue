@@ -384,23 +384,23 @@ function createContextMenuItems() {
       </div>
       
       <div v-if="props.threadRow.parked.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #E57373"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #E57373"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Thread Park</span>
           <span class="event-count text-muted small">{{ props.threadRow.parked.length }} event{{ props.threadRow.parked.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
-      
+
       <div v-if="props.threadRow.sleep.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #64B5F6"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #64B5F6"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Thread Sleep</span>
           <span class="event-count text-muted small">{{ props.threadRow.sleep.length }} event{{ props.threadRow.sleep.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
-      
+
       <div v-if="props.threadRow.blocked.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #FFB74D"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #FFB74D"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Monitor Blocked</span>
           <span class="event-count text-muted small">{{ props.threadRow.blocked.length }} event{{ props.threadRow.blocked.length !== 1 ? 's' : '' }}</span>
@@ -408,39 +408,39 @@ function createContextMenuItems() {
       </div>
       
       <div v-if="props.threadRow.waiting.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #AED581"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #AED581"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Monitor Wait</span>
           <span class="event-count text-muted small">{{ props.threadRow.waiting.length }} event{{ props.threadRow.waiting.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
-      
+
       <div v-if="props.threadRow.socketRead.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #9575CD"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #9575CD"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Socket Read</span>
           <span class="event-count text-muted small">{{ props.threadRow.socketRead.length }} event{{ props.threadRow.socketRead.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
-      
+
       <div v-if="props.threadRow.socketWrite.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #4DB6AC"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #4DB6AC"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Socket Write</span>
           <span class="event-count text-muted small">{{ props.threadRow.socketWrite.length }} event{{ props.threadRow.socketWrite.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
-      
+
       <div v-if="props.threadRow.fileRead.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #F06292"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #F06292"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">File Read</span>
           <span class="event-count text-muted small">{{ props.threadRow.fileRead.length }} event{{ props.threadRow.fileRead.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
-      
+
       <div v-if="props.threadRow.fileWrite.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 12px; height: 12px; border-radius: 3px; background-color: #7986CB"></div>
+        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #7986CB"></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">File Write</span>
           <span class="event-count text-muted small">{{ props.threadRow.fileWrite.length }} event{{ props.threadRow.fileWrite.length !== 1 ? 's' : '' }}</span>
@@ -490,26 +490,25 @@ function createContextMenuItems() {
 <style scoped>
 .thread-container {
   text-align: left;
-  padding: 6px 0;
+  padding: 4px 0;
 }
 
 .thread-card {
   background: white;
-  border-radius: 8px;
   border: 1px solid #e9ecef;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.15s ease;
 }
 
 .thread-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .thread-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
 }
@@ -517,8 +516,8 @@ function createContextMenuItems() {
 .thread-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-right: 8px;
+  gap: 3px;
+  margin-right: 6px;
 }
 
 .action-btn {
@@ -527,12 +526,12 @@ function createContextMenuItems() {
   justify-content: center;
   background-color: transparent;
   border: none;
-  border-radius: 4px;
-  height: 24px;
-  width: 24px;
+  height: 22px;
+  width: 22px;
   padding: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .flame-btn {
@@ -553,7 +552,7 @@ function createContextMenuItems() {
 
 .thread-title {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #424242;
   overflow: hidden;
@@ -563,7 +562,7 @@ function createContextMenuItems() {
 }
 
 .thread-content {
-  padding: 8px;
+  padding: 6px;
 }
 
 .thread-canvas {
@@ -574,19 +573,19 @@ function createContextMenuItems() {
 .flamegraph-menu {
   position: fixed;
   background: white;
-  border-radius: 6px;
-  min-width: 180px;
-  padding: 0 0 4px 0;
+  border: 1px solid #e9ecef;
+  min-width: 170px;
+  padding: 0 0 3px 0;
   z-index: 9999;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   animation: fadeIn 0.15s ease;
 }
 
 .flamegraph-menu .menu-header {
   display: flex;
   justify-content: flex-end;
-  padding: 4px 8px;
-  border-bottom: 1px solid #f1f3f5;
+  padding: 3px 6px;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .flamegraph-menu .menu-close {
@@ -594,15 +593,14 @@ function createContextMenuItems() {
   border: none;
   color: #6c757d;
   cursor: pointer;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: color 0.15s ease;
-  border-radius: 3px;
 }
 
 .flamegraph-menu .menu-close:hover {
@@ -611,8 +609,8 @@ function createContextMenuItems() {
 }
 
 .flamegraph-menu .menu-item {
-  padding: 6px 12px;
-  font-size: 0.8rem;
+  padding: 5px 10px;
+  font-size: 0.75rem;
   color: #495057;
   cursor: pointer;
   transition: all 0.1s ease;
@@ -624,7 +622,7 @@ function createContextMenuItems() {
 }
 
 .flamegraph-menu .menu-item:active {
-  background-color: rgba(63, 81, 181, 0.2);
+  background-color: rgba(63, 81, 181, 0.15);
 }
 
 .flamegraph-menu .menu-item.disabled {
@@ -651,7 +649,7 @@ function createContextMenuItems() {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.65);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -662,11 +660,11 @@ function createContextMenuItems() {
 
 .modal-container {
   background-color: white;
-  border-radius: 8px;
+  border: 1px solid #e9ecef;
   width: 90%;
-  max-width: 500px;
+  max-width: 480px;
   max-height: 80vh;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   animation: modalSlideIn 0.2s ease;
@@ -675,8 +673,8 @@ function createContextMenuItems() {
 }
 
 .tooltip-style-modal {
-  border: none;
-  max-width: 450px;
+  border: 1px solid #e9ecef;
+  max-width: 420px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -688,8 +686,8 @@ function createContextMenuItems() {
 
 .tooltip-style-modal .modal-close {
   position: absolute;
-  right: 10px;
-  top: 10px;
+  right: 8px;
+  top: 8px;
 }
 
 /* Info modal styles */
@@ -697,14 +695,14 @@ function createContextMenuItems() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 10px 12px;
   border-bottom: 1px solid #e9ecef;
   background-color: #f8f9fa;
 }
 
 .modal-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #3f51b5;
   font-weight: 600;
   display: flex;
@@ -714,33 +712,32 @@ function createContextMenuItems() {
 .modal-close {
   background: transparent;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: #6c757d;
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 24px;
+  height: 24px;
   transition: all 0.15s ease;
 }
 
 .modal-close:hover {
-  background-color: rgba(108, 117, 125, 0.15);
+  background-color: rgba(108, 117, 125, 0.12);
   color: #343a40;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 12px;
   overflow-y: auto;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 10px 16px;
+  padding: 8px 12px;
   border-top: 1px solid #e9ecef;
   background-color: #f8f9fa;
 }
@@ -748,33 +745,32 @@ function createContextMenuItems() {
 .tooltip-style-modal .modal-footer {
   background-color: #f8f9fa;
   margin-top: 0;
-  padding: 8px 16px;
+  padding: 6px 12px;
 }
 
 /* Section header for Thread Details */
 .section-header {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #424242;
   letter-spacing: 0.01em;
 }
 
 .section-title {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 /* Info cards */
 .info-card {
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   border: 1px solid #e9ecef;
   overflow: hidden;
 }
 
 .info-card-header {
   background-color: #f8f9fa;
-  padding: 12px 16px;
-  font-size: 0.95rem;
+  padding: 8px 12px;
+  font-size: 0.85rem;
   color: #3f51b5;
   font-weight: 600;
   border-bottom: 1px solid #e9ecef;
@@ -783,14 +779,14 @@ function createContextMenuItems() {
 }
 
 .info-card-body {
-  padding: 12px 16px;
+  padding: 8px 12px;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #f5f5f5;
 }
 
@@ -801,11 +797,11 @@ function createContextMenuItems() {
 .info-label {
   font-weight: 500;
   color: #495057;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .info-value {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #212529;
   text-align: right;
 }
@@ -813,8 +809,8 @@ function createContextMenuItems() {
 
 /* Flamegraph modal styles */
 .modal-fade .modal-body {
-  padding-left: 5px;
-  padding-right: 5px;
+  padding-left: 4px;
+  padding-right: 4px;
   overflow: hidden;
 }
 
@@ -824,8 +820,8 @@ function createContextMenuItems() {
 
 /* Add a subtle animation to the modal */
 .modal.fade .modal-dialog {
-  transition: transform 0.3s ease-out;
-  transform: translate(0, -50px);
+  transition: transform 0.25s ease-out;
+  transform: translate(0, -40px);
 }
 
 .modal.show .modal-dialog {
@@ -835,7 +831,7 @@ function createContextMenuItems() {
 /* Custom header styling */
 .modal-header {
   background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .modal-title {
