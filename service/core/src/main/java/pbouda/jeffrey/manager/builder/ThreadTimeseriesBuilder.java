@@ -42,7 +42,7 @@ public class ThreadTimeseriesBuilder implements RecordBuilder<GenericRecord, Sin
         long currActive = jsonNodes.get("activeCount").asLong();
 
         Duration timestamp = record.timestampFromStart();
-        values.addToValue(timestamp.toSeconds(), currActive);
+        values.updateValue(timestamp.toSeconds(), 0, v -> Math.max(currActive, v));
     }
 
     @Override

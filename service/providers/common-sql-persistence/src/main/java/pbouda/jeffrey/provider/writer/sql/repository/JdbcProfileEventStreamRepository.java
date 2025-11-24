@@ -94,9 +94,10 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
 
+        ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().timeseries().simple(configurer.useWeight()),
+                timeseries.simple(configurer.useWeight(), configurer.specifiedThread() != null),
                 baseParams,
                 (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
@@ -110,9 +111,10 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         MapSqlParameterSource baseParams = createBaseParams(profileId, configurer);
 
+        ComplexQueries.Timeseries timeseries = factory.complexQueries().timeseries();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                factory.complexQueries().timeseries().simpleSearch(configurer.useWeight()),
+                timeseries.simpleSearch(configurer.useWeight(), configurer.specifiedThread() != null),
                 baseParams,
                 (r, _) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")),
                 builder::onRecord);
@@ -178,12 +180,6 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         ComplexQueries.Flamegraph flamegraphQueries = factory.complexQueries().flamegraph();
         if (configurer.threads()) {
-            Long javaThreadId = configurer.specifiedThread() != null
-                    ? configurer.specifiedThread().javaId()
-                    : null;
-
-            baseParams.addValue("java_thread_id", javaThreadId);
-
             String sql = configurer.useWeight()
                     ? flamegraphQueries.byThreadAndWeight()
                     : flamegraphQueries.byThread();
@@ -223,6 +219,19 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
             baseParams = baseParams.addValue("search_pattern", configurer.searchPattern());
         } else {
             baseParams = baseParams.addValue("search_pattern", null);
+        }
+
+        if (configurer.threads()) {
+            boolean specifiedThread = configurer.specifiedThread() != null;
+            Long javaThreadId = specifiedThread ? configurer.specifiedThread().javaId() : null;
+            Long osThreadId = specifiedThread ? configurer.specifiedThread().osId() : null;
+
+            baseParams.addValue("java_thread_id", javaThreadId);
+            baseParams.addValue("os_thread_id", osThreadId);
+        } else {
+            baseParams = baseParams
+                    .addValue("java_thread_id", null)
+                    .addValue("os_thread_id", null);
         }
 
         List<StacktraceType> stacktraceTypes = configurer.filterStacktraceTypes();

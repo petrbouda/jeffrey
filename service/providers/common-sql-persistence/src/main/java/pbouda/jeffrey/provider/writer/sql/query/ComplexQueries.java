@@ -15,9 +15,9 @@ public interface ComplexQueries {
 
     interface Timeseries {
 
-        String simple(boolean useWeight);
+        String simple(boolean useWeight, boolean useSpecifiedThread);
 
-        String simpleSearch(boolean useWeight);
+        String simpleSearch(boolean useWeight, boolean useSpecifiedThread);
 
         String filterable(boolean useWeight);
 

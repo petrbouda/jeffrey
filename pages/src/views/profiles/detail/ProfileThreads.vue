@@ -144,12 +144,12 @@
             <TimeseriesComponent
                 :graph-type="GraphType.PRIMARY"
                 :event-type="selectedEventCode"
-                :use-weight="false"
+                :use-weight="useWeightForModal"
                 :zoom-enabled="true"
                 :graph-updater="graphUpdater" />
             <FlamegraphComponent
                 :with-timeseries="true"
-                :use-weight="false"
+                :use-weight="useWeightForModal"
                 :use-guardian="null"
                 scrollableWrapperClass="scrollable-wrapper"
                 :flamegraph-tooltip="flamegraphTooltip"
@@ -197,6 +197,7 @@ const loading = ref<boolean>(true);
 const threadSerie = ref<number[][]>();
 const showFlamegraphModal = ref(false);
 const selectedEventCode = ref("jdk.ObjectAllocationSample");
+const useWeightForModal = ref(false);
 
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
@@ -224,15 +225,10 @@ const metricsData = computed(() => {
   return [
     {
       icon: 'people-fill',
-      title: 'Thread Statistics',
+      title: 'Created Threads',
       value: threadStats.value.accumulated,
       variant: 'highlight' as const,
       breakdown: [
-        {
-          label: 'Total Threads',
-          value: threadStats.value.accumulated,
-          color: '#4285F4'
-        },
         {
           label: 'Peak Active',
           value: threadStats.value.peak,
@@ -327,6 +323,9 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Use the allocationType from ThreadStatisticsResponse instead of hardcoded value
   selectedEventCode.value = allocationType.value;
 
+  // Allocations use weight
+  useWeightForModal.value = true;
+
   // Use the threadInfo from the AllocatingThread
   // Create the flamegraph client for allocation data
   const flamegraphClient = new PrimaryFlamegraphClient(
@@ -335,7 +334,7 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
       profileId,
       selectedEventCode.value,
       true,
-      false,
+      true,
       false,
       false,
       false,
@@ -378,6 +377,9 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
 const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
   // Set up the flamegraph data for execution samples for the specific thread
   selectedEventCode.value = "jdk.ExecutionSample";
+
+  // CPU samples don't use weight
+  useWeightForModal.value = false;
 
   // Create the flamegraph client for execution sample data
   const flamegraphClient = new PrimaryFlamegraphClient(

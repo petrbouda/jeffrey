@@ -9,13 +9,13 @@ public class DuckDBNativeTimeseriesQueries implements ComplexQueries.Timeseries 
             EventTypeName.MALLOC, DuckDBNativeFlamegraphQueries.FREE_EVENT_EXISTS);
 
     @Override
-    public String simple(boolean useWeight) {
-        return QUERIES.simple(useWeight);
+    public String simple(boolean useWeight, boolean useSpecifiedThread) {
+        return QUERIES.simple(useWeight, useSpecifiedThread);
     }
 
     @Override
-    public String simpleSearch(boolean useWeight) {
-        return QUERIES.simpleSearch(useWeight);
+    public String simpleSearch(boolean useWeight, boolean useSpecifiedThread) {
+        return QUERIES.simpleSearch(useWeight, useSpecifiedThread);
     }
 
     @Override

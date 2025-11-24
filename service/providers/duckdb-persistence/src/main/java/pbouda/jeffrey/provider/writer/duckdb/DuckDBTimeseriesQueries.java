@@ -20,10 +20,12 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             SELECT (EPOCH_MS(e.start_timestamp - fs.first_ts) / 1000) AS seconds, SUM(<<target_value>>) AS value
             FROM events e
             CROSS JOIN first_sample fs
+            <<thread_join>>
             WHERE e.profile_id = :profile_id
                 AND e.event_type = <<event_type>>
                 AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                 AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                <<thread_filters>>
                 AND EXISTS (
                     SELECT 1
                     FROM stacktraces s
@@ -52,10 +54,12 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                     <<target_value>> AS event_value
                 FROM events e
                 CROSS JOIN first_sample fs
+                <<thread_join>>
                 WHERE e.profile_id = :profile_id
                     AND e.event_type = <<event_type>>
                     AND (:from_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) >= :from_time)
                     AND (:to_time IS NULL OR EPOCH_MS(e.start_timestamp - fs.first_ts) <= :to_time)
+                    <<thread_filters>>
             ),
             relevant_stacktraces AS (
                 SELECT s.stacktrace_hash, s.frame_hashes
@@ -211,28 +215,45 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
         return new DuckDBTimeseriesQueries(addQuotes(eventType), additionalFilters);
     }
 
-    private static String replaceValueField(String sql, boolean useWeight) {
+    private static String replaceValueField(String sql, boolean useWeight, boolean useSpecifiedThread) {
         String valueField = useWeight ? "e.weight" : "e.samples";
-        return sql.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+        String result = sql.replace(PLACEHOLDER_TARGET_VALUE, valueField);
+
+        if (useSpecifiedThread) {
+            result = result.replace(
+                    "<<thread_join>>",
+                    "LEFT JOIN threads t ON e.profile_id = t.profile_id AND e.thread_hash = t.thread_hash");
+            result = result.replace(
+                    "<<thread_filters>>",
+                    """
+                    AND (:java_thread_id IS NULL OR t.java_id = :java_thread_id)
+                    AND (:os_thread_id IS NULL OR t.os_id = :os_thread_id)
+                    """);
+        } else {
+            result = result.replace("<<thread_join>>", "")
+                    .replace("<<thread_filters>>", "");
+        }
+
+        return result;
     }
 
     @Override
-    public String simple(boolean useWeight) {
-        return replaceValueField(simple, useWeight);
+    public String simple(boolean useWeight, boolean useSpecifiedThread) {
+        return replaceValueField(simple, useWeight, useSpecifiedThread);
     }
 
     @Override
-    public String simpleSearch(boolean useWeight) {
-        return replaceValueField(simpleSearch, useWeight);
+    public String simpleSearch(boolean useWeight, boolean useSpecifiedThread) {
+        return replaceValueField(simpleSearch, useWeight, useSpecifiedThread);
     }
 
     @Override
     public String filterable(boolean useWeight) {
-        return replaceValueField(filterable, useWeight);
+        return replaceValueField(filterable, useWeight, false);
     }
 
     @Override
     public String frameBased(boolean useWeight) {
-        return replaceValueField(frameBased, useWeight);
+        return replaceValueField(frameBased, useWeight, false);
     }
 }
