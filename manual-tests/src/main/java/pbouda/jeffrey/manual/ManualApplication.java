@@ -9,6 +9,7 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBDataSourceProvider;
+import pbouda.jeffrey.provider.writer.duckdb.DuckDBFlamegraphQueries;
 import pbouda.jeffrey.provider.writer.sql.query.FlamegraphRecordRowMapper;
 
 import javax.sql.DataSource;
@@ -22,14 +23,14 @@ public class ManualApplication {
         DuckDBDataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
         DataSource datasource = dataSourceProvider.events(Map.of(
                 "url", "jdbc:duckdb:/Users/petrbouda/.jeffrey/jeffrey-data.db",
-                "pool-size", "1"
+                "pool-size", "10"
         ));
 
-        String flamegraphSql = "----";
+        String flamegraphSql = DuckDBFlamegraphQueries.of().simple();
 
         var client = new NamedParameterJdbcTemplate(datasource);
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("profile_id", "019a50f5-e81b-79eb-8b50-5f6992fd09f2")
+                .addValue("profile_id", "019aa845-b71e-7a0c-8138-fa35df42737e")
                 .addValue("event_type", "jdk.ExecutionSample")
                 .addValue("from_time", null)
                 .addValue("to_time", null)

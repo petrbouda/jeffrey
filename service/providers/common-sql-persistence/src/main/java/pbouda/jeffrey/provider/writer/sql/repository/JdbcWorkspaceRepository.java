@@ -136,14 +136,16 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             return;
         }
 
-        Instant instant = clock.instant();
-        long nanos = instant.getEpochSecond() * 1_000_000_000L + instant.getNano();
 
         MapSqlParameterSource[] paramSources = new MapSqlParameterSource[workspaceEvents.size()];
         for (int i = 0; i < workspaceEvents.size(); i++) {
+            Instant instant = clock.instant();
+            long nanos = instant.getEpochSecond() * 1_000_000_000L + instant.getNano();
+            long eventId = nanos + i;
+
             WorkspaceEvent event = workspaceEvents.get(i);
             paramSources[i] = new MapSqlParameterSource()
-                    .addValue("event_id", nanos)
+                    .addValue("event_id", eventId)
                     .addValue("origin_event_id", event.originEventId())
                     .addValue("workspace_id", event.workspaceId())
                     .addValue("project_id", event.projectId())

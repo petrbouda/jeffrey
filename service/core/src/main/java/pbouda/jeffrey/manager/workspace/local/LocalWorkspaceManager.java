@@ -32,20 +32,24 @@ import pbouda.jeffrey.repository.FilesystemRemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 import java.nio.file.Path;
+import java.time.Clock;
 
 public class LocalWorkspaceManager implements WorkspaceManager {
 
+    private final Clock clock;
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final ProjectsManager.Factory projectsManagerFactory;
 
     public LocalWorkspaceManager(
+            Clock clock,
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             ProjectsManager.Factory projectsManagerFactory) {
 
+        this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
@@ -93,7 +97,7 @@ public class LocalWorkspaceManager implements WorkspaceManager {
         if (!FileSystemUtils.isDirectory(workspacePath)) {
             throw new IllegalStateException("Workspace path does not exist or is not a directory: " + workspacePath);
         }
-        return new FilesystemRemoteWorkspaceRepository(workspacePath);
+        return new FilesystemRemoteWorkspaceRepository(clock, workspacePath);
     }
 
     @Override

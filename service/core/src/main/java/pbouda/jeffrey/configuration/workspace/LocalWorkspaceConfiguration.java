@@ -29,25 +29,24 @@ import pbouda.jeffrey.manager.workspace.local.LocalWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
+import java.time.Clock;
+
 @Configuration
 public class LocalWorkspaceConfiguration {
 
     public static final String LOCAL_WORKSPACE_TYPE = "LOCAL_WORKSPACE_FACTORY_TYPE";
     public static final String LOCAL_PROJECTS_TYPE = "LOCAL_PROJECTS_FACTORY_TYPE";
 
-//    @Bean(LOCAL_PROJECTS_TYPE)
-//    public ProjectsManager.Factory projectsManagerFactory() {
-//        return workspaceInfo -> new LocalProjectsManager(workspaceInfo);
-//    }
-
     @Bean(LOCAL_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(
+            Clock applicationClock,
             JeffreyDirs jeffreyDirs,
             Repositories repositories,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new LocalWorkspaceManager(jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
+            return new LocalWorkspaceManager(
+                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
         };
     }
 

@@ -16,13 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import { computed } from 'vue';
+import {computed} from 'vue';
 import RepositoryStatistics from "@/services/project/model/RepositoryStatistics.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import Utils from "@/services/Utils";
 import Badge from '@/components/Badge.vue';
 import FormattingService from "@/services/FormattingService.ts";
-import type { Variant } from "@/types/ui.ts";
+import type {Variant} from "@/types/ui.ts";
 
 interface Props {
   statistics: RepositoryStatistics | null;
@@ -49,80 +49,78 @@ const lastActivityTime = computed(() => {
 </script>
 
 <template>
-  <div class="repository-stats-compact mb-4" v-if="statistics">
-    <div class="stats-compact-content">
-      <div class="row g-3">
-        <!-- Sessions Overview -->
-        <div class="col-md-4">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-collection text-primary"></i>
-              <span class="compact-stat-title">Sessions</span>
-            </div>
-            <div class="compact-stat-metrics">
-              <div class="metric-item">
-                <span class="metric-label">Latest Status</span>
-                <span class="metric-value">
+  <div class="mb-4" v-if="statistics">
+    <div class="row g-3">
+      <!-- Sessions Overview -->
+      <div class="col-md-4">
+        <div class="compact-stat-card">
+          <div class="compact-stat-header">
+            <i class="bi bi-collection text-primary"></i>
+            <span class="compact-stat-title">Sessions</span>
+          </div>
+          <div class="compact-stat-metrics">
+            <div class="metric-item">
+              <span class="metric-label">Latest Status</span>
+              <span class="metric-value">
                   <Badge :value="Utils.capitalize(statistics.sessionStatus.toLowerCase())"
                          :variant="getStatusVariant(statistics.sessionStatus)" size="xxs"/>
                 </span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Total Sessions</span>
-                <span class="metric-value">{{ statistics.totalSessions }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Last Activity</span>
-                <span class="metric-value">{{ lastActivityTime }}</span>
-              </div>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Total Sessions</span>
+              <span class="metric-value">{{ statistics.totalSessions }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Last Activity</span>
+              <span class="metric-value">{{ lastActivityTime }}</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Storage Overview -->
-        <div class="col-md-4">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-hdd text-success"></i>
-              <span class="compact-stat-title">Storage</span>
+      <!-- Storage Overview -->
+      <div class="col-md-4">
+        <div class="compact-stat-card">
+          <div class="compact-stat-header">
+            <i class="bi bi-hdd text-success"></i>
+            <span class="compact-stat-title">Storage</span>
+          </div>
+          <div class="compact-stat-metrics">
+            <div class="metric-item">
+              <span class="metric-label">Total Size</span>
+              <span class="metric-value">{{ FormattingService.formatBytes(statistics.totalSize) }}</span>
             </div>
-            <div class="compact-stat-metrics">
-              <div class="metric-item">
-                <span class="metric-label">Total Size</span>
-                <span class="metric-value">{{ FormattingService.formatBytes(statistics.totalSize) }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Total Files</span>
-                <span class="metric-value">{{ statistics.totalFiles }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Biggest Session</span>
-                <span class="metric-value">{{ FormattingService.formatBytes(statistics.biggestSessionSize) }}</span>
-              </div>
+            <div class="metric-item">
+              <span class="metric-label">Total Files</span>
+              <span class="metric-value">{{ statistics.totalFiles }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Biggest Session</span>
+              <span class="metric-value">{{ FormattingService.formatBytes(statistics.biggestSessionSize) }}</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- File Types -->
-        <div class="col-md-4">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-files text-info"></i>
-              <span class="compact-stat-title">File Types</span>
+      <!-- File Types -->
+      <div class="col-md-4">
+        <div class="compact-stat-card">
+          <div class="compact-stat-header">
+            <i class="bi bi-files text-info"></i>
+            <span class="compact-stat-title">File Types</span>
+          </div>
+          <div class="compact-stat-metrics">
+            <div class="metric-item">
+              <span class="metric-label">JFR Files</span>
+              <span class="metric-value text-primary">{{ statistics.jfrFiles }}</span>
             </div>
-            <div class="compact-stat-metrics">
-              <div class="metric-item">
-                <span class="metric-label">JFR Files</span>
-                <span class="metric-value text-primary">{{ statistics.jfrFiles }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Heap Dumps</span>
-                <span class="metric-value text-danger">{{ statistics.heapDumpFiles }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Other Files</span>
-                <span class="metric-value">{{ statistics.otherFiles }}</span>
-              </div>
+            <div class="metric-item">
+              <span class="metric-label">Heap Dumps</span>
+              <span class="metric-value text-danger">{{ statistics.heapDumpFiles }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Other Files</span>
+              <span class="metric-value">{{ statistics.otherFiles }}</span>
             </div>
           </div>
         </div>
@@ -133,19 +131,6 @@ const lastActivityTime = computed(() => {
 
 <style scoped>
 /* Compact Repository Statistics Cards Styling */
-.repository-stats-compact {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04),
-  0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
-}
-
-.stats-compact-content {
-  padding: 16px 20px;
-}
-
 .compact-stat-card {
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
@@ -217,10 +202,6 @@ const lastActivityTime = computed(() => {
 
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
-  .stats-compact-content {
-    padding: 12px 16px;
-  }
-
   .compact-stat-card {
     padding: 10px 12px;
   }
@@ -244,14 +225,6 @@ const lastActivityTime = computed(() => {
 }
 
 @media (max-width: 576px) {
-  .repository-stats-compact {
-    border-radius: 8px;
-  }
-
-  .stats-compact-content {
-    padding: 10px 12px;
-  }
-
   .compact-stat-card {
     padding: 8px 10px;
   }

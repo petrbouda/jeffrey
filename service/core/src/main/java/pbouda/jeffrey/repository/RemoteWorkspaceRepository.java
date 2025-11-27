@@ -20,6 +20,7 @@ package pbouda.jeffrey.repository;
 
 import pbouda.jeffrey.repository.model.RemoteProject;
 import pbouda.jeffrey.repository.model.RemoteSession;
+import pbouda.jeffrey.repository.model.RemoteWorkspaceSettings;
 
 import java.util.List;
 
@@ -39,4 +40,18 @@ public interface RemoteWorkspaceRepository {
      * @return list of all sessions in a single project
      */
     List<RemoteSession> allSessions(RemoteProject project);
+
+    /**
+     * Uploads profiler settings for the workspace.
+     *
+     * @param settings the workspace profiler's settings
+     */
+    void uploadSettings(RemoteWorkspaceSettings settings);
+
+    /**
+     * Removes legacy settings from the remote workspace.
+     *
+     * @param keepMaxVersions the maximum number of versions to keep
+     */
+    void removeLegacySettings(int keepMaxVersions);
 }

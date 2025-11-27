@@ -18,24 +18,46 @@
 
 package pbouda.jeffrey.repository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.repository.model.RemoteProject;
 import pbouda.jeffrey.repository.model.RemoteSession;
+import pbouda.jeffrey.repository.model.RemoteWorkspaceSettings;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 
 public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepository {
 
+    private static final Logger LOG = LoggerFactory.getLogger(FilesystemRemoteWorkspaceRepository.class);
+
+    private static final Comparator<Path> TIMESTAMP_FILE_COMPARATOR =
+            Comparator.comparing((Path path) -> {
+                String filename = path.toString();
+                String substring = filename.substring(filename.indexOf('-') + 1, filename.lastIndexOf('.'));
+                return Instant.parse(substring);
+            }).reversed();
+
     private static final String PROJECT_INFO_FILE = ".project-info.json";
     private static final String SESSION_INFO_FILE = ".session-info.json";
+    private static final String WORKSPACE_SETTINGS_FILE_PATTERN = ".workspace-settings-<<timestamp>>.json";
+    private static final String WORKSPACE_SETTINGS_DIR = ".settings";
 
     private final Path workspacePath;
+    private final Clock clock;
 
-    public FilesystemRemoteWorkspaceRepository(Path workspacePath) {
+    public FilesystemRemoteWorkspaceRepository(Clock clock, Path workspacePath) {
+        this.clock = clock;
         if (workspacePath == null) {
             throw new IllegalArgumentException("Workspace path cannot be null");
         }
@@ -78,5 +100,59 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
                     }
                 })
                 .toList();
+    }
+
+    @Override
+    public void uploadSettings(RemoteWorkspaceSettings settings) {
+        Path settingsDir = FileSystemUtils.createDirectories(workspacePath.resolve(WORKSPACE_SETTINGS_DIR));
+
+        List<Path> settingsFiles = FileSystemUtils.sortedFilesInDirectory(
+                settingsDir, TIMESTAMP_FILE_COMPARATOR);
+
+        Optional<Path> latestSettings = settingsFiles.stream()
+                .min(TIMESTAMP_FILE_COMPARATOR);
+
+        // Skip upload if the latest settings are identical
+        if (latestSettings.isPresent()) {
+            try {
+                String content = Files.readString(latestSettings.get());
+                RemoteWorkspaceSettings existingSettings = Json.read(content, RemoteWorkspaceSettings.class);
+                if (existingSettings.equals(settings)) {
+                    LOG.debug("Skipping upload of workspace settings as they are identical to the latest version");
+                    return;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to read latest workspace settings file: " + latestSettings.get(), e);
+            }
+        }
+
+        try {
+            String settingsFilename = WORKSPACE_SETTINGS_FILE_PATTERN
+                    .replace("<<timestamp>>", clock.instant().toString());
+
+            Files.writeString(settingsDir.resolve(settingsFilename), Json.toString(settings), CREATE_NEW);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write workspace settings file", e);
+        }
+    }
+
+    @Override
+    public void removeLegacySettings(int keepMaxVersions) {
+        Path settingsDir = workspacePath.resolve(WORKSPACE_SETTINGS_DIR);
+        if (!FileSystemUtils.isDirectory(settingsDir)) {
+            return;
+        }
+
+        List<Path> settingsFiles = FileSystemUtils.sortedFilesInDirectory(
+                settingsDir, TIMESTAMP_FILE_COMPARATOR);
+
+        for (int i = keepMaxVersions; i < settingsFiles.size(); i++) {
+            try {
+                LOG.info("Deleting legacy settings file: {}", settingsFiles.get(i));
+                Files.deleteIfExists(settingsFiles.get(i));
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to delete legacy settings file: " + settingsFiles.get(i), e);
+            }
+        }
     }
 }
