@@ -55,7 +55,7 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
 
     private static final String PROJECT_INFO_FILE = ".project-info.json";
     private static final String SESSION_INFO_FILE = ".session-info.json";
-    private static final String WORKSPACE_SETTINGS_PREFIX = "workspace-settings-";
+    private static final String WORKSPACE_SETTINGS_PREFIX = "settings-";
     private static final String WORKSPACE_SETTINGS_FILE_PATTERN = WORKSPACE_SETTINGS_PREFIX + "<<timestamp>>.json";
     private static final String WORKSPACE_SETTINGS_DIR = ".settings";
 
@@ -142,8 +142,10 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
 
     private static List<Path> getSettingsFiles(Path settingsDir) {
         return FileSystemUtils.allFilesInDirectory(settingsDir).stream()
-                .filter(path ->  path.getFileName().toString().startsWith(WORKSPACE_SETTINGS_PREFIX))
-                .filter(path -> path.getFileName().toString().endsWith(".json"))
+                .filter(path -> {
+                    String filename = path.getFileName().toString();
+                    return filename.startsWith(WORKSPACE_SETTINGS_PREFIX) && filename.endsWith(".json");
+                })
                 .sorted(TIMESTAMP_FILE_COMPARATOR)
                 .toList();
     }
