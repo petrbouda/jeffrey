@@ -31,6 +31,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -41,16 +43,20 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemRemoteWorkspaceRepository.class);
 
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmssSSSSSS").withZone(ZoneOffset.UTC);
+
     private static final Comparator<Path> TIMESTAMP_FILE_COMPARATOR =
             Comparator.comparing((Path path) -> {
                 String filename = path.toString();
                 String substring = filename.substring(filename.indexOf('-') + 1, filename.lastIndexOf('.'));
-                return Instant.parse(substring);
+                return Instant.from(TIMESTAMP_FORMATTER.parse(substring));
             }).reversed();
 
     private static final String PROJECT_INFO_FILE = ".project-info.json";
     private static final String SESSION_INFO_FILE = ".session-info.json";
-    private static final String WORKSPACE_SETTINGS_FILE_PATTERN = ".workspace-settings-<<timestamp>>.json";
+    private static final String WORKSPACE_SETTINGS_PREFIX = "workspace-settings-";
+    private static final String WORKSPACE_SETTINGS_FILE_PATTERN = WORKSPACE_SETTINGS_PREFIX + "<<timestamp>>.json";
     private static final String WORKSPACE_SETTINGS_DIR = ".settings";
 
     private final Path workspacePath;
@@ -106,11 +112,8 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
     public void uploadSettings(RemoteWorkspaceSettings settings) {
         Path settingsDir = FileSystemUtils.createDirectories(workspacePath.resolve(WORKSPACE_SETTINGS_DIR));
 
-        List<Path> settingsFiles = FileSystemUtils.sortedFilesInDirectory(
-                settingsDir, TIMESTAMP_FILE_COMPARATOR);
-
-        Optional<Path> latestSettings = settingsFiles.stream()
-                .min(TIMESTAMP_FILE_COMPARATOR);
+        List<Path> settingsFiles = getSettingsFiles(settingsDir);
+        Optional<Path> latestSettings = settingsFiles.stream().findFirst();
 
         // Skip upload if the latest settings are identical
         if (latestSettings.isPresent()) {
@@ -127,13 +130,22 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
         }
 
         try {
+            String timestamp = TIMESTAMP_FORMATTER.format(clock.instant());
             String settingsFilename = WORKSPACE_SETTINGS_FILE_PATTERN
-                    .replace("<<timestamp>>", clock.instant().toString());
+                    .replace("<<timestamp>>", timestamp);
 
             Files.writeString(settingsDir.resolve(settingsFilename), Json.toString(settings), CREATE_NEW);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write workspace settings file", e);
         }
+    }
+
+    private static List<Path> getSettingsFiles(Path settingsDir) {
+        return FileSystemUtils.allFilesInDirectory(settingsDir).stream()
+                .filter(path ->  path.getFileName().toString().startsWith(WORKSPACE_SETTINGS_PREFIX))
+                .filter(path -> path.getFileName().toString().endsWith(".json"))
+                .sorted(TIMESTAMP_FILE_COMPARATOR)
+                .toList();
     }
 
     @Override
@@ -143,8 +155,7 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
             return;
         }
 
-        List<Path> settingsFiles = FileSystemUtils.sortedFilesInDirectory(
-                settingsDir, TIMESTAMP_FILE_COMPARATOR);
+        List<Path> settingsFiles = getSettingsFiles(settingsDir);
 
         for (int i = keepMaxVersions; i < settingsFiles.size(); i++) {
             try {
