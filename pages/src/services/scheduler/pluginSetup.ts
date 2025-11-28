@@ -18,6 +18,8 @@
 
 import { jobPluginRegistry } from './JobPluginRegistry';
 import { ProjectsSynchronizerPlugin } from './plugins/ProjectsSynchronizerPlugin';
+import { WorkspaceProfilerSettingsSynchronizerPlugin } from './plugins/WorkspaceProfilerSettingsSynchronizerPlugin';
+import { WorkspaceEventsReplicatorPlugin } from './plugins/WorkspaceEventsReplicatorPlugin';
 
 /**
  * Register all available job type plugins
@@ -26,14 +28,22 @@ export async function setupJobPlugins() {
   // Register the Projects Synchronizer plugin
   const projectsSyncPlugin = new ProjectsSynchronizerPlugin();
   jobPluginRegistry.registerPlugin(projectsSyncPlugin);
-  
+
+  // Register the Workspace Profiler Settings Synchronizer plugin
+  const profilerSettingsSyncPlugin = new WorkspaceProfilerSettingsSynchronizerPlugin();
+  jobPluginRegistry.registerPlugin(profilerSettingsSyncPlugin);
+
+  // Register the Workspace Events Replicator plugin
+  const eventsReplicatorPlugin = new WorkspaceEventsReplicatorPlugin();
+  jobPluginRegistry.registerPlugin(eventsReplicatorPlugin);
+
   // TODO: Register additional plugins here as they are created
   // Example:
   // const dataCleanupPlugin = new DataCleanupPlugin();
   // jobPluginRegistry.registerPlugin(dataCleanupPlugin);
-  
+
   // Initialize all registered plugins
   await jobPluginRegistry.initializePlugins();
-  
+
   return jobPluginRegistry.getAllPlugins();
 }

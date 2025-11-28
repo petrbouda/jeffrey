@@ -23,10 +23,11 @@ import pbouda.jeffrey.common.model.job.JobType;
 import java.util.Map;
 
 public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits ProjectsSynchronizerJobDescriptor,
+        permits WorkspaceProfilerSettingsSynchronizerJobDescriptor,
+        ProjectsSynchronizerJobDescriptor,
         RecordingIntervalGeneratorJobDescriptor,
-        RepositorySessionCleanerJobDescriptor,
         RepositoryRecordingCleanerJobDescriptor,
+        RepositorySessionCleanerJobDescriptor,
         WorkspaceEventsReplicatorJobDescriptor {
 
     Map<String, String> params();

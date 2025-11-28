@@ -22,11 +22,16 @@ import java.util.Map;
 
 public abstract class JobDescriptorUtils {
 
-    public static String resolveParameter(Map<String, String> params, String name) {
+    public static String resolveString(Map<String, String> params, String name) {
         String value = params.get(name);
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(name + " must not be blank");
         }
         return value;
+    }
+
+    public static int resolveInt(Map<String, String> params, String name) {
+        String value = resolveString(params, name);
+        return Integer.parseInt(value);
     }
 }

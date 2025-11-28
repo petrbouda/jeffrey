@@ -2,7 +2,5 @@ package pbouda.jeffrey.repository.model;
 
 import java.util.Map;
 
-public record ProfilerSettings(
-        String workspaceSettings,
-        Map<String, String> projectSettings) {
+public record ProfilerSettings(String defaultSettings, Map<String, String> projectSettings) {
 }

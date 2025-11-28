@@ -89,12 +89,4 @@ export class ProjectsSynchronizerPlugin extends BaseJobTypePlugin {
       iconBg: this.cardMetadata.iconBg
     };
   }
-
-  async initialize(): Promise<void> {
-    console.log('ProjectsSynchronizerPlugin initialized');
-  }
-
-  destroy(): void {
-    console.log('ProjectsSynchronizerPlugin destroyed');
-  }
 }

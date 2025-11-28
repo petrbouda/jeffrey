@@ -36,13 +36,7 @@ import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.scheduler.Scheduler;
-import pbouda.jeffrey.scheduler.job.Job;
-import pbouda.jeffrey.scheduler.job.ProjectsSynchronizerJob;
-import pbouda.jeffrey.scheduler.job.RecordingIntervalGeneratorProjectJob;
-import pbouda.jeffrey.scheduler.job.RecordingStorageSynchronizerJob;
-import pbouda.jeffrey.scheduler.job.RepositoryRecordingCleanerProjectJob;
-import pbouda.jeffrey.scheduler.job.RepositorySessionCleanerProjectJob;
-import pbouda.jeffrey.scheduler.job.WorkspaceEventsReplicatorJob;
+import pbouda.jeffrey.scheduler.job.*;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -179,5 +173,18 @@ public class JobsConfiguration {
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 clock,
                 migrationCallback);
+    }
+
+    @Bean
+    public Job profilerSettingsSynchronizerJob(
+            Repositories repositories,
+            @Value("${jeffrey.job.profiler-settings-synchronizer.period:}") Duration jobPeriod) {
+
+        return new WorkspaceProfilerSettingsSynchronizerJob(
+                jobPeriod == null ? defaultPeriod : jobPeriod,
+                repositories.newProfilerRepository(),
+                localWorkspacesManager,
+                schedulerManager,
+                jobDescriptorFactory);
     }
 }

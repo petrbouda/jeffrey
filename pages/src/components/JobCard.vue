@@ -139,6 +139,22 @@ const getVariantFromColor = (color: string): string => {
   color: #0d6efd;
 }
 
+.bg-purple-soft {
+  background-color: rgba(111, 66, 193, 0.15);
+}
+
+.text-purple {
+  color: #6f42c1;
+}
+
+.bg-orange-soft {
+  background-color: rgba(253, 126, 20, 0.15);
+}
+
+.text-orange {
+  color: #fd7e14;
+}
+
 /* Button styling */
 .btn-primary {
   background-color: #5e64ff;

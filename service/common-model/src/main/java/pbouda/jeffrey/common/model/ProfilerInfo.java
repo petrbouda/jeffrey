@@ -24,7 +24,11 @@ public record ProfilerInfo(
         String projectId,
         String agentSettings) {
 
-    public boolean isGlobalSettings() {
+    public boolean isGlobal() {
         return workspaceId == null && projectId == null;
+    }
+
+    public boolean isWorkspace() {
+        return workspaceId != null && projectId == null;
     }
 }

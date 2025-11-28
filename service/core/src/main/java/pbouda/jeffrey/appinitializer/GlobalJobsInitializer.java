@@ -24,6 +24,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceProfilerSettingsSynchronizerJobDescriptor;
 
 public class GlobalJobsInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -48,6 +49,12 @@ public class GlobalJobsInitializer implements ApplicationListener<ApplicationRea
                 "jeffrey.job.workspace-events-replicator.create-if-not-exists", Boolean.class, false);
         if (workspaceEventsReplicatorCreate) {
             schedulerManager.create(new WorkspaceEventsReplicatorJobDescriptor());
+        }
+
+        boolean profileSynchronizerCreate = environment.getProperty(
+                "jeffrey.job.profiler-settings-synchronizer.create-if-not-exists", Boolean.class, false);
+        if (profileSynchronizerCreate) {
+            schedulerManager.create(WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(environment));
         }
     }
 }

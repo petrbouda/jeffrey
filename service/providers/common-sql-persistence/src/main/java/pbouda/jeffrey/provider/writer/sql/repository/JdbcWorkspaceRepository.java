@@ -136,7 +136,6 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             return;
         }
 
-
         MapSqlParameterSource[] paramSources = new MapSqlParameterSource[workspaceEvents.size()];
         for (int i = 0; i < workspaceEvents.size(); i++) {
             Instant instant = clock.instant();

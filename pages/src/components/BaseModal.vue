@@ -294,4 +294,8 @@ defineExpose({
 .text-purple {
   color: #6f42c1;
 }
+
+.text-orange {
+  color: #fd7e14;
+}
 </style>

@@ -45,6 +45,11 @@ public class JdbcProfilerRepository implements ProfilerRepository {
             WHERE workspace_id = :workspace_id AND project_id = :project_id""";
 
     //language=SQL
+    private static final String FIND_WORKSPACE_SETTINGS = """
+            SELECT * FROM profiler_settings
+            WHERE workspace_id = :workspace_id""";
+
+    //language=SQL
     private static final String FIND_ALL_SETTINGS = "SELECT * FROM profiler_settings";
 
     //language=SQL
@@ -77,6 +82,15 @@ public class JdbcProfilerRepository implements ProfilerRepository {
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_PROFILER_SETTINGS, FIND_SETTINGS, paramSource, settingsMapper());
+    }
+
+    @Override
+    public List<ProfilerInfo> findWorkspaceSettings(String workspaceId) {
+        SqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_PROFILER_SETTINGS, FIND_WORKSPACE_SETTINGS, paramSource, settingsMapper());
     }
 
     @Override

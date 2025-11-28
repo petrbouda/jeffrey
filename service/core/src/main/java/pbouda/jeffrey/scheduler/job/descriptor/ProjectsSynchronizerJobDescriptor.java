@@ -49,7 +49,7 @@ public record ProjectsSynchronizerJobDescriptor(
     }
 
     public static ProjectsSynchronizerJobDescriptor of(Map<String, String> params) {
-        return of(JobDescriptorUtils.resolveParameter(params, PARAM_TEMPLATE_ID));
+        return of(JobDescriptorUtils.resolveString(params, PARAM_TEMPLATE_ID));
     }
 
     private static ProjectsSynchronizerJobDescriptor of(String templateId) {
