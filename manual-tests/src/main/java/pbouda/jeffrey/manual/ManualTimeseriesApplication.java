@@ -13,7 +13,7 @@ public class ManualTimeseriesApplication {
         IO.println("Manual tests");
 
         DuckDBDataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
-        DataSource datasource = dataSourceProvider.events(Map.of(
+        DataSource datasource = dataSourceProvider.database(Map.of(
                 "url", "jdbc:duckdb:/Users/petrbouda/.jeffrey/jeffrey-data.db",
                 "pool-size", "1"
         ));

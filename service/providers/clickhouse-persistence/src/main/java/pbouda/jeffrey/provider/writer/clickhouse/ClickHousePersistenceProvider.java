@@ -47,8 +47,8 @@ public class ClickHousePersistenceProvider implements PersistenceProvider {
             Supplier<RecordingEventParser> recordingEventParser,
             Clock clock) {
 
-        int batchSize = Config.parseInt(properties.events(), "batch-size", DEFAULT_BATCH_SIZE);
-        String clickhouseUri = Config.parseString(properties.events(), "url");
+        int batchSize = Config.parseInt(properties.database(), "batch-size", DEFAULT_BATCH_SIZE);
+        String clickhouseUri = Config.parseString(properties.database(), "url");
 
         // Initialize data storage for Core Services (Management of Workspaces, Projects, Profiles, ...)
         corePersistenceProvider.initialize(properties, recordingStorage, recordingEventParser, clock);

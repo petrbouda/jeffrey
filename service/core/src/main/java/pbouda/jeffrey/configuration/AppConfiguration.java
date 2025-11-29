@@ -108,13 +108,9 @@ public class AppConfiguration {
             throw new IllegalArgumentException("Unsupported persistence database: " + databaseName);
         }
 
-        PersistenceProperties persistenceProperties = new PersistenceProperties(
-                properties.getCore(),
-                properties.getEvents());
-
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
-                persistenceProperties,
+                new PersistenceProperties(properties.getDatabase()),
                 recordingStorage,
                 recordingParserProvider::newRecordingEventParser,
                 clock);

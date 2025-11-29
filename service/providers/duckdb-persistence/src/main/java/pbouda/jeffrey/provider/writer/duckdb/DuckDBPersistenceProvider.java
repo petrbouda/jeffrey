@@ -47,8 +47,8 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     private final DataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
     private final DuckDBSQLFormatter sqlFormatter = new DuckDBSQLFormatter();
 
-    private DatabaseClientProvider coreDatabaseClientProvider;
-    private DataSource eventsDataSource;
+    private DatabaseClientProvider databaseClientProvider;
+    private DataSource dataSource;
     private Function<String, EventWriter> eventWriterFactory;
     private RecordingStorage recordingStorage;
     private Supplier<RecordingEventParser> recordingEventParser;
@@ -64,24 +64,23 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
         this.recordingStorage = recordingStorage;
         this.recordingEventParser = recordingEventParser;
         this.clock = clock;
-        int batchSize = Config.parseInt(properties.events(), "batch-size", DEFAULT_BATCH_SIZE);
+        int batchSize = Config.parseInt(properties.database(), "batch-size", DEFAULT_BATCH_SIZE);
 
         // Start JFR recording for Connection Pool statistics
         JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
 
-        this.coreDatabaseClientProvider = new DatabaseClientProvider(
-                dataSourceProvider.core(properties.core()), false);
-        this.eventsDataSource = dataSourceProvider.events(properties.events());
+        dataSource = dataSourceProvider.database(properties.database());
+        this.databaseClientProvider = new DatabaseClientProvider(dataSource, false);
 
         this.eventWriterFactory = profileId -> {
-            return new SQLEventWriter(profileId, () -> new DuckDBEventWriters(eventsDataSource, profileId, batchSize));
+            return new SQLEventWriter(profileId, () -> new DuckDBEventWriters(dataSource, profileId, batchSize));
         };
     }
 
     @Override
     public void runMigrations() {
         Flyway flyway = Flyway.configure()
-                .dataSource(this.coreDatabaseClientProvider.dataSource())
+                .dataSource(dataSource)
                 .validateOnMigrate(true)
                 .validateMigrationNaming(true)
                 .locations("classpath:db/migration/" + DATABASE_NAME)
@@ -100,7 +99,7 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     public ProfileInitializer.Factory newProfileInitializerFactory(Function<String, EventWriter> eventWriterFactory) {
         return projectInfo -> new SQLProfileInitializer(
                 projectInfo,
-                coreDatabaseClientProvider,
+                databaseClientProvider,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 recordingEventParser.get(),
                 eventWriterFactory,
@@ -123,12 +122,11 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
                 sqlFormatter, defaultComplexQueries, nativeComplexQueries);
 
         return new JdbcRepositories(
-                sqlFormatter, queryBuilderFactoryResolver, coreDatabaseClientProvider, clock);
+                sqlFormatter, queryBuilderFactoryResolver, databaseClientProvider, clock);
     }
 
     @Override
     public void close() {
-        coreDatabaseClientProvider.close();
-        DataSourceUtils.close(this.eventsDataSource);
+        DataSourceUtils.close(this.dataSource);
     }
 }

@@ -37,12 +37,7 @@ public class DuckDBDataSourceProvider implements DataSourceProvider {
     private static final int DEFAULT_POOL_SIZE = 50;
 
     @Override
-    public DataSource core(Map<String, String> properties) {
-        return common(properties);
-    }
-
-    @Override
-    public DataSource events(Map<String, String> properties) {
+    public DataSource database(Map<String, String> properties) {
         return common(properties);
     }
 

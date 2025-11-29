@@ -26,8 +26,7 @@ import java.util.Map;
 @ConfigurationProperties("jeffrey.persistence")
 public class PersistenceConfigProperties {
     private String mode;
-    private Map<String, String> core = new HashMap<>();
-    private Map<String, String> events = new HashMap<>();
+    private Map<String, String> database = new HashMap<>();
     private Map<String, String> reader = new HashMap<>();
 
     public String getMode() {
@@ -46,19 +45,11 @@ public class PersistenceConfigProperties {
         this.reader = reader;
     }
 
-    public Map<String, String> getCore() {
-        return core;
+    public Map<String, String> getDatabase() {
+        return database;
     }
 
-    public void setCore(Map<String, String> core) {
-        this.core = core;
-    }
-
-    public Map<String, String> getEvents() {
-        return events;
-    }
-
-    public void setEvents(Map<String, String> events) {
-        this.events = events;
+    public void setDatabase(Map<String, String> database) {
+        this.database = database;
     }
 }

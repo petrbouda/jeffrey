@@ -23,7 +23,5 @@ import java.util.Map;
 
 public interface DataSourceProvider {
 
-    DataSource core(Map<String, String> properties);
-
-    DataSource events(Map<String, String> properties);
+    DataSource database(Map<String, String> properties);
 }
