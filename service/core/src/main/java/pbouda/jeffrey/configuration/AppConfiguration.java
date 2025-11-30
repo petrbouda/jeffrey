@@ -25,6 +25,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
+import pbouda.jeffrey.appinitializer.ProfilerInitializer;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
@@ -122,6 +124,12 @@ public class AppConfiguration {
     @Bean
     public Repositories repositories(PersistenceProvider persistenceProvider) {
         return persistenceProvider.repositories();
+    }
+
+
+    @Bean
+    public ProfilerInitializer profilerInitializer(Repositories repositories) {
+        return new ProfilerInitializer(repositories.newProfilerRepository());
     }
 
     @Bean

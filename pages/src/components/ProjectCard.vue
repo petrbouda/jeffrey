@@ -25,11 +25,11 @@
       <!-- Alert Badge -->
       <div v-if="project.alertCount > 0" class="alert-section">
         <Badge
-          :value="`${project.alertCount} Alert${project.alertCount > 1 ? 's' : ''}`"
-          variant="red"
-          size="s"
-          icon="bi bi-exclamation-triangle-fill"
-          :uppercase="false"
+            :value="`${project.alertCount} Alert${project.alertCount > 1 ? 's' : ''}`"
+            variant="red"
+            size="s"
+            icon="bi bi-exclamation-triangle-fill"
+            :uppercase="false"
         />
       </div>
 
@@ -64,14 +64,12 @@
 </template>
 
 <script setup lang="ts">
-import {defineProps, computed} from 'vue';
+import {computed, defineProps} from 'vue';
 import Project from "@/services/model/Project.ts";
 import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
 import Badge from '@/components/Badge.vue';
-import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
 import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
-import { useNavigation } from '@/composables/useNavigation';
-import type {Variant} from "@/types/ui.ts";
+import {useNavigation} from '@/composables/useNavigation';
 import ProjectsClient from "@/services/ProjectsClient.ts";
 import ToastService from "@/services/ToastService.ts";
 
@@ -81,7 +79,7 @@ const props = defineProps<{
   isOrphaned?: boolean;
 }>();
 
-const { navigateToProject } = useNavigation();
+const {navigateToProject} = useNavigation();
 
 const moveToProject = async (projectId: string) => {
   // Check if this is a REMOTE workspace with a virtual project
@@ -89,10 +87,10 @@ const moveToProject = async (projectId: string) => {
     try {
       // Create project in the same remote workspace with originProjectId set to remote project's originId
       const createdProject = await ProjectsClient.create(
-        props.project.name,
-        props.workspaceId,  // Use the current REMOTE workspace ID
-        undefined, // templateId
-        props.project.originId   // originProjectId - use the originId from the remote project
+          props.project.name,
+          props.workspaceId,  // Use the current REMOTE workspace ID
+          undefined, // templateId
+          props.project.originId   // originProjectId - use the originId from the remote project
       );
 
       // Navigate to the newly created project using the returned project's workspace ID
@@ -115,21 +113,6 @@ const getHeaderClass = computed(() => {
   }
   if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'header-sandbox';
   return 'header-local';
-});
-
-const getWorkspaceIcon = computed(() => {
-  if (props.project.workspaceType === WorkspaceType.REMOTE) return 'bi bi-cloud-fill';
-  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'bi bi-house-fill';
-  return 'bi bi-folder-fill';
-});
-
-const getWorkspaceLabel = computed(() => {
-  if (props.isOrphaned) return 'ORPHANED PROJECT';
-  if (props.project.workspaceType === WorkspaceType.REMOTE) {
-    return props.project.isVirtual ? 'REMOTE VIRTUAL' : 'REMOTE PROJECT';
-  }
-  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'SANDBOX PROJECT';
-  return 'LOCAL PROJECT';
 });
 
 const showCriticalWarning = computed(() => {
@@ -173,18 +156,6 @@ const formatStatus = (status: RecordingStatus): string => {
       return 'Unknown';
   }
 };
-
-const getStatusVariant = (status: RecordingStatus): Variant => {
-  switch (status) {
-    case RecordingStatus.ACTIVE:
-      return 'warning';
-    case RecordingStatus.FINISHED:
-      return 'green';
-    case RecordingStatus.UNKNOWN:
-    default:
-      return 'purple';
-  }
-};
 </script>
 
 <style scoped>
@@ -194,9 +165,8 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1),
+  0 1px 2px rgba(0, 0, 0, 0.06);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   height: 100%;
   display: flex;
@@ -206,9 +176,8 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
 
 .project-card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1),
+  0 2px 4px rgba(0, 0, 0, 0.06);
   border-color: #d1d5db;
 }
 
@@ -218,9 +187,9 @@ const getStatusVariant = (status: RecordingStatus): Variant => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 5px 14px;
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: white;
 }

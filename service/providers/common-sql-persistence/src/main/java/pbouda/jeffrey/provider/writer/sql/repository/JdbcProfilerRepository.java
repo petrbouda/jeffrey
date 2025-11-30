@@ -35,8 +35,8 @@ public class JdbcProfilerRepository implements ProfilerRepository {
 
     //language=SQL
     private static final String UPSERT_SETTINGS = """
-            INSERT INTO profiler_settings (profiler_id, workspace_id, project_id, agent_settings)
-            VALUES (:profiler_id, :workspace_id, :project_id, :agent_settings)
+            INSERT INTO profiler_settings (workspace_id, project_id, agent_settings)
+            VALUES (:workspace_id, :project_id, :agent_settings)
             ON CONFLICT (workspace_id, project_id) DO UPDATE SET agent_settings = EXCLUDED.agent_settings""";
 
     //language=SQL
@@ -66,7 +66,6 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     @Override
     public void upsertSettings(ProfilerInfo profiler) {
         SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("profiler_id", profiler.id())
                 .addValue("workspace_id", profiler.workspaceId())
                 .addValue("project_id", profiler.projectId())
                 .addValue("agent_settings", profiler.agentSettings());
@@ -95,8 +94,7 @@ public class JdbcProfilerRepository implements ProfilerRepository {
 
     @Override
     public List<ProfilerInfo> findAllSettings() {
-        return databaseClient.query(
-                StatementLabel.FIND_PROFILER_SETTINGS, FIND_ALL_SETTINGS, settingsMapper());
+        return databaseClient.query(StatementLabel.FIND_PROFILER_SETTINGS, FIND_ALL_SETTINGS, settingsMapper());
     }
 
     @Override
@@ -110,7 +108,6 @@ public class JdbcProfilerRepository implements ProfilerRepository {
 
     private static RowMapper<ProfilerInfo> settingsMapper() {
         return (rs, _) -> new ProfilerInfo(
-                rs.getString("profiler_id"),
                 rs.getString("workspace_id"),
                 rs.getString("project_id"),
                 rs.getString("agent_settings")

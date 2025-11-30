@@ -35,7 +35,6 @@ import java.time.Clock;
 public class LocalWorkspaceConfiguration {
 
     public static final String LOCAL_WORKSPACE_TYPE = "LOCAL_WORKSPACE_FACTORY_TYPE";
-    public static final String LOCAL_PROJECTS_TYPE = "LOCAL_PROJECTS_FACTORY_TYPE";
 
     @Bean(LOCAL_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(

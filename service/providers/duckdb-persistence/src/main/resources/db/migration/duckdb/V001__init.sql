@@ -247,7 +247,6 @@ CREATE TABLE IF NOT EXISTS workspace_event_consumers
 
 CREATE TABLE IF NOT EXISTS profiler_settings
 (
-    profiler_id     VARCHAR PRIMARY KEY,
     workspace_id    VARCHAR,
     project_id      VARCHAR,
     agent_settings  VARCHAR NOT NULL

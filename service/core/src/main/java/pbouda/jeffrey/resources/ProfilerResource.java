@@ -44,7 +44,6 @@ public class ProfilerResource {
     @Path("settings")
     public void upsertSettings(ProfilerSettingsEntity request) {
         ProfilerInfo profilerInfo = new ProfilerInfo(
-                IDGenerator.generate(),
                 request.workspaceId,
                 request.projectId,
                 request.agentSettings);

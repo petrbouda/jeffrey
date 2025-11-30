@@ -19,7 +19,6 @@
 package pbouda.jeffrey.common.model;
 
 public record ProfilerInfo(
-        String id,
         String workspaceId,
         String projectId,
         String agentSettings) {
