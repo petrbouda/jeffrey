@@ -28,6 +28,7 @@ public record RecordingSessionResponse(
         String id,
         Instant createdAt,
         RecordingStatus status,
+        String profilerSettings,
         List<RepositoryFileResponse> files) {
 
     public static RecordingSessionResponse from(RecordingSession session) {
@@ -35,6 +36,7 @@ public record RecordingSessionResponse(
                 session.id(),
                 session.createdAt(),
                 session.status(),
+                session.profilerSettings(),
                 session.files().stream()
                         .map(RepositoryFileResponse::from)
                         .toList());
@@ -47,6 +49,7 @@ public record RecordingSessionResponse(
                 response.createdAt(),
                 response.status(),
                 null,
+                response.profilerSettings(),
                 response.files().stream()
                         .map(RepositoryFileResponse::from)
                         .toList());

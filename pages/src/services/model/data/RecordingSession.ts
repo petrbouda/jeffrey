@@ -24,6 +24,7 @@ export default class RecordingSession {
         public id: string,
         public createdAt: string,
         public status: RecordingStatus,
+        public profilerSettings: string,
         public files: RepositoryFile[],
     ) {
     }

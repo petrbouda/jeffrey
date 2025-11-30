@@ -116,8 +116,32 @@ const getSortedRecordings = (session: RecordingSession) => {
   });
 };
 
+// Toggle profiler settings expansion
+const toggleProfilerSettings = (sessionId: string) => {
+  expandedProfilerSettings.value[sessionId] = !expandedProfilerSettings.value[sessionId];
+
+  // If turning on profiler settings, close multi-select mode and expand session
+  if (expandedProfilerSettings.value[sessionId]) {
+    showMultiSelectActions.value[sessionId] = false;
+    expandedSessions.value[sessionId] = true;
+  }
+};
+
+// Copy profiler settings to clipboard
+const copyProfilerSettings = async (settings: string) => {
+  try {
+    await navigator.clipboard.writeText(settings);
+    toast.success('Copied', 'Profiler settings copied to clipboard');
+  } catch (error) {
+    toast.error('Copy Failed', 'Failed to copy to clipboard');
+  }
+};
+
 // Track which sessions are expanded
 const expandedSessions = ref<{ [key: string]: boolean }>({});
+
+// Track which profiler settings are expanded
+const expandedProfilerSettings = ref<{ [key: string]: boolean }>({});
 
 // Track how many files to show per session (default 10)
 const visibleFilesCount = ref<{ [key: string]: number }>({});
@@ -297,8 +321,12 @@ const toggleSelectionMode = (sessionId: string) => {
   // Toggle the multi-select mode for this session
   showMultiSelectActions.value[sessionId] = !showMultiSelectActions.value[sessionId];
 
-  // If turning off selection mode, clear all selections
-  if (!showMultiSelectActions.value[sessionId]) {
+  // If turning on selection mode, close profiler settings and expand session
+  if (showMultiSelectActions.value[sessionId]) {
+    expandedProfilerSettings.value[sessionId] = false;
+    expandedSessions.value[sessionId] = true;
+  } else {
+    // If turning off selection mode, clear all selections
     clearAllSelections(sessionId);
   }
 };
@@ -605,9 +633,9 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       </div>
                     </div>
                   </div>
-                  <div class="d-flex align-items-center gap-2">
+                  <div class="d-flex align-items-center gap-1">
                     <div v-if="showActions[session.id]"
-                         class="d-flex align-items-center gap-2 action-buttons-container">
+                         class="d-flex align-items-center gap-1 action-buttons-container">
                       <button
                           class="btn btn-sm btn-outline-primary"
                           type="button"
@@ -640,7 +668,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <i class="bi bi-three-dots"></i>
                     </button>
                     <button
-                        class="action-btn action-menu-btn ms-2"
+                        class="action-btn action-menu-btn ms-1"
                         :class="{'active': showMultiSelectActions[session.id]}"
                         type="button"
                         title="Toggle multi-select mode"
@@ -648,12 +676,33 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <i class="bi"
                          :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
                     </button>
+                    <button
+                        v-if="session.profilerSettings"
+                        class="action-btn action-menu-btn ms-1"
+                        :class="{'active': expandedProfilerSettings[session.id]}"
+                        type="button"
+                        title="Show profiler configuration"
+                        @click.stop="toggleProfilerSettings(session.id)">
+                      <i class="bi bi-gear-fill"></i>
+                    </button>
                   </div>
                 </div>
               </div>
 
               <!-- Session recordings (shown when expanded) -->
               <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
+                <!-- Profiler Configuration Section -->
+                <div v-if="expandedProfilerSettings[session.id] && session.profilerSettings"
+                     class="profiler-config-controls d-flex align-items-center mb-2">
+                  <i class="bi bi-gear-fill me-2 text-primary"></i>
+                  <code
+                    class="raw-command-code mb-0 clickable"
+                    @click.stop="copyProfilerSettings(session.profilerSettings)"
+                    title="Click to copy">
+                    {{ session.profilerSettings }}
+                  </code>
+                </div>
+
                 <!-- Multi-select controls -->
                 <div v-if="showMultiSelectActions[session.id]"
                      class="multi-select-controls d-flex justify-content-between align-items-center mb-2">
@@ -1258,6 +1307,40 @@ code {
   color: #4a51eb;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Profiler Configuration Controls Styling */
+.profiler-config-controls {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.profiler-config-controls .raw-command-code {
+  background-color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  word-break: break-all;
+  color: #2d3748;
+  border: 1px solid #e2e8f0;
+  font-family: 'Monaco', 'Consolas', monospace;
+  line-height: 1.6;
+  max-height: 100px;
+  overflow-y: auto;
+  width: 100%;
+  flex: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profiler-config-controls .raw-command-code:hover {
+  background-color: #f8f9fa;
+  border-color: #5e64ff;
+  box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.1);
 }
 
 

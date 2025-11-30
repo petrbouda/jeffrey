@@ -27,6 +27,7 @@ public record RecordingSession(
         Instant createdAt,
         RecordingStatus status,
         SupportedRecordingFile recordingFileType,
+        String profilerSettings,
         List<RepositoryFile> files) {
 }
 

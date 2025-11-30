@@ -252,7 +252,7 @@ export function useProfilerConfig() {
       });
     }
 
-    const filePattern = config.value.file && config.value.file.trim() ? config.value.file : '%{JEFFREY_CURRENT_SESSION}/profile-%t.jfr';
+    const filePattern = config.value.file && config.value.file.trim() ? config.value.file : '<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr';
     tokens.push({
       key: 'file',
       label: 'Output',
@@ -350,7 +350,7 @@ export function useProfilerConfig() {
     }
 
     // Always add file (mandatory)
-    const filePattern = config.value.file && config.value.file.trim() ? config.value.file : '%{JEFFREY_CURRENT_SESSION}/profile-%t.jfr';
+    const filePattern = config.value.file && config.value.file.trim() ? config.value.file : '<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr';
     parts.push(`file=${filePattern}`);
 
     return parts.join(',');

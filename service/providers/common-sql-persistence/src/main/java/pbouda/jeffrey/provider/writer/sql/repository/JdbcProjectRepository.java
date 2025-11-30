@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
@@ -67,8 +68,8 @@ public class JdbcProjectRepository implements ProjectRepository {
     //language=SQL
     private static final String INSERT_WORKSPACE_SESSION = """
             INSERT INTO workspace_sessions
-            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, workspaces_path, origin_created_at, created_at)
-            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :workspaces_path, :origin_created_at, :created_at)
+            (session_id, origin_session_id, project_id, workspace_id, last_detected_file, relative_path, workspaces_path, profiler_settings, origin_created_at, created_at)
+            VALUES (:session_id, :origin_session_id, :project_id, :workspace_id, :last_detected_file, :relative_path, :workspaces_path, :profiler_settings, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -137,6 +138,7 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("last_detected_file", session.lastDetectedFile())
                 .addValue("relative_path", session.relativePath().toString())
                 .addValue("workspaces_path", session.workspacesPath() != null ? session.workspacesPath().toString() : null)
+                .addValue("profiler_settings", session.profilerSettings() != null ? Json.toString(session.profilerSettings()) : null)
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
@@ -183,6 +185,7 @@ public class JdbcProjectRepository implements ProjectRepository {
                     rs.getString("last_detected_file"),
                     Path.of(rs.getString("relative_path")),
                     workspacesPath,
+                    rs.getString("profiler_settings"),
                     Mappers.instant(rs, "origin_created_at"),
                     Mappers.instant(rs, "created_at")
             );

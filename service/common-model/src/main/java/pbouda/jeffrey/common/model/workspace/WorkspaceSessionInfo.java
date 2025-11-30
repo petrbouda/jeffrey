@@ -30,6 +30,7 @@ public record WorkspaceSessionInfo(
         String lastDetectedFile,
         Path relativePath,
         Path workspacesPath,
+        String profilerSettings,
         Instant originCreatedAt,
         Instant createdAt) {
 }

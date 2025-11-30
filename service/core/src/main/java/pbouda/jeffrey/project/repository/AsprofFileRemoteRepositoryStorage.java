@@ -159,6 +159,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                 sessionInfo.originCreatedAt(),
                 recordingStatus,
                 recordingFileType,
+                sessionInfo.profilerSettings(),
                 repositoryFiles);
     }
 

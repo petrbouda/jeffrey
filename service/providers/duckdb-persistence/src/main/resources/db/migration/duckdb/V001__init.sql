@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS workspace_sessions
     last_detected_file   VARCHAR,
     relative_path        VARCHAR NOT NULL,
     workspaces_path      VARCHAR,
+    profiler_settings    VARCHAR,
     origin_created_at    TIMESTAMPTZ NOT NULL,
     created_at           TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (project_id, session_id)

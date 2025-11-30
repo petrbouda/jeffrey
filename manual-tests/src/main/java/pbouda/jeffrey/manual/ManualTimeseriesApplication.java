@@ -15,7 +15,7 @@ public class ManualTimeseriesApplication {
         DuckDBDataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
         DataSource datasource = dataSourceProvider.database(Map.of(
                 "url", "jdbc:duckdb:/Users/petrbouda/.jeffrey/jeffrey-data.db",
-                "pool-size", "1"
+                "pool-size", "10"
         ));
 
         String flamegraphSql = "----";

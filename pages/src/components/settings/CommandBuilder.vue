@@ -136,7 +136,7 @@
                         type="text"
                         class="form-control"
                         v-model="config.file"
-                        placeholder="%{JEFFREY_CURRENT_SESSION}/profile-%t.jfr"
+                        placeholder="<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr"
                         required
                     >
                     <div class="form-help">Output file pattern (%t = timestamp, %p = PID, %n{MAX} = sequence number, %{ENV} - environment variable)</div>
