@@ -65,16 +65,16 @@ public final class SandboxWorkspacesManager implements WorkspacesManager {
 
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
-        WorkspaceInfo workspaceInfo = localWorkspaceInfo();
+        WorkspaceInfo workspaceInfo = sandboxWorkspaceInfo(request);
         return workspacesRepository.create(workspaceInfo);
     }
 
-    private WorkspaceInfo localWorkspaceInfo() {
+    private WorkspaceInfo sandboxWorkspaceInfo(CreateWorkspaceRequest request) {
         return new WorkspaceInfo(
                 IDGenerator.generate(),
                 null,
-                "Sandbox Workspace",
-                "Playground for adhoc analysis",
+                request.name(),
+                request.description(),
                 null,
                 null,
                 clock.instant(),

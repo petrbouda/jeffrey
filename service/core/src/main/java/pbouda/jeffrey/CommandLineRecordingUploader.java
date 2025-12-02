@@ -33,10 +33,15 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.ResourcePropertySource;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,7 +53,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
     private static final Logger LOG = LoggerFactory.getLogger(CommandLineRecordingUploader.class);
 
-    private static final String PROJECT_NAME = "Examples";
+    private static final String PROJECT_NAME = "Jeffrey Examples Project";
 
     public static void uploadRecordings(String[] args) {
         if (args.length != 2) {
@@ -82,7 +87,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
                 Map<String, Object> mapSources = Map.of(
                         "jeffrey.job.scheduler.enabled", false,
-                        "jeffrey.logging.jfr-events.application", false
+                        "jeffrey.logging.jfr-events.application.enabled", false
                 );
                 var sources = context.getEnvironment().getPropertySources();
                 sources.addFirst(propertySource);
@@ -99,11 +104,21 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         var homeDirs = context.getBean(JeffreyDirs.class);
         homeDirs.initialize();
 
-        // TODO: Create Sandbox workspaces!
+        WorkspacesManager.CreateWorkspaceRequest createRequest = WorkspacesManager.CreateWorkspaceRequest.builder()
+                .name("Jeffrey Examples")
+                .description("Workspace for example recordings")
+                .type(WorkspaceType.SANDBOX)
+                .build();
 
-        var projectsManager = context.getBean(ProjectsManager.class);
+        WorkspacesManager workspacesManager = context.getBean(SandboxWorkspacesManager.class);
+        var workspaceInfo = workspacesManager.create(createRequest);
+
+        WorkspaceManager workspaceManager = workspacesManager.mapToWorkspaceManager(workspaceInfo);
+        ProjectsManager projectsManager = workspaceManager.projectsManager();
+
         CreateProject createProject = new CreateProject(
                 null, PROJECT_NAME, null, null, Map.of());
+
         ProjectManager projectManager = projectsManager.create(createProject);
 
         try (var stream = Files.list(recordingsDir)) {

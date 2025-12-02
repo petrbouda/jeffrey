@@ -37,12 +37,6 @@ import java.time.Clock;
 public class SandboxWorkspaceConfiguration {
 
     public static final String SANDBOX_WORKSPACE_TYPE = "SANDBOX_WORKSPACE_FACTORY_TYPE";
-    public static final String SANDBOX_PROJECTS_TYPE = "SANDBOX_PROJECTS_FACTORY_TYPE";
-
-//    @Bean(SANDBOX_PROJECTS_TYPE)
-//    public ProjectsManager.Factory projectsManagerFactory() {
-//        return workspaceInfo -> new SandboxProjectsManager(workspaceInfo);
-//    }
 
     @Bean(SANDBOX_WORKSPACE_TYPE)
     public SandboxWorkspacesManager localWorkspacesManager(
