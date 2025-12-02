@@ -33,23 +33,10 @@ jobs:
         path: ./build/build-app/target/jeffrey.jar
 
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Jeffrey ${{ steps.version.outputs.VERSION }}
+        name: Jeffrey ${{ steps.version.outputs.VERSION }}
+        body: Release ${{ steps.version.outputs.VERSION }}
+        files: ./build/build-app/target/jeffrey.jar
         draft: false
         prerelease: false
-
-    - name: Upload Release Asset - Application
-      id: upload-release-asset-application
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./build/build-app/target/jeffrey.jar
-        asset_name: jeffrey.jar
-        asset_content_type: application/java-archive
