@@ -33,6 +33,8 @@ import java.util.Optional;
 
 public class JdbcProfilerRepository implements ProfilerRepository {
 
+    private static final String EMPTY = "$$EMPTY$$";
+
     //language=SQL
     private static final String UPSERT_SETTINGS = """
             INSERT INTO profiler_settings (workspace_id, project_id, agent_settings)
@@ -63,12 +65,40 @@ public class JdbcProfilerRepository implements ProfilerRepository {
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILER);
     }
 
+    /**
+     * Writes empty strings instead of nulls to the database because of UNIQUE constraints does not work with nulls.
+     *
+     * @param profiler the profiler info with possible nulls
+     * @return the profiler info with empty strings instead of nulls
+     */
+    private static ProfilerInfo writeEmpty(ProfilerInfo profiler) {
+        return new ProfilerInfo(
+                profiler.workspaceId() == null ? EMPTY : profiler.workspaceId(),
+                profiler.projectId() == null ? EMPTY : profiler.projectId(),
+                profiler.agentSettings());
+    }
+
+    /**
+     * Reads empty strings from the database and converts them to nulls.
+     *
+     * @param profiler the profiler info with possible empty strings
+     * @return the profiler info with nulls instead of empty strings
+     */
+    private static ProfilerInfo readEmpty(ProfilerInfo profiler) {
+        return new ProfilerInfo(
+                EMPTY.equals(profiler.workspaceId()) ? null : profiler.workspaceId(),
+                EMPTY.equals(profiler.projectId()) ? null : profiler.projectId(),
+                profiler.agentSettings());
+    }
+
     @Override
     public void upsertSettings(ProfilerInfo profiler) {
+        ProfilerInfo newProfiler = writeEmpty(profiler);
+
         SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", profiler.workspaceId())
-                .addValue("project_id", profiler.projectId())
-                .addValue("agent_settings", profiler.agentSettings());
+                .addValue("workspace_id", newProfiler.workspaceId())
+                .addValue("project_id", newProfiler.projectId())
+                .addValue("agent_settings", newProfiler.agentSettings());
 
         databaseClient.insert(StatementLabel.UPSERT_PROFILER_SETTINGS, UPSERT_SETTINGS, paramSource);
     }
@@ -99,18 +129,24 @@ public class JdbcProfilerRepository implements ProfilerRepository {
 
     @Override
     public void deleteSettings(String workspaceId, String projectId) {
+        ProfilerInfo profilerInfo = new ProfilerInfo(workspaceId, projectId, null);
+        ProfilerInfo newProfiler = writeEmpty(profilerInfo);
+
         SqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceId)
-                .addValue("project_id", projectId);
+                .addValue("workspace_id", newProfiler.workspaceId())
+                .addValue("project_id", newProfiler.projectId());
 
         databaseClient.delete(StatementLabel.DELETE_PROFILER_SETTINGS, DELETE_SETTINGS, paramSource);
     }
 
     private static RowMapper<ProfilerInfo> settingsMapper() {
-        return (rs, _) -> new ProfilerInfo(
-                rs.getString("workspace_id"),
-                rs.getString("project_id"),
-                rs.getString("agent_settings")
-        );
+        return (rs, _) -> {
+            ProfilerInfo profilerInfo = new ProfilerInfo(
+                    rs.getString("workspace_id"),
+                    rs.getString("project_id"),
+                    rs.getString("agent_settings"));
+
+            return readEmpty(profilerInfo);
+        };
     }
 }
