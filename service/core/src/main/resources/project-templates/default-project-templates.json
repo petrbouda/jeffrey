@@ -4,7 +4,8 @@
     "name": "Projects Synchronizer Template",
     "target": "GLOBAL_SCHEDULER",
     "repository": {
-      "type": "ASYNC_PROFILER"
+      "type": "ASYNC_PROFILER",
+      "finishedSessionDetectionFile": "perf-counters.hsperfdata"
     },
     "jobDefinitions": [
       "default-repository-session-cleaner",
