@@ -25,7 +25,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.ProfilerInitializer;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
@@ -36,7 +35,7 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.project.CommonProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.project.repository.AsprofWithTempFileRemoteRepositoryStorage;
+import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
@@ -194,7 +193,7 @@ public class AppConfiguration {
             Repositories repositories,
             Clock clock) {
         return projectId -> {
-            return new AsprofWithTempFileRemoteRepositoryStorage(
+            return new AsprofFileRemoteRepositoryStorage(
                     projectId,
                     jeffreyDirs,
                     repositories.newProjectRepository(projectId.id()),

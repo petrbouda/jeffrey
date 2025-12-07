@@ -20,6 +20,7 @@ package pbouda.jeffrey.project.repository;
 
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.repository.FileExtensions;
 import pbouda.jeffrey.project.repository.detection.AsprofStatusStrategy;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
@@ -30,6 +31,10 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import java.time.Clock;
 import java.time.Duration;
 
+/**
+ * It looks like that the new version of Async-profiler no longer creates temp files during profiling.
+ * {@link FileExtensions#ASPROF_TEMP} files are not created anymore.
+ */
 public class AsprofWithTempFileRemoteRepositoryStorage extends AsprofFileRemoteRepositoryStorage {
 
     private final Duration finishedPeriod;

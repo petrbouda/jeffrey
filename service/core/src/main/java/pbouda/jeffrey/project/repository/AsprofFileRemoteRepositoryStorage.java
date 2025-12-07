@@ -227,11 +227,6 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     }
 
     @Override
-    public SupportedRecordingFile supportedRecordingFileType() {
-        return recordingFileType;
-    }
-
-    @Override
     public RepositoryType type() {
         return RepositoryType.ASYNC_PROFILER;
     }

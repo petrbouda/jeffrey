@@ -71,13 +71,6 @@ public interface RemoteRepositoryStorage {
     void deleteSession(String sessionId);
 
     /**
-     * Returns the type of the recording file supported by this repository.
-     *
-     * @return the supported recording file type
-     */
-    SupportedRecordingFile supportedRecordingFileType();
-
-    /**
      * Type of the repository.
      *
      * @return type of the repository.
