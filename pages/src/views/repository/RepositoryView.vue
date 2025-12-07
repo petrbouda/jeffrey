@@ -595,21 +595,18 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
       <RepositoryStatistics :statistics="repositoryStatistics"/>
     </div>
 
-    <!-- Recording Sessions Header -->
+    <!-- Recording Sessions Header Bar -->
     <div class="col-12" v-if="recordingSessions.length > 0">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex align-items-center py-3">
-          <i class="bi bi-collection fs-4 me-2 text-primary"></i>
-          <h5 class="mb-0">Recording Sessions</h5>
-          <Badge :value="`${recordingSessions.length} session${recordingSessions.length !== 1 ? 's' : ''}`"
-                 variant="primary" size="xs" class="ms-2"/>
+      <div class="d-flex align-items-center mb-3 gap-3">
+        <div class="sessions-header-bar flex-grow-1 d-flex align-items-center px-3">
+          <span class="header-text">Recording Sessions ({{ recordingSessions.length }})</span>
         </div>
+      </div>
+    </div>
 
-        <div class="card-body">
-          <!-- Card-Based Sessions Layout -->
-          <div>
-            <!-- Sessions list -->
-            <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
+    <!-- Recording Sessions List -->
+    <div class="col-12" v-if="recordingSessions.length > 0">
+      <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
               <!-- Session header -->
               <div class="folder-row p-3 rounded"
                    :class="getSessionStatusClass(session)"
@@ -815,45 +812,24 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Loading Sessions Placeholder -->
     <div class="col-12" v-if="isLoading && !recordingSessions.length">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex align-items-center py-3">
-          <i class="bi bi-collection fs-4 me-2 text-primary"></i>
-          <h5 class="mb-0">Recording Sessions</h5>
+      <div class="modern-empty-state loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
-
-        <div class="card-body">
-          <div class="modern-empty-state loading">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-3">Loading recording sessions...</p>
-          </div>
-        </div>
+        <p class="mt-3">Loading recording sessions...</p>
       </div>
     </div>
 
     <!-- No Sessions Message -->
     <div class="col-12" v-if="!isLoading && !recordingSessions.length && currentRepository">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex align-items-center py-3">
-          <i class="bi bi-collection fs-4 me-2 text-primary"></i>
-          <h5 class="mb-0">Recording Sessions</h5>
-        </div>
-
-        <div class="card-body">
-          <div class="modern-empty-state">
-            <i class="bi bi-folder-x display-4 text-muted"></i>
-            <h5 class="mt-3">No Recording Sessions Available</h5>
-            <p class="text-muted">There are no recording sessions available for this repository.</p>
-          </div>
-        </div>
+      <div class="modern-empty-state">
+        <i class="bi bi-folder-x display-4 text-muted"></i>
+        <h5 class="mt-3">No Recording Sessions Available</h5>
+        <p class="text-muted">There are no recording sessions available for this repository.</p>
       </div>
     </div>
 
@@ -916,6 +892,27 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 
 .card-header {
   border-bottom: none;
+}
+
+/* Sessions header bar styling */
+.sessions-header-bar {
+  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
+  border: 1px solid #4a50e2;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
+  position: relative;
+  height: 31px;
+}
+
+.header-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(1px);
 }
 
 .cursor-pointer {
