@@ -29,7 +29,6 @@ import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.project.RemoteProjectManager;
 import pbouda.jeffrey.manager.workspace.RemoteMappers;
-import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.resources.response.ProjectResponse;
 
 import java.util.ArrayList;
@@ -67,33 +66,33 @@ public class RemoteProjectsManager implements ProjectsManager {
             remoteProjects = List.of();
         }
 
-        List<DetailedProjectInfo> localProjects = commonProjectsManager.findAll().stream()
+        List<DetailedProjectInfo> liveProjects = commonProjectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .toList();
 
         /*
-         * First, iterate over remote projects and try to find matching local project (by origin ID).
+         * First, iterate over remote projects and try to find matching live project (by origin ID).
          */
         List<ProjectManager> result = new ArrayList<>();
         for (ProjectResponse remoteProject : remoteProjects) {
-            Optional<ProjectInfo> foundLocalOpt = localProjects.stream()
+            Optional<ProjectInfo> foundLiveOpt = liveProjects.stream()
                     .map(DetailedProjectInfo::projectInfo)
                     .filter(projectInfo -> projectInfo.originId().equals(remoteProject.id()))
                     .findFirst();
 
-            result.add(toRemoteProjectManager(RemoteMappers.toDetailedProjectInfo(remoteProject, foundLocalOpt)));
+            result.add(toRemoteProjectManager(RemoteMappers.toDetailedProjectInfo(remoteProject, foundLiveOpt)));
         }
 
         /*
-         * Now check if there are any local projects that are not in remote workspace (anymore).
+         * Now check if there are any live projects that are not in remote workspace (anymore).
          */
-        for (DetailedProjectInfo localProject : localProjects) {
+        for (DetailedProjectInfo liveProject : liveProjects) {
             Optional<ProjectResponse> foundRemoteOpt = remoteProjects.stream()
-                    .filter(remoteProject -> remoteProject.id().equals(localProject.projectInfo().originId()))
+                    .filter(remoteProject -> remoteProject.id().equals(liveProject.projectInfo().originId()))
                     .findFirst();
             if (foundRemoteOpt.isEmpty()) {
-                // local project not found in remote, so it's local project that is no longer in remote workspace
-                result.add(toRemoteProjectManager(localProject.orphaned()));
+                // live project not found in remote, so it's live project that is no longer in remote workspace
+                result.add(toRemoteProjectManager(liveProject.orphaned()));
             }
         }
 

@@ -44,7 +44,7 @@
             <i class="bi bi-wifi-off me-2 fs-5"></i>
             <div>
               <strong>Remote workspace is offline</strong><br>
-              <small class="text-muted">Existing local projects are shown below. Virtual projects cannot be loaded from the remote Jeffrey instance until connection is restored.</small>
+              <small class="text-muted">Existing live projects are shown below. Virtual projects cannot be loaded from the remote Jeffrey instance until connection is restored.</small>
             </div>
           </div>
         </div>
@@ -54,7 +54,7 @@
           <div class="alert alert-danger d-flex align-items-center">
             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
             <div>
-              <strong>Local workspace cannot find the source path with its projects</strong><br>
+              <strong>Live workspace cannot find the source path with its projects</strong><br>
               <small class="text-muted">The workspace directory may have been moved, deleted, or is no longer accessible. Check the workspace path and file permissions.</small>
             </div>
           </div>
@@ -164,7 +164,7 @@
           <h5>No projects found</h5>
           <p v-if="getSelectedWorkspaceType() === WorkspaceType.SANDBOX" class="text-muted">Click the "New Project"
             button to create your first project</p>
-          <p v-else-if="getSelectedWorkspaceType() === WorkspaceType.REMOTE && getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="text-muted">Remote workspace is offline. Local projects would be shown here when the connection is restored.</p>
+          <p v-else-if="getSelectedWorkspaceType() === WorkspaceType.REMOTE && getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="text-muted">Remote workspace is offline. Live projects would be shown here when the connection is restored.</p>
           <p v-else-if="getSelectedWorkspaceType() === WorkspaceType.REMOTE" class="text-muted">Projects in this remote
             workspace are synchronized from external source</p>
           <p v-else class="text-muted">Projects in this workspace are managed by the server</p>

@@ -29,7 +29,7 @@ import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 public class SandboxWorkspaceManager implements WorkspaceManager {
 
-    private static final String UNSUPPORTED = "Not supported operation in local workspace manager";
+    private static final String UNSUPPORTED = "Not supported operation in sandbox workspace manager";
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;

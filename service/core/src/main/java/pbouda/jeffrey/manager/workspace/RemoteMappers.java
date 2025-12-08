@@ -29,10 +29,10 @@ import java.util.Optional;
 public abstract class RemoteMappers {
 
     public static DetailedProjectInfo toDetailedProjectInfo(
-            ProjectResponse response, Optional<ProjectInfo> localProject) {
+            ProjectResponse response, Optional<ProjectInfo> liveProject) {
 
         return new DetailedProjectInfo(
-                toProjectInfo(response, localProject),
+                toProjectInfo(response, liveProject),
                 response.status(),
                 response.profileCount(),
                 response.recordingCount(),
@@ -40,13 +40,13 @@ public abstract class RemoteMappers {
                 response.jobCount(),
                 response.alertCount(),
                 response.eventSource(),
-                localProject.isEmpty(),
+                liveProject.isEmpty(),
                 false);
     }
 
-    private static ProjectInfo toProjectInfo(ProjectResponse response, Optional<ProjectInfo> localProject) {
+    private static ProjectInfo toProjectInfo(ProjectResponse response, Optional<ProjectInfo> liveProject) {
         return new ProjectInfo(
-                localProject.map(ProjectInfo::id).orElse(response.id()),
+                liveProject.map(ProjectInfo::id).orElse(response.id()),
                 response.id(),
                 response.name(),
                 response.workspaceId(),

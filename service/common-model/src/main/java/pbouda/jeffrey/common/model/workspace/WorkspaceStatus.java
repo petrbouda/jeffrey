@@ -21,7 +21,7 @@ package pbouda.jeffrey.common.model.workspace;
 public enum WorkspaceStatus {
     // The workspace is available and operational.
     AVAILABLE,
-    // The workspace is temporarily unavailable, possibly the workspace has been removed (remote or on local filesystem).
+    // The workspace is temporarily unavailable, possibly the workspace has been removed (remote or on live filesystem).
     UNAVAILABLE,
     // The workspace is not reachable at the moment, possibly due to network issues.
     OFFLINE,

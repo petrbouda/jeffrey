@@ -53,7 +53,7 @@ public interface WorkspaceManager {
     void delete();
 
     /**
-     * Returns the type of the workspace (e.g., LOCAL, REMOTE).
+     * Returns the type of the workspace (e.g., LIVE, REMOTE).
      *
      * @return the workspace type
      */

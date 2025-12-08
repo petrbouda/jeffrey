@@ -39,7 +39,7 @@ public class SandboxWorkspaceConfiguration {
     public static final String SANDBOX_WORKSPACE_TYPE = "SANDBOX_WORKSPACE_FACTORY_TYPE";
 
     @Bean(SANDBOX_WORKSPACE_TYPE)
-    public SandboxWorkspacesManager localWorkspacesManager(
+    public SandboxWorkspacesManager sandboxWorkspacesManager(
             Clock clock,
             Repositories repositories,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
