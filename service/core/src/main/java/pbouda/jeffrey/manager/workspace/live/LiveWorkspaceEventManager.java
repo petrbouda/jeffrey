@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace.local;
+package pbouda.jeffrey.manager.workspace.live;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,14 +30,14 @@ import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
 import java.util.List;
 import java.util.Optional;
 
-public class LocalWorkspaceEventManager implements WorkspaceEventManager {
+public class LiveWorkspaceEventManager implements WorkspaceEventManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LocalWorkspaceEventManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspaceEventManager.class);
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
 
-    public LocalWorkspaceEventManager(
+    public LiveWorkspaceEventManager(
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository) {
 

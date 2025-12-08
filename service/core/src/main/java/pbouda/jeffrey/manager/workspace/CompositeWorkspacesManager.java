@@ -29,24 +29,24 @@ public class CompositeWorkspacesManager {
     private final WorkspacesRepository workspacesRepository;
     private final SandboxWorkspacesManager sandboxWorkspacesManager;
     private final RemoteWorkspacesManager remoteWorkspacesManager;
-    private final LocalWorkspacesManager localWorkspacesManager;
+    private final LiveWorkspacesManager liveWorkspacesManager;
 
     public CompositeWorkspacesManager(
             WorkspacesRepository workspacesRepository,
             SandboxWorkspacesManager sandboxWorkspacesManager,
             RemoteWorkspacesManager remoteWorkspacesManager,
-            LocalWorkspacesManager localWorkspacesManager) {
+            LiveWorkspacesManager liveWorkspacesManager) {
 
         this.workspacesRepository = workspacesRepository;
         this.sandboxWorkspacesManager = sandboxWorkspacesManager;
         this.remoteWorkspacesManager = remoteWorkspacesManager;
-        this.localWorkspacesManager = localWorkspacesManager;
+        this.liveWorkspacesManager = liveWorkspacesManager;
     }
 
     public WorkspaceInfo create(WorkspacesManager.CreateWorkspaceRequest request) {
         return switch (request.type()) {
             case SANDBOX -> sandboxWorkspacesManager.create(request);
-            case LOCAL -> localWorkspacesManager.create(request);
+            case LIVE -> liveWorkspacesManager.create(request);
             case REMOTE -> remoteWorkspacesManager.create(request);
         };
     }
@@ -67,7 +67,7 @@ public class CompositeWorkspacesManager {
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
         return switch (info.type()) {
             case SANDBOX -> sandboxWorkspacesManager.mapToWorkspaceManager(info);
-            case LOCAL -> localWorkspacesManager.mapToWorkspaceManager(info);
+            case LIVE -> liveWorkspacesManager.mapToWorkspaceManager(info);
             case REMOTE -> remoteWorkspacesManager.mapToWorkspaceManager(info);
         };
     }

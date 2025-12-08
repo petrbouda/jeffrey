@@ -50,14 +50,14 @@ interface Props {
   name: string;
   description: string;
   selected: boolean;
-  workspaceType?: 'LOCAL' | 'SANDBOX' | 'REMOTE';
+  workspaceType?: 'LIVE' | 'SANDBOX' | 'REMOTE';
   badgeValue?: string | number;
   status?: 'AVAILABLE' | 'UNAVAILABLE' | 'OFFLINE' | 'UNKNOWN';
   showStatusBadges?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  workspaceType: 'LOCAL',
+  workspaceType: 'LIVE',
   badgeValue: '0',
   status: 'AVAILABLE',
   showStatusBadges: false
@@ -70,14 +70,14 @@ defineEmits<{
 const workspaceTypeClass = computed(() => {
   if (props.workspaceType === 'SANDBOX') return 'sandbox';
   if (props.workspaceType === 'REMOTE') return 'remote';
-  return 'local';
+  return 'live';
 });
 
 const workspaceIcon = computed(() => {
   const baseClasses = 'bi';
   if (props.workspaceType === 'REMOTE') return `${baseClasses} bi-display workspace-remote-icon`;
   if (props.workspaceType === 'SANDBOX') return `${baseClasses} bi-house workspace-sandbox-icon`;
-  return `${baseClasses} bi-folder workspace-local-icon`;
+  return `${baseClasses} bi-folder workspace-live-icon`;
 });
 </script>
 
@@ -117,49 +117,49 @@ const workspaceIcon = computed(() => {
   color: white;
 }
 
-.workspace-selection-card.active .workspace-local-icon {
+.workspace-selection-card.active .workspace-live-icon {
   color: #5e64ff;
 }
 
-/* Local Workspace (Blue) */
-.workspace-selection-card.local {
+/* Live Workspace (Blue) */
+.workspace-selection-card.live {
   border-color: rgba(94, 100, 255, 0.15);
 }
 
-.workspace-selection-card.local .workspace-name {
+.workspace-selection-card.live .workspace-name {
   color: #374151;
 }
 
-.workspace-selection-card.local .workspace-card-description {
+.workspace-selection-card.live .workspace-card-description {
   color: #6b7280;
 }
 
-.workspace-selection-card.local .workspace-badge {
+.workspace-selection-card.live .workspace-badge {
   background: rgba(94, 100, 255, 0.1);
   color: #5e64ff;
 }
 
-.workspace-selection-card.local .workspace-local-icon {
+.workspace-selection-card.live .workspace-live-icon {
   color: #5e64ff;
 }
 
-.workspace-selection-card.local:hover:not(.active) {
+.workspace-selection-card.live:hover:not(.active) {
   border-color: rgba(94, 100, 255, 0.3);
   box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1);
 }
 
-.workspace-selection-card.local.active {
+.workspace-selection-card.live.active {
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
   border-color: #5e64ff;
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
 
-.workspace-selection-card.local.active .workspace-badge {
+.workspace-selection-card.live.active .workspace-badge {
   background: linear-gradient(135deg, #5e64ff, #4c52ff);
   color: white;
 }
 
-.workspace-selection-card.local.active .workspace-local-icon {
+.workspace-selection-card.live.active .workspace-live-icon {
   color: #5e64ff;
 }
 
@@ -276,7 +276,7 @@ const workspaceIcon = computed(() => {
 
 .workspace-remote-icon,
 .workspace-sandbox-icon,
-.workspace-local-icon {
+.workspace-live-icon {
   font-size: 0.8rem;
   transition: all 0.2s ease;
 }

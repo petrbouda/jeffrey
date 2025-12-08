@@ -134,7 +134,7 @@
                         <i class="bi bi-folder-fill"></i>
                         <div>
                           <h6 class="scope-option-title">Apply to Selected Workspaces</h6>
-                          <p class="scope-option-description">Choose specific local workspaces to apply
+                          <p class="scope-option-description">Choose specific live workspaces to apply
                             configuration</p>
                         </div>
                       </div>
@@ -149,7 +149,7 @@
                         <i class="bi bi-diagram-3-fill"></i>
                         <div>
                           <h6 class="scope-option-title">Apply to Selected Projects</h6>
-                          <p class="scope-option-description">Choose specific projects from local workspaces</p>
+                          <p class="scope-option-description">Choose specific projects from live workspaces</p>
                         </div>
                       </div>
                     </div>
@@ -159,14 +159,14 @@
 
               <!-- Workspace Selection (when workspaces scope is selected) -->
               <div v-if="applicationScope === 'workspaces'" class="workspace-selection-section">
-                <div class="workspace-section-title">Select Local Workspaces</div>
-                <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
+                <div class="workspace-section-title">Select Live Workspaces</div>
+                <div v-if="liveWorkspaces.length === 0" class="no-workspaces-message">
                   <i class="bi bi-info-circle"></i>
-                  <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
+                  <span>No live workspaces available. Only live workspaces can have profiler settings applied.</span>
                 </div>
                 <div v-else class="workspace-selection-grid">
                   <ProfilerSelectionCard
-                      v-for="workspace in localWorkspaces"
+                      v-for="workspace in liveWorkspaces"
                       :key="workspace.id"
                       :name="workspace.name"
                       icon="bi-folder-fill"
@@ -180,14 +180,14 @@
               <!-- Project Selection (when projects scope is selected) -->
               <div v-if="applicationScope === 'projects'" class="project-selection-section">
                 <!-- Step 1: Select Workspaces -->
-                <div class="workspace-section-title">Step 1: Select Local Workspaces</div>
-                <div v-if="localWorkspaces.length === 0" class="no-workspaces-message">
+                <div class="workspace-section-title">Step 1: Select Live Workspaces</div>
+                <div v-if="liveWorkspaces.length === 0" class="no-workspaces-message">
                   <i class="bi bi-info-circle"></i>
-                  <span>No local workspaces available. Only local workspaces can have profiler settings applied.</span>
+                  <span>No live workspaces available. Only live workspaces can have profiler settings applied.</span>
                 </div>
                 <div v-else class="workspace-selection-grid">
                   <ProfilerSelectionCard
-                      v-for="workspace in localWorkspaces"
+                      v-for="workspace in liveWorkspaces"
                       :key="workspace.id"
                       :name="workspace.name"
                       icon="bi-folder-fill"
@@ -358,8 +358,8 @@ const resetBuilderState = () => {
 
 
 // Workspace management
-const localWorkspaces = computed(() =>
-    workspaces.value.filter(w => w.type === WorkspaceType.LOCAL)
+const liveWorkspaces = computed(() =>
+    workspaces.value.filter(w => w.type === WorkspaceType.LIVE)
 );
 
 const toggleWorkspaceSelection = (workspaceId: string) => {

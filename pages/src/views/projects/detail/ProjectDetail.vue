@@ -15,7 +15,7 @@
                :class="{
                  'workspace-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
                  'workspace-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
-                 'workspace-local': workspaceInfo?.type === WorkspaceType.LOCAL
+                 'workspace-live': workspaceInfo?.type === WorkspaceType.LIVE
                }"
 
                v-if="!sidebarCollapsed">
@@ -23,7 +23,7 @@
               <div class="workspace-title-container">
                 <i v-if="workspaceInfo?.type === WorkspaceType.REMOTE" class="bi bi-display workspace-type-icon" title="Remote Workspace"></i>
                 <i v-else-if="workspaceInfo?.type === WorkspaceType.SANDBOX" class="bi bi-house workspace-type-icon" title="Sandbox Workspace"></i>
-                <i v-else class="bi bi-folder workspace-type-icon" title="Local Workspace"></i>
+                <i v-else class="bi bi-folder workspace-type-icon" title="Live Workspace"></i>
                 <span class="workspace-name">{{ workspaceInfo?.name || 'Loading...' }}</span>
                 <Badge
                     v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE"
@@ -493,8 +493,8 @@ const toggleSidebar = () => {
   margin: 0.5rem 0.5rem 0 0.5rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Local Workspace Styling */
-  &.workspace-local {
+  /* Live Workspace Styling */
+  &.workspace-live {
     background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
     border-color: rgba(94, 100, 255, 0.3) !important;
 

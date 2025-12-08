@@ -213,8 +213,8 @@ const eventDetailsModal = ref<InstanceType<typeof BaseModal>>();
 const refreshWorkspaces = async () => {
   try {
     const allWorkspaces = await WorkspaceClient.list(true);
-    // Filter to show only LOCAL workspaces
-    workspaces.value = allWorkspaces.filter(workspace => workspace.type === WorkspaceType.LOCAL);
+    // Filter to show only LIVE workspaces
+    workspaces.value = allWorkspaces.filter(workspace => workspace.type === WorkspaceType.LIVE);
     // Set the first workspace as selected if none is selected
     if (!selectedWorkspace.value && workspaces.value.length > 0) {
       selectedWorkspace.value = workspaces.value[0].id;

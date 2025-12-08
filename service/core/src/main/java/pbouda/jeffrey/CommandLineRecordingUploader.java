@@ -38,7 +38,7 @@ import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.model.CreateProject;
-import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;

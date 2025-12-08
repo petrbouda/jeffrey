@@ -1,6 +1,6 @@
 <template>
   <BaseModal
-    modal-id="localWorkspaceModal"
+    modal-id="liveWorkspaceModal"
     title="Add New Workspace"
     icon="bi-plus-circle"
     primary-button-text="Add Workspace"
@@ -18,7 +18,7 @@
         Create a new workspace to organize your projects by environment or team.
       </p>
     </template>
-    
+
     <template #body>
       <FormInput
         v-model="workspaceName"
@@ -77,11 +77,11 @@ const emit = defineEmits<Emits>();
 
 // Modal reference and composable
 const modalRef = ref<InstanceType<typeof BaseModal>>();
-const { 
-  isLoading, 
-  showModal, 
-  hideModal, 
-  handleModalShown, 
+const {
+  isLoading,
+  showModal,
+  hideModal,
+  handleModalShown,
   handleModalHidden,
   handleAsyncSubmit,
   setValidationErrors
@@ -149,16 +149,16 @@ const addWorkspace = async () => {
 
       const request = new CreateWorkspaceRequest(
         workspaceId.value.trim(),
-        WorkspaceType.LOCAL,
+        WorkspaceType.LIVE,
         workspaceName.value.trim(),
         workspaceDescription.value.trim() || undefined,
         useCustomPath.value ? undefined : workspacePath.value.trim() || undefined
       );
 
       const createdWorkspace = await WorkspaceClient.create(request);
-      
+
       ToastService.success('Workspace Added!', `"${createdWorkspace.name}" workspace has been created`);
-      
+
       emit('workspace-created');
       resetForm();
     }

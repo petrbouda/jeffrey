@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager.workspace.local;
+package pbouda.jeffrey.manager.workspace.live;
 
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
@@ -34,7 +34,7 @@ import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import java.nio.file.Path;
 import java.time.Clock;
 
-public class LocalWorkspaceManager implements WorkspaceManager {
+public class LiveWorkspaceManager implements WorkspaceManager {
 
     private final Clock clock;
     private final JeffreyDirs jeffreyDirs;
@@ -42,7 +42,7 @@ public class LocalWorkspaceManager implements WorkspaceManager {
     private final WorkspaceRepository workspaceRepository;
     private final ProjectsManager.Factory projectsManagerFactory;
 
-    public LocalWorkspaceManager(
+    public LiveWorkspaceManager(
             Clock clock,
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
@@ -88,7 +88,7 @@ public class LocalWorkspaceManager implements WorkspaceManager {
 
     @Override
     public WorkspaceType type() {
-        return WorkspaceType.LOCAL;
+        return WorkspaceType.LIVE;
     }
 
     @Override
@@ -102,6 +102,6 @@ public class LocalWorkspaceManager implements WorkspaceManager {
 
     @Override
     public WorkspaceEventManager workspaceEventManager() {
-        return new LocalWorkspaceEventManager(workspaceInfo, workspaceRepository);
+        return new LiveWorkspaceEventManager(workspaceInfo, workspaceRepository);
     }
 }

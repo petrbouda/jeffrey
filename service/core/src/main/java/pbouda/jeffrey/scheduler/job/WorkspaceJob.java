@@ -60,7 +60,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
         }
 
         List<? extends WorkspaceManager> allWorkspaces = workspacesManager.findAll().stream()
-                .filter(wm -> wm.resolveInfo().isLocal())
+                .filter(wm -> wm.resolveInfo().isLive())
                 .toList();
 
         for (JobInfo jobInfo : allJobs) {

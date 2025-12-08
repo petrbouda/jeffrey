@@ -7,8 +7,8 @@
           <div class="workspace-cards-header">
             <span class="workspace-label">Workspaces</span>
             <div class="workspace-actions">
-              <button class="add-workspace-btn" @click="localWorkspaceModal?.showModal()">
-                Add Local
+              <button class="add-workspace-btn" @click="liveWorkspaceModal?.showModal()">
+                Add Live
               </button>
               <button class="remote-workspace-btn" @click="remoteWorkspaceModal?.showModal()">
                 Add Remote
@@ -174,8 +174,8 @@
   </div>
 
   <!-- Modal Components -->
-  <localWorkspaceModal
-      ref="localWorkspaceModal"
+  <LiveWorkspaceModal
+      ref="liveWorkspaceModal"
       @workspace-created="handleWorkspaceCreated"
   />
 
@@ -194,7 +194,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
-import LocalWorkspaceModal from '@/components/projects/LocalWorkspaceModal.vue';
+import LiveWorkspaceModal from '@/components/projects/LiveWorkspaceModal.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
@@ -229,7 +229,7 @@ const errorMessage = ref('');
 const loading = ref(true);
 
 // Modal component references
-const localWorkspaceModal = ref<InstanceType<typeof LocalWorkspaceModal>>();
+const liveWorkspaceModal = ref<InstanceType<typeof LiveWorkspaceModal>>();
 const remoteWorkspaceModal = ref<InstanceType<typeof RemoteWorkspaceModal>>();
 const createProjectModal = ref<InstanceType<typeof CreateProjectModal>>();
 
@@ -241,11 +241,11 @@ const getSelectedWorkspaceType = (): WorkspaceType | undefined => {
 // Workspace header styling computed properties
 const getWorkspaceHeaderClass = computed(() => {
   const workspace = getSelectedWorkspace();
-  if (!workspace) return 'header-local';
+  if (!workspace) return 'header-live';
 
   if (workspace.type === WorkspaceType.REMOTE) return 'header-remote';
   if (workspace.type === WorkspaceType.SANDBOX) return 'header-sandbox';
-  return 'header-local';
+  return 'header-live';
 });
 
 const getWorkspaceHeaderIcon = computed(() => {
@@ -259,11 +259,11 @@ const getWorkspaceHeaderIcon = computed(() => {
 
 const getWorkspaceHeaderLabel = computed(() => {
   const workspace = getSelectedWorkspace();
-  if (!workspace) return 'LOCAL WORKSPACE';
+  if (!workspace) return 'LIVE WORKSPACE';
 
   if (workspace.type === WorkspaceType.REMOTE) return 'REMOTE WORKSPACE';
   if (workspace.type === WorkspaceType.SANDBOX) return 'SANDBOX WORKSPACE';
-  return 'LOCAL WORKSPACE';
+  return 'LIVE WORKSPACE';
 });
 
 // Fetch workspaces function
@@ -666,7 +666,7 @@ const handleDeleteWorkspace = async () => {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.header-local {
+.header-live {
   background: linear-gradient(135deg, #5e64ff, #4c52ff);
 }
 

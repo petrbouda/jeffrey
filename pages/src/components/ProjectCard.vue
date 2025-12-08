@@ -112,7 +112,7 @@ const getHeaderClass = computed(() => {
     return props.project.isVirtual ? 'header-remote-virtual' : 'header-remote-physical';
   }
   if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'header-sandbox';
-  return 'header-local';
+  return 'header-live';
 });
 
 const showCriticalWarning = computed(() => {
@@ -237,7 +237,7 @@ const formatStatus = (status: RecordingStatus): string => {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.header-local {
+.header-live {
   background: linear-gradient(135deg, #4f46e5, #3730a3);
 }
 

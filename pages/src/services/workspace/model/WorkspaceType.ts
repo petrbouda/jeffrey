@@ -17,7 +17,7 @@
  */
 
 enum WorkspaceType {
-    LOCAL = "LOCAL",
+    LIVE = "LIVE",
     REMOTE = "REMOTE",
     SANDBOX = "SANDBOX",
 }

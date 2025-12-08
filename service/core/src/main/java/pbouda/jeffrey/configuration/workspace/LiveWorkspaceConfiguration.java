@@ -23,20 +23,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.manager.workspace.local.LocalWorkspaceManager;
+import pbouda.jeffrey.manager.workspace.live.LiveWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 
 import java.time.Clock;
 
 @Configuration
-public class LocalWorkspaceConfiguration {
+public class LiveWorkspaceConfiguration {
 
-    public static final String LOCAL_WORKSPACE_TYPE = "LOCAL_WORKSPACE_FACTORY_TYPE";
+    public static final String LIVE_WORKSPACE_TYPE = "LIVE_WORKSPACE_FACTORY_TYPE";
 
-    @Bean(LOCAL_WORKSPACE_TYPE)
+    @Bean(LIVE_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(
             Clock applicationClock,
             JeffreyDirs jeffreyDirs,
@@ -44,16 +44,16 @@ public class LocalWorkspaceConfiguration {
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = repositories.newWorkspaceRepository(workspaceInfo.id());
-            return new LocalWorkspaceManager(
+            return new LiveWorkspaceManager(
                     applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
         };
     }
 
     @Bean
-    public LocalWorkspacesManager localWorkspaceManager(
+    public LiveWorkspacesManager liveWorkspaceManager(
             Repositories repositories,
-            @Qualifier(LOCAL_WORKSPACE_TYPE) WorkspaceManager.Factory workspaceManagerFactory) {
+            @Qualifier(LIVE_WORKSPACE_TYPE) WorkspaceManager.Factory workspaceManagerFactory) {
 
-        return new LocalWorkspacesManager(repositories.newWorkspacesRepository(), workspaceManagerFactory);
+        return new LiveWorkspacesManager(repositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 }

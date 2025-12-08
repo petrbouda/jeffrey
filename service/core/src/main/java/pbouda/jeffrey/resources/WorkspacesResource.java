@@ -92,7 +92,7 @@ public class WorkspacesResource {
 
         if (!request.type.isInnerWorkspace()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Only LOCAL or SANDBOX workspace type can be created")
+                    .entity("Only LIVE or SANDBOX workspace type can be created")
                     .build();
         }
 

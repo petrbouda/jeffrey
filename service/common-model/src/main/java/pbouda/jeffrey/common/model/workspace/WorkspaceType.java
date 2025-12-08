@@ -20,10 +20,10 @@ package pbouda.jeffrey.common.model.workspace;
 
 public enum WorkspaceType {
     REMOTE,
-    LOCAL,
+    LIVE,
     SANDBOX;
 
     public boolean isInnerWorkspace() {
-        return this == SANDBOX || this == LOCAL;
+        return this == SANDBOX || this == LIVE;
     }
 }

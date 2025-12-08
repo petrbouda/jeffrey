@@ -406,10 +406,10 @@ const loadAllSettings = async () => {
 const loadWorkspaces = async () => {
   try {
     const allWorkspaces = await WorkspaceClient.list();
-    const localWorkspaces = allWorkspaces.filter(w => w.type === WorkspaceType.LOCAL);
+    const liveWorkspaces = allWorkspaces.filter(w => w.type === WorkspaceType.LIVE);
 
     // Match workspaces with their settings from allSettings
-    const workspacesWithSettings: WorkspaceWithSettings[] = localWorkspaces.map(workspace => {
+    const workspacesWithSettings: WorkspaceWithSettings[] = liveWorkspaces.map(workspace => {
       // Find workspace-level settings (workspaceId matches, projectId is null)
       const workspaceSetting = allSettings.value.find(
         s => s.workspaceId === workspace.id && s.projectId === null

@@ -42,7 +42,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager, WorkspaceProfilerSettingsSynchronizerJobDescriptor jobInfo) {
 
-        if (workspaceManager.type() != WorkspaceType.LOCAL) {
+        if (workspaceManager.type() != WorkspaceType.LIVE) {
              return;
         }
 

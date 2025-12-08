@@ -31,7 +31,7 @@ import pbouda.jeffrey.appinitializer.GlobalJobsInitializer;
 import pbouda.jeffrey.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.PeriodicalScheduler;
@@ -57,19 +57,19 @@ public class JobsConfiguration {
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
     private final RemoteRepositoryStorage.Factory repositoryStorageFactory;
-    private final LocalWorkspacesManager localWorkspacesManager;
+    private final LiveWorkspacesManager liveWorkspacesManager;
     private final JobDescriptorFactory jobDescriptorFactory;
     private final SchedulerManager schedulerManager;
     private final Duration defaultPeriod;
 
     public JobsConfiguration(
-            LocalWorkspacesManager localWorkspacesManager,
+            LiveWorkspacesManager liveWorkspacesManager,
             RemoteRepositoryStorage.Factory repositoryStorageFactory,
             JobDescriptorFactory jobDescriptorFactory,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
             @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
 
-        this.localWorkspacesManager = localWorkspacesManager;
+        this.liveWorkspacesManager = liveWorkspacesManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
         this.schedulerManager = schedulerManager;
         this.defaultPeriod = defaultPeriod == null ? ONE_MINUTE : defaultPeriod;
@@ -104,7 +104,7 @@ public class JobsConfiguration {
     public Job repositorySesssionCleanerProjectJob(
             @Value("${jeffrey.job.repository-session-cleaner.period:}") Duration jobPeriod) {
         return new RepositorySessionCleanerProjectJob(
-                localWorkspacesManager,
+                liveWorkspacesManager,
                 schedulerManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
@@ -115,7 +115,7 @@ public class JobsConfiguration {
     public Job repositoryRecordingCleanerProjectJob(
             @Value("${jeffrey.job.repository-recording-cleaner.period:}") Duration jobPeriod) {
         return new RepositoryRecordingCleanerProjectJob(
-                localWorkspacesManager,
+                liveWorkspacesManager,
                 schedulerManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
@@ -125,7 +125,7 @@ public class JobsConfiguration {
     @Bean
     public Job recordingGeneratorProjectJob(@Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
         return new RecordingIntervalGeneratorProjectJob(
-                localWorkspacesManager,
+                liveWorkspacesManager,
                 schedulerManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
@@ -147,7 +147,7 @@ public class JobsConfiguration {
     @Bean(name = PROJECTS_SYNCHRONIZER_JOB)
     public Job projectsSynchronizerJob(@Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
         return new ProjectsSynchronizerJob(
-                localWorkspacesManager,
+                liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
@@ -167,7 +167,7 @@ public class JobsConfiguration {
         };
 
         return new WorkspaceEventsReplicatorJob(
-                localWorkspacesManager,
+                liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
@@ -183,7 +183,7 @@ public class JobsConfiguration {
         return new WorkspaceProfilerSettingsSynchronizerJob(
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 repositories.newProfilerRepository(),
-                localWorkspacesManager,
+                liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory);
     }

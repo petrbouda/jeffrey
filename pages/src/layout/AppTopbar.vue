@@ -31,7 +31,7 @@
                 :class="{
                   'btn-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
                   'btn-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
-                  'btn-local': workspaceInfo?.type === WorkspaceType.LOCAL
+                  'btn-live': workspaceInfo?.type === WorkspaceType.LIVE
                 }"
                 @click="$router.push('/workspaces')"
                 title="Back to workspaces">
@@ -231,8 +231,8 @@ const toggleSidebar = () => {
   text-decoration: none;
   align-self: flex-start;
 
-  /* Local Workspace Button */
-  &.btn-local {
+  /* Live Workspace Button */
+  &.btn-live {
     background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
     border: 1px solid rgba(94, 100, 255, 0.3);
     color: #1a237e;

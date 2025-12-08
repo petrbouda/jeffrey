@@ -104,8 +104,8 @@ public class WorkspaceProjectsResource {
 
     @POST
     public Response createProject(CreateProjectRequest request) {
-        if (this.workspaceInfo.isLocal()) {
-            throw new BadRequestException("Only Local workspace can be used to create a project");
+        if (this.workspaceInfo.isLive()) {
+            throw new BadRequestException("Only Live workspace can be used to create a project");
         }
 
         CreateProject createProject = new CreateProject(

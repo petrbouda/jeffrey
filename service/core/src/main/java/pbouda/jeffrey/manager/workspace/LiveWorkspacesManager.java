@@ -28,12 +28,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public final class LocalWorkspacesManager implements WorkspacesManager {
+public final class LiveWorkspacesManager implements WorkspacesManager {
 
     private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
-    public LocalWorkspacesManager(
+    public LiveWorkspacesManager(
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
@@ -44,7 +44,7 @@ public final class LocalWorkspacesManager implements WorkspacesManager {
     @Override
     public List<? extends WorkspaceManager> findAll() {
         return workspacesRepository.findAll().stream()
-                .filter(WorkspaceInfo::isLocal)
+                .filter(WorkspaceInfo::isLive)
                 .map(workspaceManagerFactory)
                 .toList();
     }
@@ -95,7 +95,7 @@ public final class LocalWorkspacesManager implements WorkspacesManager {
                 request.location(),
                 request.baseLocation(),
                 Instant.now(),
-                WorkspaceType.LOCAL,
+                WorkspaceType.LIVE,
                 WorkspaceStatus.UNKNOWN,
                 0 // no projects initially
         );

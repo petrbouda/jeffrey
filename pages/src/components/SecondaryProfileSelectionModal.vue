@@ -406,7 +406,7 @@ const hasValidSelection = computed(() => {
 // Helper functions
 const getWorkspaceIcon = (type?: WorkspaceType) => {
   switch (type) {
-    case WorkspaceType.LOCAL: return 'bi-house-door-fill text-primary';
+    case WorkspaceType.LIVE: return 'bi-house-door-fill text-primary';
     case WorkspaceType.REMOTE: return 'bi-cloud-fill text-info';
     case WorkspaceType.SANDBOX: return 'bi-box-fill text-warning';
     default: return 'bi-building text-secondary';
@@ -415,7 +415,7 @@ const getWorkspaceIcon = (type?: WorkspaceType) => {
 
 const formatWorkspaceType = (type: WorkspaceType) => {
   switch (type) {
-    case WorkspaceType.LOCAL: return 'Local Workspace';
+    case WorkspaceType.LIVE: return 'Live Workspace';
     case WorkspaceType.REMOTE: return 'Remote Workspace';
     case WorkspaceType.SANDBOX: return 'Sandbox Environment';
     default: return 'Unknown';

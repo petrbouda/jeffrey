@@ -29,7 +29,7 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.project.CommonProjectsManager;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.manager.workspace.LocalWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
 import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
@@ -53,14 +53,14 @@ public class WorkspaceConfiguration {
     public CompositeWorkspacesManager compositeWorkspacesManager(
             Repositories repositories,
             SandboxWorkspacesManager sandboxWorkspacesManager,
-            LocalWorkspacesManager localWorkspacesManager,
+            LiveWorkspacesManager liveWorkspacesManager,
             RemoteWorkspacesManager remoteWorkspacesManager) {
 
         return new CompositeWorkspacesManager(
                 repositories.newWorkspacesRepository(),
                 sandboxWorkspacesManager,
                 remoteWorkspacesManager,
-                localWorkspacesManager);
+                liveWorkspacesManager);
     }
 
     @Bean(COMMON_PROJECTS_TYPE)

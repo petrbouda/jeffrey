@@ -62,8 +62,8 @@ public record WorkspaceInfo(
         );
     }
 
-    public boolean isLocal() {
-        return this.type == WorkspaceType.LOCAL;
+    public boolean isLive() {
+        return this.type == WorkspaceType.LIVE;
     }
 
     public boolean isSandbox() {
