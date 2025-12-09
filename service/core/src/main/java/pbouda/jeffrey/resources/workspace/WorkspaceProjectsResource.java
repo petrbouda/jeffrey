@@ -96,10 +96,12 @@ public class WorkspaceProjectsResource {
 
     @GET
     public List<ProjectResponse> projects() {
-        return projectsManager.findAll().stream()
+        List<ProjectResponse> projects = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();
+
+        return projects;
     }
 
     @POST

@@ -229,6 +229,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     public static WorkspaceInfo toWorkspaceInfo(URI uri, String endpointPath, WorkspaceResponse response) {
         String relativePath = endpointPath.replace("{workspaceId}", response.id());
         return new WorkspaceInfo(
+                null,
                 response.id(),
                 null,
                 response.name(),

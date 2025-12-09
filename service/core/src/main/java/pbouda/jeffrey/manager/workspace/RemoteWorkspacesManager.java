@@ -19,11 +19,8 @@
 package pbouda.jeffrey.manager.workspace;
 
 import jakarta.ws.rs.NotFoundException;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
-import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.net.URI;
@@ -36,37 +33,25 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     public interface Factory extends Function<URI, RemoteWorkspacesManager> {
     }
 
-    private final JeffreyDirs jeffreyDirs;
     private final WorkspacesRepository workspacesRepository;
+    private final WorkspaceManager.Factory workspaceManagerFactory;
     private final RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory;
-    private final ProjectsManager.Factory commonProjectsManagerFactory;
 
     public RemoteWorkspacesManager(
-            JeffreyDirs jeffreyDirs,
             WorkspacesRepository workspacesRepository,
-            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
-            ProjectsManager.Factory commonProjectsManagerFactory) {
+            WorkspaceManager.Factory workspaceManagerFactory,
+            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory) {
 
-        this.jeffreyDirs = jeffreyDirs;
         this.workspacesRepository = workspacesRepository;
+        this.workspaceManagerFactory = workspaceManagerFactory;
         this.remoteWorkspaceClientFactory = remoteWorkspaceClientFactory;
-        this.commonProjectsManagerFactory = commonProjectsManagerFactory;
-    }
-
-    private WorkspaceManager toWorkspaceManager(WorkspaceInfo workspaceInfo) {
-        URI baseUri = workspaceInfo.baseLocation().toUri();
-        return new RemoteWorkspaceManager(
-                jeffreyDirs,
-                workspaceInfo,
-                remoteWorkspaceClientFactory.apply(baseUri),
-                commonProjectsManagerFactory);
     }
 
     @Override
     public List<? extends WorkspaceManager> findAll() {
         return workspacesRepository.findAll().stream()
                 .filter(WorkspaceInfo::isRemote)
-                .map(this::toWorkspaceManager)
+                .map(workspaceManagerFactory)
                 .toList();
     }
 
@@ -74,12 +59,12 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     public Optional<WorkspaceManager> findById(String workspaceId) {
         return workspacesRepository.find(workspaceId)
                 .filter(WorkspaceInfo::isRemote)
-                .map(this::toWorkspaceManager);
+                .map(workspaceManagerFactory);
     }
 
     @Override
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
-        return toWorkspaceManager(info);
+        return workspaceManagerFactory.apply(info);
     }
 
     @Override

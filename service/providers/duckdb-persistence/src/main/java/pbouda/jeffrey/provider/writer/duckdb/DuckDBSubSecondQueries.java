@@ -13,7 +13,7 @@ public class DuckDBSubSecondQueries implements ComplexQueries.SubSecond {
                 FROM events
                 WHERE profile_id = :profile_id
             )
-            SELECT EPOCH_MS(e.start_timestamp - fs.first_ts) AS start_ms_offset, %s AS value
+            SELECT EPOCH_MS(events.start_timestamp - fs.first_ts) AS start_ms_offset, %s AS value
                FROM events
                CROSS JOIN first_sample fs
                WHERE (events.profile_id = :profile_id

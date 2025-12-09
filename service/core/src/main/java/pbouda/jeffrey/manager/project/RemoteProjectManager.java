@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RecordingsManager;
@@ -35,6 +36,7 @@ import java.util.Optional;
 public class RemoteProjectManager implements ProjectManager {
 
     private final JeffreyDirs jeffreyDirs;
+    private final WorkspaceInfo workspaceInfo;
     private final DetailedProjectInfo detailedProjectInfo;
     private final Optional<ProjectManager> commonProjectManager;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
@@ -44,11 +46,13 @@ public class RemoteProjectManager implements ProjectManager {
 
     public RemoteProjectManager(
             JeffreyDirs jeffreyDirs,
+            WorkspaceInfo workspaceInfo,
             DetailedProjectInfo detailedProjectInfo,
             Optional<ProjectManager> commonProjectManager,
             RemoteWorkspaceClient remoteWorkspaceClient) {
 
         this.jeffreyDirs = jeffreyDirs;
+        this.workspaceInfo = workspaceInfo;
         this.detailedProjectInfo = detailedProjectInfo;
         this.commonProjectManager = commonProjectManager;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
@@ -90,13 +94,14 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteRecordingsDownloadManager(
                 jeffreyDirs,
                 detailedProjectInfo.projectInfo(),
+                workspaceInfo,
                 remoteWorkspaceClient,
                 recordingsDownloadManager);
     }
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RemoteRepositoryManager(detailedProjectInfo.projectInfo(), remoteWorkspaceClient);
+        return new RemoteRepositoryManager(detailedProjectInfo.projectInfo(), workspaceInfo, remoteWorkspaceClient);
     }
 
     @Override

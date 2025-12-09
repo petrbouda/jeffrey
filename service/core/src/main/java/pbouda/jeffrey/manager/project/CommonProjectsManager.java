@@ -62,7 +62,7 @@ public class CommonProjectsManager implements ProjectsManager {
 
     @Override
     public List<ProjectManager> findAll() {
-        return projectsRepository.findAllProjects(workspaceInfo.id()).stream()
+         return projectsRepository.findAllProjects(workspaceInfo.id()).stream()
                 .map(projectManagerFactory)
                 .toList();
     }

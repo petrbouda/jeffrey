@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
@@ -49,8 +50,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO workspaces (workspace_id, repository_id, name, description, location, base_location, deleted, created_at, type)
-            VALUES (:workspace_id, :repository_id, :name, :description, :location, :base_location, :deleted, :created_at, :type)""";
+            INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location, deleted, created_at, type)
+            VALUES (:workspace_id, :workspace_origin_id, :repository_id, :name, :description, :location, :base_location, :deleted, :created_at, :type)""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
@@ -86,7 +87,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     @Override
     public WorkspaceInfo create(WorkspaceInfo workspaceInfo) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceInfo.id())
+                .addValue("workspace_id", IDGenerator.generate())
+                .addValue("workspace_origin_id", workspaceInfo.originId())
                 .addValue("repository_id", workspaceInfo.repositoryId())
                 .addValue("name", workspaceInfo.name())
                 .addValue("description", workspaceInfo.description())
@@ -122,6 +124,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
             return new WorkspaceInfo(
                     rs.getString("workspace_id"),
+                    rs.getString("workspace_origin_id"),
                     rs.getString("repository_id"),
                     rs.getString("name"),
                     rs.getString("description"),

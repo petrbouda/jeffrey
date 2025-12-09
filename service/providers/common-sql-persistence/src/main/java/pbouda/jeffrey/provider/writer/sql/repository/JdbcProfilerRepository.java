@@ -49,7 +49,9 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     //language=SQL
     private static final String FIND_WORKSPACE_SETTINGS = """
             SELECT * FROM profiler_settings
-            WHERE workspace_id = :workspace_id OR (workspace_id IS NULL AND project_id IS NULL)""";
+            WHERE workspace_id = :workspace_id OR (workspace_id = '<EMPTY>' AND project_id = '<EMPTY>')"""
+            // to handle nulls
+            .replace("<EMPTY>", EMPTY);
 
     //language=SQL
     private static final String FIND_ALL_SETTINGS = "SELECT * FROM profiler_settings";

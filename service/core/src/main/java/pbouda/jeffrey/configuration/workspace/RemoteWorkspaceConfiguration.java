@@ -28,13 +28,16 @@ import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.configuration.AppConfiguration;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClientImpl;
+import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceManager;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
@@ -51,11 +54,20 @@ public class RemoteWorkspaceConfiguration {
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE)
             ProjectsManager.Factory commonProjectsManagerFactory) {
 
+        WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
+            URI baseUri = workspaceInfo.baseLocation().toUri();
+            return new RemoteWorkspaceManager(
+                    jeffreyDirs,
+                    workspaceInfo,
+                    repositories.newWorkspaceRepository(workspaceInfo.id()),
+                    remoteWorkspaceClientFactory.apply(baseUri),
+                    commonProjectsManagerFactory);
+        };
+
         return new RemoteWorkspacesManager(
-                jeffreyDirs,
                 repositories.newWorkspacesRepository(),
-                remoteWorkspaceClientFactory,
-                commonProjectsManagerFactory);
+                workspaceManagerFactory,
+                remoteWorkspaceClientFactory);
     }
 
     @Bean

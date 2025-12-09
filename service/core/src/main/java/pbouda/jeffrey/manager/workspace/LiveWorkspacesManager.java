@@ -88,7 +88,8 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
                              && !request.description().trim().isEmpty() ? request.description().trim() : null;
 
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
-                IDGenerator.generate(),
+                null,
+                null,
                 trimmedSourceId,
                 trimmedName,
                 description,

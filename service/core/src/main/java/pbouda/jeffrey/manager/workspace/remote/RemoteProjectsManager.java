@@ -60,9 +60,9 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<ProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteWorkspaceClient.allProjects(workspaceInfo.id());
+            remoteProjects = remoteWorkspaceClient.allProjects(workspaceInfo.originId());
         } catch (Exception e) {
-            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo.id(), e);
+            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
         }
 
@@ -103,12 +103,12 @@ public class RemoteProjectsManager implements ProjectsManager {
     public Optional<ProjectManager> project(String projectId) {
         return commonProjectsManager.project(projectId)
                 .map(it -> new RemoteProjectManager(
-                        jeffreyDirs, it.detailedInfo(), Optional.of(it), remoteWorkspaceClient));
+                        jeffreyDirs, workspaceInfo, it.detailedInfo(), Optional.of(it), remoteWorkspaceClient));
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
         Optional<ProjectManager> projectOpt = commonProjectsManager.project(projectInfo.projectInfo().id());
-        return new RemoteProjectManager(jeffreyDirs, projectInfo, projectOpt, remoteWorkspaceClient);
+        return new RemoteProjectManager(jeffreyDirs, workspaceInfo, projectInfo, projectOpt, remoteWorkspaceClient);
     }
 
     @Override

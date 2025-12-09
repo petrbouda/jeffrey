@@ -25,32 +25,36 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
+    private final WorkspaceRepository workspaceRepository;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
     private final ProjectsManager.Factory commonProjectsManagerFactory;
 
     public RemoteWorkspaceManager(
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
+            WorkspaceRepository workspaceRepository,
             RemoteWorkspaceClient remoteWorkspaceClient,
             ProjectsManager.Factory commonProjectsManagerFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
+        this.workspaceRepository = workspaceRepository;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
         this.commonProjectsManagerFactory = commonProjectsManagerFactory;
     }
 
     @Override
     public WorkspaceInfo resolveInfo() {
-        RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.id());
+        RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.originId());
         return switch (result.status()) {
-            case AVAILABLE -> result.info();
+            case AVAILABLE -> result.info().withId(workspaceInfo.id());
             case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
             case OFFLINE -> workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
             case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
@@ -73,7 +77,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
-        throw new UnsupportedOperationException("Remote workspace cannot be deleted.");
+        workspaceRepository.delete();
     }
 
     @Override

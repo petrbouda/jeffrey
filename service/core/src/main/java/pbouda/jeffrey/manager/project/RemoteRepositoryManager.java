@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
@@ -39,20 +40,23 @@ public class RemoteRepositoryManager implements RepositoryManager {
             "Not supported operation in " + RemoteRepositoryManager.class.getSimpleName();
 
     private final ProjectInfo projectInfo;
+    private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
 
     public RemoteRepositoryManager(
             ProjectInfo projectInfo,
+            WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient) {
 
         this.projectInfo = projectInfo;
+        this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
     }
 
 
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return remoteWorkspaceClient.recordingSessions(projectInfo.workspaceId(), projectInfo.originId()).stream()
+        return remoteWorkspaceClient.recordingSessions(workspaceInfo.originId(), projectInfo.originId()).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }
@@ -60,7 +64,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
         RepositoryStatisticsResponse response =
-                remoteWorkspaceClient.repositoryStatistics(projectInfo.workspaceId(), projectInfo.originId());
+                remoteWorkspaceClient.repositoryStatistics(workspaceInfo.originId(), projectInfo.originId());
         return RepositoryStatisticsResponse.from(response);
     }
 

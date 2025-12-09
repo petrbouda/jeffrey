@@ -71,7 +71,8 @@ public final class SandboxWorkspacesManager implements WorkspacesManager {
 
     private WorkspaceInfo sandboxWorkspaceInfo(CreateWorkspaceRequest request) {
         return new WorkspaceInfo(
-                IDGenerator.generate(),
+                null,
+                null,
                 null,
                 request.name(),
                 request.description(),

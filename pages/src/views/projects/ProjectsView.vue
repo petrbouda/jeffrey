@@ -54,7 +54,7 @@
           <div class="alert alert-danger d-flex align-items-center">
             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
             <div>
-              <strong>Live workspace cannot find the source path with its projects</strong><br>
+              <strong>Workspace cannot find the source path with its projects</strong><br>
               <small class="text-muted">The workspace directory may have been moved, deleted, or is no longer accessible. Check the workspace path and file permissions.</small>
             </div>
           </div>
@@ -110,7 +110,7 @@
                 <button
                     class="delete-workspace-btn"
                     @click="handleDeleteWorkspace()"
-                    :disabled="getSelectedWorkspace()?.status !== WorkspaceStatus.AVAILABLE"
+                    :disabled="!canDeleteWorkspace()"
                     :title="getDeleteTooltip()"
                 >
                   <i class="bi bi-trash"></i>
@@ -492,10 +492,28 @@ const getProjectCountText = (): string => {
   return `${count} projects`;
 };
 
+// Check if workspace can be deleted
+const canDeleteWorkspace = (): boolean => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return false;
+
+  // Remote workspaces can always be removed (they are just references)
+  if (workspace.type === WorkspaceType.REMOTE) {
+    return true;
+  }
+
+  // Other workspaces require AVAILABLE status
+  return workspace.status === WorkspaceStatus.AVAILABLE;
+};
+
 // Get delete button tooltip
 const getDeleteTooltip = (): string => {
   const workspace = getSelectedWorkspace();
   if (!workspace) return '';
+
+  if (workspace.type === WorkspaceType.REMOTE) {
+    return 'Remove remote workspace (does not affect remote source)';
+  }
 
   if (workspace.status !== WorkspaceStatus.AVAILABLE) {
     return 'Cannot delete unavailable workspace';
@@ -503,10 +521,6 @@ const getDeleteTooltip = (): string => {
 
   if (workspace.type === WorkspaceType.SANDBOX) {
     return 'Delete sandbox workspace and all its projects';
-  }
-
-  if (workspace.type === WorkspaceType.REMOTE) {
-    return 'Remove remote workspace (does not affect remote source)';
   }
 
   return 'Delete server workspace';

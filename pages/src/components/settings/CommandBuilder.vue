@@ -430,6 +430,7 @@
                     icon="bi-arrow-down-up"
                     :is-enabled="optionStates.jfrsync"
                     @toggle="optionStates.jfrsync = $event"
+                    data-jfr-sync-card
                 >
                   <div class="interval-block">
                     <label class="interval-label">Predefined JFC modes</label>
@@ -599,6 +600,29 @@
             </div>
           </div>
         </div>
+
+        <!-- JFR Sync Warning Panel -->
+        <div
+          v-if="shouldShowJfrSyncWarning"
+          class="warning-panel clickable-warning"
+          @click="enableJfrSyncConfiguration"
+        >
+          <div class="step-header-status header-warning">
+            <div class="step-type-info">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              <span>RECOMMENDATION</span>
+              <span class="header-description">JFR SYNCHRONIZATION NOT CONFIGURED</span>
+            </div>
+            <div class="configure-icon">
+              <i class="bi bi-gear-fill"></i>
+            </div>
+          </div>
+          <div class="warning-content">
+            <div class="warning-message">
+              <span class="warning-text"><span class="font-bold">JFR Synchronization</span> merges AsyncProfiler events with JDK's JFR recording for richer profiling data</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -692,6 +716,11 @@ const shouldShowChunkSizeWarning = computed(() => {
   return !optionStates.value.chunksize;
 });
 
+// Check if JFR sync warning should be shown
+const shouldShowJfrSyncWarning = computed(() => {
+  return !optionStates.value.jfrsync;
+});
+
 // Enable chunk size configuration and scroll to it
 const enableChunkSizeConfiguration = () => {
   // Enable chunk size option
@@ -708,6 +737,28 @@ const enableChunkSizeConfiguration = () => {
     const chunkSizeCard = document.querySelector('[data-chunk-size-card]');
     if (chunkSizeCard) {
       chunkSizeCard.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, 100);
+};
+
+// Enable JFR sync configuration and scroll to it
+const enableJfrSyncConfiguration = () => {
+  // Enable JFR sync option
+  optionStates.value.jfrsync = true;
+
+  // Set default JFC mode if not set
+  if (!config.value.jfcMode) {
+    config.value.jfcMode = 'default';
+  }
+
+  // Scroll to JFR sync configuration after DOM update
+  setTimeout(() => {
+    const jfrSyncCard = document.querySelector('[data-jfr-sync-card]');
+    if (jfrSyncCard) {
+      jfrSyncCard.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });

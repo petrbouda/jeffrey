@@ -65,11 +65,13 @@ public class WorkspacesResource {
 
     @GET
     public List<WorkspaceResponse> workspaces(@QueryParam("type") WorkspaceType type) {
-        return workspacesManager.findAll().stream()
+        List<WorkspaceResponse> workspaces = workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
                 .filter(info -> type == null || info.type() == type)
                 .map(Mappers::toResponse)
                 .toList();
+
+        return workspaces;
     }
 
     @POST

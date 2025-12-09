@@ -25,6 +25,7 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
@@ -46,17 +47,20 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     private final JeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
+    private final WorkspaceInfo workspaceInfo;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
     private final RecordingsDownloadManager commonDownloadManager;
 
     public RemoteRecordingsDownloadManager(
             JeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
+            WorkspaceInfo workspaceInfo,
             RemoteWorkspaceClient remoteWorkspaceClient,
             RecordingsDownloadManager commonDownloadManager) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.projectInfo = projectInfo;
+        this.workspaceInfo = workspaceInfo;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
         this.commonDownloadManager = commonDownloadManager;
     }
@@ -64,7 +68,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     @Override
     public void mergeAndDownloadSession(String recordingSessionId) {
         RecordingSessionResponse recordingSession = remoteWorkspaceClient.recordingSession(
-                projectInfo.workspaceId(), projectInfo.originId(), recordingSessionId);
+                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
@@ -77,7 +81,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     @Override
     public void mergeAndDownloadSelectedRawRecordings(String recordingSessionId, List<String> fileIds) {
         RecordingSessionResponse recordingSession = remoteWorkspaceClient.recordingSession(
-                projectInfo.workspaceId(), projectInfo.originId(), recordingSessionId);
+                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
@@ -105,14 +109,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
             CompletableFuture<RepositoryFile> recordingFuture = remoteWorkspaceClient.downloadRecordings(
-                            projectInfo.workspaceId(), projectInfo.originId(), recordingSessionId, onlyRecordingFileIds)
+                            workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, onlyRecordingFileIds)
                     .thenApply(resource -> copyRecordingFile(resource, recordingType, tempDir));
 
             List<CompletableFuture<RepositoryFile>> additionalFilesFutures = files.stream()
                     .filter(RepositoryFile::isAdditionalFile)
                     .map(file -> {
                         CompletableFuture<Resource> future = remoteWorkspaceClient.downloadFile(
-                                projectInfo.workspaceId(), projectInfo.originId(), recordingSessionId, file.id());
+                                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id());
 
                         return future.thenApply(downloadedFile -> copyAdditionalFile(file, downloadedFile, tempDir));
                     })

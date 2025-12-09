@@ -194,15 +194,16 @@ CREATE TABLE IF NOT EXISTS threads
 
 CREATE TABLE IF NOT EXISTS workspaces
 (
-    workspace_id  VARCHAR PRIMARY KEY,
-    repository_id VARCHAR,
-    name          VARCHAR NOT NULL,
-    description   VARCHAR,
-    location      VARCHAR,
-    base_location VARCHAR,
-    created_at    TIMESTAMPTZ NOT NULL,
-    type          VARCHAR NOT NULL,
-    deleted       BOOLEAN NOT NULL
+    workspace_id        VARCHAR PRIMARY KEY,
+    workspace_origin_id VARCHAR,
+    repository_id       VARCHAR,
+    name                VARCHAR NOT NULL,
+    description         VARCHAR,
+    location            VARCHAR,
+    base_location       VARCHAR,
+    created_at          TIMESTAMPTZ NOT NULL,
+    type                VARCHAR NOT NULL,
+    deleted             BOOLEAN NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS workspace_sessions

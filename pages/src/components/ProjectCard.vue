@@ -222,11 +222,11 @@ const formatStatus = (status: RecordingStatus): string => {
 
 /* Header Color Classes */
 .header-remote-virtual {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, #38b2ac, #319795);
 }
 
 .header-remote-physical {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #38b2ac, #319795);
 }
 
 .header-orphaned {

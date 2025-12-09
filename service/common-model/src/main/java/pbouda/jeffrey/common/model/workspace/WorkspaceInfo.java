@@ -22,6 +22,7 @@ import java.time.Instant;
 
 public record WorkspaceInfo(
         String id,
+        String originId,
         String repositoryId,
         String name,
         String description,
@@ -32,9 +33,26 @@ public record WorkspaceInfo(
         WorkspaceStatus status,
         int projectCount) {
 
+    public WorkspaceInfo withId(String newId) {
+        return new WorkspaceInfo(
+                newId,
+                this.originId,
+                this.repositoryId,
+                this.name,
+                this.description,
+                this.location,
+                this.baseLocation,
+                this.createdAt,
+                this.type,
+                this.status,
+                this.projectCount
+        );
+    }
+
     public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
         return new WorkspaceInfo(
                 this.id,
+                this.originId,
                 this.repositoryId,
                 this.name,
                 this.description,
@@ -50,6 +68,7 @@ public record WorkspaceInfo(
     public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new WorkspaceInfo(
                 this.id,
+                this.originId,
                 this.repositoryId,
                 this.name,
                 this.description,
