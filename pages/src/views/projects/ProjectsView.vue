@@ -495,15 +495,7 @@ const getProjectCountText = (): string => {
 // Check if workspace can be deleted
 const canDeleteWorkspace = (): boolean => {
   const workspace = getSelectedWorkspace();
-  if (!workspace) return false;
-
-  // Remote workspaces can always be removed (they are just references)
-  if (workspace.type === WorkspaceType.REMOTE) {
-    return true;
-  }
-
-  // Other workspaces require AVAILABLE status
-  return workspace.status === WorkspaceStatus.AVAILABLE;
+  return !!workspace;
 };
 
 // Get delete button tooltip
@@ -515,15 +507,11 @@ const getDeleteTooltip = (): string => {
     return 'Remove remote workspace (does not affect remote source)';
   }
 
-  if (workspace.status !== WorkspaceStatus.AVAILABLE) {
-    return 'Cannot delete unavailable workspace';
-  }
-
   if (workspace.type === WorkspaceType.SANDBOX) {
     return 'Delete sandbox workspace and all its projects';
   }
 
-  return 'Delete server workspace';
+  return 'Delete live workspace';
 };
 
 // Handle workspace deletion
