@@ -70,7 +70,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
             } else {
                 repositories.newProjectRepository(profilerInfo.projectId())
                         .find()
-                        .ifPresent(info -> projectSettings.put(info.label(), profilerInfo.agentSettings()));
+                        .ifPresent(info -> projectSettings.put(info.name(), profilerInfo.agentSettings()));
             }
         }
 
