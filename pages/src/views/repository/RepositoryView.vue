@@ -778,9 +778,6 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                           {{ source.name }}
                           <Badge :value="Utils.formatFileType(source.fileType)"
                                  :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-2"/>
-                          <Badge v-if="source.status === RecordingStatus.ACTIVE"
-                                 :value="Utils.capitalize(source.status.toLowerCase())" variant="warning" size="xs"
-                                 class="ms-1"/>
                           <Badge v-if="source.status === RecordingStatus.UNKNOWN"
                                  :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs"
                                  class="ms-1"/>
@@ -1028,9 +1025,25 @@ code {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* Active file styling - orange theme with solid borders */
 .child-row.source-active {
-  background-color: rgba(255, 193, 7, 0.1);
-  border-left: 3px solid #ffc107;
+  background-color: rgba(255, 142, 51, 0.08) !important;
+  border-left: 3px solid #ff8e33 !important;
+  border-top: 1px solid #ff8e33 !important;
+  border-right: 1px solid #ff8e33 !important;
+  border-bottom: 1px solid #ff8e33 !important;
+  box-shadow: 0 1px 3px rgba(255, 142, 51, 0.15) !important;
+}
+
+.child-row.source-active:hover {
+  background-color: rgba(255, 142, 51, 0.12) !important;
+  box-shadow: 0 2px 5px rgba(255, 142, 51, 0.2) !important;
+}
+
+/* Active file icon styling - orange theme */
+.child-row.source-active .recording-file-icon-medium {
+  background-color: rgba(255, 142, 51, 0.15) !important;
+  color: #ff8e33 !important;
 }
 
 .child-row.source-finished {
