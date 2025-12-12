@@ -1029,9 +1029,9 @@ code {
 .child-row.source-active {
   background-color: rgba(255, 142, 51, 0.08) !important;
   border-left: 3px solid #ff8e33 !important;
-  border-top: 1px solid #ff8e33 !important;
-  border-right: 1px solid #ff8e33 !important;
-  border-bottom: 1px solid #ff8e33 !important;
+  border-top: 1px solid rgba(255, 142, 51, 0.25) !important;
+  border-right: 1px solid rgba(255, 142, 51, 0.25) !important;
+  border-bottom: 1px solid rgba(255, 142, 51, 0.25) !important;
   box-shadow: 0 1px 3px rgba(255, 142, 51, 0.15) !important;
 }
 
