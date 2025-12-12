@@ -65,6 +65,7 @@ import FormInput from '@/components/form/FormInput.vue';
 import WorkspaceClient from '@/services/workspace/WorkspaceClient';
 import CreateWorkspaceRequest from '@/services/workspace/model/CreateWorkspaceRequest';
 import ToastService from '@/services/ToastService';
+import SlugService from '@/services/SlugService';
 import {useModal} from '@/composables/useModal';
 import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
 
@@ -111,27 +112,12 @@ const closeModal = () => {
 
 // Auto-generate workspace ID from name
 const updateWorkspaceId = () => {
-  if (workspaceName.value) {
-    const generated = workspaceName.value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric characters except spaces and dashes
-      .replace(/\s+/g, '-') // Replace spaces with dashes
-      .replace(/-+/g, '-') // Replace multiple consecutive dashes with single dash
-      .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
-    workspaceId.value = generated;
-  } else {
-    workspaceId.value = '';
-  }
+  workspaceId.value = SlugService.generateSlug(workspaceName.value);
 };
 
 // Validate workspace ID input
 const validateWorkspaceId = () => {
-  const cleaned = workspaceId.value
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '') // Remove anything that's not alphanumeric or dash
-    .replace(/-+/g, '-') // Replace multiple consecutive dashes with single dash
-    .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
-  workspaceId.value = cleaned;
+  workspaceId.value = SlugService.validateSlug(workspaceId.value);
 };
 
 // Add workspace

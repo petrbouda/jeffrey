@@ -24,6 +24,7 @@ import java.util.Map;
 public record CreateProject(
         String originProjectId,
         String projectName,
+        String projectLabel,
         String templateId,
         Instant originCreatedAt,
         Map<String, String> attributes) {

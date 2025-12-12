@@ -21,11 +21,20 @@
 
     <template #body>
       <FormInput
+          v-model="projectLabel"
+          label="Project Label"
+          icon="bi-tag"
+          placeholder="Enter project label (e.g., My New Project)"
+          ref="projectLabelInputRef"
+          @input="updateProjectName"
+      />
+
+      <FormInput
           v-model="projectName"
           label="Project Name"
           icon="bi-folder"
-          placeholder="Enter project name"
-          ref="projectNameInputRef"
+          placeholder="ID to reference this project"
+          @input="validateProjectName"
       />
 
       <FormTemplateSelector
@@ -48,6 +57,7 @@ import ProjectsClient from '@/services/ProjectsClient';
 import ProjectTemplateInfo from '@/services/project/model/ProjectTemplateInfo';
 import TemplateTarget from '@/services/model/TemplateTarget';
 import ToastService from '@/services/ToastService';
+import SlugService from '@/services/SlugService';
 import {useModal} from '@/composables/useModal';
 
 interface Props {
@@ -65,7 +75,7 @@ const emit = defineEmits<Emits>();
 
 // Modal reference and composable
 const modalRef = ref<InstanceType<typeof BaseModal>>();
-const projectNameInputRef = ref<InstanceType<typeof FormInput>>();
+const projectLabelInputRef = ref<InstanceType<typeof FormInput>>();
 const {
   isLoading,
   showModal,
@@ -77,9 +87,20 @@ const {
 } = useModal(modalRef);
 
 // Form data
+const projectLabel = ref('');
 const projectName = ref('');
 const projectTemplates = ref<ProjectTemplateInfo[]>([]);
 const selectedTemplate = ref<string | null>(null);
+
+// Auto-generate project name from label
+const updateProjectName = () => {
+  projectName.value = SlugService.generateSlug(projectLabel.value);
+};
+
+// Validate project name input (when manually edited)
+const validateProjectName = () => {
+  projectName.value = SlugService.validateSlug(projectName.value);
+};
 
 // Load project templates
 const loadTemplates = async () => {
@@ -96,6 +117,7 @@ const loadTemplates = async () => {
 
 // Reset form
 const resetForm = () => {
+  projectLabel.value = '';
   projectName.value = '';
   selectedTemplate.value = projectTemplates.value.length > 0 ? projectTemplates.value[0].id : null;
 };
@@ -111,6 +133,9 @@ const createProject = async () => {
   await handleAsyncSubmit(
       async () => {
         // Validation
+        if (!projectLabel.value.trim()) {
+          throw new Error('Project label cannot be empty');
+        }
         if (!projectName.value.trim()) {
           throw new Error('Project name cannot be empty');
         }
@@ -118,11 +143,12 @@ const createProject = async () => {
         // Pass the selected template ID if one is selected, and workspace ID
         await ProjectsClient.create(
             projectName.value.trim(),
+            projectLabel.value.trim(),
             props.selectedWorkspace,
             selectedTemplate.value || undefined,
         );
 
-        ToastService.success('New Project Created!', `Project "${projectName.value.trim()}" successfully created`);
+        ToastService.success('New Project Created!', `Project "${projectLabel.value.trim()}" successfully created`);
 
         emit('project-created');
         resetForm();
@@ -135,11 +161,11 @@ const handleShown = () => {
   resetForm();
   handleModalShown();
 
-  // Focus the project name input after modal is shown
+  // Focus the project label input after modal is shown
   setTimeout(() => {
-    if (projectNameInputRef.value) {
+    if (projectLabelInputRef.value) {
       // Focus the underlying input element
-      const inputElement = (projectNameInputRef.value.$el as HTMLElement)?.querySelector('input');
+      const inputElement = (projectLabelInputRef.value.$el as HTMLElement)?.querySelector('input');
       inputElement?.focus();
     }
   }, 300);

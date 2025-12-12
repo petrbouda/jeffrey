@@ -25,6 +25,7 @@ export default class Project {
         public id: string,
         public originId: string,
         public name: string,
+        public label: string | null,
         public createdAt: string,
         public profileCount: number,
         public workspaceId: string,
@@ -37,5 +38,9 @@ export default class Project {
         public eventSource: RecordingEventSource,
         public isVirtual: boolean,
         public isOrphaned: boolean) {
+    }
+
+    static displayName(project: Project): string {
+        return project.label?.trim() ? project.label : project.name;
     }
 }

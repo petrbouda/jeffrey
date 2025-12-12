@@ -46,6 +46,7 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
             CreateProject createProject = new CreateProject(
                     event.projectId(),
                     eventContent.projectName(),
+                    eventContent.projectLabel(),
                     jobDescriptor.templateId(),
                     // When the project/event was created in the workspace (not replicated to the Jeffrey)
                     event.originCreatedAt(),

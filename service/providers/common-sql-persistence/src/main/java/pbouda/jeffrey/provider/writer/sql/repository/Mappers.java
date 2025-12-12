@@ -81,6 +81,7 @@ public abstract class Mappers {
                     rs.getString("project_id"),
                     rs.getString("origin_project_id"),
                     rs.getString("project_name"),
+                    rs.getString("project_label"),
                     rs.getString("workspace_id"),
                     WorkspaceType.valueOf(rs.getString("type")),
                     Mappers.instant(rs, "created_at"),

@@ -53,7 +53,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
     private static final Logger LOG = LoggerFactory.getLogger(CommandLineRecordingUploader.class);
 
-    private static final String PROJECT_NAME = "Jeffrey Examples Project";
+    private static final String PROJECT_NAME = "jeffrey-examples-project";
+    private static final String PROJECT_LABEL = "Jeffrey Examples Project";
 
     public static void uploadRecordings(String[] args) {
         if (args.length != 2) {
@@ -117,7 +118,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         ProjectsManager projectsManager = workspaceManager.projectsManager();
 
         CreateProject createProject = new CreateProject(
-                null, PROJECT_NAME, null, null, Map.of());
+                null, PROJECT_NAME, PROJECT_LABEL, null, null, Map.of());
 
         ProjectManager projectManager = projectsManager.create(createProject);
 

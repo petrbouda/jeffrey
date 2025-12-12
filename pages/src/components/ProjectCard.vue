@@ -3,7 +3,7 @@
     <!-- Status Header -->
     <div class="status-header" :class="getHeaderClass">
       <div class="project-header-name">
-        <span>{{ project.name }}</span>
+        <span>{{ Project.displayName(project) }}</span>
       </div>
       <div v-if="showCriticalWarning" class="critical-warning" :title="getCriticalWarningTooltip">
         <i :class="getCriticalWarningIcon"></i>
@@ -88,6 +88,7 @@ const moveToProject = async (projectId: string) => {
       // Create project in the same remote workspace with originProjectId set to remote project's originId
       const createdProject = await ProjectsClient.create(
           props.project.name,
+          Project.displayName(props.project),
           props.workspaceId,  // Use the current REMOTE workspace ID
           undefined, // templateId
           props.project.originId   // originProjectId - use the originId from the remote project

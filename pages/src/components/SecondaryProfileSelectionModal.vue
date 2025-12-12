@@ -177,7 +177,7 @@
             <div class="project-header">
               <i class="bi bi-folder me-2"></i>
               <div class="project-info">
-                <div class="project-name">{{ project.name }}</div>
+                <div class="project-name">{{ Project.displayName(project) }}</div>
                 <div class="project-meta">{{ FormattingService.formatDate(project.createdAt) }}</div>
               </div>
               <div class="selection-indicator" v-if="selectedProject?.id === project.id">

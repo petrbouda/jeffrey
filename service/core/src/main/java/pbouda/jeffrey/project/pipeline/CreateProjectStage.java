@@ -62,6 +62,7 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
                 IDGenerator.generate(),
                 project.originProjectId(),
                 project.projectName(),
+                project.projectLabel(),
                 workspaceInfo.id(),
                 workspaceInfo.type(),
                 clock.instant(),

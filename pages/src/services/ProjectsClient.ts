@@ -34,8 +34,8 @@ export default class ProjectsClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static async create(name: string, workspaceId: string, templateId?: string, originProjectId?: string): Promise<Project> {
-        const content: any = {name: name};
+    static async create(name: string, label: string, workspaceId: string, templateId?: string, originProjectId?: string): Promise<Project> {
+        const content: any = {name: name, label: label};
         if (templateId) {
             content.templateId = templateId;
         }

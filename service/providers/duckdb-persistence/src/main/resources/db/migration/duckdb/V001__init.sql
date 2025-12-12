@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS projects
     project_id              VARCHAR NOT NULL,
     origin_project_id       VARCHAR,
     project_name            VARCHAR NOT NULL,
+    project_label           VARCHAR,
     workspace_id            VARCHAR NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL,
     origin_created_at       TIMESTAMPTZ,
@@ -159,16 +160,16 @@ CREATE TABLE IF NOT EXISTS stacktraces
 
 CREATE TABLE IF NOT EXISTS events
 (
-    profile_id                     VARCHAR,
-    event_type                     VARCHAR,
-    start_timestamp                TIMESTAMPTZ NOT NULL,
-    duration                       BIGINT,
-    samples                        BIGINT NOT NULL,
-    weight                         BIGINT,
-    weight_entity                  VARCHAR,
-    stacktrace_hash                BIGINT,  -- Reference to stacktraces.stacktrace_hash
-    thread_hash                    BIGINT,  -- Hash value
-    fields                         JSON     -- JSON fields for event-specific data
+    profile_id      VARCHAR,
+    event_type      VARCHAR,
+    start_timestamp TIMESTAMPTZ NOT NULL,
+    duration        BIGINT,
+    samples         BIGINT NOT NULL,
+    weight          BIGINT,
+    weight_entity   VARCHAR,
+    stacktrace_hash BIGINT,  -- Reference to stacktraces.stacktrace_hash
+    thread_hash     BIGINT,  -- Hash value
+    fields          JSON     -- JSON fields for event-specific data
 );
 
 -- Optimized indexes for common query patterns

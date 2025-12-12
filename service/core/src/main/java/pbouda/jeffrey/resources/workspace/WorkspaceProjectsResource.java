@@ -113,6 +113,7 @@ public class WorkspaceProjectsResource {
         CreateProject createProject = new CreateProject(
                 request.originProjectId(),
                 request.name(),
+                request.label(),
                 request.templateId(),
                 null, // No origin project ID for API created projects
                 Map.of());
