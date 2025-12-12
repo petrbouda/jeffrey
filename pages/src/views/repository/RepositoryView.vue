@@ -377,9 +377,9 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
     selectedRepositoryFile.value[sessionId] = {};
   }
 
-  // Set all completed sources to the selected state
+  // Set all selectable sources to the selected state (exclude disabled ones)
   session.files.forEach(source => {
-    if (source.status !== RecordingStatus.ACTIVE) {
+    if (!isCheckboxDisabled(source)) {
       selectedRepositoryFile.value[sessionId][source.id] = selectAll;
     }
   });
@@ -754,12 +754,11 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                      :class="getSourceStatusClass(source, session.id)">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                      <div class="form-check file-form-check me-2" v-if="showMultiSelectActions[session.id]">
+                      <div class="form-check file-form-check me-2" v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(source)">
                         <input
                             class="form-check-input file-checkbox"
                             type="checkbox"
                             :id="'source-' + source.id"
-                            :disabled="isCheckboxDisabled(source)"
                             :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][source.id]"
                             @change="() => toggleSourceSelection(session.id, source.id)"
                             @click.stop>
