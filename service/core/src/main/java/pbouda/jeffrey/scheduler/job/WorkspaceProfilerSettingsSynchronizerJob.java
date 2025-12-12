@@ -7,12 +7,11 @@ import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
-import pbouda.jeffrey.provider.writer.sql.JdbcRepositories;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.repository.model.ProfilerSettings;
 import pbouda.jeffrey.repository.model.RemoteWorkspaceSettings;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceProfilerSettingsSynchronizerJobDescriptor;
 
 import java.time.Duration;
@@ -25,17 +24,20 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
 
     private final Duration period;
     private final ProfilerRepository profilerRepository;
+    private final Repositories repositories;
 
     public WorkspaceProfilerSettingsSynchronizerJob(
             Duration period,
             ProfilerRepository profilerRepository,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
+            Repositories repositories,
             JobDescriptorFactory jobDescriptorFactory) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.period = period;
         this.profilerRepository = profilerRepository;
+        this.repositories = repositories;
     }
 
     @Override
@@ -43,7 +45,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
             WorkspaceManager workspaceManager, WorkspaceProfilerSettingsSynchronizerJobDescriptor jobInfo) {
 
         if (workspaceManager.type() != WorkspaceType.LIVE) {
-             return;
+            return;
         }
 
         RemoteWorkspaceRepository workspaceRepository = workspaceManager.remoteWorkspaceRepository();
@@ -56,7 +58,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
         workspaceRepository.removeLegacySettings(jobInfo.maxVersions());
     }
 
-    private static ProfilerSettings resolveProfilerSettings(List<ProfilerInfo> profilerInfos) {
+    private ProfilerSettings resolveProfilerSettings(List<ProfilerInfo> profilerInfos) {
         String globalSettings = null;
         String workspaceSettings = null;
         Map<String, String> projectSettings = new HashMap<>();
@@ -66,7 +68,9 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
             } else if (profilerInfo.isWorkspace()) {
                 workspaceSettings = profilerInfo.agentSettings();
             } else {
-                projectSettings.put(profilerInfo.projectId(), profilerInfo.agentSettings());
+                repositories.newProjectRepository(profilerInfo.projectId())
+                        .find()
+                        .ifPresent(info -> projectSettings.put(info.originId(), profilerInfo.agentSettings()));
             }
         }
 

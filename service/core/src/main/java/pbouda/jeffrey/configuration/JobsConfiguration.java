@@ -185,6 +185,7 @@ public class JobsConfiguration {
                 repositories.newProfilerRepository(),
                 liveWorkspacesManager,
                 schedulerManager,
+                repositories,
                 jobDescriptorFactory);
     }
 }
