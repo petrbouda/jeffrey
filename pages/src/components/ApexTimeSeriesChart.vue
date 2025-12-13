@@ -130,6 +130,9 @@ const dataMaxTime = ref(0);
 const visibleStartTime = ref(0);
 const visibleEndTime = ref(0);
 let selectionTimeout: NodeJS.Timeout | null = null;
+let isInitialSetup = true; // Flag to skip selection events during initial setup
+let isUpdatingSelection = false; // Flag to prevent re-entrant selection events from updateOptions
+let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selection to avoid duplicates
 
 // Colors
 const primaryColor = props.primaryColor || '#2E93fA';
@@ -259,6 +262,7 @@ const resetBrushSelection = async (): Promise<void> => {
   await nextTick();
 
   if (brushChart.value?.updateOptions) {
+    isUpdatingSelection = true;
     const isMilliseconds = props.timeUnit === 'milliseconds';
     brushChart.value.updateOptions({
       chart: {
@@ -270,6 +274,7 @@ const resetBrushSelection = async (): Promise<void> => {
         }
       }
     }, false);
+    setTimeout(() => { isUpdatingSelection = false; }, 100);
   }
 };
 
@@ -563,6 +568,17 @@ const brushChartOptions = computed(() => ({
     },
     events: {
       selection: function(_: any, { xaxis }: { xaxis: { min: number, max: number } }) {
+        // Skip selection events during initial setup or programmatic updates
+        if (isInitialSetup || isUpdatingSelection) {
+          return;
+        }
+
+        // Skip if selection hasn't meaningfully changed (within 1ms tolerance)
+        if (Math.abs(xaxis.min - lastProcessedSelection.min) < 1 &&
+            Math.abs(xaxis.max - lastProcessedSelection.max) < 1) {
+          return;
+        }
+
         // Clear existing timeout to prevent multiple updates
         if (selectionTimeout) {
           clearTimeout(selectionTimeout);
@@ -585,8 +601,12 @@ const brushChartOptions = computed(() => ({
           visibleEndTime.value = clampedEnd;
           selectionTimeout = null;
 
+          // Track this selection as processed
+          lastProcessedSelection = { min: xaxis.min, max: xaxis.max };
+
           // Update brush chart visual selection if clamping occurred
           if (wasClamped && brushChart.value?.updateOptions) {
+            isUpdatingSelection = true;
             brushChart.value.updateOptions({
               chart: {
                 selection: {
@@ -597,6 +617,8 @@ const brushChartOptions = computed(() => ({
                 }
               }
             }, false);
+            // Reset flag after a short delay to allow the event to be processed
+            setTimeout(() => { isUpdatingSelection = false; }, 100);
           }
 
           // Handle zoom - either via graphUpdater or emit
@@ -714,6 +736,12 @@ const brushChartOptions = computed(() => ({
 watch(effectivePrimaryData, (newData) => {
   if (newData && newData.length > 0) {
     calculateMinMaxTimeValues();
+    // Allow selection events after initial data is loaded (with small delay to let chart render)
+    if (isInitialSetup) {
+      setTimeout(() => {
+        isInitialSetup = false;
+      }, 500);
+    }
   }
 }, { deep: true, immediate: true });
 
