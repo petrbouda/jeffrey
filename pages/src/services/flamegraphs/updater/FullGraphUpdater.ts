@@ -18,8 +18,8 @@
 
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
-import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
 import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient.ts";
+import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 
 export default class FullGraphUpdater extends GraphUpdater {
 
@@ -35,14 +35,58 @@ export default class FullGraphUpdater extends GraphUpdater {
         this.flamegraphOnUpdateStartedCallback();
         this.timeseriesOnUpdateStartedCallback();
 
-        this.httpClient.provideBoth(GraphComponents.BOTH, null, null)
-            .then(data => {
-                this.flamegraphOnInitCallback(data.flamegraph);
-                this.timeseriesOnInitCallback(data.timeseries);
-
-                this.flamegraphOnUpdateFinishedCallback();
+        // First fetch only timeseries to know the data range
+        this.httpClient.provideTimeseries(null)
+            .then(timeseries => {
+                // Initialize timeseries with full data (needed for brush chart)
+                this.timeseriesOnInitCallback(timeseries);
                 this.timeseriesOnUpdateFinishedCallback();
+
+                // Calculate initial time range based on visibleMinutes setting
+                const initialTimeRange = this.calculateInitialTimeRange(timeseries);
+
+                // Fetch flamegraph with the calculated range (zoomed or full)
+                this.httpClient.provide(initialTimeRange)
+                    .then(flamegraph => {
+                        this.flamegraphOnInitCallback(flamegraph);
+                        this.flamegraphOnUpdateFinishedCallback();
+                    });
             });
+    }
+
+    /**
+     * Calculate the initial time range based on initialVisibleMinutes.
+     * Returns null if full range should be used.
+     */
+    private calculateInitialTimeRange(timeseries: TimeseriesData): TimeRange | null {
+        if (this.initialVisibleMinutes === null) {
+            return null;
+        }
+
+        if (!timeseries?.series?.length) {
+            return null;
+        }
+
+        const series = timeseries.series[0];
+        if (!series.data?.length) {
+            return null;
+        }
+
+        const minTime = series.data[0][0];
+        const maxTime = series.data[series.data.length - 1][0];
+        const totalRange = maxTime - minTime;
+        const visibleRange = this.initialVisibleMinutes * 60 * 1000; // Convert minutes to milliseconds
+
+        // Only zoom if visible range is significantly smaller than total (less than 99%)
+        if (visibleRange >= totalRange * 0.99) {
+            return null;
+        }
+
+        return new TimeRange(
+            Math.floor(minTime),
+            Math.ceil(Math.min(minTime + visibleRange, maxTime)),
+            true
+        );
     }
 
     public updateWithZoom(timeRange: TimeRange): void {

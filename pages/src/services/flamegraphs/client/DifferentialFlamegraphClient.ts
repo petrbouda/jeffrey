@@ -89,7 +89,9 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
     }
 
     provideTimeseries(_ignored: string | null): Promise<TimeseriesData> {
-        return Promise.reject("Differential Flamegraph does not support searching")
+        // Differential flamegraph doesn't support search in timeseries, but we can still fetch timeseries data
+        return this.provideBoth(GraphComponents.TIMESERIES_ONLY, null, null)
+            .then(data => data.timeseries);
     }
 
     save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {

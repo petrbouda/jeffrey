@@ -17,9 +17,9 @@
  */
 
 enum GraphComponents {
-    BOTH,
-    FLAMEGRAPH_ONLY,
-    TIMESERIES_ONLY,
+    BOTH = "BOTH",
+    FLAMEGRAPH_ONLY = "FLAMEGRAPH_ONLY",
+    TIMESERIES_ONLY = "TIMESERIES_ONLY",
 }
 
 export default GraphComponents

@@ -88,9 +88,14 @@ export default abstract class GraphUpdater {
     };
 
     protected timeseriesSearchEnabled: boolean = true;
+    protected initialVisibleMinutes: number | null = null;
 
     public setTimeseriesSearchEnabled(enabled: boolean): void {
         this.timeseriesSearchEnabled = enabled;
+    }
+
+    public setInitialVisibleMinutes(minutes: number): void {
+        this.initialVisibleMinutes = minutes;
     }
 
     public registerSearchBarCallbacks(

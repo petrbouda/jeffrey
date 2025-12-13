@@ -130,7 +130,6 @@ const dataMaxTime = ref(0);
 const visibleStartTime = ref(0);
 const visibleEndTime = ref(0);
 let selectionTimeout: NodeJS.Timeout | null = null;
-let isInitialSetup = true; // Flag to skip selection events during initial setup
 let isUpdatingSelection = false; // Flag to prevent re-entrant selection events from updateOptions
 let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selection to avoid duplicates
 
@@ -568,8 +567,8 @@ const brushChartOptions = computed(() => ({
     },
     events: {
       selection: function(_: any, { xaxis }: { xaxis: { min: number, max: number } }) {
-        // Skip selection events during initial setup or programmatic updates
-        if (isInitialSetup || isUpdatingSelection) {
+        // Skip selection events during programmatic updates
+        if (isUpdatingSelection) {
           return;
         }
 
@@ -736,12 +735,12 @@ const brushChartOptions = computed(() => ({
 watch(effectivePrimaryData, (newData) => {
   if (newData && newData.length > 0) {
     calculateMinMaxTimeValues();
-    // Allow selection events after initial data is loaded (with small delay to let chart render)
-    if (isInitialSetup) {
-      setTimeout(() => {
-        isInitialSetup = false;
-      }, 500);
-    }
+    // Set lastProcessedSelection to match the current visible range to prevent duplicate loads
+    const isMilliseconds = props.timeUnit === 'milliseconds';
+    lastProcessedSelection = {
+      min: isMilliseconds ? visibleStartTime.value : visibleStartTime.value * 1000,
+      max: isMilliseconds ? visibleEndTime.value : visibleEndTime.value * 1000
+    };
   }
 }, { deep: true, immediate: true });
 
@@ -754,6 +753,11 @@ watch(effectiveSecondaryData, () => {
 onMounted(async () => {
   // If graphUpdater is provided, register callbacks for automatic data management
   if (props.graphUpdater) {
+    // Set initial visible minutes so flamegraph loads with the correct initial zoom
+    if (props.visibleMinutes) {
+      props.graphUpdater.setInitialVisibleMinutes(props.visibleMinutes);
+    }
+
     props.graphUpdater.registerTimeseriesCallbacks(
         () => isLoading.value = true,
         () => isLoading.value = false,
