@@ -30,7 +30,7 @@ import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import FullGraphUpdater from "@/services/flamegraphs/updater/FullGraphUpdater";
 import GraphType from "@/services/flamegraphs/GraphType.ts";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import ApexTimeSeriesChart from "@/components/ApexTimeSeriesChart.vue";
 import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import * as bootstrap from 'bootstrap';
 
@@ -468,12 +468,12 @@ function createContextMenuItems() {
           <SearchBarComponent
               :graph-updater="graphUpdater"
               :with-timeseries="true"/>
-          <TimeseriesComponent
-              :graph-type="GraphType.PRIMARY"
-              :event-type="selectedEventCode"
-              :use-weight="useWeightValue"
+          <ApexTimeSeriesChart
+              :graph-updater="graphUpdater"
+              :primary-axis-type="useWeightValue ? 'bytes' : 'number'"
+              :visible-minutes="60"
               :zoom-enabled="true"
-              :graph-updater="graphUpdater"/>
+              time-unit="milliseconds"/>
           <FlamegraphComponent
               :with-timeseries="true"
               :use-weight="useWeightValue"

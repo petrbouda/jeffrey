@@ -78,9 +78,6 @@ export default abstract class GraphUpdater {
     protected timeseriesControlResetZoomCallback: () => void = () => {
     };
 
-    protected timeseriesControlChangeGraphTypeCallback: (type: string) => void = () => {
-    };
-
     protected searchBarOnMatchedCallback: (matched: string | null) => void = () => {
     };
 
@@ -111,19 +108,14 @@ export default abstract class GraphUpdater {
     }
 
     public registerTimeseriesControlCallbacks(
-        onResetZoom: () => void,
-        onChangeGraphType: (type: string) => void
+        onResetZoom: () => void
     ): void {
         this.timeseriesControlResetZoomCallback = onResetZoom;
-        this.timeseriesControlChangeGraphTypeCallback = onChangeGraphType;
     }
 
     public resetTimeseriesZoom(): void {
         this.timeseriesControlResetZoomCallback();
-    }
-
-    public changeTimeseriesGraphType(type: string): void {
-        this.timeseriesControlChangeGraphTypeCallback(type);
+        this.resetZoom();
     }
 
     public registerFlamegraphCallbacks(

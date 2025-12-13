@@ -58,7 +58,7 @@
               <ApexTimeSeriesChart
                   :primaryData="timeseriesData?.data"
                   :primaryTitle="timeseriesData?.name"
-                  :visibleMinutes="15"/>
+                  :visibleMinutes="60"/>
             </div>
           </div>
 

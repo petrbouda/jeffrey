@@ -1,5 +1,6 @@
 <template>
-  <div class="apex-time-series-chart" ref="chartContainer">
+  <LoadingIndicator v-if="isLoading" text="Generating Timeseries..."/>
+  <div class="apex-time-series-chart" ref="chartContainer" v-show="!isLoading && effectivePrimaryData && effectivePrimaryData.length > 0">
     <div class="chart-content">
       <!-- Main chart -->
       <div class="main-chart-container">
@@ -14,9 +15,9 @@
 
       <!-- Brush/navigator chart -->
       <div class="brush-chart-container">
-        <!-- Reset button in top right corner of brush chart -->
-        <button class="reset-zoom-btn reset-zoom-btn-corner" @click="resetBrushSelection" title="Reset to full time range">
-          <i class="bi bi-zoom-out"></i>
+        <!-- Select all button in top right corner of brush chart -->
+        <button class="reset-zoom-btn reset-zoom-btn-corner" @click="onSelectEntireRange" title="Select entire range">
+          <i class="bi bi-arrows-angle-expand"></i>
         </button>
         <apexchart
           ref="brushChart"
@@ -54,11 +55,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import TimeRange from '@/services/flamegraphs/model/TimeRange';
+import LoadingIndicator from '@/components/LoadingIndicator.vue';
 
 // Define props
 const props = defineProps<{
   primaryData?: number[][];
   secondaryData?: number[][];
+  searchData?: number[][];
   primaryTitle?: string;
   secondaryTitle?: string;
   secondaryUnit?: string;
@@ -71,7 +77,44 @@ const props = defineProps<{
   secondaryColor?: string;
   showPoints?: boolean;
   timeUnit?: 'seconds' | 'milliseconds'; // New prop to control time unit
+  zoomEnabled?: boolean; // Whether to emit time range updates on brush selection
+  graphUpdater?: GraphUpdater; // Optional: When provided, component manages data internally
 }>();
+
+// Define emits
+const emit = defineEmits<{
+  'update:timeRange': [payload: { start: number, end: number, isZoomed: boolean }]
+}>();
+
+// Search highlight color (purple)
+const searchHighlightColor = '#8E44AD';
+
+// Internal data refs (used when graphUpdater is provided)
+const internalPrimaryData = ref<number[][]>([]);
+const internalSecondaryData = ref<number[][] | undefined>(undefined);
+const internalSearchData = ref<number[][] | undefined>(undefined);
+const isLoading = ref(false);
+
+// Extract primary data from TimeseriesData (first series)
+const extractPrimaryTimeseriesData = (data: TimeseriesData): number[][] => {
+  if (data.series && data.series.length > 0) {
+    return data.series[0].data;
+  }
+  return [];
+};
+
+// Extract secondary data from TimeseriesData (second series, for differential mode)
+const extractSecondaryTimeseriesData = (data: TimeseriesData): number[][] | undefined => {
+  if (data.series && data.series.length > 1) {
+    return data.series[1].data;
+  }
+  return undefined;
+};
+
+// Computed to use either props data or internal data (when graphUpdater is used)
+const effectivePrimaryData = computed(() => props.graphUpdater ? internalPrimaryData.value : props.primaryData);
+const effectiveSecondaryData = computed(() => props.graphUpdater ? internalSecondaryData.value : props.secondaryData);
+const effectiveSearchData = computed(() => props.graphUpdater ? internalSearchData.value : props.searchData);
 
 // Default values
 const defaultVisibleMinutes = 15;
@@ -90,7 +133,7 @@ let selectionTimeout: NodeJS.Timeout | null = null;
 
 // Colors
 const primaryColor = props.primaryColor || '#2E93fA';
-const secondaryColor = props.secondaryColor || '#8E44AD';
+const secondaryColor = props.secondaryColor || '#E53935';
 
 // Calculate max Y-axis values for consistent scaling
 const primaryMaxValue = ref(0);
@@ -111,54 +154,60 @@ const findMaxValueInSeries = (data: number[][] | undefined): number => {
 };
 
 const calculateMaxYValues = (): void => {
-  if (props.stacked && props.primaryData && props.secondaryData) {
+  const primaryData = effectivePrimaryData.value;
+  const secondaryData = effectiveSecondaryData.value;
+
+  if (props.stacked && primaryData && secondaryData) {
     // For stacked charts, calculate the maximum sum at any point
     let maxSum = 0;
-    const minLength = Math.min(props.primaryData.length, props.secondaryData.length);
-    
+    const minLength = Math.min(primaryData.length, secondaryData.length);
+
     for (let i = 0; i < minLength; i++) {
-      const primaryValue = props.primaryData[i][1] || 0;
-      const secondaryValue = props.secondaryData[i][1] || 0;
+      const primaryValue = primaryData[i][1] || 0;
+      const secondaryValue = secondaryData[i][1] || 0;
       const sum = primaryValue + secondaryValue;
       if (sum > maxSum) maxSum = sum;
     }
-    
+
     // Add 10% padding
     primaryMaxValue.value = maxSum > 0 ? maxSum * 1.1 : 0;
     secondaryMaxValue.value = primaryMaxValue.value; // Same scale for stacked
   } else {
     // Calculate axis max values with padding applied in helper
-    primaryMaxValue.value = findMaxValueInSeries(props.primaryData);
-    secondaryMaxValue.value = findMaxValueInSeries(props.secondaryData);
+    primaryMaxValue.value = findMaxValueInSeries(primaryData);
+    secondaryMaxValue.value = findMaxValueInSeries(secondaryData);
   }
 };
 
 // Calculate min/max time values
 const calculateMinMaxTimeValues = (): void => {
-  if (!Array.isArray(props.primaryData) || props.primaryData.length === 0) {
+  const primaryData = effectivePrimaryData.value;
+  const secondaryData = effectiveSecondaryData.value;
+
+  if (!Array.isArray(primaryData) || primaryData.length === 0) {
     dataMinTime.value = 0;
     dataMaxTime.value = 0;
     return;
   }
-  
-  let min = props.primaryData[0][0];
-  let max = props.primaryData[0][0];
-  
-  for (let i = 0; i < props.primaryData.length; i++) {
-    const point = props.primaryData[i];
+
+  let min = primaryData[0][0];
+  let max = primaryData[0][0];
+
+  for (let i = 0; i < primaryData.length; i++) {
+    const point = primaryData[i];
     if (point[0] < min) min = point[0];
     if (point[0] > max) max = point[0];
   }
-  
+
   // Include secondary data in time range if available
-  if (props.secondaryData && props.secondaryData.length > 0) {
-    for (let i = 0; i < props.secondaryData.length; i++) {
-      const point = props.secondaryData[i];
+  if (secondaryData && secondaryData.length > 0) {
+    for (let i = 0; i < secondaryData.length; i++) {
+      const point = secondaryData[i];
       if (point[0] < min) min = point[0];
       if (point[0] > max) max = point[0];
     }
   }
-  
+
   dataMinTime.value = min;
   dataMaxTime.value = max;
   
@@ -202,12 +251,13 @@ const formatTimeRange = (startTime: number, endTime: number): string => {
   return `${formatTime(startTime)} - ${formatTime(endTime)}`;
 };
 
+// Reset just the brush visual (used by callbacks to avoid duplicate resetZoom calls)
 const resetBrushSelection = async (): Promise<void> => {
   visibleStartTime.value = dataMinTime.value;
   visibleEndTime.value = dataMaxTime.value;
-  
+
   await nextTick();
-  
+
   if (brushChart.value?.updateOptions) {
     const isMilliseconds = props.timeUnit === 'milliseconds';
     brushChart.value.updateOptions({
@@ -220,6 +270,25 @@ const resetBrushSelection = async (): Promise<void> => {
         }
       }
     }, false);
+  }
+};
+
+// Handler for the "Select entire range" button - resets brush AND flamegraph
+const onSelectEntireRange = async (): Promise<void> => {
+  await resetBrushSelection();
+
+  // Reset flamegraph zoom when graphUpdater is provided
+  if (props.graphUpdater) {
+    props.graphUpdater.resetZoom();
+  }
+
+  // Emit event for parent components
+  if (props.zoomEnabled) {
+    emit('update:timeRange', {
+      start: dataMinTime.value,
+      end: dataMaxTime.value,
+      isZoomed: false
+    });
   }
 };
 
@@ -275,45 +344,70 @@ const getVisibleData = (data: number[][] = []): Array<{x: number, y: number}> =>
 // Main chart series
 const mainChartSeries = computed(() => {
   const series = [];
-  
-  if (props.primaryData && props.primaryData.length > 0) {
+  const primaryData = effectivePrimaryData.value;
+  const secondaryData = effectiveSecondaryData.value;
+  const searchData = effectiveSearchData.value;
+
+  if (primaryData && primaryData.length > 0) {
     series.push({
       name: props.primaryTitle || 'Primary',
-      data: getVisibleData(props.primaryData),
+      data: getVisibleData(primaryData),
       color: primaryColor
     });
   }
-  
-  if (props.secondaryData && props.secondaryData.length > 0) {
+
+  if (secondaryData && secondaryData.length > 0) {
     series.push({
       name: props.secondaryTitle || 'Secondary',
-      data: getVisibleData(props.secondaryData),
+      data: getVisibleData(secondaryData),
       color: secondaryColor
     });
   }
-  
+
+  // Add search highlight data if provided
+  if (searchData && searchData.length > 0) {
+    series.push({
+      name: 'Search Results',
+      data: getVisibleData(searchData),
+      color: searchHighlightColor
+    });
+  }
+
   return series;
 });
 
 // Brush chart series (full data)
 const brushChartSeries = computed(() => {
   const series = [];
-  
-  if (props.primaryData && props.primaryData.length > 0) {
+  const primaryData = effectivePrimaryData.value;
+  const secondaryData = effectiveSecondaryData.value;
+  const searchData = effectiveSearchData.value;
+
+  if (primaryData && primaryData.length > 0) {
     series.push({
       name: props.primaryTitle || 'Primary',
-      data: processDataForApex(props.primaryData, 1500), // Increased from 750 to 1500 for better resolution
+      data: processDataForApex(primaryData, 1500),
       color: primaryColor
     });
   }
-  
-  if (props.secondaryData && props.secondaryData.length > 0) {
+
+  if (secondaryData && secondaryData.length > 0) {
     series.push({
       name: props.secondaryTitle || 'Secondary',
-      data: processDataForApex(props.secondaryData, 1500), // Increased from 750 to 1500 for better resolution
+      data: processDataForApex(secondaryData, 1500),
       color: secondaryColor
     });
   }
+
+  // Add search highlight data if provided
+  if (searchData && searchData.length > 0) {
+    series.push({
+      name: 'Search Results',
+      data: processDataForApex(searchData, 1500),
+      color: searchHighlightColor
+    });
+  }
+
   return series;
 });
 
@@ -473,17 +567,58 @@ const brushChartOptions = computed(() => ({
         if (selectionTimeout) {
           clearTimeout(selectionTimeout);
         }
-        
+
         // Debounce the update to prevent twitching and loops
         selectionTimeout = setTimeout(() => {
           const isMilliseconds = props.timeUnit === 'milliseconds';
           const selectionStart = isMilliseconds ? xaxis.min : xaxis.min / 1000;
           const selectionEnd = isMilliseconds ? xaxis.max : xaxis.max / 1000;
-          
-          // Use the exact selection without minimum constraints
-          visibleStartTime.value = selectionStart;
-          visibleEndTime.value = selectionEnd;
+
+          // Clamp selection to actual data bounds
+          const clampedStart = Math.max(selectionStart, dataMinTime.value);
+          const clampedEnd = Math.min(selectionEnd, dataMaxTime.value);
+
+          // Check if clamping was needed
+          const wasClamped = selectionStart !== clampedStart || selectionEnd !== clampedEnd;
+
+          visibleStartTime.value = clampedStart;
+          visibleEndTime.value = clampedEnd;
           selectionTimeout = null;
+
+          // Update brush chart visual selection if clamping occurred
+          if (wasClamped && brushChart.value?.updateOptions) {
+            brushChart.value.updateOptions({
+              chart: {
+                selection: {
+                  xaxis: {
+                    min: isMilliseconds ? clampedStart : clampedStart * 1000,
+                    max: isMilliseconds ? clampedEnd : clampedEnd * 1000
+                  }
+                }
+              }
+            }, false);
+          }
+
+          // Handle zoom - either via graphUpdater or emit
+          if (props.zoomEnabled) {
+            const isZoomed = Math.abs(clampedEnd - clampedStart) < Math.abs(dataMaxTime.value - dataMinTime.value) * 0.99;
+
+            // If graphUpdater is provided, call updateWithZoom directly
+            if (props.graphUpdater && isZoomed) {
+              props.graphUpdater.updateWithZoom(new TimeRange(
+                  Math.floor(clampedStart),
+                  Math.ceil(clampedEnd),
+                  true
+              ));
+            }
+
+            // Also emit for any parent component listeners
+            emit('update:timeRange', {
+              start: clampedStart,
+              end: clampedEnd,
+              isZoomed
+            });
+          }
         }, 1000);
       }
     },
@@ -496,7 +631,7 @@ const brushChartOptions = computed(() => ({
   },
   stroke: {
     curve: 'smooth',
-    width: 1.5
+    width: 1
   },
   fill: {
     type: 'gradient',
@@ -575,27 +710,62 @@ const brushChartOptions = computed(() => ({
   }
 }));
 
-// Watch for data changes
-watch(() => props.primaryData, (newData) => {
+// Watch for data changes - watch effective data (handles both prop-driven and graphUpdater-driven modes)
+watch(effectivePrimaryData, (newData) => {
   if (newData && newData.length > 0) {
     calculateMinMaxTimeValues();
   }
 }, { deep: true, immediate: true });
 
-watch(() => props.secondaryData, () => {
+watch(effectiveSecondaryData, () => {
   // Recalculate max values when secondary data changes
   calculateMaxYValues();
 }, { deep: true, immediate: true });
 
 // Initialize on mount
 onMounted(async () => {
+  // If graphUpdater is provided, register callbacks for automatic data management
+  if (props.graphUpdater) {
+    props.graphUpdater.registerTimeseriesCallbacks(
+        () => isLoading.value = true,
+        () => isLoading.value = false,
+        (data: TimeseriesData) => {
+          internalPrimaryData.value = extractPrimaryTimeseriesData(data);
+          internalSecondaryData.value = extractSecondaryTimeseriesData(data);
+          internalSearchData.value = undefined;
+        },
+        (data: TimeseriesData) => {
+          internalSearchData.value = extractPrimaryTimeseriesData(data);
+        },
+        () => {
+          internalSearchData.value = undefined;
+        },
+        () => {},
+        () => {
+          resetBrushSelection();
+        }
+    );
+
+    // Register control callbacks for SearchBarComponent
+    props.graphUpdater.registerTimeseriesControlCallbacks(
+        () => {
+          resetBrushSelection();
+        }
+    );
+  }
+
   calculateMinMaxTimeValues();
-  
+
   // Force chart refresh after DOM is updated to ensure proper positioning
   await nextTick();
   if (brushChart.value?.updateOptions) {
     brushChart.value.updateOptions(brushChartOptions.value, false);
   }
+});
+
+// Expose methods for parent component access
+defineExpose({
+  resetBrush: resetBrushSelection
 });
 </script>
 
@@ -611,7 +781,6 @@ onMounted(async () => {
 .chart-content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
 }
 
@@ -627,7 +796,6 @@ onMounted(async () => {
   height: 106px;
   padding: 2px;
   position: relative;
-  margin-top: 20px;
   overflow: hidden;
   border: 1px solid #e0e0e0;
 }
@@ -642,7 +810,7 @@ onMounted(async () => {
   justify-content: space-between;
   font-size: 11px;
   color: #666;
-  margin-top: -2px;
+  margin-top: 4px;
   width: 100%;
 }
 

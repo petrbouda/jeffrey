@@ -102,7 +102,7 @@
               v-else
               :primary-data="getEventTimeSeriesData(event.eventType)"
               :primary-title="`${event.eventName}`"
-              :visible-minutes="15"
+              :visible-minutes="60"
               :primary-axis-type="'durationInMillis'"
             />
           </template>

@@ -29,7 +29,7 @@
           :primary-data="threadSerie"
           primary-title="Active Threads"
           primary-axis-type="number"
-          :visible-minutes="15"
+          :visible-minutes="60"
           primary-color="#4285F4"
       />
     </ChartSection>
@@ -155,12 +155,12 @@
             <SearchBarComponent
                 :graph-updater="graphUpdater"
                 :with-timeseries="true"/>
-            <TimeseriesComponent
-                :graph-type="GraphType.PRIMARY"
-                :event-type="selectedEventCode"
-                :use-weight="useWeightForModal"
+            <ApexTimeSeriesChart
+                :graph-updater="graphUpdater"
+                :primary-axis-type="useWeightForModal ? 'bytes' : 'number'"
+                :visible-minutes="60"
                 :zoom-enabled="true"
-                :graph-updater="graphUpdater" />
+                time-unit="milliseconds"/>
             <FlamegraphComponent
                 :with-timeseries="true"
                 :use-weight="useWeightForModal"
@@ -191,7 +191,6 @@ import AllocatingThread from '@/services/thread/model/AllocatingThread';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import GraphType from '@/services/flamegraphs/GraphType';
 import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';

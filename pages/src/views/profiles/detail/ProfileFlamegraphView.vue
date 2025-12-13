@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import ApexTimeSeriesChart from "@/components/ApexTimeSeriesChart.vue";
 import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import router from "@/router";
 import {onBeforeMount} from "vue";
@@ -48,6 +48,7 @@ const excludeNonJavaSamples = queryParams.excludeNonJavaSamples === 'true'
 const excludeIdleSamples = queryParams.excludeIdleSamples === 'true'
 const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 'true'
 const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL
+const isPrimary = queryParams.graphMode === GraphType.PRIMARY
 
 onBeforeMount(() => {
   // Scroll the workspace-content container to top
@@ -83,7 +84,7 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, true)
-  graphUpdater.setTimeseriesSearchEnabled(queryParams.graphMode === GraphType.PRIMARY)
+  graphUpdater.setTimeseriesSearchEnabled(isPrimary)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential)
 });
 </script>
@@ -93,14 +94,16 @@ onBeforeMount(() => {
     <SearchBarComponent
         :graph-updater="graphUpdater"
         :with-timeseries="true"/>
-    <TimeseriesComponent
-        :graph-type="queryParams.graphMode as string"
-        :event-type="eventType"
-        :use-weight="useWeight"
+    <ApexTimeSeriesChart
+        :graph-updater="graphUpdater"
+        :primary-title="isDifferential ? 'Primary' : undefined"
+        :secondary-title="isDifferential ? 'Secondary' : undefined"
+        :primary-axis-type="useWeight ? 'bytes' : 'number'"
+        :visible-minutes="60"
         :zoom-enabled="true"
-        :graph-updater="graphUpdater"/>
+        time-unit="milliseconds"/>
     <FlamegraphComponent
-        :with-timeseries="queryParams.graphMode === GraphType.PRIMARY"
+        :with-timeseries="isPrimary"
         :use-weight="useWeight"
         :use-guardian="null"
         :scrollable-wrapper-class="null"

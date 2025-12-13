@@ -59,6 +59,7 @@ import FormattingService from '@/services/FormattingService.ts';
 const props = defineProps<{
   primaryData?: number[][];
   secondaryData?: number[][];
+  searchData?: number[][];
   primaryTitle?: string;
   secondaryTitle?: string;
   secondaryUnit?: string;
@@ -66,6 +67,12 @@ const props = defineProps<{
   independentSecondaryAxis?: boolean;
   primaryAxisType?: 'number' | 'duration' | 'bytes';
   secondaryAxisType?: 'number' | 'duration' | 'bytes';
+  zoomEnabled?: boolean;
+}>();
+
+// Define emits
+const emit = defineEmits<{
+  'update:timeRange': [payload: { start: number, end: number, isZoomed: boolean }]
 }>();
 
 // Define default values for optional props
@@ -206,6 +213,18 @@ const visibleSecondaryData = computed(() => {
       point[0] <= visibleEndTime.value
   );
 });
+
+// Get visible data for search highlighting (if provided)
+const visibleSearchData = computed(() => {
+  if (!props.searchData) return [];
+  return props.searchData.filter(point =>
+      point[0] >= visibleStartTime.value &&
+      point[0] <= visibleEndTime.value
+  );
+});
+
+// Search highlight color (orange/red for visibility)
+const searchHighlightColor = '#e54c00';
 
 // Format time for display
 const formatTime = (seconds: number): string => {
@@ -522,9 +541,49 @@ const handleMouseMove = (event: MouseEvent) => {
 };
 
 const handleMouseUp = () => {
+  const wasDragging = draggingBrush.value || draggingHandle.value !== null;
   draggingBrush.value = false;
   draggingHandle.value = null;
+
+  // Emit time range update when brush drag ends (only if zoom is enabled)
+  if (wasDragging && props.zoomEnabled !== false) {
+    emitTimeRange();
+  }
 };
+
+// Emit the current time range
+const emitTimeRange = () => {
+  const isZoomed = brushWidthPercent.value < 99.9; // Allow small floating point tolerance
+  emit('update:timeRange', {
+    start: visibleStartTime.value,
+    end: visibleEndTime.value,
+    isZoomed
+  });
+};
+
+// Reset brush to show full range or initial range
+const resetBrush = () => {
+  initializeBrushSelection();
+  drawMainChart();
+
+  // Emit the reset time range
+  if (props.zoomEnabled !== false) {
+    emitTimeRange();
+  }
+};
+
+// Reset brush to show full data range
+const resetBrushToFullRange = () => {
+  brushStartPercent.value = 0;
+  brushWidthPercent.value = 100;
+  drawMainChart();
+};
+
+// Expose methods for parent component access
+defineExpose({
+  resetBrush,
+  resetBrushToFullRange
+});
 
 // Handle mouse movement over the main chart
 const handleChartMouseMove = (event: MouseEvent) => {
@@ -744,6 +803,9 @@ const handleChartMouseLeave = () => {
 // Watch for data changes
 watch(() => props.primaryData, (newData) => {
   if (newData && newData.length > 0) {
+    // Recalculate min/max time values
+    calculateMinMaxTimeValues();
+
     // Call the same initialization function to ensure consistent behavior
     initializeBrushSelection();
 
@@ -751,6 +813,12 @@ watch(() => props.primaryData, (newData) => {
     drawMainChart();
     drawBrushChart();
   }
+}, {deep: true});
+
+// Watch for search data changes
+watch(() => props.searchData, () => {
+  // Redraw main chart when search data changes
+  drawMainChart();
 }, {deep: true});
 
 // Draw the main chart showing the selected time range
@@ -916,6 +984,50 @@ const drawMainChart = () => {
     // Add to layer (add area first so line appears on top)
     mainLayer.add(area);
     mainLayer.add(line);
+  }
+
+  // Draw search highlight overlay if search data is provided
+  if (visibleSearchData.value.length > 1) {
+    const searchLinePoints: number[] = [];
+    const searchAreaPoints: number[] = [];
+
+    visibleSearchData.value.forEach((point) => {
+      const x = paddingLeft + (chartWidth * ((point[0] - minTime) / timeRange));
+      const y = height - paddingBottom - (chartHeight * ((point[1] - minValue) / valueRange));
+
+      searchLinePoints.push(x, y);
+      searchAreaPoints.push(x, y);
+    });
+
+    // Add bottom points for search area
+    if (searchAreaPoints.length > 0) {
+      const firstX = searchAreaPoints[0];
+      const lastX = searchAreaPoints[searchAreaPoints.length - 2];
+      searchAreaPoints.push(lastX, height - paddingBottom);
+      searchAreaPoints.push(firstX, height - paddingBottom);
+    }
+
+    // Create search area fill (orange/red highlight)
+    const searchArea = new Konva.Line({
+      points: searchAreaPoints,
+      fill: 'rgba(229, 76, 0, 0.3)',
+      closed: true,
+      listening: false
+    });
+
+    // Create search line
+    const searchLine = new Konva.Line({
+      points: searchLinePoints,
+      stroke: searchHighlightColor,
+      strokeWidth: 1.5,
+      lineCap: 'round',
+      lineJoin: 'round',
+      listening: false
+    });
+
+    // Add search overlay on top of primary
+    mainLayer.add(searchArea);
+    mainLayer.add(searchLine);
   }
 
   // Draw secondary Y-axis if independent scaling is enabled

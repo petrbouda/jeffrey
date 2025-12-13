@@ -23,7 +23,7 @@ import GuardianClient from "@/services/guardian/GuardianClient";
 import Utils from "@/services/Utils";
 import GraphType from "@/services/flamegraphs/GraphType";
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import TimeseriesComponent from "@/components/TimeseriesComponent.vue";
+import ApexTimeSeriesChart from "@/components/ApexTimeSeriesChart.vue";
 import SearchBarComponent from "@/components/SearchBarComponent.vue";
 import CardCarousel from "@/components/CardCarousel.vue";
 import {useRoute} from "vue-router";
@@ -184,7 +184,7 @@ const click_flamegraph = (guard: GuardAnalysisResult) => {
     if (categoryModalInstance) {
       categoryModalInstance.hide();
     }
-    
+
     activeGuardVisualization = guard.visualization
     let flamegraphClient = new GuardianFlamegraphClient(
         route.params.workspaceId as string,
@@ -498,12 +498,12 @@ function needsNavigation(itemCount: number): boolean {
           <SearchBarComponent
               :graph-updater="graphUpdater"
               :with-timeseries="true"/>
-          <TimeseriesComponent
-              :graph-type="GraphType.PRIMARY"
-              :event-type="activeGuardVisualization.eventType"
-              :use-weight="activeGuardVisualization.useWeight"
+          <ApexTimeSeriesChart
+              :graph-updater="graphUpdater"
+              :primary-axis-type="activeGuardVisualization.useWeight ? 'bytes' : 'number'"
+              :visible-minutes="60"
               :zoom-enabled="true"
-              :graph-updater="graphUpdater"/>
+              time-unit="milliseconds"/>
           <FlamegraphComponent
               :with-timeseries="true"
               :use-weight="activeGuardVisualization.useWeight"

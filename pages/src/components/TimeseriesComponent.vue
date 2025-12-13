@@ -34,7 +34,6 @@ const props = defineProps<{
   graphUpdater: GraphUpdater
 }>()
 
-const graphTypeValue = ref('Area');
 const isLoading = ref(false);
 
 const timeseriesZoomCallback = (minX: number, maxX: number) => {
@@ -64,11 +63,7 @@ onMounted(() => {
 
   // Register control callbacks for SearchBarComponent
   props.graphUpdater.registerTimeseriesControlCallbacks(
-      () => resetTimeseriesZoom(),
-      (type: string) => {
-        graphTypeValue.value = type;
-        timeseries.changeGraphType(type);
-      }
+      () => resetTimeseriesZoom()
   )
 
   // must be kept in `onMounted` to correctly resolve the element `timeseries`

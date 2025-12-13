@@ -37,7 +37,7 @@
           primary-title="Execution Time"
           :secondary-data="jdbcOverviewData?.statementCountSerie.data || []"
           secondary-title="Executions"
-          :visible-minutes="15"
+          :visible-minutes="60"
           :independentSecondaryAxis="true"
           primary-axis-type="durationInNanos"
           secondary-axis-type="number"

@@ -29,7 +29,6 @@ const props = defineProps<{
 const searchValue = ref<string | null>(null);
 const searchMatched = ref<string | null>(null);
 const isLoading = ref(false);
-const graphTypeValue = ref('Area');
 
 onMounted(() => {
   props.graphUpdater.registerSearchBarCallbacks(
@@ -53,11 +52,6 @@ function resetSearch() {
 function resetTimeseriesZoom() {
   props.graphUpdater.resetTimeseriesZoom();
 }
-
-function changeGraphType(type: string) {
-  graphTypeValue.value = type;
-  props.graphUpdater.changeTimeseriesGraphType(type);
-}
 </script>
 
 <template>
@@ -69,20 +63,6 @@ function changeGraphType(type: string) {
           <button class="icon-btn me-2" title="Reset Zoom" @click="resetTimeseriesZoom()">
             <i class="bi bi-arrows-angle-expand"></i>
           </button>
-          <div class="icon-toggle me-3">
-            <button class="toggle-icon"
-                    :class="{ active: graphTypeValue === 'Area' }"
-                    title="Area Graph"
-                    @click="changeGraphType('Area')">
-              <i class="bi bi-graph-up"></i>
-            </button>
-            <button class="toggle-icon"
-                    :class="{ active: graphTypeValue === 'Bar' }"
-                    title="Bar Graph"
-                    @click="changeGraphType('Bar')">
-              <i class="bi bi-bar-chart"></i>
-            </button>
-          </div>
         </template>
 
         <!-- Spacer to push loading and matched to the right -->
@@ -213,36 +193,5 @@ function changeGraphType(type: string) {
   background-color: #f1f5f9;
   border-color: #cbd5e1;
   color: #374151;
-}
-
-.icon-toggle {
-  display: inline-flex;
-  background-color: #f1f5f9;
-  border-radius: 4px;
-  padding: 2px;
-}
-
-.toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.toggle-icon:hover:not(.active) {
-  color: #374151;
-}
-
-.toggle-icon.active {
-  background-color: #ffffff;
-  color: #1e293b;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 </style>

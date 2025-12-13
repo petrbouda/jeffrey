@@ -196,12 +196,12 @@
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
         <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
-          <TimeseriesComponent
-              :graph-type="GraphType.PRIMARY"
-              :event-type="selectedEventCode"
-              :use-weight="false"
+          <ApexTimeSeriesChart
+              :graph-updater="graphUpdater"
+              primary-axis-type="number"
+              :visible-minutes="60"
               :zoom-enabled="true"
-              :graph-updater="graphUpdater" />
+              time-unit="milliseconds"/>
           <FlamegraphComponent
               :with-timeseries="true"
               :use-weight="false"
@@ -229,11 +229,9 @@ import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import Badge from '@/components/Badge.vue';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
-import GraphType from '@/services/flamegraphs/GraphType';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import TimeseriesComponent from '@/components/TimeseriesComponent.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import type { PropType } from 'vue';
 
 // Props definition
 const props = defineProps({
