@@ -93,6 +93,8 @@ export default class Utils {
                 return 'Unknown';
             case 'ASPROF_TEMP':
                 return 'Asprof Temp'
+            case 'JVM_LOG':
+                return 'JVM Log'
             default:
                 return fileType;
         }

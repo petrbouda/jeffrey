@@ -260,6 +260,8 @@ const getFileTypeVariant = (fileType: string): string => {
       return 'orange';
     case 'PERF_COUNTERS':
       return 'blue';
+    case 'JVM_LOG':
+      return 'green';
     case 'UNKNOWN':
     default:
       return 'grey';
@@ -770,6 +772,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                           'bi-file-earmark-binary': source.fileType === 'HEAP_DUMP',
                           'bi-hourglass-split': source.fileType === 'ASPROF_TEMP',
                           'bi-file-earmark-bar-graph': source.fileType === 'PERF_COUNTERS',
+                          'bi-file-earmark-text': source.fileType === 'JVM_LOG',
                           'bi-file-earmark': source.fileType === 'UNKNOWN'
                         }"></i>
                       </div>

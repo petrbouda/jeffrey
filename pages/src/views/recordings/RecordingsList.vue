@@ -617,6 +617,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             'bi-file-earmark-code': file.type === 'JFR',
                             'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
                             'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
+                            'bi-file-earmark-text': file.type === 'JVM_LOG',
                             'bi-file-earmark': file.type === 'UNKNOWN'
                           }"></i>
                         </div>
@@ -714,6 +715,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             'bi-file-earmark-code': file.type === 'JFR',
                             'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
                             'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
+                            'bi-file-earmark-text': file.type === 'JVM_LOG',
                             'bi-file-earmark': file.type === 'UNKNOWN'
                           }"></i>
                         </div>

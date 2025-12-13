@@ -19,6 +19,7 @@
 package pbouda.jeffrey.common.model.repository;
 
 import pbouda.jeffrey.common.model.repository.matcher.AsprofCacheFileMatcher;
+import pbouda.jeffrey.common.model.repository.matcher.JvmLogFileMatcher;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -48,6 +49,12 @@ public enum SupportedRecordingFile {
             "HotSpot Performance Counters",
             FileExtensions.PERF_COUNTERS,
             filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
+            true
+    ),
+    JVM_LOG(
+            "JVM Log",
+            FileExtensions.JVM_LOG,
+            new JvmLogFileMatcher(),
             true
     ),
     UNKNOWN(
