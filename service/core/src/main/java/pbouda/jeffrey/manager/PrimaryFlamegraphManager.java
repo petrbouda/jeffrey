@@ -79,10 +79,9 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
      * @return true if weight should be used, false otherwise
      */
     private static boolean resolveWeight(GraphParameters params) {
-        if (params.useWeight() != null) {
-            return params.useWeight();
+        if (!params.useWeight()) {
+            return params.eventType().isAllocationEvent() || params.eventType().isBlockingEvent();
         }
-
-        return params.eventType().isAllocationEvent() || params.eventType().isBlockingEvent();
+        return true;
     }
 }
