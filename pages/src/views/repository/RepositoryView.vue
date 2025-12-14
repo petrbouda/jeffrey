@@ -412,26 +412,6 @@ const copyAndMerge = async (sessionId: string) => {
   }
 };
 
-const copyAll = async (sessionId: string) => {
-  try {
-    const session = recordingSessions.value.find(s => s.id === sessionId);
-    if (!session) {
-      toast.error('Copy All', 'Session not found');
-      return;
-    }
-
-    await repositoryService.copyRecordingSession(session, false);
-    toast.success('Copy All', `Successfully copied session ${session.id}`);
-
-    // Refresh sessions list
-    await fetchRepositoryData();
-
-  } catch (error: any) {
-    console.error("Error copying session:", error);
-    toast.error('Copy All', error.message || 'Failed to copy recording session');
-  }
-};
-
 const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);
@@ -648,13 +628,6 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
                       </button>
                       <button
-                          class="btn btn-sm btn-outline-primary"
-                          type="button"
-                          title="Copy All Recordings"
-                          @click.stop="copyAll(session.id)">
-                        <i class="bi bi-files me-1"></i>Copy All
-                      </button>
-                      <button
                           v-if="!isRemoteWorkspace"
                           class="btn btn-sm btn-outline-danger"
                           type="button"
@@ -735,13 +708,6 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         :disabled="getSelectedCount(session.id) === 0"
                         title="Merge and copy selected recordings">
                       <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
-                    </button>
-                    <button
-                        class="btn btn-sm btn-outline-primary"
-                        @click.stop="downloadSelectedSources(session.id, false)"
-                        :disabled="getSelectedCount(session.id) === 0"
-                        title="Copy selected recordings">
-                      <i class="bi bi-files me-1"></i>Copy Selected
                     </button>
                     <button
                         v-if="!isRemoteWorkspace"

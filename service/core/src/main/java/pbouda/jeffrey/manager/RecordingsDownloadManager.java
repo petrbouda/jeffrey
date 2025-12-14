@@ -26,8 +26,6 @@ public interface RecordingsDownloadManager {
 
     void mergeAndDownloadSession(String recordingSessionId);
 
-    void downloadSession(String recordingSessionId);
-
     void mergeAndDownloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
 
     void downloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);

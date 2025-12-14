@@ -60,11 +60,7 @@ public class ProjectRepositoryResource {
     @POST
     @Path("/sessions/download")
     public void downloadSession(SelectedRecordingsRequest request) {
-        if (request.merge()) {
-            recordingsDownloadManager.mergeAndDownloadSession(request.sessionId());
-        } else {
-            recordingsDownloadManager.downloadSession(request.sessionId());
-        }
+        recordingsDownloadManager.mergeAndDownloadSession(request.sessionId());
     }
 
     @PUT
