@@ -110,7 +110,7 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
         // recording name with the extension of the recording file
         RepositoryFile firstRecordingFile = recordingFiles.getFirst();
         String recordingFilename = firstRecordingFile.fileType()
-                .appendExtension(recordingName);
+                .appendExtension("profile");
 
         List<RepositoryFile> additionalFiles = repositoryFiles.stream()
                 .filter(RepositoryFile::isAdditionalFile)

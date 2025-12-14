@@ -29,7 +29,6 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 VALUES (:project_id, :recording_id, :id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
 
     //language=sql
-    private static final String RECORDING_BY_ID = """
+    private static final String FIND_RECORDING_BY_ID = """
             SELECT *, (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
                 FROM recordings WHERE project_id = :project_id AND id = :recording_id""";
 
@@ -72,14 +71,8 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
             "SELECT * FROM recording_files WHERE project_id = :project_id";
 
     //language=sql
-    private static final String FIND_RECORDING = """
-            SELECT *, (EXISTS (SELECT 1 FROM profiles p WHERE p.recording_id = recordings.id)) AS has_profile
-                FROM recordings
-                WHERE project_id = :project_id AND id = :recording_id""";
-
-    //language=sql
     private static final String FIND_RECORDING_FILES =
-            "SELECT * FROM recordings WHERE project_id = :project_id AND recording_id = :recording_id";
+            "SELECT * FROM recording_files WHERE project_id = :project_id AND recording_id = :recording_id";
 
     //language=sql
     private static final String INSERT_FOLDER =
@@ -107,7 +100,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("recording_id", recordingId);
 
         Optional<Recording> recordingOpt = databaseClient.querySingle(
-                StatementLabel.FIND_RECORDING, FIND_RECORDING, paramSource, Mappers.projectRecordingMapper());
+                StatementLabel.FIND_RECORDING, FIND_RECORDING_BY_ID, paramSource, Mappers.projectRecordingMapper());
 
         // Load all recordings files to the given recording
         if (recordingOpt.isPresent()) {
@@ -211,7 +204,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
                 .addValue("recording_id", recordingId);
 
         return databaseClient.querySingle(
-                StatementLabel.FIND_RECORDING, RECORDING_BY_ID, paramSource, Mappers.projectRecordingMapper());
+                StatementLabel.FIND_RECORDING, FIND_RECORDING_BY_ID, paramSource, Mappers.projectRecordingMapper());
     }
 
     @Override

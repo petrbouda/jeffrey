@@ -48,10 +48,12 @@ public class Application implements WebMvcConfigurer {
     }
 
     // For DEV purposes
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**").allowedMethods("*");
-    }
+    // @Override
+    // public void addCorsMappings(CorsRegistry registry) {
+    //     registry.addMapping("/**")
+    //             .allowedMethods("*")
+    //             .exposedHeaders("Content-Disposition");
+    // }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

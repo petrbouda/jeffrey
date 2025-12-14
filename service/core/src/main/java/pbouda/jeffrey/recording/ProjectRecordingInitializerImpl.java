@@ -59,9 +59,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     @Override
     public NewRecordingHolder newRecording(NewRecording newRecording, List<RepositoryFile> additionalFiles) {
         String recordingId = IDGenerator.generate();
-        String internalFilename = recordingId + "-" + newRecording.filename();
-
-        Path targetPath = recordingStorage.uploadTarget(recordingId, internalFilename);
+        Path targetPath = recordingStorage.uploadTarget(recordingId, newRecording.filename());
 
         Runnable uploadCompleteCallback = () -> {
             if (newRecording.folderId() != null) {
@@ -183,5 +181,10 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
         }
 
         return folderName;
+    }
+
+    @Override
+    public ProjectRecordingStorage recordingStorage() {
+        return recordingStorage;
     }
 }

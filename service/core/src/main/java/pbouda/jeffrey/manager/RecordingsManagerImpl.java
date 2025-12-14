@@ -29,7 +29,9 @@ import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public class RecordingsManagerImpl implements RecordingsManager {
 
@@ -86,5 +88,34 @@ public class RecordingsManagerImpl implements RecordingsManager {
     public void delete(String recordingId) {
         // TODO: Remove files as well
         projectRecordingRepository.deleteRecordingWithFiles(recordingId);
+    }
+
+    @Override
+    public Optional<Path> findRecordingFile(String recordingId, String fileId) {
+        // First, find the recording to get the file metadata
+        Optional<Recording> recordingOpt = projectRecordingRepository.findRecording(recordingId);
+        if (recordingOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Recording recording = recordingOpt.get();
+
+        // Find the file metadata by ID to get the filename
+        Optional<String> filenameOpt = recording.files().stream()
+                .filter(file -> file.id().equals(fileId))
+                .map(pbouda.jeffrey.common.model.RecordingFile::filename)
+                .findFirst();
+
+        if (filenameOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String filename = filenameOpt.get();
+
+        // Find the actual file in storage by filename
+        List<Path> allFiles = recordingInitializer.recordingStorage().findAllFiles(recordingId);
+        return allFiles.stream()
+                .filter(path -> path.getFileName().toString().equals(filename))
+                .findFirst();
     }
 }

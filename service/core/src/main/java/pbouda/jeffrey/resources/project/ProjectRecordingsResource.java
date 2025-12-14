@@ -19,8 +19,10 @@
 package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
@@ -30,6 +32,8 @@ import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.resources.util.InstantUtils;
 
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.List;
 
 public class ProjectRecordingsResource {
@@ -136,5 +140,29 @@ public class ProjectRecordingsResource {
     @Path("/{recordingId}")
     public void deleteRecording(@PathParam("recordingId") String recordingId) {
         recordingsManager.delete(recordingId);
+    }
+
+    @GET
+    @Path("/{recordingId}/files/{fileId}/download")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response downloadFile(
+            @PathParam("recordingId") String recordingId,
+            @PathParam("fileId") String fileId) {
+
+        java.nio.file.Path filePath = recordingsManager.findRecordingFile(recordingId, fileId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Recording file not found: recordingId=" + recordingId + ", fileId=" + fileId));
+
+        StreamingOutput streamingOutput = (OutputStream output) -> {
+            try (InputStream input = Files.newInputStream(filePath)) {
+                input.transferTo(output);
+            }
+        };
+
+        String filename = recordingId + "-" + filePath.getFileName().toString();
+        return Response.ok(streamingOutput)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_LENGTH, FileSystemUtils.size(filePath))
+                .build();
     }
 }

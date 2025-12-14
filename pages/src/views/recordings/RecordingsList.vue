@@ -96,6 +96,15 @@ const getFileTypeClass = (fileType: string): string => {
   }
 };
 
+// Download a recording file
+const downloadFile = async (recordingId: string, fileId: string) => {
+  try {
+    await projectRecordingClient.downloadFile(recordingId, fileId);
+  } catch (error: any) {
+    toast.error('Failed to download file', error.message);
+  }
+};
+
 const folders = ref<RecordingFolder[]>([]);
 const createFolderDialog = ref(false);
 const newFolderName = ref('');
@@ -646,28 +655,37 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
                     <div v-for="file in getSortedRecordingFiles(recording.recordingFiles)" :key="file.id" class="p-2 mb-2 recording-file-row" :class="getFileTypeClass(file.type)" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
-                      <div class="d-flex align-items-center">
-                        <div class="recording-file-icon-medium me-2">
-                          <i class="bi" :class="{
-                            'bi-file-earmark-code': file.type === 'JFR',
-                            'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
-                            'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
-                            'bi-file-earmark-text': file.type === 'JVM_LOG',
-                            'bi-file-earmark': file.type === 'UNKNOWN'
-                          }"></i>
-                        </div>
-                        <div>
-                          <div class="text-dark fw-medium">{{ file.filename }}</div>
-                          <div class="d-flex align-items-center mt-1">
-                            <Badge 
-                              :value="Utils.formatFileType(file.type)" 
-                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))" 
-                              size="xxs" 
-                            />
-                            <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
-                            <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                          <div class="recording-file-icon-medium me-2">
+                            <i class="bi" :class="{
+                              'bi-file-earmark-code': file.type === 'JFR',
+                              'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
+                              'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
+                              'bi-file-earmark-text': file.type === 'JVM_LOG',
+                              'bi-file-earmark': file.type === 'UNKNOWN'
+                            }"></i>
+                          </div>
+                          <div>
+                            <div class="text-dark fw-medium">{{ file.filename }}</div>
+                            <div class="d-flex align-items-center mt-1">
+                              <Badge
+                                :value="Utils.formatFileType(file.type)"
+                                :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
+                                size="xxs"
+                              />
+                              <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
+                              <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          class="btn btn-sm btn-outline-secondary download-file-btn"
+                          @click="downloadFile(recording.id, file.id)"
+                          title="Download file"
+                        >
+                          <i class="bi bi-download"></i>
+                        </button>
                       </div>
                     </div>
                     <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
@@ -744,28 +762,37 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
                     <div v-for="file in getSortedRecordingFiles(recording.recordingFiles)" :key="file.id" class="p-2 mb-2 recording-file-row" :class="getFileTypeClass(file.type)" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
-                      <div class="d-flex align-items-center">
-                        <div class="recording-file-icon-medium me-2">
-                          <i class="bi" :class="{
-                            'bi-file-earmark-code': file.type === 'JFR',
-                            'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
-                            'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
-                            'bi-file-earmark-text': file.type === 'JVM_LOG',
-                            'bi-file-earmark': file.type === 'UNKNOWN'
-                          }"></i>
-                        </div>
-                        <div>
-                          <div class="text-dark fw-medium">{{ file.filename }}</div>
-                          <div class="d-flex align-items-center mt-1">
-                            <Badge 
-                              :value="Utils.formatFileType(file.type)" 
-                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))" 
-                              size="xxs" 
-                            />
-                            <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
-                            <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                          <div class="recording-file-icon-medium me-2">
+                            <i class="bi" :class="{
+                              'bi-file-earmark-code': file.type === 'JFR',
+                              'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
+                              'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
+                              'bi-file-earmark-text': file.type === 'JVM_LOG',
+                              'bi-file-earmark': file.type === 'UNKNOWN'
+                            }"></i>
+                          </div>
+                          <div>
+                            <div class="text-dark fw-medium">{{ file.filename }}</div>
+                            <div class="d-flex align-items-center mt-1">
+                              <Badge
+                                :value="Utils.formatFileType(file.type)"
+                                :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
+                                size="xxs"
+                              />
+                              <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
+                              <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          class="btn btn-sm btn-outline-secondary download-file-btn"
+                          @click="downloadFile(recording.id, file.id)"
+                          title="Download file"
+                        >
+                          <i class="bi bi-download"></i>
+                        </button>
                       </div>
                     </div>
                     <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
@@ -1131,6 +1158,22 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 .recording-file-row.file-type-unknown .recording-file-icon-medium {
   background-color: rgba(108, 117, 125, 0.15);
   color: #6c757d;
+}
+
+/* Download button styling */
+.download-file-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.download-file-btn:hover {
+  opacity: 1;
+}
+
+.recording-file-row:hover .download-file-btn {
+  opacity: 0.8;
 }
 
 .recording-file-description {

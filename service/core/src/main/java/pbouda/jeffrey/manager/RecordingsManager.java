@@ -23,7 +23,9 @@ import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public interface RecordingsManager {
 
@@ -38,4 +40,13 @@ public interface RecordingsManager {
     List<RecordingFolder> allRecordingFolders();
 
     void delete(String recordingId);
+
+    /**
+     * Finds a specific recording file by recording ID and file ID.
+     *
+     * @param recordingId the ID of the recording
+     * @param fileId      the ID (filename) of the file within the recording
+     * @return the path to the file if found, empty otherwise
+     */
+    Optional<Path> findRecordingFile(String recordingId, String fileId);
 }
