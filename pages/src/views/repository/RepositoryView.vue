@@ -234,6 +234,11 @@ const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
     classes.push('temporary-file');
   }
 
+  // Add JVM log file class for JVM_LOG files
+  if (source.fileType === 'JVM_LOG') {
+    classes.push('jvm-log-file');
+  }
+
   return classes.join(' ');
 };
 
@@ -261,7 +266,7 @@ const getFileTypeVariant = (fileType: string): string => {
     case 'PERF_COUNTERS':
       return 'blue';
     case 'JVM_LOG':
-      return 'green';
+      return 'teal';
     case 'UNKNOWN':
     default:
       return 'grey';
@@ -1178,6 +1183,27 @@ code {
 .child-row.temporary-file .recording-file-icon-medium {
   background-color: rgba(255, 142, 51, 0.15) !important;
   color: #ff8e33 !important;
+}
+
+/* JVM log file styling - teal theme */
+.child-row.jvm-log-file {
+  background-color: rgba(20, 184, 166, 0.08) !important;
+  border-left: 3px solid #14b8a6 !important;
+  border-top: 1px solid rgba(20, 184, 166, 0.25) !important;
+  border-right: 1px solid rgba(20, 184, 166, 0.25) !important;
+  border-bottom: 1px solid rgba(20, 184, 166, 0.25) !important;
+  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.15) !important;
+}
+
+.child-row.jvm-log-file:hover {
+  background-color: rgba(20, 184, 166, 0.12) !important;
+  box-shadow: 0 2px 5px rgba(20, 184, 166, 0.2) !important;
+}
+
+/* JVM log file icon styling - teal theme */
+.child-row.jvm-log-file .recording-file-icon-medium {
+  background-color: rgba(20, 184, 166, 0.15) !important;
+  color: #14b8a6 !important;
 }
 
 /* Action button styling */

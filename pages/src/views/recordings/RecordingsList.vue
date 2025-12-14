@@ -61,6 +61,41 @@ const toggleRecordingFiles = (recording: Recording) => {
   }
 };
 
+// File type priority for sorting (lower number = higher priority)
+const FILE_TYPE_PRIORITY: Record<string, number> = {
+  'JFR': 1,
+  'HEAP_DUMP': 2,
+  'PERF_COUNTERS': 3,
+  'JVM_LOG': 4,
+  'UNKNOWN': 99
+};
+
+// Sort recording files by type
+const getSortedRecordingFiles = (files: any[]) => {
+  if (!files) return [];
+  return [...files].sort((a, b) => {
+    const priorityA = FILE_TYPE_PRIORITY[a.type] ?? 50;
+    const priorityB = FILE_TYPE_PRIORITY[b.type] ?? 50;
+    return priorityA - priorityB;
+  });
+};
+
+// Get CSS class for file type styling
+const getFileTypeClass = (fileType: string): string => {
+  switch (fileType) {
+    case 'JFR':
+      return 'file-type-jfr';
+    case 'HEAP_DUMP':
+      return 'file-type-heap-dump';
+    case 'PERF_COUNTERS':
+      return 'file-type-perf-counters';
+    case 'JVM_LOG':
+      return 'file-type-jvm-log';
+    default:
+      return 'file-type-unknown';
+  }
+};
+
 const folders = ref<RecordingFolder[]>([]);
 const createFolderDialog = ref(false);
 const newFolderName = ref('');
@@ -610,7 +645,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
-                    <div v-for="file in recording.recordingFiles" :key="file.id" class="p-2 mb-2 recording-file-row" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
+                    <div v-for="file in getSortedRecordingFiles(recording.recordingFiles)" :key="file.id" class="p-2 mb-2 recording-file-row" :class="getFileTypeClass(file.type)" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
                       <div class="d-flex align-items-center">
                         <div class="recording-file-icon-medium me-2">
                           <i class="bi" :class="{
@@ -626,7 +661,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                           <div class="d-flex align-items-center mt-1">
                             <Badge 
                               :value="Utils.formatFileType(file.type)" 
-                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : 'grey'))" 
+                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))" 
                               size="xxs" 
                             />
                             <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
@@ -708,7 +743,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
-                    <div v-for="file in recording.recordingFiles" :key="file.id" class="p-2 mb-2 recording-file-row" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
+                    <div v-for="file in getSortedRecordingFiles(recording.recordingFiles)" :key="file.id" class="p-2 mb-2 recording-file-row" :class="getFileTypeClass(file.type)" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
                       <div class="d-flex align-items-center">
                         <div class="recording-file-icon-medium me-2">
                           <i class="bi" :class="{
@@ -724,7 +759,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                           <div class="d-flex align-items-center mt-1">
                             <Badge 
                               :value="Utils.formatFileType(file.type)" 
-                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : 'grey'))" 
+                              :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))" 
                               size="xxs" 
                             />
                             <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
@@ -1001,6 +1036,101 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transform: translateY(-1px);
+}
+
+/* JFR file styling - blue theme */
+.recording-file-row.file-type-jfr {
+  background-color: rgba(94, 100, 255, 0.08);
+  border-left: 3px solid #5e64ff;
+  border-top: 1px solid rgba(94, 100, 255, 0.2);
+  border-right: 1px solid rgba(94, 100, 255, 0.2);
+  border-bottom: 1px solid rgba(94, 100, 255, 0.2);
+}
+
+.recording-file-row.file-type-jfr:hover {
+  background-color: rgba(94, 100, 255, 0.12);
+  box-shadow: 0 2px 5px rgba(94, 100, 255, 0.15);
+}
+
+.recording-file-row.file-type-jfr .recording-file-icon-medium {
+  background-color: rgba(94, 100, 255, 0.15);
+  color: #5e64ff;
+}
+
+/* HEAP_DUMP file styling - purple theme */
+.recording-file-row.file-type-heap-dump {
+  background-color: rgba(111, 66, 193, 0.08);
+  border-left: 3px solid #6f42c1;
+  border-top: 1px solid rgba(111, 66, 193, 0.2);
+  border-right: 1px solid rgba(111, 66, 193, 0.2);
+  border-bottom: 1px solid rgba(111, 66, 193, 0.2);
+}
+
+.recording-file-row.file-type-heap-dump:hover {
+  background-color: rgba(111, 66, 193, 0.12);
+  box-shadow: 0 2px 5px rgba(111, 66, 193, 0.15);
+}
+
+.recording-file-row.file-type-heap-dump .recording-file-icon-medium {
+  background-color: rgba(111, 66, 193, 0.15);
+  color: #6f42c1;
+}
+
+/* PERF_COUNTERS file styling - sky blue theme */
+.recording-file-row.file-type-perf-counters {
+  background-color: rgba(14, 165, 233, 0.08);
+  border-left: 3px solid #0ea5e9;
+  border-top: 1px solid rgba(14, 165, 233, 0.2);
+  border-right: 1px solid rgba(14, 165, 233, 0.2);
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+.recording-file-row.file-type-perf-counters:hover {
+  background-color: rgba(14, 165, 233, 0.12);
+  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.15);
+}
+
+.recording-file-row.file-type-perf-counters .recording-file-icon-medium {
+  background-color: rgba(14, 165, 233, 0.15);
+  color: #0ea5e9;
+}
+
+/* JVM_LOG file styling - teal theme */
+.recording-file-row.file-type-jvm-log {
+  background-color: rgba(20, 184, 166, 0.08);
+  border-left: 3px solid #14b8a6;
+  border-top: 1px solid rgba(20, 184, 166, 0.2);
+  border-right: 1px solid rgba(20, 184, 166, 0.2);
+  border-bottom: 1px solid rgba(20, 184, 166, 0.2);
+}
+
+.recording-file-row.file-type-jvm-log:hover {
+  background-color: rgba(20, 184, 166, 0.12);
+  box-shadow: 0 2px 5px rgba(20, 184, 166, 0.15);
+}
+
+.recording-file-row.file-type-jvm-log .recording-file-icon-medium {
+  background-color: rgba(20, 184, 166, 0.15);
+  color: #14b8a6;
+}
+
+/* UNKNOWN file styling - gray theme */
+.recording-file-row.file-type-unknown {
+  background-color: rgba(108, 117, 125, 0.08);
+  border-left: 3px solid #6c757d;
+  border-top: 1px solid rgba(108, 117, 125, 0.2);
+  border-right: 1px solid rgba(108, 117, 125, 0.2);
+  border-bottom: 1px solid rgba(108, 117, 125, 0.2);
+}
+
+.recording-file-row.file-type-unknown:hover {
+  background-color: rgba(108, 117, 125, 0.12);
+  box-shadow: 0 2px 5px rgba(108, 117, 125, 0.15);
+}
+
+.recording-file-row.file-type-unknown .recording-file-icon-medium {
+  background-color: rgba(108, 117, 125, 0.15);
+  color: #6c757d;
 }
 
 .recording-file-description {
