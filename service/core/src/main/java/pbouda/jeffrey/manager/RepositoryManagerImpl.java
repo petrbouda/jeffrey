@@ -18,22 +18,27 @@
 
 package pbouda.jeffrey.manager;
 
+import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.model.RepositoryInfo;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
+import pbouda.jeffrey.workspace.WorkspaceEventConverter;
 
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -41,18 +46,27 @@ import java.util.function.Predicate;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
-    private final pbouda.jeffrey.provider.api.repository.ProjectRepository projectRepository;
+    private final Clock clock;
+    private final ProjectInfo projectInfo;
+    private final Runnable eventSyncExecutor;
     private final ProjectRepositoryRepository repository;
     private final RemoteRepositoryStorage repositoryStorage;
+    private final WorkspaceManager workspaceManager;
 
     public RepositoryManagerImpl(
-            pbouda.jeffrey.provider.api.repository.ProjectRepository projectRepository,
+            Clock clock,
+            ProjectInfo projectInfo,
+            Runnable eventSyncExecutor,
             ProjectRepositoryRepository repository,
-            RemoteRepositoryStorage repositoryStorage) {
+            RemoteRepositoryStorage repositoryStorage,
+            WorkspaceManager workspaceManager) {
 
-        this.projectRepository = projectRepository;
+        this.clock = clock;
+        this.projectInfo = projectInfo;
+        this.eventSyncExecutor = eventSyncExecutor;
         this.repository = repository;
         this.repositoryStorage = repositoryStorage;
+        this.workspaceManager = workspaceManager;
     }
 
     @Override
@@ -70,8 +84,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
         // Filter only recording files that are finished and is contained in the given list of IDs
         Predicate<RepositoryFile> entireSession = repositoryFile -> {
             return repositoryFile.isRecordingFile()
-                   && recordingFileIds.contains(repositoryFile.id())
-                   && repositoryFile.status() == RecordingStatus.FINISHED;
+                    && recordingFileIds.contains(repositoryFile.id())
+                    && repositoryFile.status() == RecordingStatus.FINISHED;
         };
 
         return mergeAndStream(sessionId, entireSession);
@@ -197,7 +211,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void createSession(WorkspaceSessionInfo workspaceSessionInfo) {
-        projectRepository.createSession(workspaceSessionInfo);
+        repository.createSession(workspaceSessionInfo);
     }
 
     @Override
@@ -205,15 +219,24 @@ public class RepositoryManagerImpl implements RepositoryManager {
         return repository.getAll().stream()
                 .findFirst()
                 .map(repository -> {
-                    return new RepositoryInfo(
-                            repository.type(),
-                            repository.finishedSessionDetectionFile());
+                    return new RepositoryInfo(repository.type(), repository.finishedSessionDetectionFile());
                 });
     }
 
     @Override
     public void deleteRecordingSession(String recordingSessionId) {
-        repositoryStorage.deleteSession(recordingSessionId);
+        WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
+                clock.instant(),
+                projectInfo.workspaceId(),
+                projectInfo.id(),
+                recordingSessionId);
+
+        workspaceManager
+                .workspaceEventManager()
+                .batchInsertEvents(List.of(workspaceEvent));
+
+        // Trigger event synchronization
+        eventSyncExecutor.run();
     }
 
     @Override

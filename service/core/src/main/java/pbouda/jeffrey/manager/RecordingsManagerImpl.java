@@ -81,12 +81,14 @@ public class RecordingsManagerImpl implements RecordingsManager {
     @Override
     public void deleteFolder(String folderId) {
         // TODO: Remove all files as well
+        //  Scheduler removes files asynchronously?
         projectRecordingRepository.deleteFolder(folderId);
     }
 
     @Override
     public void delete(String recordingId) {
         // TODO: Remove files as well
+        //  Scheduler removes files asynchronously?
         projectRecordingRepository.deleteRecordingWithFiles(recordingId);
     }
 

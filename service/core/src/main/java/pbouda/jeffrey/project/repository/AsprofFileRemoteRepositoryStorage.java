@@ -52,7 +52,6 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private final ProjectInfo projectInfo;
     private final JeffreyDirs jeffreyDirs;
-    private final ProjectRepository projectRepository;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
     private final Duration finishedPeriod;
@@ -62,14 +61,12 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     public AsprofFileRemoteRepositoryStorage(
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
-            ProjectRepository projectRepository,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
             Clock clock) {
 
         this.projectInfo = projectInfo;
-        this.projectRepository = projectRepository;
         this.jeffreyDirs = jeffreyDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
@@ -98,7 +95,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public Optional<RecordingSession> singleSession(String sessionId, boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = projectRepository.findAllSessions();
+        List<WorkspaceSessionInfo> sessions = projectRepositoryRepository.findAllSessions();
 
         if (sessions.isEmpty()) {
             LOG.warn("No sessions found for project: {}", projectInfo.id());
@@ -120,7 +117,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RecordingSession> listSessions(boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = projectRepository.findAllSessions().stream()
+        List<WorkspaceSessionInfo> sessions = projectRepositoryRepository.findAllSessions().stream()
                 .sorted(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt).reversed())
                 .toList();
 
@@ -181,7 +178,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
-                projectRepository.findSessionById(sessionId);
+                projectRepositoryRepository.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
@@ -208,7 +205,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     @Override
     public void deleteSession(String sessionId) {
         Optional<WorkspaceSessionInfo> workspaceSessionOpt =
-                projectRepository.findSessionById(sessionId);
+                projectRepositoryRepository.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);

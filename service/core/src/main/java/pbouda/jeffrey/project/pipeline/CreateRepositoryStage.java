@@ -22,11 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.pipeline.Stage;
-import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.template.ProjectTemplate;
 import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
+import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -35,14 +37,14 @@ public class CreateRepositoryStage implements Stage<CreateProjectContext> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CreateRepositoryStage.class);
 
-    private final RepositoryManager.Factory repositoryManagerFactory;
     private final ProjectTemplatesLoader templatesLoader;
+    private final Repositories repositories;
 
     public CreateRepositoryStage(
-            RepositoryManager.Factory repositoryManagerFactory,
+            Repositories repositories,
             ProjectTemplatesLoader templatesLoader) {
 
-        this.repositoryManagerFactory = repositoryManagerFactory;
+        this.repositories = repositories;
         this.templatesLoader = templatesLoader;
     }
 
@@ -64,8 +66,13 @@ public class CreateRepositoryStage implements Stage<CreateProjectContext> {
         ProjectRepository projectRepository = template.repository();
 
         if (projectRepository != null) {
-            repositoryManagerFactory.apply(projectInfo)
-                    .create(projectRepository);
+            ProjectRepositoryRepository repository =
+                    repositories.newProjectRepositoryRepository(projectInfo.id());
+
+            DBRepositoryInfo dbRepositoryInfo = new DBRepositoryInfo(
+                    projectRepository.type(), projectRepository.finishedSessionDetectionFile());
+
+            repository.insert(dbRepositoryInfo);
 
             LOG.info("Linked project repository: workspace_id={} project_id={}",
                     projectInfo.workspaceId(), projectInfo.id());

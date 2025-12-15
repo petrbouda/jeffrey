@@ -147,6 +147,16 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     }
 
     @Override
+    public void deleteSession(String workspaceId, String projectId, String sessionId) {
+        invokeDelete(uri, () -> {
+            return restClient.delete()
+                    .uri(API_SESSION, workspaceId, projectId, sessionId)
+                    .retrieve()
+                    .toBodilessEntity();
+        });
+    }
+
+    @Override
     public WorkspaceResult workspace(String workspaceId) {
         try {
             ResponseEntity<WorkspaceResponse> entity = invokeGet(uri, () -> {
@@ -198,6 +208,10 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
 
     private static <T> ResponseEntity<T> invokePost(URI uri, Supplier<ResponseEntity<T>> invocation) {
         return invoke(uri, HttpMethod.POST, invocation);
+    }
+
+    private static void invokeDelete(URI uri, Supplier<ResponseEntity<Void>> invocation) {
+        invoke(uri, HttpMethod.DELETE, invocation);
     }
 
     private static <T> ResponseEntity<T> invoke(URI uri, HttpMethod method, Supplier<ResponseEntity<T>> invocation) {

@@ -40,13 +40,12 @@ public class CommonProjectsManager implements ProjectsManager {
             WorkspaceInfo workspaceInfo,
             Pipeline<CreateProjectContext> createProjectPipeline,
             Repositories repositories,
-            ProjectsRepository projectsRepository,
             ProjectManager.Factory projectManagerFactory) {
 
         this.workspaceInfo = workspaceInfo;
         this.createProjectPipeline = createProjectPipeline;
         this.repositories = repositories;
-        this.projectsRepository = projectsRepository;
+        this.projectsRepository = repositories.newProjectsRepository();
         this.projectManagerFactory = projectManagerFactory;
     }
 

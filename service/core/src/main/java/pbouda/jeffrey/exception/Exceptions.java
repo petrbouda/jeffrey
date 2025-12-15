@@ -36,6 +36,10 @@ public abstract class Exceptions {
         return new JeffreyInternalException(ErrorCode.UNKNOWN_ERROR_RESPONSE, message);
     }
 
+    public static JeffreyInternalException internal(String message, Exception ex) {
+        return new JeffreyInternalException(ErrorCode.UNKNOWN_ERROR_RESPONSE, message, ex);
+    }
+
     public static JeffreyClientException workspaceNotFound(String workspaceId) {
         return new JeffreyClientException(
                 ErrorCode.WORKSPACE_NOT_FOUND, "Workspace not found: %s".formatted(workspaceId));

@@ -27,13 +27,13 @@ import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.scheduler.job.descriptor.RepositorySessionCleanerJobDescriptor;
+import pbouda.jeffrey.scheduler.job.descriptor.RepositorySessionCleanerProjectJobDescriptor;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<RepositorySessionCleanerJobDescriptor> {
+public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<RepositorySessionCleanerProjectJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySessionCleanerProjectJob.class);
     private final Duration period;
@@ -51,7 +51,7 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RepositorySessionCleanerJobDescriptor jobDescriptor) {
+            RepositorySessionCleanerProjectJobDescriptor jobDescriptor) {
 
         String projectName = manager.info().name();
         LOG.info("Cleaning the repository sessions: project='{}'", projectName);

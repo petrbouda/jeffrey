@@ -22,37 +22,35 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.manager.model.CreateProject;
-import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.ProjectCreatedEventContent;
 
 public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
-    private final WorkspacesManager workspacesManager;
+    private final ProjectsManager projectsManager;
 
-    public CreateProjectWorkspaceEventConsumer(WorkspacesManager workspacesManager) {
-        this.workspacesManager = workspacesManager;
+    public CreateProjectWorkspaceEventConsumer(ProjectsManager projectsManager) {
+        this.projectsManager = projectsManager;
     }
 
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
-        if (event.eventType() == WorkspaceEventType.PROJECT_CREATED) {
-            ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
-            WorkspaceManager workspaceManager = workspacesManager.findById(event.workspaceId())
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Workspace not found for repository: " + event.workspaceId()));
+        ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
+        CreateProject createProject = new CreateProject(
+                event.projectId(),
+                eventContent.projectName(),
+                eventContent.projectLabel(),
+                jobDescriptor.templateId(),
+                // When the project/event was created in the workspace (not replicated to the Jeffrey)
+                event.originCreatedAt(),
+                eventContent.attributes());
 
-            CreateProject createProject = new CreateProject(
-                    event.projectId(),
-                    eventContent.projectName(),
-                    eventContent.projectLabel(),
-                    jobDescriptor.templateId(),
-                    // When the project/event was created in the workspace (not replicated to the Jeffrey)
-                    event.originCreatedAt(),
-                    eventContent.attributes());
+        projectsManager.create(createProject);
+    }
 
-            workspaceManager.projectsManager().create(createProject);
-        }
+    @Override
+    public boolean isApplicable(WorkspaceEvent event) {
+        return event.eventType() == WorkspaceEventType.PROJECT_CREATED;
     }
 }

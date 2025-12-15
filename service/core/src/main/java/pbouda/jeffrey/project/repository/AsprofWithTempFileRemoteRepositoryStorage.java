@@ -25,7 +25,6 @@ import pbouda.jeffrey.project.repository.detection.AsprofStatusStrategy;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
-import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.time.Clock;
@@ -43,14 +42,12 @@ public class AsprofWithTempFileRemoteRepositoryStorage extends AsprofFileRemoteR
     public AsprofWithTempFileRemoteRepositoryStorage(
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
-            ProjectRepository projectRepository,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
             Clock clock) {
         super(projectInfo,
                 jeffreyDirs,
-                projectRepository,
                 projectRepositoryRepository,
                 fileInfoProcessor,
                 finishedPeriod,

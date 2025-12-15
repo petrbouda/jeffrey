@@ -21,23 +21,25 @@ package pbouda.jeffrey.scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.scheduler.job.Job;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class PeriodicalScheduler implements Scheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicalScheduler.class);
 
     private final List<Job> jobs;
+    private final Duration maxWaitTime;
 
     private ScheduledExecutorService scheduler;
 
-    public PeriodicalScheduler(List<Job> jobs) {
+    public PeriodicalScheduler(List<Job> jobs, Duration maxWaitTime) {
         this.jobs = jobs;
+        this.maxWaitTime = maxWaitTime;
     }
 
     @Override
@@ -58,13 +60,13 @@ public class PeriodicalScheduler implements Scheduler {
     }
 
     @Override
-    public void executeNow(Job job) {
+    public Future<?> submitNow(Job job) {
         if (scheduler == null) {
             LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
-            return;
+            return null;
         }
 
-        scheduler.execute(() -> {
+        Future<?> future = scheduler.submit(() -> {
             try {
                 job.run();
             } catch (Exception e) {
@@ -72,7 +74,19 @@ public class PeriodicalScheduler implements Scheduler {
             }
         });
 
-        LOG.debug("Executed job immediately: job_type={}", job.jobType());
+        LOG.debug("Submitted job immediately: job_type={}", job.jobType());
+        return future;
+    }
+
+    @Override
+    public void submitAndWait(Job job) {
+        try {
+            submitNow(job)
+                    .get(maxWaitTime.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            LOG.error("An error occurred while waiting for the job to complete: job_type={}", job.jobType(), e);
+            throw Exceptions.internal("Failed to execute job and wait: " + job.jobType(), e);
+        }
     }
 
     @Override

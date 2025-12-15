@@ -53,6 +53,7 @@ public class JobsConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(JobsConfiguration.class);
 
     public static final String PROJECTS_SYNCHRONIZER_JOB = "PROJECTS_SYNCHRONIZER";
+    public static final String PROJECTS_SYNCHRONIZER_TRIGGER = "PROJECTS_SYNCHRONIZER_TRIGGER";
 
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
@@ -78,7 +79,7 @@ public class JobsConfiguration {
 
     @Bean(destroyMethod = "close")
     public Scheduler jobScheduler(List<Job> jobs) {
-        return new PeriodicalScheduler(jobs);
+        return new PeriodicalScheduler(jobs, Duration.ofSeconds(5));
     }
 
     @Bean
@@ -89,8 +90,7 @@ public class JobsConfiguration {
 
     @Bean
     @ConditionalOnProperty(name = "jeffrey.logging.jfr-events.application.enabled", havingValue = "true")
-    public JfrEventListenerInitializer jfrEventListenerInitializer(
-            @Value("${jeffrey.logging.jfr-events.application.threshold:}") Duration threshold) {
+    public JfrEventListenerInitializer jfrEventListenerInitializer(@Value("${jeffrey.logging.jfr-events.application.threshold:}") Duration threshold) {
         Duration resolvedThreshold = threshold == null || threshold.isNegative() ? Duration.ZERO : threshold;
         return new JfrEventListenerInitializer(resolvedThreshold);
     }
@@ -145,8 +145,14 @@ public class JobsConfiguration {
     }
 
     @Bean(name = PROJECTS_SYNCHRONIZER_JOB)
-    public Job projectsSynchronizerJob(@Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod) {
+    public Job projectsSynchronizerJob(
+            @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
+            Repositories repositories,
+            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory) {
+
         return new ProjectsSynchronizerJob(
+                repositories,
+                remoteRepositoryStorageFactory,
                 liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
@@ -163,7 +169,7 @@ public class JobsConfiguration {
         Runnable migrationCallback = () -> {
             LOG.info("Executing migration callback after workspace events replication, " +
                      "triggering projects synchronizer job.");
-            scheduler.getObject().executeNow(projectsSynchronizerJob);
+            scheduler.getObject().submitNow(projectsSynchronizerJob);
         };
 
         return new WorkspaceEventsReplicatorJob(
@@ -187,5 +193,12 @@ public class JobsConfiguration {
                 schedulerManager,
                 repositories,
                 jobDescriptorFactory);
+    }
+
+    @Bean(PROJECTS_SYNCHRONIZER_TRIGGER)
+    public Runnable projectsSynchronizerTrigger(
+            Scheduler scheduler,
+            @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob) {
+        return () -> scheduler.submitAndWait(projectsSynchronizerJob);
     }
 }

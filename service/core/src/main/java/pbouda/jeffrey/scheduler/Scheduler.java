@@ -20,6 +20,8 @@ package pbouda.jeffrey.scheduler;
 
 import pbouda.jeffrey.scheduler.job.Job;
 
+import java.util.concurrent.Future;
+
 public interface Scheduler extends AutoCloseable {
 
     /**
@@ -32,7 +34,14 @@ public interface Scheduler extends AutoCloseable {
      *
      * @param job the job to execute
      */
-    void executeNow(Job job);
+    Future<?> submitNow(Job job);
+
+    /**
+     * Submits a job and waits for its completion.
+     *
+     * @param job the job to execute
+     */
+    void submitAndWait(Job job);
 
     /**
      * Shuts down the scheduler. Stops executing the tasks.

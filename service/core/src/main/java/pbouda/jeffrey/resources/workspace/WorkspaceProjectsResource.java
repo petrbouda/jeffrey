@@ -32,6 +32,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.resources.project.ProjectResource;
 import pbouda.jeffrey.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.resources.response.ProjectResponse;
@@ -51,10 +52,12 @@ public class WorkspaceProjectsResource {
 
     private final WorkspaceInfo workspaceInfo;
     private final ProjectsManager projectsManager;
+    private final WorkspaceManager workspaceManager;
 
-    public WorkspaceProjectsResource(WorkspaceInfo workspaceInfo, ProjectsManager projectsManager) {
+    public WorkspaceProjectsResource(WorkspaceInfo workspaceInfo, WorkspaceManager workspaceManager) {
         this.workspaceInfo = workspaceInfo;
-        this.projectsManager = projectsManager;
+        this.workspaceManager = workspaceManager;
+        this.projectsManager = workspaceManager.projectsManager();
     }
 
     @Path("/{projectId}")

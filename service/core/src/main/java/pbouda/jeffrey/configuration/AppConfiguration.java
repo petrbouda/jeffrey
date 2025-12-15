@@ -20,6 +20,8 @@ package pbouda.jeffrey.configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +37,7 @@ import pbouda.jeffrey.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.project.CommonProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
+import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.project.repository.AsprofFileRemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.project.repository.file.AsprofFileInfoProcessor;
@@ -52,6 +55,8 @@ import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
+import pbouda.jeffrey.scheduler.Scheduler;
+import pbouda.jeffrey.scheduler.job.Job;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
@@ -60,6 +65,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+
+import static pbouda.jeffrey.configuration.JobsConfiguration.PROJECTS_SYNCHRONIZER_JOB;
+import static pbouda.jeffrey.configuration.JobsConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
 
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
@@ -196,7 +204,6 @@ public class AppConfiguration {
             return new AsprofFileRemoteRepositoryStorage(
                     projectId,
                     jeffreyDirs,
-                    repositories.newProjectRepository(projectId.id()),
                     repositories.newProjectRepositoryRepository(projectId.id()),
                     new AsprofFileInfoProcessor(),
                     finishedPeriod,
@@ -218,33 +225,25 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RepositoryManager.Factory projectRepositoryManager(
-            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
-            Repositories repositories) {
-        return projectInfo ->
-                new RepositoryManagerImpl(
-                        repositories.newProjectRepository(projectInfo.id()),
-                        repositories.newProjectRepositoryRepository(projectInfo.id()),
-                        remoteRepositoryStorageFactory.apply(projectInfo));
-    }
-
-    @Bean
-    public ProjectManager.Factory projectManager(
+    public ProjectManager.Factory projectManagerFactory(
+            Clock applicationClock,
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) ObjectFactory<Runnable> projectsSynchronizerTrigger,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
-            RepositoryManager.Factory projectRepositoryManager,
+            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
             Repositories repositories,
+            CompositeWorkspacesManager compositeWorkspacesManager,
             JobDescriptorFactory jobDescriptorFactory) {
         return projectInfo -> {
-            String projectId = projectInfo.id();
             return new CommonProjectManager(
+                    applicationClock,
                     projectInfo,
+                    projectsSynchronizerTrigger,
                     projectRecordingInitializerFactory.apply(projectInfo),
-                    repositories.newProjectRepository(projectId),
-                    repositories.newProjectRecordingRepository(projectId),
-                    repositories.newProjectSchedulerRepository(projectId),
-                    projectRepositoryManager.apply(projectInfo),
                     profilesManagerFactory,
+                    repositories,
+                    remoteRepositoryStorageFactory,
+                    compositeWorkspacesManager,
                     jobDescriptorFactory);
         };
     }

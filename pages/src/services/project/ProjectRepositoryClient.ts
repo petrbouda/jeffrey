@@ -67,11 +67,7 @@ export default class ProjectRepositoryClient {
     }
 
     deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
-        const content = {
-            sessionId: recordingSession.id,
-        }
-
-        return axios.put<void>(this.baseUrl + '/sessions/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.delete<void>(this.baseUrl + '/sessions/' + recordingSession.id)
             .then(HttpUtils.RETURN_DATA);
     }
 

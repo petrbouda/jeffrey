@@ -27,7 +27,7 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         ProjectsSynchronizerJobDescriptor,
         RecordingIntervalGeneratorJobDescriptor,
         RepositoryRecordingCleanerJobDescriptor,
-        RepositorySessionCleanerJobDescriptor,
+        RepositorySessionCleanerProjectJobDescriptor,
         WorkspaceEventsReplicatorJobDescriptor {
 
     Map<String, String> params();

@@ -27,10 +27,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public record RepositorySessionCleanerJobDescriptor(
+public record RepositorySessionCleanerProjectJobDescriptor(
         long duration,
         ChronoUnit timeUnit
-) implements JobDescriptor<RepositorySessionCleanerJobDescriptor> {
+) implements JobDescriptor<RepositorySessionCleanerProjectJobDescriptor> {
 
     private static final Map<String, ChronoUnit> CHRONO_UNITS = Arrays.stream(ChronoUnit.values())
             .collect(Collectors.toMap(ChronoUnit::toString, Function.identity()));
@@ -54,10 +54,10 @@ public record RepositorySessionCleanerJobDescriptor(
         return Duration.of(duration, timeUnit);
     }
 
-    public static RepositorySessionCleanerJobDescriptor of(Map<String, String> params) {
+    public static RepositorySessionCleanerProjectJobDescriptor of(Map<String, String> params) {
         String durationStr = params.get(PARAM_DURATION);
         String timeUnit = params.get(PARAM_TIME_UNIT);
-        return new RepositorySessionCleanerJobDescriptor(Long.parseLong(durationStr), parseTimeUnit(timeUnit));
+        return new RepositorySessionCleanerProjectJobDescriptor(Long.parseLong(durationStr), parseTimeUnit(timeUnit));
     }
 
     private static ChronoUnit parseTimeUnit(String timeUnit) {

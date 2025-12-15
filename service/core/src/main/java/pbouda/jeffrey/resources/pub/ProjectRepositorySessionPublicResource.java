@@ -82,6 +82,13 @@ public class ProjectRepositorySessionPublicResource {
         return streamRecording(file);
     }
 
+    @DELETE
+    @Path("/{sessionId}")
+    public Response deleteSession(@PathParam("sessionId") String sessionId) {
+        repositoryManager.deleteRecordingSession(sessionId);
+        return Response.noContent().build();
+    }
+
     private static Response streamRecording(StreamedRecordingFile recordingFile) {
         StreamingOutput stream = output -> recordingFile.writer().accept(output);
         return Response.ok(stream)

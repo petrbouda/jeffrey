@@ -18,12 +18,30 @@
 
 package pbouda.jeffrey.workspace.consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
-public interface WorkspaceEventConsumer {
+public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
-    void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor);
+    private static final Logger LOG = LoggerFactory.getLogger(DeleteProjectWorkspaceEventConsumer.class);
 
-    boolean isApplicable(WorkspaceEvent event);
+    private final ProjectsManager projectsManager;
+
+    public DeleteProjectWorkspaceEventConsumer(ProjectsManager projectsManager) {
+        this.projectsManager = projectsManager;
+    }
+
+    @Override
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isApplicable(WorkspaceEvent event) {
+        return event.eventType() == WorkspaceEventType.PROJECT_DELETED;
+    }
 }

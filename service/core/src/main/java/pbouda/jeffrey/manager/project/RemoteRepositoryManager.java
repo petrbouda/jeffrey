@@ -100,7 +100,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        remoteWorkspaceClient.deleteSession(workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
     }
 
     @Override

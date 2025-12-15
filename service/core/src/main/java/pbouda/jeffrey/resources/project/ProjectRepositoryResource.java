@@ -18,10 +18,8 @@
 
 package pbouda.jeffrey.resources.project;
 
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
@@ -63,20 +61,17 @@ public class ProjectRepositoryResource {
         recordingsDownloadManager.mergeAndDownloadSession(request.sessionId());
     }
 
-    @PUT
-    @Path("/sessions/delete")
-    public void deleteSession(SelectedRecordingsRequest request) {
-        repositoryManager.deleteRecordingSession(request.sessionId());
+    @DELETE
+    @Path("/sessions/{sessionId}")
+    public Response deleteSession(@PathParam("sessionId") String sessionId) {
+        repositoryManager.deleteRecordingSession(sessionId);
+        return Response.noContent().build();
     }
 
     @POST
     @Path("/recordings/download")
     public void downloadSelectedRecordings(SelectedRecordingsRequest request) {
-        if (request.merge()) {
-            recordingsDownloadManager.mergeAndDownloadSelectedRawRecordings(request.sessionId(), request.recordingIds());
-        } else {
-            recordingsDownloadManager.downloadSelectedRawRecordings(request.sessionId(), request.recordingIds());
-        }
+        recordingsDownloadManager.mergeAndDownloadSelectedRawRecordings(request.sessionId(), request.recordingIds());
     }
 
     @PUT

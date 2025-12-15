@@ -55,7 +55,9 @@ public interface RemoteWorkspaceClient {
 
     RecordingSessionResponse recordingSession(String workspaceId, String projectId, String sessionId);
 
-    RepositoryStatisticsResponse repositoryStatistics(String workspaceId, String projectId);
+    RepositoryStatisticsResponse  repositoryStatistics(String workspaceId, String projectId);
+
+    void deleteSession(String workspaceId, String projectId, String sessionId);
 
     WorkspaceResult workspace(String workspaceId);
 

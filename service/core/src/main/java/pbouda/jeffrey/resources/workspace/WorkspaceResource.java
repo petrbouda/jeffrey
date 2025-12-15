@@ -40,7 +40,7 @@ public class WorkspaceResource {
 
     @Path("/projects")
     public WorkspaceProjectsResource projectsResource() {
-        return new WorkspaceProjectsResource(workspaceInfo, workspaceManager.projectsManager());
+        return new WorkspaceProjectsResource(workspaceInfo, workspaceManager);
     }
 
     @DELETE

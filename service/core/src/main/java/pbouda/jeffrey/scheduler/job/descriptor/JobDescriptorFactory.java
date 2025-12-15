@@ -34,7 +34,7 @@ public record JobDescriptorFactory() {
             case PROJECTS_SYNCHRONIZER ->
                     ProjectsSynchronizerJobDescriptor.of(params);
             case REPOSITORY_SESSION_CLEANER ->
-                    RepositorySessionCleanerJobDescriptor.of(params);
+                    RepositorySessionCleanerProjectJobDescriptor.of(params);
             case REPOSITORY_RECORDING_CLEANER ->
                     RepositoryRecordingCleanerJobDescriptor.of(params);
             case WORKSPACE_EVENTS_REPLICATOR ->

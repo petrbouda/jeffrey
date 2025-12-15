@@ -25,19 +25,20 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.WorkspaceEventConsumerType;
-import pbouda.jeffrey.workspace.consumer.CreateProjectWorkspaceEventConsumer;
-import pbouda.jeffrey.workspace.consumer.CreateSessionWorkspaceEventConsumer;
+import pbouda.jeffrey.workspace.consumer.*;
 
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJobDescriptor> {
 
@@ -45,18 +46,22 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     private static final WorkspaceEventConsumerType CONSUMER = WorkspaceEventConsumerType.PROJECT_SYNCHRONIZER_CONSUMER;
 
+    private final Repositories repositories;
+    private final RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory;
     private final Duration period;
-    private final CreateProjectWorkspaceEventConsumer createProjectConsumer;
 
     public ProjectsSynchronizerJob(
+            Repositories repositories,
+            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        this.repositories = repositories;
+        this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
         this.period = period;
-        this.createProjectConsumer = new CreateProjectWorkspaceEventConsumer(workspacesManager);
     }
 
     @Override
@@ -64,8 +69,12 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
             WorkspaceManager workspaceManager, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
 
-        CreateSessionWorkspaceEventConsumer createSessionConsumer =
-                new CreateSessionWorkspaceEventConsumer(workspaceManager.projectsManager());
+        ProjectsManager projectsManager = workspaceManager.projectsManager();
+        List<WorkspaceEventConsumer> consumers = List.of(
+                new CreateProjectWorkspaceEventConsumer(projectsManager),
+                new CreateSessionWorkspaceEventConsumer(projectsManager),
+                new DeleteSessionWorkspaceEventConsumer(projectsManager, repositories, remoteRepositoryStorageFactory),
+                new DeleteProjectWorkspaceEventConsumer(projectsManager));
 
         List<WorkspaceEvent> workspaceEvents = workspaceManager.workspaceEventManager().remainingEvents(CONSUMER);
         if (workspaceEvents.isEmpty()) {
@@ -76,28 +85,21 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         LOG.info("Processing workspace events for workspace: workspace_id={} size={}",
                 workspaceInfo.id(), workspaceEvents.size());
 
-        Map<WorkspaceEventType, List<WorkspaceEvent>> groupedEvents = workspaceEvents.stream()
-                .collect(Collectors.groupingBy(WorkspaceEvent::eventType));
-
-        List<WorkspaceEvent> projectEvents = eventsList(groupedEvents, WorkspaceEventType.PROJECT_CREATED);
-        List<WorkspaceEvent> sessionEvents = eventsList(groupedEvents, WorkspaceEventType.SESSION_CREATED);
+        List<WorkspaceEvent> sortedEvents = workspaceEvents.stream()
+                .sorted(Comparator.comparing(WorkspaceEvent::eventId))
+                .toList();
 
         long latestOffset = -1;
 
-        // Process PROJECT_CREATED events first (dependency requirement)
-        LOG.debug("Processing {} PROJECT_CREATED events", projectEvents.size());
-        for (WorkspaceEvent event : projectEvents) {
-            createProjectConsumer.on(event, jobDescriptor);
-            latestOffset = event.eventId();
-            LOG.debug("Successfully processed PROJECT_CREATED event: {}", event.eventId());
-        }
-
-        // Process SESSION_CREATED events second
-        LOG.debug("Processing {} SESSION_CREATED events", sessionEvents.size());
-        for (WorkspaceEvent event : sessionEvents) {
-            createSessionConsumer.on(event, jobDescriptor);
-            latestOffset = event.eventId();
-            LOG.debug("Successfully processed SESSION_CREATED event: {}", event.eventId());
+        for (WorkspaceEvent event : sortedEvents) {
+            for (WorkspaceEventConsumer consumer : consumers) {
+                if (consumer.isApplicable(event)) {
+                    consumer.on(event, jobDescriptor);
+                    latestOffset = event.eventId();
+                    LOG.debug("Successfully processed: event_type={} event_id={}", event.eventType(), event.eventId());
+                    break;
+                }
+            }
         }
 
         // Update consumer state with the latest processed event timestamp

@@ -46,32 +46,35 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
-        if (event.eventType() == WorkspaceEventType.SESSION_CREATED) {
-            SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
+        SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
 
-            Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
-            if (projectOpt.isEmpty()) {
-                LOG.warn("Cannot create session for event, project not found: event_id={}, session_id={} project_id={}",
-                        event.eventId(), event.originEventId(), event.projectId());
-                return;
-            }
-
-            ProjectManager projectManager = projectOpt.get();
-            ProjectInfo projectInfo = projectManager.info();
-            WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
-                    IDGenerator.generate(),
-                    event.originEventId(),
-                    projectInfo.id(),
-                    projectInfo.workspaceId(),
-                    null,
-                    null,
-                    Path.of(eventContent.relativePath()),
-                    eventContent.workspacesPath() != null ? Path.of(eventContent.workspacesPath()) : null,
-                    eventContent.profilerSettings(),
-                    event.originCreatedAt(),
-                    event.createdAt());
-
-            projectManager.repositoryManager().createSession(sessionInfo);
+        Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
+        if (projectOpt.isEmpty()) {
+            LOG.warn("Cannot create session for event, project not found: event_id={}, session_id={} project_id={}",
+                    event.eventId(), event.originEventId(), event.projectId());
+            return;
         }
+
+        ProjectManager projectManager = projectOpt.get();
+        ProjectInfo projectInfo = projectManager.info();
+        WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
+                IDGenerator.generate(),
+                event.originEventId(),
+                projectInfo.id(),
+                projectInfo.workspaceId(),
+                null,
+                null,
+                Path.of(eventContent.relativePath()),
+                eventContent.workspacesPath() != null ? Path.of(eventContent.workspacesPath()) : null,
+                eventContent.profilerSettings(),
+                event.originCreatedAt(),
+                event.createdAt());
+
+        projectManager.repositoryManager().createSession(sessionInfo);
+    }
+
+    @Override
+    public boolean isApplicable(WorkspaceEvent event) {
+        return event.eventType() == WorkspaceEventType.SESSION_CREATED;
     }
 }

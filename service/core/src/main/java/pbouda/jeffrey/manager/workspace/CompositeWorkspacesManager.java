@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.manager.workspace;
 
+import org.springframework.beans.factory.ObjectFactory;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
@@ -27,15 +28,15 @@ import java.util.Optional;
 public class CompositeWorkspacesManager {
 
     private final WorkspacesRepository workspacesRepository;
-    private final SandboxWorkspacesManager sandboxWorkspacesManager;
-    private final RemoteWorkspacesManager remoteWorkspacesManager;
-    private final LiveWorkspacesManager liveWorkspacesManager;
+    private final ObjectFactory<SandboxWorkspacesManager> sandboxWorkspacesManager;
+    private final ObjectFactory<RemoteWorkspacesManager> remoteWorkspacesManager;
+    private final ObjectFactory<LiveWorkspacesManager> liveWorkspacesManager;
 
     public CompositeWorkspacesManager(
             WorkspacesRepository workspacesRepository,
-            SandboxWorkspacesManager sandboxWorkspacesManager,
-            RemoteWorkspacesManager remoteWorkspacesManager,
-            LiveWorkspacesManager liveWorkspacesManager) {
+            ObjectFactory<SandboxWorkspacesManager> sandboxWorkspacesManager,
+            ObjectFactory<RemoteWorkspacesManager> remoteWorkspacesManager,
+            ObjectFactory<LiveWorkspacesManager> liveWorkspacesManager) {
 
         this.workspacesRepository = workspacesRepository;
         this.sandboxWorkspacesManager = sandboxWorkspacesManager;
@@ -45,9 +46,9 @@ public class CompositeWorkspacesManager {
 
     public WorkspaceInfo create(WorkspacesManager.CreateWorkspaceRequest request) {
         return switch (request.type()) {
-            case SANDBOX -> sandboxWorkspacesManager.create(request);
-            case LIVE -> liveWorkspacesManager.create(request);
-            case REMOTE -> remoteWorkspacesManager.create(request);
+            case SANDBOX -> sandboxWorkspacesManager.getObject().create(request);
+            case LIVE -> liveWorkspacesManager.getObject().create(request);
+            case REMOTE -> remoteWorkspacesManager.getObject().create(request);
         };
     }
 
@@ -66,9 +67,9 @@ public class CompositeWorkspacesManager {
 
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
         return switch (info.type()) {
-            case SANDBOX -> sandboxWorkspacesManager.mapToWorkspaceManager(info);
-            case LIVE -> liveWorkspacesManager.mapToWorkspaceManager(info);
-            case REMOTE -> remoteWorkspacesManager.mapToWorkspaceManager(info);
+            case SANDBOX -> sandboxWorkspacesManager.getObject().mapToWorkspaceManager(info);
+            case LIVE -> liveWorkspacesManager.getObject().mapToWorkspaceManager(info);
+            case REMOTE -> remoteWorkspacesManager.getObject().mapToWorkspaceManager(info);
         };
     }
 }

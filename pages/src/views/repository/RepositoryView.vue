@@ -628,12 +628,12 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                         <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
                       </button>
                       <button
-                          v-if="!isRemoteWorkspace"
+                          v-if="session.status === RecordingStatus.FINISHED"
                           class="btn btn-sm btn-outline-danger"
                           type="button"
-                          title="Delete All Recordings"
+                          title="Delete Session"
                           @click.stop="deleteAll(session.id)">
-                        <i class="bi bi-trash me-1"></i>Delete All
+                        <i class="bi bi-trash"></i>
                       </button>
                     </div>
                     <button
