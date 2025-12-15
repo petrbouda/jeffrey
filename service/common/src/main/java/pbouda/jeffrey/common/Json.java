@@ -47,6 +47,8 @@ import java.util.Map;
 
 public abstract class Json {
 
+    public static final String EMPTY = "{}";
+
     private static final TypeReference<HashMap<String, String>> STRING_MAP_TYPE =
             new TypeReference<HashMap<String, String>>() {
             };
