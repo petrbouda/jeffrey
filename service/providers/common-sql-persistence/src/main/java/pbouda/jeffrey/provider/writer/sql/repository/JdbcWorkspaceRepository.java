@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
@@ -150,7 +149,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("project_id", event.projectId())
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
-                    .addValue("origin_created_at", event.originCreatedAt().atOffset(ZoneOffset.UTC))
+                    .addValue("origin_created_at", event.originCreatedAt() != null ? event.originCreatedAt().atOffset(ZoneOffset.UTC) : null)
                     .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
         }
 
