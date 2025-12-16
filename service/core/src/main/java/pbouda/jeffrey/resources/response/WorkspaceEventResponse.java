@@ -28,5 +28,6 @@ public record WorkspaceEventResponse(
         WorkspaceEventType eventType,
         String content,
         Long originCreatedAt,
-        Long createdAt) {
+        Long createdAt,
+        String createdBy) {
 }

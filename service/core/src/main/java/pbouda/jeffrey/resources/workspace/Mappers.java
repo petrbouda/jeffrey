@@ -49,7 +49,8 @@ public abstract class Mappers {
                 event.eventType(),
                 event.content(),
                 event.originCreatedAt().toEpochMilli(),
-                event.createdAt().toEpochMilli()
+                event.createdAt().toEpochMilli(),
+                event.createdBy()
         );
     }
 

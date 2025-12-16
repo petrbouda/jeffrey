@@ -27,6 +27,7 @@ interface WorkspaceEvent {
     content: string;
     originCreatedAt: number;
     createdAt: number;
+    createdBy: string;
 }
 
 export default WorkspaceEvent

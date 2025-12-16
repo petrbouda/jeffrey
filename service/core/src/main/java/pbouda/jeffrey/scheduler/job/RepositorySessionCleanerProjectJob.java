@@ -31,11 +31,15 @@ import pbouda.jeffrey.scheduler.job.descriptor.RepositorySessionCleanerProjectJo
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 
 public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<RepositorySessionCleanerProjectJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySessionCleanerProjectJob.class);
+
+    private static final String JOB_NAME = RepositorySessionCleanerProjectJob.class.getSimpleName();
+
     private final Duration period;
 
     public RepositorySessionCleanerProjectJob(
@@ -59,11 +63,15 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
 
         Instant currentTime = Instant.now();
         List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions(false).stream()
+                // Sort by created time descending
+                .sorted(Comparator.comparing(RecordingSession::createdAt).reversed())
+                // Keep at least one session
+                .skip(1)
                 .filter(session -> currentTime.isAfter(session.createdAt().plus(duration)))
                 .toList();
 
         candidatesForDeletion.forEach(session -> {
-            manager.repositoryManager().deleteRecordingSession(session.id());
+            manager.repositoryManager().deleteRecordingSession(session.id(), JOB_NAME);
             LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
         });
     }

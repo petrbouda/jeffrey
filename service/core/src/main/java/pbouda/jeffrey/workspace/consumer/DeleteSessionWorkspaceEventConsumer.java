@@ -68,6 +68,6 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     @Override
     public boolean isApplicable(WorkspaceEvent event) {
-        return event.eventType() == WorkspaceEventType.PROJECT_DELETED;
+        return event.eventType() == WorkspaceEventType.SESSION_DELETED;
     }
 }

@@ -42,6 +42,8 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);
 
+    private static final String JOB_NAME = WorkspaceEventsReplicatorJob.class.getSimpleName();
+
     private final Duration period;
     private final Clock clock;
     private final Runnable migrationCallback;
@@ -104,7 +106,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
     private List<WorkspaceEvent> replicateProjects(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
         List<WorkspaceEvent> projectWorkspaceEvents = allProjects.stream()
                 .filter(event -> !processedProjects.contains(event.projectId()))
-                .map(event -> WorkspaceEventConverter.projectCreated(clock.instant(), event, workspaceManager.resolveInfo()))
+                .map(event -> WorkspaceEventConverter.projectCreated(clock.instant(), event, workspaceManager.resolveInfo(), JOB_NAME))
                 .toList();
 
         workspaceManager.workspaceEventManager().batchInsertEvents(projectWorkspaceEvents);
@@ -123,7 +125,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .map(remoteWorkspaceRepository::allSessions)
                 .flatMap(List::stream)
                 .filter(event -> !processedSessions.contains(event.sessionId()))
-                .map(event -> WorkspaceEventConverter.sessionCreated(clock.instant(), event, workspaceManager.resolveInfo()))
+                .map(event -> WorkspaceEventConverter.sessionCreated(clock.instant(), event, workspaceManager.resolveInfo(), JOB_NAME))
                 .toList();
 
         workspaceManager.workspaceEventManager().batchInsertEvents(sessionWorkspaceEvents);

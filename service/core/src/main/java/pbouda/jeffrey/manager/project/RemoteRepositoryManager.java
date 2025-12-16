@@ -99,7 +99,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public void deleteRecordingSession(String recordingSessionId) {
+    public void deleteRecordingSession(String recordingSessionId, String createdBy) {
         remoteWorkspaceClient.deleteSession(workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
     }
 

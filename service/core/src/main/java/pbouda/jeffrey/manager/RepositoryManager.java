@@ -77,7 +77,7 @@ public interface RepositoryManager {
 
     Optional<RepositoryInfo> info();
 
-    void deleteRecordingSession(String recordingSessionId);
+    void deleteRecordingSession(String recordingSessionId, String createdBy);
 
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 

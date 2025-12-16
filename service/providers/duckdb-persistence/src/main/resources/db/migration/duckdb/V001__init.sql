@@ -233,10 +233,11 @@ CREATE TABLE IF NOT EXISTS workspace_events
     event_type        VARCHAR NOT NULL,
     content           VARCHAR NOT NULL,
     origin_created_at TIMESTAMPTZ NOT NULL,
-    created_at        TIMESTAMPTZ NOT NULL
+    created_at        TIMESTAMPTZ NOT NULL,
+    created_by        VARCHAR NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_events_project_origin ON workspace_events(project_id, origin_event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_events_project_origin ON workspace_events(project_id, origin_event_id, event_type);
 
 CREATE TABLE IF NOT EXISTS workspace_event_consumers
 (

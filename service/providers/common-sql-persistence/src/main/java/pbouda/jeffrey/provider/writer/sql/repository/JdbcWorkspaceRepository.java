@@ -55,8 +55,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     // Workspace Events SQL
     //language=SQL
     private static final String INSERT_WORKSPACE_EVENT = """
-            INSERT INTO workspace_events (event_id, origin_event_id, workspace_id, project_id, event_type, content, origin_created_at, created_at)
-            VALUES (:event_id, :origin_event_id, :workspace_id, :project_id, :event_type, :content, :origin_created_at, :created_at)
+            INSERT INTO workspace_events (event_id, origin_event_id, workspace_id, project_id, event_type, content, origin_created_at, created_at, created_by)
+            VALUES (:event_id, :origin_event_id, :workspace_id, :project_id, :event_type, :content, :origin_created_at, :created_at, :created_by)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -124,7 +124,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 .addValue("event_type", workspaceEvent.eventType().name())
                 .addValue("content", workspaceEvent.content())
                 .addValue("origin_created_at", workspaceEvent.createdAt().atOffset(ZoneOffset.UTC))
-                .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
+                .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC))
+                .addValue("created_by", workspaceEvent.createdBy());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE_EVENT, INSERT_WORKSPACE_EVENT, paramSource);
     }
@@ -150,7 +151,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
                     .addValue("origin_created_at", event.originCreatedAt().atOffset(ZoneOffset.UTC))
-                    .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
+                    .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC))
+                    .addValue("created_by", event.createdBy());
         }
 
         long result = databaseClient.batchInsert(StatementLabel.BATCH_INSERT_WORKSPACE_EVENTS, INSERT_WORKSPACE_EVENT, paramSources);
@@ -228,7 +230,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                 WorkspaceEventType.valueOf(rs.getString("event_type")),
                 rs.getString("content"),
                 Mappers.instant(rs, "origin_created_at"),
-                Mappers.instant(rs, "created_at")
+                Mappers.instant(rs, "created_at"),
+                rs.getString("created_by")
         );
     }
 

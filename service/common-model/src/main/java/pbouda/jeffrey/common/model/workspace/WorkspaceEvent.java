@@ -28,5 +28,6 @@ public record WorkspaceEvent(
         WorkspaceEventType eventType,
         String content,
         Instant originCreatedAt,
-        Instant createdAt) {
+        Instant createdAt,
+        String createdBy) {
 }

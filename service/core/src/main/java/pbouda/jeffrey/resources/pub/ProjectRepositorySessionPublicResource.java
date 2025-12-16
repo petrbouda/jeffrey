@@ -85,7 +85,7 @@ public class ProjectRepositorySessionPublicResource {
     @DELETE
     @Path("/{sessionId}")
     public Response deleteSession(@PathParam("sessionId") String sessionId) {
-        repositoryManager.deleteRecordingSession(sessionId);
+        repositoryManager.deleteRecordingSession(sessionId, "MANUAL_PUBLIC_DELETE");
         return Response.noContent().build();
     }
 

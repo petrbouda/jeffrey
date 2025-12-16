@@ -224,12 +224,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void deleteRecordingSession(String recordingSessionId) {
+    public void deleteRecordingSession(String recordingSessionId, String createdBy) {
         WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
                 clock.instant(),
                 projectInfo.workspaceId(),
                 projectInfo.id(),
-                recordingSessionId);
+                recordingSessionId,
+                createdBy);
 
         workspaceManager
                 .workspaceEventManager()

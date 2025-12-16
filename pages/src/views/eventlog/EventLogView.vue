@@ -88,7 +88,7 @@
                     :uppercase="false"
                   />
                   <span class="event-ids">
-                    {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }}
+                    {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }} • {{ event.createdBy }}
                   </span>
                   <div class="event-time-info">
                     <span class="event-time-full">{{ FormattingService.formatTimestamp(event.originCreatedAt) }}</span>
@@ -163,6 +163,13 @@
                 <span class="label">Workspace:</span>
                 <span class="value">{{ selectedEvent.workspaceId }}</span>
               </div>
+              <div class="info-pair">
+                <span class="label">Created By:</span>
+                <span class="value">{{ selectedEvent.createdBy }}</span>
+              </div>
+            </div>
+
+            <div class="info-row">
               <div class="info-pair">
                 <span class="label">Created:</span>
                 <span class="value">{{ FormattingService.formatTimestamp(selectedEvent.originCreatedAt) }}</span>
