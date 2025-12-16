@@ -63,7 +63,7 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
                 .toList();
 
         candidatesForDeletion.forEach(session -> {
-            remoteRepositoryStorage.deleteSession(session.id());
+            manager.repositoryManager().deleteRecordingSession(session.id());
             LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
         });
     }

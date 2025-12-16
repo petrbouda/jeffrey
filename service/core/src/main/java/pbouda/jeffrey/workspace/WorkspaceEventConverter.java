@@ -67,7 +67,7 @@ public abstract class WorkspaceEventConverter {
                 workspaceId,
                 WorkspaceEventType.SESSION_DELETED,
                 Json.EMPTY,
-                null,
+                currentInstant,
                 currentInstant
         );
     }
@@ -84,7 +84,7 @@ public abstract class WorkspaceEventConverter {
                 workspaceId,
                 WorkspaceEventType.PROJECT_DELETED,
                 Json.EMPTY,
-                null,
+                currentInstant,
                 currentInstant
         );
     }

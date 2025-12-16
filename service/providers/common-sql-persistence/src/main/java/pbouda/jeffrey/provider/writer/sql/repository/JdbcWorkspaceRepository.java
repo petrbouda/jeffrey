@@ -149,7 +149,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
                     .addValue("project_id", event.projectId())
                     .addValue("event_type", event.eventType().name())
                     .addValue("content", event.content())
-                    .addValue("origin_created_at", event.originCreatedAt() != null ? event.originCreatedAt().atOffset(ZoneOffset.UTC) : null)
+                    .addValue("origin_created_at", event.originCreatedAt().atOffset(ZoneOffset.UTC))
                     .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
         }
 
