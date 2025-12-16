@@ -81,7 +81,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
                     LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
                             simpleName, workspaceInfo.id(), workspacePath);
                     executeOnWorkspace(workspaceManager, jobDescriptor);
-                    LOG.info("Job completed: job={} workspace={} workspace_dir={}",
+                    LOG.debug("Job completed: job={} workspace={} workspace_dir={}",
                             simpleName, workspaceManager.resolveInfo().id(), workspacePath);
                 }
             }
