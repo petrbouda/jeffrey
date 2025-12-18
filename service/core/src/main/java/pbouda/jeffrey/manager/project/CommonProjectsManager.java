@@ -53,10 +53,7 @@ public class CommonProjectsManager implements ProjectsManager {
     public ProjectManager create(CreateProject createProject) {
         CreateProjectContext context = new CreateProjectContext(createProject);
         context = createProjectPipeline.execute(context);
-
-        ProjectManager projectManager = projectManagerFactory.apply(context.projectInfo());
-        projectManager.initialize();
-        return projectManager;
+        return projectManagerFactory.apply(context.projectInfo());
     }
 
     @Override

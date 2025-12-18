@@ -135,8 +135,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("session_id", IDGenerator.generate())
                 .addValue("repository_id", session.repositoryId())
-                .addValue("relative_session_path", session.relativeSessionPath())
-                .addValue("profiler_settings", session.profilerSettings() != null ? Json.toString(session.profilerSettings()) : null)
+                .addValue("relative_session_path", session.relativeSessionPath().toString())
+                .addValue("profiler_settings", session.profilerSettings())
                 .addValue("finished_file", session.finishedFile())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));

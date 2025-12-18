@@ -65,8 +65,6 @@ public interface ProjectManager {
     interface Factory extends Function<ProjectInfo, ProjectManager> {
     }
 
-    void initialize();
-
     ProfilesManager profilesManager();
 
     RecordingsManager recordingsManager();

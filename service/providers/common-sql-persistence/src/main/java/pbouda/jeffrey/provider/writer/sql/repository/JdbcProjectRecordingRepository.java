@@ -80,10 +80,8 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
 
     //language=SQL
     private static final String DELETE_RECORDING_WITH_FILES = """
-            BEGIN TRANSACTION;
             DELETE FROM recordings WHERE project_id = '%project_id%' AND id = '%recording_id%';
-            DELETE FROM recording_files WHERE project_id = '%project_id%' AND recording_id = '%recording_id%';
-            COMMIT;""";
+            DELETE FROM recording_files WHERE project_id = '%project_id%' AND recording_id = '%recording_id%';""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;

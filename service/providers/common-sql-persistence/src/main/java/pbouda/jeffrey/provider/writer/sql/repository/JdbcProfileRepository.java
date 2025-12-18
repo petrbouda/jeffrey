@@ -46,15 +46,13 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     //language=SQL
     private static final String DELETE_PROFILE = """
-            BEGIN TRANSACTION;
             DELETE FROM cache WHERE profile_id = '%profile_id%';
             DELETE FROM stacktraces WHERE profile_id = '%profile_id%';
             DELETE FROM frames WHERE profile_id = '%profile_id%';
             DELETE FROM threads WHERE profile_id = '%profile_id%';
             DELETE FROM events WHERE profile_id = '%profile_id%';
             DELETE FROM event_types WHERE profile_id = '%profile_id%';
-            DELETE FROM profiles WHERE profile_id = '%profile_id%';
-            COMMIT;""";
+            DELETE FROM profiles WHERE profile_id = '%profile_id%';""";
 
     private final String profileId;
     private final DatabaseClient databaseClient;

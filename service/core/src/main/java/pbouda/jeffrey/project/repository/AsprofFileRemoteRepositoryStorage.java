@@ -135,7 +135,9 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         RepositoryInfo repositoryInfo = repositoryInfo();
 
         Path workspacePath = resolveWorkspacePath(repositoryInfo);
-        Path sessionPath = workspacePath.resolve(sessionInfo.relativeSessionPath());
+        Path sessionPath = workspacePath
+                .resolve(repositoryInfo.relativeProjectPath())
+                .resolve(sessionInfo.relativeSessionPath());
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
         RecordingStatus recordingStatus = determineSessionStatus(sessionPath, sessionInfo, isLatestSession);

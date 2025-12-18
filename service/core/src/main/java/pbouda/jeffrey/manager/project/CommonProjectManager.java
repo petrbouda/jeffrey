@@ -88,10 +88,6 @@ public class CommonProjectManager implements ProjectManager {
     }
 
     @Override
-    public void initialize() {
-    }
-
-    @Override
     public ProfilesManager profilesManager() {
         return profilesManagerFactory.apply(projectInfo);
     }

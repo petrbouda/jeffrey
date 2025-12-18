@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.workspace.consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
@@ -29,6 +31,8 @@ import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor
 import pbouda.jeffrey.workspace.model.ProjectCreatedEventContent;
 
 public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CreateProjectWorkspaceEventConsumer.class);
 
     private final ProjectsManager projectsManager;
 
@@ -49,6 +53,9 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
                 eventContent.attributes());
 
         ProjectManager projectManager = projectsManager.create(createProject);
+
+        LOG.info("Project created from workspace event: project_id={} event={}",
+                projectManager.info().id(), event);
 
         RepositoryInfo projectRepository = new RepositoryInfo(
                 null,

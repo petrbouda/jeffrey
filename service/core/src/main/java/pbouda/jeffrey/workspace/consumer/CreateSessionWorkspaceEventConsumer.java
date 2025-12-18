@@ -59,7 +59,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         if (repositoryInfo.isEmpty()) {
             LOG.warn("Cannot create session for event, project repository not found: " +
                             "event_id={}, session_id={} project_id={}",
-                    event.eventId(), event.originEventId(), event.projectId());
+                    event.eventId(), event.originEventId(), projectManager.info().id());
             return;
         }
         RepositorySessionInfo sessionInfo = new RepositorySessionInfo(

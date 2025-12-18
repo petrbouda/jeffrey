@@ -51,7 +51,7 @@ public abstract class Mappers {
         return (rs, _) -> {
             return new RepositoryInfo(
                     rs.getString("repository_id"),
-                    RepositoryType.valueOf(rs.getString("type")),
+                    RepositoryType.valueOf(rs.getString("repository_type")),
                     rs.getString("workspaces_path"),
                     rs.getString("relative_workspace_path"),
                     rs.getString("relative_project_path"));
