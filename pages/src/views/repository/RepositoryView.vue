@@ -102,14 +102,24 @@ const sortedSessions = computed(() => {
   });
 });
 
-// Sort recordings in a session: non-recording files first, then recording files, both sorted by creation date (newest first)
+// Sort recordings in a session: non-recording files first, then ASPROF_TEMP, then JFR recording files
+// Within each group, sort by creation date (newest first)
 const getSortedRecordings = (session: RecordingSession) => {
+  const getSortPriority = (file: RepositoryFile): number => {
+    if (file.isRecordingFile) return 2;            // JFR files at bottom
+    if (file.fileType === 'ASPROF_TEMP') return 1; // ASPROF_TEMP in the middle
+    return 0;                                      // Other non-recording files at top
+  };
+
   return [...session.files].sort((a, b) => {
-    // First sort by file type (non-recording files first)
-    if (a.isRecordingFile !== b.isRecordingFile) {
-      return a.isRecordingFile ? 1 : -1; // Non-recording files first (false comes before true)
+    const priorityA = getSortPriority(a);
+    const priorityB = getSortPriority(b);
+
+    // First sort by priority
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
     }
-    // Then sort by creation date (newest first) within each type
+    // Then sort by creation date (newest first) within each group
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 };
