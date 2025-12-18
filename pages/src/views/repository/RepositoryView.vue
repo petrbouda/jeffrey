@@ -4,7 +4,6 @@ import {useNavigation} from '@/composables/useNavigation';
 import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
 import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
-import RepositoryInfo from "@/services/project/model/RepositoryInfo.ts";
 import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
 import RepositoryStatisticsModel from "@/services/project/model/RepositoryStatistics.ts";
 import {ToastService} from "@/services/ToastService";
@@ -30,7 +29,6 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 const toast = ToastService;
 
 const currentProject = ref<SettingsResponse | null>();
-const currentRepository = ref<RepositoryInfo | null>();
 const projectInfo = ref<ProjectInfo | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
 const repositoryStatistics = ref<RepositoryStatisticsModel | null>(null);
@@ -282,14 +280,10 @@ const fetchRepositoryData = async () => {
     // Fetch repository statistics from backend
     repositoryStatistics.value = await repositoryService.getRepositoryStatistics();
 
-    // If we got sessions, consider repository as linked
-    currentRepository.value = {linked: true} as any;
-
     // Initialize the expanded state for sessions
     initializeExpandedState();
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
-      currentRepository.value = null;
       recordingSessions.value = [];
       repositoryStatistics.value = null;
     }
@@ -578,7 +572,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
     icon="bi-folder"
   >
     <!-- Repository Statistics Cards -->
-    <div class="col-12" v-if="!isLoading && currentRepository">
+    <div class="col-12" v-if="!isLoading">
       <RepositoryStatistics :statistics="repositoryStatistics"/>
     </div>
 
@@ -795,7 +789,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
     </div>
 
     <!-- No Sessions Message -->
-    <div class="col-12" v-if="!isLoading && !recordingSessions.length && currentRepository">
+    <div class="col-12" v-if="!isLoading && !recordingSessions.length">
       <div class="modern-empty-state">
         <i class="bi bi-folder-x display-4 text-muted"></i>
         <h5 class="mt-3">No Recording Sessions Available</h5>
@@ -804,7 +798,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
     </div>
 
   <!-- Loading Placeholder -->
-  <div class="container-fluid p-4" v-if="isLoading && !currentRepository">
+  <div class="container-fluid p-4" v-if="isLoading">
     <div class="row">
       <div class="col-12">
         <div class="card shadow-sm border-0">

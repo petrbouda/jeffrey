@@ -28,6 +28,5 @@ public record ProjectTemplate(
         String id,
         String name,
         TemplateTarget target,
-        ProjectRepository repository,
         List<String> jobDefinitions) {
 }

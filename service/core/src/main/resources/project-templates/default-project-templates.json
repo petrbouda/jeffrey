@@ -3,10 +3,6 @@
     "id": "default-projects-synchronizer-template",
     "name": "Projects Synchronizer Template",
     "target": "GLOBAL_SCHEDULER",
-    "repository": {
-      "type": "ASYNC_PROFILER",
-      "finishedSessionDetectionFile": "perf-counters.hsperfdata"
-    },
     "jobDefinitions": [
       "default-repository-session-cleaner",
       "default-repository-recording-cleaner"
@@ -21,9 +17,6 @@
     "id": "default-project-template",
     "name": "Default Project Template",
     "target": "PROJECT",
-    "repository": {
-      "type": "ASYNC_PROFILER"
-    },
     "jobDefinitions": [
       "default-repository-session-cleaner",
       "default-repository-recording-cleaner"
