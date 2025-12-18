@@ -17,28 +17,27 @@
   -->
 
 <script setup lang="ts">
-
-import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import GuardianClient from "@/services/guardian/GuardianClient";
-import Utils from "@/services/Utils";
-import GraphType from "@/services/flamegraphs/GraphType";
-import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import ApexTimeSeriesChart from "@/components/ApexTimeSeriesChart.vue";
-import SearchBarComponent from "@/components/SearchBarComponent.vue";
-import CardCarousel from "@/components/CardCarousel.vue";
-import {useRoute} from "vue-router";
+import type { PropType } from 'vue'; // Props definition
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import GuardianClient from '@/services/guardian/GuardianClient';
+import Utils from '@/services/Utils';
+import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import SearchBarComponent from '@/components/SearchBarComponent.vue';
+import CardCarousel from '@/components/CardCarousel.vue';
+import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import GuardianFlamegraphClient from "@/services/flamegraphs/client/GuardianFlamegraphClient";
-import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import FlamegraphTooltipFactory from "@/services/flamegraphs/tooltips/FlamegraphTooltipFactory";
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FullGraphUpdater from "@/services/flamegraphs/updater/FullGraphUpdater";
-import GuardAnalysisResult from "@/services/flamegraphs/model/guard/GuardAnalysisResult";
-import GuardResponse from "@/services/flamegraphs/model/guard/GuardResponse";
-import GuardVisualization from "@/services/flamegraphs/model/guard/GuardVisualization";
+import GuardianFlamegraphClient from '@/services/flamegraphs/client/GuardianFlamegraphClient';
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
+import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
+import GuardAnalysisResult from '@/services/flamegraphs/model/guard/GuardAnalysisResult';
+import GuardResponse from '@/services/flamegraphs/model/guard/GuardResponse';
+import GuardVisualization from '@/services/flamegraphs/model/guard/GuardVisualization';
 import * as bootstrap from 'bootstrap';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import type { PropType } from 'vue';
+import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
 // Props definition
 const props = defineProps({
@@ -73,9 +72,9 @@ const activeCategoryCards = ref<GuardAnalysisResult[]>([]);
 const activeCategoryName = ref<string>('');
 let categoryModalInstance: bootstrap.Modal | null = null;
 
-let flamegraphTooltip: FlamegraphTooltip
-let graphUpdater: GraphUpdater
-let modalInstance: bootstrap.Modal | null = null
+let flamegraphTooltip: FlamegraphTooltip;
+let graphUpdater: GraphUpdater;
+let modalInstance: bootstrap.Modal | null = null;
 
 // Track window resize for responsive navigation
 const handleResize = () => {
@@ -84,33 +83,34 @@ const handleResize = () => {
 };
 
 onMounted(() => {
-  GuardianClient.list(workspaceId.value!, projectId.value!, route.params.profileId as string)
-      .then((data) => guards.value = data);
+  GuardianClient.list(workspaceId.value!, projectId.value!, route.params.profileId as string).then(
+    data => (guards.value = data)
+  );
 
   // Add window resize listener for responsive navigation
   window.addEventListener('resize', handleResize);
 
   // Initialize the Bootstrap modal after the DOM is ready
   nextTick(() => {
-    const modalEl = document.getElementById('flamegraphModal')
+    const modalEl = document.getElementById('flamegraphModal');
     if (modalEl) {
       // We'll manually create and dispose of the modal
       // for better control over the behavior
       modalEl.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphDialog.value = false
-      })
+        showFlamegraphDialog.value = false;
+      });
 
       // Add event listener to close button that might not work with data-bs-dismiss
-      const closeButton = modalEl.querySelector('.btn-close')
+      const closeButton = modalEl.querySelector('.btn-close');
       if (closeButton) {
-        closeButton.addEventListener('click', closeModal)
+        closeButton.addEventListener('click', closeModal);
       }
     }
-  })
+  });
 });
 
 // Watch for changes to showFlamegraphDialog to control modal visibility
-watch(showFlamegraphDialog, (isVisible) => {
+watch(showFlamegraphDialog, isVisible => {
   if (isVisible) {
     if (!modalInstance) {
       const modalEl = document.getElementById('flamegraphModal');
@@ -135,7 +135,7 @@ const closeModal = () => {
     modalInstance.hide();
   }
   showFlamegraphDialog.value = false;
-}
+};
 
 // Clean up event listeners and modal when component is unmounted
 onUnmounted(() => {
@@ -143,12 +143,12 @@ onUnmounted(() => {
     modalInstance.dispose();
     modalInstance = null;
   }
-  
+
   if (infoModalInstance) {
     infoModalInstance.dispose();
     infoModalInstance = null;
   }
-  
+
   if (categoryModalInstance) {
     categoryModalInstance.dispose();
     categoryModalInstance = null;
@@ -158,23 +158,22 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 
   // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {
-  });
+  document.removeEventListener('hidden.bs.modal', () => {});
 });
 
 function mapSeverity(severity: string) {
-  if (severity === "INFO") {
-    return "Information"
-  } else if (severity === "WARNING") {
-    return "Warning"
-  } else if (severity === "NA") {
-    return "Not Applicable"
-  } else if (severity === "IGNORE") {
-    return "Ignored"
-  } else if (severity === "OK") {
-    return "OK"
+  if (severity === 'INFO') {
+    return 'Information';
+  } else if (severity === 'WARNING') {
+    return 'Warning';
+  } else if (severity === 'NA') {
+    return 'Not Applicable';
+  } else if (severity === 'IGNORE') {
+    return 'Ignored';
+  } else if (severity === 'OK') {
+    return 'OK';
   } else {
-    return severity
+    return severity;
   }
 }
 
@@ -185,30 +184,34 @@ const click_flamegraph = (guard: GuardAnalysisResult) => {
       categoryModalInstance.hide();
     }
 
-    activeGuardVisualization = guard.visualization
+    activeGuardVisualization = guard.visualization;
     let flamegraphClient = new GuardianFlamegraphClient(
-        route.params.workspaceId as string,
-        route.params.projectId as string,
-        guard.visualization.primaryProfileId,
-        guard.visualization.eventType,
-        guard.visualization.useWeight,
-        guard.visualization.markers
-    )
+      route.params.workspaceId as string,
+      route.params.projectId as string,
+      guard.visualization.primaryProfileId,
+      guard.visualization.eventType,
+      guard.visualization.useWeight,
+      guard.visualization.markers
+    );
 
-    graphUpdater = new FullGraphUpdater(flamegraphClient, false)
-    graphUpdater.setTimeseriesSearchEnabled(false)
-    flamegraphTooltip = FlamegraphTooltipFactory.create(guard.visualization.eventType, guard.visualization.useWeight, false)
+    graphUpdater = new FullGraphUpdater(flamegraphClient, false);
+    graphUpdater.setTimeseriesSearchEnabled(false);
+    flamegraphTooltip = FlamegraphTooltipFactory.create(
+      guard.visualization.eventType,
+      guard.visualization.useWeight,
+      false
+    );
 
     // Delayed the initialization of the graphUpdater to ensure that the modal is fully rendered
     setTimeout(() => {
-      graphUpdater.initialize()
+      graphUpdater.initialize();
     }, 200);
 
     // Then set the flag to show the dialog
     // The watcher will take care of showing the modal
-    showFlamegraphDialog.value = true
+    showFlamegraphDialog.value = true;
   }
-}
+};
 
 // Function to show information modal
 const showInfoModal = (guard: GuardAnalysisResult) => {
@@ -216,10 +219,10 @@ const showInfoModal = (guard: GuardAnalysisResult) => {
   if (categoryModalInstance) {
     categoryModalInstance.hide();
   }
-  
+
   // Set the active guard info
   activeGuardInfo.value = guard;
-  
+
   // Initialize modal if needed
   nextTick(() => {
     const modalEl = document.getElementById('infoModal');
@@ -230,21 +233,21 @@ const showInfoModal = (guard: GuardAnalysisResult) => {
       infoModalInstance.show();
     }
   });
-}
+};
 
 // Function to close information modal
 const closeInfoModal = () => {
   if (infoModalInstance) {
     infoModalInstance.hide();
   }
-}
+};
 
 // Function to show all cards in a category
 const showAllCards = (category: string, cards: GuardAnalysisResult[]) => {
   // Set the active category data
   activeCategoryName.value = category;
   activeCategoryCards.value = [...cards];
-  
+
   // Initialize modal if needed
   nextTick(() => {
     const modalEl = document.getElementById('categoryModal');
@@ -255,28 +258,28 @@ const showAllCards = (category: string, cards: GuardAnalysisResult[]) => {
       categoryModalInstance.show();
     }
   });
-}
+};
 
 // Function to close category modal
 const closeCategoryModal = () => {
   if (categoryModalInstance) {
     categoryModalInstance.hide();
   }
-}
+};
 
 function getBadgeClass(guard: GuardAnalysisResult) {
-  if (guard.severity === "OK") {
-    return "bg-success"
-  } else if (guard.severity === "WARNING") {
-    return "bg-danger"
-  } else if (guard.severity === "INFO") {
-    return "bg-primary"
-  } else if (guard.severity === "NA") {
-    return "bg-secondary"
-  } else if (guard.severity === "IGNORE") {
-    return "bg-secondary"
+  if (guard.severity === 'OK') {
+    return 'bg-success';
+  } else if (guard.severity === 'WARNING') {
+    return 'bg-danger';
+  } else if (guard.severity === 'INFO') {
+    return 'bg-primary';
+  } else if (guard.severity === 'NA') {
+    return 'bg-secondary';
+  } else if (guard.severity === 'IGNORE') {
+    return 'bg-secondary';
   } else {
-    return "bg-light text-dark"
+    return 'bg-light text-dark';
   }
 }
 
@@ -284,12 +287,12 @@ function getBadgeClass(guard: GuardAnalysisResult) {
 const openFlamegraphFromInfo = () => {
   // First close the info modal
   closeInfoModal();
-  
+
   // Then if we have active guard info with visualization, open flamegraph
   if (activeGuardInfo.value && Utils.isNotNull(activeGuardInfo.value.visualization)) {
     click_flamegraph(activeGuardInfo.value);
   }
-}
+};
 
 // Removed mouse_over function - no longer needed for tooltips
 
@@ -300,60 +303,60 @@ const openFlamegraphFromInfo = () => {
 // Removed generateTooltip function - no longer needed
 
 function select_icon(guard: GuardAnalysisResult) {
-  if (guard.severity === "OK") {
-    return "check-circle-fill"
-  } else if (guard.severity === "WARNING") {
-    return "exclamation-triangle-fill"
-  } else if (guard.severity === "INFO") {
-    return "info-circle-fill"
-  } else if (guard.severity === "NA") {
-    return "slash-circle-fill"
-  } else if (guard.severity === "IGNORE") {
-    return "eye-slash-fill"
+  if (guard.severity === 'OK') {
+    return 'check-circle-fill';
+  } else if (guard.severity === 'WARNING') {
+    return 'exclamation-triangle-fill';
+  } else if (guard.severity === 'INFO') {
+    return 'info-circle-fill';
+  } else if (guard.severity === 'NA') {
+    return 'slash-circle-fill';
+  } else if (guard.severity === 'IGNORE') {
+    return 'eye-slash-fill';
   }
 }
 
 function select_color(guard: GuardAnalysisResult, type: string) {
   // For Bootstrap, we'll convert to their color system
   // type can be "text" or "bg"
-  if (guard.severity === "OK") {
-    return type === "text" ? "text-success" : "bg-success-subtle"
-  } else if (guard.severity === "WARNING") {
-    return type === "text" ? "text-danger" : "bg-danger-subtle"
-  } else if (guard.severity === "INFO") {
-    return type === "text" ? "text-primary" : "bg-primary-subtle"
-  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
-    return type === "text" ? "text-secondary" : "bg-secondary-subtle"
+  if (guard.severity === 'OK') {
+    return type === 'text' ? 'text-success' : 'bg-success-subtle';
+  } else if (guard.severity === 'WARNING') {
+    return type === 'text' ? 'text-danger' : 'bg-danger-subtle';
+  } else if (guard.severity === 'INFO') {
+    return type === 'text' ? 'text-primary' : 'bg-primary-subtle';
+  } else if (guard.severity === 'NA' || guard.severity === 'IGNORE') {
+    return type === 'text' ? 'text-secondary' : 'bg-secondary-subtle';
   }
 }
 
 function getSeverityColor(guard: GuardAnalysisResult) {
   // Return a darker color based on severity
-  if (guard.severity === "OK") {
-    return "#198754" // Darker green
-  } else if (guard.severity === "WARNING") {
-    return "#dc3545" // Darker red
-  } else if (guard.severity === "INFO") {
-    return "#0d6efd" // Darker blue
-  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
-    return "#6c757d" // Darker gray
+  if (guard.severity === 'OK') {
+    return '#198754'; // Darker green
+  } else if (guard.severity === 'WARNING') {
+    return '#dc3545'; // Darker red
+  } else if (guard.severity === 'INFO') {
+    return '#0d6efd'; // Darker blue
+  } else if (guard.severity === 'NA' || guard.severity === 'IGNORE') {
+    return '#6c757d'; // Darker gray
   } else {
-    return "#6c757d" // Default darker gray
+    return '#6c757d'; // Default darker gray
   }
 }
 
 function getLightSeverityColor(guard: GuardAnalysisResult) {
   // Return a lighter color based on severity for backgrounds
-  if (guard.severity === "OK") {
-    return "#d1e7dd" // Light green 
-  } else if (guard.severity === "WARNING") {
-    return "#f8d7da" // Light red
-  } else if (guard.severity === "INFO") {
-    return "#cfe2ff" // Light blue
-  } else if (guard.severity === "NA" || guard.severity === "IGNORE") {
-    return "#e9ecef" // Light gray
+  if (guard.severity === 'OK') {
+    return '#d1e7dd'; // Light green
+  } else if (guard.severity === 'WARNING') {
+    return '#f8d7da'; // Light red
+  } else if (guard.severity === 'INFO') {
+    return '#cfe2ff'; // Light blue
+  } else if (guard.severity === 'NA' || guard.severity === 'IGNORE') {
+    return '#e9ecef'; // Light gray
   } else {
-    return "#ffffff" // Default white
+    return '#ffffff'; // Default white
   }
 }
 
@@ -361,11 +364,11 @@ function getLightSeverityColor(guard: GuardAnalysisResult) {
 function needsNavigation(itemCount: number): boolean {
   // Get current window width
   const width = window.innerWidth;
-  
+
   // Determine how many items can be shown based on window width
   // This should match the logic in CardCarousel.vue
-  let visibleItems = 4;  // Default for large screens
-  
+  let visibleItems = 4; // Default for large screens
+
   if (width < 700) {
     visibleItems = 1;
   } else if (width < 1200) {
@@ -373,7 +376,7 @@ function needsNavigation(itemCount: number): boolean {
   } else if (width < 1600) {
     visibleItems = 3;
   }
-  
+
   // Only show navigation if there are more items than can be displayed
   return itemCount > visibleItems;
 }
@@ -391,257 +394,327 @@ function needsNavigation(itemCount: number): boolean {
   >
     <div id="autoAnalysisCard">
       <div v-for="guardWithCategory in guards" class="guardian-category mb-4">
-      <!-- Modern category header with navigation only when needed -->
-      <div class="category-header" :class="{ 'with-navigation': guardWithCategory.results.length > 0 }">
-        <div class="category-title-container">
-          <h5 class="category-title">{{ guardWithCategory.category }}</h5>
-          <!-- Show count badge next to category title -->
-          <span class="cards-count-badge">{{ guardWithCategory.results.length }} {{ guardWithCategory.results.length === 1 ? 'card' : 'cards' }}</span>
-        </div>
-        <div class="category-navigation">
-          <!-- View All button -->
-          <button v-if="guardWithCategory.results.length > 3" 
-                  class="view-all-btn"
-                  @click="showAllCards(guardWithCategory.category, guardWithCategory.results)">
-            <span>View All</span>
-            <i class="bi bi-arrow-right-short"></i>
-          </button>
-          
-          <!-- Show navigation for all categories with carousel -->
-          <div v-if="needsNavigation(guardWithCategory.results.length)" class="nav-buttons">
-            <button class="nav-btn prev-btn" :id="`prev-${guardWithCategory.category}`">
-              <i class="bi bi-chevron-left"></i>
+        <!-- Modern category header with navigation only when needed -->
+        <div
+          class="category-header"
+          :class="{ 'with-navigation': guardWithCategory.results.length > 0 }"
+        >
+          <div class="category-title-container">
+            <h5 class="category-title">{{ guardWithCategory.category }}</h5>
+            <!-- Show count badge next to category title -->
+            <span class="cards-count-badge"
+              >{{ guardWithCategory.results.length }}
+              {{ guardWithCategory.results.length === 1 ? 'card' : 'cards' }}</span
+            >
+          </div>
+          <div class="category-navigation">
+            <!-- View All button -->
+            <button
+              v-if="guardWithCategory.results.length > 3"
+              class="view-all-btn"
+              @click="showAllCards(guardWithCategory.category, guardWithCategory.results)"
+            >
+              <span>View All</span>
+              <i class="bi bi-arrow-right-short"></i>
             </button>
-            <button class="nav-btn next-btn" :id="`next-${guardWithCategory.category}`">
-              <i class="bi bi-chevron-right"></i>
-            </button>
+
+            <!-- Show navigation for all categories with carousel -->
+            <div v-if="needsNavigation(guardWithCategory.results.length)" class="nav-buttons">
+              <button class="nav-btn prev-btn" :id="`prev-${guardWithCategory.category}`">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button class="nav-btn next-btn" :id="`next-${guardWithCategory.category}`">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Use carousel for all categories regardless of card count -->
-      <div class="carousel-container">
-        <CardCarousel 
-          :items="guardWithCategory.results" 
-          :autoplay="false"
-          :max-items="4"
-          :prev-button-id="`prev-${guardWithCategory.category}`"
-          :next-button-id="`next-${guardWithCategory.category}`">
-          <template #item="{ item: guard }">
-            <div class="guardian-card" 
-                 :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
-                 :style="{ backgroundColor: getLightSeverityColor(guard) }">
-              
-              <!-- Status indicator -->
-              <div class="guardian-card-status">
-                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"></i>
-              </div>
-              
-              <!-- Card content -->
-              <div class="guardian-card-content">
-                <h6 class="guardian-card-title">{{ guard.rule }}</h6>
-              </div>
-              
-              <!-- Footer with score and actions -->
-              <div class="guardian-card-footer">
-                <!-- Score section with visualization -->
-                <div v-if="guard.score != null" class="guardian-card-score">
-                  <div v-if="typeof guard.score === 'string' && guard.score.includes('%')" class="score-visualizer">
-                    <div class="score-header">
-                      <span class="score-label">Score</span>
-                      <span class="score-value">{{ guard.score }}</span>
+
+        <!-- Use carousel for all categories regardless of card count -->
+        <div class="carousel-container">
+          <CardCarousel
+            :items="guardWithCategory.results"
+            :autoplay="false"
+            :max-items="4"
+            :prev-button-id="`prev-${guardWithCategory.category}`"
+            :next-button-id="`next-${guardWithCategory.category}`"
+          >
+            <template #item="{ item: guard }">
+              <div
+                class="guardian-card"
+                :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
+                :style="{ backgroundColor: getLightSeverityColor(guard) }"
+              >
+                <!-- Status indicator -->
+                <div class="guardian-card-status">
+                  <i
+                    class="bi"
+                    :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"
+                  ></i>
+                </div>
+
+                <!-- Card content -->
+                <div class="guardian-card-content">
+                  <h6 class="guardian-card-title">{{ guard.rule }}</h6>
+                </div>
+
+                <!-- Footer with score and actions -->
+                <div class="guardian-card-footer">
+                  <!-- Score section with visualization -->
+                  <div v-if="guard.score != null" class="guardian-card-score">
+                    <div
+                      v-if="typeof guard.score === 'string' && guard.score.includes('%')"
+                      class="score-visualizer"
+                    >
+                      <div class="score-header">
+                        <span class="score-label">Score</span>
+                        <span class="score-value">{{ guard.score }}</span>
+                      </div>
+                      <div class="progress">
+                        <div
+                          class="progress-bar"
+                          :style="{ width: guard.score, backgroundColor: getSeverityColor(guard) }"
+                        ></div>
+                      </div>
                     </div>
-                    <div class="progress">
-                      <div class="progress-bar" 
-                           :style="{width: guard.score, backgroundColor: getSeverityColor(guard)}"></div>
-                    </div>
+                    <div v-else class="score-text"><span>Score:</span> {{ guard.score }}</div>
                   </div>
-                  <div v-else class="score-text">
-                    <span>Score:</span> {{ guard.score }}
+                  <div v-else class="guardian-card-score-placeholder"></div>
+
+                  <!-- Action buttons -->
+                  <div class="guardian-card-actions">
+                    <button
+                      v-if="Utils.isNotNull(guard.visualization)"
+                      class="flame-btn"
+                      @click.stop="click_flamegraph(guard)"
+                    >
+                      <i class="bi bi-fire"></i>
+                    </button>
+                    <button
+                      v-if="guard.severity !== 'NA'"
+                      class="info-btn"
+                      @click.stop="showInfoModal(guard)"
+                    >
+                      <i class="bi bi-info-circle"></i>
+                    </button>
                   </div>
                 </div>
-                <div v-else class="guardian-card-score-placeholder"></div>
-                
-                <!-- Action buttons -->
-                <div class="guardian-card-actions">
-                  <button v-if="Utils.isNotNull(guard.visualization)"
-                          class="flame-btn"
-                          @click.stop="click_flamegraph(guard)">
-                    <i class="bi bi-fire"></i>
-                  </button>
-                  <button v-if="guard.severity !== 'NA'" 
-                          class="info-btn"
-                          @click.stop="showInfoModal(guard)">
-                    <i class="bi bi-info-circle"></i>
-                  </button>
-                </div>
               </div>
-            </div>
-          </template>
-        </CardCarousel>
+            </template>
+          </CardCarousel>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Tooltip element removed -->
+    <!-- Tooltip element removed -->
 
-  <!-- Modal for flamegraph visualization -->
-  <div class="modal fade" id="flamegraphModal" tabindex="-1"
-       aria-labelledby="flamegraphModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"/>
-        </div>
-        <div id="scrollable-wrapper" class="modal-body pr-2 pl-2"
-             v-if="showFlamegraphDialog && activeGuardVisualization">
-          <SearchBarComponent
+    <!-- Modal for flamegraph visualization -->
+    <div
+      class="modal fade"
+      id="flamegraphModal"
+      tabindex="-1"
+      aria-labelledby="flamegraphModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" @click="closeModal" aria-label="Close" />
+          </div>
+          <div
+            id="scrollable-wrapper"
+            class="modal-body pr-2 pl-2"
+            v-if="showFlamegraphDialog && activeGuardVisualization"
+          >
+            <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+            <ApexTimeSeriesChart
               :graph-updater="graphUpdater"
-              :with-timeseries="true"/>
-          <ApexTimeSeriesChart
-              :graph-updater="graphUpdater"
-              :primary-axis-type="activeGuardVisualization.useWeight ? 'bytes' : 'number'"
+              :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(activeGuardVisualization.eventType)"
               :visible-minutes="60"
               :zoom-enabled="true"
-              time-unit="milliseconds"/>
-          <FlamegraphComponent
+              time-unit="milliseconds"
+            />
+            <FlamegraphComponent
               :with-timeseries="true"
               :use-weight="activeGuardVisualization.useWeight"
               :use-guardian="activeGuardVisualization"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"/>
+              :graph-updater="graphUpdater"
+            />
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  <!-- Information Modal -->
-  <div class="modal fade" id="infoModal" tabindex="-1" 
-       aria-labelledby="infoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="infoModalLabel" v-if="activeGuardInfo">{{ activeGuardInfo.rule }}</h5>
-          <button type="button" class="btn-close" @click="closeInfoModal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body" v-if="activeGuardInfo">
-          <!-- Severity section -->
-          <div v-if="activeGuardInfo.severity" class="mb-3">
-            <h6 class="text-muted text-uppercase small fw-bold">Severity</h6>
-            <span class="badge" :class="getBadgeClass(activeGuardInfo)">{{ mapSeverity(activeGuardInfo.severity) }}</span>
+
+    <!-- Information Modal -->
+    <div
+      class="modal fade"
+      id="infoModal"
+      tabindex="-1"
+      aria-labelledby="infoModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="infoModalLabel" v-if="activeGuardInfo">
+              {{ activeGuardInfo.rule }}
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="closeInfoModal"
+              aria-label="Close"
+            ></button>
           </div>
-          
-          <!-- Score section -->
-          <div v-if="activeGuardInfo.score != null" class="mb-3">
-            <h6 class="text-muted text-uppercase small fw-bold">Score</h6>
-            <p>{{ activeGuardInfo.score }}</p>
+          <div class="modal-body" v-if="activeGuardInfo">
+            <!-- Severity section -->
+            <div v-if="activeGuardInfo.severity" class="mb-3">
+              <h6 class="text-muted text-uppercase small fw-bold">Severity</h6>
+              <span class="badge" :class="getBadgeClass(activeGuardInfo)">{{
+                mapSeverity(activeGuardInfo.severity)
+              }}</span>
+            </div>
+
+            <!-- Score section -->
+            <div v-if="activeGuardInfo.score != null" class="mb-3">
+              <h6 class="text-muted text-uppercase small fw-bold">Score</h6>
+              <p>{{ activeGuardInfo.score }}</p>
+            </div>
+
+            <!-- Summary section -->
+            <div v-if="activeGuardInfo.summary" class="mb-3">
+              <h6 class="text-muted text-uppercase small fw-bold">Summary</h6>
+              <p v-html="activeGuardInfo.summary"></p>
+            </div>
+
+            <!-- Explanation section -->
+            <div v-if="activeGuardInfo.explanation" class="mb-3">
+              <h6 class="text-muted text-uppercase small fw-bold">Explanation</h6>
+              <p v-html="activeGuardInfo.explanation"></p>
+            </div>
+
+            <!-- Solution section -->
+            <div v-if="activeGuardInfo.solution" class="mb-3">
+              <h6 class="text-muted text-uppercase small fw-bold">Solution</h6>
+              <p v-html="activeGuardInfo.solution"></p>
+            </div>
           </div>
-          
-          <!-- Summary section -->
-          <div v-if="activeGuardInfo.summary" class="mb-3">
-            <h6 class="text-muted text-uppercase small fw-bold">Summary</h6>
-            <p v-html="activeGuardInfo.summary"></p>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeInfoModal">Close</button>
+            <button
+              v-if="Utils.isNotNull(activeGuardInfo?.visualization)"
+              type="button"
+              class="btn btn-primary"
+              @click="openFlamegraphFromInfo"
+            >
+              <i class="bi bi-fire me-1"></i> View Flamegraph
+            </button>
           </div>
-          
-          <!-- Explanation section -->
-          <div v-if="activeGuardInfo.explanation" class="mb-3">
-            <h6 class="text-muted text-uppercase small fw-bold">Explanation</h6>
-            <p v-html="activeGuardInfo.explanation"></p>
-          </div>
-          
-          <!-- Solution section -->
-          <div v-if="activeGuardInfo.solution" class="mb-3">
-            <h6 class="text-muted text-uppercase small fw-bold">Solution</h6>
-            <p v-html="activeGuardInfo.solution"></p>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="closeInfoModal">Close</button>
-          <button v-if="Utils.isNotNull(activeGuardInfo?.visualization)" 
-                  type="button" 
-                  class="btn btn-primary"
-                  @click="openFlamegraphFromInfo">
-            <i class="bi bi-fire me-1"></i> View Flamegraph
-          </button>
         </div>
       </div>
     </div>
-  </div>
-  
-  <!-- Category Cards Modal -->
-  <div class="modal fade" id="categoryModal" tabindex="-1"
-       aria-labelledby="categoryModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="categoryModalLabel">
-            {{ activeCategoryName }}
-            <span class="cards-count-badge ms-2">{{ activeCategoryCards.length }} {{ activeCategoryCards.length === 1 ? 'card' : 'cards' }}</span>
-          </h5>
-          <button type="button" class="btn-close" @click="closeCategoryModal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="category-modal-grid">
-            <div v-for="(guard, index) in activeCategoryCards" 
-                 :key="index" 
-                 class="guardian-card" 
-                 :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
-                 :style="{ backgroundColor: getLightSeverityColor(guard) }">
-              
-              <!-- Status indicator -->
-              <div class="guardian-card-status">
-                <i class="bi" :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"></i>
-              </div>
-              
-              <!-- Card content -->
-              <div class="guardian-card-content">
-                <h6 class="guardian-card-title">{{ guard.rule }}</h6>
-              </div>
-              
-              <!-- Footer with score and actions -->
-              <div class="guardian-card-footer">
-                <!-- Score section with visualization -->
-                <div v-if="guard.score != null" class="guardian-card-score">
-                  <div v-if="typeof guard.score === 'string' && guard.score.includes('%')" class="score-visualizer">
-                    <div class="score-header">
-                      <span class="score-label">Score</span>
-                      <span class="score-value">{{ guard.score }}</span>
-                    </div>
-                    <div class="progress">
-                      <div class="progress-bar" 
-                           :style="{width: guard.score, backgroundColor: getSeverityColor(guard)}"></div>
-                    </div>
-                  </div>
-                  <div v-else class="score-text">
-                    <span>Score:</span> {{ guard.score }}
-                  </div>
+
+    <!-- Category Cards Modal -->
+    <div
+      class="modal fade"
+      id="categoryModal"
+      tabindex="-1"
+      aria-labelledby="categoryModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="categoryModalLabel">
+              {{ activeCategoryName }}
+              <span class="cards-count-badge ms-2"
+                >{{ activeCategoryCards.length }}
+                {{ activeCategoryCards.length === 1 ? 'card' : 'cards' }}</span
+              >
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="closeCategoryModal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="category-modal-grid">
+              <div
+                v-for="(guard, index) in activeCategoryCards"
+                :key="index"
+                class="guardian-card"
+                :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
+                :style="{ backgroundColor: getLightSeverityColor(guard) }"
+              >
+                <!-- Status indicator -->
+                <div class="guardian-card-status">
+                  <i
+                    class="bi"
+                    :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"
+                  ></i>
                 </div>
-                <div v-else class="guardian-card-score-placeholder"></div>
-                
-                <!-- Action buttons -->
-                <div class="guardian-card-actions">
-                  <button v-if="Utils.isNotNull(guard.visualization)"
-                          class="flame-btn"
-                          @click.stop="click_flamegraph(guard)">
-                    <i class="bi bi-fire"></i>
-                  </button>
-                  <button v-if="guard.severity !== 'NA'" 
-                          class="info-btn"
-                          @click.stop="showInfoModal(guard)">
-                    <i class="bi bi-info-circle"></i>
-                  </button>
+
+                <!-- Card content -->
+                <div class="guardian-card-content">
+                  <h6 class="guardian-card-title">{{ guard.rule }}</h6>
+                </div>
+
+                <!-- Footer with score and actions -->
+                <div class="guardian-card-footer">
+                  <!-- Score section with visualization -->
+                  <div v-if="guard.score != null" class="guardian-card-score">
+                    <div
+                      v-if="typeof guard.score === 'string' && guard.score.includes('%')"
+                      class="score-visualizer"
+                    >
+                      <div class="score-header">
+                        <span class="score-label">Score</span>
+                        <span class="score-value">{{ guard.score }}</span>
+                      </div>
+                      <div class="progress">
+                        <div
+                          class="progress-bar"
+                          :style="{ width: guard.score, backgroundColor: getSeverityColor(guard) }"
+                        ></div>
+                      </div>
+                    </div>
+                    <div v-else class="score-text"><span>Score:</span> {{ guard.score }}</div>
+                  </div>
+                  <div v-else class="guardian-card-score-placeholder"></div>
+
+                  <!-- Action buttons -->
+                  <div class="guardian-card-actions">
+                    <button
+                      v-if="Utils.isNotNull(guard.visualization)"
+                      class="flame-btn"
+                      @click.stop="click_flamegraph(guard)"
+                    >
+                      <i class="bi bi-fire"></i>
+                    </button>
+                    <button
+                      v-if="guard.severity !== 'NA'"
+                      class="info-btn"
+                      @click.stop="showInfoModal(guard)"
+                    >
+                      <i class="bi bi-info-circle"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="closeCategoryModal">Close</button>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeCategoryModal">
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   </PageHeader>
 </template>
 
@@ -823,7 +896,8 @@ function needsNavigation(itemCount: number): boolean {
   border-left-color: #0d6efd;
 }
 
-.guardian-card.severity-na, .guardian-card.severity-ignore {
+.guardian-card.severity-na,
+.guardian-card.severity-ignore {
   border-left-color: #6c757d;
 }
 
@@ -924,7 +998,8 @@ function needsNavigation(itemCount: number): boolean {
 
 /* Removed different margin for carousel card actions */
 
-.flame-btn, .info-btn {
+.flame-btn,
+.info-btn {
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 4px;
@@ -940,14 +1015,15 @@ function needsNavigation(itemCount: number): boolean {
 }
 
 /* Ensuring consistent button size between single and multiple cards */
-.flame-btn, .info-btn {
+.flame-btn,
+.info-btn {
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 4px;
   font-size: 0.75rem;
 }
 
-.carousel-container .flame-btn, 
+.carousel-container .flame-btn,
 .carousel-container .info-btn {
   width: 1.6rem;
   font-size: 0.75rem;

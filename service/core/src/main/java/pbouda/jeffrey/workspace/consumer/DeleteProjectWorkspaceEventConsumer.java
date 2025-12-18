@@ -22,22 +22,50 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
+import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+
+import java.util.Optional;
 
 public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DeleteProjectWorkspaceEventConsumer.class);
 
     private final ProjectsManager projectsManager;
+    private final Repositories repositories;
+    private final RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory;
 
-    public DeleteProjectWorkspaceEventConsumer(ProjectsManager projectsManager) {
+    public DeleteProjectWorkspaceEventConsumer(
+            ProjectsManager projectsManager,
+            Repositories repositories,
+            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory) {
+
         this.projectsManager = projectsManager;
+        this.repositories = repositories;
+        this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
     }
 
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
-        throw new UnsupportedOperationException();
+        Optional<ProjectManager> project = projectsManager.project(event.projectId());
+        if (project.isEmpty()) {
+            LOG.error("Project not found for deleting session: project_id: {}", event.projectId());
+            return;
+        }
+        ProjectManager projectManager = project.get();
+
+        // Delete all profiles
+        projectManager.profilesManager().allProfiles()
+                .forEach(ProfileManager::delete);
+
+        // TODO: Remove sessions from remote storages if any
+
+        repositories.newProjectRepository(projectManager.info().id())
+                .delete();
     }
 
     @Override

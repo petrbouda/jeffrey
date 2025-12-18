@@ -23,7 +23,7 @@ public record RemoteSession(
         String projectId,
         String workspaceId,
         long createdAt,
-        String relativePath,
-        String workspacesPath,
+        String finishedFile,
+        String relativeSessionPath,
         String profilerSettings) {
 }

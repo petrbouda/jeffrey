@@ -16,16 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventTypes from "@/services/EventTypes";
-import FormattingService from "@/services/FormattingService";
+import EventTypes from '@/services/EventTypes';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 export default class TimeseriesEventAxeFormatter {
-
-    static resolveFormatter(eventTypeCode: string) {
-        if (EventTypes.isBlockingEventType(eventTypeCode) || EventTypes.isWallClock(eventTypeCode) || EventTypes.isMethodTraceEventType(eventTypeCode)) {
-            return FormattingService.formatDuration
-        } else {
-            return FormattingService.formatBytes
-        }
+  static resolveAxisFormatter(eventTypeCode: string): AxisFormatType {
+    if (
+      EventTypes.isBlockingEventType(eventTypeCode) ||
+      EventTypes.isWallClock(eventTypeCode) ||
+      EventTypes.isMethodTraceEventType(eventTypeCode)
+    ) {
+      return AxisFormatType.DURATION_IN_NANOS;
+    } else if (EventTypes.isAllocationEventType(eventTypeCode)) {
+      return AxisFormatType.BYTES;
+    } else {
+      return AxisFormatType.NUMBER;
     }
+  }
 }

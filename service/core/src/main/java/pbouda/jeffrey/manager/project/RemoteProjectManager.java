@@ -20,6 +20,7 @@ package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
@@ -126,7 +127,7 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
-    public void delete() {
-        resolveProjectManager().delete();
+    public void delete(WorkspaceEventCreator createdBy) {
+        resolveProjectManager().delete(createdBy);
     }
 }

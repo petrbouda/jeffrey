@@ -109,7 +109,7 @@
                 <div class="nav-section-title">RUNTIME</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/threads`"
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/thread-statistics`"
                       class="nav-item"
                       active-class="active"
                   >

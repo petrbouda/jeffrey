@@ -1,147 +1,163 @@
 <template>
   <div>
     <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert 
+    <CustomDisabledFeatureAlert
       v-if="isJdbcPoolDisabled"
       title="JDBC Pool Dashboard"
       eventType="JDBC connection pool"
     />
 
     <div v-else>
-      <PageHeader
-        title="JDBC Connection Pools"
-        icon="bi-layers"
-      />
-    
-    <!-- Loading state -->
-    <div v-if="isLoading" class="p-4 text-center">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
+      <PageHeader title="JDBC Connection Pools" icon="bi-layers" />
 
-    <!-- Error state -->
-    <div v-else-if="error" class="p-4 text-center">
-      <div class="alert alert-danger" role="alert">
-        Error loading pool data: {{ error }}
-      </div>
-    </div>
-
-    <!-- Dashboard content -->
-    <div v-else-if="poolDataList.length > 0" class="dashboard-container">
-      <!-- Pool Selection Section -->
-      <section class="dashboard-section">
-        <div class="pool-selector-grid">
-          <div 
-            v-for="pool in poolDataList" 
-            :key="pool.poolName"
-            class="pool-selector-card"
-            :class="{ 'selected': selectedPool?.poolName === pool.poolName }"
-            @click="selectPool(pool)"
-          >
-            <div class="pool-card-header">
-              <h4 class="pool-card-name">{{ pool.poolName }}</h4>
-              <span class="pool-health-badge" :class="`badge-${getPoolHealthVariant(pool)}`">
-                {{ getPoolHealthStatus(pool) }}
-              </span>
-            </div>
-            <div class="pool-card-info">
-              <div class="pool-card-stat">
-                <span class="stat-label">Max:</span>
-                <span class="stat-value">{{ pool.configuration.maxConnectionCount }}</span>
-              </div>
-              <div class="pool-card-stat">
-                <span class="stat-label">Peak:</span>
-                <span class="stat-value">{{ pool.statistics.peakConnectionCount }}</span>
-              </div>
-              <div class="pool-card-stat">
-                <span class="stat-label">Pending:</span>
-                <span class="stat-value">{{ pool.statistics.pendingPeriodsPercent.toFixed(1) }}%</span>
-              </div>
-              <div class="pool-card-stat">
-                <span class="stat-label">Timeouts:</span>
-                <span class="stat-value">{{ pool.statistics.timeoutsCount }}</span>
-              </div>
-            </div>
-          </div>
+      <!-- Loading state -->
+      <div v-if="isLoading" class="p-4 text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
-      </section>
+      </div>
 
-      <!-- Selected Pool Details -->
-      <div v-if="selectedPool">
-        <!-- Pool Header with More Space -->
-        <div class="selected-pool-header-spacious">
-          <div class="pool-header-content">
-            <i class="bi bi-database-fill"></i>
-            <span class="selected-pool-name">{{ selectedPool.poolName }}</span>
-          </div>
-        </div>
+      <!-- Error state -->
+      <div v-else-if="error" class="p-4 text-center">
+        <div class="alert alert-danger" role="alert">Error loading pool data: {{ error }}</div>
+      </div>
 
-        <!-- Configuration Section -->
+      <!-- Dashboard content -->
+      <div v-else-if="poolDataList.length > 0" class="dashboard-container">
+        <!-- Pool Selection Section -->
         <section class="dashboard-section">
-          <StatsTable :metrics="poolMetricsData" />
+          <div class="pool-selector-grid">
+            <div
+              v-for="pool in poolDataList"
+              :key="pool.poolName"
+              class="pool-selector-card"
+              :class="{ selected: selectedPool?.poolName === pool.poolName }"
+              @click="selectPool(pool)"
+            >
+              <div class="pool-card-header">
+                <h4 class="pool-card-name">{{ pool.poolName }}</h4>
+                <span class="pool-health-badge" :class="`badge-${getPoolHealthVariant(pool)}`">
+                  {{ getPoolHealthStatus(pool) }}
+                </span>
+              </div>
+              <div class="pool-card-info">
+                <div class="pool-card-stat">
+                  <span class="stat-label">Max:</span>
+                  <span class="stat-value">{{ pool.configuration.maxConnectionCount }}</span>
+                </div>
+                <div class="pool-card-stat">
+                  <span class="stat-label">Peak:</span>
+                  <span class="stat-value">{{ pool.statistics.peakConnectionCount }}</span>
+                </div>
+                <div class="pool-card-stat">
+                  <span class="stat-label">Pending:</span>
+                  <span class="stat-value"
+                    >{{ pool.statistics.pendingPeriodsPercent.toFixed(1) }}%</span
+                  >
+                </div>
+                <div class="pool-card-stat">
+                  <span class="stat-label">Timeouts:</span>
+                  <span class="stat-value">{{ pool.statistics.timeoutsCount }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <!-- Event Charts Section -->
-        <ChartSectionWithTabs 
-          v-if="selectedPool.eventStatistics.length > 0" 
-          title="Pool Timeseries" 
-          icon="graph-up" 
-          :full-width="true"
-          :tabs="eventTabs"
-          @tab-change="onTabChange"
-        >
-          <template v-for="event in selectedPool.eventStatistics" :key="event.eventType" #[`event-${event.eventType}`]>
-            <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading chart data...</span>
-              </div>
-              <p class="mt-2 text-muted">Loading timeseries data...</p>
+        <!-- Selected Pool Details -->
+        <div v-if="selectedPool">
+          <!-- Pool Header with More Space -->
+          <div class="selected-pool-header-spacious">
+            <div class="pool-header-content">
+              <i class="bi bi-database-fill"></i>
+              <span class="selected-pool-name">{{ selectedPool.poolName }}</span>
             </div>
-            <ApexTimeSeriesChart
-              v-else
-              :primary-data="getEventTimeSeriesData(event.eventType)"
-              :primary-title="`${event.eventName}`"
-              :visible-minutes="60"
-              :primary-axis-type="'durationInMillis'"
-            />
-          </template>
-        </ChartSectionWithTabs>
-
-        <!-- Event Statistics Table -->
-        <ChartSection v-if="selectedPool.eventStatistics.length > 0" title="Event Statistics" icon="table" :full-width="true">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 event-tree-table">
-              <thead>
-                <tr>
-                  <th>Event Type</th>
-                  <th class="text-center">Count</th>
-                  <th class="text-center">MAX</th>
-                  <th class="text-center">AVG</th>
-                  <th class="text-center">MIN</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="event in selectedPool.eventStatistics" :key="event.eventType" class="leaf-row">
-                  <td>
-                    <div class="d-flex align-items-center event-name-cell">
-                      <span class="tree-leaf-icon me-2">
-                        <i class="bi bi-circle-fill"></i>
-                      </span>
-                      <span class="event-name">{{ event.eventName }}</span>
-                    </div>
-                  </td>
-                  <td class="text-center">{{ event.count.toLocaleString() }}</td>
-                  <td class="text-center">{{ FormattingService.formatDuration2Units(event.max) }}</td>
-                  <td class="text-center">{{ FormattingService.formatDuration2Units(event.avg) }}</td>
-                  <td class="text-center">{{ FormattingService.formatDuration2Units(event.min) }}</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
-        </ChartSection>
+
+          <!-- Configuration Section -->
+          <section class="dashboard-section">
+            <StatsTable :metrics="poolMetricsData" />
+          </section>
+
+          <!-- Event Charts Section -->
+          <ChartSectionWithTabs
+            v-if="selectedPool.eventStatistics.length > 0"
+            title="Pool Timeseries"
+            icon="graph-up"
+            :full-width="true"
+            :tabs="eventTabs"
+            @tab-change="onTabChange"
+          >
+            <template
+              v-for="event in selectedPool.eventStatistics"
+              :key="event.eventType"
+              #[`event-${event.eventType}`]
+            >
+              <div v-if="isTimeseriesLoading(event.eventType)" class="chart-loading-overlay">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading chart data...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading timeseries data...</p>
+              </div>
+              <ApexTimeSeriesChart
+                v-else
+                :primary-data="getEventTimeSeriesData(event.eventType)"
+                :primary-title="`${event.eventName}`"
+                :visible-minutes="60"
+                :primary-axis-type="AxisFormatType.DURATION_IN_MILLIS"
+              />
+            </template>
+          </ChartSectionWithTabs>
+
+          <!-- Event Statistics Table -->
+          <ChartSection
+            v-if="selectedPool.eventStatistics.length > 0"
+            title="Event Statistics"
+            icon="table"
+            :full-width="true"
+          >
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 event-tree-table">
+                <thead>
+                  <tr>
+                    <th>Event Type</th>
+                    <th class="text-center">Count</th>
+                    <th class="text-center">MAX</th>
+                    <th class="text-center">AVG</th>
+                    <th class="text-center">MIN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="event in selectedPool.eventStatistics"
+                    :key="event.eventType"
+                    class="leaf-row"
+                  >
+                    <td>
+                      <div class="d-flex align-items-center event-name-cell">
+                        <span class="tree-leaf-icon me-2">
+                          <i class="bi bi-circle-fill"></i>
+                        </span>
+                        <span class="event-name">{{ event.eventName }}</span>
+                      </div>
+                    </td>
+                    <td class="text-center">{{ event.count.toLocaleString() }}</td>
+                    <td class="text-center">
+                      {{ FormattingService.formatDuration2Units(event.max) }}
+                    </td>
+                    <td class="text-center">
+                      {{ FormattingService.formatDuration2Units(event.avg) }}
+                    </td>
+                    <td class="text-center">
+                      {{ FormattingService.formatDuration2Units(event.min) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ChartSection>
+        </div>
       </div>
-    </div>
 
       <!-- No data state -->
       <div v-else class="p-4 text-center">
@@ -153,18 +169,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, withDefaults, defineProps } from 'vue';
+import { computed, defineProps, onMounted, ref, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
-import PoolData from "@/services/profile/custom/jdbc/model/PoolData.ts";
-import ProfileJdbcPoolClient from "@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts";
-import FormattingService from "@/services/FormattingService.ts";
+import PoolData from '@/services/profile/custom/jdbc/model/PoolData.ts';
+import ProfileJdbcPoolClient from '@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts';
+import FormattingService from '@/services/FormattingService.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Define props
 interface Props {
@@ -251,7 +268,7 @@ const poolMetricsData = computed(() => {
       icon: 'exclamation-triangle-fill',
       title: 'Timeouts',
       value: stats.timeoutsCount,
-      variant: stats.timeoutsCount > 0 ? 'danger' as const : 'success' as const,
+      variant: stats.timeoutsCount > 0 ? ('danger' as const) : ('success' as const),
       breakdown: [
         {
           label: 'Rate',
@@ -264,7 +281,7 @@ const poolMetricsData = computed(() => {
       icon: 'hourglass-split',
       title: 'Max Pending Threads',
       value: stats.maxPendingThreadCount,
-      variant: stats.pendingPeriodsPercent > 10 ? 'warning' as const : 'success' as const,
+      variant: stats.pendingPeriodsPercent > 10 ? ('warning' as const) : ('success' as const),
       breakdown: [
         {
           label: 'Pending Time',
@@ -281,15 +298,14 @@ const loadPoolData = async () => {
   try {
     isLoading.value = true;
     error.value = null;
-    
+
     // Load data from API
     poolDataList.value = await client.getPoolData();
-    
+
     // Select the first pool by default
     if (poolDataList.value.length > 0) {
       selectedPool.value = poolDataList.value[0];
     }
-    
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading pool data:', err);
@@ -308,7 +324,7 @@ const selectPool = (pool: PoolData) => {
 
 const getPoolHealthStatus = (pool: PoolData): string => {
   const stats = pool.statistics;
-  
+
   if (stats.timeoutsCount > 0 || stats.timeoutRate > 0.01) {
     return 'Critical';
   } else if (stats.pendingPeriodsPercent > 10) {
@@ -352,20 +368,23 @@ const getEventTimeSeriesData = (eventName: string): number[][] => {
   if (!selectedPool.value) {
     return [];
   }
-  
+
   // Only return data if this is the currently active event type
   if (activeEventType.value === eventName) {
     return currentTimeseriesData.value;
   }
-  
+
   // Auto-load first tab on initial load
-  if (activeEventType.value === null && selectedPool.value.eventStatistics[0]?.eventType === eventName) {
+  if (
+    activeEventType.value === null &&
+    selectedPool.value.eventStatistics[0]?.eventType === eventName
+  ) {
     if (!currentTimeseriesLoading.value) {
       activeEventType.value = eventName;
       loadTimeseriesData(selectedPool.value.poolName, eventName);
     }
   }
-  
+
   return [];
 };
 
@@ -601,7 +620,6 @@ onMounted(() => {
   background-color: #fff;
 }
 
-
 /* Chart Container */
 
 .chart-loading-overlay {
@@ -624,5 +642,4 @@ onMounted(() => {
   width: 3rem;
   height: 3rem;
 }
-
 </style>

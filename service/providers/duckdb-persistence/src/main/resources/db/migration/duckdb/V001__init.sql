@@ -45,15 +45,6 @@ CREATE TABLE IF NOT EXISTS schedulers
     PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS repositories
-(
-    project_id                      VARCHAR NOT NULL,
-    id                              VARCHAR NOT NULL,
-    type                            VARCHAR NOT NULL,
-    finished_session_detection_file VARCHAR,
-    PRIMARY KEY (project_id, id)
-);
-
 CREATE TABLE IF NOT EXISTS recordings
 (
     project_id            VARCHAR NOT NULL,
@@ -207,22 +198,30 @@ CREATE TABLE IF NOT EXISTS workspaces
     deleted             BOOLEAN NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS workspace_sessions
+CREATE TABLE IF NOT EXISTS repositories
 (
-    session_id           VARCHAR NOT NULL,
-    origin_session_id    VARCHAR NOT NULL,
-    project_id           VARCHAR NOT NULL,
-    workspace_id         VARCHAR NOT NULL,
-    last_detected_file   VARCHAR,
-    relative_path        VARCHAR NOT NULL,
-    workspaces_path      VARCHAR,
-    profiler_settings    VARCHAR,
-    origin_created_at    TIMESTAMPTZ NOT NULL,
-    created_at           TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (project_id, session_id)
+    project_id               VARCHAR NOT NULL,
+    repository_id            VARCHAR NOT NULL,
+    repository_type          VARCHAR NOT NULL,
+    workspaces_path          VARCHAR,
+    relative_workspace_path  VARCHAR NOT NULL,
+    relative_project_path    VARCHAR NOT NULL,
+    PRIMARY KEY (project_id, repository_id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_sessions_workspace_origin ON workspace_sessions(workspace_id, origin_session_id);
+CREATE TABLE IF NOT EXISTS repository_sessions
+(
+    session_id            VARCHAR NOT NULL,
+    repository_id         VARCHAR NOT NULL,
+    relative_session_path VARCHAR NOT NULL,
+    profiler_settings     VARCHAR,
+    finished_file         VARCHAR,
+    origin_created_at     TIMESTAMPTZ NOT NULL,
+    created_at            TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (repository_id, session_id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_repository_sessions_session_path ON repository_sessions(repository_id, relative_session_path);
 
 CREATE TABLE IF NOT EXISTS workspace_events
 (

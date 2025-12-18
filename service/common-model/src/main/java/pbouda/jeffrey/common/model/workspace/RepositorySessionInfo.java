@@ -16,9 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api.model;
+package pbouda.jeffrey.common.model.workspace;
 
-import pbouda.jeffrey.common.model.RepositoryType;
+import java.nio.file.Path;
+import java.time.Instant;
 
-public record DBRepositoryInfo(RepositoryType type, String finishedSessionDetectionFile) {
+public record RepositorySessionInfo(
+        String sessionId,
+        String repositoryId,
+        Path relativeSessionPath,
+        String finishedFile,
+        String profilerSettings,
+        Instant originCreatedAt,
+        Instant createdAt) {
 }

@@ -26,6 +26,8 @@ import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
@@ -37,6 +39,7 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.workspace.WorkspaceEventConverter;
 
 import java.time.Clock;
 import java.util.Comparator;
@@ -177,10 +180,23 @@ public class CommonProjectManager implements ProjectManager {
     }
 
     @Override
-    public void delete() {
-        profilesManager().allProfiles()
-                .forEach(ProfileManager::delete);
+    public void delete(WorkspaceEventCreator createdBy) {
+        Optional<WorkspaceManager> workspaceOpt = compositeWorkspacesManager.findById(projectInfo.workspaceId());
+        if (workspaceOpt.isEmpty()) {
+            throw Exceptions.workspaceNotFound(projectInfo.workspaceId());
+        }
 
-        projectRepository.delete();
+        WorkspaceEvent workspaceEvent = WorkspaceEventConverter.projectDeleted(
+                clock.instant(),
+                projectInfo.workspaceId(),
+                projectInfo.id(),
+                createdBy);
+
+        workspaceOpt.get()
+                .workspaceEventManager()
+                .batchInsertEvents(List.of(workspaceEvent));
+
+        // Trigger event synchronization
+        eventSyncExecutor.getObject().run();
     }
 }

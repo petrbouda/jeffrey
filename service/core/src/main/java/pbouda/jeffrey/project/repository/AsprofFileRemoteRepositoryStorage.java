@@ -23,18 +23,17 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.project.repository.detection.WithDetectionFileStrategy;
 import pbouda.jeffrey.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.project.repository.file.FileInfoProcessor;
-import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
-import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Files;
@@ -74,28 +73,30 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         this.clock = clock;
     }
 
-    private DBRepositoryInfo repositoryInfo() {
-        List<DBRepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
+    private RepositoryInfo repositoryInfo() {
+        List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
         if (repositoryInfos.isEmpty()) {
             throw new IllegalStateException("No repository info found for project: " + projectInfo.id());
         }
         return repositoryInfos.getFirst();
     }
 
-    private Path resolveWorkspacePath(WorkspaceSessionInfo sessionInfo) {
-        Path workspacesPath = sessionInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : workspacesPath;
-        return resolvedWorkspacesPath.resolve(sessionInfo.repositoryId());
+    private Path resolveWorkspacePath(RepositoryInfo repositoryInfo) {
+        String workspacesPath = repositoryInfo.workspacesPath();
+        Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : Path.of(workspacesPath);
+        return resolvedWorkspacesPath
+                .resolve(repositoryInfo.relativeWorkspacePath());
     }
 
-    private Path resolveSessionPath(WorkspaceSessionInfo sessionInfo) {
-        Path workspacePath = resolveWorkspacePath(sessionInfo);
-        return workspacePath.resolve(sessionInfo.relativePath());
+    private Path resolveSessionPath(RepositoryInfo repositoryInfo, RepositorySessionInfo sessionInfo) {
+        return resolveWorkspacePath(repositoryInfo)
+                .resolve(repositoryInfo.relativeProjectPath())
+                .resolve(sessionInfo.relativeSessionPath());
     }
 
     @Override
     public Optional<RecordingSession> singleSession(String sessionId, boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = projectRepositoryRepository.findAllSessions();
+        List<RepositorySessionInfo> sessions = projectRepositoryRepository.findAllSessions();
 
         if (sessions.isEmpty()) {
             LOG.warn("No sessions found for project: {}", projectInfo.id());
@@ -104,7 +105,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
         // is session latest by original creation date?
         boolean isLatestSession = sessions.stream()
-                .max(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt))
+                .max(Comparator.comparing(RepositorySessionInfo::originCreatedAt))
                 .map(latestSession -> latestSession.sessionId().equals(sessionId))
                 .orElse(false);
 
@@ -117,8 +118,8 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public List<RecordingSession> listSessions(boolean withFiles) {
-        List<WorkspaceSessionInfo> sessions = projectRepositoryRepository.findAllSessions().stream()
-                .sorted(Comparator.comparing(WorkspaceSessionInfo::originCreatedAt).reversed())
+        List<RepositorySessionInfo> sessions = projectRepositoryRepository.findAllSessions().stream()
+                .sorted(Comparator.comparing(RepositorySessionInfo::originCreatedAt).reversed())
                 .toList();
 
         // Creates RecordingSession objects for each session and marks the latest session as ACTIVE/UNKNOWN
@@ -129,20 +130,20 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     }
 
     private RecordingSession createRecordingSession(
-            boolean withFiles, WorkspaceSessionInfo sessionInfo, boolean isLatestSession) {
+            boolean withFiles, RepositorySessionInfo sessionInfo, boolean isLatestSession) {
 
-        DBRepositoryInfo repositoryInfo = repositoryInfo();
+        RepositoryInfo repositoryInfo = repositoryInfo();
 
-        Path workspacePath = resolveWorkspacePath(sessionInfo);
-        Path sessionPath = workspacePath.resolve(sessionInfo.relativePath());
+        Path workspacePath = resolveWorkspacePath(repositoryInfo);
+        Path sessionPath = workspacePath.resolve(sessionInfo.relativeSessionPath());
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
-        RecordingStatus recordingStatus = determineSessionStatus(sessionPath, repositoryInfo, isLatestSession);
+        RecordingStatus recordingStatus = determineSessionStatus(sessionPath, sessionInfo, isLatestSession);
 
         List<RepositoryFile> repositoryFiles;
         if (withFiles) {
             repositoryFiles = _listRepositoryFiles(
-                    repositoryInfo,
+                    sessionInfo,
                     recordingStatus,
                     workspacePath,
                     sessionPath);
@@ -162,12 +163,12 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private RecordingStatus determineSessionStatus(
             Path sessionPath,
-            DBRepositoryInfo repositoryInfo,
+            RepositorySessionInfo sessionInfo,
             boolean isLatestSession) {
 
         if (isLatestSession) {
             // For latest session, use the strategy-based logic
-            StatusStrategy strategy = createStatusStrategy(repositoryInfo);
+            StatusStrategy strategy = createStatusStrategy(sessionInfo);
             return strategy.determineStatus(sessionPath);
         } else {
             // For all other sessions, force FINISHED status (business rule)
@@ -177,16 +178,18 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
-        Optional<WorkspaceSessionInfo> workspaceSessionOpt =
+        RepositoryInfo repositoryInfo = repositoryInfo();
+
+        Optional<RepositorySessionInfo> workspaceSessionOpt =
                 projectRepositoryRepository.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
             return;
         }
-        WorkspaceSessionInfo sessionInfo = workspaceSessionOpt.get();
+        RepositorySessionInfo sessionInfo = workspaceSessionOpt.get();
 
-        Path sessionPath = resolveSessionPath(sessionInfo);
+        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return;
@@ -204,16 +207,18 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     @Override
     public void deleteSession(String sessionId) {
-        Optional<WorkspaceSessionInfo> workspaceSessionOpt =
+        RepositoryInfo repositoryInfo = repositoryInfo();
+
+        Optional<RepositorySessionInfo> workspaceSessionOpt =
                 projectRepositoryRepository.findSessionById(sessionId);
 
         if (workspaceSessionOpt.isEmpty()) {
             LOG.warn("Session not found for project {}: {}", projectInfo.id(), sessionId);
             return;
         }
-        WorkspaceSessionInfo sessionInfo = workspaceSessionOpt.get();
+        RepositorySessionInfo sessionInfo = workspaceSessionOpt.get();
 
-        Path sessionPath = resolveSessionPath(sessionInfo);
+        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: {}", sessionPath);
             return;
@@ -228,16 +233,16 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
         return RepositoryType.ASYNC_PROFILER;
     }
 
-    protected StatusStrategy createStatusStrategy(DBRepositoryInfo repositoryInfo) {
-        if (repositoryInfo.finishedSessionDetectionFile() != null) {
-            return new WithDetectionFileStrategy(repositoryInfo.finishedSessionDetectionFile(), finishedPeriod, clock);
+    protected StatusStrategy createStatusStrategy(RepositorySessionInfo sessionInfo) {
+        if (sessionInfo.finishedFile() != null) {
+            return new WithDetectionFileStrategy(sessionInfo.finishedFile(), finishedPeriod, clock);
         } else {
             return new WithoutDetectionFileStrategy(finishedPeriod, clock);
         }
     }
 
     private List<RepositoryFile> _listRepositoryFiles(
-            DBRepositoryInfo repositoryInfo,
+            RepositorySessionInfo sessionInfo,
             RecordingStatus recordingStatus,
             Path workspacePath,
             Path sessionPath) {
@@ -261,7 +266,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                             FileSystemUtils.size(file),
                             SupportedRecordingFile.of(sourceName),
                             recordingFileType.matches(sourceName),
-                            sourceName.equals(repositoryInfo.finishedSessionDetectionFile()),
+                            sourceName.equals(sessionInfo.finishedFile()),
                             RecordingStatus.FINISHED,
                             file);
                 })

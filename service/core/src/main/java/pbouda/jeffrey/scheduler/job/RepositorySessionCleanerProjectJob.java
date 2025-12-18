@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
@@ -37,8 +38,6 @@ import java.util.List;
 public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<RepositorySessionCleanerProjectJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositorySessionCleanerProjectJob.class);
-
-    private static final String JOB_NAME = RepositorySessionCleanerProjectJob.class.getSimpleName();
 
     private final Duration period;
 
@@ -71,7 +70,8 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
                 .toList();
 
         candidatesForDeletion.forEach(session -> {
-            manager.repositoryManager().deleteRecordingSession(session.id(), JOB_NAME);
+            manager.repositoryManager()
+                    .deleteRecordingSession(session.id(), WorkspaceEventCreator.REPOSITORY_SESSION_CLEANER_PROJECT_JOB);
             LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
         });
     }

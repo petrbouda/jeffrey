@@ -19,12 +19,12 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
-import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.ProjectRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -66,18 +66,18 @@ public interface RepositoryManager {
      */
     RepositoryStatistics calculateRepositoryStatistics();
 
-    void create(ProjectRepository projectRepository);
+    void create(RepositoryInfo projectRepository);
 
     /**
      * Create a new workspace session.
      *
-     * @param workspaceSessionInfo the workspace session to create
+     * @param repositorySessionInfo the workspace session to create
      */
-    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
+    void createSession(RepositorySessionInfo repositorySessionInfo);
 
     Optional<RepositoryInfo> info();
 
-    void deleteRecordingSession(String recordingSessionId, String createdBy);
+    void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy);
 
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 

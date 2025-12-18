@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
@@ -41,8 +42,6 @@ import java.util.Set;
 public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);
-
-    private static final String JOB_NAME = WorkspaceEventsReplicatorJob.class.getSimpleName();
 
     private final Duration period;
     private final Clock clock;
@@ -106,7 +105,13 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
     private List<WorkspaceEvent> replicateProjects(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
         List<WorkspaceEvent> projectWorkspaceEvents = allProjects.stream()
                 .filter(event -> !processedProjects.contains(event.projectId()))
-                .map(event -> WorkspaceEventConverter.projectCreated(clock.instant(), event, workspaceManager.resolveInfo(), JOB_NAME))
+                .map(event -> {
+                    return WorkspaceEventConverter.projectCreated(
+                            clock.instant(),
+                            event,
+                            workspaceManager.resolveInfo(),
+                            WorkspaceEventCreator.WORKSPACE_EVENTS_REPLICATOR_JOB);
+                })
                 .toList();
 
         workspaceManager.workspaceEventManager().batchInsertEvents(projectWorkspaceEvents);
@@ -125,7 +130,13 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .map(remoteWorkspaceRepository::allSessions)
                 .flatMap(List::stream)
                 .filter(event -> !processedSessions.contains(event.sessionId()))
-                .map(event -> WorkspaceEventConverter.sessionCreated(clock.instant(), event, workspaceManager.resolveInfo(), JOB_NAME))
+                .map(event -> {
+                    return WorkspaceEventConverter.sessionCreated(
+                            clock.instant(),
+                            event,
+                            workspaceManager.resolveInfo(),
+                            WorkspaceEventCreator.WORKSPACE_EVENTS_REPLICATOR_JOB);
+                })
                 .toList();
 
         workspaceManager.workspaceEventManager().batchInsertEvents(sessionWorkspaceEvents);

@@ -74,7 +74,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new CreateProjectWorkspaceEventConsumer(projectsManager),
                 new CreateSessionWorkspaceEventConsumer(projectsManager),
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, repositories, remoteRepositoryStorageFactory),
-                new DeleteProjectWorkspaceEventConsumer(projectsManager));
+                new DeleteProjectWorkspaceEventConsumer(projectsManager, repositories, remoteRepositoryStorageFactory));
 
         List<WorkspaceEvent> workspaceEvents = workspaceManager.workspaceEventManager().remainingEvents(CONSUMER);
         if (workspaceEvents.isEmpty()) {

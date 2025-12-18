@@ -26,6 +26,9 @@ import java.util.Map;
 public record ProjectCreatedEventContent(
         String projectName,
         String projectLabel,
+        String workspacesPath,
+        String relativeWorkspacePath,
+        String relativeProjectPath,
         RepositoryType repositoryType,
         Map<String, String> attributes) {
 }

@@ -17,55 +17,56 @@
   -->
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import ThreadRowData from "@/services/thread/model/ThreadRowData";
-import {useRoute} from "vue-router";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import ThreadRowData from '@/services/thread/model/ThreadRowData';
+import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import ThreadCommon from "@/services/thread/model/ThreadCommon";
-import ThreadRow from "@/services/thread/ThreadRow";
-import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
-import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import FlamegraphTooltipFactory from "@/services/flamegraphs/tooltips/FlamegraphTooltipFactory";
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FullGraphUpdater from "@/services/flamegraphs/updater/FullGraphUpdater";
-import GraphType from "@/services/flamegraphs/GraphType.ts";
-import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import ApexTimeSeriesChart from "@/components/ApexTimeSeriesChart.vue";
-import SearchBarComponent from "@/components/SearchBarComponent.vue";
+import ThreadCommon from '@/services/thread/model/ThreadCommon';
+import ThreadRow from '@/services/thread/ThreadRow';
+import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
+import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
+import GraphType from '@/services/flamegraphs/GraphType.ts';
+import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
+import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import * as bootstrap from 'bootstrap';
+import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
 const props = defineProps<{
-  index: number,
-  projectId: string,
-  primaryProfileId: string,
-  threadCommon: ThreadCommon,
-  threadRow: ThreadRowData
-}>()
+  index: number;
+  projectId: string;
+  primaryProfileId: string;
+  threadCommon: ThreadCommon;
+  threadRow: ThreadRowData;
+}>();
 
-const route = useRoute()
+const route = useRoute();
 const { workspaceId } = useNavigation();
 
-const selectedEventCode = ref()
-const showFlameMenu = ref(false)
+const selectedEventCode = ref();
+const showFlameMenu = ref(false);
 const flameMenuPosition = ref({
   top: '0px',
   left: '0px'
-})
+});
 
-const contextMenuItems = createContextMenuItems()
+const contextMenuItems = createContextMenuItems();
 
-const canvasId = ref(`thread-canvas-${props.index}`)
+const canvasId = ref(`thread-canvas-${props.index}`);
 
 const showFlamegraphDialog = ref(false);
 const showInfoModal = ref(false);
 
-const threadInfo = props.threadRow.threadInfo
+const threadInfo = props.threadRow.threadInfo;
 
-let threadRow: ThreadRow
+let threadRow: ThreadRow;
 
-let flamegraphTooltip: FlamegraphTooltip
+let flamegraphTooltip: FlamegraphTooltip;
 
-let graphUpdater: GraphUpdater
+let graphUpdater: GraphUpdater;
 
 /**
  * Determines whether to use weight based on the event type.
@@ -76,59 +77,59 @@ let graphUpdater: GraphUpdater
  */
 function resolveWeight(eventCode: string | undefined): boolean {
   if (!eventCode) {
-    return false
+    return false;
   }
 
   const isAllocationEvent =
     eventCode === 'jdk.ObjectAllocationInNewTLAB' ||
     eventCode === 'jdk.ObjectAllocationOutsideTLAB' ||
-    eventCode === 'jdk.ObjectAllocationSample'
+    eventCode === 'jdk.ObjectAllocationSample';
 
   const isBlockingEvent =
     eventCode === 'jdk.JavaMonitorEnter' ||
     eventCode === 'jdk.JavaMonitorWait' ||
-    eventCode === 'jdk.ThreadPark'
+    eventCode === 'jdk.ThreadPark';
 
-  return isAllocationEvent || isBlockingEvent
+  return isAllocationEvent || isBlockingEvent;
 }
 
-const useWeightValue = computed(() => resolveWeight(selectedEventCode.value))
+const useWeightValue = computed(() => resolveWeight(selectedEventCode.value));
 
 onMounted(() => {
   // Initialize thread row
-  threadRow = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value)
-  threadRow.draw()
+  threadRow = new ThreadRow(props.threadCommon, props.threadRow, canvasId.value);
+  threadRow.draw();
 
   // Initialize the Bootstrap modal after the DOM is ready
   nextTick(() => {
-    const modalEl = document.getElementById('flamegraphModal')
+    const modalEl = document.getElementById('flamegraphModal');
     if (modalEl) {
       // We'll manually create and dispose of the modal
       // for better control over the behavior
       modalEl.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphDialog.value = false
-      })
+        showFlamegraphDialog.value = false;
+      });
 
       // Add event listener to close button that might not work with data-bs-dismiss
-      const closeButton = modalEl.querySelector('.btn-close')
+      const closeButton = modalEl.querySelector('.btn-close');
       if (closeButton) {
-        closeButton.addEventListener('click', closeModal)
+        closeButton.addEventListener('click', closeModal);
       }
     }
-  })
+  });
 });
 
-document.addEventListener("scroll", () => {
+document.addEventListener('scroll', () => {
   if (threadRow != null) {
-    threadRow.onWindowScroll()
+    threadRow.onWindowScroll();
   }
 
   // Close menu on scroll
   if (showFlameMenu.value) {
     showFlameMenu.value = false;
-    document.addEventListener('scroll', () => showFlameMenu.value = false);
+    document.addEventListener('scroll', () => (showFlameMenu.value = false));
   }
-})
+});
 
 const toggleFlamegraphMenu = (event: MouseEvent) => {
   const buttonRect = (event.target as Element).getBoundingClientRect();
@@ -137,18 +138,18 @@ const toggleFlamegraphMenu = (event: MouseEvent) => {
     left: `${buttonRect.left}px`
   };
   showFlameMenu.value = !showFlameMenu.value;
-}
+};
 
 const openInfoModal = () => {
-  showInfoModal.value = true
-}
+  showInfoModal.value = true;
+};
 
 const executeMenuItem = (item: any) => {
   showFlameMenu.value = false;
   item.command();
-}
+};
 
-let modalInstance: bootstrap.Modal | null = null
+let modalInstance: bootstrap.Modal | null = null;
 
 // Function to close the modal
 const closeModal = () => {
@@ -156,10 +157,10 @@ const closeModal = () => {
     modalInstance.hide();
   }
   showFlamegraphDialog.value = false;
-}
+};
 
 // Watch for changes to showFlamegraphDialog to control modal visibility
-watch(showFlamegraphDialog, (isVisible) => {
+watch(showFlamegraphDialog, isVisible => {
   if (isVisible) {
     if (!modalInstance) {
       const modalEl = document.getElementById('flamegraphModal-' + props.threadRow.threadInfo.osId);
@@ -186,127 +187,126 @@ onUnmounted(() => {
   }
 
   // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {
-  });
+  document.removeEventListener('hidden.bs.modal', () => {});
 });
 
 const showFlamegraph = (eventCode: string) => {
   if (!workspaceId.value) return;
 
   let flamegraphClient = new PrimaryFlamegraphClient(
-      workspaceId.value,
-      props.projectId,
-      props.primaryProfileId,
-      eventCode,
-      true,
-      null,
-      false,
-      false,
-      false,
-      props.threadRow.threadInfo
-  )
+    workspaceId.value,
+    props.projectId,
+    props.primaryProfileId,
+    eventCode,
+    true,
+    null,
+    false,
+    false,
+    false,
+    props.threadRow.threadInfo
+  );
 
-  graphUpdater = new FullGraphUpdater(flamegraphClient, false)
-  flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false)
+  graphUpdater = new FullGraphUpdater(flamegraphClient, false);
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventCode, false, false);
 
   // Delayed the initialization of the graphUpdater to ensure that the modal is fully rendered
   setTimeout(() => {
-    graphUpdater.initialize()
+    graphUpdater.initialize();
   }, 200);
 
   // Set the event code first
-  selectedEventCode.value = eventCode
+  selectedEventCode.value = eventCode;
 
   // Then set the flag to show the dialog
   // The watcher will take care of showing the modal
-  showFlamegraphDialog.value = true
-}
+  showFlamegraphDialog.value = true;
+};
 
 function createContextMenuItems() {
-  let items = []
+  let items = [];
 
   if (props.threadCommon.containsWallClock) {
     items.push({
       label: 'Wall-Clock',
       command: () => {
-        showFlamegraph("profiler.WallClockSample")
+        showFlamegraph('profiler.WallClockSample');
       }
-    })
+    });
   }
 
   if (props.threadRow.parked.length > 0) {
     items.push({
       label: 'Thread Park',
       command: () => {
-        showFlamegraph("jdk.ThreadPark")
+        showFlamegraph('jdk.ThreadPark');
       }
-    })
+    });
   }
 
   if (props.threadRow.sleep.length > 0) {
     items.push({
       label: 'Thread Sleep',
       command: () => {
-        showFlamegraph("jdk.ThreadSleep")
+        showFlamegraph('jdk.ThreadSleep');
       }
-    })
+    });
   }
 
   if (props.threadRow.blocked.length > 0) {
     items.push({
       label: 'Monitor Blocked (Synchronized)',
       command: () => {
-        showFlamegraph("jdk.JavaMonitorEnter")
+        showFlamegraph('jdk.JavaMonitorEnter');
       }
-    })
+    });
   }
 
   if (props.threadRow.waiting.length > 0) {
     items.push({
       label: 'Monitor Wait',
       command: () => {
-        showFlamegraph("jdk.JavaMonitorWait")
+        showFlamegraph('jdk.JavaMonitorWait');
       }
-    })
+    });
   }
 
   if (props.threadRow.socketRead.length > 0) {
     items.push({
       label: 'Socket Read',
       command: () => {
-        showFlamegraph("jdk.SocketRead")
+        showFlamegraph('jdk.SocketRead');
       }
-    })
+    });
   }
 
   if (props.threadRow.socketWrite.length > 0) {
     items.push({
       label: 'Socket Write',
       command: () => {
-        showFlamegraph("jdk.SocketWrite")
+        showFlamegraph('jdk.SocketWrite');
       }
-    })
+    });
   }
 
   if (props.threadRow.fileRead.length > 0) {
     items.push({
       label: 'File Read',
       command: () => {
-        showFlamegraph("jdk.FileRead")
+        showFlamegraph('jdk.FileRead');
       }
-    })
+    });
   }
 
   if (props.threadRow.fileWrite.length > 0) {
     items.push({
       label: 'File Write',
       command: () => {
-        showFlamegraph("jdk.FileWrite")
+        showFlamegraph('jdk.FileWrite');
       }
-    })
+    });
   }
 
-  return items
+  return items;
 }
 </script>
 
@@ -316,17 +316,19 @@ function createContextMenuItems() {
       <div class="thread-header">
         <div class="thread-actions">
           <button
-              class="action-btn flame-btn"
-              type="button"
-              title="Show flamegraph"
-              @click="toggleFlamegraphMenu">
+            class="action-btn flame-btn"
+            type="button"
+            title="Show flamegraph"
+            @click="toggleFlamegraphMenu"
+          >
             <i class="bi bi-fire"></i>
           </button>
           <button
-              class="action-btn info-btn"
-              type="button"
-              title="Thread information"
-              @click="openInfoModal">
+            class="action-btn info-btn"
+            type="button"
+            title="Thread information"
+            @click="openInfoModal"
+          >
             <i class="bi bi-question-circle"></i>
           </button>
         </div>
@@ -347,9 +349,12 @@ function createContextMenuItems() {
     <div v-if="contextMenuItems.length === 0" class="menu-item disabled">
       No flamegraph data available
     </div>
-    <div v-for="(item, index) in contextMenuItems" :key="index"
-         class="menu-item"
-         @click="executeMenuItem(item)">
+    <div
+      v-for="(item, index) in contextMenuItems"
+      :key="index"
+      class="menu-item"
+      @click="executeMenuItem(item)"
+    >
       {{ item.label }}
     </div>
   </div>
@@ -358,16 +363,18 @@ function createContextMenuItems() {
   <div v-if="showInfoModal" class="modal-overlay" @click="showInfoModal = false">
     <div class="modal-container tooltip-style-modal" @click.stop>
       <div class="tooltip-header p-3 d-flex justify-content-between align-items-center">
-        <h5 class="m-0 text-dark fw-bold text-truncate" style="max-width: 85%;">{{ threadInfo.name }}</h5>
+        <h5 class="m-0 text-dark fw-bold text-truncate" style="max-width: 85%">
+          {{ threadInfo.name }}
+        </h5>
         <button class="modal-close" @click="showInfoModal = false">
           <i class="bi bi-x"></i>
         </button>
       </div>
-      
+
       <div class="section-header px-3 py-2 bg-white border-bottom border-light">
         <span class="section-title fw-semibold">Thread Details</span>
       </div>
-      
+
       <div class="tooltip-content">
         <div class="tooltip-row d-flex px-3 py-2">
           <span class="field-name text-secondary fw-medium">Name:</span>
@@ -382,71 +389,151 @@ function createContextMenuItems() {
           <span class="field-value text-dark">{{ threadInfo.osId }}</span>
         </div>
       </div>
-      
-      <div v-if="props.threadRow.parked.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #E57373"></div>
+
+      <div
+        v-if="props.threadRow.parked.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #e57373"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Thread Park</span>
-          <span class="event-count text-muted small">{{ props.threadRow.parked.length }} event{{ props.threadRow.parked.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.parked.length }} event{{
+              props.threadRow.parked.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
 
-      <div v-if="props.threadRow.sleep.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #64B5F6"></div>
+      <div
+        v-if="props.threadRow.sleep.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #64b5f6"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Thread Sleep</span>
-          <span class="event-count text-muted small">{{ props.threadRow.sleep.length }} event{{ props.threadRow.sleep.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.sleep.length }} event{{
+              props.threadRow.sleep.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
 
-      <div v-if="props.threadRow.blocked.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #FFB74D"></div>
+      <div
+        v-if="props.threadRow.blocked.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #ffb74d"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Monitor Blocked</span>
-          <span class="event-count text-muted small">{{ props.threadRow.blocked.length }} event{{ props.threadRow.blocked.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.blocked.length }} event{{
+              props.threadRow.blocked.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
-      
-      <div v-if="props.threadRow.waiting.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #AED581"></div>
+
+      <div
+        v-if="props.threadRow.waiting.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #aed581"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Monitor Wait</span>
-          <span class="event-count text-muted small">{{ props.threadRow.waiting.length }} event{{ props.threadRow.waiting.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.waiting.length }} event{{
+              props.threadRow.waiting.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
 
-      <div v-if="props.threadRow.socketRead.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #9575CD"></div>
+      <div
+        v-if="props.threadRow.socketRead.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #9575cd"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Socket Read</span>
-          <span class="event-count text-muted small">{{ props.threadRow.socketRead.length }} event{{ props.threadRow.socketRead.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.socketRead.length }} event{{
+              props.threadRow.socketRead.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
 
-      <div v-if="props.threadRow.socketWrite.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #4DB6AC"></div>
+      <div
+        v-if="props.threadRow.socketWrite.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #4db6ac"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">Socket Write</span>
-          <span class="event-count text-muted small">{{ props.threadRow.socketWrite.length }} event{{ props.threadRow.socketWrite.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.socketWrite.length }} event{{
+              props.threadRow.socketWrite.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
 
-      <div v-if="props.threadRow.fileRead.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #F06292"></div>
+      <div
+        v-if="props.threadRow.fileRead.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #f06292"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">File Read</span>
-          <span class="event-count text-muted small">{{ props.threadRow.fileRead.length }} event{{ props.threadRow.fileRead.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.fileRead.length }} event{{
+              props.threadRow.fileRead.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
 
-      <div v-if="props.threadRow.fileWrite.length > 0" class="tooltip-category d-flex align-items-center px-3 py-2 bg-light">
-        <div class="color-indicator me-3" style="width: 10px; height: 10px; background-color: #7986CB"></div>
+      <div
+        v-if="props.threadRow.fileWrite.length > 0"
+        class="tooltip-category d-flex align-items-center px-3 py-2 bg-light"
+      >
+        <div
+          class="color-indicator me-3"
+          style="width: 10px; height: 10px; background-color: #7986cb"
+        ></div>
         <div class="d-flex justify-content-between w-100">
           <span class="category-name fw-medium">File Write</span>
-          <span class="event-count text-muted small">{{ props.threadRow.fileWrite.length }} event{{ props.threadRow.fileWrite.length !== 1 ? 's' : '' }}</span>
+          <span class="event-count text-muted small"
+            >{{ props.threadRow.fileWrite.length }} event{{
+              props.threadRow.fileWrite.length !== 1 ? 's' : ''
+            }}</span
+          >
         </div>
       </div>
-      
+
       <div class="modal-footer">
         <button type="button" class="btn btn-sm btn-secondary" @click="showInfoModal = false">
           Close
@@ -456,31 +543,36 @@ function createContextMenuItems() {
   </div>
 
   <!-- Modal for events that contain StackTrace field -->
-  <div class="modal fade" :id="'flamegraphModal-' + props.threadRow.threadInfo.osId" tabindex="-1"
-       aria-labelledby="flamegraphModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
+  <div
+    class="modal fade"
+    :id="'flamegraphModal-' + props.threadRow.threadInfo.osId"
+    tabindex="-1"
+    aria-labelledby="flamegraphModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
           <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
         <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
-          <SearchBarComponent
-              :graph-updater="graphUpdater"
-              :with-timeseries="true"/>
+          <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <ApexTimeSeriesChart
-              :graph-updater="graphUpdater"
-              :primary-axis-type="useWeightValue ? 'bytes' : 'number'"
-              :visible-minutes="60"
-              :zoom-enabled="true"
-              time-unit="milliseconds"/>
+            :graph-updater="graphUpdater"
+            :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(selectedEventCode)"
+            :visible-minutes="60"
+            :zoom-enabled="true"
+            time-unit="milliseconds"
+          />
           <FlamegraphComponent
-              :with-timeseries="true"
-              :use-weight="useWeightValue"
-              :use-guardian="null"
-              scrollableWrapperClass="scrollable-wrapper"
-              :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"/>
+            :with-timeseries="true"
+            :use-weight="useWeightValue"
+            :use-guardian="null"
+            scrollableWrapperClass="scrollable-wrapper"
+            :flamegraph-tooltip="flamegraphTooltip"
+            :graph-updater="graphUpdater"
+          />
         </div>
       </div>
     </div>
@@ -543,7 +635,7 @@ function createContextMenuItems() {
 }
 
 .info-btn {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .info-btn:hover {
@@ -675,7 +767,8 @@ function createContextMenuItems() {
 .tooltip-style-modal {
   border: 1px solid #e9ecef;
   max-width: 420px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .tooltip-style-modal .tooltip-header {
@@ -805,7 +898,6 @@ function createContextMenuItems() {
   color: #212529;
   text-align: right;
 }
-
 
 /* Flamegraph modal styles */
 .modal-fade .modal-body {

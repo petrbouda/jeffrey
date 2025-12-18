@@ -19,17 +19,17 @@
 package pbouda.jeffrey.provider.api.repository;
 
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
-import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
+import pbouda.jeffrey.common.model.RepositoryInfo;
+import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ProjectRepositoryRepository {
 
-    void insert(DBRepositoryInfo repositoryInfo);
+    void insert(RepositoryInfo repositoryInfo);
 
-    List<DBRepositoryInfo> getAll();
+    List<RepositoryInfo> getAll();
 
     void delete(String id);
 
@@ -40,9 +40,9 @@ public interface ProjectRepositoryRepository {
     /**
      * Create a new workspace session.
      *
-     * @param workspaceSessionInfo the workspace session to create
+     * @param repositorySessionInfo the workspace session to create
      */
-    void createSession(WorkspaceSessionInfo workspaceSessionInfo);
+    void createSession(RepositorySessionInfo repositorySessionInfo);
 
     /**
      * Delete a workspace session by its session ID.
@@ -56,7 +56,7 @@ public interface ProjectRepositoryRepository {
      *
      * @return list of workspace sessions for the project
      */
-    List<WorkspaceSessionInfo> findAllSessions();
+    List<RepositorySessionInfo> findAllSessions();
 
     /**
      * Find a single workspace session by project ID and session ID.
@@ -64,5 +64,5 @@ public interface ProjectRepositoryRepository {
      * @param sessionId the session ID
      * @return the workspace session if it exists, otherwise an empty optional
      */
-    Optional<WorkspaceSessionInfo> findSessionById(String sessionId);
+    Optional<RepositorySessionInfo> findSessionById(String sessionId);
 }

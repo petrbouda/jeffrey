@@ -21,6 +21,7 @@ package pbouda.jeffrey.resources.project;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;
@@ -81,6 +82,6 @@ public class ProjectResource {
 
     @DELETE
     public void delete() {
-        projectManager.delete();
+        projectManager.delete(WorkspaceEventCreator.MANUAL);
     }
 }

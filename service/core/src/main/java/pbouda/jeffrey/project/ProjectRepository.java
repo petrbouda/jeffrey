@@ -20,5 +20,9 @@ package pbouda.jeffrey.project;
 
 import pbouda.jeffrey.common.model.RepositoryType;
 
-public record ProjectRepository(RepositoryType type, String finishedSessionDetectionFile) {
+public record ProjectRepository(
+        RepositoryType type,
+        String workspacesPath,
+        String relativeWorkspacePath,
+        String relativeProjectPath) {
 }

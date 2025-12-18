@@ -27,7 +27,6 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,19 +51,20 @@ public class JdbcProjectRepository implements ProjectRepository {
             BEGIN TRANSACTION;
             DELETE FROM schedulers WHERE project_id = '%project_id%';
             DELETE FROM repositories WHERE project_id = '%project_id%';
+            DELETE FROM repository_sessions WHERE project_id = '%project_id%';
             DELETE FROM recording_folders WHERE project_id = '%project_id%';
+            DELETE FROM recording_files WHERE project_id = '%project_id%';
             DELETE FROM recordings WHERE project_id = '%project_id%';
+            DELETE FROM profiler_settings WHERE project_id = '%project_id%';
             DELETE FROM projects WHERE project_id = '%project_id%';
             COMMIT;""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
-    private final Clock clock;
 
-    public JdbcProjectRepository(String projectId, DatabaseClientProvider databaseClientProvider, Clock clock) {
+    public JdbcProjectRepository(String projectId, DatabaseClientProvider databaseClientProvider) {
         this.projectId = projectId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.SINGLE_PROJECT);
-        this.clock = clock;
     }
 
     @Override

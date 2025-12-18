@@ -19,15 +19,15 @@
 package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
-import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 
@@ -89,17 +89,17 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public void create(ProjectRepository projectRepository) {
+    public void create(RepositoryInfo repositoryInfo) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override
-    public void createSession(WorkspaceSessionInfo workspaceSessionInfo) {
+    public void createSession(RepositorySessionInfo repositorySessionInfo) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override
-    public void deleteRecordingSession(String recordingSessionId, String createdBy) {
+    public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
         remoteWorkspaceClient.deleteSession(workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
     }
 

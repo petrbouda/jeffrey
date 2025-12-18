@@ -9,181 +9,184 @@
   <div v-else class="threads-container">
     <!-- Header Section -->
     <PageHeader
-        title="Thread Statistics"
-        description="View and analyze thread dumps and states"
-        icon="bi-graph-up"
+      title="Thread Statistics"
+      description="View and analyze thread dumps and states"
+      icon="bi-graph-up"
     >
+      <!-- Summary Stats -->
+      <div class="mb-4">
+        <StatsTable :metrics="metricsData" />
+      </div>
 
-    <!-- Summary Stats -->
-    <div class="mb-4">
-      <StatsTable :metrics="metricsData" />
-    </div>
-
-    <!-- Thread Activity Chart -->
-    <ChartSection
-        title="Active Threads Over Time"
-        icon="bi-graph-up"
-        :full-width="true"
-    >
-      <ApexTimeSeriesChart
+      <!-- Thread Activity Chart -->
+      <ChartSection title="Active Threads Over Time" icon="bi-graph-up" :full-width="true">
+        <ApexTimeSeriesChart
           :primary-data="threadSerie"
           primary-title="Active Threads"
           primary-axis-type="number"
           :visible-minutes="60"
           primary-color="#4285F4"
-      />
-    </ChartSection>
+        />
+      </ChartSection>
 
-    <!-- Thread Tables Container -->
-    <div class="thread-tables-container mb-4">
-      <!-- Top Allocating Threads -->
-      <div class="data-table-card">
-        <div class="chart-card-header">
-          <h5><i class="bi bi-memory me-2"></i>Top Allocators</h5>
-        </div>
-        <div class="thread-list">
-          <div v-for="(thread, index) in topAllocatingThreads"
-               :key="index"
-               class="thread-item">
-            <div class="thread-info">
-              <span class="thread-name" :title="thread.threadInfo.name">
-                {{ thread.threadInfo.name }}
-              </span>
-            </div>
-            <div class="thread-actions">
-              <span class="allocation-badge">
-                {{ FormattingService.formatBytes(thread.allocatedBytes) }}
-              </span>
-              <button
+      <!-- Thread Tables Container -->
+      <div class="thread-tables-container mb-4">
+        <!-- Top Allocating Threads -->
+        <div class="data-table-card">
+          <div class="chart-card-header">
+            <h5><i class="bi bi-memory me-2"></i>Top Allocators</h5>
+          </div>
+          <div class="thread-list">
+            <div v-for="(thread, index) in topAllocatingThreads" :key="index" class="thread-item">
+              <div class="thread-info">
+                <span class="thread-name" :title="thread.threadInfo.name">
+                  {{ thread.threadInfo.name }}
+                </span>
+              </div>
+              <div class="thread-actions">
+                <span class="allocation-badge">
+                  {{ FormattingService.formatBytes(thread.allocatedBytes) }}
+                </span>
+                <button
                   class="flame-btn"
                   @click="viewThreadAllocationFlamegraph(thread)"
                   title="View thread allocation flamegraph"
                   :disabled="!allocationType"
+                >
+                  <i class="bi bi-fire"></i>
+                </button>
+              </div>
+            </div>
+            <div v-if="topAllocatingThreads.length === 0" class="empty-message">
+              <i class="bi bi-inbox"></i>
+              <span>No allocation data available</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top CPU Load Threads -->
+        <div class="data-table-card">
+          <div class="chart-card-header">
+            <h5><i class="bi bi-cpu me-2"></i>Top CPU Load Threads</h5>
+          </div>
+
+          <!-- User CPU Load Section -->
+          <div class="cpu-section">
+            <div class="section-header">
+              <i class="bi bi-person-fill"></i>
+              <span>User CPU Load</span>
+            </div>
+            <div class="thread-list">
+              <div
+                v-for="(thread, index) in topUserCpuThreads"
+                :key="`user-${index}`"
+                class="thread-item cpu-item"
               >
-                <i class="bi bi-fire"></i>
-              </button>
-            </div>
-          </div>
-          <div v-if="topAllocatingThreads.length === 0" class="empty-message">
-            <i class="bi bi-inbox"></i>
-            <span>No allocation data available</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Top CPU Load Threads -->
-      <div class="data-table-card">
-        <div class="chart-card-header">
-          <h5><i class="bi bi-cpu me-2"></i>Top CPU Load Threads</h5>
-        </div>
-
-        <!-- User CPU Load Section -->
-        <div class="cpu-section">
-          <div class="section-header">
-            <i class="bi bi-person-fill"></i>
-            <span>User CPU Load</span>
-          </div>
-          <div class="thread-list">
-            <div v-for="(thread, index) in topUserCpuThreads"
-                 :key="`user-${index}`"
-                 class="thread-item cpu-item">
-              <div class="thread-info">
-                <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
-                <span class="thread-name" :title="thread.threadInfo.name">
-                  {{ thread.threadInfo.name }}
-                </span>
-              </div>
-              <div class="thread-actions">
-                <span class="cpu-badge">
-                  {{ (thread.cpuLoad * 100).toFixed(2) }}%
-                </span>
-                <button
+                <div class="thread-info">
+                  <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
+                  <span class="thread-name" :title="thread.threadInfo.name">
+                    {{ thread.threadInfo.name }}
+                  </span>
+                </div>
+                <div class="thread-actions">
+                  <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
+                  <button
                     class="flame-btn"
                     @click="viewThreadCpuProfile(thread)"
                     title="View thread CPU flamegraph"
-                >
-                  <i class="bi bi-fire"></i>
-                </button>
+                  >
+                    <i class="bi bi-fire"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- System CPU Load Section -->
-        <div class="cpu-section">
-          <div class="section-header">
-            <i class="bi bi-gear-fill"></i>
-            <span>System CPU Load</span>
-          </div>
-          <div class="thread-list">
-            <div v-for="(thread, index) in topSystemCpuThreads"
-                 :key="`system-${index}`"
-                 class="thread-item cpu-item">
-              <div class="thread-info">
-                <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
-                <span class="thread-name" :title="thread.threadInfo.name">
-                  {{ thread.threadInfo.name }}
-                </span>
-              </div>
-              <div class="thread-actions">
-                <span class="cpu-badge">
-                  {{ (thread.cpuLoad * 100).toFixed(2) }}%
-                </span>
-                <button
+          <!-- System CPU Load Section -->
+          <div class="cpu-section">
+            <div class="section-header">
+              <i class="bi bi-gear-fill"></i>
+              <span>System CPU Load</span>
+            </div>
+            <div class="thread-list">
+              <div
+                v-for="(thread, index) in topSystemCpuThreads"
+                :key="`system-${index}`"
+                class="thread-item cpu-item"
+              >
+                <div class="thread-info">
+                  <span class="timestamp-badge">{{ formatTimestamp(thread.timestamp) }}</span>
+                  <span class="thread-name" :title="thread.threadInfo.name">
+                    {{ thread.threadInfo.name }}
+                  </span>
+                </div>
+                <div class="thread-actions">
+                  <span class="cpu-badge"> {{ (thread.cpuLoad * 100).toFixed(2) }}% </span>
+                  <button
                     class="flame-btn"
                     @click="viewThreadCpuProfile(thread)"
                     title="View thread CPU flamegraph"
-                >
-                  <i class="bi bi-fire"></i>
-                </button>
+                  >
+                    <i class="bi bi-fire"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Flamegraph Modal -->
-    <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel"
-         aria-hidden="true">
-      <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="btn-close" @click="closeFlamegraphModal" aria-label="Close"></button>
-          </div>
-          <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphModal">
-            <SearchBarComponent
+      <!-- Flamegraph Modal -->
+      <div
+        class="modal fade"
+        id="flamegraphModal"
+        tabindex="-1"
+        aria-labelledby="flamegraphModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button
+                type="button"
+                class="btn-close"
+                @click="closeFlamegraphModal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphModal">
+              <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+              <ApexTimeSeriesChart
                 :graph-updater="graphUpdater"
-                :with-timeseries="true"/>
-            <ApexTimeSeriesChart
-                :graph-updater="graphUpdater"
-                :primary-axis-type="useWeightForModal ? 'bytes' : 'number'"
+                :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(selectedEventCode)"
                 :visible-minutes="60"
                 :zoom-enabled="true"
-                time-unit="milliseconds"/>
-            <FlamegraphComponent
+                time-unit="milliseconds"
+              />
+              <FlamegraphComponent
                 :with-timeseries="true"
                 :use-weight="useWeightForModal"
                 :use-guardian="null"
                 scrollableWrapperClass="scrollable-wrapper"
                 :flamegraph-tooltip="flamegraphTooltip"
-                :graph-updater="graphUpdater" />
+                :graph-updater="graphUpdater"
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="modal-backdrop fade show" v-if="showFlamegraphModal"></div>
-  </PageHeader>
+      <div class="modal-backdrop fade show" v-if="showFlamegraphModal"></div>
+    </PageHeader>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
-import {useRoute} from "vue-router";
+import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProfileThreadClient from '@/services/thread/ProfileThreadClient';
 import ThreadStats from '@/services/thread/model/ThreadStats';
@@ -197,20 +200,21 @@ import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlameg
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import * as bootstrap from 'bootstrap';
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater.ts";
-import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip.ts";
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater.ts';
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip.ts';
 import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad';
+import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
-const route = useRoute()
+const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
-const profileId = route.params.profileId as string
+const profileId = route.params.profileId as string;
 
 // State
 const chartLoading = ref<boolean>(true);
 const loading = ref<boolean>(true);
 const threadSerie = ref<number[][]>();
 const showFlamegraphModal = ref(false);
-const selectedEventCode = ref("jdk.ObjectAllocationSample");
+const selectedEventCode = ref('jdk.ObjectAllocationSample');
 const useWeightForModal = ref(false);
 
 let flamegraphTooltip: FlamegraphTooltip;
@@ -230,7 +234,7 @@ const topSystemCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 let flamegraphModalInstance: bootstrap.Modal | null = null;
 
 // State for allocation type from ThreadStatisticsResponse
-const allocationType = ref<string>("");
+const allocationType = ref<string>('');
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
@@ -253,9 +257,10 @@ const metricsData = computed(() => {
     {
       icon: 'pause-circle-fill',
       title: 'Blocking Events',
-      value: (threadStats.value.sleepCount || 0) +
-             (threadStats.value.parkCount || 0) +
-             (threadStats.value.monitorBlockCount || 0),
+      value:
+        (threadStats.value.sleepCount || 0) +
+        (threadStats.value.parkCount || 0) +
+        (threadStats.value.monitorBlockCount || 0),
       variant: 'danger' as const,
       breakdown: [
         {
@@ -343,16 +348,16 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Use the threadInfo from the AllocatingThread
   // Create the flamegraph client for allocation data
   const flamegraphClient = new PrimaryFlamegraphClient(
-      workspaceId.value!,
-      projectId.value!,
-      profileId,
-      selectedEventCode.value,
-      true,
-      true,
-      false,
-      false,
-      false,
-      thread.threadInfo // Use the ThreadInfo object
+    workspaceId.value!,
+    projectId.value!,
+    profileId,
+    selectedEventCode.value,
+    true,
+    true,
+    false,
+    false,
+    false,
+    thread.threadInfo // Use the ThreadInfo object
   );
 
   // Initialize the graph updater with the client
@@ -390,23 +395,23 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
 
 const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
   // Set up the flamegraph data for execution samples for the specific thread
-  selectedEventCode.value = "jdk.ExecutionSample";
+  selectedEventCode.value = 'jdk.ExecutionSample';
 
   // CPU samples don't use weight
   useWeightForModal.value = false;
 
   // Create the flamegraph client for execution sample data
   const flamegraphClient = new PrimaryFlamegraphClient(
-      workspaceId.value!,
-      projectId.value!,
-      profileId,
-      selectedEventCode.value,
-      true,
-      false,
-      false,
-      false,
-      false,
-      thread.threadInfo // Filter by the specific thread
+    workspaceId.value!,
+    projectId.value!,
+    profileId,
+    selectedEventCode.value,
+    true,
+    false,
+    false,
+    false,
+    false,
+    thread.threadInfo // Filter by the specific thread
   );
 
   // Initialize the graph updater with the client
@@ -462,7 +467,9 @@ onMounted(() => {
 .threads-container {
   width: 100%;
   color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+    'Helvetica Neue', sans-serif;
 }
 
 /* Thread Tables Container */
@@ -479,7 +486,7 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
   border: 1px solid #e9ecef;
-  border-left: 3px solid #4285F4;
+  border-left: 3px solid #4285f4;
 }
 
 .data-table-card:hover {
@@ -504,7 +511,7 @@ onMounted(() => {
 }
 
 .data-table-card .chart-card-header h5 i {
-  color: #4285F4;
+  color: #4285f4;
   font-size: 1rem;
 }
 
@@ -559,7 +566,7 @@ onMounted(() => {
 .allocation-badge,
 .cpu-badge {
   padding: 0.2rem 0.6rem;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.7rem;
   font-weight: 600;
   white-space: nowrap;
@@ -582,7 +589,7 @@ onMounted(() => {
   padding: 0.15rem 0.5rem;
   background-color: #f7f9fc;
   border: 1px solid #e9ecef;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.65rem;
   color: #6c757d;
   white-space: nowrap;
@@ -599,15 +606,15 @@ onMounted(() => {
   padding: 0;
   border: 1px solid #dee2e6;
   background-color: white;
-  color: #4285F4;
+  color: #4285f4;
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .flame-btn:hover:not(:disabled) {
-  background-color: #4285F4;
-  border-color: #4285F4;
+  background-color: #4285f4;
+  border-color: #4285f4;
   color: white;
   box-shadow: 0 1px 3px rgba(66, 133, 244, 0.3);
 }
@@ -645,7 +652,7 @@ onMounted(() => {
 }
 
 .section-header i {
-  color: #4285F4;
+  color: #4285f4;
   font-size: 0.85rem;
 }
 

@@ -22,6 +22,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
@@ -85,7 +86,7 @@ public class ProjectRepositorySessionPublicResource {
     @DELETE
     @Path("/{sessionId}")
     public Response deleteSession(@PathParam("sessionId") String sessionId) {
-        repositoryManager.deleteRecordingSession(sessionId, "MANUAL_PUBLIC_DELETE");
+        repositoryManager.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
         return Response.noContent().build();
     }
 

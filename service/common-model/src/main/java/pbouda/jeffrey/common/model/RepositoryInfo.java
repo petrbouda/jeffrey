@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default class Zoom {
-    constructor(public min: number, public max: number) {
-    }
+package pbouda.jeffrey.common.model;
+
+
+public record RepositoryInfo(
+        String id,
+        RepositoryType repositoryType,
+        String workspacesPath,
+        String relativeWorkspacePath,
+        String relativeProjectPath) {
 }

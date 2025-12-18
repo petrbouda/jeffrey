@@ -20,12 +20,11 @@ package pbouda.jeffrey.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryInfo;
+import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
@@ -56,21 +55,24 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         }
 
         ProjectManager projectManager = projectOpt.get();
-        ProjectInfo projectInfo = projectManager.info();
-        WorkspaceSessionInfo sessionInfo = new WorkspaceSessionInfo(
-                IDGenerator.generate(),
-                event.originEventId(),
-                projectInfo.id(),
-                projectInfo.workspaceId(),
+        Optional<RepositoryInfo> repositoryInfo = projectManager.repositoryManager().info();
+        if (repositoryInfo.isEmpty()) {
+            LOG.warn("Cannot create session for event, project repository not found: " +
+                            "event_id={}, session_id={} project_id={}",
+                    event.eventId(), event.originEventId(), event.projectId());
+            return;
+        }
+        RepositorySessionInfo sessionInfo = new RepositorySessionInfo(
                 null,
-                null,
-                Path.of(eventContent.relativePath()),
-                eventContent.workspacesPath() != null ? Path.of(eventContent.workspacesPath()) : null,
+                repositoryInfo.get().id(),
+                Path.of(eventContent.relativeSessionPath()),
+                eventContent.finishedFile(),
                 eventContent.profilerSettings(),
                 event.originCreatedAt(),
                 event.createdAt());
 
-        projectManager.repositoryManager().createSession(sessionInfo);
+        projectManager.repositoryManager()
+                .createSession(sessionInfo);
     }
 
     @Override

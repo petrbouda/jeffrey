@@ -19,9 +19,11 @@
 package pbouda.jeffrey.workspace.consumer;
 
 import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.workspace.model.ProjectCreatedEventContent;
@@ -46,7 +48,17 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
                 event.originCreatedAt(),
                 eventContent.attributes());
 
-        projectsManager.create(createProject);
+        ProjectManager projectManager = projectsManager.create(createProject);
+
+        RepositoryInfo projectRepository = new RepositoryInfo(
+                null,
+                eventContent.repositoryType(),
+                eventContent.workspacesPath(),
+                eventContent.relativeWorkspacePath(),
+                eventContent.relativeProjectPath());
+
+        projectManager.repositoryManager()
+                .create(projectRepository);
     }
 
     @Override

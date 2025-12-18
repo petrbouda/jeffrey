@@ -16,21 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model.workspace;
-
-import java.nio.file.Path;
-import java.time.Instant;
-
-public record WorkspaceSessionInfo(
-        String sessionId,
-        String originSessionId,
-        String projectId,
-        String workspaceId,
-        String repositoryId,
-        String lastDetectedFile,
-        Path relativePath,
-        Path workspacesPath,
-        String profilerSettings,
-        Instant originCreatedAt,
-        Instant createdAt) {
+enum AxisFormatType {
+  NUMBER = "NUMBER",
+  BYTES = "BYTES",
+  DURATION_IN_NANOS = "DURATION_IN_NANOS",
+  DURATION_IN_MILLIS = "DURATION_IN_MILLIS",
 }
+
+export default AxisFormatType;

@@ -1,6 +1,10 @@
 <template>
-  <LoadingIndicator v-if="isLoading" text="Generating Timeseries..."/>
-  <div class="apex-time-series-chart" ref="chartContainer" v-show="!isLoading && effectivePrimaryData && effectivePrimaryData.length > 0">
+  <LoadingIndicator v-if="isLoading" text="Generating Timeseries..." />
+  <div
+    class="apex-time-series-chart"
+    ref="chartContainer"
+    v-show="!isLoading && effectivePrimaryData && effectivePrimaryData.length > 0"
+  >
     <div class="chart-content">
       <!-- Main chart -->
       <div class="main-chart-container">
@@ -16,7 +20,11 @@
       <!-- Brush/navigator chart -->
       <div class="brush-chart-container">
         <!-- Select all button in top right corner of brush chart -->
-        <button class="reset-zoom-btn reset-zoom-btn-corner" @click="onSelectEntireRange" title="Select entire range">
+        <button
+          class="reset-zoom-btn reset-zoom-btn-corner"
+          @click="onSelectEntireRange"
+          title="Select entire range"
+        >
           <i class="bi bi-arrows-angle-expand"></i>
         </button>
         <apexchart
@@ -53,12 +61,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/flamegraphs/model/TimeRange';
 import LoadingIndicator from '@/components/LoadingIndicator.vue';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Define props
 const props = defineProps<{
@@ -70,8 +79,8 @@ const props = defineProps<{
   secondaryUnit?: string;
   visibleMinutes?: number;
   independentSecondaryAxis?: boolean;
-  primaryAxisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis';
-  secondaryAxisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis';
+  primaryAxisType?: AxisFormatType;
+  secondaryAxisType?: AxisFormatType;
   stacked?: boolean;
   primaryColor?: string;
   secondaryColor?: string;
@@ -83,7 +92,7 @@ const props = defineProps<{
 
 // Define emits
 const emit = defineEmits<{
-  'update:timeRange': [payload: { start: number, end: number, isZoomed: boolean }]
+  'update:timeRange': [payload: { start: number; end: number; isZoomed: boolean }];
 }>();
 
 // Search highlight color (purple)
@@ -112,9 +121,15 @@ const extractSecondaryTimeseriesData = (data: TimeseriesData): number[][] | unde
 };
 
 // Computed to use either props data or internal data (when graphUpdater is used)
-const effectivePrimaryData = computed(() => props.graphUpdater ? internalPrimaryData.value : props.primaryData);
-const effectiveSecondaryData = computed(() => props.graphUpdater ? internalSecondaryData.value : props.secondaryData);
-const effectiveSearchData = computed(() => props.graphUpdater ? internalSearchData.value : props.searchData);
+const effectivePrimaryData = computed(() =>
+  props.graphUpdater ? internalPrimaryData.value : props.primaryData
+);
+const effectiveSecondaryData = computed(() =>
+  props.graphUpdater ? internalSecondaryData.value : props.secondaryData
+);
+const effectiveSearchData = computed(() =>
+  props.graphUpdater ? internalSearchData.value : props.searchData
+);
 
 // Default values
 const defaultVisibleMinutes = 15;
@@ -129,7 +144,7 @@ const dataMinTime = ref(0);
 const dataMaxTime = ref(0);
 const visibleStartTime = ref(0);
 const visibleEndTime = ref(0);
-let selectionTimeout: NodeJS.Timeout | null = null;
+let selectionTimeout:  NodeJS.Timeout | null = null;
 let isUpdatingSelection = false; // Flag to prevent re-entrant selection events from updateOptions
 let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selection to avoid duplicates
 
@@ -144,13 +159,13 @@ const secondaryMaxValue = ref(0);
 // Helper function to find max value in a data series with padding
 const findMaxValueInSeries = (data: number[][] | undefined): number => {
   if (!data || data.length === 0) return 0;
-  
+
   let max = 0;
   for (let i = 0; i < data.length; i++) {
     const value = data[i][1];
     if (value > max) max = value;
   }
-  
+
   // Add 10% padding if max value is greater than 0
   return max > 0 ? max * 1.1 : 0;
 };
@@ -212,12 +227,15 @@ const calculateMinMaxTimeValues = (): void => {
 
   dataMinTime.value = min;
   dataMaxTime.value = max;
-  
+
   // Initialize visible range
   const totalRange = max - min;
   const isMilliseconds = props.timeUnit === 'milliseconds';
   const visibleRangeInSeconds = (props.visibleMinutes || defaultVisibleMinutes) * 60;
-  const visibleRange = Math.min(isMilliseconds ? visibleRangeInSeconds * 1000 : visibleRangeInSeconds, totalRange);
+  const visibleRange = Math.min(
+    isMilliseconds ? visibleRangeInSeconds * 1000 : visibleRangeInSeconds,
+    totalRange
+  );
   visibleStartTime.value = min;
   visibleEndTime.value = min + visibleRange;
 
@@ -226,13 +244,13 @@ const calculateMinMaxTimeValues = (): void => {
 };
 
 // Format value based on axis type
-const formatValue = (value: number, axisType?: 'number' | 'durationInNanos' | 'bytes' | 'durationInMillis'): string => {
+const formatValue = (value: number, axisType?: AxisFormatType): string => {
   switch (axisType) {
-    case 'durationInNanos':
+    case AxisFormatType.DURATION_IN_NANOS:
       return FormattingService.formatDuration2Units(value);
-    case 'durationInMillis':
+    case AxisFormatType.DURATION_IN_MILLIS:
       return FormattingService.formatDuration2Units(value * 1_000_000); // Convert ms to ns
-    case 'bytes':
+    case AxisFormatType.BYTES:
       return FormattingService.formatBytes(value);
     default:
       return Math.round(value).toString();
@@ -263,17 +281,22 @@ const resetBrushSelection = async (): Promise<void> => {
   if (brushChart.value?.updateOptions) {
     isUpdatingSelection = true;
     const isMilliseconds = props.timeUnit === 'milliseconds';
-    brushChart.value.updateOptions({
-      chart: {
-        selection: {
-          xaxis: {
-            min: isMilliseconds ? dataMinTime.value : dataMinTime.value * 1000,
-            max: isMilliseconds ? dataMaxTime.value : dataMaxTime.value * 1000
+    brushChart.value.updateOptions(
+      {
+        chart: {
+          selection: {
+            xaxis: {
+              min: isMilliseconds ? dataMinTime.value : dataMinTime.value * 1000,
+              max: isMilliseconds ? dataMaxTime.value : dataMaxTime.value * 1000
+            }
           }
         }
-      }
-    }, false);
-    setTimeout(() => { isUpdatingSelection = false; }, 100);
+      },
+      false
+    );
+    setTimeout(() => {
+      isUpdatingSelection = false;
+    }, 100);
   }
 };
 
@@ -297,35 +320,40 @@ const onSelectEntireRange = async (): Promise<void> => {
 };
 
 // Convert data format for ApexCharts with optional downsampling
-const processDataForApex = (data: number[][] = [], maxPoints: number = 5000): Array<{x: number, y: number}> => {
+const processDataForApex = (
+  data: number[][] = [],
+  maxPoints: number = 5000
+): Array<{ x: number; y: number }> => {
   const isMilliseconds = props.timeUnit === 'milliseconds';
-  
+
   if (data.length <= maxPoints) {
     return data.map(point => ({
       x: isMilliseconds ? point[0] : point[0] * 1000,
       y: point[1]
     }));
   }
-  
+
   // Downsample using every nth point
   const step = Math.ceil(data.length / maxPoints);
   const downsampled = [];
-  
+
   for (let i = 0; i < data.length; i += step) {
     downsampled.push({
       x: isMilliseconds ? data[i][0] : data[i][0] * 1000,
       y: data[i][1]
     });
   }
-  
+
   return downsampled;
 };
 
 // Filter data for visible range with downsampling
-const getVisibleData = (data: number[][] = []): Array<{x: number, y: number}> => {
-  const filtered = data.filter(point => point[0] >= visibleStartTime.value && point[0] <= visibleEndTime.value);
+const getVisibleData = (data: number[][] = []): Array<{ x: number; y: number }> => {
+  const filtered = data.filter(
+    point => point[0] >= visibleStartTime.value && point[0] <= visibleEndTime.value
+  );
   const isMilliseconds = props.timeUnit === 'milliseconds';
-  
+
   // Downsample if too many points for main chart
   if (filtered.length > 5000) {
     const step = Math.ceil(filtered.length / 5000);
@@ -338,7 +366,7 @@ const getVisibleData = (data: number[][] = []): Array<{x: number, y: number}> =>
     }
     return downsampled;
   }
-  
+
   return filtered.map(point => ({
     x: isMilliseconds ? point[0] : point[0] * 1000,
     y: point[1]
@@ -441,79 +469,86 @@ const mainChartOptions = computed(() => ({
     curve: 'smooth',
     width: 1
   },
-  fill: props.showPoints ? {
-    type: 'solid',
-    opacity: 0.8
-  } : {
-    type: 'gradient',
-    gradient: {
-      opacityFrom: 0.4,
-      opacityTo: 0.1
-    }
-  },
-  markers: props.showPoints ? {
-    size: 6,
-    strokeWidth: 2,
-    strokeColors: '#fff',
-    hover: {
-      size: 8
-    }
-  } : {
-    size: 0
-  },
+  fill: props.showPoints
+    ? {
+        type: 'solid',
+        opacity: 0.8
+      }
+    : {
+        type: 'gradient',
+        gradient: {
+          opacityFrom: 0.4,
+          opacityTo: 0.1
+        }
+      },
+  markers: props.showPoints
+    ? {
+        size: 6,
+        strokeWidth: 2,
+        strokeColors: '#fff',
+        hover: {
+          size: 8
+        }
+      }
+    : {
+        size: 0
+      },
   xaxis: {
     type: 'datetime',
     min: props.timeUnit === 'milliseconds' ? visibleStartTime.value : visibleStartTime.value * 1000,
     max: props.timeUnit === 'milliseconds' ? visibleEndTime.value : visibleEndTime.value * 1000,
     labels: {
-      formatter: function(value: number) {
+      formatter: function (value: number) {
         return formatTime(props.timeUnit === 'milliseconds' ? value : value / 1000);
       }
     }
   },
-  yaxis: props.independentSecondaryAxis && props.secondaryData ? [
-    {
-      title: {
-        text: props.primaryTitle || 'Primary'
-      },
-      min: 0,
-      max: primaryMaxValue.value || undefined,
-      labels: {
-        formatter: function(value: number) {
-          return formatValue(value, props.primaryAxisType);
-        }
-      }
-    },
-    {
-      opposite: true,
-      title: {
-        text: props.secondaryTitle || 'Secondary'
-      },
-      min: 0,
-      max: secondaryMaxValue.value || undefined,
-      labels: {
-        formatter: function(value: number) {
-          return formatValue(value, props.secondaryAxisType);
-        }
-      }
-    }
-  ] : {
-    min: 0,
-    max: primaryMaxValue.value || undefined,
-    labels: {
-      formatter: function(value: number) {
-        return formatValue(value, props.primaryAxisType);
-      }
-    }
-  },
+  yaxis:
+    props.independentSecondaryAxis && props.secondaryData
+      ? [
+          {
+            title: {
+              text: props.primaryTitle || 'Primary'
+            },
+            min: 0,
+            max: primaryMaxValue.value || undefined,
+            labels: {
+              formatter: function (value: number) {
+                return formatValue(value, props.primaryAxisType);
+              }
+            }
+          },
+          {
+            opposite: true,
+            title: {
+              text: props.secondaryTitle || 'Secondary'
+            },
+            min: 0,
+            max: secondaryMaxValue.value || undefined,
+            labels: {
+              formatter: function (value: number) {
+                return formatValue(value, props.secondaryAxisType);
+              }
+            }
+          }
+        ]
+      : {
+          min: 0,
+          max: primaryMaxValue.value || undefined,
+          labels: {
+            formatter: function (value: number) {
+              return formatValue(value, props.primaryAxisType);
+            }
+          }
+        },
   tooltip: {
     x: {
-      formatter: function(value: number) {
+      formatter: function (value: number) {
         return formatTime(props.timeUnit === 'milliseconds' ? value : value / 1000);
       }
     },
     y: {
-      formatter: function(value: number, { seriesIndex }: { seriesIndex: number }) {
+      formatter: function (value: number, { seriesIndex }: { seriesIndex: number }) {
         const axisType = seriesIndex === 0 ? props.primaryAxisType : props.secondaryAxisType;
         return formatValue(value, axisType);
       }
@@ -561,20 +596,25 @@ const brushChartOptions = computed(() => ({
         dashArray: 4
       },
       xaxis: {
-        min: props.timeUnit === 'milliseconds' ? visibleStartTime.value : visibleStartTime.value * 1000,
+        min:
+          props.timeUnit === 'milliseconds'
+            ? visibleStartTime.value
+            : visibleStartTime.value * 1000,
         max: props.timeUnit === 'milliseconds' ? visibleEndTime.value : visibleEndTime.value * 1000
       }
     },
     events: {
-      selection: function(_: any, { xaxis }: { xaxis: { min: number, max: number } }) {
+      selection: function (_: any, { xaxis }: { xaxis: { min: number; max: number } }) {
         // Skip selection events during programmatic updates
         if (isUpdatingSelection) {
           return;
         }
 
         // Skip if selection hasn't meaningfully changed (within 1ms tolerance)
-        if (Math.abs(xaxis.min - lastProcessedSelection.min) < 1 &&
-            Math.abs(xaxis.max - lastProcessedSelection.max) < 1) {
+        if (
+          Math.abs(xaxis.min - lastProcessedSelection.min) < 1 &&
+          Math.abs(xaxis.max - lastProcessedSelection.max) < 1
+        ) {
           return;
         }
 
@@ -606,31 +646,36 @@ const brushChartOptions = computed(() => ({
           // Update brush chart visual selection if clamping occurred
           if (wasClamped && brushChart.value?.updateOptions) {
             isUpdatingSelection = true;
-            brushChart.value.updateOptions({
-              chart: {
-                selection: {
-                  xaxis: {
-                    min: isMilliseconds ? clampedStart : clampedStart * 1000,
-                    max: isMilliseconds ? clampedEnd : clampedEnd * 1000
+            brushChart.value.updateOptions(
+              {
+                chart: {
+                  selection: {
+                    xaxis: {
+                      min: isMilliseconds ? clampedStart : clampedStart * 1000,
+                      max: isMilliseconds ? clampedEnd : clampedEnd * 1000
+                    }
                   }
                 }
-              }
-            }, false);
+              },
+              false
+            );
             // Reset flag after a short delay to allow the event to be processed
-            setTimeout(() => { isUpdatingSelection = false; }, 100);
+            setTimeout(() => {
+              isUpdatingSelection = false;
+            }, 100);
           }
 
           // Handle zoom - either via graphUpdater or emit
           if (props.zoomEnabled) {
-            const isZoomed = Math.abs(clampedEnd - clampedStart) < Math.abs(dataMaxTime.value - dataMinTime.value) * 0.99;
+            const isZoomed =
+              Math.abs(clampedEnd - clampedStart) <
+              Math.abs(dataMaxTime.value - dataMinTime.value) * 0.99;
 
             // If graphUpdater is provided, call updateWithZoom directly
             if (props.graphUpdater && isZoomed) {
-              props.graphUpdater.updateWithZoom(new TimeRange(
-                  Math.floor(clampedStart),
-                  Math.ceil(clampedEnd),
-                  true
-              ));
+              props.graphUpdater.updateWithZoom(
+                new TimeRange(Math.floor(clampedStart), Math.ceil(clampedEnd), true)
+              );
             }
 
             // Also emit for any parent component listeners
@@ -676,47 +721,50 @@ const brushChartOptions = computed(() => ({
       show: false
     }
   },
-  yaxis: props.independentSecondaryAxis && props.secondaryData ? [
-    {
-      min: 0,
-      max: primaryMaxValue.value || undefined,
-      labels: {
-        show: false
-      },
-      axisTicks: {
-        show: false
-      },
-      axisBorder: {
-        show: false
-      }
-    },
-    {
-      opposite: true,
-      min: 0,
-      max: secondaryMaxValue.value || undefined,
-      labels: {
-        show: false
-      },
-      axisTicks: {
-        show: false
-      },
-      axisBorder: {
-        show: false
-      }
-    }
-  ] : {
-    min: 0,
-    max: primaryMaxValue.value || undefined,
-    labels: {
-      show: false
-    },
-    axisTicks: {
-      show: false
-    },
-    axisBorder: {
-      show: false
-    }
-  },
+  yaxis:
+    props.independentSecondaryAxis && props.secondaryData
+      ? [
+          {
+            min: 0,
+            max: primaryMaxValue.value || undefined,
+            labels: {
+              show: false
+            },
+            axisTicks: {
+              show: false
+            },
+            axisBorder: {
+              show: false
+            }
+          },
+          {
+            opposite: true,
+            min: 0,
+            max: secondaryMaxValue.value || undefined,
+            labels: {
+              show: false
+            },
+            axisTicks: {
+              show: false
+            },
+            axisBorder: {
+              show: false
+            }
+          }
+        ]
+      : {
+          min: 0,
+          max: primaryMaxValue.value || undefined,
+          labels: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          axisBorder: {
+            show: false
+          }
+        },
   grid: {
     show: false
   },
@@ -732,22 +780,30 @@ const brushChartOptions = computed(() => ({
 }));
 
 // Watch for data changes - watch effective data (handles both prop-driven and graphUpdater-driven modes)
-watch(effectivePrimaryData, (newData) => {
-  if (newData && newData.length > 0) {
-    calculateMinMaxTimeValues();
-    // Set lastProcessedSelection to match the current visible range to prevent duplicate loads
-    const isMilliseconds = props.timeUnit === 'milliseconds';
-    lastProcessedSelection = {
-      min: isMilliseconds ? visibleStartTime.value : visibleStartTime.value * 1000,
-      max: isMilliseconds ? visibleEndTime.value : visibleEndTime.value * 1000
-    };
-  }
-}, { deep: true, immediate: true });
+watch(
+  effectivePrimaryData,
+  newData => {
+    if (newData && newData.length > 0) {
+      calculateMinMaxTimeValues();
+      // Set lastProcessedSelection to match the current visible range to prevent duplicate loads
+      const isMilliseconds = props.timeUnit === 'milliseconds';
+      lastProcessedSelection = {
+        min: isMilliseconds ? visibleStartTime.value : visibleStartTime.value * 1000,
+        max: isMilliseconds ? visibleEndTime.value : visibleEndTime.value * 1000
+      };
+    }
+  },
+  { deep: true, immediate: true }
+);
 
-watch(effectiveSecondaryData, () => {
-  // Recalculate max values when secondary data changes
-  calculateMaxYValues();
-}, { deep: true, immediate: true });
+watch(
+  effectiveSecondaryData,
+  () => {
+    // Recalculate max values when secondary data changes
+    calculateMaxYValues();
+  },
+  { deep: true, immediate: true }
+);
 
 // Initialize on mount
 onMounted(async () => {
@@ -759,31 +815,29 @@ onMounted(async () => {
     }
 
     props.graphUpdater.registerTimeseriesCallbacks(
-        () => isLoading.value = true,
-        () => isLoading.value = false,
-        (data: TimeseriesData) => {
-          internalPrimaryData.value = extractPrimaryTimeseriesData(data);
-          internalSecondaryData.value = extractSecondaryTimeseriesData(data);
-          internalSearchData.value = undefined;
-        },
-        (data: TimeseriesData) => {
-          internalSearchData.value = extractPrimaryTimeseriesData(data);
-        },
-        () => {
-          internalSearchData.value = undefined;
-        },
-        () => {},
-        () => {
-          resetBrushSelection();
-        }
+      () => (isLoading.value = true),
+      () => (isLoading.value = false),
+      (data: TimeseriesData) => {
+        internalPrimaryData.value = extractPrimaryTimeseriesData(data);
+        internalSecondaryData.value = extractSecondaryTimeseriesData(data);
+        internalSearchData.value = undefined;
+      },
+      (data: TimeseriesData) => {
+        internalSearchData.value = extractPrimaryTimeseriesData(data);
+      },
+      () => {
+        internalSearchData.value = undefined;
+      },
+      () => {},
+      () => {
+        resetBrushSelection();
+      }
     );
 
     // Register control callbacks for SearchBarComponent
-    props.graphUpdater.registerTimeseriesControlCallbacks(
-        () => {
-          resetBrushSelection();
-        }
-    );
+    props.graphUpdater.registerTimeseriesControlCallbacks(() => {
+      resetBrushSelection();
+    });
   }
 
   calculateMinMaxTimeValues();

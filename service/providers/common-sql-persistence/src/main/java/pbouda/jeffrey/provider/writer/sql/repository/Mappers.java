@@ -20,17 +20,11 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.common.model.RecordingEventSource;
-import pbouda.jeffrey.common.model.RecordingFile;
-import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.common.model.*;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.sql.ResultSet;
@@ -53,11 +47,14 @@ public abstract class Mappers {
         };
     }
 
-    static RowMapper<DBRepositoryInfo> repositoryInfoMapper() {
+    static RowMapper<RepositoryInfo> repositoryInfoMapper() {
         return (rs, _) -> {
-            return new DBRepositoryInfo(
+            return new RepositoryInfo(
+                    rs.getString("repository_id"),
                     RepositoryType.valueOf(rs.getString("type")),
-                    rs.getString("finished_session_detection_file"));
+                    rs.getString("workspaces_path"),
+                    rs.getString("relative_workspace_path"),
+                    rs.getString("relative_project_path"));
         };
     }
 

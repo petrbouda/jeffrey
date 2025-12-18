@@ -51,19 +51,19 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         Optional<ProjectManager> project = projectsManager.project(event.projectId());
-        if (project.isPresent()) {
-            ProjectManager projectManager = project.get();
-
-            // Delete session from project repository (from Database)
-            repositories.newProjectRepositoryRepository(projectManager.info().id())
-                    .deleteSession(event.originEventId());
-
-            // Delete session from remote storage (e.g., S3, filesystem)
-            remoteRepositoryStorageFactory.apply(projectManager.info())
-                    .deleteSession(event.originEventId());
-        } else {
+        if (project.isEmpty()) {
             LOG.error("Project not found for deleting session: project_id: {}", event.projectId());
+            return;
         }
+        ProjectManager projectManager = project.get();
+
+        // Delete session from project repository (from Database)
+        repositories.newProjectRepositoryRepository(projectManager.info().id())
+                .deleteSession(event.originEventId());
+
+        // Delete session from remote storage (e.g., S3, filesystem)
+        remoteRepositoryStorageFactory.apply(projectManager.info())
+                .deleteSession(event.originEventId());
     }
 
     @Override

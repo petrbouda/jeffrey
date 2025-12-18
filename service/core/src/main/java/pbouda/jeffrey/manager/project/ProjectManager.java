@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager.project;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RecordingsManager;
@@ -86,5 +87,5 @@ public interface ProjectManager {
 
     DetailedProjectInfo detailedInfo();
 
-    void delete();
+    void delete(WorkspaceEventCreator createdBy);
 }

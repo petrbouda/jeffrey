@@ -19,7 +19,7 @@
 package pbouda.jeffrey.workspace.model;
 
 public record SessionCreatedEventContent(
-        String relativePath,
-        String workspacesPath,
+        String relativeSessionPath,
+        String finishedFile,
         String profilerSettings) {
 }

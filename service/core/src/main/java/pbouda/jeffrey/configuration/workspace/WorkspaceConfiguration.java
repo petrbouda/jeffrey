@@ -32,7 +32,10 @@ import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
-import pbouda.jeffrey.project.pipeline.*;
+import pbouda.jeffrey.project.pipeline.AddProjectJobsStage;
+import pbouda.jeffrey.project.pipeline.CreateProjectContext;
+import pbouda.jeffrey.project.pipeline.CreateProjectStage;
+import pbouda.jeffrey.project.pipeline.ProjectCreatePipeline;
 import pbouda.jeffrey.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
@@ -71,7 +74,6 @@ public class WorkspaceConfiguration {
         return workspaceInfo -> {
             Pipeline<CreateProjectContext> createProjectPipeline = new ProjectCreatePipeline()
                     .addStage(new CreateProjectStage(workspaceInfo, repositories.newProjectsRepository(), projectProperties, clock))
-                    .addStage(new CreateRepositoryStage(repositories, projectTemplatesLoader))
                     .addStage(new AddProjectJobsStage(repositories, projectTemplatesLoader, jobDefinitionLoader));
 
             return new CommonProjectsManager(

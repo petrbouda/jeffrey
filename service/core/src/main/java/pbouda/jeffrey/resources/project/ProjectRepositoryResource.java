@@ -20,6 +20,7 @@ package pbouda.jeffrey.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RepositoryManager;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
@@ -64,7 +65,7 @@ public class ProjectRepositoryResource {
     @DELETE
     @Path("/sessions/{sessionId}")
     public Response deleteSession(@PathParam("sessionId") String sessionId) {
-        repositoryManager.deleteRecordingSession(sessionId, "MANUAL_DELETE");
+        repositoryManager.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
         return Response.noContent().build();
     }
 

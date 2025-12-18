@@ -68,6 +68,7 @@ jeffrey/
 - Always try to use Vue Components first. If you need create a new to deduplicate code, suggest it and create it.
 
 ### Build Commands
+- **Java Version**: `sdk use java 25.0.1-amzn`
 - **Backend**: `mvn clean install` (Maven)
 - **Frontend**: `npm run dev` (development), `npm run build` (production)
 - **Linting**: `npm run lint` (ESLint + Prettier)

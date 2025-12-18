@@ -176,9 +176,9 @@ const router = createRouter({
                   meta: { layout: 'profile' }
                 },
                 {
-                  path: 'threads',
-                  name: 'profile-threads',
-                  component: () => import('@/views/profiles/detail/ProfileThreads.vue'),
+                  path: 'thread-statistics',
+                  name: 'profile-thread-statistics',
+                  component: () => import('@/views/profiles/detail/ProfileThreadStatistics.vue'),
                   meta: { layout: 'profile' }
                 },
                 {

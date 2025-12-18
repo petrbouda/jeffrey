@@ -22,7 +22,6 @@ import HttpUtils from "@/services/HttpUtils";
 import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
 import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
 import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
-import Serie from "@/services/timeseries/model/Serie";
 import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import BothGraphData from "@/services/flamegraphs/model/BothGraphData";
@@ -30,7 +29,6 @@ import BothGraphData from "@/services/flamegraphs/model/BothGraphData";
 export default class GuardianFlamegraphClient extends FlamegraphClient {
 
     private readonly baseUrlFlamegraph: string;
-    private readonly baseUrlTimeseries: string;
     private readonly eventType: string;
     private readonly useWeight: boolean;
     private readonly markers: any;
@@ -45,7 +43,6 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
 
         super();
         this.baseUrlFlamegraph = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
-        this.baseUrlTimeseries = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/timeseries'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.markers = markers;
@@ -70,16 +67,23 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             .then(HttpUtils.RETURN_DATA)
     }
 
-    provide(timeRange: any): Promise<FlamegraphData> {
+    provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
         const content = {
             eventType: this.eventType,
-            timeRange: timeRange,
             useWeight: this.useWeight,
-            markers: this.markers
+            markers: this.markers,
+            timeRange: timeRange,
+            useThreadMode: false,
+            excludeNonJavaSamples: false,
+            excludeIdleSamples: false,
+            onlyUnsafeAllocationSamples: false,
+            threadInfo: null,
+            components: GraphComponents.FLAMEGRAPH_ONLY,
         };
 
-        return axios.post<FlamegraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
+        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
+            .then(data => data.flamegraph);
     }
 
     provideTimeseries(search: string | null): Promise<TimeseriesData>{
@@ -88,11 +92,17 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             useWeight: this.useWeight,
             markers: this.markers,
             search: search,
+            useThreadMode: false,
+            excludeNonJavaSamples: false,
+            excludeIdleSamples: false,
+            onlyUnsafeAllocationSamples: false,
+            threadInfo: null,
+            components: GraphComponents.TIMESERIES_ONLY,
         };
 
-        return axios.post<Serie[]>(this.baseUrlTimeseries, content, HttpUtils.JSON_HEADERS)
+        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA)
-            .then(series => new TimeseriesData(series))
+            .then(data => data.timeseries);
     }
 
     save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {

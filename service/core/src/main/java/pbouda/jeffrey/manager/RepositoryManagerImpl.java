@@ -19,19 +19,18 @@
 package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceSessionInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.model.RepositoryInfo;
-import pbouda.jeffrey.project.ProjectRepository;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.model.DBRepositoryInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.workspace.WorkspaceEventConverter;
@@ -202,29 +201,23 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void create(ProjectRepository projectRepository) {
-        DBRepositoryInfo dbRepositoryInfo = new DBRepositoryInfo(
-                projectRepository.type(), projectRepository.finishedSessionDetectionFile());
-
-        repository.insert(dbRepositoryInfo);
+    public void create(RepositoryInfo repositoryInfo) {
+        repository.insert(repositoryInfo);
     }
 
     @Override
-    public void createSession(WorkspaceSessionInfo workspaceSessionInfo) {
-        repository.createSession(workspaceSessionInfo);
+    public void createSession(RepositorySessionInfo repositorySessionInfo) {
+        repository.createSession(repositorySessionInfo);
     }
 
     @Override
     public Optional<RepositoryInfo> info() {
         return repository.getAll().stream()
-                .findFirst()
-                .map(repository -> {
-                    return new RepositoryInfo(repository.type(), repository.finishedSessionDetectionFile());
-                });
+                .findFirst();
     }
 
     @Override
-    public void deleteRecordingSession(String recordingSessionId, String createdBy) {
+    public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
         WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
                 clock.instant(),
                 projectInfo.workspaceId(),

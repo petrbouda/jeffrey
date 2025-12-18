@@ -28,6 +28,9 @@ public record RemoteProject(
         String projectLabel,
         String workspaceId,
         long createdAt,
+        String workspacesPath,
+        String relativeWorkspacePath,
+        String relativeProjectPath,
         RepositoryType repositoryType,
         Map<String, String> attributes) {
 }
