@@ -1,9 +1,5 @@
 <template>
-  <PageHeader
-    title="Global Scheduler"
-    description="Manage global scheduled jobs that apply across all workspaces and projects."
-    icon="bi-calendar-check"
-  >
+  <div>
     <!-- Job Types Card -->
     <div class="main-card mb-4">
       <div class="main-card-content">
@@ -88,7 +84,7 @@
           :ref="(el) => setModalRef(plugin.jobType, el)"
       />
     </div>
-  </PageHeader>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -101,7 +97,6 @@ import JobsTable, { type JobDisplayInfo } from '@/components/scheduler/JobsTable
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import SearchBox from '@/components/SearchBox.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import { jobPluginRegistry } from '@/services/scheduler/JobPluginRegistry';
 import { setupJobPlugins } from '@/services/scheduler/pluginSetup';
 import '@/styles/shared-components.css';

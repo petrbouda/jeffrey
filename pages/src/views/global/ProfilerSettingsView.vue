@@ -563,6 +563,7 @@ onMounted(() => {
   padding: 16px 24px;
   background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px 16px 0 0;
 }
 
 .header-title-section {

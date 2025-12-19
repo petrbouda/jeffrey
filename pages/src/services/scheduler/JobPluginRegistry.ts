@@ -45,7 +45,6 @@ export class JobPluginRegistry {
     }
 
     this.plugins.set(plugin.jobType, plugin);
-    console.log(`Registered job type plugin: ${plugin.jobType}`);
   }
 
   /**
@@ -56,7 +55,6 @@ export class JobPluginRegistry {
     if (plugin) {
       plugin.destroy();
       this.plugins.delete(jobType);
-      console.log(`Unregistered job type plugin: ${jobType}`);
     }
   }
 

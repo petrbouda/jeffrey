@@ -1,9 +1,5 @@
 <template>
-  <PageHeader
-    title="Event Logs"
-    description="View and monitor events across workspaces. Track project and session lifecycle events."
-    icon="bi-journal-text"
-  >
+  <div>
     <!-- Workspace Selector -->
     <div class="main-card mb-4">
       <div class="main-card-content">
@@ -185,7 +181,7 @@
         </div>
       </template>
     </BaseModal>
-  </PageHeader>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -200,7 +196,6 @@ import FormattingService from '@/services/FormattingService';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import Badge from '@/components/Badge.vue';
 import BaseModal from '@/components/BaseModal.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import SearchBox from '@/components/SearchBox.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
