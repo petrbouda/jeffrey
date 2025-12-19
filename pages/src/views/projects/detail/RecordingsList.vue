@@ -7,7 +7,7 @@ import {ToastService} from '@/services/ToastService';
 import Recording from "@/services/model/Recording.ts";
 import RecordingFolder from "@/services/model/RecordingFolder.ts";
 import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
-import FormattingService from "../../services/FormattingService.ts";
+import FormattingService from "@/services/FormattingService.ts";
 import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';

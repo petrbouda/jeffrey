@@ -157,6 +157,7 @@ import JobInfo from '@/services/model/JobInfo';
 import JobCard from '@/components/JobCard.vue';
 import { jobPluginRegistry } from '@/services/scheduler/JobPluginRegistry';
 import { setupJobPlugins } from '@/services/scheduler/pluginSetup';
+import '@/styles/shared-components.css';
 
 // State for Scheduler Jobs
 const jobSearchQuery = ref('');
@@ -316,60 +317,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-box {
-  flex: 1;
-  max-width: 600px;
-}
-
-.phoenix-search {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.12);
-  overflow: hidden;
-  border-radius: 12px;
-  height: 48px;
-  box-shadow: 
-    inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:focus-within {
-    border-color: rgba(94, 100, 255, 0.3);
-    box-shadow: 
-      inset 0 1px 3px rgba(0, 0, 0, 0.05),
-      0 4px 12px rgba(94, 100, 255, 0.1),
-      0 0 0 3px rgba(94, 100, 255, 0.05);
-    transform: translateY(-1px);
-  }
-
-  .search-icon-container {
-    width: 48px;
-    display: flex;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: #6c757d;
-  }
-
-  .form-control {
-    height: 46px;
-    font-size: 0.9rem;
-    background: transparent;
-    border: none;
-    color: #374151;
-    font-weight: 500;
-
-    &::placeholder {
-      color: #9ca3af;
-      font-weight: 400;
-    }
-
-    &:focus {
-      box-shadow: none;
-      background: transparent;
-    }
-  }
-}
-
 /* Job styles */
 .job-icon-sm {
   width: 36px;

@@ -1,84 +1,72 @@
 <template>
-  <PageHeader
-    title="Settings"
-    description="Configure project settings and manage project properties."
-    icon="bi-sliders"
-  >
+  <div>
     <!-- Settings Card -->
-    <div class="col-12">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex align-items-center py-3">
-          <i class="bi bi-gear fs-4 me-2 text-primary"></i>
-          <h5 class="mb-0">Project Settings</h5>
-        </div>
-        <div class="card-body">
-          <div v-if="isLoading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading project settings...</p>
+    <div class="main-card mb-4">
+      <div class="main-card-header">
+        <i class="bi bi-gear main-card-header-icon"></i>
+        <h5 class="main-card-header-title">Project Settings</h5>
+      </div>
+      <div class="main-card-content">
+        <div v-if="isLoading" class="loading-container">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
           </div>
-          
-          <form v-else @submit.prevent="saveChanges">
-            <div class="row mb-4">
-              <div class="col-md-6">
-                
-                <div class="mb-3">
-                  <label for="projectName" class="form-label">Project Name</label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    id="projectName" 
-                    v-model="projectName"
-                    @input="checkForChanges"
-                  >
-                  <div class="form-text text-muted">The name of your project that will appear in the dashboard.</div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="d-flex justify-content-end mb-5">
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                :disabled="!hasChanges" 
-                :class="{'btn-opacity': !hasChanges}"
-              >
-                <span v-if="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                {{ isSaving ? 'Saving...' : 'Save Changes' }}
-              </button>
-            </div>
-          </form>
+          <p>Loading project settings...</p>
         </div>
-      </div>
-    </div>
-    
-    <!-- Delete Project Section (with reduced spacing) -->
-    <div class="col-12">
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light d-flex align-items-center py-3">
-          <i class="bi bi-trash fs-4 me-2 text-danger"></i>
-          <h5 class="mb-0">Danger Zone</h5>
-        </div>
-        <div class="card-body">
-          <p class="text-muted mb-4">
-            Actions in this section can lead to permanent data loss. Please proceed with caution.
-          </p>
 
-          <button
-              type="button"
-              class="btn btn-danger"
-              @click="openDeleteConfirmation"
-              :disabled="isDeleting"
-          >
-            <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            <i v-else class="bi bi-trash me-2"></i>
-            {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
-          </button>
-        </div>
+        <form v-else @submit.prevent="saveChanges">
+          <div class="settings-form-section">
+            <div class="form-field">
+              <label for="projectName" class="form-field-label">Project Name</label>
+              <input
+                type="text"
+                class="form-control settings-input"
+                id="projectName"
+                v-model="projectName"
+                @input="checkForChanges"
+              >
+              <div class="form-field-help">The name of your project that will appear in the dashboard.</div>
+            </div>
+          </div>
+
+          <div class="settings-actions">
+            <button
+              type="submit"
+              class="btn btn-primary-gradient"
+              :disabled="!hasChanges"
+            >
+              <span v-if="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              {{ isSaving ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  </PageHeader>
+
+    <!-- Danger Zone Card -->
+    <div class="danger-card mb-4">
+      <div class="danger-card-header">
+        <i class="bi bi-exclamation-triangle-fill danger-card-header-icon"></i>
+        <h5 class="danger-card-header-title">Danger Zone</h5>
+      </div>
+      <div class="main-card-content">
+        <p class="danger-description">
+          Actions in this section can lead to permanent data loss. Please proceed with caution.
+        </p>
+
+        <button
+            type="button"
+            class="btn btn-danger"
+            @click="openDeleteConfirmation"
+            :disabled="isDeleting"
+        >
+          <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-trash me-2"></i>
+          {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Confirmation Modal -->
   <div class="modal fade" :class="{ 'show d-block': showDeleteConfirmation }" tabindex="-1" 
@@ -126,15 +114,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
 import ProjectClient from '@/services/ProjectClient';
 import ToastService from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import '@/styles/shared-components.css';
 
-const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId } = useNavigation();
 
@@ -237,8 +224,59 @@ async function deleteProject() {
 </script>
 
 <style scoped>
-.btn-opacity {
-  opacity: 0.65;
+/* Settings Form */
+.settings-form-section {
+  max-width: 500px;
+}
+
+.form-field {
+  margin-bottom: 20px;
+}
+
+.form-field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(94, 100, 255, 0.15);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #374151;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.05);
+}
+
+.form-field-help {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid rgba(94, 100, 255, 0.08);
+  margin-top: 24px;
+}
+
+/* Danger Zone */
+.danger-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
 }
 
 /* Modal styling */
@@ -258,19 +296,23 @@ async function deleteProject() {
   background-color: rgba(220, 53, 69, 0.15);
 }
 
-/* Card styling */
-.card {
-  border-radius: 0.25rem;
-  overflow: hidden;
-  transition: all 0.2s ease;
+.modal-content {
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* Reduce spacing between cards */
-.col-12:nth-child(3) {
-  margin-top: -0.5rem;
+.modal-header {
+  border-radius: 12px 12px 0 0;
 }
 
-.shadow-sm {
-  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05) !important;
+/* Loading state */
+.loading-container {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.loading-container p {
+  margin-top: 0.75rem;
+  color: #6b7280;
 }
 </style>

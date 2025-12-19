@@ -20,17 +20,17 @@ const router = createRouter({
         {
           path: 'global-scheduler',
           name: 'global-scheduler',
-          component: () => import('@/views/scheduler/GlobalSchedulerView.vue')
+          component: () => import('@/views/global/GlobalSchedulerView.vue')
         },
         {
           path: 'event-log',
           name: 'event-log',
-          component: () => import('@/views/eventlog/EventLogView.vue')
+          component: () => import('@/views/global/EventLogView.vue')
         },
         {
           path: 'profiler-settings',
           name: 'profiler-settings',
-          component: () => import('@/views/settings/ProfilerSettingsView.vue')
+          component: () => import('@/views/global/ProfilerSettingsView.vue')
         },
       ]
     },
@@ -71,38 +71,38 @@ const router = createRouter({
                 {
                   path: 'settings',
                   name: 'project-settings',
-                  component: () => import('@/views/settings/SettingsView.vue'),
+                  component: () => import('@/views/global/SettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'profiles',
                   name: 'project-profiles',
-                  component: () => import('@/views/profiles/ProfilesList.vue'),
+                  component: () => import('@/views/projects/detail/ProfilesList.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'recordings',
                   name: 'project-recordings',
-                  component: () => import('@/views/recordings/RecordingsList.vue'),
+                  component: () => import('@/views/projects/detail/RecordingsList.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'repository',
                   name: 'project-repository',
-                  component: () => import('@/views/repository/RepositoryView.vue'),
+                  component: () => import('@/views/projects/detail/RepositoryView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'scheduler',
                   name: 'project-scheduler',
-                  component: () => import('@/views/scheduler/SchedulerList.vue'),
+                  component: () => import('@/views/projects/detail/SchedulerList.vue'),
                   meta: { layout: 'project' }
                 }
               ]
             },
             {
               path: 'profiles/:profileId',
-              component: () => import('@/views/profiles/detail/ProfileDetail.vue'),
+              component: () => import('@/views/profiles/ProfileDetail.vue'),
               meta: { layout: 'profile' },
               children: [
                 {

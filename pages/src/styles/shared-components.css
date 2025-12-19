@@ -1,0 +1,197 @@
+/* Shared Component Styles */
+
+/* ===========================================
+   Modern Card Containers
+   =========================================== */
+.main-card {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(10px);
+}
+
+.main-card-content {
+  padding: 24px 28px;
+}
+
+/* Card Header Variant */
+.main-card-header {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.main-card-header-icon {
+  font-size: 1.25rem;
+  color: #5e64ff;
+}
+
+.main-card-header-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Danger Zone Card Variant */
+.danger-card {
+  background: linear-gradient(135deg, #ffffff, #fff8f8);
+  border: 1px solid rgba(239, 68, 68, 0.12);
+  border-radius: 16px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.danger-card-header {
+  background: linear-gradient(135deg, #fef2f2, #ffffff);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.12);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.danger-card-header-icon {
+  font-size: 1.25rem;
+  color: #ef4444;
+}
+
+.danger-card-header-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #991b1b;
+  margin: 0;
+}
+
+/* ===========================================
+   Phoenix Search Box
+   =========================================== */
+.search-box {
+  flex: 1;
+  max-width: 600px;
+}
+
+.phoenix-search {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid rgba(94, 100, 255, 0.12);
+  overflow: hidden;
+  border-radius: 12px;
+  height: 48px;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.phoenix-search:focus-within {
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 12px rgba(94, 100, 255, 0.1),
+    0 0 0 3px rgba(94, 100, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.phoenix-search .search-icon-container {
+  width: 48px;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #6c757d;
+}
+
+.phoenix-search .form-control {
+  height: 46px;
+  font-size: 0.9rem;
+  background: transparent;
+  border: none;
+  color: #374151;
+  font-weight: 500;
+}
+
+.phoenix-search .form-control::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.phoenix-search .form-control:focus {
+  box-shadow: none;
+  background: transparent;
+}
+
+/* ===========================================
+   Loading States
+   =========================================== */
+.loading-container {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.loading-container .spinner-border {
+  color: #5e64ff;
+}
+
+.loading-container p {
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* ===========================================
+   Empty States
+   =========================================== */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: #9ca3af;
+  margin-bottom: 1rem;
+}
+
+.empty-state h5 {
+  color: #374151;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: #6b7280;
+  margin-bottom: 0;
+}
+
+/* ===========================================
+   Button Variants
+   =========================================== */
+.btn-primary-gradient {
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  border: none;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 12px rgba(94, 100, 255, 0.3),
+    0 2px 4px rgba(94, 100, 255, 0.2);
+}
+
+.btn-primary-gradient:hover {
+  background: linear-gradient(135deg, #4c52ff, #3f46ff);
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 16px rgba(94, 100, 255, 0.4),
+    0 3px 6px rgba(94, 100, 255, 0.3);
+}
+
+.btn-primary-gradient:active {
+  transform: translateY(-1px);
+}

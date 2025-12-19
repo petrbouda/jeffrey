@@ -106,15 +106,16 @@
                   </span>
                   
                   <!-- Attributes for PROJECT_CREATED events -->
-                  <span 
-                    v-if="getAttributesPairs(event)"
-                    v-for="(value, key) in getAttributesPairs(event)" 
-                    :key="`attr-${key}`"
-                    class="content-pair attribute-pair"
-                  >
-                    <span class="content-key">{{ key }}:</span>
-                    <span class="content-value">{{ value }}</span>
-                  </span>
+                  <template v-if="getAttributesPairs(event)">
+                    <span
+                      v-for="(value, key) in getAttributesPairs(event)"
+                      :key="`attr-${key}`"
+                      class="content-pair attribute-pair"
+                    >
+                      <span class="content-key">{{ key }}:</span>
+                      <span class="content-value">{{ value }}</span>
+                    </span>
+                  </template>
                 </div>
               </div>
             </div>
@@ -199,6 +200,7 @@ import FormattingService from '@/services/FormattingService';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import Badge from '@/components/Badge.vue';
 import BaseModal from '@/components/BaseModal.vue';
+import '@/styles/shared-components.css';
 
 // Workspaces data
 const workspaces = ref<any[]>([]);
@@ -424,62 +426,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.search-box {
-  flex: 1;
-  max-width: 600px;
-}
-
 .filter-dropdown {
   min-width: 200px;
-}
-
-.phoenix-search {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.12);
-  overflow: hidden;
-  border-radius: 12px;
-  height: 48px;
-  box-shadow: 
-    inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:focus-within {
-    border-color: rgba(94, 100, 255, 0.3);
-    box-shadow: 
-      inset 0 1px 3px rgba(0, 0, 0, 0.05),
-      0 4px 12px rgba(94, 100, 255, 0.1),
-      0 0 0 3px rgba(94, 100, 255, 0.05);
-    transform: translateY(-1px);
-  }
-
-  .search-icon-container {
-    width: 48px;
-    display: flex;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: #6c757d;
-  }
-
-  .form-control {
-    height: 46px;
-    font-size: 0.9rem;
-    background: transparent;
-    border: none;
-    color: #374151;
-    font-weight: 500;
-
-    &::placeholder {
-      color: #9ca3af;
-      font-weight: 400;
-    }
-
-    &:focus {
-      box-shadow: none;
-      background: transparent;
-    }
-  }
 }
 
 /* Modern Card Styling */
