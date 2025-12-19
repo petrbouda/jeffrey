@@ -185,8 +185,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                     rs.getString("session_id"),
                     rs.getString("repository_id"),
                     Path.of(rs.getString("relative_session_path")),
-                    rs.getString("profiler_settings"),
                     rs.getString("finished_file"),
+                    rs.getString("profiler_settings"),
                     Mappers.instant(rs, "origin_created_at"),
                     Mappers.instant(rs, "created_at")
             );
