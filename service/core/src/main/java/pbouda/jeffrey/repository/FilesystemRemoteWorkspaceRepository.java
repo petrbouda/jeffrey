@@ -78,14 +78,9 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
         }
 
         return FileSystemUtils.allDirectoriesInDirectory(workspacePath).stream()
-                .map(path -> {
-                    try {
-                        String content = Files.readString(path.resolve(PROJECT_INFO_FILE));
-                        return Json.read(content, RemoteProject.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to read session info file: " + path, e);
-                    }
-                })
+                .map(path -> path.resolve(PROJECT_INFO_FILE))
+                .filter(FilesystemRemoteWorkspaceRepository::hasInfoFile)
+                .map(p -> readInfoFile(p, RemoteProject.class))
                 .toList();
     }
 
@@ -97,14 +92,9 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
         }
 
         return FileSystemUtils.allDirectoriesInDirectory(projectDir).stream()
-                .map(path -> {
-                    try {
-                        String content = Files.readString(path.resolve(SESSION_INFO_FILE));
-                        return Json.read(content, RemoteSession.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Failed to read session info file: " + path, e);
-                    }
-                })
+                .map(path -> path.resolve(SESSION_INFO_FILE))
+                .filter(FilesystemRemoteWorkspaceRepository::hasInfoFile)
+                .map(p -> readInfoFile(p, RemoteSession.class))
                 .toList();
     }
 
@@ -148,6 +138,23 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
                 })
                 .sorted(TIMESTAMP_FILE_COMPARATOR)
                 .toList();
+    }
+
+    private static boolean hasInfoFile(Path path) {
+        boolean exists = Files.exists(path);
+        if (!exists) {
+            LOG.warn("Skipping directory without info file: {}", path);
+        }
+        return exists;
+    }
+
+    private static <T> T readInfoFile(Path path, Class<T> clazz) {
+        try {
+            String content = Files.readString(path);
+            return Json.read(content, clazz);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read info file: " + path, e);
+        }
     }
 
     @Override

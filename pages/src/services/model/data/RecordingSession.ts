@@ -22,6 +22,7 @@ import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
 export default class RecordingSession {
     constructor(
         public id: string,
+        public originId: string,
         public createdAt: string,
         public status: RecordingStatus,
         public profilerSettings: string,

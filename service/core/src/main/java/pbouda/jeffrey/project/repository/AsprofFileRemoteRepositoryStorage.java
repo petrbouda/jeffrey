@@ -155,7 +155,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
         return new RecordingSession(
                 sessionInfo.sessionId(),
-                sessionInfo.sessionId(),
+                sessionInfo.relativeSessionPath().toString(),
                 sessionInfo.originCreatedAt(),
                 recordingStatus,
                 recordingFileType,

@@ -247,6 +247,16 @@ const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
     classes.push('jvm-log-file');
   }
 
+  // Add heap dump file class for HEAP_DUMP files
+  if (source.fileType === 'HEAP_DUMP') {
+    classes.push('heap-dump-file');
+  }
+
+  // Add perf counters file class for PERF_COUNTERS files
+  if (source.fileType === 'PERF_COUNTERS') {
+    classes.push('perf-counters-file');
+  }
+
   return classes.join(' ');
 };
 
@@ -612,8 +622,9 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                     </div>
                     <div>
                       <div class="fw-bold">
-                        {{ session.id }}
-                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-2"/>
+                        {{ session.originId }}
+                        <Badge :value="session.id" variant="light" size="xs" class="ms-2" title="Internal ID"/>
+                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-1"/>
                         <Badge :value="Utils.capitalize(session.status.toLowerCase())"
                                :variant="getStatusVariant(session.status)" size="xs" class="ms-1"/>
                         <Badge :value="`${formatDate(session.createdAt)}`"
@@ -1174,6 +1185,48 @@ code {
 .child-row.jvm-log-file .recording-file-icon-medium {
   background-color: rgba(20, 184, 166, 0.15) !important;
   color: #14b8a6 !important;
+}
+
+/* Heap dump file styling - purple theme */
+.child-row.heap-dump-file {
+  background-color: rgba(111, 66, 193, 0.08) !important;
+  border-left: 3px solid #6f42c1 !important;
+  border-top: 1px solid rgba(111, 66, 193, 0.2) !important;
+  border-right: 1px solid rgba(111, 66, 193, 0.2) !important;
+  border-bottom: 1px solid rgba(111, 66, 193, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(111, 66, 193, 0.15) !important;
+}
+
+.child-row.heap-dump-file:hover {
+  background-color: rgba(111, 66, 193, 0.12) !important;
+  box-shadow: 0 2px 5px rgba(111, 66, 193, 0.2) !important;
+}
+
+/* Heap dump file icon styling - purple theme */
+.child-row.heap-dump-file .recording-file-icon-medium {
+  background-color: rgba(111, 66, 193, 0.15) !important;
+  color: #6f42c1 !important;
+}
+
+/* Perf counters file styling - sky blue theme */
+.child-row.perf-counters-file {
+  background-color: rgba(14, 165, 233, 0.08) !important;
+  border-left: 3px solid #0ea5e9 !important;
+  border-top: 1px solid rgba(14, 165, 233, 0.2) !important;
+  border-right: 1px solid rgba(14, 165, 233, 0.2) !important;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(14, 165, 233, 0.15) !important;
+}
+
+.child-row.perf-counters-file:hover {
+  background-color: rgba(14, 165, 233, 0.12) !important;
+  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.2) !important;
+}
+
+/* Perf counters file icon styling - sky blue theme */
+.child-row.perf-counters-file .recording-file-icon-medium {
+  background-color: rgba(14, 165, 233, 0.15) !important;
+  color: #0ea5e9 !important;
 }
 
 /* Action button styling */
