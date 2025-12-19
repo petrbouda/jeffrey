@@ -157,3 +157,32 @@
     opacity: 0;
   }
 }
+
+/* Flamegraph Grid - Shared responsive grid layout */
+.flamegraph-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  max-width: 1400px;
+}
+
+@media (min-width: 768px) {
+  .flamegraph-grid {
+    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .flamegraph-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .flamegraph-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}

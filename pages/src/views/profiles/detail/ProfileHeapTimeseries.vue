@@ -1,18 +1,7 @@
 <template>
-  <!-- Loading State -->
-  <div v-if="loading" class="loading-overlay">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading heap memory data...</span>
-    </div>
-    <p class="mt-2">Loading heap memory data...</p>
-  </div>
+  <LoadingState v-if="loading" message="Loading heap memory data..." />
 
-  <div v-else-if="error" class="error-state">
-    <div class="alert alert-danger d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-      Failed to load heap memory data
-    </div>
-  </div>
+  <ErrorState v-else-if="error" message="Failed to load heap memory data" />
 
   <div v-else>
     <!-- Header Section -->
@@ -72,6 +61,8 @@ import { useNavigation } from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import ProfileHeapMemoryClient from '@/services/profile/heap/ProfileHeapMemoryClient';
 import HeapMemoryTimeseriesType from '@/services/profile/heap/HeapMemoryTimeseriesType';
 
@@ -166,15 +157,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.loading-overlay, .error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-}
-
-/* Responsive Design */
 @media (max-width: 768px) {
   .chart-container {
     height: 300px;

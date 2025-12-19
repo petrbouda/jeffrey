@@ -1,18 +1,7 @@
 <template>
-  <!-- Loading State -->
-  <div v-if="loading" class="loading-overlay">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading GC timeseries data...</span>
-    </div>
-    <p class="mt-2">Loading GC timeseries data...</p>
-  </div>
+  <LoadingState v-if="loading" message="Loading GC timeseries data..." />
 
-  <div v-else-if="error" class="error-state">
-    <div class="alert alert-danger d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-      Failed to load GC timeseries data
-    </div>
-  </div>
+  <ErrorState v-else-if="error" message="Failed to load GC timeseries data" />
 
   <div v-else>
     <!-- Header Section -->
@@ -80,6 +69,8 @@ import {useRoute} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
 import GCTimeseriesType from '@/services/profile/gc/GCTimeseriesType';

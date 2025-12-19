@@ -1,18 +1,7 @@
 <template>
-  <!-- Loading State -->
-  <div v-if="loading" class="loading-overlay">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading garbage collection data...</span>
-    </div>
-    <p class="mt-2">Loading garbage collection data...</p>
-  </div>
+  <LoadingState v-if="loading" message="Loading garbage collection data..." />
 
-  <div v-else-if="error" class="error-state">
-    <div class="alert alert-danger d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-      Failed to load garbage collection data
-    </div>
-  </div>
+  <ErrorState v-else-if="error" message="Failed to load garbage collection data" />
 
   <div v-else>
     <!-- Header Section -->
@@ -271,6 +260,8 @@ import { useNavigation } from '@/composables/useNavigation';
 import ApexCharts from 'apexcharts';
 import DashboardCard from '@/components/DashboardCard.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import Badge from '@/components/Badge.vue';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';

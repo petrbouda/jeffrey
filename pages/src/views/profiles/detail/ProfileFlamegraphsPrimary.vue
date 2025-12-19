@@ -1,258 +1,48 @@
 <template>
-  <div v-if="!loaded" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <p class="mt-2">Loading flamegraph data...</p>
-  </div>
+  <LoadingState v-if="!loaded" message="Loading flamegraph data..." />
 
   <div v-else class="flamegraphs-primary-container">
-    <PageHeader 
+    <PageHeader
       title="Primary Flamegraphs"
-      description="View and analyze performance data Flamegraphs" 
+      description="View and analyze performance data Flamegraphs"
       icon="bi-fire"
-    >
+    />
 
-    <div class="flamegraph-grid">
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in executionSampleEvents" :key="index"
-                      title="Execution Samples"
-                      color="blue"
-                      icon="bi-sprint"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="false"
-                      :weight-desc="null"
-                      :weight-opt="false"
-                      :weight-selected="false"
-                      :weight-formatter="FormattingService.formatDuration2Units"
-                      :exclude-non-java-samples-opt="false"
-                      :exclude-non-java-samples-selected="false"
-                      :exclude-idle-samples-opt="false"
-                      :exclude-idle-samples-selected="false"
-                      :only-unsafe-allocation-samples-opt="false"
-                      :only-unsafe-allocation-samples-selected="false"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in methodTraceEvents" :key="index"
-                      title="Method Traces"
-                      color="blue"
-                      icon="bi-sprint"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="false"
-                      weight-desc="Total Time"
-                      :weight-opt="true"
-                      :weight-selected="true"
-                      :weight-formatter="FormattingService.formatDuration2Units"
-                      :exclude-non-java-samples-opt="false"
-                      :exclude-non-java-samples-selected="false"
-                      :exclude-idle-samples-opt="false"
-                      :exclude-idle-samples-selected="false"
-                      :only-unsafe-allocation-samples-opt="false"
-                      :only-unsafe-allocation-samples-selected="false"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in wallClockEvents" :key="index"
-                      title="Wall-Clock Samples"
-                      color="purple"
-                      icon="bi-alarm"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="true"
-                      :weight-desc="null"
-                      :weight-opt="false"
-                      :weight-selected="false"
-                      :weight-formatter="FormattingService.formatDuration2Units"
-                      :exclude-non-java-samples-opt="true"
-                      :exclude-non-java-samples-selected="true"
-                      :exclude-idle-samples-opt="true"
-                      :exclude-idle-samples-selected="true"
-                      :only-unsafe-allocation-samples-opt="false"
-                      :only-unsafe-allocation-samples-selected="false"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in objectAllocationEvents" :key="index"
-                      title="Allocation Samples"
-                      color="green"
-                      icon="bi-memory"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="false"
-                      weight-desc="Total Allocation"
-                      :weight-opt="true"
-                      :weight-selected="true"
-                      :weight-formatter="FormattingService.formatBytes"
-                      :exclude-non-java-samples-opt="false"
-                      :exclude-non-java-samples-selected="false"
-                      :exclude-idle-samples-opt="false"
-                      :exclude-idle-samples-selected="false"
-                      :only-unsafe-allocation-samples-opt="false"
-                      :only-unsafe-allocation-samples-selected="false"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in nativeAllocationEvents" :key="index"
-                      title="Native Allocation Samples"
-                      color="pink"
-                      icon="bi-memory"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="false"
-                      weight-desc="Total Allocation"
-                      :weight-opt="true"
-                      :weight-selected="true"
-                      :weight-formatter="FormattingService.formatBytes"
-                      :exclude-non-java-samples-opt="false"
-                      :exclude-non-java-samples-selected="false"
-                      :exclude-idle-samples-opt="false"
-                      :exclude-idle-samples-selected="false"
-                      :only-unsafe-allocation-samples-opt="true"
-                      :only-unsafe-allocation-samples-selected="true"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in nativeLeakEvents" :key="index"
-                      title="Native Allocation Leaks"
-                      color="pink"
-                      icon="bi-memory"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="false"
-                      weight-desc="Total Allocation"
-                      :weight-opt="true"
-                      :weight-selected="true"
-                      :weight-formatter="FormattingService.formatBytes"
-                      :exclude-non-java-samples-opt="false"
-                      :exclude-non-java-samples-selected="false"
-                      :exclude-idle-samples-opt="false"
-                      :exclude-idle-samples-selected="false"
-                      :only-unsafe-allocation-samples-opt="true"
-                      :only-unsafe-allocation-samples-selected="true"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-
-      <FlamegraphCard v-if="loaded" v-for="(event, index) in blockingEvents" :key="index"
-                      :title="event.label"
-                      color="red"
-                      icon="bi-lock"
-                      :thread-mode-opt="true"
-                      :thread-mode-selected="false"
-                      :weight-opt="true"
-                      :weight-selected="true"
-                      weight-desc="Blocked Time"
-                      :weight-formatter="FormattingService.formatDuration2Units"
-                      :exclude-non-java-samples-opt="false"
-                      :exclude-non-java-samples-selected="false"
-                      :exclude-idle-samples-opt="false"
-                      :exclude-idle-samples-selected="false"
-                      :only-unsafe-allocation-samples-opt="false"
-                      :only-unsafe-allocation-samples-selected="false"
-                      :graph-mode="GraphType.PRIMARY"
-                      :event="event"
-                      :enabled="loaded" />
-    </div>
-  </PageHeader>
+    <FlamegraphCardGrid
+      :graph-mode="GraphType.PRIMARY"
+      :execution-sample-events="executionSampleEvents"
+      :method-trace-events="methodTraceEvents"
+      :object-allocation-events="objectAllocationEvents"
+      :wall-clock-events="wallClockEvents"
+      :blocking-events="blockingEvents"
+      :native-allocation-events="nativeAllocationEvents"
+      :native-leak-events="nativeLeakEvents"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import {onBeforeMount, ref} from "vue";
-import FormattingService from "@/services/FormattingService";
-import FlamegraphCard from "@/components/FlamegraphCard.vue";
 import GraphType from "@/services/flamegraphs/GraphType";
-import {useRoute} from "vue-router";
-import EventSummary from "@/services/flamegraphs/model/EventSummary";
-import EventSummariesClient from "@/services/flamegraphs/client/EventSummariesClient";
-import EventTypes from "@/services/EventTypes.ts";
 import PageHeader from '@/components/layout/PageHeader.vue';
-import { useNavigation } from '@/composables/useNavigation';
+import LoadingState from '@/components/LoadingState.vue';
+import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
+import { useFlamegraphEvents } from '@/composables/useFlamegraphEvents';
 
-const objectAllocationEvents: EventSummary[] = []
-const executionSampleEvents: EventSummary[] = []
-const methodTraceEvents: EventSummary[] = []
-const blockingEvents: EventSummary[] = []
-const wallClockEvents: EventSummary[] = []
-const nativeAllocationEvents: EventSummary[] = []
-const nativeLeakEvents: EventSummary[] = []
-
-const loaded = ref<boolean>(false)
-
-const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
-
-onBeforeMount(() => {
-  EventSummariesClient.primary(workspaceId.value!, projectId.value!, route.params.profileId as string)
-      .then((data) => {
-        categorizeEventTypes(data)
-        loaded.value = true
-      })
-});
-
-function categorizeEventTypes(eventTypes: EventSummary[]) {
-  for (const event of eventTypes) {
-    if (EventTypes.isExecutionEventType(event.code)) {
-      executionSampleEvents.push(event)
-    } else if (EventTypes.isMethodTraceEventType(event.code)) {
-      methodTraceEvents.push(event)
-    } else if (EventTypes.isAllocationEventType(event.code)) {
-      objectAllocationEvents.push(event)
-    } else if (EventTypes.isBlockingEventType(event.code)) {
-      blockingEvents.push(event)
-    } else if (EventTypes.isWallClock(event.code)) {
-      wallClockEvents.push(event)
-    } else if (EventTypes.isMallocAllocationEventType(event.code)) {
-      nativeAllocationEvents.push(event)
-    } else if (EventTypes.isNativeLeakEventType(event.code)) {
-      nativeLeakEvents.push(event)
-    }
-  }
-}
+const {
+  loaded,
+  executionSampleEvents,
+  methodTraceEvents,
+  objectAllocationEvents,
+  wallClockEvents,
+  blockingEvents,
+  nativeAllocationEvents,
+  nativeLeakEvents
+} = useFlamegraphEvents(GraphType.PRIMARY);
 </script>
 
 <style scoped>
-.flamegraphs-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: #343a40;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-}
-
 .flamegraphs-primary-container .card {
   border: none;
   overflow: hidden;
-}
-
-/* Modern responsive grid for flamegraph cards */
-.flamegraph-grid {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  max-width: 1400px;
-}
-
-@media (min-width: 768px) {
-  .flamegraph-grid {
-    gap: 1.5rem;
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .flamegraph-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-  }
-}
-
-@media (min-width: 1440px) {
-  .flamegraph-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-  }
 }
 </style>

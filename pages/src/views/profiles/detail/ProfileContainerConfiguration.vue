@@ -1,23 +1,9 @@
 <template>
-  <!-- Container Not Available State -->
-  <ContainerNotAvailableAlert
-      v-if="isContainerDashboardDisabled"
-  />
+  <ContainerNotAvailableAlert v-if="isContainerDashboardDisabled" />
 
-  <!-- Loading State -->
-  <div v-else-if="loading" class="loading-overlay">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading Container configuration...</span>
-    </div>
-    <p class="mt-2">Loading Container configuration...</p>
-  </div>
+  <LoadingState v-else-if="loading" message="Loading Container configuration..." />
 
-  <div v-else-if="error" class="error-state">
-    <div class="alert alert-danger d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-      Failed to load Container configuration
-    </div>
-  </div>
+  <ErrorState v-else-if="error" message="Failed to load Container configuration" />
 
   <div v-else>
     <!-- Header Section -->
@@ -37,7 +23,6 @@
 
     <!-- Configuration Overview Cards -->
     <div class="configuration-grid mb-4" v-if="configData?.configuration">
-      <!-- Host Information -->
       <DashboardCard
           title="Host Information"
           :valueA="formatBytes(configData?.configuration.hostTotalMemory || 0)"
@@ -47,7 +32,6 @@
           variant="highlight"
       />
 
-      <!-- Memory Configuration -->
       <DashboardCard
           title="Memory Limits"
           :valueA="getMemoryRequest(configData?.configuration)"
@@ -57,7 +41,6 @@
           variant="success"
       />
 
-      <!-- CPU Configuration -->
       <DashboardCard
           title="CPU Resources"
           :valueA="formatCpuShares(configData?.configuration.cpuShares)"
@@ -70,77 +53,56 @@
 
     <!-- Detailed Configuration Sections -->
     <div class="config-sections-grid" v-if="configData?.configuration">
-      <!-- Host Details -->
-      <div class="config-section">
-        <h5 class="section-title">
-          <i class="bi bi-server me-2"></i>
-          Host Information
-        </h5>
-        <div class="config-items">
-          <div class="config-item">
-            <span class="config-label">Container Type:</span>
-            <span class="config-value">{{ configData?.configuration.containerType || 'Unknown' }}</span>
-          </div>
-          <div class="config-item">
-            <span class="config-label">Effective CPU Count:</span>
-            <span class="config-value">{{ configData?.configuration.effectiveCpuCount || 'N/A' }}</span>
-          </div>
-          <div class="config-item">
-            <span class="config-label">Host Total Memory:</span>
-            <span class="config-value">{{ formatBytes(configData?.configuration.hostTotalMemory || 0) }}</span>
-          </div>
+      <ConfigurationSection title="Host Information" icon="bi-server">
+        <div class="config-item">
+          <span class="config-label">Container Type:</span>
+          <span class="config-value">{{ configData?.configuration.containerType || 'Unknown' }}</span>
         </div>
-      </div>
+        <div class="config-item">
+          <span class="config-label">Effective CPU Count:</span>
+          <span class="config-value">{{ configData?.configuration.effectiveCpuCount || 'N/A' }}</span>
+        </div>
+        <div class="config-item">
+          <span class="config-label">Host Total Memory:</span>
+          <span class="config-value">{{ formatBytes(configData?.configuration.hostTotalMemory || 0) }}</span>
+        </div>
+      </ConfigurationSection>
 
-      <!-- Memory Configuration -->
-      <div class="config-section">
-        <h5 class="section-title">
-          <i class="bi bi-memory me-2"></i>
-          Memory Configuration
-        </h5>
-        <div class="config-items">
-          <div class="config-item">
-            <span class="config-label">Memory Limit:</span>
-            <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memoryLimit) }}</span>
-          </div>
-          <div class="config-item">
-            <span class="config-label">Memory Soft Limit:</span>
-            <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memorySoftLimit) }}</span>
-          </div>
-          <div class="config-item">
-            <span class="config-label">Swap Memory Limit:</span>
-            <span class="config-value">{{ formatMemoryLimit(configData?.configuration.swapMemoryLimit) }}</span>
-          </div>
+      <ConfigurationSection title="Memory Configuration" icon="bi-memory">
+        <div class="config-item">
+          <span class="config-label">Memory Limit:</span>
+          <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memoryLimit) }}</span>
         </div>
-      </div>
+        <div class="config-item">
+          <span class="config-label">Memory Soft Limit:</span>
+          <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memorySoftLimit) }}</span>
+        </div>
+        <div class="config-item">
+          <span class="config-label">Swap Memory Limit:</span>
+          <span class="config-value">{{ formatMemoryLimit(configData?.configuration.swapMemoryLimit) }}</span>
+        </div>
+      </ConfigurationSection>
 
-      <!-- CPU Configuration -->
-      <div class="config-section">
-        <h5 class="section-title">
-          <i class="bi bi-cpu me-2"></i>
-          CPU Configuration
-        </h5>
-        <div class="config-items">
-          <div class="config-item">
-            <span class="config-label">CPU Shares:</span>
-            <span class="config-value">{{ formatCpuShares(configData?.configuration.cpuShares) }}</span>
-          </div>
-          <div class="config-item">
-            <span class="config-label">CPU Quota:</span>
-            <span class="config-value" v-if="configData?.configuration.cpuQuota">{{
-                formatDuration(configData?.configuration.cpuQuota)
-              }}</span>
-            <span class="config-value" v-else>-</span>
-          </div>
-          <div class="config-item">
-            <span class="config-label">CPU Slice Period:</span>
-            <span class="config-value" v-if="configData?.configuration.cpuSlicePeriod">{{
-                formatDuration(configData?.configuration.cpuSlicePeriod)
-              }}</span>
-            <span class="config-value" v-else>-</span>
-          </div>
+      <ConfigurationSection title="CPU Configuration" icon="bi-cpu">
+        <div class="config-item">
+          <span class="config-label">CPU Shares:</span>
+          <span class="config-value">{{ formatCpuShares(configData?.configuration.cpuShares) }}</span>
         </div>
-      </div>
+        <div class="config-item">
+          <span class="config-label">CPU Quota:</span>
+          <span class="config-value" v-if="configData?.configuration.cpuQuota">
+            {{ formatDuration(configData?.configuration.cpuQuota) }}
+          </span>
+          <span class="config-value" v-else>-</span>
+        </div>
+        <div class="config-item">
+          <span class="config-label">CPU Slice Period:</span>
+          <span class="config-value" v-if="configData?.configuration.cpuSlicePeriod">
+            {{ formatDuration(configData?.configuration.cpuSlicePeriod) }}
+          </span>
+          <span class="config-value" v-else>-</span>
+        </div>
+      </ConfigurationSection>
     </div>
 
     <div v-else class="alert alert-info">
@@ -151,18 +113,20 @@
 </template>
 
 <script setup lang="ts">
-import {computed, defineProps, onMounted, ref, withDefaults} from 'vue';
+import {computed, onMounted, ref, withDefaults} from 'vue';
 import {useRoute} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardCard from '@/components/DashboardCard.vue';
+import ConfigurationSection from '@/components/ConfigurationSection.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import ErrorState from '@/components/ErrorState.vue';
 import ProfileContainerClient from '@/services/profile/container/ProfileContainerClient';
 import ContainerConfigurationData from '@/services/profile/container/ContainerConfigurationData';
 import FormattingService from '@/services/FormattingService';
 import FeatureType from '@/services/profile/features/FeatureType';
 import ContainerNotAvailableAlert from '@/components/alerts/ContainerNotAvailableAlert.vue';
 
-// Define props
 interface Props {
   disabledFeatures?: FeatureType[];
 }
@@ -179,12 +143,10 @@ const loading = ref(true);
 const error = ref(false);
 const configData = ref<ContainerConfigurationData | null>(null);
 
-// Check if container dashboard is disabled
 const isContainerDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.CONTAINER_DASHBOARD);
 });
 
-// Container client - will be initialized when workspace/project IDs are available
 let containerClient: ProfileContainerClient;
 
 const loadData = async () => {
@@ -194,7 +156,6 @@ const loadData = async () => {
     loading.value = true;
     error.value = false;
 
-    // Initialize client if needed
     if (!containerClient) {
       containerClient = new ProfileContainerClient(workspaceId.value, projectId.value, profileId);
     }
@@ -235,18 +196,13 @@ const formatCpuShares = (shares: number | undefined): string => {
 
 const getMemoryRequest = (config: any): string => {
   if (!config) return '-';
-
-  // If Memory Soft Limit exists and is not 0, use it as Request
   if (config.memorySoftLimit && config.memorySoftLimit !== 0 && config.memorySoftLimit !== -1) {
     return formatMemoryLimit(config.memorySoftLimit);
   }
-
-  // Otherwise, use Memory Limit as both Request and Limit
   return formatMemoryLimit(config.memoryLimit);
 };
 
 onMounted(() => {
-  // Only load data if the feature is not disabled
   if (!isContainerDashboardDisabled.value) {
     loadData();
   }
@@ -254,26 +210,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.loading-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
-.error-state {
-  margin: 2rem 0;
-}
-
-/* Configuration Grid */
 .configuration-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
 
-/* Configuration Sections Grid */
 .config-sections-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -281,68 +223,12 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
-/* 3 columns on large screens */
 @media (min-width: 1400px) {
   .config-sections-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* Configuration Sections */
-.config-section {
-  background: #fafbfc;
-  border-radius: 6px;
-  padding: 1.25rem;
-  border: 1px solid #e9ecef;
-  transition: background-color 0.2s ease;
-}
-
-.config-section:hover {
-  background: #f8f9fa;
-}
-
-.section-title {
-  color: #6c757d;
-  font-weight: 500;
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.config-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.config-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eaecef;
-}
-
-.config-item:last-child {
-  border-bottom: none;
-}
-
-.config-label {
-  font-weight: 500;
-  color: #6c757d;
-  font-size: 0.875rem;
-}
-
-.config-value {
-  font-weight: 600;
-  color: #212529;
-  font-size: 0.875rem;
-}
-
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .configuration-grid {
     grid-template-columns: repeat(2, 1fr);
