@@ -82,4 +82,9 @@ public class RootInternalResource {
     public ProfilerResource profilerResource() {
         return new ProfilerResource(profilerManager);
     }
+
+    @Path("/simulate")
+    public SimulateResource simulateResource() {
+        return new SimulateResource();
+    }
 }
