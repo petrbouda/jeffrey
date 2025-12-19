@@ -23,7 +23,7 @@ import java.util.List;
 
 public record RecordingSession(
         String id,
-        String originId,
+        String name,
         Instant createdAt,
         RecordingStatus status,
         SupportedRecordingFile recordingFileType,

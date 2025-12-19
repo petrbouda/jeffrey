@@ -35,7 +35,7 @@ public record RecordingSessionResponse(
     public static RecordingSessionResponse from(RecordingSession session) {
         return new RecordingSessionResponse(
                 session.id(),
-                session.originId(),
+                session.name(),
                 session.createdAt(),
                 session.status(),
                 session.profilerSettings(),
