@@ -13,6 +13,10 @@ import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import BaseModal from '@/components/BaseModal.vue';
+import '@/styles/shared-components.css';
 
 const toast = ToastService;
 const recordings = ref<Recording[]>([]);
@@ -106,9 +110,10 @@ const downloadFile = async (recordingId: string, fileId: string) => {
 };
 
 const folders = ref<RecordingFolder[]>([]);
-const createFolderDialog = ref(false);
 const newFolderName = ref('');
 const selectedFolderId = ref<string | null>(null);
+// Create folder modal ref
+const createFolderModal = ref<InstanceType<typeof BaseModal>>();
 
 // Track profile creation states for each recording
 const profileCreationStates = ref<Map<string, boolean>>(new Map());
@@ -274,7 +279,7 @@ const handleFileUpload = (event) => {
 
 const createFolder = async () => {
   if (!newFolderName.value.trim()) {
-    toast.warn('Validation Error', 'Folder name cannot be empty');
+    createFolderModal.value?.setValidationErrors(['Folder name cannot be empty']);
     return;
   }
 
@@ -284,24 +289,18 @@ const createFolder = async () => {
 
     // Reset form and close dialog
     newFolderName.value = '';
-    createFolderDialog.value = false;
+    createFolderModal.value?.hideModal();
 
     // Refresh data
     await loadData();
   } catch (error: any) {
-    toast.error('Failed to create folder', error.message);
+    createFolderModal.value?.setValidationErrors([error.message || 'Failed to create folder']);
   }
 };
 
 const openCreateFolderDialog = () => {
-  createFolderDialog.value = true;
-  // Focus the input field after dialog is shown
-  nextTick(() => {
-    const inputEl = document.getElementById('newFolderNameInput');
-    if (inputEl) {
-      inputEl.focus();
-    }
-  });
+  newFolderName.value = '';
+  createFolderModal.value?.showModal();
 };
 
 const uploadRecordings = async () => {
@@ -550,18 +549,14 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
     <!-- Recordings List -->
     <div class="col-12">
-      <div v-if="loading" class="modern-empty-state loading">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <p class="mt-3">Loading recordings...</p>
-      </div>
+      <LoadingState v-if="loading" message="Loading recordings..." />
 
-      <div v-else-if="recordings.length === 0 && folders.length === 0" class="modern-empty-state">
-        <i class="bi bi-folder-x display-4 text-muted"></i>
-        <h5 class="mt-3">No Recordings Available</h5>
-        <p class="text-muted">Upload a JFR file or create a folder to get started.</p>
-      </div>
+      <EmptyState
+        v-else-if="recordings.length === 0 && folders.length === 0"
+        icon="bi-folder-x"
+        title="No Recordings Available"
+        description="Upload a JFR file or create a folder to get started."
+      />
 
       <div v-else>
             <!-- Folders with their recordings -->
@@ -833,33 +828,28 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
       />
 
       <!-- Create Folder Dialog -->
-      <div class="modal" :class="{ 'd-block': createFolderDialog, 'd-none': !createFolderDialog }">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Create New Folder</h5>
-              <button type="button" class="btn-close" @click="createFolderDialog = false"></button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label for="newFolderNameInput" class="form-label">Folder Name</label>
-                <input
-                    type="text"
-                    class="form-control"
-                    id="newFolderNameInput"
-                    v-model="newFolderName"
-                    placeholder="Enter folder name"
-                    @keyup.enter="createFolder"
-                >
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="createFolderDialog = false">Cancel</button>
-              <button type="button" class="btn btn-primary" @click="createFolder">Create</button>
-            </div>
+      <BaseModal
+        ref="createFolderModal"
+        modal-id="createFolderModal"
+        title="Create New Folder"
+        icon="bi-folder-plus"
+        primary-button-text="Create"
+        @submit="createFolder"
+      >
+        <template #body>
+          <div class="form-group">
+            <label for="newFolderNameInput" class="form-label">Folder Name</label>
+            <input
+                type="text"
+                class="form-control"
+                id="newFolderNameInput"
+                v-model="newFolderName"
+                placeholder="Enter folder name"
+                @keyup.enter="createFolder"
+            >
           </div>
-        </div>
-      </div>
+        </template>
+      </BaseModal>
     </div>
   </PageHeader>
 </template>

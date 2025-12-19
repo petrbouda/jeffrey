@@ -3,7 +3,6 @@
     :modal-id="modalId"
     title="Create a Profiler Settings Synchronizer Job"
     icon="bi-cpu"
-    icon-color="text-orange"
     primary-button-text="Save Job"
     primary-button-icon="bi-save"
     :show-description-card="true"

@@ -3,7 +3,6 @@
     :modal-id="modalId"
     title="Create a Workspace Events Replicator Job"
     icon="bi-database-up"
-    icon-color="text-teal"
     primary-button-text="Save Job"
     primary-button-icon="bi-save"
     :show-description-card="true"

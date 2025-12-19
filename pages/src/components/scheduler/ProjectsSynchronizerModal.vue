@@ -3,7 +3,6 @@
     :modal-id="modalId"
     title="Create a Projects Synchronization Job"
     icon="bi-arrow-repeat"
-    icon-color="text-purple"
     primary-button-text="Save Job"
     primary-button-icon="bi-save"
     :show-description-card="true"

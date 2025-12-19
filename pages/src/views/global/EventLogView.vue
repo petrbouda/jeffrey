@@ -1,11 +1,15 @@
 <template>
-  <div>
+  <PageHeader
+    title="Event Logs"
+    description="View and monitor events across workspaces. Track project and session lifecycle events."
+    icon="bi-journal-text"
+  >
     <!-- Workspace Selector -->
-    <div class="workspace-selector-card mb-4">
-      <div class="workspace-selector-content">
+    <div class="main-card mb-4">
+      <div class="main-card-content">
         <div class="workspace-cards-container">
           <div class="workspace-cards-header">
-            <span class="workspace-label">Event Logs</span>
+            <span class="workspace-label">Select Workspace</span>
           </div>
           <div class="workspace-cards-grid">
             <WorkspaceSelectionCard
@@ -24,24 +28,19 @@
     </div>
 
     <!-- Events Timeline -->
-    <div class="events-main-card mb-4">
-      <div class="events-main-content">
+    <div class="main-card mb-4">
+      <div class="main-card-header">
+        <i class="bi bi-clock-history main-card-header-icon"></i>
+        <h5 class="main-card-header-title">Events Timeline</h5>
+      </div>
+      <div class="main-card-content">
         <!-- Filters and Search -->
         <div class="d-flex align-items-center mb-4 gap-3">
-          <div class="search-box">
-            <div class="input-group input-group-sm phoenix-search">
-              <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
-                <i class="bi bi-search text-primary"></i>
-              </span>
-              <input
-                type="text"
-                class="form-control border-0 py-2"
-                v-model="searchQuery"
-                placeholder="Search events..."
-                @input="filterEvents"
-              >
-            </div>
-          </div>
+          <SearchBox
+            v-model="searchQuery"
+            placeholder="Search events..."
+            @update:model-value="filterEvents"
+          />
           <div class="filter-dropdown">
             <select class="form-select" v-model="selectedEventType" @change="filterEvents">
               <option value="">All Events</option>
@@ -52,20 +51,16 @@
             </select>
           </div>
         </div>
+
         <!-- Loading indicator -->
-        <div v-if="loading" class="text-center py-4">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <p class="mt-2">Loading workspace events...</p>
-        </div>
+        <LoadingState v-if="loading" message="Loading workspace events..." />
 
         <!-- Error state -->
-        <div v-else-if="errorMessage" class="text-center py-4">
-          <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
+        <div v-else-if="errorMessage" class="error-state">
+          <i class="bi bi-exclamation-triangle-fill"></i>
           <h5>Failed to load events</h5>
-          <p class="text-muted">{{ errorMessage }}</p>
-          <button class="btn btn-primary mt-2" @click="refreshEvents">
+          <p>{{ errorMessage }}</p>
+          <button class="btn btn-primary" @click="refreshEvents">
             <i class="bi bi-arrow-clockwise me-2"></i>Retry
           </button>
         </div>
@@ -88,12 +83,17 @@
                     :uppercase="false"
                   />
                   <span class="event-ids">
-                    {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }} • {{ event.createdBy }}
+                    {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }}
                   </span>
                   <div class="event-time-info">
                     <span class="event-time-full">{{ FormattingService.formatTimestamp(event.originCreatedAt) }}</span>
                     <span class="event-time-relative">{{ FormattingService.formatRelativeTime(event.originCreatedAt) }}</span>
                   </div>
+                </div>
+                <div class="event-second-line">
+                  <span class="event-created-by">
+                    <i class="bi bi-person-fill me-1"></i>{{ event.createdBy }}
+                  </span>
                 </div>
                 <div class="event-content-pairs">
                   <span 
@@ -123,12 +123,12 @@
         </div>
 
         <!-- Empty state -->
-        <div v-else class="text-center py-5">
-          <i class="bi bi-journal-text fs-1 text-muted mb-3"></i>
-          <h5>No events found</h5>
-          <p v-if="selectedWorkspace" class="text-muted">No events found for the selected workspace</p>
-          <p v-else class="text-muted">No events match your current filters</p>
-        </div>
+        <EmptyState
+          v-else
+          icon="bi-journal-text"
+          title="No Events Found"
+          :description="selectedWorkspace ? 'No events found for the selected workspace.' : 'No events match your current filters.'"
+        />
       </div>
     </div>
 
@@ -185,7 +185,7 @@
         </div>
       </template>
     </BaseModal>
-  </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -200,6 +200,10 @@ import FormattingService from '@/services/FormattingService';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import Badge from '@/components/Badge.vue';
 import BaseModal from '@/components/BaseModal.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
+import SearchBox from '@/components/SearchBox.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import '@/styles/shared-components.css';
 
 // Workspaces data
@@ -430,26 +434,9 @@ onMounted(async () => {
   min-width: 200px;
 }
 
-/* Modern Card Styling */
-.workspace-selector-card,
-.events-main-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 16px;
-  box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
-}
-
-.workspace-selector-content,
-.events-main-content {
-  padding: 24px 28px;
-}
-
 /* Workspace Cards */
 .workspace-label {
-  color: #374151;
+  color: var(--color-text, #374151);
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -466,8 +453,6 @@ onMounted(async () => {
   grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
   gap: 12px;
 }
-
-/* Workspace card styles moved to WorkspaceSelectionCard component */
 
 /* Events List */
 .events-list {
@@ -516,7 +501,7 @@ onMounted(async () => {
 
 .event-ids {
   font-size: 0.65rem;
-  color: #8b95a7;
+  color: var(--color-text-muted, #8b95a7);
   font-weight: 400;
   opacity: 0.8;
   letter-spacing: 0.1px;
@@ -533,17 +518,32 @@ onMounted(async () => {
 
 .event-time-relative {
   font-size: 0.7rem;
-  color: #374151;
+  color: var(--color-text, #374151);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .event-time-full {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   font-weight: 400;
   opacity: 0.8;
   white-space: nowrap;
+}
+
+.event-second-line {
+  margin-bottom: 0.4rem;
+}
+
+.event-created-by {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #6b7280);
+  font-weight: 500;
+}
+
+.event-created-by i {
+  font-size: 0.65rem;
+  opacity: 0.7;
 }
 
 .event-content-pairs {
@@ -555,19 +555,19 @@ onMounted(async () => {
 .content-pair {
   display: inline;
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   margin-right: 12px;
   white-space: nowrap;
 }
 
 .content-key {
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   font-weight: 500;
   margin-right: 4px;
 }
 
 .content-value {
-  color: #374151;
+  color: var(--color-text, #374151);
   font-weight: 500;
   max-width: 120px;
   overflow: hidden;
@@ -576,12 +576,12 @@ onMounted(async () => {
 
 .attribute-pair {
   .content-key {
-    color: #9ca3af;
+    color: var(--color-text-muted, #9ca3af);
     font-style: italic;
   }
 
   .content-value {
-    color: #6b7280;
+    color: var(--color-text-muted, #6b7280);
   }
 }
 
@@ -621,7 +621,7 @@ onMounted(async () => {
 
 .label {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -630,7 +630,7 @@ onMounted(async () => {
 .value {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--color-text, #374151);
   font-weight: 500;
   word-break: break-all;
   background: rgba(94, 100, 255, 0.06);
@@ -644,7 +644,7 @@ onMounted(async () => {
 }
 
 .content-header {
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   font-size: 0.75rem;
   font-weight: 600;
   margin-bottom: 8px;
@@ -658,7 +658,7 @@ onMounted(async () => {
   border-radius: 6px;
   padding: 12px;
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--color-text, #374151);
   max-height: 250px;
   overflow-y: auto;
   margin: 0;
@@ -672,7 +672,7 @@ onMounted(async () => {
   border-radius: 12px;
   height: 48px;
   font-size: 0.9rem;
-  color: #374151;
+  color: var(--color-text, #374151);
   font-weight: 500;
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
 

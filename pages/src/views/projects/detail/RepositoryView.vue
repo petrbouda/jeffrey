@@ -272,6 +272,17 @@ const getStatusVariant = (status: RecordingStatus): string => {
   }
 };
 
+const getStatusDotClass = (status: RecordingStatus): string => {
+  switch (status) {
+    case RecordingStatus.ACTIVE:
+      return 'status-dot-active';
+    case RecordingStatus.FINISHED:
+      return 'status-dot-finished';
+    case RecordingStatus.UNKNOWN:
+    default:
+      return 'status-dot-unknown';
+  }
+};
 
 const getFileTypeVariant = (fileType: string): string => {
   switch (fileType) {
@@ -612,23 +623,17 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
               <div class="folder-row p-3 rounded"
                    :class="getSessionStatusClass(session)"
                    @click="toggleSession(session.id)">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="d-flex align-items-center">
-                    <i class="bi fs-5 me-3 text-primary"
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="d-flex align-items-start">
+                    <i class="bi fs-4 me-3 text-primary"
                        :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                    <div class="toggle-arrow-container me-2">
-                      <i class="bi"
-                         :class="expandedSessions[session.id] ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                    </div>
                     <div>
-                      <div class="fw-bold">
-                        {{ session.originId }}
-                        <Badge :value="session.id" variant="light" size="xs" class="ms-2" title="Internal ID"/>
-                        <Badge :value="`${getSourcesCount(session)} sources`" variant="primary" size="xs" class="ms-1"/>
-                        <Badge :value="Utils.capitalize(session.status.toLowerCase())"
-                               :variant="getStatusVariant(session.status)" size="xs" class="ms-1"/>
-                        <Badge :value="`${formatDate(session.createdAt)}`"
-                               variant="light" size="xs" class="ms-1"/>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="status-dot" :class="getStatusDotClass(session.status)"></span>
+                        <span class="fw-bold session-name">{{ session.name }}</span>
+                      </div>
+                      <div class="session-metadata">
+                        {{ getSourcesCount(session) }} sources · {{ formatDate(session.createdAt) }} · {{ session.id }}
                       </div>
                     </div>
                   </div>
@@ -1323,19 +1328,40 @@ code {
   }
 }
 
-.toggle-arrow-container {
-  width: 24px;
-  height: 24px;
-  font-size: 1rem;
-  color: #5e64ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+/* Session header layout */
+.session-name {
+  font-size: 0.95rem;
+  color: #1f2937;
 }
 
-.toggle-arrow-container:hover {
-  transform: translateY(-1px);
+.session-metadata {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 2px;
+  margin-left: 18px;
+}
+
+/* Status dot indicator */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot-active {
+  background-color: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+}
+
+.status-dot-finished {
+  background-color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.status-dot-unknown {
+  background-color: #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
 }
 
 /* Form switch styling */

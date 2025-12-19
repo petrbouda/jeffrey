@@ -71,7 +71,7 @@ const router = createRouter({
                 {
                   path: 'settings',
                   name: 'project-settings',
-                  component: () => import('@/views/global/SettingsView.vue'),
+                  component: () => import('@/views/projects/detail/SettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {

@@ -5,28 +5,15 @@
     icon="bi-person-vcard"
   >
     <!-- Search Box -->
-    <div class="search-box mb-3">
-      <div class="input-group input-group-sm phoenix-search">
-        <span class="input-group-text border-0 ps-3 pe-0 search-icon-container">
-          <i class="bi bi-search text-primary"></i>
-        </span>
-        <input
-            type="text"
-            class="form-control border-0 py-2"
-            placeholder="Search profiles..."
-            v-model="searchQuery"
-            @input="filterProfiles"
-        >
-      </div>
-    </div>
+    <SearchBox
+      v-model="searchQuery"
+      placeholder="Search profiles..."
+      @update:model-value="filterProfiles"
+      class="mb-3"
+    />
 
     <!-- Loading Indicator -->
-    <div v-if="loading" class="text-center py-4">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p class="mt-2">Loading profiles...</p>
-    </div>
+    <LoadingState v-if="loading" message="Loading profiles..." />
 
     <!-- Profiles Table -->
     <div v-else class="table-responsive">
@@ -81,8 +68,12 @@
           </td>
         </tr>
         <tr v-if="filteredProfiles.length === 0 && !loading">
-          <td colspan="4" class="text-center py-3">
-            No profiles found. Create a new profile to get started.
+          <td colspan="4">
+            <EmptyState
+              icon="bi-person-vcard"
+              title="No Profiles Found"
+              description="No profiles found. Create a new profile from a recording to get started."
+            />
           </td>
         </tr>
         </tbody>
@@ -91,43 +82,30 @@
   </PageHeader>
 
   <!-- Edit Profile Modal -->
-  <div class="modal fade" id="editProfileModal" tabindex="-1"
-       :class="{ 'show': showEditProfileModal, 'd-block': showEditProfileModal }"
-       :style="{ display: showEditProfileModal ? 'block' : 'none' }">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Profile</h5>
-          <button type="button" class="btn-close" @click="showEditProfileModal = false"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="editProfileName" class="form-label">Profile Name</label>
-            <input
-                type="text"
-                class="form-control"
-                id="editProfileName"
-                v-model="editProfileName"
-                @keyup.enter="updateProfile"
-                placeholder="Enter profile name"
-            >
-          </div>
-          <div v-if="errorMessage" class="alert alert-danger mt-2">
-            {{ errorMessage }}
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showEditProfileModal = false">
-            Cancel
-          </button>
-          <button type="button" class="btn btn-primary" @click="updateProfile" :disabled="updatingProfile">
-            <span v-if="updatingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
-            Update
-          </button>
-        </div>
+  <BaseModal
+    ref="editProfileModal"
+    modal-id="editProfileModal"
+    title="Edit Profile"
+    icon="bi-pencil"
+    primary-button-text="Update"
+    :loading="updatingProfile"
+    @submit="updateProfile"
+    @cancel="closeEditModal"
+  >
+    <template #body>
+      <div class="mb-3">
+        <label for="editProfileName" class="form-label">Profile Name</label>
+        <input
+            type="text"
+            class="form-control"
+            id="editProfileName"
+            v-model="editProfileName"
+            @keyup.enter="updateProfile"
+            placeholder="Enter profile name"
+        >
       </div>
-    </div>
-  </div>
+    </template>
+  </BaseModal>
 
   <!-- Delete Profile Confirmation Modal -->
   <ConfirmationDialog
@@ -158,8 +136,13 @@ import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import SearchBox from '@/components/SearchBox.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import BaseModal from '@/components/BaseModal.vue';
 import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
 import { useNavigation } from '@/composables/useNavigation';
+import '@/styles/shared-components.css';
 
 const { workspaceId, projectId, generateProfileUrl } = useNavigation();
 
@@ -203,7 +186,6 @@ const removeDeletingProfile = (profileId: string) => {
 const profiles = ref<Profile[]>([]);
 const filteredProfiles = ref<Profile[]>([]);
 const searchQuery = ref('');
-const showEditProfileModal = ref(false);
 const editProfileName = ref('');
 const selectedProfileId = ref('');
 const errorMessage = ref('');
@@ -214,6 +196,8 @@ const pollInterval = ref<number | null>(null);
 const deleteProfileDialog = ref(false);
 const profileToDelete = ref<Profile | null>(null);
 const deletingProfile = ref(false);
+// Edit modal ref
+const editProfileModal = ref<InstanceType<typeof BaseModal>>();
 
 // Fetch profiles on component mount
 onMounted(async () => {
@@ -290,21 +274,24 @@ const editProfile = (profile: Profile) => {
   selectedProfileId.value = profile.id;
   editProfileName.value = profile.name;
   errorMessage.value = '';
-  showEditProfileModal.value = true;
+  editProfileModal.value?.showModal();
+};
+
+const closeEditModal = () => {
+  editProfileModal.value?.hideModal();
 };
 
 const updateProfile = async () => {
   if (!editProfileName.value || editProfileName.value.trim() === '') {
-    errorMessage.value = 'Profile name cannot be empty';
+    editProfileModal.value?.setValidationErrors(['Profile name cannot be empty']);
     return;
   }
 
-  errorMessage.value = '';
   updatingProfile.value = true;
 
   try {
     const updatedProfile = await profileClient.update(selectedProfileId.value, editProfileName.value.trim());
-    
+
     // Update the profile in the local array
     const profileIndex = profiles.value.findIndex(p => p.id === selectedProfileId.value);
     if (profileIndex !== -1) {
@@ -316,12 +303,12 @@ const updateProfile = async () => {
     const updatedName = editProfileName.value;
     selectedProfileId.value = '';
     editProfileName.value = '';
-    showEditProfileModal.value = false;
+    editProfileModal.value?.hideModal();
 
     ToastService.success('Profile Updated!', 'Profile "' + updatedName + '" successfully updated!');
   } catch (error) {
     console.error('Failed to update profile:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to update profile';
+    editProfileModal.value?.setValidationErrors([error instanceof Error ? error.message : 'Failed to update profile']);
   } finally {
     updatingProfile.value = false;
   }
@@ -412,42 +399,5 @@ const stopPolling = () => {
 </script>
 
 <style scoped>
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-/* Add styling for modal header to properly position the close button */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header .btn-close {
-  margin: -0.5rem -0.5rem -0.5rem auto;
-  padding: 0.5rem;
-}
-
-.phoenix-search {
-  border: 1px solid #e0e5eb;
-  border-radius: 0.375rem;
-  overflow: hidden;
-
-  .search-icon-container {
-    width: 40px;
-    display: flex;
-    justify-content: center;
-    background-color: transparent;
-  }
-
-  .form-control {
-    height: 40px;
-    font-size: 0.9rem;
-
-    &:focus {
-      box-shadow: none;
-    }
-  }
-}
-
+/* Minimal scoped styles - shared styles come from shared-components.css */
 </style>

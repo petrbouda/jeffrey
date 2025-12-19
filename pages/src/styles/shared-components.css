@@ -21,6 +21,7 @@
 .main-card-header {
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 16px 16px 0 0;
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -29,13 +30,13 @@
 
 .main-card-header-icon {
   font-size: 1.25rem;
-  color: #5e64ff;
+  color: var(--color-primary, #5e64ff);
 }
 
 .main-card-header-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text, #1f2937);
   margin: 0;
 }
 
@@ -52,6 +53,7 @@
 .danger-card-header {
   background: linear-gradient(135deg, #fef2f2, #ffffff);
   border-bottom: 1px solid rgba(239, 68, 68, 0.12);
+  border-radius: 16px 16px 0 0;
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -113,12 +115,12 @@
   font-size: 0.9rem;
   background: transparent;
   border: none;
-  color: #374151;
+  color: var(--color-text, #374151);
   font-weight: 500;
 }
 
 .phoenix-search .form-control::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   font-weight: 400;
 }
 
@@ -136,12 +138,12 @@
 }
 
 .loading-container .spinner-border {
-  color: #5e64ff;
+  color: var(--color-primary, #5e64ff);
 }
 
 .loading-container p {
   margin-top: 0.5rem;
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   font-size: 0.9rem;
 }
 
@@ -155,18 +157,18 @@
 
 .empty-state i {
   font-size: 3rem;
-  color: #9ca3af;
+  color: var(--color-text-muted, #9ca3af);
   margin-bottom: 1rem;
 }
 
 .empty-state h5 {
-  color: #374151;
+  color: var(--color-text, #374151);
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .empty-state p {
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   margin-bottom: 0;
 }
 
@@ -194,4 +196,118 @@
 
 .btn-primary-gradient:active {
   transform: translateY(-1px);
+}
+
+/* ===========================================
+   Job Table Styles (Scheduler)
+   =========================================== */
+.job-icon-sm {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inline-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.param-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--color-bg-light, #f8f9fa);
+  border-radius: 0.125rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text, #495057);
+  border: 1px solid var(--color-border, #e9ecef);
+}
+
+.param-key {
+  font-weight: 600;
+  margin-right: 0.25rem;
+  color: var(--color-text-muted, #6c757d);
+}
+
+.param-value {
+  color: var(--color-text-dark, #212529);
+}
+
+/* Disabled job styling */
+.disabled-job {
+  background-color: rgba(0, 0, 0, 0.03);
+  opacity: 0.75;
+}
+
+.disabled-job td {
+  color: #6c757d;
+}
+
+.disabled-job .param-badge {
+  background-color: #f1f3f5;
+  border-color: #dee2e6;
+}
+
+/* Job icon color variants */
+.bg-teal-soft {
+  background-color: rgba(32, 201, 151, 0.15);
+}
+
+.text-teal {
+  color: #20C997;
+}
+
+.bg-blue-soft {
+  background-color: rgba(13, 110, 253, 0.15);
+}
+
+.text-blue {
+  color: #0d6efd;
+}
+
+.bg-purple-soft {
+  background-color: rgba(111, 66, 193, 0.15);
+}
+
+.text-purple {
+  color: #6f42c1;
+}
+
+.bg-orange-soft {
+  background-color: rgba(253, 126, 20, 0.15);
+}
+
+.text-orange {
+  color: #fd7e14;
+}
+
+/* ===========================================
+   Error States
+   =========================================== */
+.error-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.error-state i {
+  font-size: 3rem;
+  color: var(--color-warning, #ffc107);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.error-state h5 {
+  color: var(--color-text, #374151);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-state p {
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 1rem;
 }

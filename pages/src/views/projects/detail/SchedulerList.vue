@@ -31,6 +31,10 @@ import RepositorySessionCleanerModal from "@/components/scheduler/modal/Reposito
 import PeriodicRecordingGeneratorModal from "@/components/scheduler/modal/PeriodicRecordingGeneratorModal.vue";
 import CopyRecordingGeneratorModal from "@/components/scheduler/modal/CopyRecordingGeneratorModal.vue";
 import PageHeader from '@/components/layout/PageHeader.vue';
+import JobsTable, { type JobDisplayInfo } from '@/components/scheduler/JobsTable.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import '@/styles/shared-components.css';
 
 const { workspaceId, projectId } = useNavigation();
 const currentProject = ref<SettingsResponse | null>(null);
@@ -151,6 +155,42 @@ const handleCreateJob = (jobType: string) => {
       break;
   }
 };
+
+// Get display info for jobs in the table
+const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
+  switch (job.jobType) {
+    case JobType.REPOSITORY_SESSION_CLEANER:
+      return {
+        title: 'Repository Session Cleaner',
+        icon: 'bi-trash',
+        iconColor: 'text-teal',
+        iconBg: 'bg-teal-soft'
+      };
+    case JobType.REPOSITORY_RECORDING_CLEANER:
+      return {
+        title: 'Repository Recording Cleaner',
+        icon: 'bi-trash',
+        iconColor: 'text-teal',
+        iconBg: 'bg-teal-soft'
+      };
+    case JobType.PERIODIC_RECORDING_GENERATOR:
+      return {
+        title: 'Periodic Recording Generator',
+        icon: 'bi-arrow-repeat',
+        iconColor: 'text-blue',
+        iconBg: 'bg-blue-soft'
+      };
+    case JobType.COPY_RECORDING_GENERATOR:
+      return {
+        title: 'Download Recording Generator',
+        icon: 'bi-clock-history',
+        iconColor: 'text-blue',
+        iconBg: 'bg-blue-soft'
+      };
+    default:
+      return null;
+  }
+};
 </script>
 
 <template>
@@ -159,14 +199,12 @@ const handleCreateJob = (jobType: string) => {
     description="Creates periodical jobs to manage data belonging to the given project, such as removing unnecessary old files from the repository."
     icon="bi-calendar-check"
   >
-    <!-- Job Types Card -->
-    <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-          <div class="row g-4">
-            <!-- Repository Session Cleaner -->
-            <div class="col-12 col-lg-6">
-              <JobCard
+    <!-- Job Types -->
+    <div class="col-12 mb-4">
+      <div class="row g-4">
+        <!-- Repository Session Cleaner -->
+        <div class="col-12 col-lg-6">
+          <JobCard
                   :job-type="JobType.REPOSITORY_SESSION_CLEANER"
                   title="Repository Session Cleaner"
                   description="Task for removing Repository Session older than the configured duration. Once a Repository Session is removed, all associated Recordings and Additional Files (e.g. HeapDup, PerfCounters, ...) are being removed as well."
@@ -233,143 +271,36 @@ const handleCreateJob = (jobType: string) => {
                   @create-job="handleCreateJob"
               />
             </div>
-
           </div>
-        </div>
-      </div>
     </div>
 
     <!-- Active Jobs Card -->
     <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-clock-history fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Active Jobs</h5>
-          </div>
+      <div class="main-card">
+        <div class="main-card-header">
+          <i class="bi bi-clock-history main-card-header-icon"></i>
+          <h5 class="main-card-header-title">Active Jobs</h5>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0" v-if="activeJobs.length > 0">
-              <thead class="table-light">
-              <tr>
-                <th scope="col" style="width: 30%">Job Type</th>
-                <th scope="col" style="width: 60%">Parameters</th>
-                <th scope="col" style="width: 10%" class="text-end">Actions</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="job in activeJobs" :key="job.id" :class="{'disabled-job': !job.enabled}">
-                <td>
-                  <div class="d-flex align-items-center">
-                    <!-- Repository Session Cleaner -->
-                    <template v-if="job.jobType === JobType.REPOSITORY_SESSION_CLEANER">
-                      <div class="job-icon-sm bg-teal-soft me-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-trash text-teal"></i>
-                      </div>
-                      <div>
-                        <div class="fw-medium">
-                          Repository Session Cleaner
-                          <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
-                        </div>
-                      </div>
-                    </template>
+        <div class="main-card-content p-0">
+          <!-- Loading state -->
+          <LoadingState v-if="isLoading" message="Loading scheduler information..." />
 
-                    <template v-if="job.jobType === JobType.REPOSITORY_RECORDING_CLEANER">
-                      <div class="job-icon-sm bg-teal-soft me-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-trash text-teal"></i>
-                      </div>
-                      <div>
-                        <div class="fw-medium">
-                          Repository Recording Cleaner
-                          <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
-                        </div>
-                      </div>
-                    </template>
+          <!-- Jobs table -->
+          <JobsTable
+            v-else-if="activeJobs.length > 0"
+            :jobs="activeJobs"
+            :get-job-display-info="getJobDisplayInfo"
+            @toggle-enabled="toggleJobEnabled"
+            @delete="deleteActiveTask"
+          />
 
-
-                    <!-- Periodic Recording Generator -->
-                    <template v-else-if="job.jobType === JobType.PERIODIC_RECORDING_GENERATOR">
-                      <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-arrow-repeat text-blue"></i>
-                      </div>
-                      <div>
-                        <div class="fw-medium">
-                          Periodic Recording Generator
-                          <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
-                        </div>
-                      </div>
-                    </template>
-
-                    <!-- Copy Recording Generator -->
-                    <template v-else-if="job.jobType === JobType.COPY_RECORDING_GENERATOR">
-                      <div class="job-icon-sm bg-blue-soft me-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-clock-history text-blue"></i>
-                      </div>
-                      <div>
-                        <div class="fw-medium">
-                          Download Recording Generator
-                          <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
-                        </div>
-                      </div>
-                    </template>
-                  </div>
-                </td>
-                <td>
-                  <div class="inline-params">
-                      <span v-for="(value, key) in job.params" :key="key" class="param-badge">
-                        <span class="param-key">{{ key }}:</span>
-                        <span class="param-value">{{ value }}</span>
-                      </span>
-                  </div>
-                </td>
-                <td class="text-end">
-                  <div class="d-flex justify-content-end gap-2">
-                    <button
-                        class="btn btn-sm"
-                        :class="job.enabled ? 'btn-outline-warning' : 'btn-outline-success'"
-                        @click="toggleJobEnabled(job)"
-                        :title="job.enabled ? 'Disable job' : 'Enable job'">
-                      <i class="bi" :class="job.enabled ? 'bi-pause-fill' : 'bi-play-fill'"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" @click="deleteActiveTask(job.id)" title="Delete job">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              </tbody>
-            </table>
-
-            <!-- Empty state for active jobs -->
-            <div class="text-center py-5" v-if="activeJobs.length === 0">
-              <div class="empty-state-icon mb-3">
-                <i class="bi bi-calendar-x fs-1 text-muted"></i>
-              </div>
-              <h6 class="fw-medium">No Active Jobs</h6>
-              <p class="text-muted mb-0">
-                There are no active scheduled jobs. Create a new job using the options above.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading Placeholder -->
-    <div class="col-12" v-if="isLoading">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-soft-blue d-flex justify-content-between align-items-center text-white py-3">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-calendar-check fs-4 me-2"></i>
-            <h5 class="card-title mb-0">Scheduler</h5>
-          </div>
-        </div>
-        <div class="card-body p-5 text-center">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <p class="mt-3">Loading scheduler information...</p>
+          <!-- Empty state -->
+          <EmptyState
+            v-else
+            icon="bi-calendar-x"
+            title="No Active Jobs"
+            description="There are no active scheduled jobs. Create a new job using the options above."
+          />
         </div>
       </div>
     </div>
@@ -402,88 +333,6 @@ const handleCreateJob = (jobType: string) => {
 </template>
 
 <style scoped>
-/* Card styling */
-.card {
-  border-radius: 0.25rem;
-  overflow: hidden;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-.card-header {
-  border-bottom: none;
-}
-
-.bg-soft-blue {
-  background-color: #5e64ff;
-}
-
-/* Job icons for table */
-.job-icon-sm {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 0.25rem;
-}
-
-/* Colors */
-.bg-teal-soft {
-  background-color: rgba(32, 201, 151, 0.15);
-}
-
-.text-teal {
-  color: #20C997;
-}
-
-.bg-blue-soft {
-  background-color: rgba(13, 110, 253, 0.15);
-}
-
-.text-blue {
-  color: #0d6efd;
-}
-
-/* Job Parameters styling */
-.inline-params {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.param-badge {
-  display: inline-flex;
-  align-items: center;
-  background-color: #f8f9fa;
-  border-radius: 0.125rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  color: #495057;
-  border: 1px solid #e9ecef;
-}
-
-.param-key {
-  font-weight: 600;
-  margin-right: 0.25rem;
-  color: #6c757d;
-}
-
-.param-value {
-  color: #212529;
-}
-
-/* Empty state styling */
-.empty-state-icon {
-  font-size: 3rem;
-  color: #ced4da;
-  margin-bottom: 1rem;
-}
-
-/* Badge styling */
-.badge {
-  font-weight: 500;
-  padding: 0.4em 0.65em;
-}
-
 /* Table styling */
 .table th {
   font-weight: 500;
@@ -495,39 +344,9 @@ const handleCreateJob = (jobType: string) => {
   vertical-align: middle;
 }
 
-.table-light {
-  background-color: #f8f9fa;
-}
-
-/* Shadow utilities */
-.shadow-sm {
-  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Disabled job styling */
-.disabled-job {
-  background-color: rgba(0, 0, 0, 0.03);
-  opacity: 0.75;
-}
-
-.disabled-job td {
-  color: #6c757d;
-}
-
-.disabled-job .param-badge {
-  background-color: #f1f3f5;
-  border-color: #dee2e6;
-}
-
-/* Typography utilities */
-.text-muted {
-  color: #6c757d !important;
-}
-
-/* Spinner styling */
-.spinner-border {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-width: 0.15em;
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.65em;
 }
 </style>

@@ -7,12 +7,7 @@
         <h5 class="main-card-header-title">Project Settings</h5>
       </div>
       <div class="main-card-content">
-        <div v-if="isLoading" class="loading-container">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <p>Loading project settings...</p>
-        </div>
+        <LoadingState v-if="isLoading" message="Loading project settings..." />
 
         <form v-else @submit.prevent="saveChanges">
           <div class="settings-form-section">
@@ -68,13 +63,16 @@
     </div>
   </div>
 
-  <!-- Confirmation Modal -->
-  <div class="modal fade" :class="{ 'show d-block': showDeleteConfirmation }" tabindex="-1" 
-       aria-labelledby="deleteConfirmationModal" :aria-hidden="!showDeleteConfirmation">
+  <!-- Delete Project Confirmation Modal -->
+  <div class="modal fade" :class="{ 'show d-block': showDeleteConfirmation }" tabindex="-1"
+       aria-labelledby="deleteProjectModal" :aria-hidden="!showDeleteConfirmation">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-danger-soft text-danger border-bottom-0">
-          <h5 class="modal-title">Confirm Delete</h5>
+      <div class="modal-content delete-modal-content">
+        <div class="modal-header delete-modal-header border-bottom-0">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-danger"></i>
+            <h5 class="modal-title mb-0">Confirm Delete</h5>
+          </div>
           <button type="button" class="btn-close" @click="closeDeleteConfirmation" :disabled="isDeleting"></button>
         </div>
         <div class="modal-body">
@@ -83,10 +81,10 @@
             <p class="mb-0">Please type <strong>{{ projectName }}</strong> to confirm:</p>
           </div>
           <div class="form-group">
-            <input 
-              type="text" 
-              class="form-control" 
-              v-model="deleteConfirmText" 
+            <input
+              type="text"
+              class="form-control"
+              v-model="deleteConfirmText"
               placeholder="Type project name here"
               :disabled="isDeleting"
             >
@@ -94,9 +92,9 @@
         </div>
         <div class="modal-footer border-top-0">
           <button type="button" class="btn btn-secondary" @click="closeDeleteConfirmation" :disabled="isDeleting">Cancel</button>
-          <button 
-            type="button" 
-            class="btn btn-danger" 
+          <button
+            type="button"
+            class="btn btn-danger"
             @click="deleteProject"
             :disabled="deleteConfirmText !== projectName || isDeleting"
           >
@@ -107,8 +105,6 @@
       </div>
     </div>
   </div>
-  
-  <!-- Modal Backdrop -->
   <div class="modal-backdrop fade show" v-if="showDeleteConfirmation"></div>
 </template>
 
@@ -120,6 +116,7 @@ import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
 import ProjectClient from '@/services/ProjectClient';
 import ToastService from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
+import LoadingState from '@/components/LoadingState.vue';
 import '@/styles/shared-components.css';
 
 const router = useRouter();
@@ -185,31 +182,27 @@ async function saveChanges() {
 
 // Open delete confirmation modal
 function openDeleteConfirmation() {
-  // Reset confirmation text
   deleteConfirmText.value = '';
-  // Show modal
   showDeleteConfirmation.value = true;
 }
 
 // Close delete confirmation modal
 function closeDeleteConfirmation() {
-  // Hide modal
   showDeleteConfirmation.value = false;
-  // Reset confirmation text
   deleteConfirmText.value = '';
 }
 
 // Delete project
 async function deleteProject() {
   if (deleteConfirmText.value !== projectName.value) return;
-  
+
   try {
     isDeleting.value = true;
     await projectClient.delete();
-    
+
     // Show success message
     ToastService.success('Project Deleted', 'Project has been successfully deleted');
-    
+
     // Redirect to projects list page
     setTimeout(() => {
       router.push('/projects');
@@ -237,7 +230,7 @@ async function deleteProject() {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text, #374151);
   margin-bottom: 8px;
 }
 
@@ -249,7 +242,7 @@ async function deleteProject() {
   font-size: 0.9rem;
   background: #ffffff;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #374151;
+  color: var(--color-text, #374151);
 }
 
 .settings-input:focus {
@@ -260,7 +253,7 @@ async function deleteProject() {
 
 .form-field-help {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   margin-top: 6px;
 }
 
@@ -274,12 +267,12 @@ async function deleteProject() {
 
 /* Danger Zone */
 .danger-description {
-  color: #6b7280;
+  color: var(--color-text-muted, #6b7280);
   font-size: 0.9rem;
   margin-bottom: 20px;
 }
 
-/* Modal styling */
+/* Delete Confirmation Modal */
 .modal.show {
   background-color: rgba(0, 0, 0, 0.5);
 }
@@ -292,27 +285,16 @@ async function deleteProject() {
   z-index: 1050;
 }
 
-.bg-danger-soft {
-  background-color: rgba(220, 53, 69, 0.15);
+.delete-modal-content {
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  border: 1px solid rgba(220, 53, 69, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
 }
 
-.modal-content {
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.modal-header {
-  border-radius: 12px 12px 0 0;
-}
-
-/* Loading state */
-.loading-container {
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
-.loading-container p {
-  margin-top: 0.75rem;
-  color: #6b7280;
+.delete-modal-header {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.05), rgba(220, 53, 69, 0.08));
+  border-radius: 16px 16px 0 0;
+  padding: 20px 24px;
 }
 </style>
