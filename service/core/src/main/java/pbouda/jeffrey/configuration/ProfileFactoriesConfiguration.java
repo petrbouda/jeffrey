@@ -93,13 +93,15 @@ public class ProfileFactoriesConfiguration {
     public ProfileCustomManager.Factory profileCustomManagerFactory(
             JdbcPoolManager.Factory jdbcPoolManagerFactory,
             JdbcStatementManager.Factory jdbcStatementManagerFactory,
-            HttpManager.Factory httpManagerFactory) {
+            HttpManager.Factory httpManagerFactory,
+            MethodTracingManager.Factory methodTracingManagerFactory) {
 
         return profileManager -> new ProfileCustomManagerImpl(
                 profileManager,
                 jdbcPoolManagerFactory,
                 jdbcStatementManagerFactory,
-                httpManagerFactory);
+                httpManagerFactory,
+                methodTracingManagerFactory);
     }
 
     @Bean

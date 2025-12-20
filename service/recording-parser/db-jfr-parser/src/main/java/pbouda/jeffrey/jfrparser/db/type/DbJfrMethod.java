@@ -23,6 +23,23 @@ import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 
 public record DbJfrMethod(String className, String methodName) implements JfrMethod, JfrClass {
 
+    public static JfrMethod of(String entity) {
+        if (entity == null || entity.isBlank()) {
+            return null;
+        }
+
+        String[] split = entity.split("#");
+        if (split.length == 0) {
+            return null;
+        }
+
+        if (split.length == 2) {
+            return new DbJfrMethod(split[0], split[1]);
+        } else {
+            return new DbJfrMethod(split[0], null);
+        }
+    }
+
     public static JfrClass ofClass(String className) {
         return new DbJfrMethod(className, null);
     }

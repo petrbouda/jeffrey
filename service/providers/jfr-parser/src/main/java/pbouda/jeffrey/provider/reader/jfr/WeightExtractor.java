@@ -45,6 +45,13 @@ public record WeightExtractor(
                 e -> e.getClass(entityClassField).getName());
     }
 
+    public static WeightExtractor duration(Function<RecordedEvent, String> entityExtractor) {
+        return new WeightExtractor(
+                e -> e.getDuration().toNanos(),
+                DurationUtils::formatNanos,
+                entityExtractor);
+    }
+
     public static WeightExtractor duration(String fieldName, Function<RecordedEvent, String> entityExtractor) {
         return new WeightExtractor(
                 e -> e.getLong(fieldName),

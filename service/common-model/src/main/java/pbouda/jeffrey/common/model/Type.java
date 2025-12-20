@@ -226,6 +226,10 @@ public record Type(String code, boolean calculated) {
         return this.code.equals(eventType.code);
     }
 
+    public boolean sameAs(String code) {
+        return this.code.equals(code);
+    }
+
     public static Optional<Type> getKnownType(String code) {
         return Optional.ofNullable(KNOWN_TYPES.get(code));
     }

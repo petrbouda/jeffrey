@@ -17,7 +17,7 @@
  */
 package pbouda.jeffrey.jfrparser.api.type;
 
-public interface JfrMethod {
+public interface JfrMethod extends JfrClass {
     JfrClass clazz();
 
     String methodName();

@@ -104,6 +104,11 @@ public class ProfileResource {
         return new HttpOverviewResource(profileManager.custom().httpManager());
     }
 
+    @Path("/method-tracing")
+    public MethodTracingResource methodTracingResource() {
+        return new MethodTracingResource(profileManager.custom().methodTracingManager());
+    }
+
     @Path("/gc")
     public GarbageCollectionResource gcOverviewResource() {
         return new GarbageCollectionResource(profileManager.gcManager());

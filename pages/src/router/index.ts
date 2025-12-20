@@ -271,6 +271,30 @@ const router = createRouter({
                   name: 'profile-application-jdbc-pool',
                   component: () => import('@/views/profiles/detail/application/ProfileJdbcPool.vue'),
                   meta: { layout: 'profile' }
+                },
+                {
+                  path: 'application/method-tracing/overview',
+                  name: 'profile-application-method-tracing-overview',
+                  component: () => import('@/views/profiles/detail/application/ProfileMethodTracingOverview.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'application/method-tracing/flamegraph',
+                  name: 'profile-application-method-tracing-flamegraph',
+                  component: () => import('@/views/profiles/detail/application/ProfileMethodTracingFlamegraph.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'application/method-tracing/slowest',
+                  name: 'profile-application-method-tracing-slowest',
+                  component: () => import('@/views/profiles/detail/application/ProfileMethodTracingSlowest.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'application/method-tracing/cumulated',
+                  name: 'profile-application-method-tracing-cumulated',
+                  component: () => import('@/views/profiles/detail/application/ProfileMethodTracingCumulated.vue'),
+                  meta: { layout: 'profile' }
                 }
           ]
             }

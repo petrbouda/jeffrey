@@ -363,6 +363,50 @@
                     <i class="bi bi-diagram-3"></i>
                     <span>JDBC Connection Pools</span>
                   </router-link>
+                  <!-- Method Tracing with Submenu -->
+                  <div class="nav-item-group">
+                    <div class="nav-item nav-item-parent"
+                         @click="toggleMethodTracingSubmenu"
+                         :class="{ 'active': $route.path.includes('/application/method-tracing'), 'expanded': methodTracingSubmenuExpanded }">
+                      <i class="bi bi-stopwatch"></i>
+                      <span>Method Tracing</span>
+                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': methodTracingSubmenuExpanded }"></i>
+                    </div>
+                    <div class="nav-submenu" :class="{ 'expanded': methodTracingSubmenuExpanded }">
+                      <router-link
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/overview`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Overview</span>
+                      </router-link>
+                      <router-link
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/flamegraph`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-fire"></i>
+                        <span>Flamegraph</span>
+                      </router-link>
+                      <router-link
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/slowest`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-hourglass-split"></i>
+                        <span>Slowest Traces</span>
+                      </router-link>
+                      <router-link
+                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/cumulated`"
+                          class="nav-item nav-subitem"
+                          active-class="active"
+                      >
+                        <i class="bi bi-layers"></i>
+                        <span>Cumulated Traces</span>
+                      </router-link>
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
@@ -523,6 +567,7 @@ const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
 const httpServerSubmenuExpanded = ref(false);
 const httpClientSubmenuExpanded = ref(false);
 const jdbcSubmenuExpanded = ref(false);
+const methodTracingSubmenuExpanded = ref(false);
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 const containerSubmenuExpanded = ref(false);
@@ -543,6 +588,9 @@ watch(() => route.path, (newPath) => {
   }
   if (newPath.includes('/application/jdbc/')) {
     jdbcSubmenuExpanded.value = true;
+  }
+  if (newPath.includes('/application/method-tracing')) {
+    methodTracingSubmenuExpanded.value = true;
   }
   if (newPath.includes('/heap-memory')) {
     heapMemorySubmenuExpanded.value = true;
@@ -680,6 +728,10 @@ const toggleHttpClientSubmenu = () => {
 
 const toggleJdbcSubmenu = () => {
   jdbcSubmenuExpanded.value = !jdbcSubmenuExpanded.value;
+};
+
+const toggleMethodTracingSubmenu = () => {
+  methodTracingSubmenuExpanded.value = !methodTracingSubmenuExpanded.value;
 };
 
 const toggleHeapMemorySubmenu = () => {

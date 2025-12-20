@@ -18,9 +18,13 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
+import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordedFrame;
+import jdk.jfr.consumer.RecordedStackTrace;
 import pbouda.jeffrey.common.model.Type;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static pbouda.jeffrey.common.model.Type.*;
@@ -32,7 +36,7 @@ public class WeightExtractorRegistry {
     static {
         REGISTRY = new HashMap<>();
         REGISTRY.put(NATIVE_LEAK, WeightExtractor.allocation("size"));
-        REGISTRY.put(METHOD_TRACE, WeightExtractor.duration());
+        REGISTRY.put(METHOD_TRACE, WeightExtractor.duration(WeightExtractorRegistry::extractFirstFrame));
         REGISTRY.put(MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
         REGISTRY.put(FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
         REGISTRY.put(JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));
@@ -51,5 +55,18 @@ public class WeightExtractorRegistry {
 
     public static WeightExtractor resolve(Type type) {
         return REGISTRY.get(type);
+    }
+
+    private static String extractFirstFrame(RecordedEvent event) {
+        RecordedStackTrace stackTrace = event.getStackTrace();
+        if (stackTrace == null || stackTrace.getFrames().isEmpty()) {
+            return null;
+        }
+        List<RecordedFrame> frames = stackTrace.getFrames();
+        if (frames.isEmpty()) {
+            return null;
+        }
+        RecordedFrame frame = frames.getFirst();
+        return frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
     }
 }

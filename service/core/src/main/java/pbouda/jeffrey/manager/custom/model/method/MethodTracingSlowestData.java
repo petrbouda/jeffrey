@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,28 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.custom.model.method;
 
-import pbouda.jeffrey.manager.custom.HttpManager;
-import pbouda.jeffrey.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.manager.custom.JdbcStatementManager;
-import pbouda.jeffrey.manager.custom.MethodTracingManager;
+import java.util.List;
 
-import java.util.function.Function;
-
-public interface ProfileCustomManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProfileManager, ProfileCustomManager> {
-    }
-
-    ProfileManager parent();
-
-    JdbcPoolManager jdbcPoolManager();
-
-    JdbcStatementManager jdbcStatementManager();
-
-    HttpManager httpManager();
-
-    MethodTracingManager methodTracingManager();
+/**
+ * Response data for the /slowest endpoint.
+ * Contains only the data needed for the Slowest Traces page.
+ */
+public record MethodTracingSlowestData(
+        MethodTracingSlowestHeader header,
+        List<SlowestMethodTrace> slowestTraces
+) {
 }

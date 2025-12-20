@@ -43,4 +43,10 @@ public class ProfileCustomFactoriesConfiguration {
         return profileInfo -> new HttpManagerImpl(
                 profileInfo, repositories.newEventStreamRepository(profileInfo.id()));
     }
+
+    @Bean
+    public MethodTracingManager.Factory methodTracingManagerFactory(Repositories repositories) {
+        return profileInfo -> new MethodTracingManagerImpl(
+                profileInfo, repositories.newEventStreamRepository(profileInfo.id()));
+    }
 }

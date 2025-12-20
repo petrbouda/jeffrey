@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,28 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.custom;
 
-import pbouda.jeffrey.manager.custom.HttpManager;
-import pbouda.jeffrey.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.manager.custom.JdbcStatementManager;
-import pbouda.jeffrey.manager.custom.MethodTracingManager;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.custom.model.method.CumulationMode;
+import pbouda.jeffrey.manager.custom.model.method.MethodTracingCumulatedData;
+import pbouda.jeffrey.manager.custom.model.method.MethodTracingOverviewData;
+import pbouda.jeffrey.manager.custom.model.method.MethodTracingSlowestData;
 
 import java.util.function.Function;
 
-public interface ProfileCustomManager {
+public interface MethodTracingManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileManager, ProfileCustomManager> {
+    interface Factory extends Function<ProfileInfo, MethodTracingManager> {
     }
 
-    ProfileManager parent();
+    MethodTracingOverviewData overview();
 
-    JdbcPoolManager jdbcPoolManager();
+    MethodTracingSlowestData slowest();
 
-    JdbcStatementManager jdbcStatementManager();
-
-    HttpManager httpManager();
-
-    MethodTracingManager methodTracingManager();
+    MethodTracingCumulatedData cumulated(CumulationMode mode);
 }

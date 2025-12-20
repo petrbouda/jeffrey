@@ -21,8 +21,7 @@ package pbouda.jeffrey.provider.api.repository.model;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
-import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
+import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 
 import java.time.Duration;
@@ -35,7 +34,7 @@ public record GenericRecord(
         Duration timestampFromStart,
         Duration duration,
         JfrThread thread,
-        JfrClass weightEntity,
+        JfrMethod weightEntity,
         long samples,
         long sampleWeight,
         ObjectNode jsonFields) {

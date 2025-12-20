@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,28 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.manager;
+package pbouda.jeffrey.manager.custom.model.method;
 
-import pbouda.jeffrey.manager.custom.HttpManager;
-import pbouda.jeffrey.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.manager.custom.JdbcStatementManager;
-import pbouda.jeffrey.manager.custom.MethodTracingManager;
+public enum CumulationMode {
+    BY_METHOD,
+    BY_CLASS;
 
-import java.util.function.Function;
-
-public interface ProfileCustomManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProfileManager, ProfileCustomManager> {
+    public static CumulationMode fromString(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return BY_METHOD;
+        }
+        return switch (mode.toLowerCase()) {
+            case "class" -> BY_CLASS;
+            default -> BY_METHOD;
+        };
     }
-
-    ProfileManager parent();
-
-    JdbcPoolManager jdbcPoolManager();
-
-    JdbcStatementManager jdbcStatementManager();
-
-    HttpManager httpManager();
-
-    MethodTracingManager methodTracingManager();
 }

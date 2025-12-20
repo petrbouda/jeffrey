@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.manager.custom.HttpManager;
 import pbouda.jeffrey.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.manager.custom.JdbcStatementManager;
+import pbouda.jeffrey.manager.custom.MethodTracingManager;
 
 public class ProfileCustomManagerImpl implements ProfileCustomManager {
 
@@ -28,17 +29,20 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
     private final JdbcPoolManager.Factory jdbcPoolManagerFactory;
     private final JdbcStatementManager.Factory jdbcStatementManagerFactory;
     private final HttpManager.Factory httpManagerFactory;
+    private final MethodTracingManager.Factory methodTracingManagerFactory;
 
     public ProfileCustomManagerImpl(
             ProfileManager parent,
             JdbcPoolManager.Factory jdbcPoolManagerFactory,
             JdbcStatementManager.Factory jdbcStatementManagerFactory,
-            HttpManager.Factory httpManagerFactory) {
+            HttpManager.Factory httpManagerFactory,
+            MethodTracingManager.Factory methodTracingManagerFactory) {
 
         this.parent = parent;
         this.jdbcPoolManagerFactory = jdbcPoolManagerFactory;
         this.jdbcStatementManagerFactory = jdbcStatementManagerFactory;
         this.httpManagerFactory = httpManagerFactory;
+        this.methodTracingManagerFactory = methodTracingManagerFactory;
     }
 
     @Override
@@ -59,5 +63,10 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
     @Override
     public HttpManager httpManager() {
         return httpManagerFactory.apply(parent.info());
+    }
+
+    @Override
+    public MethodTracingManager methodTracingManager() {
+        return methodTracingManagerFactory.apply(parent.info());
     }
 }

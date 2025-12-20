@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.jfrparser.api.type.JfrClass;
+import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
@@ -76,9 +76,9 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
             eventTypeLabel = rs.getString("label");
         }
 
-        JfrClass weightEntityClass = null;
+        JfrMethod weightEntityMethod = null;
         if (weightEntity != null) {
-            weightEntityClass = DbJfrMethod.ofClass(weightEntity);
+            weightEntityMethod = DbJfrMethod.of(weightEntity);
         }
 
         ObjectNode jsonFields = null;
@@ -93,7 +93,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
                 Duration.ofMillis(timestampFromStart),
                 duration != null ? Duration.ofNanos(duration) : null,
                 thread,
-                weightEntityClass,
+                weightEntityMethod,
                 samples,
                 weight,
                 jsonFields);
