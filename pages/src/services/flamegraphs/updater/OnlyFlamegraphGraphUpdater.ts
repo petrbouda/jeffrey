@@ -18,6 +18,7 @@
 
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
+import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 
 export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
@@ -66,5 +67,13 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
     public resetSearch(): void {
         this.flamegraphOnResetSearchCallback();
+    }
+
+    public updateModes(useThreadMode: boolean, useWeight: boolean): void {
+        if (this.httpClient instanceof PrimaryFlamegraphClient) {
+            this.httpClient.setUseThreadMode(useThreadMode);
+            this.httpClient.setUseWeight(useWeight);
+            this.initialize();
+        }
     }
 }

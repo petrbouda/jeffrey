@@ -180,19 +180,15 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         ComplexQueries.Flamegraph flamegraphQueries = factory.complexQueries().flamegraph();
         if (configurer.threads()) {
-            String sql = configurer.useWeight()
-                    ? flamegraphQueries.byThreadAndWeight()
-                    : flamegraphQueries.byThread();
-
             return new FlamegraphOptions(
-                    sql, baseParams, new FlamegraphRecordWithThreadsRowMapper(eventType, configurer.useWeight()));
+                    flamegraphQueries.byThreadAndWeight(),
+                    baseParams,
+                    new FlamegraphRecordWithThreadsRowMapper(eventType));
         } else {
-            String sql = configurer.useWeight()
-                    ? flamegraphQueries.byWeight()
-                    : flamegraphQueries.simple();
-
             return new FlamegraphOptions(
-                    sql, baseParams, new FlamegraphRecordRowMapper(eventType, configurer.useWeight()));
+                    flamegraphQueries.byWeight(),
+                    baseParams,
+                    new FlamegraphRecordRowMapper(eventType));
         }
     }
 

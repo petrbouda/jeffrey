@@ -180,4 +180,6 @@ export default abstract class GraphUpdater {
     abstract updateWithSearch(expression: string): void
 
     abstract resetSearch(): void
+
+    abstract updateModes(useThreadMode: boolean, useWeight: boolean): void
 }

@@ -19,6 +19,7 @@
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient.ts";
+import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient.ts";
 import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 
 export default class FullGraphUpdater extends GraphUpdater {
@@ -139,5 +140,13 @@ export default class FullGraphUpdater extends GraphUpdater {
         this.flamegraphOnResetSearchCallback();
         this.timeseriesOnResetSearchCallback();
         this.searchBarOnMatchedCallback(null);
+    }
+
+    public updateModes(useThreadMode: boolean, useWeight: boolean): void {
+        if (this.httpClient instanceof PrimaryFlamegraphClient) {
+            this.httpClient.setUseThreadMode(useThreadMode);
+            this.httpClient.setUseWeight(useWeight);
+            this.initialize();
+        }
     }
 }

@@ -529,7 +529,12 @@ function needsNavigation(itemCount: number): boolean {
             <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
             <ApexTimeSeriesChart
               :graph-updater="graphUpdater"
-              :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(activeGuardVisualization.eventType)"
+              :primary-axis-type="
+                TimeseriesEventAxeFormatter.resolveAxisFormatter(
+                  activeGuardVisualization.useWeight,
+                  activeGuardVisualization.eventType
+                )
+              "
               :visible-minutes="60"
               :zoom-enabled="true"
               time-unit="milliseconds"

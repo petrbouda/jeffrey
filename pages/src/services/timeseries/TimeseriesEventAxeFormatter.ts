@@ -20,7 +20,11 @@ import EventTypes from '@/services/EventTypes';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 export default class TimeseriesEventAxeFormatter {
-  static resolveAxisFormatter(eventTypeCode: string): AxisFormatType {
+  static resolveAxisFormatter(useWeight: boolean, eventTypeCode: string): AxisFormatType {
+    if (!useWeight) {
+      return AxisFormatType.NUMBER;
+    }
+
     if (
       EventTypes.isBlockingEventType(eventTypeCode) ||
       EventTypes.isWallClock(eventTypeCode) ||

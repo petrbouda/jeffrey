@@ -21,14 +21,38 @@ import {onMounted, ref} from 'vue';
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import Utils from "@/services/Utils";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   graphUpdater: GraphUpdater
   withTimeseries: boolean
-}>()
+  showModeControls?: boolean
+  threadModeLabel?: string
+  weightModeLabel?: string
+  initialThreadMode?: boolean
+  initialUseWeight?: boolean
+}>(), {
+  showModeControls: false,
+  threadModeLabel: 'Thread Mode',
+  weightModeLabel: 'Use Weight',
+  initialThreadMode: false,
+  initialUseWeight: true
+})
+
+const emit = defineEmits<{
+  (e: 'modeChange', useThreadMode: boolean, useWeight: boolean): void
+}>();
 
 const searchValue = ref<string | null>(null);
 const searchMatched = ref<string | null>(null);
 const isLoading = ref(false);
+
+// Mode toggles
+const useThreadMode = ref(props.initialThreadMode);
+const useWeight = ref(props.initialUseWeight);
+
+function onModeChange() {
+  props.graphUpdater.updateModes(useThreadMode.value, useWeight.value);
+  emit('modeChange', useThreadMode.value, useWeight.value);
+}
 
 onMounted(() => {
   props.graphUpdater.registerSearchBarCallbacks(
@@ -63,6 +87,24 @@ function resetTimeseriesZoom() {
           <button class="icon-btn me-2" title="Reset Zoom" @click="resetTimeseriesZoom()">
             <i class="bi bi-arrows-angle-expand"></i>
           </button>
+        </template>
+
+        <!-- Mode controls -->
+        <template v-if="showModeControls">
+          <div class="mode-controls">
+            <label class="switch-toggle">
+              <span class="switch-label">{{ threadModeLabel }}</span>
+              <div class="switch-track" :class="{ active: useThreadMode }" @click="useThreadMode = !useThreadMode; onModeChange()">
+                <div class="switch-thumb"></div>
+              </div>
+            </label>
+            <label class="switch-toggle">
+              <span class="switch-label">{{ weightModeLabel }}</span>
+              <div class="switch-track" :class="{ active: useWeight }" @click="useWeight = !useWeight; onModeChange()">
+                <div class="switch-thumb"></div>
+              </div>
+            </label>
+          </div>
         </template>
 
         <!-- Spacer to push loading and matched to the right -->
@@ -193,5 +235,73 @@ function resetTimeseriesZoom() {
   background-color: #f1f5f9;
   border-color: #cbd5e1;
   color: #374151;
+}
+
+/* Mode controls - Modern toggle switches */
+.mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.switch-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #5f6368;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.switch-toggle:hover .switch-label {
+  color: #374151;
+}
+
+.switch-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.switch-track:hover {
+  background: #cbd5e1;
+}
+
+.switch-track.active {
+  background: #1a73e8;
+}
+
+.switch-track.active:hover {
+  background: #1557b0;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.switch-track.active .switch-thumb {
+  left: 18px;
 }
 </style>

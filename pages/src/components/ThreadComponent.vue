@@ -560,7 +560,9 @@ function createContextMenuItems() {
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <ApexTimeSeriesChart
             :graph-updater="graphUpdater"
-            :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(selectedEventCode)"
+            :primary-axis-type="
+              TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue,  selectedEventCode)
+            "
             :visible-minutes="60"
             :zoom-enabled="true"
             time-unit="milliseconds"

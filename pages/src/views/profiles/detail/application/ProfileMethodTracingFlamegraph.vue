@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import { onBeforeMount } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
@@ -39,9 +39,14 @@ const profileId = route.params.profileId as string;
 let graphUpdater: GraphUpdater;
 let flamegraphTooltip: FlamegraphTooltip;
 
-// Configuration
-const useThreadMode = false;
-const useWeight = true;
+// Configuration - reactive for dynamic updates
+const useThreadMode = ref(false);
+const useWeight = ref(true);
+
+function onModeChange(threadMode: boolean, weight: boolean) {
+  useThreadMode.value = threadMode;
+  useWeight.value = weight;
+}
 
 onBeforeMount(() => {
   const flamegraphClient = new PrimaryFlamegraphClient(
@@ -49,8 +54,8 @@ onBeforeMount(() => {
     projectId.value!,
     profileId,
     EventTypes.METHOD_TRACE,
-    useThreadMode,
-    useWeight,
+    useThreadMode.value,
+    useWeight.value,
     false,  // excludeNonJavaSamples
     false,  // excludeIdleSamples
     false,  // onlyUnsafeAllocationSamples
@@ -61,7 +66,7 @@ onBeforeMount(() => {
   graphUpdater.setTimeseriesSearchEnabled(true);
   flamegraphTooltip = FlamegraphTooltipFactory.create(
     EventTypes.METHOD_TRACE,
-    useWeight,
+    useWeight.value,
     false  // isDifferential
   );
 });
@@ -69,13 +74,22 @@ onBeforeMount(() => {
 
 <template>
   <div style="padding-left: 5px; padding-right: 5px">
-    <!-- Search Bar -->
-    <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+    <!-- Search Bar with Mode Controls -->
+    <SearchBarComponent
+      :graph-updater="graphUpdater"
+      :with-timeseries="true"
+      :show-mode-controls="true"
+      thread-mode-label="Thread Mode"
+      weight-mode-label="Total Time"
+      :initial-thread-mode="useThreadMode"
+      :initial-use-weight="useWeight"
+      @mode-change="onModeChange"
+    />
 
     <!-- Timeseries Chart -->
     <ApexTimeSeriesChart
       :graph-updater="graphUpdater"
-      :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(EventTypes.METHOD_TRACE)"
+      :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, EventTypes.METHOD_TRACE)"
       :visible-minutes="60"
       :zoom-enabled="true"
       time-unit="milliseconds"

@@ -31,8 +31,8 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
 
     private readonly baseUrl: string;
     private readonly eventType: string;
-    private readonly useThreadMode: boolean;
-    private readonly useWeight: boolean | null;
+    private useThreadMode: boolean;
+    private useWeight: boolean | null;
     private readonly excludeNonJavaSamples: boolean;
     private readonly excludeIdleSamples: boolean;
     private readonly onlyUnsafeAllocationSamples: boolean;
@@ -129,5 +129,13 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
 
         return axios.post<void>(this.baseUrl + '/repository', content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
+    }
+
+    setUseThreadMode(value: boolean): void {
+        this.useThreadMode = value;
+    }
+
+    setUseWeight(value: boolean | null): void {
+        this.useWeight = value;
     }
 }
