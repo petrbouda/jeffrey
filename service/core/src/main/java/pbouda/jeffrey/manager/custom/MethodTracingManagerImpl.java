@@ -58,6 +58,7 @@ public class MethodTracingManagerImpl implements MethodTracingManager {
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.METHOD_TRACE)
+                .withThreads()
                 .withTimeRange(timeRange);
 
         return eventStreamRepository.genericStreaming(configurer, new MethodTracingSlowestBuilder());

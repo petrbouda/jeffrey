@@ -89,15 +89,7 @@
                 </td>
                 <td class="thread-name">{{ trace.threadName }}</td>
                 <td class="text-end">
-                  <div class="percent-bar-container">
-                    <div
-                      class="percent-bar"
-                      :style="{ width: getPercentOfMax(trace.duration) + '%' }"
-                    ></div>
-                    <span class="percent-value"
-                      >{{ getPercentOfMax(trace.duration).toFixed(0) }}%</span
-                    >
-                  </div>
+                  <span class="badge bg-primary">{{ getPercentOfMax(trace.duration).toFixed(1) }}%</span>
                 </td>
               </tr>
             </tbody>
@@ -431,33 +423,17 @@ onMounted(() => {
 }
 
 .thread-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #495057;
-  max-width: 150px;
+  max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.percent-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 100px;
-}
-
-.percent-bar {
-  height: 8px;
-  background: linear-gradient(90deg, #4285f4, #5e64ff);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.percent-value {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6c757d;
-  min-width: 35px;
+.badge {
+  font-weight: 500;
+  font-size: 0.7rem;
 }
 
 .table th {
