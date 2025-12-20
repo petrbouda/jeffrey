@@ -183,6 +183,10 @@ const filteredItems = computed(() => {
 const metricsData = computed(() => {
   if (!data.value) return [];
 
+  // Find max values from items
+  const maxSingleDuration = data.value.items.reduce((max, item) => Math.max(max, item.maxDuration), 0);
+  const maxTotalDuration = data.value.items.reduce((max, item) => Math.max(max, item.totalDuration), 0);
+
   return [
     {
       icon: 'play-circle',
@@ -197,6 +201,19 @@ const metricsData = computed(() => {
       value: FormattingService.formatDuration2Units(data.value.totalDuration),
       variant: 'highlight' as const,
       breakdown: []
+    },
+    {
+      icon: 'hourglass-split',
+      title: 'Max Duration',
+      value: FormattingService.formatDuration2Units(maxSingleDuration),
+      variant: 'warning' as const,
+      breakdown: [
+        {
+          label: 'Max Total',
+          value: FormattingService.formatDuration2Units(maxTotalDuration),
+          color: '#EA4335'
+        }
+      ]
     },
     {
       icon: 'collection',

@@ -27,7 +27,8 @@
     <ErrorState v-else-if="error" :message="error" @retry="loadData" />
 
     <!-- Empty State -->
-    <EmptyState v-else-if="!slowestData || slowestData.slowestTraces.length === 0"
+    <EmptyState
+      v-else-if="!slowestData || slowestData.slowestTraces.length === 0"
       title="No Slow Traces"
       message="No slow method traces were recorded in this profile."
       icon="bi-hourglass-split"
@@ -40,7 +41,25 @@
       </div>
 
       <!-- Slowest Traces Table -->
-      <ChartSection title="Slowest Method Invocations" icon="list-ol">
+      <div class="table-card">
+        <div class="table-header">
+          <h4>
+            <i class="bi bi-list-ol me-2"></i>
+            Slowest Method Invocations
+          </h4>
+          <div class="search-box">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Filter by class, method or thread..."
+              v-model="searchQuery"
+            />
+            <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead>
@@ -53,13 +72,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(trace, index) in slowestData.slowestTraces"
-                :key="index"
-                class="trace-row"
-              >
+              <tr v-for="(trace, index) in filteredTraces" :key="index" class="trace-row">
                 <td class="rank-col">
-                  <span class="rank-badge" :class="getRankClass(index)">{{ index + 1 }}</span>
+                  <span class="rank-badge" :class="getRankClass(trace.originalIndex)">{{
+                    trace.originalIndex + 1
+                  }}</span>
                 </td>
                 <td class="method-cell">
                   <span class="method-name">{{ trace.methodName || '&lt;init&gt;' }}</span>
@@ -73,15 +90,20 @@
                 <td class="thread-name">{{ trace.threadName }}</td>
                 <td class="text-end">
                   <div class="percent-bar-container">
-                    <div class="percent-bar" :style="{ width: getPercentOfMax(trace.duration) + '%' }"></div>
-                    <span class="percent-value">{{ getPercentOfMax(trace.duration).toFixed(0) }}%</span>
+                    <div
+                      class="percent-bar"
+                      :style="{ width: getPercentOfMax(trace.duration) + '%' }"
+                    ></div>
+                    <span class="percent-value"
+                      >{{ getPercentOfMax(trace.duration).toFixed(0) }}%</span
+                    >
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </ChartSection>
+      </div>
     </div>
   </div>
 </template>
@@ -92,7 +114,6 @@ import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import ChartSection from '@/components/ChartSection.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -109,12 +130,18 @@ const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
 const slowestData = ref<MethodTracingSlowestData | null>(null);
+const searchQuery = ref('');
 
 // Computed metrics for StatsTable
 const metricsData = computed(() => {
   if (!slowestData.value) return [];
   const header = slowestData.value.header;
-  const slowest = slowestData.value.slowestTraces[0];
+  const traces = slowestData.value.slowestTraces;
+  const slowest = traces[0];
+
+  // Compute avg duration from traces
+  const totalDuration = traces.reduce((sum, t) => sum + t.duration, 0);
+  const avgDuration = traces.length > 0 ? totalDuration / traces.length : 0;
 
   return [
     {
@@ -122,13 +149,15 @@ const metricsData = computed(() => {
       title: 'Slowest Trace',
       value: slowest ? FormattingService.formatDuration2Units(slowest.duration) : '-',
       variant: 'danger' as const,
-      breakdown: slowest ? [
-        {
-          label: 'Method',
-          value: getShortMethodName(slowest.className, slowest.methodName),
-          color: '#EA4335'
-        }
-      ] : []
+      breakdown: slowest
+        ? [
+            {
+              label: 'Method',
+              value: getShortMethodName(slowest.className, slowest.methodName),
+              color: '#EA4335'
+            }
+          ]
+        : []
     },
     {
       icon: 'clock-fill',
@@ -145,16 +174,22 @@ const metricsData = computed(() => {
     },
     {
       icon: 'exclamation-triangle',
-      title: 'Total Traces',
-      value: slowestData.value.slowestTraces.length,
+      title: 'Unique Methods',
+      value: header.uniqueMethodCount,
       variant: 'info' as const,
       breakdown: [
         {
-          label: 'Unique Methods',
-          value: header.uniqueMethodCount,
+          label: 'Shown Traces',
+          value: traces.length,
           color: '#4285F4'
         }
       ]
+    },
+    {
+      icon: 'stopwatch',
+      title: 'Avg Duration',
+      value: FormattingService.formatDuration2Units(avgDuration),
+      variant: 'highlight' as const
     }
   ];
 });
@@ -162,6 +197,25 @@ const metricsData = computed(() => {
 const maxDuration = computed(() => {
   if (!slowestData.value || slowestData.value.slowestTraces.length === 0) return 1;
   return slowestData.value.slowestTraces[0].duration || 1;
+});
+
+const filteredTraces = computed(() => {
+  if (!slowestData.value) return [];
+
+  const tracesWithIndex = slowestData.value.slowestTraces.map((trace, index) => ({
+    ...trace,
+    originalIndex: index
+  }));
+
+  if (!searchQuery.value.trim()) return tracesWithIndex;
+
+  const query = searchQuery.value.toLowerCase();
+  return tracesWithIndex.filter(trace => {
+    const classMatch = trace.className.toLowerCase().includes(query);
+    const methodMatch = trace.methodName?.toLowerCase().includes(query) ?? false;
+    const threadMatch = trace.threadName?.toLowerCase().includes(query) ?? false;
+    return classMatch || methodMatch || threadMatch;
+  });
 });
 
 const getPercentOfMax = (duration: number) => (duration / maxDuration.value) * 100;
@@ -210,6 +264,86 @@ onMounted(() => {
   padding: 0;
 }
 
+.table-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  gap: 1rem;
+}
+
+.table-header h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f1f3f4;
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 36px;
+  width: 280px;
+  transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+  background: #fff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.search-icon {
+  color: #5f6368;
+  font-size: 0.9rem;
+  margin-right: 8px;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: #202124;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #5f6368;
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  color: #5f6368;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clear-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #202124;
+}
+
 .rank-col {
   width: 40px;
 }
@@ -246,8 +380,10 @@ onMounted(() => {
 }
 
 .method-cell {
-  line-height: 1.3;
+  line-height: 1.4;
   max-width: 400px;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
 }
 
 .method-cell .method-name {
@@ -259,6 +395,7 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-bottom: 3px;
 }
 
 .method-cell .class-name {
