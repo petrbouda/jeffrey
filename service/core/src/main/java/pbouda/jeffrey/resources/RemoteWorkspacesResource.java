@@ -23,6 +23,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager.CreateWorkspaceRequest;
 import pbouda.jeffrey.manager.workspace.remote.RemoteWorkspaceClient;
@@ -59,6 +60,9 @@ public class RemoteWorkspacesResource {
     @POST
     @Path("/list")
     public List<WorkspaceResponse> listRemoteWorkspaces(ListRemoteWorkspacesRequest request) {
+        if (request.remoteUrl() == null || request.remoteUrl().isBlank()) {
+            throw Exceptions.invalidRequest("Remote URL is required");
+        }
         URI remoteUri = URI.create(request.remoteUrl());
         RemoteWorkspaceClient remoteWorkspaceClient = remoteWorkspacesManagerFactory.apply(remoteUri);
         return remoteWorkspaceClient.allWorkspaces().stream()
@@ -69,6 +73,12 @@ public class RemoteWorkspacesResource {
     @POST
     @Path("/create")
     public Response createRemote(RemoteWorkspacesRequest request) {
+        if (request.remoteUrl() == null || request.remoteUrl().isBlank()) {
+            throw Exceptions.invalidRequest("Remote URL is required");
+        }
+        if (request.workspaceIds() == null || request.workspaceIds().isEmpty()) {
+            throw Exceptions.invalidRequest("At least one workspace ID is required");
+        }
         for (String workspaceId : request.workspaceIds()) {
             CreateWorkspaceRequest createRequest = CreateWorkspaceRequest.builder()
                     .workspaceId(workspaceId)

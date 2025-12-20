@@ -22,6 +22,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
@@ -53,11 +54,11 @@ public class WorkspacesResource {
             @QueryParam("type") WorkspaceType type) {
 
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> new NotFoundException("Workspace not found"));
+                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
 
         WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
         if (type != null && workspaceInfo.type() != type) {
-            throw new BadRequestException("Invalid workspace type");
+            throw Exceptions.invalidRequest("Invalid workspace type: expected " + type + " but found " + workspaceInfo.type());
         }
 
         return new WorkspaceResource(workspaceInfo, workspaceManager);
@@ -76,14 +77,10 @@ public class WorkspacesResource {
 
     @POST
     public Response createWorkspace(CreateWorkspaceRequest request) {
-        String workspaceId;
         if (request.id() == null || request.id().isBlank()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Workspace ID is required")
-                    .build();
-        } else {
-            workspaceId = request.id().trim();
+            throw Exceptions.invalidRequest("Workspace ID is required");
         }
+        String workspaceId = request.id().trim();
 
         String workspaceName;
         if (request.name() == null || request.name().isBlank()) {
@@ -92,10 +89,8 @@ public class WorkspacesResource {
             workspaceName = request.name().trim();
         }
 
-        if (!request.type.isInnerWorkspace()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Only LIVE or SANDBOX workspace type can be created")
-                    .build();
+        if (request.type() == null || !request.type().isInnerWorkspace()) {
+            throw Exceptions.invalidRequest("Only LIVE or SANDBOX workspace type can be created");
         }
 
         WorkspacesManager.CreateWorkspaceRequest createRequest = WorkspacesManager.CreateWorkspaceRequest.builder()

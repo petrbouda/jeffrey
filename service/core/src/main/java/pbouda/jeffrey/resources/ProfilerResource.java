@@ -19,8 +19,8 @@
 package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.common.IDGenerator;
 import pbouda.jeffrey.common.model.ProfilerInfo;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.ProfilerManager;
 
 import java.util.List;
@@ -43,10 +43,17 @@ public class ProfilerResource {
     @POST
     @Path("settings")
     public void upsertSettings(ProfilerSettingsEntity request) {
+        if (request.workspaceId() == null || request.workspaceId().isBlank()) {
+            throw Exceptions.invalidRequest("Workspace ID is required");
+        }
+        if (request.projectId() == null || request.projectId().isBlank()) {
+            throw Exceptions.invalidRequest("Project ID is required");
+        }
+
         ProfilerInfo profilerInfo = new ProfilerInfo(
-                request.workspaceId,
-                request.projectId,
-                request.agentSettings);
+                request.workspaceId(),
+                request.projectId(),
+                request.agentSettings());
 
         profilerManager.upsertSettings(profilerInfo);
     }
@@ -64,6 +71,12 @@ public class ProfilerResource {
     public Optional<ProfilerSettingsEntity> findSettings(
             @QueryParam("workspaceId") String workspaceId,
             @QueryParam("projectId") String projectId) {
+        if (workspaceId == null || workspaceId.isBlank()) {
+            throw Exceptions.invalidRequest("Workspace ID query parameter is required");
+        }
+        if (projectId == null || projectId.isBlank()) {
+            throw Exceptions.invalidRequest("Project ID query parameter is required");
+        }
         return profilerManager.findSettings(workspaceId, projectId)
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()));
     }
@@ -73,6 +86,12 @@ public class ProfilerResource {
     public void deleteSettings(
             @QueryParam("workspaceId") String workspaceId,
             @QueryParam("projectId") String projectId) {
+        if (workspaceId == null || workspaceId.isBlank()) {
+            throw Exceptions.invalidRequest("Workspace ID query parameter is required");
+        }
+        if (projectId == null || projectId.isBlank()) {
+            throw Exceptions.invalidRequest("Project ID query parameter is required");
+        }
         profilerManager.deleteSettings(workspaceId, projectId);
     }
 }

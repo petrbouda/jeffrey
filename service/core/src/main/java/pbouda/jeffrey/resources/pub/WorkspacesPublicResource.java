@@ -19,9 +19,9 @@
 package pbouda.jeffrey.resources.pub;
 
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.resources.response.WorkspaceResponse;
@@ -40,7 +40,7 @@ public class WorkspacesPublicResource {
     @Path("/{workspaceId}")
     public WorkspacePublicResource workspaceResource(@PathParam("workspaceId") String workspaceId) {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> new NotFoundException("Workspace not found"));
+                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
 
         return new WorkspacePublicResource(workspaceManager);
     }

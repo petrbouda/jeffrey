@@ -19,9 +19,9 @@
 package pbouda.jeffrey.resources.pub;
 
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import pbouda.jeffrey.exception.Exceptions;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.resources.response.ProjectResponse;
@@ -40,7 +40,7 @@ public class WorkspaceProjectsPublicResource {
     @Path("/{projectId}")
     public WorkspaceProjectPublicResource projectResource(@PathParam("projectId") String projectId) {
         ProjectManager projectManager = projectsManager.project(projectId)
-                .orElseThrow(() -> new NotFoundException("Project not found"));
+                .orElseThrow(() -> Exceptions.projectNotFound(projectId));
 
         return new WorkspaceProjectPublicResource(projectManager);
     }

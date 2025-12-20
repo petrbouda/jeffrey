@@ -25,13 +25,25 @@ public enum ErrorCode {
     RECORDING_FILE_NOT_FOUND,
     UNKNOWN_ERROR_RESPONSE,
     REMOTE_JEFFREY_UNAVAILABLE,
+    EMPTY_RECORDING_SESSION,
 
-    EMPTY_RECORDING_SESSION;
+    // Validation errors
+    INVALID_REQUEST,
+
+    // Scheduler errors
+    SCHEDULER_JOB_NOT_FOUND,
+
+    // Profiler errors
+    PROFILER_CONFIGURATION_ERROR,
+
+    // Remote operation errors
+    REMOTE_OPERATION_FAILED;
 
     public boolean isNotFound() {
         return this == WORKSPACE_NOT_FOUND
                || this == PROJECT_NOT_FOUND
                || this == RECORDING_SESSION_NOT_FOUND
-               || this == RECORDING_FILE_NOT_FOUND;
+               || this == RECORDING_FILE_NOT_FOUND
+               || this == SCHEDULER_JOB_NOT_FOUND;
     }
 }

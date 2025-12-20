@@ -20,10 +20,10 @@ package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.manager.SchedulerManager;
 
 import java.util.List;
 import java.util.Map;
@@ -45,6 +45,9 @@ public class SchedulerResource {
 
     @POST
     public Response createJob(CreateJobRequest request) {
+        if (request.jobType() == null) {
+            throw Exceptions.invalidRequest("Job type is required");
+        }
         schedulerManager.create(request.jobType(), request.params());
         return Response.ok().build();
     }
@@ -57,12 +60,18 @@ public class SchedulerResource {
     @PUT
     @Path("/{jobId}/enabled")
     public void updateEnabled(@PathParam("jobId") String jobId, UpdateEnabledRequest request) {
-        schedulerManager.updateEnabled(jobId, request.enabled);
+        if (jobId == null || jobId.isBlank()) {
+            throw Exceptions.invalidRequest("Job ID is required");
+        }
+        schedulerManager.updateEnabled(jobId, request.enabled());
     }
 
     @DELETE
     @Path("/{jobId}")
     public void delete(@PathParam("jobId") String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw Exceptions.invalidRequest("Job ID is required");
+        }
         schedulerManager.delete(jobId);
     }
 }

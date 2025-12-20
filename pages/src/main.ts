@@ -2,6 +2,10 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 import VueApexCharts from 'vue3-apexcharts';
+import { registerHttpInterceptors } from '@/services/HttpInterceptor';
+
+// Register HTTP interceptors for global error handling
+registerHttpInterceptors();
 
 // Import Bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css';

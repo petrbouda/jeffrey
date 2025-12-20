@@ -22,7 +22,9 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.exception.ErrorCode;
 import pbouda.jeffrey.exception.ErrorResponse;
+import pbouda.jeffrey.exception.ErrorType;
 import pbouda.jeffrey.exception.JeffreyException;
 
 public abstract class ExceptionMappers implements ExceptionMapper<JeffreyException> {
@@ -35,7 +37,7 @@ public abstract class ExceptionMappers implements ExceptionMapper<JeffreyExcepti
             LOG.error("Handling an IllegalArgumentException: {}", e.getMessage(), e);
 
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(e.getMessage())
+                    .entity(new ErrorResponse(ErrorType.CLIENT, ErrorCode.INVALID_REQUEST, e.getMessage()))
                     .build();
         }
     }
@@ -43,10 +45,10 @@ public abstract class ExceptionMappers implements ExceptionMapper<JeffreyExcepti
     public static class GenericException implements ExceptionMapper<Exception> {
         @Override
         public Response toResponse(Exception e) {
-            LOG.error("Handling an GenericException: {}", e.getMessage(), e);
+            LOG.error("Handling a GenericException: {}", e.getMessage(), e);
 
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Failed to create workspace: " + e.getMessage())
+                    .entity(new ErrorResponse(ErrorType.INTERNAL, ErrorCode.UNKNOWN_ERROR_RESPONSE, e.getMessage()))
                     .build();
         }
     }
