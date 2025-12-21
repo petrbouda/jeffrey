@@ -151,8 +151,8 @@ CREATE TABLE IF NOT EXISTS stacktraces
 
 CREATE TABLE IF NOT EXISTS events
 (
-    profile_id      VARCHAR,
-    event_type      VARCHAR,
+    profile_id      VARCHAR NOT NULL,
+    event_type      VARCHAR NOT NULL,
     start_timestamp TIMESTAMPTZ NOT NULL,
     duration        BIGINT,
     samples         BIGINT NOT NULL,

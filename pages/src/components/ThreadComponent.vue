@@ -68,6 +68,18 @@ let flamegraphTooltip: FlamegraphTooltip;
 
 let graphUpdater: GraphUpdater;
 
+// Store scroll handler reference for proper cleanup
+const handleScroll = () => {
+  if (threadRow != null) {
+    threadRow.onWindowScroll();
+  }
+
+  // Close menu on scroll
+  if (showFlameMenu.value) {
+    showFlameMenu.value = false;
+  }
+};
+
 /**
  * Determines whether to use weight based on the event type.
  * By default, use weight for allocation and blocking events.
@@ -117,18 +129,9 @@ onMounted(() => {
       }
     }
   });
-});
 
-document.addEventListener('scroll', () => {
-  if (threadRow != null) {
-    threadRow.onWindowScroll();
-  }
-
-  // Close menu on scroll
-  if (showFlameMenu.value) {
-    showFlameMenu.value = false;
-    document.addEventListener('scroll', () => (showFlameMenu.value = false));
-  }
+  // Add scroll listener with stored handler reference for proper cleanup
+  document.addEventListener('scroll', handleScroll);
 });
 
 const toggleFlamegraphMenu = (event: MouseEvent) => {
@@ -181,13 +184,19 @@ watch(showFlamegraphDialog, isVisible => {
 
 // Clean up event listeners and modal when component is unmounted
 onUnmounted(() => {
+  // Clean up modal
   if (modalInstance) {
     modalInstance.dispose();
     modalInstance = null;
   }
 
-  // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {});
+  // Remove scroll listener with correct handler reference
+  document.removeEventListener('scroll', handleScroll);
+
+  // Clean up threadRow resources (Konva stage, event handlers, etc.)
+  if (threadRow) {
+    threadRow.destroy();
+  }
 });
 
 const showFlamegraph = (eventCode: string) => {

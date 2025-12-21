@@ -779,9 +779,10 @@ const brushChartOptions = computed(() => ({
   }
 }));
 
-// Watch for data changes - watch effective data (handles both prop-driven and graphUpdater-driven modes)
+// Watch for data changes - use shallow watch on data reference/length to avoid expensive deep comparison
+// The data arrays are replaced entirely when updated, so watching the reference is sufficient
 watch(
-  effectivePrimaryData,
+  () => effectivePrimaryData.value,
   newData => {
     if (newData && newData.length > 0) {
       calculateMinMaxTimeValues();
@@ -793,16 +794,16 @@ watch(
       };
     }
   },
-  { deep: true, immediate: true }
+  { immediate: true }
 );
 
 watch(
-  effectiveSecondaryData,
+  () => effectiveSecondaryData.value,
   () => {
     // Recalculate max values when secondary data changes
     calculateMaxYValues();
   },
-  { deep: true, immediate: true }
+  { immediate: true }
 );
 
 // Initialize on mount

@@ -216,7 +216,13 @@ onUnmounted(() => {
     clearTimeout(resizeTimer);
   }
 
-  MessageBus.off(MessageBus.SIDEBAR_CHANGED)
+  // Pass the handler reference to remove only this component's listener
+  MessageBus.off(MessageBus.SIDEBAR_CHANGED, handleResize);
+
+  // Clean up flamegraph resources (canvas event handlers, animation frames, etc.)
+  if (flamegraph) {
+    flamegraph.close();
+  }
 });
 
 function search(value: string | null) {

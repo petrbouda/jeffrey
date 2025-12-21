@@ -58,6 +58,10 @@ export default class Flamegraph {
     private readonly canvas: HTMLCanvasElement
     private readonly context: CanvasRenderingContext2D
 
+    // Throttling state for mouse move events
+    private mouseMoveRafId: number | null = null
+    private pendingMouseEvent: MouseEvent | null = null
+
     constructor(data: FlamegraphData, canvasElementId: string, flamegraphTooltip: FlamegraphTooltip, contextMenu: any, useWeight: boolean) {
         this.depth = data.depth;
         this.levels = data.levels;
@@ -95,42 +99,56 @@ export default class Flamegraph {
     }
 
     private onMouseMoveEvent() {
+        // Use requestAnimationFrame to throttle mouse move events to ~60fps
         return (event: MouseEvent) => {
-            const level = Math.floor(event.offsetY / Flamegraph.FRAME_HEIGHT);
+            this.pendingMouseEvent = event;
 
-            if (level >= 0 && level < this.levels.length) {
-                let frame = this.lookupFrame(level, event);
-                this.hlFrame = frame
-
-                if (frame) {
-                    if (frame !== this.currentRoot) {
-                        getSelection()!.removeAllRanges();
+            if (this.mouseMoveRafId === null) {
+                this.mouseMoveRafId = requestAnimationFrame(() => {
+                    this.mouseMoveRafId = null;
+                    if (this.pendingMouseEvent) {
+                        this.processMouseMove(this.pendingMouseEvent);
                     }
-
-                    // if `contextFrame` != null, then context menu is selected.
-                    if (this.contextFrame == null) {
-                        this.hl.style.left = Math.max(this.leftDistance(frame) - this.leftDistance(this.currentRoot), 0) * this.pxPerSample! + this.canvas.offsetLeft + 'px';
-                        this.hl.style.width = Math.min(this.totalValue(frame), this.totalValue(this.currentRoot)) * this.pxPerSample! + 'px';
-                        this.hl.style.top = (level * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
-                        this.hl.firstChild!.textContent = frame.title;
-                        this.hl.style.display = 'block';
-                    }
-
-                    const tooltipContent =
-                        this.flamegraphTooltip.generate(frame, this.levels[0][0].totalSamples, this.levels[0][0].totalWeight)
-
-                    this.tooltip.showTooltip(event, this.currentScrollY, tooltipContent)
-
-                    this.canvas.style.cursor = 'pointer';
-                    this.canvas.onclick = () => {
-                        if (frame !== this.currentRoot) {
-                            this.draw(frame, level, this.currentPattern!);
-                        }
-                    };
-                    return;
-                }
+                });
             }
         };
+    }
+
+    private processMouseMove(event: MouseEvent) {
+        const level = Math.floor(event.offsetY / Flamegraph.FRAME_HEIGHT);
+
+        if (level >= 0 && level < this.levels.length) {
+            let frame = this.lookupFrame(level, event);
+            this.hlFrame = frame
+
+            if (frame) {
+                if (frame !== this.currentRoot) {
+                    getSelection()!.removeAllRanges();
+                }
+
+                // if `contextFrame` != null, then context menu is selected.
+                if (this.contextFrame == null) {
+                    this.hl.style.left = Math.max(this.leftDistance(frame) - this.leftDistance(this.currentRoot), 0) * this.pxPerSample! + this.canvas.offsetLeft + 'px';
+                    this.hl.style.width = Math.min(this.totalValue(frame), this.totalValue(this.currentRoot)) * this.pxPerSample! + 'px';
+                    this.hl.style.top = (level * Flamegraph.FRAME_HEIGHT - this.currentScrollY) + this.canvas.offsetTop + 'px';
+                    this.hl.firstChild!.textContent = frame.title;
+                    this.hl.style.display = 'block';
+                }
+
+                const tooltipContent =
+                    this.flamegraphTooltip.generate(frame, this.levels[0][0].totalSamples, this.levels[0][0].totalWeight)
+
+                this.tooltip.showTooltip(event, this.currentScrollY, tooltipContent)
+
+                this.canvas.style.cursor = 'pointer';
+                this.canvas.onclick = () => {
+                    if (frame !== this.currentRoot) {
+                        this.draw(frame, level, this.currentPattern!);
+                    }
+                };
+                return;
+            }
+        }
     }
 
     closeContextMenu() {
@@ -273,6 +291,19 @@ export default class Flamegraph {
     }
 
     close() {
+        // Cancel any pending animation frame to prevent memory leaks
+        if (this.mouseMoveRafId !== null) {
+            cancelAnimationFrame(this.mouseMoveRafId);
+            this.mouseMoveRafId = null;
+        }
+        this.pendingMouseEvent = null;
+
+        // Clear canvas event handlers
+        this.canvas.onmousemove = null;
+        this.canvas.onmouseout = null;
+        this.canvas.ondblclick = null;
+        this.canvas.onclick = null;
+
         this.removeAllHighlight()
         this.tooltip.hideTooltip()
         this.contextMenu.hide()

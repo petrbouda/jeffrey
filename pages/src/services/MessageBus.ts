@@ -45,7 +45,7 @@ export default class MessageBus {
         this.INSTANCE.on(type, handler)
     }
 
-    static off(type: string) {
-        this.INSTANCE.off(type)
+    static off(type: string, handler?: any) {
+        this.INSTANCE.off(type, handler)
     }
 }

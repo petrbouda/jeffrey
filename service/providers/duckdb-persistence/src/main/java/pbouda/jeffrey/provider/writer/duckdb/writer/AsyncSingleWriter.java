@@ -9,7 +9,10 @@ import java.util.concurrent.ThreadFactory;
 
 public class AsyncSingleWriter {
 
-    private static final int PARALLELISM = 4;
+    private static final Logger LOG = LoggerFactory.getLogger(AsyncSingleWriter.class);
+
+    private static final int PARALLELISM = Math.max(4,
+            Runtime.getRuntime().availableProcessors() / 2);
 
     private final Executor executor;
 
@@ -30,6 +33,8 @@ public class AsyncSingleWriter {
 
     public AsyncSingleWriter() {
         this(Executors.newFixedThreadPool(PARALLELISM, threadFactory));
+        LOG.info("Initialized AsyncSingleWriter: parallelism={} availableProcessors={}",
+                PARALLELISM, Runtime.getRuntime().availableProcessors());
     }
 
     public AsyncSingleWriter(Executor executor) {

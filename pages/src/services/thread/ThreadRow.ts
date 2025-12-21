@@ -237,4 +237,26 @@ export default class ThreadRow {
     onWindowScroll() {
         this.removeTooltip()
     }
+
+    /**
+     * Clean up resources to prevent memory leaks
+     */
+    destroy() {
+        // Clear event handlers
+        this.konvaContainer.onmousemove = null;
+        this.konvaContainer.onmouseout = null;
+
+        // Hide and remove tooltip
+        this.threadTooltip.hideTooltip();
+
+        // Destroy Konva stage to release canvas resources
+        if (this.stage) {
+            this.stage.destroy();
+        }
+
+        // Remove the highlight pointer element
+        if (this.threadPointer && this.threadPointer.parentNode) {
+            this.threadPointer.parentNode.removeChild(this.threadPointer);
+        }
+    }
 }
