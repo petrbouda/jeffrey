@@ -62,39 +62,52 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     }
 
     provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
-        const content = {
-            eventType: this.eventType,
-            useWeight: this.useWeight,
-            useThreadMode: this.useThreadMode,
-            timeRange: timeRange,
-            search: search,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-            threadInfo: this.threadInfo,
-            components: components,
-        };
+      const content = {
+        eventType: this.eventType,
+        useWeight: this.useWeight,
+        useThreadMode: this.useThreadMode,
+        timeRange: timeRange,
+        search: search,
+        excludeNonJavaSamples: this.excludeNonJavaSamples,
+        excludeIdleSamples: this.excludeIdleSamples,
+        onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+        threadInfo: this.threadInfo,
+        components: components
+      };
 
-        return axios.post<BothGraphData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
+      // Use MessagePack for compact binary serialization (30-50% smaller than JSON)
+      // return axios
+      //   .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.MSGPACK_HEADERS)
+      //   .then(HttpUtils.DECODE_MSGPACK<BothGraphData>);
+
+      return axios
+        .post<BothGraphData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
+        .then(HttpUtils.RETURN_DATA);
     }
 
     provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
-        const content = {
-            eventType: this.eventType,
-            useWeight: this.useWeight,
-            useThreadMode: this.useThreadMode,
-            timeRange: timeRange,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-            threadInfo: this.threadInfo,
-            components: GraphComponents.FLAMEGRAPH_ONLY,
-        };
+      const content = {
+        eventType: this.eventType,
+        useWeight: this.useWeight,
+        useThreadMode: this.useThreadMode,
+        timeRange: timeRange,
+        excludeNonJavaSamples: this.excludeNonJavaSamples,
+        excludeIdleSamples: this.excludeIdleSamples,
+        onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+        threadInfo: this.threadInfo,
+        components: GraphComponents.FLAMEGRAPH_ONLY
+      };
 
-        return axios.post<BothGraphData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
-            .then(data => data.flamegraph);
+      // Use MessagePack for compact binary serialization (30-50% smaller than JSON)
+      // return axios
+      //   .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.MSGPACK_HEADERS)
+      //   .then(HttpUtils.DECODE_MSGPACK<BothGraphData>)
+      //   .then(data => data.flamegraph);
+
+      return axios
+        .post<BothGraphData>(this.baseUrl, content, HttpUtils.JSON_HEADERS)
+        .then(HttpUtils.RETURN_DATA)
+        .then(data => data.flamegraph);
     }
 
     provideTimeseries(search: string | null): Promise<TimeseriesData> {

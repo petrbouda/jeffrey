@@ -68,8 +68,9 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             components: components,
         };
 
-        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
+        // Use MessagePack for compact binary serialization (30-50% smaller than JSON)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.MSGPACK_HEADERS)
+            .then(HttpUtils.DECODE_MSGPACK<BothGraphData>)
     }
 
     provide(timeRange: any): Promise<FlamegraphData> {
@@ -83,8 +84,9 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             components: GraphComponents.FLAMEGRAPH_ONLY,
         };
 
-        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
+        // Use MessagePack for compact binary serialization (30-50% smaller than JSON)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.MSGPACK_HEADERS)
+            .then(HttpUtils.DECODE_MSGPACK<BothGraphData>)
             .then(data => data.flamegraph);
     }
 

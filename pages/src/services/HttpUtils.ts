@@ -17,8 +17,11 @@
  */
 
 import {AxiosResponse} from "axios";
+import {decode} from "@msgpack/msgpack";
 
 export default class HttpUtils {
+    static MSGPACK_MEDIA_TYPE = 'application/msgpack';
+
     static JSON_HEADERS = {
         headers: {
             'Content-Type': 'application/json',
@@ -44,7 +47,28 @@ export default class HttpUtils {
         }
     };
 
+    /**
+     * Request configuration for MessagePack responses.
+     * Uses MessagePack for compact binary serialization (30-50% smaller than JSON).
+     */
+    static MSGPACK_HEADERS = {
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: HttpUtils.MSGPACK_MEDIA_TYPE
+        },
+        responseType: 'arraybuffer' as const
+    };
+
     static RETURN_DATA(response: AxiosResponse): any {
         return response.data;
+    }
+
+    /**
+     * Decodes MessagePack binary response to typed object.
+     * @param response Axios response with arraybuffer data
+     * @returns Decoded object
+     */
+    static DECODE_MSGPACK<T>(response: AxiosResponse<ArrayBuffer>): T {
+        return decode(new Uint8Array(response.data)) as T;
     }
 }

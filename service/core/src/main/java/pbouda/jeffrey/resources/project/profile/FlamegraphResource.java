@@ -22,8 +22,14 @@ package pbouda.jeffrey.resources.project.profile;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.TimeRangeRequest;
 import pbouda.jeffrey.common.GraphType;
+import pbouda.jeffrey.common.MsgPack;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.ProfilingStartEnd;
@@ -50,7 +56,8 @@ public class FlamegraphResource {
     }
 
     @POST
-    public GraphData generate(GenerateFlamegraphRequest request) {
+    @Produces({MediaType.APPLICATION_JSON, MsgPack.MEDIA_TYPE})
+    public Response generate(GenerateFlamegraphRequest request, @Context HttpHeaders headers) {
         Instant recordingStart = profileInfo.profilingStartedAt();
 
         GraphData data = flamegraphManager.generate(mapToGenerateRequest(profileInfo, request, GraphType.PRIMARY));
@@ -62,7 +69,17 @@ public class FlamegraphResource {
             TimeseriesUtils.toAbsoluteTime(data.timeseries(), recordingStart.toEpochMilli());
         }
 
-        return data;
+        // Content negotiation: return MessagePack if requested, otherwise JSON
+        String acceptHeader = headers.getHeaderString(HttpHeaders.ACCEPT);
+        if (acceptHeader != null && acceptHeader.contains(MsgPack.MEDIA_TYPE)) {
+            return Response.ok(MsgPack.toBytes(data))
+                    .type(MsgPack.MEDIA_TYPE)
+                    .build();
+        }
+
+        return Response.ok(data)
+                .type(MediaType.APPLICATION_JSON)
+                .build();
     }
 
     @GET
