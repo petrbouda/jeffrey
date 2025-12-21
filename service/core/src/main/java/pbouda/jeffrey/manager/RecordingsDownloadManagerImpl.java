@@ -29,6 +29,7 @@ import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -123,7 +124,16 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
                     .map(RepositoryFile::filePath)
                     .toList();
 
-            Recordings.mergeByFileCopy(recordingPaths, holder.outputPath());
+            // Try streaming merge (FileChannel.transferTo) first for better performance,
+            // fallback to file copy if it fails (e.g., on Azure blob storage)
+            try {
+                Recordings.mergeRecordings(recordingPaths, holder.outputPath());
+            } catch (Exception e) {
+                LOG.warn("Streaming merge failed, falling back to file copy: {}", e.getMessage());
+                // Delete partially written file before fallback (mergeByFileCopy uses APPEND)
+                Files.deleteIfExists(holder.outputPath());
+                Recordings.mergeByFileCopy(recordingPaths, holder.outputPath());
+            }
         } catch (Exception e) {
             throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
         }
