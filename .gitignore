@@ -49,3 +49,5 @@ package-lock.json
 **/.claude/settings.local.json
 
 profile.jfr
+
+.mcp.json
