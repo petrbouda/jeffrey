@@ -58,6 +58,11 @@ export default class Flamegraph {
     private readonly canvas: HTMLCanvasElement
     private readonly context: CanvasRenderingContext2D
 
+    // OffscreenCanvas for pre-rendering (smoother zooming)
+    private offscreenCanvas: OffscreenCanvas | null = null
+    private offscreenContext: OffscreenCanvasRenderingContext2D | null = null
+    private preRenderRafId: number | null = null
+
     // Throttling state for mouse move events
     private mouseMoveRafId: number | null = null
     private pendingMouseEvent: MouseEvent | null = null
@@ -72,6 +77,9 @@ export default class Flamegraph {
         this.canvas = <HTMLCanvasElement>document.getElementById(canvasElementId)!;
         this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
         this.context = this.canvas.getContext('2d')!;
+
+        // Initialize OffscreenCanvas for pre-rendering (if supported)
+        this.initOffscreenCanvas();
 
         this.removeAllHighlight();
         this.#createHighlightDiv(this.canvas)
@@ -146,6 +154,11 @@ export default class Flamegraph {
                         this.draw(frame, level, this.currentPattern!);
                     }
                 };
+
+                // Schedule pre-rendering of zoomed view for smoother transition
+                if (frame !== this.currentRoot) {
+                    this.schedulePreRender(frame, level);
+                }
                 return;
             }
         }
@@ -213,26 +226,156 @@ export default class Flamegraph {
         )
     }
 
+    /**
+     * Initialize OffscreenCanvas for pre-rendering
+     * Falls back gracefully if not supported
+     */
+    private initOffscreenCanvas(): void {
+        if (typeof OffscreenCanvas !== 'undefined') {
+            try {
+                this.offscreenCanvas = new OffscreenCanvas(1, 1);
+                this.offscreenContext = this.offscreenCanvas.getContext('2d');
+            } catch {
+                // OffscreenCanvas not supported or failed to initialize
+                this.offscreenCanvas = null;
+                this.offscreenContext = null;
+            }
+        }
+    }
+
+    /**
+     * Resize OffscreenCanvas to match main canvas dimensions
+     */
+    private resizeOffscreenCanvas(): void {
+        if (this.offscreenCanvas && this.canvasWidth && this.canvasHeight) {
+            const pixelRatio = devicePixelRatio || 1;
+            this.offscreenCanvas.width = this.canvasWidth * pixelRatio;
+            this.offscreenCanvas.height = this.canvasHeight * pixelRatio;
+            if (this.offscreenContext && pixelRatio !== 1) {
+                this.offscreenContext.scale(pixelRatio, pixelRatio);
+            }
+        }
+    }
+
+    /**
+     * Pre-render a zoomed view in the background for smoother transitions
+     * Called when hovering over a frame to prepare for potential click
+     */
+    private schedulePreRender(frame: Frame, level: number): void {
+        if (!this.offscreenCanvas || !this.offscreenContext) return;
+
+        // Cancel previous pre-render if pending
+        if (this.preRenderRafId !== null) {
+            cancelAnimationFrame(this.preRenderRafId);
+        }
+
+        // Schedule pre-render for next idle frame
+        this.preRenderRafId = requestAnimationFrame(() => {
+            this.preRenderRafId = null;
+            this.preRenderZoomedView(frame, level);
+        });
+    }
+
+    /**
+     * Pre-render the zoomed view on OffscreenCanvas
+     */
+    private preRenderZoomedView(root: Frame, rootLevel: number): void {
+        if (!this.offscreenContext || !this.canvasWidth || !this.canvasHeight) return;
+
+        const ctx = this.offscreenContext;
+
+        // Clear offscreen canvas
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+        const pxPerSample = this.canvasWidth / this.totalValue(root);
+        const xStart = this.leftDistance(root);
+        const xEnd = xStart + this.totalValue(root);
+
+        ctx.font = '12px Arial';
+
+        // Render all levels
+        for (let level = 0; level < this.levels.length; level++) {
+            const y = level * Flamegraph.FRAME_HEIGHT;
+            const frames = this.levels[level];
+
+            for (let i = 0; i < frames.length; i++) {
+                const frame = frames[i];
+                if (this.frame_not_overflow(frame, xStart, xEnd)) {
+                    const isUnderRoot = level < rootLevel;
+                    this.drawFrameToContext(ctx, pxPerSample, frame, y, xStart, isUnderRoot);
+                }
+            }
+        }
+    }
+
+    /**
+     * Draw a frame to a specific context (main or offscreen)
+     */
+    private drawFrameToContext(
+        ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+        pxPerSample: number,
+        frame: Frame,
+        y: number,
+        xStart: number,
+        isUnderRoot: boolean
+    ): void {
+        const x = (this.leftDistance(frame) - xStart) * pxPerSample;
+        const width = this.totalValue(frame) * pxPerSample;
+
+        ctx.fillStyle = this.color(frame);
+        ctx.strokeStyle = 'white';
+        ctx.fillRect(x, y, width, Flamegraph.FRAME_HEIGHT);
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, Flamegraph.FRAME_HEIGHT);
+
+        // Draw text if frame is wide enough
+        const totalValue = this.totalValue(frame);
+        if (totalValue * pxPerSample >= 21) {
+            const chars = Math.floor((totalValue * pxPerSample) / 7);
+            const title = frame.title.length <= chars ? frame.title : frame.title.substring(0, chars - 2) + '..';
+            ctx.fillStyle = '#000000';
+            ctx.fillText(title, Math.max(this.leftDistance(frame) - xStart, 0) * pxPerSample + 3, y + 14, totalValue * pxPerSample - 6);
+        }
+
+        if (isUnderRoot) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillRect(x, y, width, Flamegraph.FRAME_HEIGHT);
+        }
+    }
+
     private static pct(a: number, b: number) {
         return a >= b ? '100' : ((100 * a) / b).toFixed(2);
     }
 
+    /**
+     * Binary search for frame lookup - O(log n) instead of O(n)
+     * Frames are sorted by x position (leftSamples/leftWeight)
+     */
     private lookupFrame(level: number, event: MouseEvent): Frame | null {
-        let frames = this.visibleFrames[level];
-        for (let i = 0; i < frames.length; i++) {
-            let visibleFrame = frames[i];
+        const frames = this.visibleFrames[level];
+        if (!frames || frames.length === 0) {
+            return null;
+        }
 
-            if (this.pointInPath(visibleFrame.rect, event.offsetX, event.offsetY)) {
-                return visibleFrame.frame;
+        const x = event.offsetX;
+        let left = 0;
+        let right = frames.length - 1;
+
+        while (left <= right) {
+            const mid = (left + right) >>> 1;
+            const rect = frames[mid].rect;
+
+            if (x < rect.x) {
+                right = mid - 1;
+            } else if (x > rect.x + rect.width) {
+                left = mid + 1;
+            } else {
+                // Found the frame containing x
+                return frames[mid].frame;
             }
         }
-        return null
-    }
-
-    private pointInPath(rect: FrameRect, x: number, y: number) {
-        let xPosition = x >= rect.x && x <= (rect.x + rect.width)
-        let yPosition = y >= rect.y && y <= (y + rect.height)
-        return xPosition && yPosition
+        return null;
     }
 
     resizeWidthCanvas(width: number) {
@@ -249,10 +392,15 @@ export default class Flamegraph {
         this.canvas.style.width = this.canvasWidth + 'px';
 
         this.canvas.width = this.canvasWidth * (devicePixelRatio || 1);
+
         if (devicePixelRatio) {
             this.context.scale(devicePixelRatio, devicePixelRatio);
         }
         this.context.font = '12px Arial';
+
+        // Resize OffscreenCanvas for pre-rendering
+        this.resizeOffscreenCanvas();
+
         this.drawRoot();
     }
 
@@ -291,10 +439,14 @@ export default class Flamegraph {
     }
 
     close() {
-        // Cancel any pending animation frame to prevent memory leaks
+        // Cancel any pending animation frames to prevent memory leaks
         if (this.mouseMoveRafId !== null) {
             cancelAnimationFrame(this.mouseMoveRafId);
             this.mouseMoveRafId = null;
+        }
+        if (this.preRenderRafId !== null) {
+            cancelAnimationFrame(this.preRenderRafId);
+            this.preRenderRafId = null;
         }
         this.pendingMouseEvent = null;
 
@@ -303,6 +455,10 @@ export default class Flamegraph {
         this.canvas.onmouseout = null;
         this.canvas.ondblclick = null;
         this.canvas.onclick = null;
+
+        // Clean up OffscreenCanvas
+        this.offscreenCanvas = null;
+        this.offscreenContext = null;
 
         this.removeAllHighlight()
         this.tooltip.hideTooltip()
@@ -320,8 +476,9 @@ export default class Flamegraph {
 
         const xStart = this.leftDistance(root);
         const xEnd = xStart + this.totalValue(root);
-        const highlighted = new Map<number, number>()
+        const highlighted = new Map<number, number>();
 
+        // Render all levels - canvas shows full flamegraph, container handles scrolling
         for (let level = 0; level < this.levels.length; level++) {
             const y = level * Flamegraph.FRAME_HEIGHT;
             const frames = this.levels[level];
@@ -329,7 +486,7 @@ export default class Flamegraph {
             for (let i = 0; i < frames.length; i++) {
                 let frame = frames[i];
                 if (this.frame_not_overflow(frame, xStart, xEnd)) {
-                    let isHighlighted: boolean = this.isMethodHighlighted(highlighted, frame, pattern);
+                    let isHighlighted = this.isMethodHighlighted(highlighted, frame, pattern);
                     let isUnderRoot = level < rootLevel;
 
                     const rectangle = this.createRectangle(this.pxPerSample, frame, y, xStart);
@@ -339,25 +496,24 @@ export default class Flamegraph {
             }
         }
 
-        return highlighted
+        return highlighted;
+    }
+
+    private isMethodHighlighted(highlighted: Map<number, number>, frame: Frame, pattern: RegExp): boolean {
+        const matched = pattern && frame.title.match(pattern) != null;
+        if (matched) {
+            const highlightedValue = highlighted.get(this.leftDistance(frame));
+            const alreadyHighlighted = highlightedValue !== undefined && highlightedValue >= this.totalValue(frame);
+            if (!alreadyHighlighted) {
+                highlighted.set(this.leftDistance(frame), this.totalValue(frame));
+            }
+            return true;
+        }
+        return false;
     }
 
     private frame_not_overflow(frame: Frame, xStart: number, xEnd: number) {
         return this.leftDistance(frame) < xEnd && this.leftDistance(frame) + this.totalValue(frame) > xStart;
-    }
-
-    private isMethodHighlighted(highlighted: Map<number, number>, frame: Frame, pattern: RegExp): boolean {
-        const matched = pattern && frame.title.match(pattern) != null
-        if (matched) {
-            const highlightedValue: number | undefined = highlighted.get(this.leftDistance(frame))
-            const alreadyHighlighted: boolean = highlightedValue != undefined && highlightedValue >= this.totalValue(frame)
-            if (!alreadyHighlighted) {
-                highlighted.set(this.leftDistance(frame), this.totalValue(frame))
-            }
-            return true
-        } else {
-            return false
-        }
     }
 
     private calculateHighlighted(highlighted: Map<number, number>) {
