@@ -21,6 +21,7 @@ import EventTypes from "@/services/EventTypes";
 import FormattingService from "@/services/FormattingService";
 import FramePosition from "@/services/flamegraphs/model/FramePosition";
 import FrameSampleTypes from "@/services/flamegraphs/model/FrameSampleTypes";
+import JavaMethodParser from "@/services/flamegraphs/JavaMethodParser";
 
 export default abstract class FlamegraphTooltip {
 
@@ -88,6 +89,25 @@ export default abstract class FlamegraphTooltip {
 
     static divider(text: string) {
         return `<div class="py-1 px-2 text-muted small fst-italic">${text}</div>`
+    }
+
+    /**
+     * Generates the tooltip header. For Java frames, displays a two-line header
+     * with short form (Class.method) on first line and package on second line.
+     */
+    static header(frame: Frame): string {
+        if (frame.type && JavaMethodParser.isJavaFrame(frame.type)) {
+            const parsed = JavaMethodParser.parse(frame.title);
+            if (parsed && parsed.packageName) {
+                return `
+                    <div class="card-header py-1 px-2 text-center border-bottom bg-light">
+                        <div class="fw-bold small">${parsed.shortForm}</div>
+                        <div class="text-muted smaller" style="font-size: 0.75rem;">${parsed.packageName}</div>
+                    </div>`;
+            }
+        }
+        // Fallback for non-Java frames or frames without package
+        return `<div class="card-header py-1 px-2 text-center fw-bold border-bottom bg-light small">${frame.title}</div>`;
     }
 
     static format_samples(value: number, base: number) {

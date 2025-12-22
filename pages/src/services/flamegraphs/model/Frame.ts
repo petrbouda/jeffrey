@@ -22,12 +22,9 @@ import DiffDetails from "@/services/flamegraphs/model/DiffDetails";
 
 export default class Frame {
     constructor(
-        public colorSamples: string,
-        public colorWeight: string,
         public leftSamples: number,
         public leftWeight: number,
         public selfSamples: number,
-        public selfWeight: number,
         public totalSamples: number,
         public totalWeight: number,
         public position: FramePosition,
@@ -35,6 +32,8 @@ export default class Frame {
         public title: string,
         public type: string,
         public typeTitle: string,
-        public diffDetails: DiffDetails) {
+        public diffDetails: DiffDetails,
+        // For guardian analysis - frames before marker are shown in grey
+        public beforeMarker?: boolean) {
     }
 }

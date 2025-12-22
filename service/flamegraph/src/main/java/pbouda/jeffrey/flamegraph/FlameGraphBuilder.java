@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.BytesUtils;
 import pbouda.jeffrey.common.DurationUtils;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.analysis.AnalysisResult;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
 import pbouda.jeffrey.flamegraph.diff.StringUtils;
 import pbouda.jeffrey.frameir.Frame;
@@ -112,13 +111,15 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, FlamegraphData> {
                 .put("leftWeight", leftWeight)
                 .put("totalWeight", frame.totalWeight())
                 .put("totalSamples", frame.totalSamples())
-                .put("selfWeight", frame.selfWeight())
                 .put("selfSamples", frame.selfSamples())
                 .put("type", frame.frameType().toString())
                 .put("typeTitle", frame.frameType().title())
-                .put("colorSamples", resolveColor(frame, markerCrossed))
-                .put("colorWeight", resolveColor(frame, markerCrossed))
                 .put("title", StringUtils.escape(title));
+
+        // Add marker info for guardian analysis coloring (when withMarker is true)
+        if (withMarker && !markerCrossed) {
+            jsonFrame.put("beforeMarker", true);
+        }
 
         jsonFrame.set("sampleTypes", frameTypes(frame));
         jsonFrame.set("position", position(frame));
@@ -134,14 +135,6 @@ public class FlameGraphBuilder implements GraphBuilder<Frame, FlamegraphData> {
             }
             leftSamples += child.totalSamples();
             leftWeight += child.totalWeight();
-        }
-    }
-
-    private String resolveColor(Frame frame, boolean markerCrossed) {
-        if (!withMarker || markerCrossed) {
-            return frame.frameType().color();
-        } else {
-            return AnalysisResult.Severity.IGNORE.color();
         }
     }
 

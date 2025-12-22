@@ -21,7 +21,6 @@ package pbouda.jeffrey.flamegraph.diff;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.FrameType;
 import pbouda.jeffrey.flamegraph.api.FlamegraphData;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.Frame;
@@ -34,28 +33,6 @@ public class DiffgraphFormatter {
 
     private static final double MIN_SAMPLES_IN_PCT = 0.1;
     private static final double MAX_LEVEL = 1000;
-
-    private static final String[] GREEN_COLORS = {
-            "#E5FFCC",
-            "#E5FFBB",
-            "#CCFF99",
-            "#B2FF66",
-            "#99FF33",
-            "#66CC00",
-    };
-
-    private static final String[] RED_COLORS = {
-            "#FFEEEE",
-            "#FFDDDD",
-            "#FFCCCC",
-            "#FFAAAA",
-            "#FF8888",
-            "#FF3333",
-    };
-
-    private static final String NEUTRAL_COLOR = "#E6E6E6";
-    private static final String REMOVED_COLOR = GREEN_COLORS[GREEN_COLORS.length - 1];
-    private static final String ADDED_COLOR = RED_COLORS[RED_COLORS.length - 1];
 
     private final DiffFrame diffFrame;
     private final long minSamples;
@@ -85,8 +62,7 @@ public class DiffgraphFormatter {
                         .put("leftWeight", leftWeight)
                         .put("totalSamples", diffFrame.samples())
                         .put("totalWeight", diffFrame.weight())
-                        .put("colorSamples", resolveColor(diffFrame.frameType, diffFrame.primarySamples, diffFrame.secondarySamples))
-                        .put("colorWeight", resolveColor(diffFrame.frameType, diffFrame.primaryWeight, diffFrame.secondaryWeight))
+                        .put("type", diffFrame.frameType.toString())
                         .put("title", StringUtils.escape(diffFrame.methodName));
                 jsonFrame.set("diffDetails", resolveDetail(diffFrame));
 
@@ -103,31 +79,6 @@ public class DiffgraphFormatter {
                 }
             }
         }
-    }
-
-    private static String resolveColor(FrameType frameType, long primary, long secondary) {
-        if (frameType == FrameType.LAMBDA_SYNTHETIC) {
-            return frameType.color();
-        }
-
-        float pct = roundDecimalPlaces(10000f, toPercent(primary, secondary));
-
-        int index;
-        if (pct <= 0.02) {
-            return NEUTRAL_COLOR;
-        } else if (pct <= 0.05) {
-            index = 0;
-        } else if (pct <= 0.1) {
-            index = 1;
-        } else if (pct <= 0.4) {
-            index = 2;
-        } else if (pct <= 0.8) {
-            index = 3;
-        } else {
-            index = 4;
-        }
-
-        return primary < secondary ? GREEN_COLORS[index] : RED_COLORS[index];
     }
 
     private static float roundDecimalPlaces(float shifter, float pct) {
@@ -161,21 +112,20 @@ public class DiffgraphFormatter {
     }
 
     private void removedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long leftSamples, long leftWeight) {
-        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, leftSamples, leftWeight, REMOVED_COLOR, false);
+        processSubtree(out, diffFrame.frame, diffFrame.methodName, layer, leftSamples, leftWeight, false);
     }
 
     private void addedSubtree(List<List<ObjectNode>> out, DiffFrame diffFrame, int layer, long leftSamples, long leftWeight) {
-        oneColorSubtree(out, diffFrame.frame, diffFrame.methodName, layer, leftSamples, leftWeight, ADDED_COLOR, true);
+        processSubtree(out, diffFrame.frame, diffFrame.methodName, layer, leftSamples, leftWeight, true);
     }
 
-    private void oneColorSubtree(
+    private void processSubtree(
             List<List<ObjectNode>> out,
             Frame frame,
             String methodName,
             int layer,
             long leftSamples,
             long leftWeight,
-            String color,
             boolean added) {
 
         checkAndAddLayer(out, layer);
@@ -185,8 +135,7 @@ public class DiffgraphFormatter {
                 .put("leftWeight", leftWeight)
                 .put("totalSamples", frame.totalSamples())
                 .put("selfSamples", frame.selfSamples())
-                .put("colorSamples", color)
-                .put("colorWeight", color)
+                .put("type", frame.frameType().toString())
                 .put("title", StringUtils.escape(methodName));
 
         long samples = frame.totalSamples();
@@ -214,7 +163,7 @@ public class DiffgraphFormatter {
             Frame child = e.getValue();
             String method = e.getKey();
             if (child.totalSamples() > minSamples && MAX_LEVEL > layer) {
-                oneColorSubtree(out, child, method, layer + 1, leftSamples, leftWeight, color, added);
+                processSubtree(out, child, method, layer + 1, leftSamples, leftWeight, added);
             }
             leftSamples += child.totalSamples();
             leftWeight += child.totalWeight();

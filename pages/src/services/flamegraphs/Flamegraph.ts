@@ -23,6 +23,7 @@ import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
 import Frame from "@/services/flamegraphs/model/Frame";
 import FrameRect from "@/services/flamegraphs/FrameRect";
 import VisibleFrame from "@/services/flamegraphs/VisibleFrame";
+import FrameColorResolver from "@/services/flamegraphs/FrameColorResolver";
 
 export default class Flamegraph {
 
@@ -571,11 +572,17 @@ export default class Flamegraph {
     }
 
     private color(frame: Frame): string {
-        if (this.useWeight) {
-            return frame.colorWeight
-        } else {
-            return frame.colorSamples
+        // Differential flamegraph - compute color from diff details
+        if (frame.diffDetails) {
+            const totalValue = this.useWeight ? frame.totalWeight : frame.totalSamples;
+            const diffValue = this.useWeight ? frame.diffDetails.weight : frame.diffDetails.samples;
+            // Reconstruct primary and secondary from total (primary + secondary) and diff (primary - secondary)
+            const primary = (totalValue + diffValue) / 2;
+            const secondary = (totalValue - diffValue) / 2;
+            return FrameColorResolver.resolveDiffColor(primary, secondary, frame.type);
         }
+        // Regular flamegraph - use frame type color (with beforeMarker for guardian analysis)
+        return FrameColorResolver.resolveByType(frame.type, frame.beforeMarker);
     }
 
     private totalValue(frame: Frame): number {

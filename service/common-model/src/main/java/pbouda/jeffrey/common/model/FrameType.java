@@ -19,27 +19,26 @@
 package pbouda.jeffrey.common.model;
 
 public enum FrameType {
-    C1_COMPILED("C1 compiled", true, "JAVA C1-compiled", "#cce880"),
-    NATIVE("Native", false, "Native", "#ffa6a6"),
-    CPP("C++", false, "C++ (JVM)", "#e3ed6d"),
-    INTERPRETED("Interpreted", true, "Interpreted (JAVA)", "#b2e1b2"),
-    JIT_COMPILED("JIT compiled", true, "JIT-compiled (JAVA)", "#94f25a"),
-    INLINED("Inlined", true, "Inlined (JAVA)", "#8eeded"),
-    KERNEL("Kernel", false, "Kernel", "#f2af5e"),
-    THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)", "#e17e5a"),
-    ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)", "#00b6ff"),
-    ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)", "#ADE8F4"),
-    ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)", "#00B4D8"),
-    BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)", "#e17e5a"),
-    LAMBDA_SYNTHETIC("Lambda (Synthetic)", "#b3c6ff"),
-    UNKNOWN("Unknown", false, "Unknown", "#000000"),
-    HIGHLIGHTED_WARNING("Highlighted Warning", "#ed0202");
+    C1_COMPILED("C1 compiled", true, "JAVA C1-compiled"),
+    NATIVE("Native", false, "Native"),
+    CPP("C++", false, "C++ (JVM)"),
+    INTERPRETED("Interpreted", true, "Interpreted (JAVA)"),
+    JIT_COMPILED("JIT compiled", true, "JIT-compiled (JAVA)"),
+    INLINED("Inlined", true, "Inlined (JAVA)"),
+    KERNEL("Kernel", false, "Kernel"),
+    THREAD_NAME_SYNTHETIC("Thread Name (Synthetic)"),
+    ALLOCATED_OBJECT_SYNTHETIC("Allocated Object (Synthetic)"),
+    ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)"),
+    ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)"),
+    BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)"),
+    LAMBDA_SYNTHETIC("Lambda (Synthetic)"),
+    UNKNOWN("Unknown", false, "Unknown"),
+    HIGHLIGHTED_WARNING("Highlighted Warning");
 
     private static final FrameType[] VALUES = values();
 
     private final String code;
     private final String title;
-    private final String color;
     private final boolean synthetic;
     private final boolean javaFrame;
 
@@ -47,10 +46,9 @@ public enum FrameType {
      * For SYNTHETIC frames
      *
      * @param title description of the frame type
-     * @param color color of the frame type
      */
-    FrameType(String title, String color) {
-        this(null, false, title, color, true);
+    FrameType(String title) {
+        this(null, false, title, true);
     }
 
     /**
@@ -59,10 +57,9 @@ public enum FrameType {
      * @param code code of the frame type
      * @param javaFrame whether the frame is one of the Java frames
      * @param title description of the frame type
-     * @param color color of the frame type
      */
-    FrameType(String code, boolean javaFrame, String title, String color) {
-        this(code, javaFrame, title, color, false);
+    FrameType(String code, boolean javaFrame, String title) {
+        this(code, javaFrame, title, false);
     }
 
     /**
@@ -71,13 +68,11 @@ public enum FrameType {
      * @param code code of the frame type
      * @param javaFrame whether the frame is one of the Java frames
      * @param title description of the frame type
-     * @param color color of the frame type
      * @param synthetic whether the frame is synthetic or regular
      */
-    FrameType(String code, boolean javaFrame, String title, String color, boolean synthetic) {
+    FrameType(String code, boolean javaFrame, String title, boolean synthetic) {
         this.code = code;
         this.title = title;
-        this.color = color;
         this.synthetic = synthetic;
         this.javaFrame = javaFrame;
     }
@@ -97,10 +92,6 @@ public enum FrameType {
 
     public boolean isJavaFrame() {
         return javaFrame;
-    }
-
-    public String color() {
-        return color;
     }
 
     public String title() {

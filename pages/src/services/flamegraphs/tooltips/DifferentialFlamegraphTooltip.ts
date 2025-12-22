@@ -59,7 +59,7 @@ export default class DifferentialFlamegraphTooltip extends FlamegraphTooltip {
         }
 
         return `
-            <div class="card-header py-1 px-2 text-center fw-bold border-bottom bg-light small">${frame.title}</div>
+            ${FlamegraphTooltip.header(frame)}
             <div class="card-body p-0 pt-1">
                 <div class="px-2 pb-1">
                     <div class="d-flex justify-content-between align-items-center py-0">
