@@ -79,7 +79,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     @Override
-    public void mergeAndDownloadSelectedRawRecordings(String recordingSessionId, List<String> fileIds) {
+    public void mergeAndDownloadRecordings(String recordingSessionId, List<String> fileIds) {
         RecordingSessionResponse recordingSession = remoteWorkspaceClient.recordingSession(
                 workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
 
@@ -113,7 +113,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     .thenApply(resource -> copyRecordingFile(resource, recordingType, tempDir));
 
             List<CompletableFuture<RepositoryFile>> additionalFilesFutures = files.stream()
-                    .filter(RepositoryFile::isAdditionalFile)
+                    .filter(RepositoryFile::isArtifactFile)
                     .map(file -> {
                         CompletableFuture<Resource> future = remoteWorkspaceClient.downloadFile(
                                 workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id());
@@ -185,16 +185,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         } catch (IOException e) {
             throw new RuntimeException("Cannot create a recording file from remote source", e);
         }
-    }
-
-    @Override
-    public void downloadSession(String recordingSessionId) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
-    }
-
-    @Override
-    public void downloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
     @Override

@@ -16,8 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.common.model;
+package pbouda.jeffrey.scheduler.job.descriptor;
 
-public enum OriginalSourceType {
-    FOLDER
+import pbouda.jeffrey.common.model.job.JobType;
+
+import java.util.Map;
+
+/**
+ * Job descriptor for the JFR compression job.
+ * This job compresses FINISHED JFR files in recording sessions using LZ4 compression.
+ */
+public record RepositoryCompressionProjectJobDescriptor() implements JobDescriptor<RepositoryCompressionProjectJobDescriptor> {
+
+    @Override
+    public Map<String, String> params() {
+        return Map.of();
+    }
+
+    @Override
+    public JobType type() {
+        return JobType.JFR_COMPRESSION;
+    }
 }

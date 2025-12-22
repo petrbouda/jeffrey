@@ -288,6 +288,8 @@ const getFileTypeVariant = (fileType: string): string => {
   switch (fileType) {
     case 'JFR':
       return 'primary';
+    case 'JFR_LZ4':
+      return 'success';  // Green to indicate compressed
     case 'HEAP_DUMP':
       return 'purple';
     case 'ASPROF_TEMP':
@@ -760,6 +762,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <div class="recording-file-icon-medium me-3">
                         <i class="bi" :class="{
                           'bi-file-earmark-code': source.fileType === 'JFR',
+                          'bi-file-earmark-zip': source.fileType === 'JFR_LZ4',
                           'bi-file-earmark-binary': source.fileType === 'HEAP_DUMP',
                           'bi-hourglass-split': source.fileType === 'ASPROF_TEMP',
                           'bi-file-earmark-bar-graph': source.fileType === 'PERF_COUNTERS',

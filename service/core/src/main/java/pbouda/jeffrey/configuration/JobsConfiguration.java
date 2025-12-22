@@ -52,8 +52,10 @@ public class JobsConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(JobsConfiguration.class);
 
-    public static final String PROJECTS_SYNCHRONIZER_JOB = "PROJECTS_SYNCHRONIZER";
+    public static final String PROJECTS_SYNCHRONIZER_JOB = "PROJECTS_SYNCHRONIZER_JOB";
+    public static final String REPOSITORY_COMPRESSION_JOB = "REPOSITORY_COMPRESSION_JOB";
     public static final String PROJECTS_SYNCHRONIZER_TRIGGER = "PROJECTS_SYNCHRONIZER_TRIGGER";
+    public static final String REPOSITORY_COMPRESSION_TRIGGER = "REPOSITORY_COMPRESSION_TRIGGER";
 
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
@@ -119,6 +121,19 @@ public class JobsConfiguration {
                 schedulerManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
+                jobPeriod == null ? defaultPeriod : jobPeriod);
+    }
+
+    @Bean(REPOSITORY_COMPRESSION_JOB)
+    public Job repositoryCompressionProjectJob(
+            SessionFileCompressor sessionFileCompressor,
+            @Value("${jeffrey.job.repository-compression.period:}") Duration jobPeriod) {
+        return new RepositoryCompressionProjectJob(
+                liveWorkspacesManager,
+                schedulerManager,
+                repositoryStorageFactory,
+                jobDescriptorFactory,
+                sessionFileCompressor,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
@@ -200,5 +215,12 @@ public class JobsConfiguration {
             Scheduler scheduler,
             @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob) {
         return () -> scheduler.submitAndWait(projectsSynchronizerJob);
+    }
+
+    @Bean(REPOSITORY_COMPRESSION_TRIGGER)
+    public Runnable repositoryCompressionTrigger(
+            Scheduler scheduler,
+            @Qualifier(REPOSITORY_COMPRESSION_JOB) Job repositoryCompressionJob) {
+        return () -> scheduler.submitAndWait(repositoryCompressionJob);
     }
 }

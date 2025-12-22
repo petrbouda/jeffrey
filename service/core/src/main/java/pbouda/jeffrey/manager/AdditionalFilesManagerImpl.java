@@ -24,7 +24,6 @@ import pbouda.jeffrey.manager.additional.AdditionalFileParser;
 import pbouda.jeffrey.manager.additional.PerfCountersAdditionalFileParser;
 import pbouda.jeffrey.manager.model.PerfCounter;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;
@@ -57,7 +56,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     @Override
     public void processAdditionalFiles(String recordingId) {
-        List<Path> findAdditionalFiles = projectRecordingStorage.findAdditionalFiles(recordingId);
+        List<Path> findAdditionalFiles = projectRecordingStorage.findArtifacts(recordingId);
         for (Path additionalFile : findAdditionalFiles) {
             SupportedRecordingFile fileType = SupportedRecordingFile.of(additionalFile);
             AdditionalFileParser parser = parsers.get(fileType);

@@ -54,7 +54,7 @@ public interface ProjectRecordingStorage {
      * @param recordingId the unique identifier of the recording for which to find additional files
      * @return a list of additional files associated with the specified recording ID
      */
-    List<Path> findAdditionalFiles(String recordingId);
+    List<Path> findArtifacts(String recordingId);
 
     /**
      * Retrieves a list of all recording files associated with a specific recording ID.
@@ -83,7 +83,7 @@ public interface ProjectRecordingStorage {
      * @param recordingId     the unique identifier of the recording to which the additional file belongs
      * @param recordingFileId the unique identifier of the additional file to delete
      */
-    void deleteAdditionalFile(String recordingId, String recordingFileId);
+    void deleteArtifact(String recordingId, String recordingFileId);
 
     /**
      * Uploads a recording with the specified unique identifier. This method provides a path
@@ -110,5 +110,5 @@ public interface ProjectRecordingStorage {
      *                    files should be added
      * @param files       a list of file paths to be added to the recording with the specified ID
      */
-    void addAdditionalFiles(String recordingId, List<Path> files);
+    void addArtifacts(String recordingId, List<Path> files);
 }

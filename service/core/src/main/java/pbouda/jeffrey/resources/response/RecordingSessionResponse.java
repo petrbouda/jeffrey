@@ -50,7 +50,6 @@ public record RecordingSessionResponse(
                 response.name(),
                 response.createdAt(),
                 response.status(),
-                null,
                 response.profilerSettings(),
                 response.files().stream()
                         .map(RepositoryFileResponse::from)

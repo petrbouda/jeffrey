@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.appinitializer.ProfilerInitializer;
 import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.compression.Lz4Compressor;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
@@ -55,8 +56,7 @@ import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.scheduler.JobDefinitionLoader;
-import pbouda.jeffrey.scheduler.Scheduler;
-import pbouda.jeffrey.scheduler.job.Job;
+import pbouda.jeffrey.scheduler.job.SessionFileCompressor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
@@ -65,9 +65,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.List;
 
-import static pbouda.jeffrey.configuration.JobsConfiguration.PROJECTS_SYNCHRONIZER_JOB;
-import static pbouda.jeffrey.configuration.JobsConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
+import static pbouda.jeffrey.configuration.JobsConfiguration.*;
 
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
@@ -92,9 +92,9 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingParserProvider profileInitializerProvider(PersistenceConfigProperties persistenceConfigProperties, Clock clock) {
+    public RecordingParserProvider profileInitializerProvider(JeffreyDirs jeffreyDirs) {
         RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
-        initializerProvider.initialize(persistenceConfigProperties.getReader(), clock);
+        initializerProvider.initialize(jeffreyDirs);
         return initializerProvider;
     }
 
@@ -191,7 +191,10 @@ public class AppConfiguration {
             FileSystemUtils.createDirectories(recordingsPath);
         }
 
-        return new FilesystemRecordingStorage(recordingsPath, SupportedRecordingFile.JFR);
+        List<SupportedRecordingFile> supportedTypes =
+                List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR);
+
+        return new FilesystemRecordingStorage(recordingsPath, supportedTypes);
     }
 
     @Bean
@@ -213,11 +216,13 @@ public class AppConfiguration {
 
     @Bean
     public ProjectRecordingInitializer.Factory projectRecordingInitializer(
+            Clock applicationClock,
             RecordingStorage recordingStorage,
             RecordingParserProvider recordingParserProvider,
             Repositories repositories) {
 
         return projectInfo -> new ProjectRecordingInitializerImpl(
+                applicationClock,
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 repositories.newProjectRecordingRepository(projectInfo.id()),
@@ -228,6 +233,7 @@ public class AppConfiguration {
     public ProjectManager.Factory projectManagerFactory(
             Clock applicationClock,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) ObjectFactory<Runnable> projectsSynchronizerTrigger,
+            @Qualifier(REPOSITORY_COMPRESSION_TRIGGER) ObjectFactory<Runnable> repositoryCompressionTrigger,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
@@ -239,6 +245,7 @@ public class AppConfiguration {
                     applicationClock,
                     projectInfo,
                     projectsSynchronizerTrigger,
+                    repositoryCompressionTrigger,
                     projectRecordingInitializerFactory.apply(projectInfo),
                     profilesManagerFactory,
                     repositories,
@@ -281,5 +288,10 @@ public class AppConfiguration {
     @Bean
     public ProfilerManager profilerManager(Repositories repositories) {
         return new ProfilerManagerImpl(repositories.newProfilerRepository());
+    }
+
+    @Bean
+    public SessionFileCompressor sessionFileCompressor(JeffreyDirs jeffreyDirs) {
+        return new SessionFileCompressor(new Lz4Compressor(jeffreyDirs));
     }
 }

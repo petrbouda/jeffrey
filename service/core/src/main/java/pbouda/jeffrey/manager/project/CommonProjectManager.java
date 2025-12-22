@@ -59,12 +59,14 @@ public class CommonProjectManager implements ProjectManager {
     private final JobDescriptorFactory jobDescriptorFactory;
     private final CompositeWorkspacesManager compositeWorkspacesManager;
     private final Clock clock;
-    private final ObjectFactory<Runnable> eventSyncExecutor;
+    private final ObjectFactory<Runnable> repositoryCompressionTrigger;
+    private final ObjectFactory<Runnable> projectsSynchronizerTrigger;
 
     public CommonProjectManager(
             Clock clock,
             ProjectInfo projectInfo,
-            ObjectFactory<Runnable> eventSyncExecutor,
+            ObjectFactory<Runnable> projectsSynchronizerTrigger,
+            ObjectFactory<Runnable> repositoryCompressionTrigger,
             ProjectRecordingInitializer recordingInitializer,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories,
@@ -74,7 +76,8 @@ public class CommonProjectManager implements ProjectManager {
 
         this.clock = clock;
         String projectId = projectInfo.id();
-        this.eventSyncExecutor = eventSyncExecutor;
+        this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
+        this.repositoryCompressionTrigger = repositoryCompressionTrigger;
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
         this.projectRepository = repositories.newProjectRepository(projectId);
@@ -99,7 +102,8 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
-        return new RecordingsDownloadManagerImpl(projectInfo, recordingInitializer, repositoryManager());
+        return new RecordingsDownloadManagerImpl(
+                projectInfo, recordingInitializer, repositoryManager(), repositoryCompressionTrigger.getObject());
     }
 
     @Override
@@ -112,7 +116,8 @@ public class CommonProjectManager implements ProjectManager {
         return new RepositoryManagerImpl(
                 clock,
                 projectInfo,
-                eventSyncExecutor.getObject(),
+                projectsSynchronizerTrigger.getObject(),
+                repositoryCompressionTrigger.getObject(),
                 repositories.newProjectRepositoryRepository(projectInfo.id()),
                 remoteRepositoryStorageFactory.apply(projectInfo),
                 workspaceOpt.get());
@@ -193,6 +198,6 @@ public class CommonProjectManager implements ProjectManager {
                 .batchInsertEvents(List.of(workspaceEvent));
 
         // Trigger event synchronization
-        eventSyncExecutor.getObject().run();
+        projectsSynchronizerTrigger.getObject().run();
     }
 }

@@ -28,12 +28,12 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
-import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 
@@ -42,14 +42,17 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     private final ProjectRecordingRepository recordingRepository;
     private final ProjectRecordingStorage recordingStorage;
     private final RecordingInformationParser recordingInformationParser;
+    private final Clock clock;
     private final ProjectInfo projectInfo;
 
     public ProjectRecordingInitializerImpl(
+            Clock clock,
             ProjectInfo projectInfo,
             ProjectRecordingStorage recordingStorage,
             ProjectRecordingRepository recordingRepository,
             RecordingInformationParser recordingInformationParser) {
 
+        this.clock = clock;
         this.projectInfo = projectInfo;
         this.recordingStorage = recordingStorage;
         this.recordingInformationParser = recordingInformationParser;
@@ -73,7 +76,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                 // Provide information about the Recording file
                 RecordingInformation information = recordingInformationParser.provide(targetPath);
 
-                Instant createdAt = Instant.now();
+                Instant createdAt = clock.instant();
                 Recording recording = new Recording(
                         recordingId,
                         newRecording.recordingName(),
@@ -104,7 +107,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         .map(RepositoryFile::filePath)
                         .toList();
 
-                recordingStorage.addAdditionalFiles(recordingId, additionalFilePaths);
+                recordingStorage.addArtifacts(recordingId, additionalFilePaths);
 
                 for (RepositoryFile additionalFile : additionalFiles) {
                     RecordingFile additionalRecordingFile = new RecordingFile(
@@ -125,62 +128,6 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
         };
 
         return new NewRecordingHolder(recordingId, targetPath, uploadCompleteCallback);
-    }
-
-    @Override
-    public void newCopiedRecording(String folderName, List<Path> files) {
-        List<RecordingFolder> allRecordingFolders = recordingRepository.findAllRecordingFolders();
-        boolean folderExists = allRecordingFolders.stream()
-                .anyMatch(folder -> folder.name().equals(folderName));
-
-        String newFolderName = folderExists
-                ? findNonExistingFolder(folderName, allRecordingFolders)
-                : folderName;
-
-        String newFolderId = recordingRepository.insertFolder(newFolderName);
-
-        for (Path file : files) {
-            String filename = file.getFileName().toString();
-
-            String recordingId = IDGenerator.generate();
-            recordingStorage.uploadTarget(recordingId, file);
-
-            // Provide information about the Recording file
-            RecordingInformation information = recordingInformationParser.provide(file);
-
-            Instant createdAt = Instant.now();
-            Recording recording = new Recording(
-                    recordingId,
-                    filename,
-                    projectInfo.id(),
-                    newFolderId,
-                    information.eventSource(),
-                    createdAt,
-                    information.recordingStartedAt(),
-                    information.recordingFinishedAt(),
-                    false,
-                    List.of());
-
-            RecordingFile recordingFile = new RecordingFile(
-                    IDGenerator.generate(),
-                    recordingId,
-                    filename,
-                    SupportedRecordingFile.of(filename),
-                    createdAt,
-                    FileSystemUtils.size(file));
-
-            recordingRepository.insertRecording(recording, recordingFile);
-        }
-    }
-
-    private static String findNonExistingFolder(String folderName, List<RecordingFolder> allRecordingFolders) {
-        for (RecordingFolder recordingFolder : allRecordingFolders) {
-            if (recordingFolder.name().equals(folderName)) {
-                return findNonExistingFolder(folderName + " .", allRecordingFolders);
-            }
-        }
-
-        return folderName;
     }
 
     @Override

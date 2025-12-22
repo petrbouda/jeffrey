@@ -66,20 +66,20 @@ public class ProjectRepositorySessionPublicResource {
     @POST
     @Path("/{sessionId}/recordings")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    public Response streamMergedSessionRecordings(
+    public Response streamAndMergedRecordings(
             @PathParam("sessionId") String sessionId, FilesDownloadRequest request) {
 
-        StreamedRecordingFile recordingFile = repositoryManager.streamRecordingFiles(sessionId, request.fileIds());
+        StreamedRecordingFile recordingFile = repositoryManager.mergeAndStreamRecordings(sessionId, request.fileIds());
         return streamRecording(recordingFile);
     }
 
     @POST
-    @Path("/{sessionId}/files")
+    @Path("/{sessionId}/artifact")
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public Response streamSingleFile(
             @PathParam("sessionId") String sessionId, FileDownloadRequest request) {
 
-        StreamedRecordingFile file = repositoryManager.streamFile(sessionId, request.fileId());
+        StreamedRecordingFile file = repositoryManager.streamArtifact(sessionId, request.fileId());
         return streamRecording(file);
     }
 

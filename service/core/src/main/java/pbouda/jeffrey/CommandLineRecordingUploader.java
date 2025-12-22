@@ -35,13 +35,15 @@ import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.configuration.AppConfiguration;
+import pbouda.jeffrey.manager.model.CreateProject;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.manager.model.CreateProject;
-import pbouda.jeffrey.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.provider.api.NewRecordingHolder;
+import pbouda.jeffrey.provider.api.model.recording.NewRecording;
+import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -123,11 +125,22 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         ProjectManager projectManager = projectsManager.create(createProject);
 
         try (var stream = Files.list(recordingsDir)) {
-            List<Path> files = stream.filter(SupportedRecordingFile.JFR::matches)
+            List<Path> files = stream.filter(SupportedRecordingFile.JFR_LZ4::matches)
                     .toList();
 
-            projectManager.recordingInitializer()
-                    .newCopiedRecording("Persons", files);
+            ProjectRecordingInitializer recordingInitializer = projectManager.recordingInitializer();
+            for (Path file : files) {
+                String filename = file.getFileName().toString();
+                NewRecording recording = new NewRecording(filename, filename, null);
+
+                try (NewRecordingHolder holder = recordingInitializer.newRecording(recording);
+                     var inputStream = Files.newInputStream(file)) {
+                    holder.transferFrom(inputStream);
+                    LOG.info("Uploaded recording file: {}", filename);
+                } catch (Exception e) {
+                    throw new RuntimeException("Cannot upload the recording: " + recording, e);
+                }
+            }
 
             LOG.info("Uploaded {} recordings to project '{}'", files.size(), PROJECT_NAME);
         } catch (IOException e) {

@@ -27,7 +27,6 @@ import java.util.Map;
 public class PersistenceConfigProperties {
     private String mode;
     private Map<String, String> database = new HashMap<>();
-    private Map<String, String> reader = new HashMap<>();
 
     public String getMode() {
         return mode;
@@ -35,14 +34,6 @@ public class PersistenceConfigProperties {
 
     public void setMode(String mode) {
         this.mode = mode;
-    }
-
-    public Map<String, String> getReader() {
-        return reader;
-    }
-
-    public void setReader(Map<String, String> reader) {
-        this.reader = reader;
     }
 
     public Map<String, String> getDatabase() {

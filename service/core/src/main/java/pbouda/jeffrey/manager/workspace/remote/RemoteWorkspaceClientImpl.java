@@ -74,7 +74,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_SESSIONS = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions";
     private static final String API_SESSION = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions/{sessionId}";
     private static final String API_DOWNLOAD_SELECTED_RECORDINGS = API_SESSION + "/recordings";
-    private static final String API_DOWNLOAD_SELECTED_FILE = API_SESSION + "/files";
+    private static final String API_DOWNLOAD_SELECTED_FILE = API_SESSION + "/artifact";
 
     private final RestClient restClient;
     private final URI uri;

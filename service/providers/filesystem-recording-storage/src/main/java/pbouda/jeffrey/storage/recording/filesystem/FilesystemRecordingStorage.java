@@ -29,11 +29,11 @@ import java.util.List;
 public class FilesystemRecordingStorage implements RecordingStorage {
 
     private final Path recordingStoragePath;
-    private final SupportedRecordingFile recordingFileType;
+    private final List<SupportedRecordingFile> recordingTypes;
 
-    public FilesystemRecordingStorage(Path recordingStoragePath, SupportedRecordingFile recordingFileType) {
+    public FilesystemRecordingStorage(Path recordingStoragePath, List<SupportedRecordingFile> recordingTypes) {
         this.recordingStoragePath = recordingStoragePath;
-        this.recordingFileType = recordingFileType;
+        this.recordingTypes = recordingTypes;
     }
 
     @Override
@@ -46,6 +46,6 @@ public class FilesystemRecordingStorage implements RecordingStorage {
     @Override
     public ProjectRecordingStorage projectRecordingStorage(String projectId) {
         Path projectRecordingStoragePath = recordingStoragePath.resolve(projectId);
-        return new FilesystemProjectRecordingStorage(projectRecordingStoragePath, recordingFileType);
+        return new FilesystemProjectRecordingStorage(projectRecordingStoragePath, recordingTypes);
     }
 }

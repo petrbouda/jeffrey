@@ -68,6 +68,7 @@ const toggleRecordingFiles = (recording: Recording) => {
 // File type priority for sorting (lower number = higher priority)
 const FILE_TYPE_PRIORITY: Record<string, number> = {
   'JFR': 1,
+  'JFR_LZ4': 1,
   'HEAP_DUMP': 2,
   'PERF_COUNTERS': 3,
   'JVM_LOG': 4,
@@ -88,6 +89,7 @@ const getSortedRecordingFiles = (files: any[]) => {
 const getFileTypeClass = (fileType: string): string => {
   switch (fileType) {
     case 'JFR':
+    case 'JFR_LZ4':
       return 'file-type-jfr';
     case 'HEAP_DUMP':
       return 'file-type-heap-dump';
@@ -267,9 +269,9 @@ const deleteFolder = async () => {
 const handleFileUpload = (event) => {
   const files = event.target.files || event.dataTransfer?.files;
   if (files && files.length) {
-    const jfrFiles = Array.from(files).filter(file => file.name.endsWith('.jfr'));
+    const jfrFiles = Array.from(files).filter(file => file.name.endsWith('.jfr') || file.name.endsWith('.jfr.lz4'));
     if (jfrFiles.length === 0) {
-      toast.warn('Invalid Files', 'Only JFR files are supported');
+      toast.warn('Invalid Files', 'Only JFR files (.jfr, .jfr.lz4) are supported');
       return;
     }
     uploadFiles.value = [...uploadFiles.value, ...jfrFiles];
@@ -416,7 +418,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
           <h5 class="card-title mb-0">Upload Recordings</h5>
         </div>
         <div class="d-flex align-items-center">
-          <div class="text-muted small me-3">Only .jfr files are supported</div>
+          <div class="text-muted small me-3">Only .jfr and .jfr.lz4 files are supported</div>
           <button class="btn btn-sm btn-outline-primary" @click.stop="uploadPanelExpanded = !uploadPanelExpanded">
             <i class="bi" :class="uploadPanelExpanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
           </button>
@@ -454,7 +456,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                 type="file"
                 id="fileUploadInput"
                 class="d-none"
-                accept=".jfr"
+                accept=".jfr,.jfr.lz4"
                 multiple
                 @change="handleFileUpload"
             >
@@ -654,7 +656,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                         <div class="d-flex align-items-center">
                           <div class="recording-file-icon-medium me-2">
                             <i class="bi" :class="{
-                              'bi-file-earmark-code': file.type === 'JFR',
+                              'bi-file-earmark-code': file.type === 'JFR' || file.type === 'JFR_LZ4',
                               'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
                               'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
                               'bi-file-earmark-text': file.type === 'JVM_LOG',
@@ -666,7 +668,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             <div class="d-flex align-items-center mt-1">
                               <Badge
                                 :value="Utils.formatFileType(file.type)"
-                                :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
+                                :variant="(file.type === 'JFR' || file.type === 'JFR_LZ4') ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
                                 size="xxs"
                               />
                               <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
@@ -761,7 +763,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                         <div class="d-flex align-items-center">
                           <div class="recording-file-icon-medium me-2">
                             <i class="bi" :class="{
-                              'bi-file-earmark-code': file.type === 'JFR',
+                              'bi-file-earmark-code': file.type === 'JFR' || file.type === 'JFR_LZ4',
                               'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
                               'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
                               'bi-file-earmark-text': file.type === 'JVM_LOG',
@@ -773,7 +775,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             <div class="d-flex align-items-center mt-1">
                               <Badge
                                 :value="Utils.formatFileType(file.type)"
-                                :variant="file.type === 'JFR' ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
+                                :variant="(file.type === 'JFR' || file.type === 'JFR_LZ4') ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
                                 size="xxs"
                               />
                               <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>

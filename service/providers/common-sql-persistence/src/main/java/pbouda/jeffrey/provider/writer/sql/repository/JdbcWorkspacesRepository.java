@@ -86,20 +86,21 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     @Override
     public WorkspaceInfo create(WorkspaceInfo workspaceInfo) {
+        WorkspaceInfo newWorkspaceInfo = workspaceInfo.withId(IDGenerator.generate());
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", IDGenerator.generate())
-                .addValue("workspace_origin_id", workspaceInfo.originId())
-                .addValue("repository_id", workspaceInfo.repositoryId())
-                .addValue("name", workspaceInfo.name())
-                .addValue("description", workspaceInfo.description())
-                .addValue("location", workspaceInfo.location() != null ? workspaceInfo.location().toString() : null)
-                .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null)
+                .addValue("workspace_id", newWorkspaceInfo.id())
+                .addValue("workspace_origin_id", newWorkspaceInfo.originId())
+                .addValue("repository_id", newWorkspaceInfo.repositoryId())
+                .addValue("name", newWorkspaceInfo.name())
+                .addValue("description", newWorkspaceInfo.description())
+                .addValue("location", newWorkspaceInfo.location() != null ? newWorkspaceInfo.location().toString() : null)
+                .addValue("base_location", newWorkspaceInfo.baseLocation() != null ? newWorkspaceInfo.baseLocation().toString() : null)
                 .addValue("deleted", false)
-                .addValue("created_at", workspaceInfo.createdAt().atOffset(ZoneOffset.UTC))
-                .addValue("type", workspaceInfo.type().name());
+                .addValue("created_at", newWorkspaceInfo.createdAt().atOffset(ZoneOffset.UTC))
+                .addValue("type", newWorkspaceInfo.type().name());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT_WORKSPACE, paramSource);
-        return workspaceInfo;
+        return newWorkspaceInfo;
     }
 
     @Override

@@ -17,6 +17,7 @@
  */
 
 enum RecordingFileType {
+    JFR_LZ4 = "JFR_LZ4",
     JFR = "JFR",
     HEAP_DUMP = "HEAP_DUMP",
     ASPROF = "ASPROF_TEMP",

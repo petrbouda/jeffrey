@@ -49,13 +49,19 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
+    private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES =
+            List.of(SupportedRecordingFile.JFR, SupportedRecordingFile.JFR_LZ4);
+
+    private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
+            .map(SupportedRecordingFile::fileExtension)
+            .toList();
+
     private final ProjectInfo projectInfo;
     private final JeffreyDirs jeffreyDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
     private final Duration finishedPeriod;
     private final Clock clock;
-    private final SupportedRecordingFile recordingFileType = SupportedRecordingFile.JFR;
 
     public AsprofFileRemoteRepositoryStorage(
             ProjectInfo projectInfo,
@@ -158,7 +164,6 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                 sessionInfo.relativeSessionPath().toString(),
                 sessionInfo.originCreatedAt(),
                 recordingStatus,
-                recordingFileType,
                 sessionInfo.profilerSettings(),
                 repositoryFiles);
     }
@@ -258,8 +263,12 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                         sessionPath, fileInfoProcessor.comparator()).stream()
                 .filter(FileSystemUtils::isNotHidden)
                 .map(file -> {
-                    String sourceId = workspacePath.relativize(file).toString();
+                    String sourceId = FileSystemUtils.removeExtension(
+                            workspacePath.relativize(file), RECORDING_EXTENSIONS);
+
                     String sourceName = sessionPath.relativize(file).toString();
+                    boolean isRecordingFile = RECORDING_FILE_TYPES.stream()
+                            .anyMatch(type -> type.matches(sourceName));
 
                     return new RepositoryFile(
                             sourceId,
@@ -267,7 +276,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
                             fileInfoProcessor.createdAt(file),
                             FileSystemUtils.size(file),
                             SupportedRecordingFile.of(sourceName),
-                            recordingFileType.matches(sourceName),
+                            isRecordingFile,
                             sourceName.equals(sessionInfo.finishedFile()),
                             RecordingStatus.FINISHED,
                             file);

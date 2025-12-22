@@ -85,6 +85,8 @@ export default class Utils {
      */
     static formatFileType(fileType: string): string {
         switch (fileType) {
+            case 'JFR_LZ4':
+                return 'JFR (LZ4)';
             case 'PERF_COUNTERS':
                 return 'Perf Counters';
             case 'HEAP_DUMP':

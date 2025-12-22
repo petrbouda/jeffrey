@@ -20,7 +20,9 @@ package pbouda.jeffrey.provider.reader.jfr;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.common.compression.Lz4Compressor;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs.Directory;
 import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
 import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
 import pbouda.jeffrey.provider.api.EventWriter;
@@ -32,9 +34,6 @@ import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
 
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -42,13 +41,12 @@ public class JfrRecordingEventParser implements RecordingEventParser {
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrRecordingEventParser.class);
 
-    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmssSSS");
-    private final Path recordingsTempDir;
-    private final Clock clock;
+    private final JeffreyDirs jeffreyDirs;
+    private final Lz4Compressor lz4Compressor;
 
-    public JfrRecordingEventParser(Path recordingsTempDir, Clock clock) {
-        this.recordingsTempDir = recordingsTempDir;
-        this.clock = clock;
+    public JfrRecordingEventParser(JeffreyDirs jeffreyDirs, Lz4Compressor lz4Compressor) {
+        this.jeffreyDirs = jeffreyDirs;
+        this.lz4Compressor = lz4Compressor;
     }
 
     private final List<JfrSpecificDataProvider> specificDataProviders =
@@ -57,19 +55,15 @@ public class JfrRecordingEventParser implements RecordingEventParser {
 
     @Override
     public ParserResult start(EventWriter eventWriter, Path recording) {
-        String folderName = clock.instant().atZone(ZoneOffset.UTC).format(DATETIME_FORMATTER);
-        Path profileTempFolder = this.recordingsTempDir.resolve(folderName);
+        try (Directory tempDir = jeffreyDirs.newTempDir()) {
+            LOG.info("Created the profile's temporary folder: {}", tempDir.path());
 
-        // Create a temporary folder for the recording while processing and remove it after the profile is created.
-        // Temporary folder is used to parallelize the processing of multiple chunks of the processing.
-        FileSystemUtils.createDirectories(profileTempFolder);
-        LOG.info("Created the profile's temporary folder: {}", profileTempFolder);
-        try {
-            List<Path> recordingChunks = Recordings.splitRecording(recording, profileTempFolder);
+            Path decompressed = Lz4Compressor.isLz4Compressed(recording)
+                    ? lz4Compressor.decompressToDir(recording, tempDir.path())
+                    : recording;
+
+            List<Path> recordingChunks = Recordings.splitRecording(decompressed, tempDir.path().resolve("chunks"));
             return _start(eventWriter, recordingChunks);
-        } finally {
-            FileSystemUtils.removeDirectory(profileTempFolder);
-            LOG.info("Removed the profile's temporary folder: {}", profileTempFolder);
         }
     }
 

@@ -26,20 +26,7 @@ public interface RecordingsDownloadManager {
 
     void mergeAndDownloadSession(String recordingSessionId);
 
-    void downloadSession(String recordingSessionId);
+    void mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
 
-    void mergeAndDownloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
-
-    void downloadSelectedRawRecordings(String recordingSessionId, List<String> rawRecordingIds);
-
-    /**
-     * Create new recording in the repository, it takes a collection of repository files and split them into
-     * recording files and additional files (Heap Dumps, Logs, etc.). The recording files are then merged into
-     * a single recording file (if there are more than one) and stored to local recordings along with the
-     * additional files.
-     *
-     * @param recordingName   name of the new recording.
-     * @param repositoryFiles collection of repository files to be processed.
-     */
     void createNewRecording(String recordingName, List<RepositoryFile> repositoryFiles);
 }

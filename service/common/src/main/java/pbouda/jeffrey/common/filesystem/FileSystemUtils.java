@@ -176,4 +176,14 @@ public abstract class FileSystemUtils {
             throw new RuntimeException("Cannot delete file: " + path, e);
         }
     }
+
+    public static String removeExtension(Path path, List<String> extensions) {
+        String filename = path.getFileName().toString();
+        for (String extension : extensions) {
+            if (filename.endsWith(extension)) {
+                return filename.substring(0, filename.length() - extension.length() - 1);
+            }
+        }
+        return filename;
+    }
 }

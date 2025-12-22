@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.manual;
 
-import pbouda.jeffrey.common.compression.Lz4Compression;
+import pbouda.jeffrey.common.compression.Lz4Compressor;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,8 +29,13 @@ import java.util.List;
 
 public class Lz4CompressionTest {
 
-    private static final Path JFRS_DIR = Path.of("/Users/petrbouda/IdeaProjects/jeffrey/jfrs");
-    private static final Path OUTPUT_DIR = Path.of("/Users/petrbouda/IdeaProjects/jeffrey/jfrs/output");
+    private static final Path JFRS_DIR = Path.of("manual-tests/jfrs");
+    private static final JeffreyDirs JEFFREY_DIRS = new JeffreyDirs(
+            null, JFRS_DIR);
+
+    private static final Lz4Compressor LZ4_COMPRESSOR = new Lz4Compressor(JEFFREY_DIRS);
+
+    private static final Path OUTPUT_DIR = JEFFREY_DIRS.newTempDir().path();
 
     static void main() throws IOException {
         // Create output directory
@@ -91,7 +96,7 @@ public class Lz4CompressionTest {
         try {
             Path target = OUTPUT_DIR.resolve(source.getFileName() + ".lz4");
             long startTime = System.nanoTime();
-            Lz4Compression.compress(source, target);
+            Lz4Compressor.compress(source, target);
             long duration = (System.nanoTime() - startTime) / 1_000_000;
 
             long originalSize = Files.size(source);
@@ -129,10 +134,7 @@ public class Lz4CompressionTest {
     private static void decompressFile(Path source, Path target) throws IOException {
         long startTime = System.nanoTime();
 
-        try (InputStream in = Lz4Compression.decompressStream(source);
-             OutputStream out = Files.newOutputStream(target)) {
-            in.transferTo(out);
-        }
+        LZ4_COMPRESSOR.decompressToDir(source, target.getParent());
 
         long duration = (System.nanoTime() - startTime) / 1_000_000;
         System.out.println("  Decompression completed in " + duration + " ms");

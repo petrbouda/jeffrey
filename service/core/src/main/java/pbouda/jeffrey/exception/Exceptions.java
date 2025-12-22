@@ -55,11 +55,6 @@ public abstract class Exceptions {
                 ErrorCode.RECORDING_SESSION_NOT_FOUND, "Recording session not found: %s".formatted(sessionId));
     }
 
-    public static JeffreyClientException recordingFileNotFound(String fileId) {
-        return new JeffreyClientException(
-                ErrorCode.RECORDING_SESSION_NOT_FOUND, "Recording file not found: %s".formatted(fileId));
-    }
-
     public static JeffreyClientException emptyRecordingSession(String sessionId) {
         return new JeffreyClientException(
                 ErrorCode.EMPTY_RECORDING_SESSION, "Recording session is empty: %s".formatted(sessionId));
@@ -73,19 +68,7 @@ public abstract class Exceptions {
         return new JeffreyClientException(ErrorCode.INVALID_REQUEST, message);
     }
 
-    public static JeffreyClientException schedulerJobNotFound(String jobId) {
-        return new JeffreyClientException(
-                ErrorCode.SCHEDULER_JOB_NOT_FOUND, "Scheduler job not found: %s".formatted(jobId));
+    public static JeffreyInternalException compressionError(String message) {
+        return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message);
     }
-
-    public static JeffreyClientException profilerConfigurationError(String message) {
-        return new JeffreyClientException(ErrorCode.PROFILER_CONFIGURATION_ERROR, message);
-    }
-
-    public static JeffreyInternalException remoteOperationFailed(String operation, String remoteUrl, String detail) {
-        return new JeffreyInternalException(
-                ErrorCode.REMOTE_OPERATION_FAILED,
-                "Remote operation '%s' failed for %s: %s".formatted(operation, remoteUrl, detail));
-    }
-
 }

@@ -72,7 +72,7 @@ public class ProjectRepositoryResource {
     @POST
     @Path("/recordings/download")
     public void downloadSelectedRecordings(SelectedRecordingsRequest request) {
-        recordingsDownloadManager.mergeAndDownloadSelectedRawRecordings(request.sessionId(), request.recordingIds());
+        recordingsDownloadManager.mergeAndDownloadRecordings(request.sessionId(), request.recordingIds());
     }
 
     @PUT

@@ -39,23 +39,35 @@ public interface RepositoryManager {
     /**
      * Downloads file of every type (even non-recording, e.g. Heap Dump) from the repository.
      *
-     * @param sessionId id of the session to download from
-     * @param fileId    id of the file to download
+     * @param sessionId  id of the session to download from
+     * @param artifactId id of the artifact to download
      * @return entity for file information and streaming to output stream
      */
-    StreamedRecordingFile streamFile(String sessionId, String fileId);
+    StreamedRecordingFile streamArtifact(String sessionId, String artifactId);
 
     /**
-     * Downloads recording files from the repository and merge them (event additional recording file)
+     * Downloads recordings from the repository and merge them into a single file.
      *
      * @param sessionId        id of the session to download from
      * @param recordingFileIds ids of recordings to merge and download
      * @return entity for file information and streaming to output stream
      */
-    StreamedRecordingFile streamRecordingFiles(String sessionId, List<String> recordingFileIds);
+    StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds);
 
+    /**
+     * Finds a recording session by its ID.
+     *
+     * @param recordingSessionId the ID of the recording session to find
+     * @return an Optional containing the RecordingSession if found, or empty if not found
+     */
     Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
 
+    /**
+     * Lists all recording sessions in the repository.
+     *
+     * @param withFiles whether to include file details in the sessions
+     * @return list of recording sessions
+     */
     List<RecordingSession> listRecordingSessions(boolean withFiles);
 
     /**
@@ -66,6 +78,11 @@ public interface RepositoryManager {
      */
     RepositoryStatistics calculateRepositoryStatistics();
 
+    /**
+     * Create a new repository for the project.
+     *
+     * @param projectRepository the repository information to create
+     */
     void create(RepositoryInfo projectRepository);
 
     /**

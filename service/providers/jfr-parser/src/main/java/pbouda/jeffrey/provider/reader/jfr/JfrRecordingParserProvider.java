@@ -18,37 +18,30 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.common.compression.Lz4Compressor;
+import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.RecordingParserProvider;
 
-import java.nio.file.Path;
-import java.time.Clock;
-import java.util.Map;
-
 public class JfrRecordingParserProvider implements RecordingParserProvider {
 
-    private static final Path DEFAULT_TEMP_RECORDINGS_FOLDER =
-            Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-temp-recordings");
-
-    private Path recordingsTempPath;
-    private Clock clock;
+    private Lz4Compressor lz4Compressor;
+    private JeffreyDirs jeffreyDirs;
 
     @Override
-    public void initialize(Map<String, String> properties, Clock clock) {
-        this.recordingsTempPath = Config.parsePath(
-                properties, "temp-recordings.path", DEFAULT_TEMP_RECORDINGS_FOLDER);
-        this.clock = clock;
+    public void initialize(JeffreyDirs jeffreyDirs) {
+        this.lz4Compressor = new Lz4Compressor(jeffreyDirs);
+        this.jeffreyDirs = jeffreyDirs;
     }
 
     @Override
     public RecordingEventParser newRecordingEventParser() {
-        return new JfrRecordingEventParser(recordingsTempPath, clock);
+        return new JfrRecordingEventParser(jeffreyDirs, lz4Compressor);
     }
 
     @Override
     public RecordingInformationParser newRecordingInformationParser() {
-        return new JfrRecordingInformationParser();
+        return new JfrRecordingInformationParser(jeffreyDirs, lz4Compressor);
     }
 }

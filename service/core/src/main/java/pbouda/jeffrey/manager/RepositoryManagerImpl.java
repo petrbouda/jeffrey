@@ -35,19 +35,18 @@ import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
 import pbouda.jeffrey.workspace.WorkspaceEventConverter;
 
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class RepositoryManagerImpl implements RepositoryManager {
 
     private final Clock clock;
     private final ProjectInfo projectInfo;
-    private final Runnable eventSyncExecutor;
+    private final Runnable projectsSynchronizerTrigger;
+    private final Runnable repositoryCompressionTrigger;
     private final ProjectRepositoryRepository repository;
     private final RemoteRepositoryStorage repositoryStorage;
     private final WorkspaceManager workspaceManager;
@@ -55,75 +54,83 @@ public class RepositoryManagerImpl implements RepositoryManager {
     public RepositoryManagerImpl(
             Clock clock,
             ProjectInfo projectInfo,
-            Runnable eventSyncExecutor,
+            Runnable projectsSynchronizerTrigger,
+            Runnable repositoryCompressionTrigger,
             ProjectRepositoryRepository repository,
             RemoteRepositoryStorage repositoryStorage,
             WorkspaceManager workspaceManager) {
 
         this.clock = clock;
         this.projectInfo = projectInfo;
-        this.eventSyncExecutor = eventSyncExecutor;
+        this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
+        this.repositoryCompressionTrigger = repositoryCompressionTrigger;
         this.repository = repository;
         this.repositoryStorage = repositoryStorage;
         this.workspaceManager = workspaceManager;
     }
 
     @Override
-    public StreamedRecordingFile streamFile(String sessionId, String fileId) {
+    public StreamedRecordingFile streamArtifact(String sessionId, String artifactId) {
         // Filter only recording files that are finished and takes all finished files in the session
-        Predicate<RepositoryFile> entireSession = repositoryFile -> {
-            return fileId.equalsIgnoreCase(repositoryFile.id());
+        Predicate<RepositoryFile> filder = repositoryFile -> {
+            return artifactId.equalsIgnoreCase(repositoryFile.id());
         };
 
-        return mergeAndStream(sessionId, entireSession);
+        RecordingSession recordingSession = resolveRecordingSession(sessionId);
+        List<RepositoryFile> recordingFiles = recordingSession.files().stream()
+                .filter(filder)
+                .toList();
+
+        return mergeAndStream(sessionId, recordingFiles);
     }
 
     @Override
-    public StreamedRecordingFile streamRecordingFiles(String sessionId, List<String> recordingFileIds) {
+    public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
         // Filter only recording files that are finished and is contained in the given list of IDs
-        Predicate<RepositoryFile> entireSession = repositoryFile -> {
+        Predicate<RepositoryFile> filter = repositoryFile -> {
             return repositoryFile.isRecordingFile()
                     && recordingFileIds.contains(repositoryFile.id())
                     && repositoryFile.status() == RecordingStatus.FINISHED;
         };
 
-        return mergeAndStream(sessionId, entireSession);
+        RecordingSession recordingSession = resolveRecordingSession(sessionId);
+        List<RepositoryFile> recordingFiles = recordingSession.files().stream()
+                .filter(filter)
+                .toList();
+
+        return mergeAndStream(sessionId, recordingFiles);
     }
 
-    private StreamedRecordingFile mergeAndStream(String sessionId, Predicate<RepositoryFile> fileFilter) {
+    private RecordingSession resolveRecordingSession(String sessionId) {
         Optional<RecordingSession> sessionOpt = repositoryStorage.singleSession(sessionId, true);
         if (sessionOpt.isEmpty()) {
             throw Exceptions.recordingSessionNotFound(sessionId);
         }
-        RecordingSession session = sessionOpt.get();
+        return sessionOpt.get();
+    }
 
-        List<RepositoryFile> recordingFiles = session.files().stream()
-                .filter(fileFilter)
-                .toList();
-
+    private StreamedRecordingFile mergeAndStream(String sessionId, List<RepositoryFile> recordingFiles) {
         // Some the real size of all files on the filesystem
         long sumOfSizes = recordingFiles.stream()
                 .mapToLong(RepositoryFile::size)
                 .sum();
 
-        String filename;
-        Consumer<OutputStream> writer;
         if (recordingFiles.size() == 1) {
             RepositoryFile file = recordingFiles.getFirst();
-            filename = file.name();
-            writer = output -> Recordings.copyByStreaming(file.filePath(), output);
+            return new StreamedRecordingFile(
+                    file.name(), sumOfSizes, output -> Recordings.copyByStreaming(file.filePath(), output));
         } else if (recordingFiles.size() > 1) {
             List<Path> files = recordingFiles.stream()
                     .map(RepositoryFile::filePath)
                     .toList();
 
-            filename = session.recordingFileType().appendExtension(sessionId);
-            writer = output -> Recordings.mergeByStreaming(files, output);
+            RepositoryFile firstRecordingFile = recordingFiles.getFirst();
+            String filename = firstRecordingFile.fileType().appendExtension(sessionId);
+            return new StreamedRecordingFile(
+                    filename, sumOfSizes, output -> Recordings.mergeByStreaming(files, output));
         } else {
             throw Exceptions.emptyRecordingSession(sessionId);
         }
-
-        return new StreamedRecordingFile(filename, sumOfSizes, writer);
     }
 
     @Override
@@ -167,7 +174,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
                 // Count by file type
                 switch (file.fileType()) {
-                    case JFR -> jfrFiles++;
+                    case JFR, JFR_LZ4 -> jfrFiles++;
                     case HEAP_DUMP -> heapDumpFiles++;
                     default -> otherFiles++;
                 }
@@ -230,7 +237,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .batchInsertEvents(List.of(workspaceEvent));
 
         // Trigger event synchronization
-        eventSyncExecutor.run();
+        projectsSynchronizerTrigger.run();
     }
 
     @Override

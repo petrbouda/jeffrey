@@ -35,11 +35,11 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemProjectRecordingStorage.class);
 
     private final Path projectFolder;
-    private final SupportedRecordingFile recordingFileType;
+    private final List<SupportedRecordingFile> recordingTypes;
 
-    public FilesystemProjectRecordingStorage(Path projectFolder, SupportedRecordingFile recordingFileType) {
+    public FilesystemProjectRecordingStorage(Path projectFolder, List<SupportedRecordingFile> recordingTypes) {
         this.projectFolder = projectFolder;
-        this.recordingFileType = recordingFileType;
+        this.recordingTypes = recordingTypes;
     }
 
     @Override
@@ -56,18 +56,38 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     public Optional<Path> findRecording(String recordingId) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
         if (Files.exists(recordingFolder)) {
-            return FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingFileType);
+            return findRecordingFile(recordingFolder);
         } else {
-            LOG.warn("Main recording file does not exist: {}", recordingFolder);
+            LOG.warn("Main recording folder does not exist: {}", recordingFolder);
             return Optional.empty();
         }
     }
 
     @Override
-    public List<Path> findAdditionalFiles(String recordingId) {
+    public List<Path> findArtifacts(String recordingId) {
         return findAllFiles(recordingId).stream()
-                .filter(path -> !recordingFileType.matches(path))
+                .filter(this::isArtifact)
                 .toList();
+    }
+
+    private boolean isArtifact(Path path) {
+        return recordingTypes.stream()
+                .noneMatch(type -> type.matches(path));
+    }
+
+    private boolean isRecordingFile(Path path) {
+        return recordingTypes.stream()
+                .anyMatch(type -> type.matches(path));
+    }
+
+    private Optional<Path> findRecordingFile(Path recordingFolder) {
+        for (SupportedRecordingFile recordingType : recordingTypes) {
+            Optional<Path> recordingOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingType);
+            if (recordingOpt.isPresent()) {
+                return recordingOpt;
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -95,20 +115,19 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public void deleteAdditionalFile(String recordingId, String recordingFileId) {
+    public void deleteArtifact(String recordingId, String artifactId) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        Path additionalFile = recordingFolder.resolve(recordingFileId);
+        Path artifactFile = recordingFolder.resolve(artifactId);
 
         // An additional file can be removed only if it is not a main recording file.
-        if (Files.exists(additionalFile)) {
-            boolean matchesRecordingFileType = recordingFileType.matches(additionalFile);
-            if (matchesRecordingFileType) {
+        if (Files.exists(artifactFile)) {
+            if (isRecordingFile(artifactFile)) {
                 LOG.warn("Cannot delete main recording file: recording_id={} additional_file={}",
-                        recordingId, additionalFile);
+                        recordingId, artifactFile);
                 return;
             }
 
-            FileSystemUtils.removeFile(additionalFile);
+            FileSystemUtils.removeFile(artifactFile);
         }
     }
 
@@ -118,7 +137,7 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
 
         // Only one recording file is allowed in the recording folder.
         // Multiple additional files are allowed.
-        Optional<Path> recordingFileOpt = FileSystemUtils.findSupportedFileInDir(recordingFolder, recordingFileType);
+        Optional<Path> recordingFileOpt = findRecordingFile(recordingFolder);
         if (recordingFileOpt.isPresent()) {
             throw new RuntimeException(
                     "Recording file already exists: recording_id=" + recordingId
@@ -141,9 +160,9 @@ public class FilesystemProjectRecordingStorage implements ProjectRecordingStorag
     }
 
     @Override
-    public void addAdditionalFiles(String recordingId, List<Path> files) {
+    public void addArtifacts(String recordingId, List<Path> artifacts) {
         Path recordingFolder = FileSystemUtils.createDirectories(projectFolder.resolve(recordingId));
-        for (Path file : files) {
+        for (Path file : artifacts) {
             try {
                 Files.copy(file, recordingFolder.resolve(file.getFileName()));
             } catch (IOException e) {

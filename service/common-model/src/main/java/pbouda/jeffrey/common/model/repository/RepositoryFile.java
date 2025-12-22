@@ -111,8 +111,8 @@ public final class RepositoryFile {
         return filePath;
     }
 
-    public boolean isAdditionalFile() {
-        return !isRecordingFile && fileType.isAdditionalFile();
+    public boolean isArtifactFile() {
+        return !isRecordingFile && fileType.isArtifactFile();
     }
 
     @Override

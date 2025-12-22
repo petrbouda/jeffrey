@@ -27,6 +27,13 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public enum SupportedRecordingFile {
+    // JFR_LZ4 must be before JFR to ensure .jfr.lz4 files are matched first
+    JFR_LZ4(
+            "LZ4 Compressed JDK Flight Recording",
+            FileExtensions.JFR_LZ4,
+            filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
+            false
+    ),
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
@@ -34,7 +41,7 @@ public enum SupportedRecordingFile {
             false
     ),
     ASPROF_TEMP(
-            "Async Profiler Cache ",
+            "Async Profiler Cache File",
             FileExtensions.ASPROF_TEMP,
             new AsprofCacheFileMatcher(),
             false
@@ -75,18 +82,18 @@ public enum SupportedRecordingFile {
     private final String description;
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
-    private final boolean isAdditionalFile;
+    private final boolean isArtifactFile;
 
     SupportedRecordingFile(
             String description,
             String fileExtension,
             Predicate<String> filenameMatcher,
-            boolean isAdditionalFile) {
+            boolean isArtifactFile) {
 
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
-        this.isAdditionalFile = isAdditionalFile;
+        this.isArtifactFile = isArtifactFile;
     }
 
     public static SupportedRecordingFile of(Path path) {
@@ -131,7 +138,7 @@ public enum SupportedRecordingFile {
         return description;
     }
 
-    public boolean isAdditionalFile() {
-        return isAdditionalFile;
+    public boolean isArtifactFile() {
+        return isArtifactFile;
     }
 }
