@@ -20,7 +20,6 @@ package pbouda.jeffrey.manager;
 
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
 
 import java.util.List;
@@ -39,6 +38,11 @@ public interface FlamegraphManager {
 
     List<EventSummaryResult> eventSummaries();
 
-    GraphData generate(GraphParameters graphParameters);
-
+    /**
+     * Generate graph data in Protocol Buffers format.
+     *
+     * @param graphParameters graph parameters
+     * @return graph data as protobuf bytes
+     */
+    byte[] generate(GraphParameters graphParameters);
 }

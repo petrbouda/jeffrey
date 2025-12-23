@@ -22,7 +22,6 @@ import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
-import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
@@ -55,7 +54,7 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
     }
 
     @Override
-    public GraphData generate(GraphParameters parameters) {
+    public byte[] generate(GraphParameters parameters) {
         return generator.generate(parameters);
     }
 

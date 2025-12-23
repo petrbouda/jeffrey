@@ -1,0 +1,118 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+syntax = "proto3";
+
+package pbouda.jeffrey.flamegraph.proto;
+
+option java_package = "pbouda.jeffrey.flamegraph.proto";
+option java_outer_classname = "FlamegraphProtos";
+option java_multiple_files = true;
+
+// Complete graph data containing flamegraph and optional timeseries
+message GraphData {
+    FlamegraphData flamegraph = 1;
+    TimeseriesData timeseries = 2;
+}
+
+// Main flamegraph data structure with string deduplication via title_pool
+message FlamegraphData {
+    int32 depth = 1;
+    repeated Level levels = 2;
+    repeated string title_pool = 3;  // Deduplicated titles - frames reference by index
+}
+
+// Timeseries data for the graph
+message TimeseriesData {
+    repeated TimeseriesSeries series = 1;
+}
+
+// A single series in the timeseries
+message TimeseriesSeries {
+    string name = 1;
+    repeated TimeseriesPoint data = 2;  // List of [timestamp, value] points
+}
+
+// A single point in a timeseries
+message TimeseriesPoint {
+    int64 timestamp = 1;
+    int64 value = 2;
+}
+
+// A level in the flamegraph containing multiple frames
+message Level {
+    repeated Frame frames = 1;
+}
+
+// A single frame in the flamegraph
+message Frame {
+    int64 left_samples = 1;
+    int64 total_samples = 2;
+    int32 title_index = 3;          // Index into FlamegraphData.title_pool
+    FrameType type = 4;
+
+    // Optional fields - only set when non-zero/non-null
+    int64 left_weight = 5;
+    int64 total_weight = 6;
+    int64 self_samples = 7;
+    FramePosition position = 8;
+    FrameSampleTypes sample_types = 9;
+    DiffDetails diff_details = 10;
+    bool before_marker = 11;        // For guardian analysis coloring
+}
+
+// Frame type enumeration matching FrameType.java
+enum FrameType {
+    FRAME_TYPE_UNKNOWN = 0;
+    FRAME_TYPE_C1_COMPILED = 1;
+    FRAME_TYPE_NATIVE = 2;
+    FRAME_TYPE_CPP = 3;
+    FRAME_TYPE_INTERPRETED = 4;
+    FRAME_TYPE_JIT_COMPILED = 5;
+    FRAME_TYPE_INLINED = 6;
+    FRAME_TYPE_KERNEL = 7;
+    FRAME_TYPE_THREAD_NAME_SYNTHETIC = 8;
+    FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC = 9;
+    FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC = 10;
+    FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC = 11;
+    FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC = 12;
+    FRAME_TYPE_LAMBDA_SYNTHETIC = 13;
+    FRAME_TYPE_HIGHLIGHTED_WARNING = 14;
+}
+
+// Position information for source code navigation
+message FramePosition {
+    int32 bci = 1;   // Bytecode index
+    int32 line = 2;  // Line number
+}
+
+// Sample type breakdown for a frame
+message FrameSampleTypes {
+    int64 inlined = 1;
+    int64 c1 = 2;
+    int64 interpret = 3;
+    int64 jit = 4;
+}
+
+// Differential flamegraph details
+message DiffDetails {
+    int64 samples = 1;            // Difference in samples (primary - secondary)
+    int64 weight = 2;             // Difference in weight (primary - secondary)
+    float percent_samples = 3;    // Percentage difference in samples
+    float percent_weight = 4;     // Percentage difference in weight
+}

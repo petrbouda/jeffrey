@@ -25,6 +25,7 @@ import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import BothGraphData from "@/services/flamegraphs/model/BothGraphData";
+import ProtobufConverter from "@/services/flamegraphs/ProtobufConverter";
 
 export default class GuardianFlamegraphClient extends FlamegraphClient {
 
@@ -63,8 +64,8 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             components: components,
         };
 
-        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
+            .then(response => ProtobufConverter.decode(response.data));
     }
 
     provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
@@ -81,8 +82,8 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             components: GraphComponents.FLAMEGRAPH_ONLY,
         };
 
-        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
+            .then(response => ProtobufConverter.decode(response.data))
             .then(data => data.flamegraph);
     }
 
@@ -100,8 +101,8 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
             components: GraphComponents.TIMESERIES_ONLY,
         };
 
-        return axios.post<BothGraphData>(this.baseUrlFlamegraph, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
+            .then(response => ProtobufConverter.decode(response.data))
             .then(data => data.timeseries);
     }
 

@@ -19,10 +19,14 @@
 package pbouda.jeffrey.flamegraph;
 
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.flamegraph.api.GraphData;
 
 public interface GraphGenerator {
 
-    GraphData generate(GraphParameters params);
-
+    /**
+     * Generate graph data in Protocol Buffers format.
+     *
+     * @param params graph parameters
+     * @return graph data as protobuf bytes
+     */
+    byte[] generate(GraphParameters params);
 }

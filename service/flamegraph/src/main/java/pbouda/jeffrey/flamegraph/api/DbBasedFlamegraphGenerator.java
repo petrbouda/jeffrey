@@ -22,11 +22,15 @@ import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.config.GraphComponents;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
+import pbouda.jeffrey.flamegraph.proto.TimeseriesPoint;
+import pbouda.jeffrey.flamegraph.proto.TimeseriesSeries;
 import pbouda.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class DbBasedFlamegraphGenerator implements GraphGenerator {
@@ -38,11 +42,11 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     }
 
     @Override
-    public GraphData generate(GraphParameters params) {
-        CompletableFuture<FlamegraphData> flameFuture;
+    public byte[] generate(GraphParameters params) {
+        CompletableFuture<pbouda.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
             FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
-            flameFuture = CompletableFuture.supplyAsync(flamegraphProvider::provide, Schedulers.sharedParallel());
+            flameFuture = CompletableFuture.supplyAsync(flamegraphProvider::provideProto, Schedulers.sharedParallel());
         } else {
             flameFuture = CompletableFuture.completedFuture(null);
         }
@@ -56,6 +60,39 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         }
 
         CompletableFuture.allOf(flameFuture, timeseriesFuture).join();
-        return new GraphData(flameFuture.join(), timeseriesFuture.join());
+
+        pbouda.jeffrey.flamegraph.proto.GraphData.Builder graphBuilder = pbouda.jeffrey.flamegraph.proto.GraphData.newBuilder();
+
+        pbouda.jeffrey.flamegraph.proto.FlamegraphData flamegraphData = flameFuture.join();
+        if (flamegraphData != null) {
+            graphBuilder.setFlamegraph(flamegraphData);
+        }
+
+        TimeseriesData timeseriesData = timeseriesFuture.join();
+        if (timeseriesData != null) {
+            graphBuilder.setTimeseries(convertTimeseries(timeseriesData));
+        }
+
+        return graphBuilder.build().toByteArray();
+    }
+
+    private static pbouda.jeffrey.flamegraph.proto.TimeseriesData convertTimeseries(TimeseriesData data) {
+        pbouda.jeffrey.flamegraph.proto.TimeseriesData.Builder builder = pbouda.jeffrey.flamegraph.proto.TimeseriesData.newBuilder();
+
+        for (SingleSerie serie : data.series()) {
+            TimeseriesSeries.Builder seriesBuilder = TimeseriesSeries.newBuilder()
+                    .setName(serie.name());
+
+            for (List<Long> point : serie.data()) {
+                seriesBuilder.addData(TimeseriesPoint.newBuilder()
+                        .setTimestamp(point.get(0))
+                        .setValue(point.get(1))
+                        .build());
+            }
+
+            builder.addSeries(seriesBuilder);
+        }
+
+        return builder.build();
     }
 }

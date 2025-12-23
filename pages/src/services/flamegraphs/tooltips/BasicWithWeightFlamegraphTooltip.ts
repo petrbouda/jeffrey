@@ -18,6 +18,7 @@
 
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import Frame from "@/services/flamegraphs/model/Frame";
+import FrameColorResolver from "@/services/flamegraphs/FrameColorResolver";
 
 export default class BasicWithWeightFlamegraphTooltip extends FlamegraphTooltip {
     private readonly weightTitle: string;
@@ -35,7 +36,7 @@ export default class BasicWithWeightFlamegraphTooltip extends FlamegraphTooltip 
             typeFragment = `
                 <div class="d-flex justify-content-between align-items-center py-0">
                     <span class="small text-muted">Frame Type:</span>
-                    <span class="small fw-semibold ms-2">${frame.typeTitle}</span>
+                    <span class="small fw-semibold ms-2">${FrameColorResolver.resolveTitle(frame.type)}</span>
                 </div>`
         }
 
@@ -50,7 +51,7 @@ export default class BasicWithWeightFlamegraphTooltip extends FlamegraphTooltip 
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-0">
                         <span class="small text-muted">${this.weightTitle}:</span>
-                        <span class="small fw-semibold ms-2">${this.formatter(frame.totalWeight, levelTotalWeight)}</span>
+                        <span class="small fw-semibold ms-2">${this.formatter(frame.totalWeight ?? 0, levelTotalWeight)}</span>
                     </div>
                 </div>
             </div>`

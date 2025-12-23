@@ -19,8 +19,7 @@
 package pbouda.jeffrey.flamegraph.provider;
 
 import pbouda.jeffrey.common.config.GraphParameters;
-import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
-import pbouda.jeffrey.flamegraph.api.FlamegraphData;
+import pbouda.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.frameir.FrameBuilderResolver;
@@ -31,7 +30,6 @@ public class FlamegraphDataProvider {
 
     private final ProfileEventStreamRepository eventStreamRepository;
     private final FrameBuilder frameBuilder;
-    private final FlameGraphBuilder flamegraphBuilder;
     private final GraphParameters graphParameters;
 
     private FlamegraphDataProvider(
@@ -40,7 +38,6 @@ public class FlamegraphDataProvider {
         this.eventStreamRepository = eventStreamRepository;
         this.graphParameters = graphParameters;
         this.frameBuilder = frameBuilder;
-        this.flamegraphBuilder = resolveFlamegraphBuilder(graphParameters);
     }
 
     /**
@@ -76,13 +73,14 @@ public class FlamegraphDataProvider {
     }
 
     /**
-     * Start consuming the records from the event repository and build the flamegraph.
+     * Start consuming the records from the event repository and build the flamegraph in Protobuf format.
      *
-     * @return flamegraph data.
+     * @return flamegraph data in Protobuf format.
      */
-    public FlamegraphData provide() {
+    public pbouda.jeffrey.flamegraph.proto.FlamegraphData provideProto() {
         Frame frame = provideFrame();
-        return flamegraphBuilder.build(frame);
+        FlameGraphProtoBuilder protoBuilder = resolveFlamegraphProtoBuilder(graphParameters);
+        return protoBuilder.build(frame);
     }
 
     /**
@@ -108,17 +106,17 @@ public class FlamegraphDataProvider {
         return frame;
     }
 
-    private static FlameGraphBuilder resolveFlamegraphBuilder(GraphParameters params) {
+    private static FlameGraphProtoBuilder resolveFlamegraphProtoBuilder(GraphParameters params) {
         boolean withMarker = params.containsMarkers();
 
         if (params.eventType().isAllocationEvent()) {
-            return FlameGraphBuilder.allocation(withMarker);
+            return FlameGraphProtoBuilder.allocation(withMarker);
         } else if (params.eventType().isBlockingEvent()) {
-            return FlameGraphBuilder.blocking(withMarker);
+            return FlameGraphProtoBuilder.blocking(withMarker);
         } else if (params.eventType().isMethodTraceEvent()) {
-            return FlameGraphBuilder.latency(withMarker);
+            return FlameGraphProtoBuilder.latency(withMarker);
         } else {
-            return FlameGraphBuilder.simple(withMarker);
+            return FlameGraphProtoBuilder.simple(withMarker);
         }
     }
 }

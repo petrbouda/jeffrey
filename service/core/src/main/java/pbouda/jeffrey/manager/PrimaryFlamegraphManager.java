@@ -21,7 +21,6 @@ package pbouda.jeffrey.manager;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
-import pbouda.jeffrey.flamegraph.api.GraphData;
 import pbouda.jeffrey.model.EventSummaryResult;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
@@ -63,13 +62,15 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
     }
 
     @Override
-    public GraphData generate(GraphParameters params) {
+    public byte[] generate(GraphParameters params) {
+        return generator.generate(adjustParams(params));
+    }
+
+    private GraphParameters adjustParams(GraphParameters params) {
         // Adjust the useWeight parameter based on event type if not explicitly set
-        GraphParameters adjustedParams = params.toBuilder()
+        return params.toBuilder()
                 .withUseWeight(resolveWeight(params))
                 .build();
-
-        return generator.generate(adjustedParams);
     }
 
     /**

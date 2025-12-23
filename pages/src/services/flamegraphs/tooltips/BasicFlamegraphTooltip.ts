@@ -18,6 +18,7 @@
 
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import Frame from "@/services/flamegraphs/model/Frame";
+import FrameColorResolver from "@/services/flamegraphs/FrameColorResolver";
 
 export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
 
@@ -25,22 +26,23 @@ export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
         super(eventType, useWeight);
     }
 
-    generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
+    generate(frame: Frame, levelTotalSamples: number, _levelTotalWeight: number): string {
         let typeFragment = ""
         if (frame.type != null) {
             typeFragment = `
                 <div class="d-flex justify-content-between align-items-center py-0">
                     <span class="small text-muted">Frame Type:</span>
-                    <span class="small fw-semibold ms-2">${frame.typeTitle}</span>
+                    <span class="small fw-semibold ms-2">${FrameColorResolver.resolveTitle(frame.type)}</span>
                 </div>`
         }
 
+        const selfSamples = frame.selfSamples ?? 0;
         let selfFragment = ""
-        if (frame.selfSamples != null) {
+        if (selfSamples > 0) {
             selfFragment = `
                 <div class="d-flex justify-content-between align-items-center py-0">
-                    <span class="small text-muted">Self:</span>
-                    <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.selfSamples, frame.totalSamples)}</span>
+                    <span class="small text-muted">Samples (self):</span>
+                    <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(selfSamples, levelTotalSamples)}</span>
                 </div>`
         }
 
@@ -52,10 +54,6 @@ export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
                     <div class="d-flex justify-content-between align-items-center py-0">
                         <span class="small text-muted">Samples (total):</span>
                         <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center py-0">
-                        <span class="small text-muted">Samples (self):</span>
-                        <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.selfSamples, levelTotalSamples)}</span>
                     </div>
                     ${selfFragment}
                 </div>

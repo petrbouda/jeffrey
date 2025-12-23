@@ -34,6 +34,24 @@ export default class FrameColorResolver {
         'UNKNOWN': '#000000',
     };
 
+    private static readonly FRAME_TYPE_TITLES: Record<string, string> = {
+        'C1_COMPILED': 'JAVA C1-compiled',
+        'NATIVE': 'Native',
+        'CPP': 'C++ (JVM)',
+        'INTERPRETED': 'Interpreted (JAVA)',
+        'JIT_COMPILED': 'JIT-compiled (JAVA)',
+        'INLINED': 'Inlined (JAVA)',
+        'KERNEL': 'Kernel',
+        'THREAD_NAME_SYNTHETIC': 'Thread Name (Synthetic)',
+        'ALLOCATED_OBJECT_SYNTHETIC': 'Allocated Object (Synthetic)',
+        'ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC': 'Allocated in New TLAB (Synthetic)',
+        'ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC': 'Allocated Outside TLAB (Synthetic)',
+        'BLOCKING_OBJECT_SYNTHETIC': 'Blocking Object (Synthetic)',
+        'LAMBDA_SYNTHETIC': 'Lambda (Synthetic)',
+        'UNKNOWN': 'Unknown',
+        'HIGHLIGHTED_WARNING': 'Highlighted Warning',
+    };
+
     private static readonly GREEN_COLORS = ['#E5FFCC', '#E5FFBB', '#CCFF99', '#B2FF66', '#99FF33', '#66CC00'];
     private static readonly RED_COLORS = ['#FFEEEE', '#FFDDDD', '#FFCCCC', '#FFAAAA', '#FF8888', '#FF3333'];
     private static readonly NEUTRAL_COLOR = '#E6E6E6';
@@ -50,6 +68,13 @@ export default class FrameColorResolver {
             return this.BEFORE_MARKER_COLOR;
         }
         return this.FRAME_TYPE_COLORS[frameType] || '#000000';
+    }
+
+    /**
+     * Resolves the display title for a frame type.
+     */
+    static resolveTitle(frameType: string): string {
+        return this.FRAME_TYPE_TITLES[frameType] || frameType;
     }
 
     /**

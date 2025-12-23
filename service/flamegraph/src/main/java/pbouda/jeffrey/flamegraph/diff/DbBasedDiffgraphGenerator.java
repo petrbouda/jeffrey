@@ -22,17 +22,19 @@ import pbouda.jeffrey.common.Schedulers;
 import pbouda.jeffrey.common.config.GraphComponents;
 import pbouda.jeffrey.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
-import pbouda.jeffrey.flamegraph.api.FlamegraphData;
-import pbouda.jeffrey.flamegraph.api.GraphData;
+import pbouda.jeffrey.flamegraph.proto.TimeseriesPoint;
+import pbouda.jeffrey.flamegraph.proto.TimeseriesSeries;
 import pbouda.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.DiffTreeGenerator;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class DbBasedDiffgraphGenerator implements GraphGenerator {
@@ -49,11 +51,11 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
     }
 
     @Override
-    public GraphData generate(GraphParameters params) {
+    public byte[] generate(GraphParameters params) {
         /*
          * Asynchronously fetches the primary and secondary flamegraphs.
          */
-        CompletableFuture<FlamegraphData> flameFuture;
+        CompletableFuture<pbouda.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
             FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params);
             FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params);
@@ -65,10 +67,10 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
             flameFuture = primaryFlameFuture.thenCombine(secondaryFlameFuture, (primary, secondary) -> {
                 DiffFrame differentialFrames = new DiffTreeGenerator(primary, secondary).generate();
-                return new DiffgraphFormatter(differentialFrames).format();
+                return new DiffgraphProtoFormatter(differentialFrames).format();
             });
         } else {
-            flameFuture = CompletableFuture.completedFuture(FlamegraphData.empty());
+            flameFuture = CompletableFuture.completedFuture(null);
         }
 
         /*
@@ -86,10 +88,43 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
             timeFuture = primaryTimeFuture.thenCombine(secondaryTimeFuture, TimeseriesUtils::differential);
         } else {
-            timeFuture = CompletableFuture.completedFuture(TimeseriesData.empty());
+            timeFuture = CompletableFuture.completedFuture(null);
         }
 
         CompletableFuture.allOf(flameFuture, timeFuture).join();
-        return new GraphData(flameFuture.join(), timeFuture.join());
+
+        pbouda.jeffrey.flamegraph.proto.GraphData.Builder graphBuilder = pbouda.jeffrey.flamegraph.proto.GraphData.newBuilder();
+
+        pbouda.jeffrey.flamegraph.proto.FlamegraphData flamegraphData = flameFuture.join();
+        if (flamegraphData != null) {
+            graphBuilder.setFlamegraph(flamegraphData);
+        }
+
+        TimeseriesData timeseriesData = timeFuture.join();
+        if (timeseriesData != null) {
+            graphBuilder.setTimeseries(convertTimeseries(timeseriesData));
+        }
+
+        return graphBuilder.build().toByteArray();
+    }
+
+    private static pbouda.jeffrey.flamegraph.proto.TimeseriesData convertTimeseries(TimeseriesData data) {
+        pbouda.jeffrey.flamegraph.proto.TimeseriesData.Builder builder = pbouda.jeffrey.flamegraph.proto.TimeseriesData.newBuilder();
+
+        for (SingleSerie serie : data.series()) {
+            TimeseriesSeries.Builder seriesBuilder = TimeseriesSeries.newBuilder()
+                    .setName(serie.name());
+
+            for (List<Long> point : serie.data()) {
+                seriesBuilder.addData(TimeseriesPoint.newBuilder()
+                        .setTimestamp(point.get(0))
+                        .setValue(point.get(1))
+                        .build());
+            }
+
+            builder.addSeries(seriesBuilder);
+        }
+
+        return builder.build();
     }
 }

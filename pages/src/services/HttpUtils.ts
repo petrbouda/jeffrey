@@ -59,6 +59,20 @@ export default class HttpUtils {
         responseType: 'arraybuffer' as const
     };
 
+    static PROTOBUF_MEDIA_TYPE = 'application/x-protobuf';
+
+    /**
+     * Request configuration for Protocol Buffers responses.
+     * Most efficient format - 50-60% smaller than JSON with string deduplication.
+     */
+    static PROTOBUF_HEADERS = {
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: HttpUtils.PROTOBUF_MEDIA_TYPE
+        },
+        responseType: 'arraybuffer' as const
+    };
+
     static RETURN_DATA(response: AxiosResponse): any {
         return response.data;
     }

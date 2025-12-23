@@ -25,6 +25,7 @@ import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
 import BothGraphData from "@/services/flamegraphs/model/BothGraphData";
 import GraphComponents from "@/services/flamegraphs/model/GraphComponents";
+import ProtobufConverter from "@/services/flamegraphs/ProtobufConverter";
 
 export default class DifferentialFlamegraphClient extends FlamegraphClient {
 
@@ -68,9 +69,9 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             components: components,
         };
 
-        // Use MessagePack for compact binary serialization (30-50% smaller than JSON)
-        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.MSGPACK_HEADERS)
-            .then(HttpUtils.DECODE_MSGPACK<BothGraphData>)
+        // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
+            .then(response => ProtobufConverter.decode(response.data));
     }
 
     provide(timeRange: any): Promise<FlamegraphData> {
@@ -84,9 +85,9 @@ export default class DifferentialFlamegraphClient extends FlamegraphClient {
             components: GraphComponents.FLAMEGRAPH_ONLY,
         };
 
-        // Use MessagePack for compact binary serialization (30-50% smaller than JSON)
-        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.MSGPACK_HEADERS)
-            .then(HttpUtils.DECODE_MSGPACK<BothGraphData>)
+        // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
+        return axios.post<ArrayBuffer>(this.baseUrlFlamegraph, content, HttpUtils.PROTOBUF_HEADERS)
+            .then(response => ProtobufConverter.decode(response.data))
             .then(data => data.flamegraph);
     }
 
