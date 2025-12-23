@@ -3,8 +3,8 @@ package pbouda.jeffrey.manual;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.flamegraph.FlameGraphBuilder;
-import pbouda.jeffrey.flamegraph.api.FlamegraphData;
+import pbouda.jeffrey.flamegraph.FlameGraphProtoBuilder;
+import pbouda.jeffrey.flamegraph.proto.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
@@ -66,9 +66,9 @@ public class ManualApplication {
         IO.println("Root frame: " + rootFrame);
 
         long startBuildingJson = System.nanoTime();
-        FlameGraphBuilder jsonBuilder = new FlameGraphBuilder(false, false, weight -> weight + " millis");
+        FlameGraphProtoBuilder jsonBuilder = new FlameGraphProtoBuilder(false, false, weight -> weight + " millis");
         FlamegraphData data = jsonBuilder.build(rootFrame);
-        System.out.println(data.depth());
+        System.out.println(data.getDepth());
         long endBuildingJson = System.nanoTime();
         IO.println("JSON Building took: " + ((endBuildingJson - startBuildingJson) / 1_000_000) + " ms");
     }

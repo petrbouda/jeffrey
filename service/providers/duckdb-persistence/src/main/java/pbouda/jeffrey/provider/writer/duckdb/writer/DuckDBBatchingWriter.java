@@ -30,12 +30,13 @@ import java.sql.Connection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(DuckDBBatchingWriter.class);
 
-    private final AsyncSingleWriter asyncSingleWriter;
+    private final Executor executor;
     private final String tableName;
     private final DataSource dataSource;
     private final int batchSize;
@@ -44,13 +45,13 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     private final List<T> batch = new ArrayList<>();
 
     public DuckDBBatchingWriter(
-            AsyncSingleWriter asyncSingleWriter,
+            Executor executor,
             String tableName,
             DataSource dataSource,
             int batchSize,
             StatementLabel statementLabel) {
 
-        this.asyncSingleWriter = asyncSingleWriter;
+        this.executor = executor;
         this.tableName = tableName;
         this.dataSource = dataSource;
         this.batchSize = batchSize;
@@ -82,7 +83,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
         }
 
         List<T> copiedBatch = List.copyOf(batch);
-        asyncSingleWriter.execute(() -> {
+        executor.execute(() -> {
             long start = System.nanoTime();
 
             try (Connection connection = dataSource.getConnection()) {

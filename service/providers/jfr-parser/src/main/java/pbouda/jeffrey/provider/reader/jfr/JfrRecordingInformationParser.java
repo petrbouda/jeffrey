@@ -18,39 +18,29 @@
 
 package pbouda.jeffrey.provider.reader.jfr;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.compression.Lz4Compressor;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs.Directory;
 import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
-import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
+import pbouda.jeffrey.provider.reader.jfr.chunk.JfrParser;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 
 public class JfrRecordingInformationParser implements RecordingInformationParser {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JfrRecordingInformationParser.class);
-    private final JeffreyDirs jeffreyDirs;
-    private final Lz4Compressor lz4Compressor;
-
-    public JfrRecordingInformationParser(JeffreyDirs jeffreyDirs, Lz4Compressor lz4Compressor) {
-        this.jeffreyDirs = jeffreyDirs;
-        this.lz4Compressor = lz4Compressor;
-    }
-
     @Override
     public RecordingInformation provide(Path recordingPath) {
         if (Lz4Compressor.isLz4Compressed(recordingPath)) {
-            // Compressed .jfr.lz4 file, need to decompress first to a temp dir to parse info
-            try (Directory tempDir = jeffreyDirs.newTempDir()) {
-                Path decompressed = lz4Compressor.decompressToDir(recordingPath, tempDir.path());
-                return Recordings.aggregatedRecordingInfo(decompressed);
+            // Stream directly from LZ4 compressed file - no temp file needed
+            try (InputStream lz4Stream = Lz4Compressor.decompressStream(recordingPath)) {
+                return JfrParser.recordingInfo(lz4Stream);
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot read LZ4 recording info: " + recordingPath, e);
             }
         } else {
             // Uncompressed .jfr file
-            return Recordings.aggregatedRecordingInfo(recordingPath);
+            return JfrParser.recordingInfo(recordingPath);
         }
     }
 }

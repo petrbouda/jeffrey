@@ -26,13 +26,14 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> {
 
     private final String profileId;
 
-    public DuckDBFrameWriter(AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
-        super(asyncSingleWriter, "frames", dataSource, batchSize, StatementLabel.INSERT_FRAMES);
+    public DuckDBFrameWriter(Executor executor, DataSource dataSource, String profileId, int batchSize) {
+        super(executor, "frames", dataSource, batchSize, StatementLabel.INSERT_FRAMES);
         this.profileId = profileId;
     }
 

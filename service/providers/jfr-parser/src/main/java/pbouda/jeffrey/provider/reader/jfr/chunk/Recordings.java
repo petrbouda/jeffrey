@@ -18,121 +18,71 @@
 
 package pbouda.jeffrey.provider.reader.jfr.chunk;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
-import pbouda.jeffrey.tools.api.JfrTool;
-import pbouda.jeffrey.tools.impl.jdk.JdkJfrTool;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static java.nio.file.StandardOpenOption.*;
 
+/**
+ * Utility class for JFR recording file operations.
+ * <p>
+ * For parsing operations (disassembly, recording info, event types, chunk iteration),
+ * use {@link JfrParser} instead.
+ * </p>
+ */
 public abstract class Recordings {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Recordings.class);
-
-    private static final ChunkBasedRecordingDisassembler DISASSEMBLER;
-
-    static {
-        JfrTool jdkJfrTool = new JdkJfrTool();
-        jdkJfrTool.initialize();
-        DISASSEMBLER = new ChunkBasedRecordingDisassembler(jdkJfrTool);
-    }
+    // ========== Parsing Operations (delegated to JfrParser) ==========
 
     /**
-     * Splits the given recording into chunks and saves them as separate files.
-     *
-     * @param recording the path to the recording file
-     * @return a list of paths to the created chunk files
+     * @deprecated Use {@link JfrParser#disassemble(Path, Path)} instead
      */
+    @Deprecated
     public static List<Path> splitRecording(Path recording, Path outputDir) {
-        validateRecording(recording);
-
-//        List<Path> chunkFiles = new ArrayList<>();
-//        ChunkIterator.iterate(recording, (channel, jfrChunk) -> {
-//            Path newPath = outputDir.resolve("chunk_" + chunkFiles.size() + ".jfr");
-//            try (var output = FileChannel.open(newPath, CREATE, WRITE)) {
-//                channel.transferTo(channel.position(), jfrChunk.sizeInBytes(), output);
-//            } catch (IOException e) {
-//                throw new RuntimeException("Cannot create recording from chunk: " + recording, e);
-//            }
-//            chunkFiles.add(newPath);
-//        });
-//
-//        return chunkFiles;
-
-        return DISASSEMBLER.disassemble(recording, outputDir);
+        return JfrParser.disassemble(recording, outputDir);
     }
 
     /**
-     * Reads the chunk headers from the given recording file.
-     *
-     * @param recording the path to the recording file
-     * @return a list of chunk headers
+     * @deprecated Use {@link JfrParser#recordingInfo(Path)} instead
      */
-    private static List<JfrChunk> chunkHeaders(Path recording) {
-        List<JfrChunk> jfrChunks = new ArrayList<>();
-        ChunkIterator.iterate(recording, (_, jfrChunk) -> jfrChunks.add(jfrChunk));
-        return jfrChunks;
-    }
-
-    /**
-     * Aggregates the recording information from the header chunk of the given recording file.
-     *
-     * @param recording the path to the recording file
-     * @return recording info from the header chunks
-     */
+    @Deprecated
     public static RecordingInformation aggregatedRecordingInfo(Path recording) {
-        validateRecording(recording);
-
-        List<JfrChunk> jfrChunks = chunkHeaders(recording);
-        if (jfrChunks.isEmpty()) {
-            LOG.warn("Recording does not contain any chunks: {}", recording);
-            return new RecordingInformation(0, RecordingEventSource.JDK, null, null);
-        }
-
-        long bytes = jfrChunks.stream().mapToLong(JfrChunk::sizeInBytes).sum();
-        Instant startTime = jfrChunks.stream()
-                .map(JfrChunk::startTime)
-                .min(Instant::compareTo)
-                .orElse(null);
-        Instant endTime = jfrChunks.stream()
-                .map(header -> header.startTime().plus(header.duration()))
-                .max(Instant::compareTo)
-                .orElse(null);
-
-        boolean anyProfilerEvent = eventTypes(recording).stream()
-                .anyMatch(eventType -> eventType.startsWith("profiler."));
-
-        RecordingEventSource source = anyProfilerEvent ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK;
-        return new RecordingInformation(bytes, source, startTime, endTime);
+        return JfrParser.recordingInfo(recording);
     }
 
     /**
-     * Reads the event types from the given recording file.
-     *
-     * @param recording the path to the recording file
-     * @return a set of event type names
+     * @deprecated Use {@link JfrParser#recordingInfo(InputStream)} instead
      */
-    public static Set<String> eventTypes(Path recording) {
-        validateRecording(recording);
-
-        Set<String> eventTypes = new HashSet<>();
-        ChunkIterator.iterate(recording, (_, jfrChunk) -> eventTypes.addAll(jfrChunk.eventTypes()));
-        return eventTypes;
+    @Deprecated
+    public static RecordingInformation aggregatedRecordingInfoFromStream(InputStream input) {
+        return JfrParser.recordingInfo(input);
     }
+
+    /**
+     * @deprecated Use {@link JfrParser#eventTypes(Path)} instead
+     */
+    @Deprecated
+    public static Set<String> eventTypes(Path recording) {
+        return JfrParser.eventTypes(recording);
+    }
+
+    /**
+     * @deprecated Use {@link JfrParser#eventTypes(InputStream)} instead
+     */
+    @Deprecated
+    public static Set<String> eventTypesFromStream(InputStream input) {
+        return JfrParser.eventTypes(input);
+    }
+
+    // ========== File I/O Utilities ==========
 
     /**
      * Merges a list of JDK Flight Recorder files into a single output file.

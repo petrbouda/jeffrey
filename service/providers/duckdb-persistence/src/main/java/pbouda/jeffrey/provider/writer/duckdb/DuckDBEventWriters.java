@@ -6,8 +6,13 @@ import pbouda.jeffrey.provider.api.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.provider.writer.duckdb.writer.*;
 
 import javax.sql.DataSource;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class DuckDBEventWriters implements EventWriters {
+
+    private static final Executor EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+
     private final DuckDBEventWriter eventWriter;
     private final DuckDBEventTypeWriter eventTypeWriter;
     private final DuckDBStacktraceWriter stacktraceWriter;
@@ -15,12 +20,11 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBFrameWriter frameWriter;
 
     public DuckDBEventWriters(DataSource dataSource, String profileId, int batchSize) {
-        AsyncSingleWriter writer = new AsyncSingleWriter();
-        this.eventWriter = new DuckDBEventWriter(writer, dataSource, profileId, batchSize);
-        this.eventTypeWriter = new DuckDBEventTypeWriter(writer, dataSource, profileId, batchSize);
-        this.stacktraceWriter = new DuckDBStacktraceWriter(writer, dataSource, profileId, batchSize);
-        this.threadWriter = new DuckDBThreadWriter(writer, dataSource, profileId, batchSize);
-        this.frameWriter = new DuckDBFrameWriter(writer, dataSource, profileId, batchSize);
+        this.eventWriter = new DuckDBEventWriter(EXECUTOR, dataSource, profileId, batchSize);
+        this.eventTypeWriter = new DuckDBEventTypeWriter(EXECUTOR, dataSource, profileId, batchSize);
+        this.stacktraceWriter = new DuckDBStacktraceWriter(EXECUTOR, dataSource, profileId, batchSize);
+        this.threadWriter = new DuckDBThreadWriter(EXECUTOR, dataSource, profileId, batchSize);
+        this.frameWriter = new DuckDBFrameWriter(EXECUTOR, dataSource, profileId, batchSize);
     }
 
     @Override

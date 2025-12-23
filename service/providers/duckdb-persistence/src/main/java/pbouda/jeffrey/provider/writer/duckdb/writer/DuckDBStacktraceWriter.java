@@ -25,14 +25,14 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktraceWithHash> {
 
     private final String profileId;
 
-    public DuckDBStacktraceWriter(
-            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
-        super(asyncSingleWriter, "stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
+    public DuckDBStacktraceWriter(Executor executor, DataSource dataSource, String profileId, int batchSize) {
+        super(executor, "stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
         this.profileId = profileId;
     }
 

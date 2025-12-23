@@ -121,11 +121,25 @@ public class Lz4Compressor {
      * @param target the target file path for the decompressed output
      */
     public static void decompress(Path source, Path target) {
-        try (InputStream in = new LZ4FrameInputStream(Files.newInputStream(source));
+        try (InputStream in = decompressStream(source);
              OutputStream out = Files.newOutputStream(target)) {
             in.transferTo(out);
         } catch (IOException e) {
             throw new RuntimeException("Failed to decompress file: source=" + source + " target=" + target, e);
+        }
+    }
+
+    /**
+     * Creates an InputStream that decompresses data from an LZ4 compressed file.
+     *
+     * @param path the path to the LZ4 compressed file
+     * @return an InputStream that provides decompressed data
+     */
+    public static InputStream decompressStream(Path path) {
+        try {
+            return new LZ4FrameInputStream(Files.newInputStream(path));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create decompress stream: file=" + path, e);
         }
     }
 

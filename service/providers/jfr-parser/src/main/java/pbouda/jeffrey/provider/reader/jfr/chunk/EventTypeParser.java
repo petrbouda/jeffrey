@@ -20,15 +20,94 @@ package pbouda.jeffrey.provider.reader.jfr.chunk;
 
 import jdk.jfr.Event;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
-public abstract class EventTypeParser {
+public abstract class EventTypeParser implements JfrChunkConstants {
+
+    private static final int INITIAL_METADATA_BUFFER_SIZE = 64 * 1024; // 64KB initial buffer
+
+    /**
+     * Result of streaming event type extraction, containing event types and bytes consumed.
+     */
+    record EventTypeResult(Set<String> eventTypes, long bytesConsumed) {
+    }
 
     private record Element(String name, Map<String, String> attributes, int childCount) {
+    }
+
+    /**
+     * Extracts event types from metadata section via streaming.
+     * Call after reading the 68-byte chunk header. The input stream should be positioned
+     * right after the header.
+     *
+     * @param input  InputStream positioned after chunk header
+     * @param header Chunk header containing offsetMeta and size
+     * @return EventTypeResult containing event types and total bytes consumed from stream
+     * @throws IOException if reading fails
+     */
+    static EventTypeResult extractEventTypesStreaming(InputStream input, JfrChunkHeader header) throws IOException {
+        long bytesConsumed = 0;
+
+        // Skip from current position (after header) to metadata section
+        long bytesToSkip = header.offsetMeta() - CHUNK_HEADER_SIZE;
+        if (bytesToSkip > 0) {
+            StreamUtils.skipFully(input, bytesToSkip);
+            bytesConsumed += bytesToSkip;
+        }
+
+        // Read metadata size (first varint in metadata section)
+        // We need to read enough bytes to get the size, then read the rest
+        byte[] sizeBuffer = new byte[16]; // VarInt is at most 5 bytes, but read more for safety
+        int sizeRead = StreamUtils.readFully(input, sizeBuffer, 0, sizeBuffer.length);
+        if (sizeRead < 1) {
+            throw new EOFException("Cannot read metadata size");
+        }
+
+        ByteBuffer sizeBuf = ByteBuffer.wrap(sizeBuffer, 0, sizeRead);
+        sizeBuf.order(ByteOrder.BIG_ENDIAN);
+        int metaSize = readVarInt(sizeBuf);
+
+        // Calculate remaining bytes to read (we already read sizeRead bytes from metadata)
+        int remainingMetaBytes = Math.max(0, metaSize - sizeRead);
+        byte[] metaBytes = new byte[sizeRead + remainingMetaBytes + 16]; // Add padding for safety
+
+        // Copy ALL already read bytes (not just the varint)
+        System.arraycopy(sizeBuffer, 0, metaBytes, 0, sizeRead);
+
+        // Read remaining bytes
+        int toRead = remainingMetaBytes;
+        int offset = sizeRead;
+        while (toRead > 0) {
+            int read = input.read(metaBytes, offset, toRead);
+            if (read < 0) {
+                break; // EOF - might be at end of chunk
+            }
+            offset += read;
+            toRead -= read;
+        }
+
+        bytesConsumed += offset; // Total bytes consumed from metadata section
+
+        // Parse event types from buffer
+        ByteBuffer metaBuffer = ByteBuffer.wrap(metaBytes, 0, offset);
+        metaBuffer.order(ByteOrder.BIG_ENDIAN);
+        Set<String> eventTypes = readEventTypeNames(metaBuffer);
+
+        // Calculate remaining bytes to skip to reach next chunk
+        // Total chunk size - header - bytes consumed after header = remaining
+        long remaining = header.sizeInBytes() - CHUNK_HEADER_SIZE - bytesConsumed;
+        if (remaining > 0) {
+            StreamUtils.skipFully(input, remaining);
+            bytesConsumed += remaining;
+        }
+
+        return new EventTypeResult(eventTypes, bytesConsumed);
     }
 
     static Set<String> extractEventTypes(FileChannel channel, long chunkPosition, RawChunkHeader header) throws IOException {

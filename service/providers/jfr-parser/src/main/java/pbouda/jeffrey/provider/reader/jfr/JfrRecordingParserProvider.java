@@ -42,6 +42,6 @@ public class JfrRecordingParserProvider implements RecordingParserProvider {
 
     @Override
     public RecordingInformationParser newRecordingInformationParser() {
-        return new JfrRecordingInformationParser(jeffreyDirs, lz4Compressor);
+        return new JfrRecordingInformationParser();
     }
 }

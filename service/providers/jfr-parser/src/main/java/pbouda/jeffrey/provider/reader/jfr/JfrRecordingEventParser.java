@@ -29,7 +29,7 @@ import pbouda.jeffrey.provider.api.EventWriter;
 import pbouda.jeffrey.provider.api.RecordingEventParser;
 import pbouda.jeffrey.provider.api.model.parser.ParserResult;
 import pbouda.jeffrey.provider.api.model.parser.RecordingTypeSpecificData;
-import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
+import pbouda.jeffrey.provider.reader.jfr.chunk.JfrParser;
 import pbouda.jeffrey.provider.reader.jfr.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.reader.jfr.data.JfrSpecificDataProvider;
 
@@ -62,7 +62,7 @@ public class JfrRecordingEventParser implements RecordingEventParser {
                     ? lz4Compressor.decompressToDir(recording, tempDir.path())
                     : recording;
 
-            List<Path> recordingChunks = Recordings.splitRecording(decompressed, tempDir.path().resolve("chunks"));
+            List<Path> recordingChunks = JfrParser.disassemble(decompressed, tempDir.path().resolve("chunks"));
             return _start(eventWriter, recordingChunks);
         }
     }

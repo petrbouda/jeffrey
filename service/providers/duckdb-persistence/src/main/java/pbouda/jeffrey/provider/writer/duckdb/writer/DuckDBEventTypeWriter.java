@@ -28,6 +28,7 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import static pbouda.jeffrey.provider.writer.duckdb.writer.DuckDBAppenderUtils.nullableAppend;
 
@@ -35,10 +36,8 @@ public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventTyp
 
     private final String profileId;
 
-    public DuckDBEventTypeWriter(
-            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
-
-        super(asyncSingleWriter, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
+    public DuckDBEventTypeWriter(Executor executor, DataSource dataSource, String profileId, int batchSize) {
+        super(executor, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
         this.profileId = profileId;
     }
 

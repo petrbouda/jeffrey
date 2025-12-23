@@ -26,6 +26,7 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import static pbouda.jeffrey.provider.writer.duckdb.writer.DuckDBAppenderUtils.nullableAppend;
 
@@ -33,9 +34,8 @@ public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash
 
     private final String profileId;
 
-    public DuckDBThreadWriter(
-            AsyncSingleWriter asyncSingleWriter, DataSource dataSource, String profileId, int batchSize) {
-        super(asyncSingleWriter, "threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
+    public DuckDBThreadWriter(Executor executor, DataSource dataSource, String profileId, int batchSize) {
+        super(executor, "threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
         this.profileId = profileId;
     }
 
