@@ -18,10 +18,14 @@
 
 <template>
   <div>
-    <PageHeader title="Cumulated Traces" icon="bi-layers" />
+    <!-- Feature Disabled State -->
+    <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
-    <!-- Mode Toggle -->
-    <div class="controls-bar mb-4">
+    <div v-else>
+      <PageHeader title="Cumulated Traces" icon="bi-layers" />
+
+      <!-- Mode Toggle -->
+      <div class="controls-bar mb-4">
       <div class="segmented-control">
         <button
           type="button"
@@ -134,11 +138,12 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, defineProps, onMounted, watch, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -146,15 +151,31 @@ import StatsTable from '@/components/StatsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/profile/custom/methodtracing/ProfileMethodTracingClient';
 import type MethodTracingCumulatedData from '@/services/profile/custom/methodtracing/MethodTracingCumulatedData';
 import type CumulatedStats from '@/services/profile/custom/methodtracing/CumulatedStats';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 // Route and navigation
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
+
+// Check if tracing dashboard is disabled
+const isTracingDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.TRACING_DASHBOARD);
+});
 
 // State
 const loading = ref(true);
@@ -270,7 +291,10 @@ watch(mode, () => {
 });
 
 onMounted(() => {
-  loadData();
+  // Only load data if the feature is not disabled
+  if (!isTracingDisabled.value) {
+    loadData();
+  }
 });
 </script>
 

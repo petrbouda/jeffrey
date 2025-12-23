@@ -51,4 +51,7 @@ public abstract class FeatureCheckers {
 
     public static final FeatureChecker JDBC_POOL_DASHBOARD =
             new SamplesFeatureChecker(FeatureType.JDBC_POOL_DASHBOARD, JDBC_POOL_TYPES);
+
+    public static final FeatureChecker TRACING_DASHBOARD =
+            new SamplesFeatureChecker(FeatureType.TRACING_DASHBOARD, Type.METHOD_TRACE);
 }

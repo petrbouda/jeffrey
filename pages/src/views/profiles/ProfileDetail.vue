@@ -3,27 +3,39 @@
   <div class="feature-collection-nav normal-nav content-aligned">
     <div class="nav-container">
       <div class="nav-pill"
-           :class="{ 'active': selectedMode === 'JDK' }"
-           @click="selectMode('JDK')"
-           title="Standard JDK runtime analysis features">
+           :class="{ 'active': selectedMode === 'JVM' }"
+           @click="selectMode('JVM')"
+           title="Core JVM metrics and analysis">
         <div class="pill-content">
           <div class="title-row">
             <i class="bi bi-cpu"></i>
-            <span>JDK Runtime</span>
+            <span>JVM Internals</span>
           </div>
-          <small>Core JVM performance metrics</small>
+          <small>Core JVM metrics and analysis</small>
         </div>
       </div>
       <div class="nav-pill"
-           :class="{ 'active': selectedMode === 'Custom' }"
-           @click="selectMode('Custom')"
-           title="Custom application-specific analysis features">
+           :class="{ 'active': selectedMode === 'Application' }"
+           @click="selectMode('Application')"
+           title="Application-specific analysis">
         <div class="pill-content">
           <div class="title-row">
             <i class="bi bi-layers"></i>
             <span>Application</span>
           </div>
           <small>Application-specific analysis</small>
+        </div>
+      </div>
+      <div class="nav-pill"
+           :class="{ 'active': selectedMode === 'Visualization' }"
+           @click="selectMode('Visualization')"
+           title="Profiling graphs and visualizations">
+        <div class="pill-content">
+          <div class="title-row">
+            <i class="bi bi-bar-chart-line"></i>
+            <span>Visualization</span>
+          </div>
+          <small>Profiling graphs and visualizations</small>
         </div>
       </div>
     </div>
@@ -44,10 +56,10 @@
           <div class="p-2"/>
 
           <div class="sidebar-menu" v-if="!sidebarCollapsed">
-            <!-- JDK Mode Menu -->
-            <template v-if="selectedMode === 'JDK'">
+            <!-- JVM Internals Mode Menu -->
+            <template v-if="selectedMode === 'JVM'">
               <div class="nav-section">
-                <div class="nav-section-title">OVERVIEW</div>
+                <div class="nav-section-title">ANALYSIS</div>
                 <div class="nav-items">
                   <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/overview`"
@@ -78,6 +90,21 @@
                            variant="danger" size="xs" class="ms-auto"/>
                   </router-link>
                   <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/performance-counters`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Performance Counters</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">EVENTS</div>
+                <div class="nav-items">
+                  <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/event-types`"
                       class="nav-item"
                       active-class="active"
@@ -91,22 +118,13 @@
                       active-class="active"
                   >
                     <i class="bi bi-collection"></i>
-                    <span>Events</span>
-                  </router-link>
-                  <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/performance-counters`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-speedometer2"></i>
-                    <span>Performance Counters</span>
+                    <span>Event Viewer</span>
                   </router-link>
                 </div>
               </div>
 
               <div class="nav-section">
-                <div class="nav-section-title">RUNTIME</div>
+                <div class="nav-section-title">THREADS</div>
                 <div class="nav-items">
                   <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/thread-statistics`"
@@ -114,7 +132,7 @@
                       active-class="active"
                   >
                     <i class="bi bi-graph-up"></i>
-                    <span>Thread Statistics</span>
+                    <span>Statistics</span>
                   </router-link>
                   <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/threads-timeline`"
@@ -122,16 +140,14 @@
                       active-class="active"
                   >
                     <i class="bi bi-clock-history"></i>
-                    <span>Thread Timeline</span>
+                    <span>Timeline</span>
                   </router-link>
-                  <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/jit-compilation`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-lightning"></i>
-                    <span>JIT Compilation</span>
-                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">MEMORY</div>
+                <div class="nav-items">
                   <!-- Heap Memory with Submenu -->
                   <div class="nav-item-group">
                     <div class="nav-item nav-item-parent"
@@ -189,30 +205,163 @@
                       </router-link>
                     </div>
                   </div>
-                  <!-- Container with Submenu -->
-                  <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent"
-                         @click="toggleContainerSubmenu"
-                         :class="{ 'active': $route.path.includes('/container'), 'expanded': containerSubmenuExpanded, 'disabled-feature': isFeatureDisabled('container') }">
-                      <i class="bi bi-server"></i>
-                      <span>Container</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': containerSubmenuExpanded }"></i>
-                    </div>
-                    <div class="nav-submenu" :class="{ 'expanded': containerSubmenuExpanded }">
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/container/configuration`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'disabled-feature': isFeatureDisabled('container') }"
-                          active-class="active"
-                      >
-                        <i class="bi bi-gear"></i>
-                        <span>Configuration</span>
-                      </router-link>
-                    </div>
-                  </div>
                 </div>
               </div>
 
+              <div class="nav-section">
+                <div class="nav-section-title">COMPILER</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/jit-compilation`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-lightning"></i>
+                    <span>JIT Compilation</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">INFRASTRUCTURE</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/container/configuration`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('container') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-server"></i>
+                    <span>Container Configuration</span>
+                  </router-link>
+                </div>
+              </div>
+            </template>
+
+            <!-- Application Mode Menu -->
+            <template v-else-if="selectedMode === 'Application'">
+              <div class="nav-section">
+                <div class="nav-section-title">HTTP SERVER</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
+                  >
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Overview</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
+                  >
+                    <i class="bi bi-share"></i>
+                    <span>Endpoint Details</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">HTTP CLIENT</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
+                  >
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Overview</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
+                  >
+                    <i class="bi bi-share"></i>
+                    <span>Endpoint Details</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">DATABASE</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Statements Overview</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-collection"></i>
+                    <span>Statement Groups</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('jdbc-pool') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Connection Pools</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">TRACING</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/overview`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Overview</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/flamegraph`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-fire"></i>
+                    <span>Flamegraph</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/slowest`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-hourglass-split"></i>
+                    <span>Slowest Traces</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/cumulated`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-layers"></i>
+                    <span>Cumulated Traces</span>
+                  </router-link>
+                </div>
+              </div>
+            </template>
+
+            <!-- Visualization Mode Menu -->
+            <template v-else-if="selectedMode === 'Visualization'">
               <div class="nav-section">
                 <div class="nav-section-title">FLAMEGRAPHS</div>
                 <div class="nav-items">
@@ -238,7 +387,7 @@
               </div>
 
               <div class="nav-section">
-                <div class="nav-section-title">SUBSECOND GRAPHS</div>
+                <div class="nav-section-title">SUBSECOND</div>
                 <div class="nav-items">
                   <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
@@ -258,155 +407,6 @@
                     <i v-if="!secondaryProfile" class="bi bi-lock ms-auto"
                        title="Select a secondary profile to enable this page"></i>
                   </a>
-                </div>
-              </div>
-            </template>
-
-            <!-- Application Mode Menu -->
-            <template v-else>
-              <div class="nav-section">
-                <div class="nav-section-title">CUSTOM</div>
-                <div class="nav-items">
-                  <!-- HTTP Server Exchange with Submenu -->
-                  <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent"
-                         @click="toggleHttpServerSubmenu"
-                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode !== 'client', 'expanded': httpServerSubmenuExpanded, 'disabled-feature': isFeatureDisabled('http-server') }">
-                      <i class="bi bi-cloud-arrow-down"></i>
-                      <span>HTTP Server Exchange</span>
-                      <i class="bi bi-chevron-right submenu-arrow"
-                         :class="{ 'rotated': httpServerSubmenuExpanded }"></i>
-                    </div>
-                    <div class="nav-submenu" :class="{ 'expanded': httpServerSubmenuExpanded }">
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
-                      >
-                        <i class="bi bi-bar-chart-line"></i>
-                        <span>Overview</span>
-                      </router-link>
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
-                      >
-                        <i class="bi bi-share"></i>
-                        <span>Endpoint Details</span>
-                      </router-link>
-                    </div>
-                  </div>
-                  <!-- HTTP Client Exchange with Submenu -->
-                  <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent"
-                         @click="toggleHttpClientSubmenu"
-                         :class="{ 'active': $route.path.includes('/application/http') && $route.query.mode === 'client', 'expanded': httpClientSubmenuExpanded, 'disabled-feature': isFeatureDisabled('http-client') }">
-                      <i class="bi bi-cloud-arrow-up"></i>
-                      <span>HTTP Client Exchange</span>
-                      <i class="bi bi-chevron-right submenu-arrow"
-                         :class="{ 'rotated': httpClientSubmenuExpanded }"></i>
-                    </div>
-                    <div class="nav-submenu" :class="{ 'expanded': httpClientSubmenuExpanded }">
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
-                      >
-                        <i class="bi bi-bar-chart-line"></i>
-                        <span>Overview</span>
-                      </router-link>
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
-                      >
-                        <i class="bi bi-share"></i>
-                        <span>Endpoint Details</span>
-                      </router-link>
-                    </div>
-                  </div>
-                  <!-- JDBC Statements with Submenu -->
-                  <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent"
-                         @click="toggleJdbcSubmenu"
-                         :class="{ 'active': $route.path.includes('/application/jdbc/'), 'expanded': jdbcSubmenuExpanded, 'disabled-feature': isFeatureDisabled('jdbc-statements') }">
-                      <i class="bi bi-database"></i>
-                      <span>JDBC Statements</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': jdbcSubmenuExpanded }"></i>
-                    </div>
-                    <div class="nav-submenu" :class="{ 'expanded': jdbcSubmenuExpanded }">
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
-                          active-class="active"
-                      >
-                        <i class="bi bi-bar-chart-line"></i>
-                        <span>Overview</span>
-                      </router-link>
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
-                          class="nav-item nav-subitem"
-                          :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
-                          active-class="active"
-                      >
-                        <i class="bi bi-collection"></i>
-                        <span>Statement Groups</span>
-                      </router-link>
-                    </div>
-                  </div>
-                  <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('jdbc-pool') }"
-                      active-class="active">
-                    <i class="bi bi-diagram-3"></i>
-                    <span>JDBC Connection Pools</span>
-                  </router-link>
-                  <!-- Method Tracing with Submenu -->
-                  <div class="nav-item-group">
-                    <div class="nav-item nav-item-parent"
-                         @click="toggleMethodTracingSubmenu"
-                         :class="{ 'active': $route.path.includes('/application/method-tracing'), 'expanded': methodTracingSubmenuExpanded }">
-                      <i class="bi bi-stopwatch"></i>
-                      <span>Method Tracing</span>
-                      <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': methodTracingSubmenuExpanded }"></i>
-                    </div>
-                    <div class="nav-submenu" :class="{ 'expanded': methodTracingSubmenuExpanded }">
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/overview`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                      >
-                        <i class="bi bi-speedometer2"></i>
-                        <span>Overview</span>
-                      </router-link>
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/flamegraph`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                      >
-                        <i class="bi bi-fire"></i>
-                        <span>Flamegraph</span>
-                      </router-link>
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/slowest`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                      >
-                        <i class="bi bi-hourglass-split"></i>
-                        <span>Slowest Traces</span>
-                      </router-link>
-                      <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/cumulated`"
-                          class="nav-item nav-subitem"
-                          active-class="active"
-                      >
-                        <i class="bi bi-layers"></i>
-                        <span>Cumulated Traces</span>
-                      </router-link>
-                    </div>
-                  </div>
                 </div>
               </div>
             </template>
@@ -549,6 +549,7 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'jdbc-statements': FeatureType.JDBC_STATEMENTS_DASHBOARD,
     'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
     'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,
+    'method-tracing': FeatureType.TRACING_DASHBOARD,
   };
   return featureMapping[menuItem] || null;
 };
@@ -558,49 +559,32 @@ const isFeatureDisabled = (menuItem: string): boolean => {
   const featureType = getFeatureTypeForMenuItem(menuItem);
   return featureType ? disabledFeatures.value.includes(featureType) : false;
 };
-// Initialize mode from sessionStorage or default to 'JDK'
-const getStoredMode = (): 'JDK' | 'Custom' => {
+// Initialize mode from sessionStorage or default to 'JVM'
+const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
-  return (stored === 'JDK' || stored === 'Custom') ? stored : 'JDK';
+  // Handle backward compatibility: 'JDK' -> 'JVM', 'Custom' -> 'Application'
+  if (stored === 'JDK') return 'JVM';
+  if (stored === 'Custom') return 'Application';
+  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization') return stored;
+  return 'JVM';
 };
 
-const selectedMode = ref<'JDK' | 'Custom'>(getStoredMode());
-const httpServerSubmenuExpanded = ref(false);
-const httpClientSubmenuExpanded = ref(false);
-const jdbcSubmenuExpanded = ref(false);
-const methodTracingSubmenuExpanded = ref(false);
+const selectedMode = ref<'JVM' | 'Application' | 'Visualization'>(getStoredMode());
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
-const containerSubmenuExpanded = ref(false);
 
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, (newMode) => {
   sessionStorage.setItem('profile-sidebar-mode', newMode);
 });
 
-// Watch for route changes to auto-expand HTTP and JDBC submenus
+// Watch for route changes to auto-expand submenus
 watch(() => route.path, (newPath) => {
-  if (newPath.includes('/application/http')) {
-    if (route.query.mode === 'client') {
-      httpClientSubmenuExpanded.value = true;
-    } else {
-      httpServerSubmenuExpanded.value = true;
-    }
-  }
-  if (newPath.includes('/application/jdbc/')) {
-    jdbcSubmenuExpanded.value = true;
-  }
-  if (newPath.includes('/application/method-tracing')) {
-    methodTracingSubmenuExpanded.value = true;
-  }
   if (newPath.includes('/heap-memory')) {
     heapMemorySubmenuExpanded.value = true;
   }
   if (newPath.includes('/garbage-collection')) {
     gcSubmenuExpanded.value = true;
-  }
-  if (newPath.includes('/container')) {
-    containerSubmenuExpanded.value = true;
   }
 }, {immediate: true});
 
@@ -715,24 +699,8 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const selectMode = (mode: 'JDK' | 'Custom') => {
+const selectMode = (mode: 'JVM' | 'Application' | 'Visualization') => {
   selectedMode.value = mode;
-};
-
-const toggleHttpServerSubmenu = () => {
-  httpServerSubmenuExpanded.value = !httpServerSubmenuExpanded.value;
-};
-
-const toggleHttpClientSubmenu = () => {
-  httpClientSubmenuExpanded.value = !httpClientSubmenuExpanded.value;
-};
-
-const toggleJdbcSubmenu = () => {
-  jdbcSubmenuExpanded.value = !jdbcSubmenuExpanded.value;
-};
-
-const toggleMethodTracingSubmenu = () => {
-  methodTracingSubmenuExpanded.value = !methodTracingSubmenuExpanded.value;
 };
 
 const toggleHeapMemorySubmenu = () => {
@@ -741,10 +709,6 @@ const toggleHeapMemorySubmenu = () => {
 
 const toggleGCSubmenu = () => {
   gcSubmenuExpanded.value = !gcSubmenuExpanded.value;
-};
-
-const toggleContainerSubmenu = () => {
-  containerSubmenuExpanded.value = !containerSubmenuExpanded.value;
 };
 
 // Navigate to differential pages only if secondary profile is selected

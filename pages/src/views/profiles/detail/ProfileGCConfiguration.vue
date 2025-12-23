@@ -19,44 +19,8 @@
     </PageHeader>
 
     <!-- Configuration Overview Cards -->
-    <div class="configuration-grid mb-4">
-      <DashboardCard
-          title="Collector Type"
-          :value="configData?.detectedType"
-          :valueA="configData?.collector.youngCollector"
-          :valueB="configData?.collector.oldCollector"
-          labelA="Young"
-          labelB="Old"
-          variant="highlight"
-      />
-
-      <DashboardCard
-          title="Heap Memory"
-          :value="FormattingService.formatBytes(configData!!.heap.maxSize)"
-          :valueA="FormattingService.formatBytes(configData!!.heap.minSize)"
-          :valueB="FormattingService.formatBytes(configData!!.heap.initialSize)"
-          labelA="Min Size"
-          labelB="Initial Size"
-          variant="success"
-      />
-
-      <DashboardCard
-          title="GC Threads"
-          :valueA="configData?.threads.parallelGCThreads"
-          :valueB="configData?.threads.concurrentGCThreads"
-          labelA="Parallel"
-          labelB="Concurrent"
-          variant="info"
-      />
-
-      <DashboardCard
-          title="Young Generation"
-          :valueA="FormattingService.formatBytes(configData!!.youngGeneration.minSize)"
-          :valueB="FormattingService.formatBytes(configData!!.youngGeneration.maxSize)"
-          labelA="Min Size"
-          labelB="Max Size"
-          variant="warning"
-      />
+    <div class="mb-4">
+      <StatsTable :metrics="metricsData" />
     </div>
 
     <!-- Detailed Configuration Sections -->
@@ -197,11 +161,11 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import DashboardCard from '@/components/DashboardCard.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -216,6 +180,86 @@ const error = ref<string | null>(null);
 const configData = ref<GCConfigurationData>();
 
 let client: ProfileGCClient;
+
+// Computed metrics for StatsTable
+const metricsData = computed(() => {
+  if (!configData.value) return [];
+
+  return [
+    {
+      icon: 'recycle',
+      title: 'Collector Type',
+      value: configData.value.detectedType || 'Unknown',
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'Young',
+          value: configData.value.collector.youngCollector || 'N/A',
+          color: '#4285F4'
+        },
+        {
+          label: 'Old',
+          value: configData.value.collector.oldCollector || 'N/A',
+          color: '#4285F4'
+        }
+      ]
+    },
+    {
+      icon: 'memory',
+      title: 'Heap Memory',
+      value: FormattingService.formatBytes(configData.value.heap.maxSize),
+      variant: 'success' as const,
+      breakdown: [
+        {
+          label: 'Min Size',
+          value: FormattingService.formatBytes(configData.value.heap.minSize),
+          color: '#28a745'
+        },
+        {
+          label: 'Initial Size',
+          value: FormattingService.formatBytes(configData.value.heap.initialSize),
+          color: '#28a745'
+        }
+      ]
+    },
+    {
+      icon: 'cpu',
+      title: 'GC Threads',
+      value: (configData.value.threads.parallelGCThreads + configData.value.threads.concurrentGCThreads).toString(),
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Parallel',
+          value: configData.value.threads.parallelGCThreads,
+          color: '#34A853'
+        },
+        {
+          label: 'Concurrent',
+          value: configData.value.threads.concurrentGCThreads,
+          color: '#34A853'
+        }
+      ]
+    },
+    {
+      icon: 'layers',
+      title: 'Young Generation',
+      value: FormattingService.formatBytes(configData.value.youngGeneration.maxSize),
+      variant: 'warning' as const,
+      breakdown: [
+        {
+          label: 'Min Size',
+          value: FormattingService.formatBytes(configData.value.youngGeneration.minSize),
+          color: '#FBBC05'
+        },
+        {
+          label: 'Max Size',
+          value: FormattingService.formatBytes(configData.value.youngGeneration.maxSize),
+          color: '#FBBC05'
+        }
+      ]
+    }
+  ];
+});
 
 const refreshData = () => {
   loadConfigurationData();
@@ -247,12 +291,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.configuration-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
 .config-sections-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -266,12 +304,6 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 1400px) {
-  .configuration-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 900px) {
   .config-sections-grid {
     grid-template-columns: 1fr;
@@ -279,10 +311,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .configuration-grid {
-    grid-template-columns: 1fr;
-  }
-
   .config-sections-grid {
     gap: 1rem;
   }

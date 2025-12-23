@@ -18,21 +18,25 @@
 
 <template>
   <div>
-    <PageHeader title="Slowest Method Traces" icon="bi-hourglass-split" />
+    <!-- Feature Disabled State -->
+    <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
-    <!-- Loading State -->
-    <LoadingState v-if="loading" message="Loading slowest traces..." />
+    <div v-else>
+      <PageHeader title="Slowest Method Traces" icon="bi-hourglass-split" />
 
-    <!-- Error State -->
-    <ErrorState v-else-if="error" :message="error" @retry="loadData" />
+      <!-- Loading State -->
+      <LoadingState v-if="loading" message="Loading slowest traces..." />
 
-    <!-- Empty State -->
-    <EmptyState
-      v-else-if="!slowestData || slowestData.slowestTraces.length === 0"
-      title="No Slow Traces"
-      message="No slow method traces were recorded in this profile."
-      icon="bi-hourglass-split"
-    />
+      <!-- Error State -->
+      <ErrorState v-else-if="error" :message="error" @retry="loadData" />
+
+      <!-- Empty State -->
+      <EmptyState
+        v-else-if="!slowestData || slowestData.slowestTraces.length === 0"
+        title="No Slow Traces"
+        message="No slow method traces were recorded in this profile."
+        icon="bi-hourglass-split"
+      />
 
     <div v-else class="dashboard-container">
       <!-- Stats Summary -->
@@ -97,11 +101,12 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, defineProps, onMounted, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -109,14 +114,30 @@ import StatsTable from '@/components/StatsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/profile/custom/methodtracing/ProfileMethodTracingClient';
 import type MethodTracingSlowestData from '@/services/profile/custom/methodtracing/MethodTracingSlowestData';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 // Route and navigation
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
+
+// Check if tracing dashboard is disabled
+const isTracingDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.TRACING_DASHBOARD);
+});
 
 // State
 const loading = ref(true);
@@ -247,7 +268,10 @@ async function loadData() {
 }
 
 onMounted(() => {
-  loadData();
+  // Only load data if the feature is not disabled
+  if (!isTracingDisabled.value) {
+    loadData();
+  }
 });
 </script>
 

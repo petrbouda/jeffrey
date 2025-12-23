@@ -19,46 +19,8 @@
     </PageHeader>
 
     <!-- Key Metrics Row -->
-    <div class="metrics-grid mb-4">
-      <DashboardCard
-          title="GC Collections"
-          :value="gcSummary.totalCollections"
-          :valueA="gcSummary.youngCollections"
-          :valueB="gcSummary.oldCollections"
-          labelA="Young"
-          labelB="Old"
-          variant="highlight"
-      />
-
-      <DashboardCard
-          title="GC Pauses"
-          :value="gcSummary.maxPauseTime"
-          :valueA="gcSummary.p99PauseTime"
-          :valueB="gcSummary.p95PauseTime"
-          labelA="99th"
-          labelB="95th"
-          variant="warning"
-      />
-
-      <DashboardCard
-          title="GC Overhead"
-          :value="gcSummary.gcOverhead"
-          :valueA="gcSummary.gcThroughput"
-          :valueB="gcSummary.collectionFrequency"
-          labelA="Throughput"
-          labelB="Frequency"
-          variant="info"
-      />
-
-      <DashboardCard
-          title="Manual GC Calls"
-          :value="gcSummary.manualGCTime"
-          :valueA="gcSummary.systemGCCalls"
-          :valueB="gcSummary.diagnosticCommandCalls"
-          labelA="System GC"
-          labelB="Diagnostic Cmd"
-          variant="warning"
-      />
+    <div class="mb-4">
+      <StatsTable :metrics="metricsData" />
     </div>
 
     <!-- GC Analysis Section -->
@@ -258,7 +220,7 @@ import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ApexCharts from 'apexcharts';
-import DashboardCard from '@/components/DashboardCard.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -328,6 +290,86 @@ const gcSummary = computed(() => {
     systemGCCalls: FormattingService.formatNumber(header.manualGCCalls.systemGCCalls),
     diagnosticCommandCalls: FormattingService.formatNumber(header.manualGCCalls.diagnosticCommandCalls)
   };
+});
+
+// Computed metrics for StatsTable
+const metricsData = computed(() => {
+  if (!gcOverviewData.value) return [];
+
+  return [
+    {
+      icon: 'recycle',
+      title: 'GC Collections',
+      value: gcSummary.value.totalCollections,
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'Young',
+          value: gcSummary.value.youngCollections,
+          color: '#4285F4'
+        },
+        {
+          label: 'Old',
+          value: gcSummary.value.oldCollections,
+          color: '#4285F4'
+        }
+      ]
+    },
+    {
+      icon: 'hourglass-split',
+      title: 'GC Pauses',
+      value: gcSummary.value.maxPauseTime,
+      variant: 'warning' as const,
+      breakdown: [
+        {
+          label: '99th',
+          value: gcSummary.value.p99PauseTime,
+          color: '#FBBC05'
+        },
+        {
+          label: '95th',
+          value: gcSummary.value.p95PauseTime,
+          color: '#FBBC05'
+        }
+      ]
+    },
+    {
+      icon: 'speedometer2',
+      title: 'GC Overhead',
+      value: gcSummary.value.gcOverhead,
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Throughput',
+          value: gcSummary.value.gcThroughput,
+          color: '#34A853'
+        },
+        {
+          label: 'Frequency',
+          value: gcSummary.value.collectionFrequency,
+          color: '#34A853'
+        }
+      ]
+    },
+    {
+      icon: 'hand-index-thumb',
+      title: 'Manual GC Calls',
+      value: gcSummary.value.manualGCTime,
+      variant: 'warning' as const,
+      breakdown: [
+        {
+          label: 'System GC',
+          value: gcSummary.value.systemGCCalls,
+          color: '#FBBC05'
+        },
+        {
+          label: 'Diagnostic Cmd',
+          value: gcSummary.value.diagnosticCommandCalls,
+          color: '#FBBC05'
+        }
+      ]
+    }
+  ];
 });
 
 const formatDifference = (beforeGC: number, afterGC: number) => {
@@ -614,12 +656,6 @@ onUnmounted(() => {
   min-height: 300px;
 }
 
-/* Metrics Grid */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
 
 /* Charts */
 .chart-container {
@@ -709,23 +745,7 @@ onUnmounted(() => {
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-  .metrics-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 992px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
-  .metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
   .chart-container {
     height: 300px;
   }

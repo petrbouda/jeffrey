@@ -18,68 +18,73 @@
 
 <template>
   <div>
-    <PageHeader title="Method Tracing Overview" icon="bi-speedometer2" />
+    <!-- Feature Disabled State -->
+    <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
-    <!-- Loading State -->
-    <LoadingState v-if="loading" message="Loading method tracing data..." />
+    <div v-else>
+      <PageHeader title="Method Tracing Overview" icon="bi-speedometer2" />
 
-    <!-- Error State -->
-    <ErrorState v-else-if="error" :message="error" @retry="loadData" />
+      <!-- Loading State -->
+      <LoadingState v-if="loading" message="Loading method tracing data..." />
 
-    <!-- Empty State -->
-    <EmptyState
-      v-else-if="!overviewData || overviewData.header.totalInvocations === 0"
-      title="No Method Tracing Data"
-      message="No method tracing events were recorded in this profile."
-      icon="bi-speedometer2"
-    />
+      <!-- Error State -->
+      <ErrorState v-else-if="error" :message="error" @retry="loadData" />
 
-    <!-- Dashboard content -->
-    <div v-else class="dashboard-container">
-      <!-- Stats Cards -->
-      <div class="mb-4">
-        <StatsTable :metrics="metricsData" />
-      </div>
+      <!-- Empty State -->
+      <EmptyState
+        v-else-if="!overviewData || overviewData.header.totalInvocations === 0"
+        title="No Method Tracing Data"
+        message="No method tracing events were recorded in this profile."
+        icon="bi-speedometer2"
+      />
 
-      <!-- Timeseries Chart -->
-      <ChartSection
-        v-if="durationTimeseries && countTimeseries"
-        title="Method Tracing Timeline"
-        icon="graph-up"
-        :full-width="true"
-        container-class="apex-chart-container"
-      >
-        <TimeSeriesChart
-          :primary-data="durationTimeseries"
-          primary-title="Total Duration"
-          :secondary-data="countTimeseries"
-          secondary-title="Invocation Count"
-          :visible-minutes="60"
-          :independentSecondaryAxis="true"
-          :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-          :secondary-axis-type="AxisFormatType.NUMBER"
-        />
-      </ChartSection>
-
-      <!-- Method Distribution Charts -->
-      <div class="row">
-        <div class="col-md-6">
-          <PieChart
-            title="Top Methods by Invocations"
-            icon="bar-chart-line"
-            :data="methodsByCount"
-            :total="totalInvocations"
-            :value-formatter="formatCount"
-          />
+      <!-- Dashboard content -->
+      <div v-else class="dashboard-container">
+        <!-- Stats Cards -->
+        <div class="mb-4">
+          <StatsTable :metrics="metricsData" />
         </div>
-        <div class="col-md-6">
-          <PieChart
-            title="Top Methods by Duration"
-            icon="clock"
-            :data="methodsByDuration"
-            :total="totalDuration"
-            :value-formatter="formatDuration"
+
+        <!-- Timeseries Chart -->
+        <ChartSection
+          v-if="durationTimeseries && countTimeseries"
+          title="Method Tracing Timeline"
+          icon="graph-up"
+          :full-width="true"
+          container-class="apex-chart-container"
+        >
+          <TimeSeriesChart
+            :primary-data="durationTimeseries"
+            primary-title="Total Duration"
+            :secondary-data="countTimeseries"
+            secondary-title="Invocation Count"
+            :visible-minutes="60"
+            :independentSecondaryAxis="true"
+            :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+            :secondary-axis-type="AxisFormatType.NUMBER"
           />
+        </ChartSection>
+
+        <!-- Method Distribution Charts -->
+        <div class="row">
+          <div class="col-md-6">
+            <PieChart
+              title="Top Methods by Invocations"
+              icon="bar-chart-line"
+              :data="methodsByCount"
+              :total="totalInvocations"
+              :value-formatter="formatCount"
+            />
+          </div>
+          <div class="col-md-6">
+            <PieChart
+              title="Top Methods by Duration"
+              icon="clock"
+              :data="methodsByDuration"
+              :total="totalDuration"
+              :value-formatter="formatDuration"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -87,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, defineProps, onMounted, ref, withDefaults } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -98,15 +103,31 @@ import PieChart from '@/components/PieChart.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/profile/custom/methodtracing/ProfileMethodTracingClient';
 import type MethodTracingOverviewData from '@/services/profile/custom/methodtracing/MethodTracingOverviewData';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
+import FeatureType from '@/services/profile/features/FeatureType';
+
+// Define props
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
 
 // Route and navigation
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
+
+// Check if tracing dashboard is disabled
+const isTracingDisabled = computed(() => {
+  return props.disabledFeatures.includes(FeatureType.TRACING_DASHBOARD);
+});
 
 // State
 const loading = ref(true);
@@ -234,7 +255,10 @@ async function loadData() {
 }
 
 onMounted(() => {
-  loadData();
+  // Only load data if the feature is not disabled
+  if (!isTracingDisabled.value) {
+    loadData();
+  }
 });
 </script>
 
