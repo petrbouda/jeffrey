@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeMount, ref, watch} from 'vue';
+import {onBeforeMount, onMounted, onUnmounted, ref, watch} from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 
 interface Props {
@@ -54,6 +54,13 @@ const route = useRoute()
 const { workspaceId, projectId } = useNavigation();
 
 const queryParams = router.currentRoute.value.query
+const eventType = queryParams.eventType as string | undefined
+
+// Validate required query parameter
+if (!eventType) {
+  console.error('SubSecondView: eventType query parameter is required')
+  router.back()
+}
 
 const showDialog = ref<boolean>(false);
 let graphUpdater: GraphUpdater
@@ -68,20 +75,41 @@ function scrollToTop() {
 
 let modalInstance: bootstrap.Modal | null = null;
 
+// Handler for modal hidden event - stored as reference for cleanup
+function handleModalHidden(event: Event) {
+  const target = event.target as HTMLElement;
+  if (target?.id === 'flamegraphModal') {
+    showDialog.value = false;
+  }
+}
+
+// Initialize modal after component is mounted
+onMounted(() => {
+  const modalEl = document.getElementById('flamegraphModal');
+  if (modalEl) {
+    modalInstance = new bootstrap.Modal(modalEl, {
+      backdrop: 'static',
+      keyboard: false
+    });
+    // Add event listener for Bootstrap modal hidden event
+    modalEl.addEventListener('hidden.bs.modal', handleModalHidden);
+  }
+});
+
+// Cleanup on component unmount
+onUnmounted(() => {
+  const modalEl = document.getElementById('flamegraphModal');
+  if (modalEl) {
+    modalEl.removeEventListener('hidden.bs.modal', handleModalHidden);
+  }
+  if (modalInstance) {
+    modalInstance.dispose();
+    modalInstance = null;
+  }
+});
+
 // Watch for changes to showDialog and control the Bootstrap modal
 watch(showDialog, (isVisible) => {
-  // Initialize modal if not already done
-  if (!modalInstance) {
-    const modalEl = document.getElementById('flamegraphModal');
-    if (modalEl) {
-      modalInstance = new bootstrap.Modal(modalEl, {
-        backdrop: 'static',
-        keyboard: false
-      });
-    }
-  }
-
-  // Show or hide modal based on showDialog value
   if (isVisible && modalInstance) {
     modalInstance.show();
   } else if (!isVisible && modalInstance) {
@@ -101,17 +129,11 @@ onBeforeMount(() => {
     workspaceContent.scrollTop = 0;
   }
 
-  // Add event listener for Bootstrap modal hidden event
-  document.addEventListener('hidden.bs.modal', (event) => {
-    if (event.target && event.target.id === 'flamegraphModal') {
-      showDialog.value = false;
-    }
-  });
   primarySubSecondDataProvider = new SubSecondDataProviderImpl(
       workspaceId.value!,
       projectId.value!,
       route.params.profileId as string,
-      queryParams.eventType as string,
+      eventType!,
       useWeight,
   )
 
@@ -120,7 +142,7 @@ onBeforeMount(() => {
         workspaceId.value!,
         SecondaryProfileService.projectId() as string,
         SecondaryProfileService.id() as string,
-        queryParams.eventType as string,
+        eventType!,
         useWeight,
     )
   }
@@ -132,7 +154,7 @@ onBeforeMount(() => {
         workspaceId.value!,
         projectId.value!,
         route.params.profileId as string,
-        queryParams.eventType as string,
+        eventType!,
         false,
         useWeight,
         false,
@@ -146,7 +168,7 @@ onBeforeMount(() => {
         projectId.value!,
         route.params.profileId as string,
         SecondaryProfileService.id() as string,
-        queryParams.eventType as string,
+        eventType!,
         useWeight,
         false,
         false,
@@ -155,17 +177,17 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, false)
-  flamegraphTooltip = FlamegraphTooltipFactory.create(queryParams.eventType as string, useWeight, !isPrimary)
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventType!, useWeight, !isPrimary)
 })
 
-function createOnSelectedCallback(profileId: string) {
+function createOnSelectedCallback() {
   return function (startTime: number[], endTime: number[]) {
     let selectedTimeRange = Utils.toTimeRange(startTime, endTime, false);
-    showFlamegraph(profileId, selectedTimeRange);
+    showFlamegraph(selectedTimeRange);
   };
 }
 
-function showFlamegraph(profileId: string, timeRange: TimeRange) {
+function showFlamegraph(timeRange: TimeRange) {
   // Show the flamegraph dialog
   showDialog.value = true
 
@@ -180,10 +202,10 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
 <template>
   <SubSecondComponent
       :primary-data-provider="primarySubSecondDataProvider"
-      :primary-selected-callback="createOnSelectedCallback(route.params.profileId as string)"
+      :primary-selected-callback="createOnSelectedCallback()"
       :secondary-data-provider="secondarySubSecondDataProvider"
-      :secondary-selected-callback="createOnSelectedCallback(SecondaryProfileService.id() as string)"
-      :tooltip="new HeatmapTooltip(queryParams.eventType, useWeight)"
+      :secondary-selected-callback="createOnSelectedCallback()"
+      :tooltip="new HeatmapTooltip(eventType!, useWeight)"
   />
 
   <!-- Bootstrap Modal with v-model:visible binding (95% size) -->
