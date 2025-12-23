@@ -67,6 +67,9 @@ if (!eventType) {
 const showDialog = ref<boolean>(false);
 const subSecondRef = ref<InstanceType<typeof SubSecondComponent> | null>(null);
 const timeseriesData = ref<number[][] | null>(null);
+const timeseriesSecondaryData = ref<number[][] | undefined>(undefined);
+
+const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL;
 
 let graphUpdater: GraphUpdater
 let flamegraphTooltip: FlamegraphTooltip
@@ -192,6 +195,10 @@ onBeforeMount(() => {
       .then(data => {
         if (data.series && data.series.length > 0) {
           timeseriesData.value = data.series[0].data
+          // Extract secondary series if in differential mode
+          if (data.series.length > 1) {
+            timeseriesSecondaryData.value = data.series[1].data
+          }
         }
       })
       .catch(error => console.error('Error loading timeseries data:', error))
@@ -235,6 +242,9 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
     <TimeSeriesChart
         v-if="timeseriesData"
         :primary-data="timeseriesData"
+        :secondary-data="timeseriesSecondaryData"
+        :primary-title="isDifferential ? 'Primary' : undefined"
+        :secondary-title="isDifferential ? 'Secondary' : undefined"
         :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, eventType!)"
         :visible-minutes="5"
         :zoom-enabled="true"
