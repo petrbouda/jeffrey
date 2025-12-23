@@ -17,9 +17,10 @@
  */
 
 import SubSecondData from "@/services/subsecond/model/SubSecondData";
+import TimeRange from "@/services/flamegraphs/model/TimeRange";
 
 export default abstract class SubSecondDataProvider {
 
-    abstract provide(): Promise<SubSecondData>
+    abstract provide(timeRange?: TimeRange): Promise<SubSecondData>
 
 }

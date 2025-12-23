@@ -76,7 +76,7 @@ public class ProfileResource {
 
     @Path("/subsecond")
     public SubSecondResource subSecondResource() {
-        return new SubSecondResource(profileManager.subSecondManager());
+        return new SubSecondResource(profileManager.info(), profileManager.subSecondManager());
     }
 
     @Path("/timeseries")

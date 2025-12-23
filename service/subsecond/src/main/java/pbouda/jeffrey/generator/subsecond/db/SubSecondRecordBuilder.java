@@ -27,11 +27,16 @@ import java.util.List;
 public class SubSecondRecordBuilder implements RecordBuilder<SubSecondRecord, SingleResult> {
 
     private final List<SecondColumn> columns = new ArrayList<>();
+    private final long timeRangeStartMillis;
     private long maxvalue = 0;
+
+    public SubSecondRecordBuilder(long timeRangeStartMillis) {
+        this.timeRangeStartMillis = timeRangeStartMillis;
+    }
 
     @Override
     public void onRecord(SubSecondRecord record) {
-        long millis = record.timestampFromStart();
+        long millis = record.timestampFromStart() - timeRangeStartMillis;
         int seconds = (int) millis / 1000;
         int millisInSecond = (int) millis % 1000;
 

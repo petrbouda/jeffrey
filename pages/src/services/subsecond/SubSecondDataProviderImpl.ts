@@ -21,6 +21,7 @@ import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
 import GlobalVars from "@/services/GlobalVars";
 import axios from "axios";
 import HttpUtils from "@/services/HttpUtils";
+import TimeRange from "@/services/flamegraphs/model/TimeRange";
 
 export default class SubSecondDataProviderImpl implements SubSecondDataProvider {
 
@@ -34,10 +35,15 @@ export default class SubSecondDataProviderImpl implements SubSecondDataProvider 
         this.useWeight = useWeight;
     }
 
-    provide(): Promise<SubSecondData> {
+    provide(timeRange?: TimeRange): Promise<SubSecondData> {
         const content = {
             eventType: this.eventType,
-            useWeight: this.useWeight
+            useWeight: this.useWeight,
+            timeRange: timeRange ? {
+                start: timeRange.start,
+                end: timeRange.end,
+                absoluteTime: timeRange.absoluteTime
+            } : null
         };
 
         return axios.post(this.baseUrl, content, HttpUtils.JSON_HEADERS)

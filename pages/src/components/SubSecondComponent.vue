@@ -22,6 +22,7 @@ import HeatmapGraph from '@/services/subsecond/HeatmapGraph';
 import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
 import MessageBus from "@/services/MessageBus";
 import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
+import TimeRange from "@/services/flamegraphs/model/TimeRange";
 
 const props = defineProps<{
   primaryDataProvider: SubSecondDataProvider
@@ -100,7 +101,7 @@ function heatmapsCleanup() {
   }
 }
 
-const initializeHeatmaps = () => {
+const initializeHeatmaps = (timeRange?: TimeRange) => {
   if (primaryHeatmap != null) {
     primaryHeatmap.destroy()
   }
@@ -110,7 +111,7 @@ const initializeHeatmaps = () => {
   initialized.value = false;
 
   if (props.secondaryDataProvider == null) {
-    props.primaryDataProvider.provide()
+    props.primaryDataProvider.provide(timeRange)
         .then((subSecondData) => {
           primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
           primaryHeatmap.render();
@@ -118,18 +119,26 @@ const initializeHeatmaps = () => {
         .catch((error) => console.error('Error loading primary heatmap data:', error))
         .finally(() => initialized.value = true);
   } else {
-    downloadAndSyncHeatmaps();
+    downloadAndSyncHeatmaps(timeRange);
   }
 };
+
+function reloadWithTimeRange(timeRange: TimeRange) {
+  initializeHeatmaps(timeRange);
+}
+
+defineExpose({
+  reloadWithTimeRange
+});
 
 /*
  * Heatmaps have the different maximum value. We need to download both, and set up the higher number to both
  * datasets to have the same colors in both heatmaps.
  */
-function downloadAndSyncHeatmaps() {
+function downloadAndSyncHeatmaps(timeRange?: TimeRange) {
   Promise.all([
-    props.primaryDataProvider.provide(),
-    props.secondaryDataProvider?.provide()
+    props.primaryDataProvider.provide(timeRange),
+    props.secondaryDataProvider?.provide(timeRange)
   ])
       .then(([primaryData, secondaryData]) => {
         if (!primaryData || !secondaryData) {

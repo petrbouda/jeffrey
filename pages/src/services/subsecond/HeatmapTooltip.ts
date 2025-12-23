@@ -21,60 +21,80 @@ import EventTypes from "@/services/EventTypes";
 
 export default class HeatmapTooltip {
 
-    constructor(eventType, useWeight) {
+    private readonly eventType: string;
+    private readonly useWeight: boolean;
+
+    constructor(eventType: string, useWeight: boolean) {
         this.eventType = eventType;
         this.useWeight = useWeight;
     }
 
-    generate(value, second, millis) {
-        const valueDiv = this.#generateValue(value)
+    generate(value: number, second: number, millis: string): string {
+        const headerTitle = this.#getEventTypeDisplayName();
+        const valueRow = this.#generateValueRow(value);
 
         return `
-            <table style="background-color: white; padding: 5px; border-radius: 5px; border: 1px solid #e3e3e3;">`
-            + valueDiv +
-            `<tr>
-                    <th style="text-align: right">Second:</th>
-                    <td>${second}<td>
-                </tr>
-                <tr>
-                    <th style="text-align: right">Millis:</th>
-                    <td>${millis}<td>
-                </tr>
-            </table>
-`
+            <div class="card shadow-sm" style="min-width: 180px; font-size: 0.85rem;">
+                <div class="card-header py-1 px-2 text-center bg-light border-bottom">
+                    <div class="fw-bold small">${headerTitle}</div>
+                </div>
+                <div class="card-body p-0 pt-1">
+                    <div class="px-2 pb-1">
+                        ${valueRow}
+                        <div class="d-flex justify-content-between align-items-center py-0">
+                            <span class="small text-muted">Time:</span>
+                            <span class="small fw-semibold ms-2">${second}s ${millis}ms</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
     }
 
-    #generateValue(value) {
-        if (EventTypes.isAllocationEventType(this.eventType) && this.useWeight) {
-            return this.#allocSamplesWithWeight(value)
-        } else if (EventTypes.isBlockingEventType(this.eventType) && this.useWeight) {
-            return this.#blockSamplesWithWeight(value)
-        } else {
-            return this.#basicValue(value)
+    #getEventTypeDisplayName(): string {
+        if (EventTypes.isExecutionEventType(this.eventType)) {
+            return 'Execution Sample';
+        } else if (EventTypes.isAllocationEventType(this.eventType)) {
+            return 'Allocation';
+        } else if (EventTypes.isBlockingEventType(this.eventType)) {
+            return 'Blocking Event';
+        } else if (EventTypes.isMethodTraceEventType(this.eventType)) {
+            return 'Method Trace';
+        } else if (EventTypes.isWallClock(this.eventType)) {
+            return 'Wall Clock';
+        } else if (EventTypes.isMallocAllocationEventType(this.eventType)) {
+            return 'Native Allocation';
+        } else if (EventTypes.isNativeLeakEventType(this.eventType)) {
+            return 'Native Leak';
         }
+        return 'Event';
     }
 
-    #basicValue(value) {
+    #generateValueRow(value: number): string {
+        const { label, formattedValue } = this.#getValueLabelAndFormat(value);
+
         return `
-            <tr>
-                <th style="text-align: right">Samples:</th>
-                <td>` + value + `<td>
-            </tr>`;
+            <div class="d-flex justify-content-between align-items-center py-0">
+                <span class="small text-muted">${label}:</span>
+                <span class="small fw-semibold ms-2">${formattedValue}</span>
+            </div>`;
     }
 
-    #blockSamplesWithWeight(value) {
-        return `
-            <tr>
-                <th style="text-align: right">Blocked Time:</th>
-                <td>` + FormattingService.formatDuration(value) + `<td>
-            </tr>`;
-    }
-
-    #allocSamplesWithWeight(value) {
-        return `
-            <tr>
-                <th style="text-align: right">Allocated:</th>
-                <td>` + FormattingService.formatBytes(value) + `<td>
-            </tr>`;
+    #getValueLabelAndFormat(value: number): { label: string; formattedValue: string } {
+        if (EventTypes.isAllocationEventType(this.eventType) && this.useWeight) {
+            return {
+                label: 'Allocated',
+                formattedValue: FormattingService.formatBytes(value)
+            };
+        } else if (EventTypes.isBlockingEventType(this.eventType) && this.useWeight) {
+            return {
+                label: 'Blocked Time',
+                formattedValue: FormattingService.formatDuration(value)
+            };
+        } else {
+            return {
+                label: 'Samples',
+                formattedValue: FormattingService.formatNumber(value)
+            };
+        }
     }
 }

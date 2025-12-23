@@ -31,6 +31,7 @@ import MessageBus from '@/services/MessageBus';
 import Utils from '@/services/Utils';
 import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
 import SearchBarComponent from "@/components/SearchBarComponent.vue";
+import TimeSeriesChart from "@/components/TimeSeriesChart.vue";
 import router from "@/router";
 import GraphType from "@/services/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
@@ -47,6 +48,7 @@ import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import OnlyFlamegraphGraphUpdater from "@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import TimeseriesEventAxeFormatter from "@/services/timeseries/TimeseriesEventAxeFormatter";
 // Import Bootstrap modal functionality
 import * as bootstrap from 'bootstrap';
 
@@ -63,8 +65,12 @@ if (!eventType) {
 }
 
 const showDialog = ref<boolean>(false);
+const subSecondRef = ref<InstanceType<typeof SubSecondComponent> | null>(null);
+const timeseriesData = ref<number[][] | null>(null);
+
 let graphUpdater: GraphUpdater
 let flamegraphTooltip: FlamegraphTooltip
+let timeseriesClient: PrimaryFlamegraphClient | DifferentialFlamegraphClient
 
 function scrollToTop() {
   const wrapper = document.querySelector('.flamegraphModal');
@@ -162,6 +168,7 @@ onBeforeMount(() => {
         false,
         null
     )
+    timeseriesClient = flamegraphClient as PrimaryFlamegraphClient
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
         workspaceId.value!,
@@ -174,10 +181,20 @@ onBeforeMount(() => {
         false,
         false,
     )
+    timeseriesClient = flamegraphClient as DifferentialFlamegraphClient
   }
 
   graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, false)
   flamegraphTooltip = FlamegraphTooltipFactory.create(eventType!, useWeight, !isPrimary)
+
+  // Fetch timeseries data for the brush chart
+  timeseriesClient.provideTimeseries(null)
+      .then(data => {
+        if (data.series && data.series.length > 0) {
+          timeseriesData.value = data.series[0].data
+        }
+      })
+      .catch(error => console.error('Error loading timeseries data:', error))
 })
 
 function createOnSelectedCallback() {
@@ -197,10 +214,38 @@ function showFlamegraph(timeRange: TimeRange) {
     graphUpdater.updateWithZoom(timeRange)
   }, 200);
 }
+
+function onTimeRangeChange(payload: { start: number; end: number; isZoomed: boolean }) {
+  if (payload.isZoomed) {
+    // Convert from seconds to milliseconds for backend API
+    const newTimeRange = new TimeRange(
+        Math.floor(payload.start * 1000),
+        Math.ceil(payload.end * 1000),
+        false
+    );
+
+    // Reload heatmap with new time range
+    subSecondRef.value?.reloadWithTimeRange(newTimeRange);
+  }
+}
 </script>
 
 <template>
+  <div style="padding-left: 5px; padding-right: 5px">
+    <TimeSeriesChart
+        v-if="timeseriesData"
+        :primary-data="timeseriesData"
+        :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, eventType!)"
+        :visible-minutes="5"
+        :zoom-enabled="true"
+        :fixed-window-minutes="5"
+        time-unit="seconds"
+        @update:timeRange="onTimeRangeChange"
+    />
+  </div>
+
   <SubSecondComponent
+      ref="subSecondRef"
       :primary-data-provider="primarySubSecondDataProvider"
       :primary-selected-callback="createOnSelectedCallback()"
       :secondary-data-provider="secondarySubSecondDataProvider"

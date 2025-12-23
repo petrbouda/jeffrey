@@ -36,6 +36,7 @@ export default class HeatmapGraph {
     // definition of the heatmap
     private readonly millisInBucket = 20
     private readonly sizeY = 50;
+    private readonly cellWidth = 10; // pixels per column (second)
 
     private firstSelected: HeatmapPoint | null = null;
 
@@ -113,10 +114,16 @@ export default class HeatmapGraph {
     }
 
     #options(seriesData: SubSecondSerie[]) {
+        // Calculate width based on number of columns (seconds)
+        const numColumns = seriesData.length > 0 && seriesData[0].data.length > 0
+            ? seriesData[0].data.length
+            : 300; // default to 300 seconds (5 minutes)
+        const chartWidth = Math.max(numColumns * this.cellWidth, 500); // minimum 500px
+
         return {
             chart: {
                 height: 500,
-                width: 3000,
+                width: chartWidth,
                 type: 'heatmap',
                 selection: {
                     enabled: false
@@ -145,11 +152,13 @@ export default class HeatmapGraph {
                 max: this.maxValue
             },
             xaxis: {
+                tickPlacement: 'on',
                 labels: {
                     formatter: function (value: number) {
                         if (value % 5 === 0) {
-                            return value;
+                            return String(value);
                         }
+                        return '';
                     }
                 }
             },

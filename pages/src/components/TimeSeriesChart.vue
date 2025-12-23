@@ -89,6 +89,7 @@ const props = defineProps<{
   timeUnit?: TimeUnit;
   zoomEnabled?: boolean; // Whether to emit time range updates on brush selection
   graphUpdater?: GraphUpdater; // Optional: When provided, component manages data internally
+  fixedWindowMinutes?: number; // Optional: When provided, selection window is fixed to this many minutes
 }>();
 
 // Define emits
@@ -658,15 +659,36 @@ const brushChartOptions = computed(() => ({
         // Debounce the update to prevent twitching and loops
         selectionTimeout = setTimeout(() => {
           const tc = timeConverter.value;
-          const selectionStart = tc.fromChartTime(xaxis.min);
-          const selectionEnd = tc.fromChartTime(xaxis.max);
+          let selectionStart = tc.fromChartTime(xaxis.min);
+          let selectionEnd = tc.fromChartTime(xaxis.max);
+
+          // If fixed window is specified, enforce it as maximum
+          if (props.fixedWindowMinutes) {
+            const maxRangeSeconds = props.fixedWindowMinutes * 60;
+            const currentRange = selectionEnd - selectionStart;
+
+            // Only adjust if selection exceeds maximum
+            if (currentRange > maxRangeSeconds) {
+              selectionEnd = selectionStart + maxRangeSeconds;
+              if (selectionEnd > dataMaxTime.value) {
+                selectionEnd = dataMaxTime.value;
+                selectionStart = Math.max(dataMinTime.value, dataMaxTime.value - maxRangeSeconds);
+              }
+            }
+          }
+
+          // Store original selection to check if adjustment occurred
+          const originalStart = tc.fromChartTime(xaxis.min);
+          const originalEnd = tc.fromChartTime(xaxis.max);
 
           // Clamp selection to actual data bounds
           const clampedStart = Math.max(selectionStart, dataMinTime.value);
           const clampedEnd = Math.min(selectionEnd, dataMaxTime.value);
 
-          // Check if clamping was needed
-          const wasClamped = selectionStart !== clampedStart || selectionEnd !== clampedEnd;
+          // Check if any adjustment was made (clamping or max window enforcement)
+          const wasAdjusted =
+            Math.abs(originalStart - clampedStart) > 0.1 ||
+            Math.abs(originalEnd - clampedEnd) > 0.1;
 
           visibleStartTime.value = clampedStart;
           visibleEndTime.value = clampedEnd;
@@ -675,8 +697,8 @@ const brushChartOptions = computed(() => ({
           // Track this selection as processed
           lastProcessedSelection = { min: xaxis.min, max: xaxis.max };
 
-          // Update brush chart visual selection if clamping occurred
-          if (wasClamped && brushChart.value?.updateOptions) {
+          // Update brush chart visual selection if adjustment occurred
+          if (wasAdjusted && brushChart.value?.updateOptions) {
             isUpdatingSelection = true;
             brushChart.value.updateOptions(
               {
@@ -695,6 +717,16 @@ const brushChartOptions = computed(() => ({
             setTimeout(() => {
               isUpdatingSelection = false;
             }, 100);
+          }
+
+          // Update main chart's xaxis to reflect the selection zoom
+          if (mainChart.value?.updateOptions) {
+            mainChart.value.updateOptions({
+              xaxis: {
+                min: tc.toChartTime(clampedStart),
+                max: tc.toChartTime(clampedEnd)
+              }
+            }, false, false);
           }
 
           // Handle zoom - either via graphUpdater or emit

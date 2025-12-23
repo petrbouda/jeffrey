@@ -20,19 +20,32 @@ package pbouda.jeffrey.resources.project.profile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.POST;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.ProfilingStartEnd;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.resources.request.GetSubSecondRequest;
 import pbouda.jeffrey.manager.SubSecondManager;
 
+import static pbouda.jeffrey.resources.project.profile.FlamegraphResource.toTimeRange;
+
 public class SubSecondResource {
 
+    private final ProfileInfo profileInfo;
     private final SubSecondManager subSecondManager;
 
-    public SubSecondResource(SubSecondManager subSecondManager) {
+    public SubSecondResource(ProfileInfo profileInfo, SubSecondManager subSecondManager) {
+        this.profileInfo = profileInfo;
         this.subSecondManager = subSecondManager;
     }
 
     @POST
     public JsonNode generate(GetSubSecondRequest request) {
-        return subSecondManager.generate(request.eventType(), request.useWeight());
+        RelativeTimeRange relativeTimeRange = null;
+        if (request.timeRange() != null) {
+            ProfilingStartEnd startEnd = new ProfilingStartEnd(
+                    profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
+            relativeTimeRange = toTimeRange(request.timeRange()).toRelativeTimeRange(startEnd);
+        }
+        return subSecondManager.generate(request.eventType(), request.useWeight(), relativeTimeRange);
     }
 }

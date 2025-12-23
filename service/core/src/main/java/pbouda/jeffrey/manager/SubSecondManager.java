@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.common.model.time.RelativeTimeRange;
 
 import java.util.function.Function;
 
@@ -30,5 +31,5 @@ public interface SubSecondManager {
     interface Factory extends Function<ProfileInfo, SubSecondManager> {
     }
 
-    JsonNode generate(Type eventType, boolean collectWeight);
+    JsonNode generate(Type eventType, boolean collectWeight, RelativeTimeRange timeRange);
 }

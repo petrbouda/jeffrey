@@ -40,7 +40,8 @@ public class DbBasedSubSecondGeneratorImpl implements SubSecondGenerator {
                 .withEventType(config.eventType())
                 .withTimeRange(config.timeRange());
 
-        SingleResult result = eventStreamRepository.subSecondStreamer(configurer, new SubSecondRecordBuilder());
+        long startOffsetMillis = config.timeRange() != null ? config.timeRange().start().toMillis() : 0;
+        SingleResult result = eventStreamRepository.subSecondStreamer(configurer, new SubSecondRecordBuilder(startOffsetMillis));
         return SubSecondCollectorUtils.finisher(result);
     }
 }
