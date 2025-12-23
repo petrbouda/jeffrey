@@ -17,7 +17,12 @@
   -->
 
 <template>
-  <ChartSection title="HTTP Metrics Timeline" icon="graph-up" :full-width="true" container-class="apex-chart-container">
+  <ChartSection
+    title="HTTP Metrics Timeline"
+    icon="graph-up"
+    :full-width="true"
+    container-class="apex-chart-container"
+  >
     <ApexTimeSeriesChart
       :primary-data="props.responseTimeData"
       primary-title="Response Time"
@@ -25,8 +30,8 @@
       secondary-title="Request Count"
       :visible-minutes="60"
       :independentSecondaryAxis="true"
-      primary-axis-type="durationInNanos"
-      secondary-axis-type="number"
+      :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+      :secondary-axis-type="AxisFormatType.NUMBER"
     />
   </ChartSection>
 </template>
@@ -34,6 +39,7 @@
 <script setup lang="ts">
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 interface Props {
   responseTimeData: any[];

@@ -37,6 +37,10 @@ const props = defineProps<{
   flamegraphTooltip: FlamegraphTooltip
   graphUpdater: GraphUpdater
 }>()
+
+const emit = defineEmits<{
+  loaded: []
+}>()
 const guardMatched = ref<GuardMatched | null>(null);
 
 // Track current search term for zoom updates
@@ -193,7 +197,10 @@ onMounted(() => {
 
   props.graphUpdater.registerFlamegraphCallbacks(
       () => preloaderActive.value = true,
-      () => preloaderActive.value = false,
+      () => {
+        preloaderActive.value = false
+        emit('loaded')
+      },
       flamegraphUpdate,
       search,
       () => {

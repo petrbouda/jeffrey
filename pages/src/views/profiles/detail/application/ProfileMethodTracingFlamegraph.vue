@@ -48,6 +48,13 @@ function onModeChange(threadMode: boolean, weight: boolean) {
   useWeight.value = weight;
 }
 
+function scrollToTop() {
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+}
+
 onBeforeMount(() => {
   const flamegraphClient = new PrimaryFlamegraphClient(
     workspaceId.value!,
@@ -103,6 +110,7 @@ onBeforeMount(() => {
       :scrollable-wrapper-class="null"
       :flamegraph-tooltip="flamegraphTooltip"
       :graph-updater="graphUpdater"
+      @loaded="scrollToTop"
     />
   </div>
 </template>

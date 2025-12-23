@@ -267,6 +267,13 @@ const closeCategoryModal = () => {
   }
 };
 
+function scrollToTop() {
+  const wrapper = document.querySelector('.scrollable-wrapper');
+  if (wrapper) {
+    wrapper.scrollTop = 0;
+  }
+}
+
 function getBadgeClass(guard: GuardAnalysisResult) {
   if (guard.severity === 'OK') {
     return 'bg-success';
@@ -546,6 +553,7 @@ function needsNavigation(itemCount: number): boolean {
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"
+              @loaded="scrollToTop"
             />
           </div>
         </div>

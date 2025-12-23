@@ -8,7 +8,8 @@
     <PageHeader
       title="Heap Memory Timeseries"
       description="Time-series analysis of heap memory usage, allocation patterns, and GC impact"
-      icon="bi-graph-up-arrow">
+      icon="bi-graph-up-arrow"
+    >
       <template #actions>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-primary" @click="refreshData">
@@ -32,7 +33,7 @@
         <ApexTimeSeriesChart
           :primary-data="heapMemoryData"
           primary-title="Before/After GC"
-          primary-axis-type="bytes"
+          :primary-axis-type="AxisFormatType.BYTES"
           :visible-minutes="60"
           primary-color="#007bff"
           time-unit="milliseconds"
@@ -44,7 +45,7 @@
         <ApexTimeSeriesChart
           :primary-data="allocationData"
           primary-title="Allocation Rate"
-          primary-axis-type="bytes"
+          :primary-axis-type="AxisFormatType.BYTES"
           :visible-minutes="60"
           primary-color="#28a745"
           time-unit="seconds"
@@ -55,8 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -65,6 +66,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ProfileHeapMemoryClient from '@/services/profile/heap/ProfileHeapMemoryClient';
 import HeapMemoryTimeseriesType from '@/services/profile/heap/HeapMemoryTimeseriesType';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
@@ -79,13 +81,20 @@ const heapMemoryTabs = [
     icon: 'memory',
     type: HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC
   },
-  {id: 'allocation', label: 'Allocation Rate', icon: 'plus-circle', type: HeapMemoryTimeseriesType.ALLOCATION}
+  {
+    id: 'allocation',
+    label: 'Allocation Rate',
+    icon: 'plus-circle',
+    type: HeapMemoryTimeseriesType.ALLOCATION
+  }
 ];
 
 // Heap timeseries data
 const heapMemoryData = ref<number[][]>([]);
 const allocationData = ref<number[][]>([]);
-const currentTimeseriesType = ref<HeapMemoryTimeseriesType>(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC);
+const currentTimeseriesType = ref<HeapMemoryTimeseriesType>(
+  HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC
+);
 
 // Client initialization - will be set after workspace/project IDs are available
 let client: ProfileHeapMemoryClient;
@@ -102,7 +111,11 @@ const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
 
       // Initialize client if needed
       if (!client) {
-        client = new ProfileHeapMemoryClient(workspaceId.value, projectId.value, route.params.profileId as string);
+        client = new ProfileHeapMemoryClient(
+          workspaceId.value,
+          projectId.value,
+          route.params.profileId as string
+        );
       }
 
       // Always load data when switching tabs and clear inactive tab data
@@ -110,7 +123,9 @@ const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
         const timeseriesData = await client.getTimeseries(HeapMemoryTimeseriesType.ALLOCATION);
         allocationData.value = timeseriesData.data;
       } else if (tab.type === HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC) {
-        const timeseriesData = await client.getTimeseries(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC);
+        const timeseriesData = await client.getTimeseries(
+          HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC
+        );
         heapMemoryData.value = timeseriesData.data;
       }
     } catch (err) {
@@ -135,14 +150,17 @@ const loadHeapMemoryData = async () => {
 
     // Initialize client if needed
     if (!client) {
-      client = new ProfileHeapMemoryClient(workspaceId.value, projectId.value, route.params.profileId as string);
+      client = new ProfileHeapMemoryClient(
+        workspaceId.value,
+        projectId.value,
+        route.params.profileId as string
+      );
     }
 
     // Load heap memory data with default HEAP_BEFORE_AFTER_GC type
     const heapResult = await client.getTimeseries(HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC);
     heapMemoryData.value = heapResult.data;
     currentTimeseriesType.value = HeapMemoryTimeseriesType.HEAP_BEFORE_AFTER_GC;
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading heap memory data:', err);

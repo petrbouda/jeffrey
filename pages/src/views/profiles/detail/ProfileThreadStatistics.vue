@@ -23,7 +23,7 @@
         <ApexTimeSeriesChart
           :primary-data="threadSerie"
           primary-title="Active Threads"
-          primary-axis-type="number"
+          :primary-axis-type="AxisFormatType.NUMBER"
           :visible-minutes="60"
           primary-color="#4285F4"
         />
@@ -160,7 +160,8 @@
                 :graph-updater="graphUpdater"
                 :primary-axis-type="
                   TimeseriesEventAxeFormatter.resolveAxisFormatter(
-                    useWeightForModal, selectedEventCode
+                    useWeightForModal,
+                    selectedEventCode
                   )
                 "
                 :visible-minutes="60"
@@ -174,6 +175,7 @@
                 scrollableWrapperClass="scrollable-wrapper"
                 :flamegraph-tooltip="flamegraphTooltip"
                 :graph-updater="graphUpdater"
+                @loaded="scrollToTop"
               />
             </div>
           </div>
@@ -199,7 +201,6 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import GraphType from '@/services/flamegraphs/GraphType';
 import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
@@ -208,6 +209,7 @@ import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater.ts';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip.ts';
 import ThreadWithCpuLoad from '@/services/thread/model/ThreadWithCpuLoad';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
@@ -223,6 +225,13 @@ const useWeightForModal = ref(false);
 
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
+
+function scrollToTop() {
+  const wrapper = document.querySelector('.scrollable-wrapper');
+  if (wrapper) {
+    wrapper.scrollTop = 0;
+  }
+}
 
 // Thread statistics - using ThreadStats model
 const threadStats = ref<ThreadStats>(new ThreadStats(0, 0, 0, 0));

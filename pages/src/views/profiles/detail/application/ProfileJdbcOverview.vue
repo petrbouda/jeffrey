@@ -1,69 +1,72 @@
 <template>
   <div>
     <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert 
+    <CustomDisabledFeatureAlert
       v-if="isJdbcStatementsDisabled"
       title="JDBC Statements Dashboard"
       eventType="JDBC statement"
     />
 
     <div v-else>
-      <PageHeader title="JDBC Statements Overview" icon="bi-database"/>
+      <PageHeader title="JDBC Statements Overview" icon="bi-database" />
 
-    <!-- Loading state -->
-    <div v-if="isLoading" class="p-4 text-center">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
+      <!-- Loading state -->
+      <div v-if="isLoading" class="p-4 text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Error state -->
-    <div v-else-if="error" class="p-4 text-center">
-      <div class="alert alert-danger" role="alert">
-        Error loading JDBC data: {{ error }}
+      <!-- Error state -->
+      <div v-else-if="error" class="p-4 text-center">
+        <div class="alert alert-danger" role="alert">Error loading JDBC data: {{ error }}</div>
       </div>
-    </div>
 
-    <!-- Dashboard content -->
-    <div v-if="jdbcOverviewData" class="dashboard-container">
-      
-      <!-- JDBC Overview Cards -->
-      <JdbcDashboardSection :jdbc-header="jdbcOverviewData.header"/>
+      <!-- Dashboard content -->
+      <div v-if="jdbcOverviewData" class="dashboard-container">
+        <!-- JDBC Overview Cards -->
+        <JdbcDashboardSection :jdbc-header="jdbcOverviewData.header" />
 
-      <!-- JDBC Metrics Timeline -->
-      <ChartSection title="JDBC Metrics Timeline" icon="graph-up" :full-width="true" container-class="apex-chart-container">
-        <ApexTimeSeriesChart
-          :primary-data="jdbcOverviewData?.executionTimeSerie.data || []"
-          primary-title="Execution Time"
-          :secondary-data="jdbcOverviewData?.statementCountSerie.data || []"
-          secondary-title="Executions"
-          :visible-minutes="60"
-          :independentSecondaryAxis="true"
-          primary-axis-type="durationInNanos"
-          secondary-axis-type="number"
-        />
-      </ChartSection>
+        <!-- JDBC Metrics Timeline -->
+        <ChartSection
+          title="JDBC Metrics Timeline"
+          icon="graph-up"
+          :full-width="true"
+          container-class="apex-chart-container"
+        >
+          <ApexTimeSeriesChart
+            :primary-data="jdbcOverviewData?.executionTimeSerie.data || []"
+            primary-title="Execution Time"
+            :secondary-data="jdbcOverviewData?.statementCountSerie.data || []"
+            secondary-title="Executions"
+            :visible-minutes="60"
+            :independentSecondaryAxis="true"
+            :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+            :secondary-axis-type="AxisFormatType.NUMBER"
+          />
+        </ChartSection>
 
-
-      <!-- Statement Groups Section -->
-      <JdbcGroupList
+        <!-- Statement Groups Section -->
+        <JdbcGroupList
           :groups="jdbcOverviewData.groups"
           :selected-group="null"
-          @group-click="handleGroupClick" />
+          @group-click="handleGroupClick"
+        />
 
-      <!-- JDBC Distribution Charts -->
-      <JdbcDistributionCharts
+        <!-- JDBC Distribution Charts -->
+        <JdbcDistributionCharts
           :operations="jdbcOverviewData?.operations || []"
           second-chart-title="Statement Groups Distribution"
           :second-chart-data="getStatementGroupsData()"
-          :total="jdbcOverviewData.header.statementCount"/>
+          :total="jdbcOverviewData.header.statementCount"
+        />
 
-      <!-- Slowest Statements -->
-      <JdbcSlowestStatements 
-        :statements="jdbcOverviewData.slowStatements"
-        @sql-button-click="showSqlModal" />
-
-    </div>
+        <!-- Slowest Statements -->
+        <JdbcSlowestStatements
+          :statements="jdbcOverviewData.slowStatements"
+          @sql-button-click="showSqlModal"
+        />
+      </div>
 
       <!-- No data state -->
       <div v-else class="p-4 text-center">
@@ -73,17 +76,18 @@
     </div>
 
     <!-- JDBC Statement Modal -->
-    <JdbcStatementModal 
-      :statement="selectedStatement" 
+    <JdbcStatementModal
+      :statement="selectedStatement"
       modal-id="jdbcStatementModal"
       :show="showModal"
-      @update:show="showModal = $event" />
+      @update:show="showModal = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, ref, computed, withDefaults, defineProps} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { computed, defineProps, nextTick, onMounted, ref, withDefaults } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
@@ -97,6 +101,7 @@ import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Define props
 interface Props {
@@ -160,7 +165,6 @@ const loadJdbcData = async () => {
 
     // Wait for DOM updates
     await nextTick();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading JDBC data:', err);

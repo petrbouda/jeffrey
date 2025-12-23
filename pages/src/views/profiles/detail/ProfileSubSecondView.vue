@@ -59,6 +59,13 @@ const showDialog = ref<boolean>(false);
 let graphUpdater: GraphUpdater
 let flamegraphTooltip: FlamegraphTooltip
 
+function scrollToTop() {
+  const wrapper = document.querySelector('.flamegraphModal');
+  if (wrapper) {
+    wrapper.scrollTop = 0;
+  }
+}
+
 let modalInstance: bootstrap.Modal | null = null;
 
 // Watch for changes to showDialog and control the Bootstrap modal
@@ -199,7 +206,8 @@ function showFlamegraph(profileId: string, timeRange: TimeRange) {
               :use-guardian="null"
               scrollable-wrapper-class="flamegraphModal"
               :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"/>
+              :graph-updater="graphUpdater"
+              @loaded="scrollToTop"/>
         </div>
       </div>
     </div>

@@ -6,9 +6,10 @@
   <div v-else>
     <!-- Header Section -->
     <PageHeader
-        title="GC Timeseries Analysis"
-        description="Time-series analysis of garbage collection events and performance metrics"
-        icon="bi-graph-up-arrow">
+      title="GC Timeseries Analysis"
+      description="Time-series analysis of garbage collection events and performance metrics"
+      icon="bi-graph-up-arrow"
+    >
       <template #actions>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-primary" @click="refreshData">
@@ -20,43 +21,43 @@
 
     <!-- GC Timeseries Section -->
     <ChartSectionWithTabs
-        icon="graph-up"
-        :tabs="gcTimeseriesTabs"
-        :full-width="true"
-        id-prefix="gc-timeseries-"
-        @tab-change="onTimeseriesTabChange"
-        class="mb-4"
+      icon="graph-up"
+      :tabs="gcTimeseriesTabs"
+      :full-width="true"
+      id-prefix="gc-timeseries-"
+      @tab-change="onTimeseriesTabChange"
+      class="mb-4"
     >
       <!-- Count Tab -->
       <template #count>
         <ApexTimeSeriesChart
-            :primary-data="gcTimeseriesData"
-            primary-title="GC Count"
-            primary-axis-type="number"
-            :visible-minutes="60"
-            primary-color="#007bff"
+          :primary-data="gcTimeseriesData"
+          primary-title="GC Count"
+          :primary-axis-type="AxisFormatType.NUMBER"
+          :visible-minutes="60"
+          primary-color="#007bff"
         />
       </template>
 
       <!-- Max Pause Tab -->
       <template #max-pause>
         <ApexTimeSeriesChart
-            :primary-data="gcTimeseriesData"
-            primary-title="Max Pause Time"
-            primary-axis-type="durationInNanos"
-            :visible-minutes="60"
-            primary-color="#dc3545"
+          :primary-data="gcTimeseriesData"
+          primary-title="Max Pause Time"
+          :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :visible-minutes="60"
+          primary-color="#dc3545"
         />
       </template>
 
       <!-- Sum of Pauses Tab -->
       <template #sum-pauses>
         <ApexTimeSeriesChart
-            :primary-data="gcTimeseriesData"
-            primary-title="Sum of Pause Times"
-            primary-axis-type="durationInNanos"
-            :visible-minutes="60"
-            primary-color="#ffc107"
+          :primary-data="gcTimeseriesData"
+          primary-title="Sum of Pause Times"
+          :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :visible-minutes="60"
+          primary-color="#ffc107"
         />
       </template>
     </ChartSectionWithTabs>
@@ -64,9 +65,9 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
-import {useNavigation} from '@/composables/useNavigation';
+import { onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -74,17 +75,23 @@ import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
 import GCTimeseriesType from '@/services/profile/gc/GCTimeseriesType';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();
-const {workspaceId, projectId} = useNavigation();
+const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 
 // Tabs configuration for GC Timeseries
 const gcTimeseriesTabs = [
-  {id: 'count', label: 'Count', icon: 'graph-up', type: GCTimeseriesType.COUNT},
-  {id: 'max-pause', label: 'Max Pause', icon: 'clock', type: GCTimeseriesType.MAX_PAUSE},
-  {id: 'sum-pauses', label: 'Sum of Pauses', icon: 'plus-circle', type: GCTimeseriesType.SUM_OF_PAUSES}
+  { id: 'count', label: 'Count', icon: 'graph-up', type: GCTimeseriesType.COUNT },
+  { id: 'max-pause', label: 'Max Pause', icon: 'clock', type: GCTimeseriesType.MAX_PAUSE },
+  {
+    id: 'sum-pauses',
+    label: 'Sum of Pauses',
+    icon: 'plus-circle',
+    type: GCTimeseriesType.SUM_OF_PAUSES
+  }
 ];
 
 // Timeseries data for different GC types
@@ -103,7 +110,11 @@ const onTimeseriesTabChange = async (_tabIndex: number, tab: any) => {
 
       // Initialize client if needed
       if (!client) {
-        client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+        client = new ProfileGCClient(
+          workspaceId.value,
+          projectId.value,
+          route.params.profileId as string
+        );
       }
 
       // Load new timeseries data for the selected type
@@ -131,14 +142,17 @@ const loadTimeseriesData = async () => {
 
     // Initialize client if needed
     if (!client) {
-      client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+      client = new ProfileGCClient(
+        workspaceId.value,
+        projectId.value,
+        route.params.profileId as string
+      );
     }
 
     // Load timeline data with default COUNT type
     const timelineData = await client.getTimeseries(GCTimeseriesType.COUNT);
     gcTimeseriesData.value = timelineData.data;
     currentTimeseriesType.value = GCTimeseriesType.COUNT;
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading GC timeseries data:', err);
@@ -153,7 +167,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.loading-overlay, .error-state {
+.loading-overlay,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;

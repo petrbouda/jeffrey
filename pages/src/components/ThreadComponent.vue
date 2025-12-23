@@ -28,7 +28,6 @@ import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
-import GraphType from '@/services/flamegraphs/GraphType.ts';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
@@ -58,6 +57,13 @@ const contextMenuItems = createContextMenuItems();
 const canvasId = ref(`thread-canvas-${props.index}`);
 
 const showFlamegraphDialog = ref(false);
+
+function scrollToTop() {
+  const wrapper = document.querySelector('.scrollable-wrapper');
+  if (wrapper) {
+    wrapper.scrollTop = 0;
+  }
+}
 const showInfoModal = ref(false);
 
 const threadInfo = props.threadRow.threadInfo;
@@ -570,7 +576,7 @@ function createContextMenuItems() {
           <ApexTimeSeriesChart
             :graph-updater="graphUpdater"
             :primary-axis-type="
-              TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue,  selectedEventCode)
+              TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue, selectedEventCode)
             "
             :visible-minutes="60"
             :zoom-enabled="true"
@@ -583,6 +589,7 @@ function createContextMenuItems() {
             scrollableWrapperClass="scrollable-wrapper"
             :flamegraph-tooltip="flamegraphTooltip"
             :graph-updater="graphUpdater"
+            @loaded="scrollToTop"
           />
         </div>
       </div>

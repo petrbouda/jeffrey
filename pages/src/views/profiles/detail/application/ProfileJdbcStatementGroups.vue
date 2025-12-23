@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert 
+    <CustomDisabledFeatureAlert
       v-if="isJdbcStatementsDisabled"
       title="JDBC Statements Dashboard"
       eventType="JDBC statement"
@@ -10,167 +10,184 @@
     <div v-else>
       <PageHeader title="JDBC Statement Groups" icon="bi-collection" />
 
-    <!-- Group Display with Navigation -->
-    <div v-if="selectedGroupForDetail" class="group-display-large">
-      <div class="group-content">
-        <span class="group-name">{{ selectedGroupForDetail }}</span>
+      <!-- Group Display with Navigation -->
+      <div v-if="selectedGroupForDetail" class="group-display-large">
+        <div class="group-content">
+          <span class="group-name">{{ selectedGroupForDetail }}</span>
+        </div>
+
+        <button @click="clearGroupSelection" class="btn btn-secondary group-back-button">
+          <i class="bi bi-arrow-left me-2"></i>
+          All Groups
+        </button>
       </div>
 
-      <button @click="clearGroupSelection"
-          class="btn btn-secondary group-back-button">
-        <i class="bi bi-arrow-left me-2"></i>
-        All Groups
-      </button>
-    </div>
-    
-    <!-- Loading state -->
-    <div v-if="isLoading" class="p-4 text-center">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
+      <!-- Loading state -->
+      <div v-if="isLoading" class="p-4 text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Error state -->
-    <div v-else-if="error" class="p-4 text-center">
-      <div class="alert alert-danger" role="alert">
-        Error loading JDBC statement groups: {{ error }}
+      <!-- Error state -->
+      <div v-else-if="error" class="p-4 text-center">
+        <div class="alert alert-danger" role="alert">
+          Error loading JDBC statement groups: {{ error }}
+        </div>
       </div>
-    </div>
 
-    <!-- Main content based on state -->
-    <div v-if="!isLoading && !error">
-      <!-- Single Group Detail content -->
-      <div v-if="selectedGroupForDetail && singleGroupData" class="dashboard-container">
-        
-        <!-- JDBC Overview Cards -->
-        <JdbcDashboardSection :jdbc-header="singleGroupData.header"/>
+      <!-- Main content based on state -->
+      <div v-if="!isLoading && !error">
+        <!-- Single Group Detail content -->
+        <div v-if="selectedGroupForDetail && singleGroupData" class="dashboard-container">
+          <!-- JDBC Overview Cards -->
+          <JdbcDashboardSection :jdbc-header="singleGroupData.header" />
 
-        <!-- JDBC Metrics Timeline -->
-        <ChartSectionWithTabs 
-          title="JDBC Metrics Timeline" 
-          icon="graph-up" 
-          :full-width="true"
-          :tabs="timelineTabs"
-          id-prefix="timeline-"
-          @tab-change="onTabChange"
-        >
-          <template #total>
-            <ApexTimeSeriesChart
-              :primary-data="singleGroupData?.executionTimeSerie.data || []"
-              primary-title="Execution Time"
-              :secondary-data="singleGroupData?.statementCountSerie.data || []"
-              secondary-title="Executions"
-              :visible-minutes="60"
-              :independentSecondaryAxis="true"
-              primary-axis-type="durationInNanos"
-              secondary-axis-type="number"
-            />
-          </template>
-          
-          <!-- Dynamic statement name tabs -->
-          <template v-for="statementName in getStatementNames()" :key="statementName.label" v-slot:[getStatementSlotName(statementName.label)]>
-            <!-- Loading state -->
-            <div v-if="isStatementLoading(statementName.label)" class="statement-loading">
-              <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">Loading {{ statementName.label }} timeline data...</p>
-              </div>
-            </div>
-            
-            <!-- Chart with data -->
-            <ApexTimeSeriesChart
-              v-else-if="getStatementTimeseries(statementName.label)"
-              :primary-data="getStatementTimeseries(statementName.label)?.executionTime || []"
-              primary-title="Execution Time"
-              :secondary-data="getStatementTimeseries(statementName.label)?.executions || []"
-              secondary-title="Executions"
-              :visible-minutes="60"
-              :independentSecondaryAxis="true"
-              primary-axis-type="durationInNanos"
-              secondary-axis-type="number"
-            />
-            
-            <!-- Placeholder for not loaded yet -->
-            <div v-else class="statement-placeholder">
-              <div class="text-center p-4">
-                <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
-                <h5 class="text-muted">{{ statementName.label }} Timeline</h5>
-                <p class="text-muted">Click this tab to load statement-specific timeline data</p>
-                <div class="mt-3">
-                  <span class="badge bg-primary">Total Executions: {{ statementName.value.toLocaleString() }}</span>
+          <!-- JDBC Metrics Timeline -->
+          <ChartSectionWithTabs
+            title="JDBC Metrics Timeline"
+            icon="graph-up"
+            :full-width="true"
+            :tabs="timelineTabs"
+            id-prefix="timeline-"
+            @tab-change="onTabChange"
+          >
+            <template #total>
+              <ApexTimeSeriesChart
+                :primary-data="singleGroupData?.executionTimeSerie.data || []"
+                primary-title="Execution Time"
+                :secondary-data="singleGroupData?.statementCountSerie.data || []"
+                secondary-title="Executions"
+                :visible-minutes="60"
+                :independentSecondaryAxis="true"
+                :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+                :secondary-axis-type="AxisFormatType.NUMBER"
+              />
+            </template>
+
+            <!-- Dynamic statement name tabs -->
+            <template
+              v-for="statementName in getStatementNames()"
+              :key="statementName.label"
+              v-slot:[getStatementSlotName(statementName.label)]
+            >
+              <!-- Loading state -->
+              <div v-if="isStatementLoading(statementName.label)" class="statement-loading">
+                <div class="text-center p-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-2 text-muted">Loading {{ statementName.label }} timeline data...</p>
                 </div>
               </div>
-            </div>
-          </template>
-        </ChartSectionWithTabs>
 
-        <!-- JDBC Distribution Charts -->
-        <JdbcDistributionCharts
+              <!-- Chart with data -->
+              <ApexTimeSeriesChart
+                v-else-if="getStatementTimeseries(statementName.label)"
+                :primary-data="getStatementTimeseries(statementName.label)?.executionTime || []"
+                primary-title="Execution Time"
+                :secondary-data="getStatementTimeseries(statementName.label)?.executions || []"
+                secondary-title="Executions"
+                :visible-minutes="60"
+                :independentSecondaryAxis="true"
+                :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+                :secondary-axis-type="AxisFormatType.NUMBER"
+              />
+
+              <!-- Placeholder for not loaded yet -->
+              <div v-else class="statement-placeholder">
+                <div class="text-center p-4">
+                  <i class="bi bi-graph-up display-4 text-muted mb-3"></i>
+                  <h5 class="text-muted">{{ statementName.label }} Timeline</h5>
+                  <p class="text-muted">Click this tab to load statement-specific timeline data</p>
+                  <div class="mt-3">
+                    <span class="badge bg-primary"
+                      >Total Executions: {{ statementName.value.toLocaleString() }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </template>
+          </ChartSectionWithTabs>
+
+          <!-- JDBC Distribution Charts -->
+          <JdbcDistributionCharts
             :operations="singleGroupData?.operations || []"
             second-chart-title="Statements Distribution"
             :second-chart-data="getStatementsData()"
-            :total="singleGroupData.header.statementCount"/>
+            :total="singleGroupData.header.statementCount"
+          />
 
-        <!-- Slowest Statements -->
-        <ChartSectionWithTabs 
-          title="Slowest Statements" 
-          icon="stopwatch" 
-          :full-width="true"
-          :tabs="slowestStatementsTabs"
-          id-prefix="slowest-"
-          @tab-change="onSlowestStatementsTabChange"
-        >
-          <template #total>
-            <JdbcSlowestStatements 
-              :statements="getSortedSlowStatements()" 
-              :show-wrapper="false"
-              @sql-button-click="showSqlModal" />
-          </template>
-          
-          <!-- Dynamic statement name tabs -->
-          <template v-for="statementName in getStatementNames()" :key="statementName.label" v-slot:[getStatementSlotName(statementName.label)]>
-            <!-- Loading state -->
-            <div v-if="isSlowestStatementsLoading(statementName.label)" class="statement-loading">
-              <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">Loading {{ statementName.label }} slowest statements...</p>
-              </div>
-            </div>
-            
-            <!-- Slowest statements with data -->
-            <JdbcSlowestStatements 
-              v-else-if="getStatementSlowestStatements(statementName.label)"
-              :statements="getStatementSlowestStatements(statementName.label)" 
-              :show-wrapper="false"
-              @sql-button-click="showSqlModal" />
-            
-            <!-- Placeholder for not loaded yet -->
-            <div v-else class="statement-placeholder">
-              <div class="text-center p-4">
-                <i class="bi bi-stopwatch display-4 text-muted mb-3"></i>
-                <h5 class="text-muted">{{ statementName.label }} Slowest Statements</h5>
-                <p class="text-muted">Click this tab to load statement-specific slowest statements</p>
-                <div class="mt-3">
-                  <span class="badge bg-primary">Total Executions: {{ statementName.value.toLocaleString() }}</span>
+          <!-- Slowest Statements -->
+          <ChartSectionWithTabs
+            title="Slowest Statements"
+            icon="stopwatch"
+            :full-width="true"
+            :tabs="slowestStatementsTabs"
+            id-prefix="slowest-"
+            @tab-change="onSlowestStatementsTabChange"
+          >
+            <template #total>
+              <JdbcSlowestStatements
+                :statements="getSortedSlowStatements()"
+                :show-wrapper="false"
+                @sql-button-click="showSqlModal"
+              />
+            </template>
+
+            <!-- Dynamic statement name tabs -->
+            <template
+              v-for="statementName in getStatementNames()"
+              :key="statementName.label"
+              v-slot:[getStatementSlotName(statementName.label)]
+            >
+              <!-- Loading state -->
+              <div v-if="isSlowestStatementsLoading(statementName.label)" class="statement-loading">
+                <div class="text-center p-4">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-2 text-muted">
+                    Loading {{ statementName.label }} slowest statements...
+                  </p>
                 </div>
               </div>
-            </div>
-          </template>
-        </ChartSectionWithTabs>
 
-      </div>
+              <!-- Slowest statements with data -->
+              <JdbcSlowestStatements
+                v-else-if="getStatementSlowestStatements(statementName.label)"
+                :statements="getStatementSlowestStatements(statementName.label)"
+                :show-wrapper="false"
+                @sql-button-click="showSqlModal"
+              />
 
-      <!-- Group List -->
-      <div v-else-if="jdbcOverviewData" class="dashboard-container">
-        <JdbcGroupList
+              <!-- Placeholder for not loaded yet -->
+              <div v-else class="statement-placeholder">
+                <div class="text-center p-4">
+                  <i class="bi bi-stopwatch display-4 text-muted mb-3"></i>
+                  <h5 class="text-muted">{{ statementName.label }} Slowest Statements</h5>
+                  <p class="text-muted">
+                    Click this tab to load statement-specific slowest statements
+                  </p>
+                  <div class="mt-3">
+                    <span class="badge bg-primary"
+                      >Total Executions: {{ statementName.value.toLocaleString() }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </template>
+          </ChartSectionWithTabs>
+        </div>
+
+        <!-- Group List -->
+        <div v-else-if="jdbcOverviewData" class="dashboard-container">
+          <JdbcGroupList
             :groups="getStatementGroups()"
             :selected-group="selectedGroup"
-            @group-click="selectGroupForDetail"/>
-      </div>
+            @group-click="selectGroupForDetail"
+          />
+        </div>
 
         <!-- No data state -->
         <div v-else class="p-4 text-center">
@@ -181,16 +198,17 @@
     </div>
 
     <!-- JDBC Statement Modal -->
-    <JdbcStatementModal 
-      :statement="selectedStatement" 
+    <JdbcStatementModal
+      :statement="selectedStatement"
       modal-id="jdbcStatementModal"
       :show="showModal"
-      @update:show="showModal = $event" />
+      @update:show="showModal = $event"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, withDefaults, defineProps } from 'vue';
+import { computed, defineProps, ref, watch, withDefaults } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
@@ -205,6 +223,7 @@ import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts
 import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/profile/features/FeatureType';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Define props
 interface Props {
@@ -229,7 +248,9 @@ const selectedStatement = ref<JdbcSlowStatement | null>(null);
 const showModal = ref(false);
 
 // Statement-specific timeseries data
-const statementTimeseriesData = ref<Map<string, { executionTime: number[][], executions: number[][] }>>(new Map());
+const statementTimeseriesData = ref<
+  Map<string, { executionTime: number[][]; executions: number[][] }>
+>(new Map());
 const loadingStatements = ref<Set<string>>(new Set());
 const activeTimelineTab = ref<string>('total');
 
@@ -258,7 +279,7 @@ const timelineTabs = computed(() => {
       label: 'Total'
     }
   ];
-  
+
   // Add tabs for each statement name from the groups field (there should be only one group)
   if (singleGroupData.value?.groups && singleGroupData.value.groups.length > 0) {
     const group = singleGroupData.value.groups[0];
@@ -271,7 +292,7 @@ const timelineTabs = computed(() => {
       });
     }
   }
-  
+
   return tabs;
 });
 
@@ -283,7 +304,7 @@ const slowestStatementsTabs = computed(() => {
       label: 'Total'
     }
   ];
-  
+
   // Add tabs for each statement name from the groups field (there should be only one group)
   if (singleGroupData.value?.groups && singleGroupData.value.groups.length > 0) {
     const group = singleGroupData.value.groups[0];
@@ -296,7 +317,7 @@ const slowestStatementsTabs = computed(() => {
       });
     }
   }
-  
+
   return tabs;
 });
 
@@ -328,27 +349,23 @@ const clearGroupSelection = () => {
 
 const getStatementGroups = () => {
   if (!jdbcOverviewData.value) return [];
-  
+
   // Validate and filter groups data
-  return jdbcOverviewData.value.groups.filter(group => 
-    group && 
-    !isNaN(group.count) && 
-    group.count >= 0
+  return jdbcOverviewData.value.groups.filter(
+    group => group && !isNaN(group.count) && group.count >= 0
   );
 };
 
 const getSortedSlowStatements = () => {
   if (!singleGroupData.value) return [];
-  
-  // Sort by execution time (group-specific data should already be filtered by the backend)
-  return singleGroupData.value.slowStatements
-    .sort((a, b) => b.executionTime - a.executionTime);
-};
 
+  // Sort by execution time (group-specific data should already be filtered by the backend)
+  return singleGroupData.value.slowStatements.sort((a, b) => b.executionTime - a.executionTime);
+};
 
 const getStatementsData = () => {
   if (!singleGroupData.value) return [];
-  
+
   // There's always only one group when viewing a single group
   const selectedGroup = singleGroupData.value.groups[0];
   return selectedGroup?.statementNames || [];
@@ -370,7 +387,7 @@ const getStatementSlotName = (label: string) => {
 // Tab change handler for timeline
 const onTabChange = (tabIndex: number, tab: any) => {
   activeTimelineTab.value = tab.id;
-  
+
   // Load timeseries data for statement tabs (not for Total tab)
   if (tab.id !== 'total' && tab.id.startsWith('statement-')) {
     const statementLabel = tab.label;
@@ -381,7 +398,7 @@ const onTabChange = (tabIndex: number, tab: any) => {
 // Tab change handler for slowest statements
 const onSlowestStatementsTabChange = (tabIndex: number, tab: any) => {
   activeSlowestTab.value = tab.id;
-  
+
   // Load slowest statements data for statement tabs (not for Total tab)
   if (tab.id !== 'total' && tab.id.startsWith('statement-')) {
     const statementLabel = tab.label;
@@ -392,18 +409,18 @@ const onSlowestStatementsTabChange = (tabIndex: number, tab: any) => {
 // Load statement-specific timeseries data
 const loadStatementTimeseries = async (statementName: string) => {
   if (!selectedGroupForDetail.value) return;
-  
+
   // Check if data is already loaded
   if (statementTimeseriesData.value.has(statementName)) return;
-  
+
   try {
     loadingStatements.value.add(statementName);
     const series = await client.getTimeseries(selectedGroupForDetail.value, statementName);
-    
+
     // The first serie is Execution Time, the second is Executions
     const executionTimeSerie = series[0]?.data || [];
     const executionsSerie = series[1]?.data || [];
-    
+
     statementTimeseriesData.value.set(statementName, {
       executionTime: executionTimeSerie,
       executions: executionsSerie
@@ -428,14 +445,17 @@ const isStatementLoading = (statementName: string) => {
 // Load statement-specific slowest statements data
 const loadStatementSlowestStatements = async (statementName: string) => {
   if (!selectedGroupForDetail.value) return;
-  
+
   // Check if data is already loaded
   if (statementSlowestData.value.has(statementName)) return;
-  
+
   try {
     loadingSlowestStatements.value.add(statementName);
-    const slowestStatements = await client.getSlowestStatements(selectedGroupForDetail.value, statementName);
-    
+    const slowestStatements = await client.getSlowestStatements(
+      selectedGroupForDetail.value,
+      statementName
+    );
+
     statementSlowestData.value.set(statementName, slowestStatements);
   } catch (err) {
     console.error(`Error loading slowest statements for statement ${statementName}:`, err);
@@ -454,7 +474,6 @@ const isSlowestStatementsLoading = (statementName: string) => {
   return loadingSlowestStatements.value.has(statementName);
 };
 
-
 // Lifecycle methods
 const loadData = async () => {
   try {
@@ -469,7 +488,7 @@ const loadData = async () => {
       loadingSlowestStatements.value.clear();
       activeTimelineTab.value = 'total';
       activeSlowestTab.value = 'total';
-      
+
       // Load group-specific data from API
       singleGroupData.value = await client.getOverviewGroup(selectedGroupForDetail.value);
 
@@ -481,7 +500,6 @@ const loadData = async () => {
       // Load overview data when no specific group is selected
       jdbcOverviewData.value = await client.getOverview();
     }
-    
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading JDBC statement groups:', err);
@@ -491,17 +509,21 @@ const loadData = async () => {
 };
 
 // Watch for route changes to handle direct navigation
-watch(() => route.query.group, (newGroup) => {
-  if (newGroup && typeof newGroup === 'string') {
-    selectedGroupForDetail.value = newGroup;
-  } else {
-    selectedGroupForDetail.value = null;
-  }
-  // Only reload data when group selection changes if feature is not disabled
-  if (!isJdbcStatementsDisabled.value) {
-    loadData();
-  }
-}, { immediate: true });
+watch(
+  () => route.query.group,
+  newGroup => {
+    if (newGroup && typeof newGroup === 'string') {
+      selectedGroupForDetail.value = newGroup;
+    } else {
+      selectedGroupForDetail.value = null;
+    }
+    // Only reload data when group selection changes if feature is not disabled
+    if (!isJdbcStatementsDisabled.value) {
+      loadData();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
@@ -518,7 +540,15 @@ watch(() => route.query.group, (newGroup) => {
 }
 
 .group-content {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    'Poppins',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
   color: #2c3e50;

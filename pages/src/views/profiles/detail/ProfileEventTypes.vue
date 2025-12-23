@@ -1,10 +1,9 @@
 <template>
-    <PageHeader 
-      title="Event Types"
-      description="Overview of profile event types"
-      icon="bi-list-check"
-    >
-
+  <PageHeader
+    title="Event Types"
+    description="Overview of profile event types"
+    icon="bi-list-check"
+  >
     <!-- Loading state -->
     <div v-if="loading" class="row">
       <div class="col-12">
@@ -19,9 +18,7 @@
     <!-- Error state -->
     <div v-else-if="error" class="row">
       <div class="col-12">
-        <div class="alert alert-danger" role="alert">
-          Failed to load event types.
-        </div>
+        <div class="alert alert-danger" role="alert">Failed to load event types.</div>
       </div>
     </div>
 
@@ -56,17 +53,21 @@
             <div class="input-group search-container">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
-                  type="text"
-                  class="form-control search-input"
-                  placeholder="Search events..."
-                  v-model="searchText"
-                  @input="filterEvents"
-              >
-              <button 
+                type="text"
+                class="form-control search-input"
+                placeholder="Search events..."
+                v-model="searchText"
+                @input="filterEvents"
+              />
+              <button
                 v-if="searchText"
-                class="btn btn-outline-secondary clear-btn" 
+                class="btn btn-outline-secondary clear-btn"
                 type="button"
-                @click="searchText = ''; filterEvents()">
+                @click="
+                  searchText = '';
+                  filterEvents();
+                "
+              >
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -77,103 +78,154 @@
             <div class="card-body p-0">
               <table class="table table-hover mb-0 event-tree-table">
                 <thead>
-                <tr>
-                  <th>Event Type</th>
-                  <th class="text-center">
-                    <div class="d-flex justify-content-end align-items-center">
-                      <span class="me-3">Actions</span>
-                      <div class="tree-controls">
-                        <button class="btn btn-sm btn-outline-primary btn-xs px-1" @click="collapseAll" title="Collapse All">
-                          <i class="bi bi-arrows-collapse"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1" @click="expandAll" title="Expand All">
-                          <i class="bi bi-arrows-expand"></i>
-                        </button>
+                  <tr>
+                    <th>Event Type</th>
+                    <th class="text-center">
+                      <div class="d-flex justify-content-end align-items-center">
+                        <span class="me-3">Actions</span>
+                        <div class="tree-controls">
+                          <button
+                            class="btn btn-sm btn-outline-primary btn-xs px-1"
+                            @click="collapseAll"
+                            title="Collapse All"
+                          >
+                            <i class="bi bi-arrows-collapse"></i>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
+                            @click="expandAll"
+                            title="Expand All"
+                          >
+                            <i class="bi bi-arrows-expand"></i>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </th>
-                </tr>
+                    </th>
+                  </tr>
                 </thead>
                 <tbody>
-                <template v-for="(node, index) in filteredEvents" :key="node.key">
-                  <tr :class="{ 'parent-row': !node.leaf, 'leaf-row': node.leaf }">
-                    <td>
-                      <div class="d-flex align-items-center event-name-cell">
-                        <!-- Indentation based on level -->
-                        <div class="tree-indent" :style="{ 'width': `${getTreeLevel(node.key) * 20}px` }"></div>
+                  <template v-for="(node, index) in filteredEvents" :key="node.key">
+                    <tr :class="{ 'parent-row': !node.leaf, 'leaf-row': node.leaf }">
+                      <td>
+                        <div class="d-flex align-items-center event-name-cell">
+                          <!-- Indentation based on level -->
+                          <div
+                            class="tree-indent"
+                            :style="{ width: `${getTreeLevel(node.key) * 20}px` }"
+                          ></div>
 
-                        <!-- Expand/collapse icon for parent nodes -->
-                        <button v-if="!node.leaf"
-                                class="btn btn-sm expand-btn p-0 me-2"
-                                @click="toggleExpand(node.key)">
-                          <i class="bi" :class="isExpanded(node.key) ? 'bi-dash-square' : 'bi-plus-square'"></i>
-                        </button>
-                        <span v-else class="tree-leaf-icon me-2">
+                          <!-- Expand/collapse icon for parent nodes -->
+                          <button
+                            v-if="!node.leaf"
+                            class="btn btn-sm expand-btn p-0 me-2"
+                            @click="toggleExpand(node.key)"
+                          >
+                            <i
+                              class="bi"
+                              :class="isExpanded(node.key) ? 'bi-dash-square' : 'bi-plus-square'"
+                            ></i>
+                          </button>
+                          <span v-else class="tree-leaf-icon me-2">
                             <i class="bi bi-circle-fill"></i>
                           </span>
 
-                        <!-- Node name -->
-                        <span class="event-name">{{ node.data.name }}</span>
+                          <!-- Node name -->
+                          <span class="event-name">{{ node.data.name }}</span>
 
-                        <!-- Event code for leaf nodes -->
-                        <span v-if="node.data.code" class="event-code ms-2">{{ node.data.code }}</span>
+                          <!-- Event code for leaf nodes -->
+                          <span v-if="node.data.code" class="event-code ms-2">{{
+                            node.data.code
+                          }}</span>
 
-                        <!-- Count badge -->
-                        <Badge v-if="node.data.count !== undefined"
-                               :value="formatNumber(node.data.count)"
-                               :variant="node.data.count > 0 ? 'primary' : 'secondary'"
-                               size="xs"
-                               class="ms-2" />
+                          <!-- Count badge -->
+                          <Badge
+                            v-if="node.data.count !== undefined"
+                            :value="formatNumber(node.data.count)"
+                            :variant="node.data.count > 0 ? 'primary' : 'secondary'"
+                            size="xs"
+                            class="ms-2"
+                          />
 
-                        <!-- Event type badge -->
-                        <Badge v-if="node.leaf && node.data.source === 'JDK'" value="JDK" variant="info" size="xs" class="ms-2" />
-                        <Badge v-else-if="node.leaf && node.data.source === 'Async-Profiler'" value="Async-Profiler" variant="purple" size="xs" class="ms-2" />
-                        <Badge v-else-if="node.leaf && node.data.code" value="Custom" variant="secondary" size="xs" class="ms-2" />
+                          <!-- Event type badge -->
+                          <Badge
+                            v-if="node.leaf && node.data.source === 'JDK'"
+                            value="JDK"
+                            variant="info"
+                            size="xs"
+                            class="ms-2"
+                          />
+                          <Badge
+                            v-else-if="node.leaf && node.data.source === 'Async-Profiler'"
+                            value="Async-Profiler"
+                            variant="purple"
+                            size="xs"
+                            class="ms-2"
+                          />
+                          <Badge
+                            v-else-if="node.leaf && node.data.code"
+                            value="Custom"
+                            variant="secondary"
+                            size="xs"
+                            class="ms-2"
+                          />
 
-                        <!-- Stack trace indicator -->
-                        <i v-if="node.leaf && node.data.withStackTrace" class="bi bi-layers ms-2 text-success"
-                           title="Has stack traces"></i>
-                      </div>
-                    </td>
-                    <td class="text-center">
-                      <div class="d-flex justify-content-end gap-2">
-                        <button
-                            v-if="node.leaf && node.data.withStackTrace && node.data.count && node.data.count > 0"
+                          <!-- Stack trace indicator -->
+                          <i
+                            v-if="node.leaf && node.data.withStackTrace"
+                            class="bi bi-layers ms-2 text-success"
+                            title="Has stack traces"
+                          ></i>
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <div class="d-flex justify-content-end gap-2">
+                          <button
+                            v-if="
+                              node.leaf &&
+                              node.data.withStackTrace &&
+                              node.data.count &&
+                              node.data.count > 0
+                            "
                             class="btn btn-sm btn-danger action-btn"
                             @click="viewFlamegraph(node)"
                             title="View event flamegraph"
-                        >
-                          <i class="bi bi-fire"></i> Flame
-                        </button>
-                        <button
-                            v-if="node.leaf && !node.data.withStackTrace && node.data.count && node.data.count > 0"
+                          >
+                            <i class="bi bi-fire"></i> Flame
+                          </button>
+                          <button
+                            v-if="
+                              node.leaf &&
+                              !node.data.withStackTrace &&
+                              node.data.count &&
+                              node.data.count > 0
+                            "
                             class="btn btn-sm btn-warning action-btn"
                             @click="viewTimeSeries(node)"
                             title="View event time series"
-                        >
-                          <i class="bi bi-graph-up"></i> TimeSeries
-                        </button>
-                        <button
+                          >
+                            <i class="bi bi-graph-up"></i> TimeSeries
+                          </button>
+                          <button
                             v-if="node.leaf && node.data.count && node.data.count > 0"
                             class="btn btn-sm btn-primary action-btn"
                             @click="viewEventDetails(node)"
                             title="View event details"
-                        >
-                          <i class="bi bi-eye"></i> View
-                        </button>
-                        <a
+                          >
+                            <i class="bi bi-eye"></i> View
+                          </button>
+                          <a
                             v-if="node.leaf && node.data.code && node.data.code.startsWith('jdk.')"
                             :href="`https://sap.github.io/SapMachine/jfrevents/24.html#${node.data.code.replace('jdk.', '').toLowerCase()}`"
                             target="_blank"
                             class="btn btn-sm btn-secondary action-btn"
                             title="View JFR event documentation"
-                        >
-                          <i class="bi bi-box-arrow-up-right"></i> Docs
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
+                          >
+                            <i class="bi bi-box-arrow-up-right"></i> Docs
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
                 </tbody>
               </table>
             </div>
@@ -187,38 +239,47 @@
       </div>
     </div>
 
-  <!-- Flamegraph Modal -->
-  <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
-        </div>
-        <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
-          <ApexTimeSeriesChart
+    <!-- Flamegraph Modal -->
+    <div
+      class="modal fade"
+      id="flamegraphModal"
+      tabindex="-1"
+      aria-labelledby="flamegraphModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
+            <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+          </div>
+          <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
+            <ApexTimeSeriesChart
               :graph-updater="graphUpdater"
-              primary-axis-type="number"
+              :primary-axis-type="AxisFormatType.NUMBER"
               :visible-minutes="60"
               :zoom-enabled="true"
-              time-unit="milliseconds"/>
-          <FlamegraphComponent
+              time-unit="milliseconds"
+            />
+            <FlamegraphComponent
               :with-timeseries="true"
               :use-weight="false"
               :use-guardian="null"
               scrollableWrapperClass="scrollable-wrapper"
               :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater" />
+              :graph-updater="graphUpdater"
+              @loaded="scrollToTop"
+            />
+          </div>
         </div>
       </div>
     </div>
-  </div>
   </PageHeader>
 </template>
 
 <script setup lang="ts">
-import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import EventViewerClient from '@/services/viewer/EventViewerClient';
 import EventType from '@/services/viewer/model/EventType';
@@ -232,6 +293,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Props definition
 const props = defineProps({
@@ -270,6 +332,13 @@ const selectedEventCode = ref<string>('');
 let modalInstance: bootstrap.Modal | null = null;
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
+
+function scrollToTop() {
+  const wrapper = document.getElementById('scrollable-wrapper');
+  if (wrapper) {
+    wrapper.scrollTop = 0;
+  }
+}
 
 // Create an instance of the client with the workspace, project and profile IDs
 let eventViewerClient: EventViewerClient;
@@ -326,8 +395,7 @@ onUnmounted(() => {
   }
 
   // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {
-  });
+  document.removeEventListener('hidden.bs.modal', () => {});
 });
 
 // Function to close the modal
@@ -339,7 +407,7 @@ const closeModal = () => {
 };
 
 // Watch for changes to showFlamegraphDialog to control modal visibility
-watch(showFlamegraphDialog, (isVisible) => {
+watch(showFlamegraphDialog, isVisible => {
   if (isVisible) {
     if (!modalInstance) {
       const modalEl = document.getElementById('flamegraphModal');
@@ -351,16 +419,16 @@ watch(showFlamegraphDialog, (isVisible) => {
     // Initialize flamegraph components
     if (selectedEventCode.value) {
       const flamegraphClient = new PrimaryFlamegraphClient(
-          workspaceId.value!,
-          projectId.value!,
-          profileId,
-          selectedEventCode.value,
-          false, // useThreadInfo
-          false, // useSecondary
-          false, // useDifferential
-          false, // useGuardian
-          false, // useIncomplete
-          null
+        workspaceId.value!,
+        projectId.value!,
+        profileId,
+        selectedEventCode.value,
+        false, // useThreadInfo
+        false, // useSecondary
+        false, // useDifferential
+        false, // useGuardian
+        false, // useIncomplete
+        null
       );
 
       graphUpdater = new FullGraphUpdater(flamegraphClient, false);
@@ -468,8 +536,10 @@ const findMatchingLeafDescendant = (node: EventType): boolean => {
   for (const child of node.children) {
     if (child.leaf) {
       // Check if this leaf matches the search
-      if (child.data.name.toLowerCase().includes(searchText.value.toLowerCase()) ||
-          (child.data.code && child.data.code.toLowerCase().includes(searchText.value.toLowerCase()))) {
+      if (
+        child.data.name.toLowerCase().includes(searchText.value.toLowerCase()) ||
+        (child.data.code && child.data.code.toLowerCase().includes(searchText.value.toLowerCase()))
+      ) {
         return true;
       }
     } else {
@@ -495,9 +565,11 @@ const viewEventDetails = (node: EventType) => {
 
     // Store the event type in localStorage for the Events page to pick up
     localStorage.setItem('selectedEventType', JSON.stringify(eventTypeParam));
-    
+
     // Navigate to the events page
-    router.push(`/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/events`);
+    router.push(
+      `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/events`
+    );
   }
 };
 
@@ -532,10 +604,10 @@ const filterEvents = () => {
     const currentPath = [...path, node.data.name];
 
     // Only match leaf nodes by name and code
-    const nodeMatches = node.leaf && (
-        node.data.name.toLowerCase().includes(search) ||
-        (node.data.code && node.data.code.toLowerCase().includes(search))
-    );
+    const nodeMatches =
+      node.leaf &&
+      (node.data.name.toLowerCase().includes(search) ||
+        (node.data.code && node.data.code.toLowerCase().includes(search)));
 
     // No additional filtering applied
     const matchesFilter = true;

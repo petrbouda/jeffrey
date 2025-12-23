@@ -51,13 +51,14 @@ const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 
 const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL;
 const isPrimary = queryParams.graphMode === GraphType.PRIMARY;
 
-onBeforeMount(() => {
-  // Scroll the workspace-content container to top
+function scrollToTop() {
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
     workspaceContent.scrollTop = 0;
   }
+}
 
+onBeforeMount(() => {
   let flamegraphClient;
   if (queryParams.graphMode === GraphType.PRIMARY) {
     flamegraphClient = new PrimaryFlamegraphClient(
@@ -111,6 +112,7 @@ onBeforeMount(() => {
       :scrollable-wrapper-class="null"
       :flamegraph-tooltip="flamegraphTooltip"
       :graph-updater="graphUpdater"
+      @loaded="scrollToTop"
     />
   </div>
 </template>
