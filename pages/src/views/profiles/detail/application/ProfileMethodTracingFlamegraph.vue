@@ -99,7 +99,7 @@ onBeforeMount(() => {
       :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, EventTypes.METHOD_TRACE)"
       :visible-minutes="60"
       :zoom-enabled="true"
-      time-unit="milliseconds"
+      time-unit="seconds"
     />
 
     <!-- Flamegraph -->

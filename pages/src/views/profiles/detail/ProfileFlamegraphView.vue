@@ -103,7 +103,7 @@ onBeforeMount(() => {
       :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, eventType)"
       :visible-minutes="60"
       :zoom-enabled="true"
-      time-unit="milliseconds"
+      time-unit="seconds"
     />
     <FlamegraphComponent
       :with-timeseries="isPrimary"

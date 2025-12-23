@@ -38,11 +38,11 @@
 
       <!-- Time range display -->
       <div class="time-labels">
-        <span class="time-label-start">{{ formatTime(dataMinTime) }}</span>
+        <span class="time-label-start">{{ timeConverter.formatTime(dataMinTime) }}</span>
         <span class="time-label-center">
-          Showing: {{ formatTimeRange(visibleStartTime, visibleEndTime) }}
+          Showing: {{ timeConverter.formatTimeRange(visibleStartTime, visibleEndTime) }}
         </span>
-        <span class="time-label-end">{{ formatTime(dataMaxTime) }}</span>
+        <span class="time-label-end">{{ timeConverter.formatTime(dataMaxTime) }}</span>
       </div>
 
       <!-- Title with colored icons -->
@@ -68,6 +68,7 @@ import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/flamegraphs/model/TimeRange';
 import LoadingIndicator from '@/components/LoadingIndicator.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
+import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';
 
 // Define props
 const props = defineProps<{
@@ -85,7 +86,7 @@ const props = defineProps<{
   primaryColor?: string;
   secondaryColor?: string;
   showPoints?: boolean;
-  timeUnit?: 'seconds' | 'milliseconds'; // New prop to control time unit
+  timeUnit?: TimeUnit;
   zoomEnabled?: boolean; // Whether to emit time range updates on brush selection
   graphUpdater?: GraphUpdater; // Optional: When provided, component manages data internally
 }>();
@@ -151,6 +152,9 @@ let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selecti
 // Colors
 const primaryColor = props.primaryColor || '#2E93fA';
 const secondaryColor = props.secondaryColor || '#E53935';
+
+// Time converter for consistent time handling
+const timeConverter = computed(() => new TimeConverter(props.timeUnit));
 
 // Calculate max Y-axis values for consistent scaling
 const primaryMaxValue = ref(0);
@@ -230,10 +234,8 @@ const calculateMinMaxTimeValues = (): void => {
 
   // Initialize visible range
   const totalRange = max - min;
-  const isMilliseconds = props.timeUnit === 'milliseconds';
-  const visibleRangeInSeconds = (props.visibleMinutes || defaultVisibleMinutes) * 60;
   const visibleRange = Math.min(
-    isMilliseconds ? visibleRangeInSeconds * 1000 : visibleRangeInSeconds,
+    timeConverter.value.getVisibleRangeFromMinutes(props.visibleMinutes || defaultVisibleMinutes),
     totalRange
   );
   visibleStartTime.value = min;
@@ -257,20 +259,6 @@ const formatValue = (value: number, axisType?: AxisFormatType): string => {
   }
 };
 
-// Format time functions
-const formatTime = (timeValue: number): string => {
-  const isMilliseconds = props.timeUnit === 'milliseconds';
-  const date = new Date(isMilliseconds ? timeValue : timeValue * 1000);
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  const secs = String(date.getUTCSeconds()).padStart(2, '0');
-  return `${hours}:${minutes}:${secs}`;
-};
-
-const formatTimeRange = (startTime: number, endTime: number): string => {
-  return `${formatTime(startTime)} - ${formatTime(endTime)}`;
-};
-
 // Reset just the brush visual (used by callbacks to avoid duplicate resetZoom calls)
 const resetBrushSelection = async (): Promise<void> => {
   visibleStartTime.value = dataMinTime.value;
@@ -280,14 +268,13 @@ const resetBrushSelection = async (): Promise<void> => {
 
   if (brushChart.value?.updateOptions) {
     isUpdatingSelection = true;
-    const isMilliseconds = props.timeUnit === 'milliseconds';
     brushChart.value.updateOptions(
       {
         chart: {
           selection: {
             xaxis: {
-              min: isMilliseconds ? dataMinTime.value : dataMinTime.value * 1000,
-              max: isMilliseconds ? dataMaxTime.value : dataMaxTime.value * 1000
+              min: timeConverter.value.toChartTime(dataMinTime.value),
+              max: timeConverter.value.toChartTime(dataMaxTime.value)
             }
           }
         }
@@ -324,11 +311,11 @@ const processDataForApex = (
   data: number[][] = [],
   maxPoints: number = 5000
 ): Array<{ x: number; y: number }> => {
-  const isMilliseconds = props.timeUnit === 'milliseconds';
+  const tc = timeConverter.value;
 
   if (data.length <= maxPoints) {
     return data.map(point => ({
-      x: isMilliseconds ? point[0] : point[0] * 1000,
+      x: tc.toChartTime(point[0]),
       y: point[1]
     }));
   }
@@ -339,7 +326,7 @@ const processDataForApex = (
 
   for (let i = 0; i < data.length; i += step) {
     downsampled.push({
-      x: isMilliseconds ? data[i][0] : data[i][0] * 1000,
+      x: tc.toChartTime(data[i][0]),
       y: data[i][1]
     });
   }
@@ -352,7 +339,7 @@ const getVisibleData = (data: number[][] = []): Array<{ x: number; y: number }> 
   const filtered = data.filter(
     point => point[0] >= visibleStartTime.value && point[0] <= visibleEndTime.value
   );
-  const isMilliseconds = props.timeUnit === 'milliseconds';
+  const tc = timeConverter.value;
 
   // Downsample if too many points for main chart
   if (filtered.length > 5000) {
@@ -360,7 +347,7 @@ const getVisibleData = (data: number[][] = []): Array<{ x: number; y: number }> 
     const downsampled = [];
     for (let i = 0; i < filtered.length; i += step) {
       downsampled.push({
-        x: isMilliseconds ? filtered[i][0] : filtered[i][0] * 1000,
+        x: tc.toChartTime(filtered[i][0]),
         y: filtered[i][1]
       });
     }
@@ -368,7 +355,7 @@ const getVisibleData = (data: number[][] = []): Array<{ x: number; y: number }> 
   }
 
   return filtered.map(point => ({
-    x: isMilliseconds ? point[0] : point[0] * 1000,
+    x: tc.toChartTime(point[0]),
     y: point[1]
   }));
 };
@@ -495,11 +482,11 @@ const mainChartOptions = computed(() => ({
       },
   xaxis: {
     type: 'datetime',
-    min: props.timeUnit === 'milliseconds' ? visibleStartTime.value : visibleStartTime.value * 1000,
-    max: props.timeUnit === 'milliseconds' ? visibleEndTime.value : visibleEndTime.value * 1000,
+    min: timeConverter.value.toChartTime(visibleStartTime.value),
+    max: timeConverter.value.toChartTime(visibleEndTime.value),
     labels: {
       formatter: function (value: number) {
-        return formatTime(props.timeUnit === 'milliseconds' ? value : value / 1000);
+        return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
       }
     }
   },
@@ -534,7 +521,7 @@ const mainChartOptions = computed(() => ({
         ]
       : {
           min: 0,
-          max: primaryMaxValue.value || undefined,
+          max: Math.max(primaryMaxValue.value, secondaryMaxValue.value) || undefined,
           labels: {
             formatter: function (value: number) {
               return formatValue(value, props.primaryAxisType);
@@ -544,7 +531,7 @@ const mainChartOptions = computed(() => ({
   tooltip: {
     x: {
       formatter: function (value: number) {
-        return formatTime(props.timeUnit === 'milliseconds' ? value : value / 1000);
+        return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
       }
     },
     y: {
@@ -596,11 +583,8 @@ const brushChartOptions = computed(() => ({
         dashArray: 4
       },
       xaxis: {
-        min:
-          props.timeUnit === 'milliseconds'
-            ? visibleStartTime.value
-            : visibleStartTime.value * 1000,
-        max: props.timeUnit === 'milliseconds' ? visibleEndTime.value : visibleEndTime.value * 1000
+        min: timeConverter.value.toChartTime(visibleStartTime.value),
+        max: timeConverter.value.toChartTime(visibleEndTime.value)
       }
     },
     events: {
@@ -625,9 +609,9 @@ const brushChartOptions = computed(() => ({
 
         // Debounce the update to prevent twitching and loops
         selectionTimeout = setTimeout(() => {
-          const isMilliseconds = props.timeUnit === 'milliseconds';
-          const selectionStart = isMilliseconds ? xaxis.min : xaxis.min / 1000;
-          const selectionEnd = isMilliseconds ? xaxis.max : xaxis.max / 1000;
+          const tc = timeConverter.value;
+          const selectionStart = tc.fromChartTime(xaxis.min);
+          const selectionEnd = tc.fromChartTime(xaxis.max);
 
           // Clamp selection to actual data bounds
           const clampedStart = Math.max(selectionStart, dataMinTime.value);
@@ -651,8 +635,8 @@ const brushChartOptions = computed(() => ({
                 chart: {
                   selection: {
                     xaxis: {
-                      min: isMilliseconds ? clampedStart : clampedStart * 1000,
-                      max: isMilliseconds ? clampedEnd : clampedEnd * 1000
+                      min: tc.toChartTime(clampedStart),
+                      max: tc.toChartTime(clampedEnd)
                     }
                   }
                 }
@@ -672,9 +656,13 @@ const brushChartOptions = computed(() => ({
               Math.abs(dataMaxTime.value - dataMinTime.value) * 0.99;
 
             // If graphUpdater is provided, call updateWithZoom directly
+            // Convert to milliseconds for backend API (which expects milliseconds)
+            // Use absoluteTime=false because timeseries data is relative to recording start
             if (props.graphUpdater && isZoomed) {
+              const startMs = Math.floor(tc.toChartTime(clampedStart));
+              const endMs = Math.ceil(tc.toChartTime(clampedEnd));
               props.graphUpdater.updateWithZoom(
-                new TimeRange(Math.floor(clampedStart), Math.ceil(clampedEnd), true)
+                new TimeRange(startMs, endMs, false)
               );
             }
 
@@ -754,7 +742,7 @@ const brushChartOptions = computed(() => ({
         ]
       : {
           min: 0,
-          max: primaryMaxValue.value || undefined,
+          max: Math.max(primaryMaxValue.value, secondaryMaxValue.value) || undefined,
           labels: {
             show: false
           },
@@ -787,10 +775,9 @@ watch(
     if (newData && newData.length > 0) {
       calculateMinMaxTimeValues();
       // Set lastProcessedSelection to match the current visible range to prevent duplicate loads
-      const isMilliseconds = props.timeUnit === 'milliseconds';
       lastProcessedSelection = {
-        min: isMilliseconds ? visibleStartTime.value : visibleStartTime.value * 1000,
-        max: isMilliseconds ? visibleEndTime.value : visibleEndTime.value * 1000
+        min: timeConverter.value.toChartTime(visibleStartTime.value),
+        max: timeConverter.value.toChartTime(visibleEndTime.value)
       };
     }
   },

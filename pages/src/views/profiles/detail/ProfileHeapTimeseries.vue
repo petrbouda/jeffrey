@@ -36,7 +36,7 @@
           :primary-axis-type="AxisFormatType.BYTES"
           :visible-minutes="60"
           primary-color="#007bff"
-          time-unit="milliseconds"
+          time-unit="seconds"
         />
       </template>
 

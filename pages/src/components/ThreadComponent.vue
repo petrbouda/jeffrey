@@ -580,7 +580,7 @@ function createContextMenuItems() {
             "
             :visible-minutes="60"
             :zoom-enabled="true"
-            time-unit="milliseconds"
+            time-unit="seconds"
           />
           <FlamegraphComponent
             :with-timeseries="true"

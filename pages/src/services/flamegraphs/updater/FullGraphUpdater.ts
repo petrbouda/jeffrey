@@ -58,6 +58,8 @@ export default class FullGraphUpdater extends GraphUpdater {
     /**
      * Calculate the initial time range based on initialVisibleMinutes.
      * Returns null if full range should be used.
+     * Note: Timeseries data is in seconds (relative to recording start).
+     * Backend API expects milliseconds with absoluteTime=false for relative ranges.
      */
     private calculateInitialTimeRange(timeseries: TimeseriesData): TimeRange | null {
         if (this.initialVisibleMinutes === null) {
@@ -73,20 +75,23 @@ export default class FullGraphUpdater extends GraphUpdater {
             return null;
         }
 
-        const minTime = series.data[0][0];
-        const maxTime = series.data[series.data.length - 1][0];
-        const totalRange = maxTime - minTime;
-        const visibleRange = this.initialVisibleMinutes * 60 * 1000; // Convert minutes to milliseconds
+        // Timeseries data timestamps are in seconds
+        const minTimeSeconds = series.data[0][0];
+        const maxTimeSeconds = series.data[series.data.length - 1][0];
+        const totalRangeSeconds = maxTimeSeconds - minTimeSeconds;
+        const visibleRangeSeconds = this.initialVisibleMinutes * 60; // minutes to seconds
 
         // Only zoom if visible range is significantly smaller than total (less than 99%)
-        if (visibleRange >= totalRange * 0.99) {
+        if (visibleRangeSeconds >= totalRangeSeconds * 0.99) {
             return null;
         }
 
+        // Convert to milliseconds for backend API (which expects milliseconds)
+        // Use absoluteTime=false because this is relative to recording start
         return new TimeRange(
-            Math.floor(minTime),
-            Math.ceil(Math.min(minTime + visibleRange, maxTime)),
-            true
+            Math.floor(minTimeSeconds * 1000),
+            Math.ceil(Math.min(minTimeSeconds + visibleRangeSeconds, maxTimeSeconds) * 1000),
+            false
         );
     }
 

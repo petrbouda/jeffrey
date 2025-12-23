@@ -492,6 +492,7 @@
         <div class="card">
           <div class="card-body">
             <router-view
+                v-if="profile"
                 :profile="profile"
                 :secondaryProfile="secondaryProfile"
                 :disabledFeatures="disabledFeatures"
