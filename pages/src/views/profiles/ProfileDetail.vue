@@ -1559,21 +1559,24 @@ const handleSecondaryProfileCleared = () => {
 
 /* Disabled features styling */
 .disabled-feature {
-  border-right: 2px solid #ffc107 !important;
-  border-bottom-right-radius: 4px;
-  border-top-right-radius: 4px;
-  position: relative;
+  color: #a1a9b8 !important;
+  border-left: 2px dashed #cbd5e1 !important;
+  padding-left: calc(1.25rem - 5px) !important;
+  background-color: rgba(241, 245, 249, 0.5);
 }
 
-.disabled-feature::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: #ffc107;
-  box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+.disabled-feature i {
+  color: #a1a9b8 !important;
+}
+
+.disabled-feature:hover {
+  color: #64748b !important;
+  border-left-color: #94a3b8 !important;
+  background-color: rgba(241, 245, 249, 0.8);
+}
+
+.disabled-feature:hover i {
+  color: #64748b !important;
 }
 
 </style>
