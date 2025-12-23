@@ -30,7 +30,7 @@
     >
       <!-- Count Tab -->
       <template #count>
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="gcTimeseriesData"
           primary-title="GC Count"
           :primary-axis-type="AxisFormatType.NUMBER"
@@ -41,7 +41,7 @@
 
       <!-- Max Pause Tab -->
       <template #max-pause>
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="gcTimeseriesData"
           primary-title="Max Pause Time"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
@@ -52,7 +52,7 @@
 
       <!-- Sum of Pauses Tab -->
       <template #sum-pauses>
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="gcTimeseriesData"
           primary-title="Sum of Pause Times"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
@@ -68,7 +68,7 @@
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';

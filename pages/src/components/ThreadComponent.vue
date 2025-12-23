@@ -29,7 +29,7 @@ import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/Flamegraph
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import * as bootstrap from 'bootstrap';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
@@ -573,7 +573,7 @@ function createContextMenuItems() {
         </div>
         <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-          <ApexTimeSeriesChart
+          <TimeSeriesChart
             :graph-updater="graphUpdater"
             :primary-axis-type="
               TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightValue, selectedEventCode)

@@ -254,7 +254,7 @@
             <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
           </div>
           <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
-            <ApexTimeSeriesChart
+            <TimeSeriesChart
               :graph-updater="graphUpdater"
               :primary-axis-type="AxisFormatType.NUMBER"
               :visible-minutes="60"
@@ -291,7 +291,7 @@ import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import Badge from '@/components/Badge.vue';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 

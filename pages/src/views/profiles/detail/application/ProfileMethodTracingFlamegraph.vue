@@ -22,7 +22,7 @@ import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
@@ -94,7 +94,7 @@ onBeforeMount(() => {
     />
 
     <!-- Timeseries Chart -->
-    <ApexTimeSeriesChart
+    <TimeSeriesChart
       :graph-updater="graphUpdater"
       :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, EventTypes.METHOD_TRACE)"
       :visible-minutes="60"

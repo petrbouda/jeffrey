@@ -55,7 +55,7 @@
               <h5>JIT Compilation Activity by CPU Samples</h5>
             </div>
             <div class="chart-container">
-              <ApexTimeSeriesChart
+              <TimeSeriesChart
                   :primaryData="timeseriesData?.data"
                   :primaryTitle="timeseriesData?.name"
                   :visibleMinutes="60"/>
@@ -320,7 +320,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
 import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";

@@ -30,7 +30,7 @@
     >
       <!-- Before/After GC Tab -->
       <template #before-after-gc>
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="heapMemoryData"
           primary-title="Before/After GC"
           :primary-axis-type="AxisFormatType.BYTES"
@@ -42,7 +42,7 @@
 
       <!-- Allocation Tab -->
       <template #allocation>
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="allocationData"
           primary-title="Allocation Rate"
           :primary-axis-type="AxisFormatType.BYTES"
@@ -59,7 +59,7 @@
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import LoadingState from '@/components/LoadingState.vue';

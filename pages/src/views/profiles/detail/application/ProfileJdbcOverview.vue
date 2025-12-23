@@ -34,7 +34,7 @@
           :full-width="true"
           container-class="apex-chart-container"
         >
-          <ApexTimeSeriesChart
+          <TimeSeriesChart
             :primary-data="jdbcOverviewData?.executionTimeSerie.data || []"
             primary-title="Execution Time"
             :secondary-data="jdbcOverviewData?.statementCountSerie.data || []"
@@ -90,7 +90,7 @@ import { computed, defineProps, nextTick, onMounted, ref, withDefaults } from 'v
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcDistributionCharts from '@/components/jdbc/JdbcDistributionCharts.vue';

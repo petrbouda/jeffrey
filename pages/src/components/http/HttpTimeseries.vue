@@ -23,7 +23,7 @@
     :full-width="true"
     container-class="apex-chart-container"
   >
-    <ApexTimeSeriesChart
+    <TimeSeriesChart
       :primary-data="props.responseTimeData"
       primary-title="Response Time"
       :secondary-data="props.requestCountData"
@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 

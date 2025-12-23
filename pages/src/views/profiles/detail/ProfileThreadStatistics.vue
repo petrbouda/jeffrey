@@ -20,7 +20,7 @@
 
       <!-- Thread Activity Chart -->
       <ChartSection title="Active Threads Over Time" icon="bi-graph-up" :full-width="true">
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="threadSerie"
           primary-title="Active Threads"
           :primary-axis-type="AxisFormatType.NUMBER"
@@ -156,7 +156,7 @@
             </div>
             <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphModal">
               <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-              <ApexTimeSeriesChart
+              <TimeSeriesChart
                 :graph-updater="graphUpdater"
                 :primary-axis-type="
                   TimeseriesEventAxeFormatter.resolveAxisFormatter(
@@ -190,7 +190,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';

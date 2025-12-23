@@ -49,7 +49,7 @@
         :full-width="true"
         container-class="apex-chart-container"
       >
-        <ApexTimeSeriesChart
+        <TimeSeriesChart
           :primary-data="durationTimeseries"
           primary-title="Total Duration"
           :secondary-data="countTimeseries"
@@ -93,7 +93,7 @@ import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PieChart from '@/components/PieChart.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';

@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import router from '@/router';
 import { onBeforeMount } from 'vue';
@@ -96,7 +96,7 @@ onBeforeMount(() => {
 <template>
   <div style="padding-left: 5px; padding-right: 5px">
     <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-    <ApexTimeSeriesChart
+    <TimeSeriesChart
       :graph-updater="graphUpdater"
       :primary-title="isDifferential ? 'Primary' : undefined"
       :secondary-title="isDifferential ? 'Secondary' : undefined"

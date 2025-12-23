@@ -53,7 +53,7 @@
             @tab-change="onTabChange"
           >
             <template #total>
-              <ApexTimeSeriesChart
+              <TimeSeriesChart
                 :primary-data="singleGroupData?.executionTimeSerie.data || []"
                 primary-title="Execution Time"
                 :secondary-data="singleGroupData?.statementCountSerie.data || []"
@@ -82,7 +82,7 @@
               </div>
 
               <!-- Chart with data -->
-              <ApexTimeSeriesChart
+              <TimeSeriesChart
                 v-else-if="getStatementTimeseries(statementName.label)"
                 :primary-data="getStatementTimeseries(statementName.label)?.executionTime || []"
                 primary-title="Execution Time"
@@ -213,7 +213,7 @@ import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcDistributionCharts from '@/components/jdbc/JdbcDistributionCharts.vue';

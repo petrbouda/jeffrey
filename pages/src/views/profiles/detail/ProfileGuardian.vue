@@ -22,7 +22,7 @@ import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import GuardianClient from '@/services/guardian/GuardianClient';
 import Utils from '@/services/Utils';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import ApexTimeSeriesChart from '@/components/ApexTimeSeriesChart.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import CardCarousel from '@/components/CardCarousel.vue';
 import { useRoute } from 'vue-router';
@@ -534,7 +534,7 @@ function needsNavigation(itemCount: number): boolean {
             v-if="showFlamegraphDialog && activeGuardVisualization"
           >
             <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-            <ApexTimeSeriesChart
+            <TimeSeriesChart
               :graph-updater="graphUpdater"
               :primary-axis-type="
                 TimeseriesEventAxeFormatter.resolveAxisFormatter(
