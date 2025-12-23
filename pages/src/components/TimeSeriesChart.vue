@@ -160,8 +160,39 @@ const timeConverter = computed(() => new TimeConverter(props.timeUnit));
 const primaryMaxValue = ref(0);
 const secondaryMaxValue = ref(0);
 
+// Round bytes to a "nice" value (uses base-2: 1, 2, 4, 8 multipliers of KB/MB/GB)
+const roundToNiceBytes = (value: number): number => {
+  if (value <= 0) return 0;
+
+  // Find the appropriate unit (1024^n)
+  const units = [1, 1024, 1024 * 1024, 1024 * 1024 * 1024, 1024 * 1024 * 1024 * 1024];
+  let unitIndex = 0;
+  for (let i = units.length - 1; i >= 0; i--) {
+    if (value >= units[i]) {
+      unitIndex = i;
+      break;
+    }
+  }
+
+  const unit = units[unitIndex];
+  const valueInUnit = value / unit;
+
+  // Nice multipliers for bytes: 1, 2, 4, 5, 8, 10, 16, 20, 32, 50, 64, 100, 128, 200, 256, 500, 512
+  const niceMultipliers = [1, 2, 4, 5, 8, 10, 16, 20, 32, 50, 64, 100, 128, 200, 256, 500, 512, 1024];
+
+  // Find the smallest nice multiplier >= valueInUnit
+  for (const mult of niceMultipliers) {
+    if (mult >= valueInUnit) {
+      return mult * unit;
+    }
+  }
+
+  // If value is larger than 1024 of current unit, move to next unit
+  return roundToNiceBytes(value);
+};
+
 // Helper function to find max value in a data series with padding
-const findMaxValueInSeries = (data: number[][] | undefined): number => {
+const findMaxValueInSeries = (data: number[][] | undefined, axisType?: AxisFormatType): number => {
   if (!data || data.length === 0) return 0;
 
   let max = 0;
@@ -170,8 +201,15 @@ const findMaxValueInSeries = (data: number[][] | undefined): number => {
     if (value > max) max = value;
   }
 
-  // Add 10% padding if max value is greater than 0
-  return max > 0 ? max * 1.1 : 0;
+  if (max <= 0) return 0;
+
+  // For bytes, round to nice byte values
+  if (axisType === AxisFormatType.BYTES) {
+    return roundToNiceBytes(max * 1.1);
+  }
+
+  // For other types, add 10% padding and let ApexCharts handle nice scaling
+  return max * 1.1;
 };
 
 const calculateMaxYValues = (): void => {
@@ -190,13 +228,17 @@ const calculateMaxYValues = (): void => {
       if (sum > maxSum) maxSum = sum;
     }
 
-    // Add 10% padding
-    primaryMaxValue.value = maxSum > 0 ? maxSum * 1.1 : 0;
+    // For bytes, round to nice byte values; otherwise add 10% padding
+    if (props.primaryAxisType === AxisFormatType.BYTES) {
+      primaryMaxValue.value = roundToNiceBytes(maxSum * 1.1);
+    } else {
+      primaryMaxValue.value = maxSum > 0 ? maxSum * 1.1 : 0;
+    }
     secondaryMaxValue.value = primaryMaxValue.value; // Same scale for stacked
   } else {
     // Calculate axis max values with padding applied in helper
-    primaryMaxValue.value = findMaxValueInSeries(primaryData);
-    secondaryMaxValue.value = findMaxValueInSeries(secondaryData);
+    primaryMaxValue.value = findMaxValueInSeries(primaryData, props.primaryAxisType);
+    secondaryMaxValue.value = findMaxValueInSeries(secondaryData, props.secondaryAxisType);
   }
 };
 
@@ -498,7 +540,9 @@ const mainChartOptions = computed(() => ({
               text: props.primaryTitle || 'Primary'
             },
             min: 0,
-            max: primaryMaxValue.value || undefined,
+            max: props.primaryAxisType === AxisFormatType.BYTES ? primaryMaxValue.value : undefined,
+            forceNiceScale: true,
+            tickAmount: 5,
             labels: {
               formatter: function (value: number) {
                 return formatValue(value, props.primaryAxisType);
@@ -511,7 +555,9 @@ const mainChartOptions = computed(() => ({
               text: props.secondaryTitle || 'Secondary'
             },
             min: 0,
-            max: secondaryMaxValue.value || undefined,
+            max: props.secondaryAxisType === AxisFormatType.BYTES ? secondaryMaxValue.value : undefined,
+            forceNiceScale: true,
+            tickAmount: 5,
             labels: {
               formatter: function (value: number) {
                 return formatValue(value, props.secondaryAxisType);
@@ -521,7 +567,9 @@ const mainChartOptions = computed(() => ({
         ]
       : {
           min: 0,
-          max: Math.max(primaryMaxValue.value, secondaryMaxValue.value) || undefined,
+          max: props.primaryAxisType === AxisFormatType.BYTES ? Math.max(primaryMaxValue.value, secondaryMaxValue.value) : undefined,
+          forceNiceScale: true,
+          tickAmount: 5,
           labels: {
             formatter: function (value: number) {
               return formatValue(value, props.primaryAxisType);
@@ -714,7 +762,9 @@ const brushChartOptions = computed(() => ({
       ? [
           {
             min: 0,
-            max: primaryMaxValue.value || undefined,
+            max: props.primaryAxisType === AxisFormatType.BYTES ? primaryMaxValue.value : undefined,
+            forceNiceScale: true,
+            tickAmount: 5,
             labels: {
               show: false
             },
@@ -728,7 +778,9 @@ const brushChartOptions = computed(() => ({
           {
             opposite: true,
             min: 0,
-            max: secondaryMaxValue.value || undefined,
+            max: props.secondaryAxisType === AxisFormatType.BYTES ? secondaryMaxValue.value : undefined,
+            forceNiceScale: true,
+            tickAmount: 5,
             labels: {
               show: false
             },
@@ -742,7 +794,9 @@ const brushChartOptions = computed(() => ({
         ]
       : {
           min: 0,
-          max: Math.max(primaryMaxValue.value, secondaryMaxValue.value) || undefined,
+          max: props.primaryAxisType === AxisFormatType.BYTES ? Math.max(primaryMaxValue.value, secondaryMaxValue.value) : undefined,
+          forceNiceScale: true,
+          tickAmount: 5,
           labels: {
             show: false
           },
