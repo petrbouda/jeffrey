@@ -17,28 +17,55 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, onUnmounted, ref} from 'vue';
+import {onBeforeUnmount, onMounted, onUnmounted, ref, watch} from 'vue';
 import HeatmapGraph from '@/services/subsecond/HeatmapGraph';
+import DifferenceHeatmapGraph from '@/services/subsecond/DifferenceHeatmapGraph';
 import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
+import DifferenceHeatmapTooltip from "@/services/subsecond/DifferenceHeatmapTooltip";
 import MessageBus from "@/services/MessageBus";
 import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
 import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import {computeDifference} from "@/services/subsecond/SubSecondDifferenceUtils";
+import SubSecondData from "@/services/subsecond/model/SubSecondData";
 
 const props = defineProps<{
   primaryDataProvider: SubSecondDataProvider
   primarySelectedCallback: any,
   secondaryDataProvider: SubSecondDataProvider | null
   secondarySelectedCallback: any | null,
-  tooltip: HeatmapTooltip
+  tooltip: HeatmapTooltip,
+  eventType: string,
+  useWeight: boolean
 }>()
 
 let primaryHeatmap: HeatmapGraph | null = null;
 let secondaryHeatmap: HeatmapGraph | null = null;
+let differenceHeatmap: DifferenceHeatmapGraph | null = null;
 
 let heatmapComponent: HTMLElement
 let resizeTimer: number | null = null;
 
 const initialized = ref(false);
+const mode = ref<'absolute' | 'difference'>('difference');
+
+// Cached data for mode switching
+let cachedPrimaryData: SubSecondData | null = null;
+let cachedSecondaryData: SubSecondData | null = null;
+let currentTimeRange: TimeRange | undefined = undefined;
+
+const isDifferential = props.secondaryDataProvider !== null;
+
+// Wrapper to add time range offset to selection callbacks
+function createOffsetCallback(callback: any) {
+  return (startTime: number[], endTime: number[]) => {
+    // Add the time range offset (in seconds) if zoomed
+    const offsetSeconds = currentTimeRange ? Math.floor(currentTimeRange.start / 1000) : 0;
+    callback(
+      [startTime[0] + offsetSeconds, startTime[1]],
+      [endTime[0] + offsetSeconds, endTime[1]]
+    );
+  };
+}
 
 onMounted(() => {
   MessageBus.on(MessageBus.SIDEBAR_CHANGED, () => handleResize(null, 200));
@@ -51,6 +78,18 @@ onMounted(() => {
 
   initializeHeatmaps();
   MessageBus.on(MessageBus.SUBSECOND_SELECTION_CLEAR, () => heatmapsCleanup());
+});
+
+// Watch for mode changes
+watch(mode, () => {
+  if (isDifferential && cachedPrimaryData && cachedSecondaryData) {
+    destroyAllHeatmaps();
+    if (mode.value === 'difference') {
+      renderDifferenceHeatmap(cachedPrimaryData, cachedSecondaryData);
+    } else {
+      renderAbsoluteHeatmaps(cachedPrimaryData, cachedSecondaryData);
+    }
+  }
 });
 
 function handleResize(event: any, delay: number = 100) {
@@ -80,6 +119,11 @@ onBeforeUnmount(() => {
   if (secondary != null) {
     secondary.innerHTML = '';
   }
+
+  const difference = document.getElementById("difference");
+  if (difference != null) {
+    difference.innerHTML = '';
+  }
 })
 
 onUnmounted(() => {
@@ -99,31 +143,53 @@ function heatmapsCleanup() {
   if (secondaryHeatmap != null) {
     secondaryHeatmap.cleanup()
   }
+  if (differenceHeatmap != null) {
+    differenceHeatmap.cleanup()
+  }
 }
 
-const initializeHeatmaps = (timeRange?: TimeRange) => {
+function destroyAllHeatmaps() {
   if (primaryHeatmap != null) {
     primaryHeatmap.destroy()
+    primaryHeatmap = null;
   }
   if (secondaryHeatmap != null) {
     secondaryHeatmap.destroy()
+    secondaryHeatmap = null;
   }
+  if (differenceHeatmap != null) {
+    differenceHeatmap.destroy()
+    differenceHeatmap = null;
+  }
+
+  // Clear containers
+  const primary = document.getElementById("primary");
+  if (primary) primary.innerHTML = '';
+  const secondary = document.getElementById("secondary");
+  if (secondary) secondary.innerHTML = '';
+  const difference = document.getElementById("difference");
+  if (difference) difference.innerHTML = '';
+}
+
+const initializeHeatmaps = (timeRange?: TimeRange) => {
+  destroyAllHeatmaps();
   initialized.value = false;
+  currentTimeRange = timeRange;
 
   if (props.secondaryDataProvider == null) {
     props.primaryDataProvider.provide(timeRange)
         .then((subSecondData) => {
-          primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
+          primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, createOffsetCallback(props.primarySelectedCallback), props.tooltip);
           primaryHeatmap.render();
         })
         .catch((error) => console.error('Error loading primary heatmap data:', error))
         .finally(() => initialized.value = true);
   } else {
-    downloadAndSyncHeatmaps(timeRange);
+    downloadAndProcessHeatmaps(timeRange);
   }
 };
 
-function reloadWithTimeRange(timeRange: TimeRange) {
+function reloadWithTimeRange(timeRange?: TimeRange) {
   initializeHeatmaps(timeRange);
 }
 
@@ -131,11 +197,7 @@ defineExpose({
   reloadWithTimeRange
 });
 
-/*
- * Heatmaps have the different maximum value. We need to download both, and set up the higher number to both
- * datasets to have the same colors in both heatmaps.
- */
-function downloadAndSyncHeatmaps(timeRange?: TimeRange) {
+function downloadAndProcessHeatmaps(timeRange?: TimeRange) {
   Promise.all([
     props.primaryDataProvider.provide(timeRange),
     props.secondaryDataProvider?.provide(timeRange)
@@ -145,24 +207,73 @@ function downloadAndSyncHeatmaps(timeRange?: TimeRange) {
           throw new Error("Failed to load heatmap data");
         }
 
-        let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
-        primaryData.maxvalue = maxvalue;
-        secondaryData.maxvalue = maxvalue;
+        // Cache the data for mode switching
+        cachedPrimaryData = primaryData;
+        cachedSecondaryData = secondaryData;
 
-        primaryHeatmap = new HeatmapGraph(
-            'primary', primaryData, heatmapComponent, props.primarySelectedCallback, props.tooltip);
-        primaryHeatmap.render();
-
-        secondaryHeatmap = new HeatmapGraph(
-            'secondary', secondaryData, heatmapComponent, props.secondarySelectedCallback, props.tooltip);
-        secondaryHeatmap.render();
+        if (mode.value === 'difference') {
+          renderDifferenceHeatmap(primaryData, secondaryData);
+        } else {
+          renderAbsoluteHeatmaps(primaryData, secondaryData);
+        }
       })
-      .catch((error) => console.error('Error loading primary heatmap data:', error))
+      .catch((error) => console.error('Error loading heatmap data:', error))
       .finally(() => initialized.value = true);
+}
+
+function renderAbsoluteHeatmaps(primaryData: SubSecondData, secondaryData: SubSecondData) {
+  // Sync max values for consistent color scaling
+  let maxvalue = Math.max(primaryData.maxvalue, secondaryData.maxvalue);
+  primaryData.maxvalue = maxvalue;
+  secondaryData.maxvalue = maxvalue;
+
+  primaryHeatmap = new HeatmapGraph(
+      'primary', primaryData, heatmapComponent, createOffsetCallback(props.primarySelectedCallback), props.tooltip);
+  primaryHeatmap.render();
+
+  secondaryHeatmap = new HeatmapGraph(
+      'secondary', secondaryData, heatmapComponent, createOffsetCallback(props.secondarySelectedCallback), props.tooltip);
+  secondaryHeatmap.render();
+}
+
+function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubSecondData) {
+  const diffResult = computeDifference(primaryData, secondaryData);
+  const diffTooltip = new DifferenceHeatmapTooltip(props.eventType, props.useWeight);
+
+  differenceHeatmap = new DifferenceHeatmapGraph(
+      'difference',
+      diffResult.data,
+      diffResult.minValue,
+      diffResult.maxValue,
+      heatmapComponent,
+      createOffsetCallback(props.primarySelectedCallback),
+      diffTooltip
+  );
+  differenceHeatmap.render();
 }
 </script>
 
 <template>
+  <!-- Toggle buttons for differential mode -->
+  <div v-if="isDifferential" class="d-flex justify-content-center mb-2">
+    <div class="btn-group" role="group">
+      <button
+          type="button"
+          :class="['btn', 'btn-sm', mode === 'difference' ? 'btn-primary' : 'btn-outline-primary']"
+          @click="mode = 'difference'"
+      >
+        Difference
+      </button>
+      <button
+          type="button"
+          :class="['btn', 'btn-sm', mode === 'absolute' ? 'btn-primary' : 'btn-outline-primary']"
+          @click="mode = 'absolute'"
+      >
+        Absolute
+      </button>
+    </div>
+  </div>
+
   <!-- Bootstrap Spinner Preloader -->
   <div v-show="!initialized">
     <div id="preloaderComponent" class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
@@ -174,9 +285,38 @@ function downloadAndSyncHeatmaps(timeRange?: TimeRange) {
   </div>
 
   <div class="heatmap-container" id="heatmaps" style="overflow-x: scroll">
-    <div id="primary"></div>
-    <div id="secondary"></div>
+    <!-- Difference heatmap (shown in difference mode) -->
+    <div v-show="mode === 'difference' && isDifferential" id="difference"></div>
+
+    <!-- Absolute heatmaps (shown in absolute mode or non-differential) -->
+    <div v-show="mode === 'absolute' || !isDifferential" id="primary"></div>
+    <div v-show="mode === 'absolute' && isDifferential" id="secondary"></div>
   </div>
+
+  <!-- Fixed centered legend for difference mode -->
+  <div v-if="isDifferential && mode === 'difference'" class="heatmap-legend">
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #155724;"></span>
+      <span class="legend-label">Large Decrease</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #28a745;"></span>
+      <span class="legend-label">Decrease</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #E6E6E6; border: 1px solid #ccc;"></span>
+      <span class="legend-label">No Change</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #dc3545;"></span>
+      <span class="legend-label">Increase</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #721c24;"></span>
+      <span class="legend-label">Large Increase</span>
+    </div>
+  </div>
+
 </template>
 
 <style>
@@ -206,5 +346,35 @@ function downloadAndSyncHeatmaps(timeRange?: TimeRange) {
 #preloaderComponent span {
   color: #5e6e82;
   font-weight: 500;
+}
+
+.heatmap-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+  background-color: #fff;
+  position: sticky;
+  left: 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: 0.8rem;
+  color: #5e6e82;
+  white-space: nowrap;
 }
 </style>

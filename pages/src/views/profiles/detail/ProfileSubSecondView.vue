@@ -223,6 +223,8 @@ function showFlamegraph(timeRange: TimeRange) {
 }
 
 function onTimeRangeChange(payload: { start: number; end: number; isZoomed: boolean }) {
+  // TimeSeriesChart already handles duplicate suppression via lastProcessedSelection check,
+  // so we can process all events that reach here
   if (payload.isZoomed) {
     // Convert from seconds to milliseconds for backend API
     const newTimeRange = new TimeRange(
@@ -233,6 +235,9 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
 
     // Reload heatmap with new time range
     subSecondRef.value?.reloadWithTimeRange(newTimeRange);
+  } else {
+    // User reset to full range - reload heatmap without time range (no offset)
+    subSecondRef.value?.reloadWithTimeRange();
   }
 }
 </script>
@@ -261,6 +266,8 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
       :secondary-data-provider="secondarySubSecondDataProvider"
       :secondary-selected-callback="createOnSelectedCallback()"
       :tooltip="new HeatmapTooltip(eventType!, useWeight)"
+      :event-type="eventType!"
+      :use-weight="useWeight"
   />
 
   <!-- Bootstrap Modal with v-model:visible binding (95% size) -->

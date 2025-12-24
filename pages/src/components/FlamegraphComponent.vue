@@ -56,6 +56,7 @@ const canvasWidth = ref('100%');
 
 const contextMenu = ref<HTMLElement>();
 const contextMenuItems = ref<any[]>([]);
+const flamegraphCanvas = ref<HTMLCanvasElement | null>(null);
 
 // Method to convert PrimeVue icons to Bootstrap icons
 function getBootstrapIcon(primeIcon: string): string {
@@ -140,14 +141,14 @@ function handleResize(event: any) {
   }
 
   resizeTimer = window.setTimeout(() => {
-    if (flamegraph) {
+    if (flamegraph && flamegraphCanvas.value) {
       // 50 because of the margin from the right of the window - same margin for DIV(ProfileFlamegraphView) even for Modal (SubSecond)
       let removeWidth = 10;
       if (props.scrollableWrapperClass != null) {
         removeWidth = 32;
       }
 
-      let clientWidth = (document.getElementById('flamegraphCanvas')?.parentElement?.clientWidth as number) - removeWidth || 0;
+      let clientWidth = (flamegraphCanvas.value.parentElement?.clientWidth as number) - removeWidth || 0;
       canvasWidth.value = "" + clientWidth;
       flamegraph.resizeWidthCanvas(clientWidth);
     }
@@ -173,13 +174,19 @@ onMounted(() => {
       flamegraph.close()
     }
 
+    // Ensure canvas ref is available
+    if (!flamegraphCanvas.value) {
+      console.error('FlamegraphComponent: Canvas element not available');
+      return;
+    }
+
     // Create custom show method for our context menu
     const customContextMenu = {
       show: (event: MouseEvent) => showContextMenu(event),
       hide: () => hideContextMenu()
     };
 
-    flamegraph = new Flamegraph(data, 'flamegraphCanvas', props.flamegraphTooltip, customContextMenu, props.useWeight);
+    flamegraph = new Flamegraph(data, flamegraphCanvas.value, props.flamegraphTooltip, customContextMenu, props.useWeight);
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
 
@@ -246,7 +253,7 @@ function search(value: string | null) {
 <template>
   <LoadingIndicator v-if="preloaderActive" text="Generating Flamegraph..."/>
 
-  <canvas id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
+  <canvas ref="flamegraphCanvas" id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
 
