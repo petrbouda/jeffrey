@@ -58,12 +58,19 @@ const isDifferential = props.secondaryDataProvider !== null;
 // Wrapper to add time range offset to selection callbacks
 function createOffsetCallback(callback: any) {
   return (startTime: number[], endTime: number[]) => {
-    // Add the time range offset (in seconds) if zoomed
-    const offsetSeconds = currentTimeRange ? Math.floor(currentTimeRange.start / 1000) : 0;
-    callback(
-      [startTime[0] + offsetSeconds, startTime[1]],
-      [endTime[0] + offsetSeconds, endTime[1]]
-    );
+    if (currentTimeRange) {
+      // Add the full time range offset (in milliseconds) if zoomed
+      const offsetMs = currentTimeRange.start;
+      // Convert [seconds, millis] to total milliseconds, add offset, convert back
+      const startMs = startTime[0] * 1000 + startTime[1] + offsetMs;
+      const endMs = endTime[0] * 1000 + endTime[1] + offsetMs;
+      callback(
+        [Math.floor(startMs / 1000), startMs % 1000],
+        [Math.floor(endMs / 1000), endMs % 1000]
+      );
+    } else {
+      callback(startTime, endTime);
+    }
   };
 }
 
