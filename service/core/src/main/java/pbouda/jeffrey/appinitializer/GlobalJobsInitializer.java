@@ -22,6 +22,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.scheduler.job.descriptor.OrphanedProjectRecordingStorageCleanerJobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.WorkspaceProfilerSettingsSynchronizerJobDescriptor;
@@ -55,6 +56,12 @@ public class GlobalJobsInitializer implements ApplicationListener<ApplicationRea
                 "jeffrey.job.profiler-settings-synchronizer.create-if-not-exists", Boolean.class, false);
         if (profileSynchronizerCreate) {
             schedulerManager.create(WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(environment));
+        }
+
+        boolean orphanedProjectCleanerCreate = environment.getProperty(
+                "jeffrey.job.orphaned-project-recording-storage-cleaner.create-if-not-exists", Boolean.class, false);
+        if (orphanedProjectCleanerCreate) {
+            schedulerManager.create(new OrphanedProjectRecordingStorageCleanerJobDescriptor());
         }
     }
 }

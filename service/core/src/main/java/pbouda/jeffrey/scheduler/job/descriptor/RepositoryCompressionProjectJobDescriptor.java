@@ -35,6 +35,6 @@ public record RepositoryCompressionProjectJobDescriptor() implements JobDescript
 
     @Override
     public JobType type() {
-        return JobType.JFR_COMPRESSION;
+        return JobType.REPOSITORY_JFR_COMPRESSION;
     }
 }

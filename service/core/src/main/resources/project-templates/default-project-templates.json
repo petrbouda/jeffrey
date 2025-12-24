@@ -5,7 +5,9 @@
     "target": "GLOBAL_SCHEDULER",
     "jobDefinitions": [
       "default-repository-session-cleaner",
-      "default-repository-recording-cleaner"
+      "default-repository-recording-cleaner",
+      "default-repository-jfr-compression",
+      "default-recording-storage-synchronizer"
     ]
   },
   {
@@ -19,7 +21,9 @@
     "target": "PROJECT",
     "jobDefinitions": [
       "default-repository-session-cleaner",
-      "default-repository-recording-cleaner"
+      "default-repository-recording-cleaner",
+      "default-repository-jfr-compression",
+      "default-recording-storage-synchronizer"
     ]
   }
 ]

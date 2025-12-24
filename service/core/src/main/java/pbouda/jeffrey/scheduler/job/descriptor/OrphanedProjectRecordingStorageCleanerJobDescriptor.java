@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.appinitializer;
+package pbouda.jeffrey.scheduler.job.descriptor;
 
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
-import pbouda.jeffrey.scheduler.Scheduler;
+import pbouda.jeffrey.common.model.job.JobType;
 
-import java.util.List;
+import java.util.Map;
 
-public record SchedulerInitializer(List<Scheduler> schedulers) implements ApplicationListener<ApplicationReadyEvent> {
+/**
+ * Job descriptor for the Orphaned Project Recording Storage Cleaner job.
+ * This job removes projects from recording storage that no longer exist in the database.
+ */
+public record OrphanedProjectRecordingStorageCleanerJobDescriptor()
+        implements JobDescriptor<OrphanedProjectRecordingStorageCleanerJobDescriptor> {
+
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent event) {
-        for (Scheduler scheduler : schedulers) {
-            scheduler.start();
-        }
+    public Map<String, String> params() {
+        return Map.of();
+    }
+
+    @Override
+    public JobType type() {
+        return JobType.ORPHANED_PROJECT_RECORDING_STORAGE_CLEANER;
     }
 }

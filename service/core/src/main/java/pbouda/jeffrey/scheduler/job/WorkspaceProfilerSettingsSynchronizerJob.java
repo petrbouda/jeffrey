@@ -42,7 +42,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
 
     @Override
     protected void executeOnWorkspace(
-            WorkspaceManager workspaceManager, WorkspaceProfilerSettingsSynchronizerJobDescriptor jobInfo) {
+            WorkspaceManager workspaceManager, WorkspaceProfilerSettingsSynchronizerJobDescriptor jobDescriptor) {
 
         if (workspaceManager.type() != WorkspaceType.LIVE) {
             return;
@@ -55,7 +55,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
 
         ProfilerSettings profilerSettings = resolveProfilerSettings(profilerInfos);
         workspaceRepository.uploadSettings(new RemoteWorkspaceSettings(profilerSettings));
-        workspaceRepository.removeLegacySettings(jobInfo.maxVersions());
+        workspaceRepository.removeLegacySettings(jobDescriptor.maxVersions());
     }
 
     private ProfilerSettings resolveProfilerSettings(List<ProfilerInfo> profilerInfos) {

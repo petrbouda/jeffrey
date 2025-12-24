@@ -50,6 +50,8 @@ const showCopyRecordingGeneratorModal = ref(false);
 const activeJobs = ref<JobInfo[]>([])
 const cleanerJobAlreadyExists = ref(false)
 const copyGeneratorJobAlreadyExists = ref(false)
+const jfrCompressionJobExists = ref(false)
+const recordingStorageSynchronizerJobExists = ref(false)
 
 const isLoading = ref(false);
 
@@ -77,6 +79,8 @@ function checkForExistingJobs(jobs: JobInfo[]) {
   // Reset the flags first
   cleanerJobAlreadyExists.value = false;
   copyGeneratorJobAlreadyExists.value = false;
+  jfrCompressionJobExists.value = false;
+  recordingStorageSynchronizerJobExists.value = false;
 
   // Check for existing jobs by type
   for (let job of jobs) {
@@ -84,6 +88,10 @@ function checkForExistingJobs(jobs: JobInfo[]) {
       cleanerJobAlreadyExists.value = true;
     } else if (job.jobType === JobType.COPY_RECORDING_GENERATOR) {
       copyGeneratorJobAlreadyExists.value = true;
+    } else if (job.jobType === JobType.REPOSITORY_JFR_COMPRESSION) {
+      jfrCompressionJobExists.value = true;
+    } else if (job.jobType === JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER) {
+      recordingStorageSynchronizerJobExists.value = true;
     }
   }
 }
@@ -187,6 +195,20 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
         iconColor: 'text-blue',
         iconBg: 'bg-blue-soft'
       };
+    case JobType.REPOSITORY_JFR_COMPRESSION:
+      return {
+        title: 'JFR Compression',
+        icon: 'bi-file-zip',
+        iconColor: 'text-orange',
+        iconBg: 'bg-orange-soft'
+      };
+    case JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER:
+      return {
+        title: 'Recording Storage Synchronizer',
+        icon: 'bi-arrow-repeat',
+        iconColor: 'text-purple',
+        iconBg: 'bg-purple-soft'
+      };
     default:
       return null;
   }
@@ -269,6 +291,38 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
                   { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
                 ]"
                   @create-job="handleCreateJob"
+              />
+            </div>
+
+            <!-- JFR Compression -->
+            <div class="col-12 col-lg-6">
+              <JobCard
+                  :job-type="JobType.REPOSITORY_JFR_COMPRESSION"
+                  title="JFR Compression"
+                  description="Compresses finished JFR recording files using LZ4 compression to save storage space. Processes active and latest finished sessions automatically."
+                  icon="bi-file-zip"
+                  icon-color="text-orange"
+                  icon-bg="bg-orange-soft"
+                  :disabled="jfrCompressionJobExists"
+                  :badges="[
+                  { text: 'Job already exists', color: 'bg-success', condition: jfrCompressionJobExists }
+                ]"
+              />
+            </div>
+
+            <!-- Recording Storage Synchronizer -->
+            <div class="col-12 col-lg-6">
+              <JobCard
+                  :job-type="JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER"
+                  title="Recording Storage Synchronizer"
+                  description="Synchronizes recording storage with the database by removing orphaned recordings that no longer exist in the database."
+                  icon="bi-arrow-repeat"
+                  icon-color="text-purple"
+                  icon-bg="bg-purple-soft"
+                  :disabled="recordingStorageSynchronizerJobExists"
+                  :badges="[
+                  { text: 'Job already exists', color: 'bg-success', condition: recordingStorageSynchronizerJobExists }
+                ]"
               />
             </div>
           </div>

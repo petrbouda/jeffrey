@@ -41,8 +41,12 @@ public record JobDescriptorFactory() {
                     new WorkspaceEventsReplicatorJobDescriptor();
             case WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER ->
                     WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(params);
-            case JFR_COMPRESSION ->
+            case REPOSITORY_JFR_COMPRESSION ->
                     new RepositoryCompressionProjectJobDescriptor();
+            case PROJECT_RECORDING_STORAGE_SYNCHRONIZER ->
+                    new ProjectRecordingStorageSynchronizerJobDescriptor();
+            case ORPHANED_PROJECT_RECORDING_STORAGE_CLEANER ->
+                    new OrphanedProjectRecordingStorageCleanerJobDescriptor();
             default -> throw new IllegalArgumentException("Unsupported job type: " + jobType);
         };
     }

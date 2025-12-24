@@ -32,12 +32,12 @@ public class PeriodicalScheduler implements Scheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicalScheduler.class);
 
-    private final List<Job> jobs;
+    private final List<? extends Job> jobs;
     private final Duration maxWaitTime;
 
     private ScheduledExecutorService scheduler;
 
-    public PeriodicalScheduler(List<Job> jobs, Duration maxWaitTime) {
+    public PeriodicalScheduler(List<? extends Job> jobs, Duration maxWaitTime) {
         this.jobs = jobs;
         this.maxWaitTime = maxWaitTime;
     }

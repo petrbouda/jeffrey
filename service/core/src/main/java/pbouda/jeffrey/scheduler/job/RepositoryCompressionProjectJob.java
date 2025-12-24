@@ -111,6 +111,6 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
     @Override
     public JobType jobType() {
-        return JobType.JFR_COMPRESSION;
+        return JobType.REPOSITORY_JFR_COMPRESSION;
     }
 }

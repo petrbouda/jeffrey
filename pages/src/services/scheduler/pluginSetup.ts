@@ -20,6 +20,7 @@ import { jobPluginRegistry } from './JobPluginRegistry';
 import { ProjectsSynchronizerPlugin } from './plugins/ProjectsSynchronizerPlugin';
 import { WorkspaceProfilerSettingsSynchronizerPlugin } from './plugins/WorkspaceProfilerSettingsSynchronizerPlugin';
 import { WorkspaceEventsReplicatorPlugin } from './plugins/WorkspaceEventsReplicatorPlugin';
+import { OrphanedProjectRecordingStorageCleanerPlugin } from './plugins/OrphanedProjectRecordingStorageCleanerPlugin';
 
 /**
  * Register all available job type plugins
@@ -36,6 +37,10 @@ export async function setupJobPlugins() {
   // Register the Workspace Events Replicator plugin
   const eventsReplicatorPlugin = new WorkspaceEventsReplicatorPlugin();
   jobPluginRegistry.registerPlugin(eventsReplicatorPlugin);
+
+  // Register the Orphaned Project Recording Storage Cleaner plugin
+  const orphanedProjectCleanerPlugin = new OrphanedProjectRecordingStorageCleanerPlugin();
+  jobPluginRegistry.registerPlugin(orphanedProjectCleanerPlugin);
 
   // TODO: Register additional plugins here as they are created
   // Example:

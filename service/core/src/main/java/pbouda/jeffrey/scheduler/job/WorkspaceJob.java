@@ -88,5 +88,5 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
         }
     }
 
-    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager, T jobInfo);
+    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager, T jobDescriptor);
 }

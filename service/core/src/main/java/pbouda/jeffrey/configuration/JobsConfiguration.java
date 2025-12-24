@@ -18,9 +18,6 @@
 
 package pbouda.jeffrey.configuration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -50,12 +47,11 @@ import static pbouda.jeffrey.configuration.AppConfiguration.GLOBAL_SCHEDULER_MAN
 @Import(ProfileFactoriesConfiguration.class)
 public class JobsConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JobsConfiguration.class);
-
-    public static final String PROJECTS_SYNCHRONIZER_JOB = "PROJECTS_SYNCHRONIZER_JOB";
-    public static final String REPOSITORY_COMPRESSION_JOB = "REPOSITORY_COMPRESSION_JOB";
     public static final String PROJECTS_SYNCHRONIZER_TRIGGER = "PROJECTS_SYNCHRONIZER_TRIGGER";
     public static final String REPOSITORY_COMPRESSION_TRIGGER = "REPOSITORY_COMPRESSION_TRIGGER";
+
+    private static final String PROJECT_SCHEDULER = "PROJECT_SCHEDULER";
+    private static final String GLOBAL_SCHEDULER = "GLOBAL_SCHEDULER";
 
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
@@ -79,15 +75,20 @@ public class JobsConfiguration {
         this.repositoryStorageFactory = repositoryStorageFactory;
     }
 
-    @Bean(destroyMethod = "close")
-    public Scheduler jobScheduler(List<Job> jobs) {
+    @Bean(name = GLOBAL_SCHEDULER, destroyMethod = "close")
+    public Scheduler globalScheduler(List<WorkspaceJob<?>> jobs) {
+        return new PeriodicalScheduler(jobs, Duration.ofSeconds(5));
+    }
+
+    @Bean(name = PROJECT_SCHEDULER, destroyMethod = "close")
+    public Scheduler projectScheduler(List<ProjectJob<?>> jobs) {
         return new PeriodicalScheduler(jobs, Duration.ofSeconds(5));
     }
 
     @Bean
     @ConditionalOnProperty(name = "jeffrey.job.scheduler.enabled", havingValue = "true", matchIfMissing = true)
-    public SchedulerInitializer schedulerInitializer(Scheduler scheduler) {
-        return new SchedulerInitializer(scheduler);
+    public SchedulerInitializer schedulerInitializer(List<Scheduler> schedulers) {
+        return new SchedulerInitializer(schedulers);
     }
 
     @Bean
@@ -103,7 +104,7 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public Job repositorySesssionCleanerProjectJob(
+    public RepositorySessionCleanerProjectJob repositorySessionCleanerProjectJob(
             @Value("${jeffrey.job.repository-session-cleaner.period:}") Duration jobPeriod) {
         return new RepositorySessionCleanerProjectJob(
                 liveWorkspacesManager,
@@ -114,7 +115,7 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public Job repositoryRecordingCleanerProjectJob(
+    public RepositoryRecordingCleanerProjectJob repositoryRecordingCleanerProjectJob(
             @Value("${jeffrey.job.repository-recording-cleaner.period:}") Duration jobPeriod) {
         return new RepositoryRecordingCleanerProjectJob(
                 liveWorkspacesManager,
@@ -124,8 +125,8 @@ public class JobsConfiguration {
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
-    @Bean(REPOSITORY_COMPRESSION_JOB)
-    public Job repositoryCompressionProjectJob(
+    @Bean
+    public RepositoryCompressionProjectJob repositoryCompressionProjectJob(
             SessionFileCompressor sessionFileCompressor,
             @Value("${jeffrey.job.repository-compression.period:}") Duration jobPeriod) {
         return new RepositoryCompressionProjectJob(
@@ -138,7 +139,7 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public Job recordingGeneratorProjectJob(@Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
+    public RecordingIntervalGeneratorProjectJob recordingGeneratorProjectJob(@Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
         return new RecordingIntervalGeneratorProjectJob(
                 liveWorkspacesManager,
                 schedulerManager,
@@ -148,19 +149,35 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public Job recordingStorageSynchronizerJob(
+    public ProjectRecordingStorageSynchronizerJob projectRecordingStorageSynchronizerJob(
             Repositories repositories,
             RecordingStorage recordingStorage,
-            @Value("${jeffrey.job.recording-storage-synchronizer.period:}") Duration jobPeriod) {
+            @Value("${jeffrey.job.project-recording-storage-synchronizer.period:}") Duration jobPeriod) {
 
-        return new RecordingStorageSynchronizerJob(
+        return new ProjectRecordingStorageSynchronizerJob(
+                liveWorkspacesManager,
+                schedulerManager,
+                jobDescriptorFactory,
                 repositories,
                 recordingStorage,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 
-    @Bean(name = PROJECTS_SYNCHRONIZER_JOB)
-    public Job projectsSynchronizerJob(
+    @Bean
+    public OrphanedProjectRecordingStorageCleanerJob orphanedProjectRecordingStorageCleanerJob(
+            RecordingStorage recordingStorage,
+            @Value("${jeffrey.job.orphaned-project-recording-storage-cleaner.period:}") Duration jobPeriod) {
+
+        return new OrphanedProjectRecordingStorageCleanerJob(
+                liveWorkspacesManager,
+                schedulerManager,
+                jobDescriptorFactory,
+                recordingStorage,
+                jobPeriod == null ? defaultPeriod : jobPeriod);
+    }
+
+    @Bean
+    public ProjectsSynchronizerJob projectsSynchronizerJob(
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
             Repositories repositories,
             RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory) {
@@ -175,17 +192,10 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public Job workspaceEventsReplicatorJob(
-            ObjectFactory<Scheduler> scheduler,
+    public WorkspaceEventsReplicatorJob workspaceEventsReplicatorJob(
             Clock clock,
-            @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob,
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) Runnable projectsSynchronizerTrigger,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
-
-        Runnable migrationCallback = () -> {
-            LOG.info("Executing migration callback after workspace events replication, " +
-                     "triggering projects synchronizer job.");
-            scheduler.getObject().submitNow(projectsSynchronizerJob);
-        };
 
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
@@ -193,11 +203,11 @@ public class JobsConfiguration {
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 clock,
-                migrationCallback);
+                projectsSynchronizerTrigger);
     }
 
     @Bean
-    public Job profilerSettingsSynchronizerJob(
+    public WorkspaceProfilerSettingsSynchronizerJob profilerSettingsSynchronizerJob(
             Repositories repositories,
             @Value("${jeffrey.job.profiler-settings-synchronizer.period:}") Duration jobPeriod) {
 
@@ -212,15 +222,15 @@ public class JobsConfiguration {
 
     @Bean(PROJECTS_SYNCHRONIZER_TRIGGER)
     public Runnable projectsSynchronizerTrigger(
-            Scheduler scheduler,
-            @Qualifier(PROJECTS_SYNCHRONIZER_JOB) Job projectsSynchronizerJob) {
+            @Qualifier(GLOBAL_SCHEDULER) Scheduler scheduler,
+            ProjectsSynchronizerJob projectsSynchronizerJob) {
         return () -> scheduler.submitAndWait(projectsSynchronizerJob);
     }
 
     @Bean(REPOSITORY_COMPRESSION_TRIGGER)
     public Runnable repositoryCompressionTrigger(
-            Scheduler scheduler,
-            @Qualifier(REPOSITORY_COMPRESSION_JOB) Job repositoryCompressionJob) {
+            @Qualifier(PROJECT_SCHEDULER) Scheduler scheduler,
+            RepositoryCompressionProjectJob repositoryCompressionJob) {
         return () -> scheduler.submitAndWait(repositoryCompressionJob);
     }
 }
