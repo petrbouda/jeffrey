@@ -19,7 +19,6 @@
 package pbouda.jeffrey.scheduler.job;
 
 import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
@@ -28,26 +27,37 @@ import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.util.List;
 
-public abstract class ProjectJob<T extends JobDescriptor<T>> extends WorkspaceJob<T> {
+/**
+ * Base class for PROJECT-level jobs that operate on individual projects.
+ * Unlike WorkspaceJob which uses the global scheduler, ProjectJob queries
+ * project-level schedulers to find job configurations.
+ */
+public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
 
-    private final JobDescriptorFactory jobDescriptorFactory;
+    private final WorkspacesManager workspacesManager;
+    protected final JobDescriptorFactory jobDescriptorFactory;
 
-    public ProjectJob(
+    protected ProjectJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory) {
-        super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        this.workspacesManager = workspacesManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
     @Override
-    public void executeOnWorkspace(WorkspaceManager workspaceManager, T jobInfo) {
-        for (ProjectManager manager : workspaceManager.projectsManager().findAll()) {
-            List<JobInfo> allJobs = manager.schedulerManager().all(jobType());
-            for (JobInfo job : allJobs) {
-                if (job.enabled()) {
-                    T jobDescriptor = jobDescriptorFactory.create(job);
-                    execute(manager, jobDescriptor);
+    public void run() {
+        // Iterate all workspaces (no isLive filter - runs for all projects)
+        for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
+            // Iterate all projects in the workspace
+            for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
+                // Query project-level scheduler for this job type
+                List<JobInfo> projectJobs = projectManager.schedulerManager().all(jobType());
+
+                for (JobInfo jobInfo : projectJobs) {
+                    if (jobInfo.enabled()) {
+                        T jobDescriptor = jobDescriptorFactory.create(jobInfo);
+                        execute(projectManager, jobDescriptor);
+                    }
                 }
             }
         }

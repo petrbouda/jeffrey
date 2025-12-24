@@ -67,7 +67,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
-import static pbouda.jeffrey.configuration.JobsConfiguration.*;
+import static pbouda.jeffrey.configuration.GlobalJobsConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
+import static pbouda.jeffrey.configuration.ProjectJobsConfiguration.REPOSITORY_COMPRESSION_TRIGGER;
 
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})

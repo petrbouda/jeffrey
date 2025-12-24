@@ -24,7 +24,6 @@ import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -57,13 +56,12 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
     public RepositoryCompressionProjectJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             SessionFileCompressor sessionFileCompressor,
             Duration period) {
 
-        super(workspacesManager, schedulerManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.sessionFileCompressor = sessionFileCompressor;
         this.period = period;
     }

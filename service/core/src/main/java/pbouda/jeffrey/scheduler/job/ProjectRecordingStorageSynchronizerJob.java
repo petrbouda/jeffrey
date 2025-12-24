@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
@@ -51,13 +50,12 @@ public class ProjectRecordingStorageSynchronizerJob extends ProjectJob<ProjectRe
 
     public ProjectRecordingStorageSynchronizerJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
             Repositories repositories,
             RecordingStorage recordingStorage,
             Duration period) {
 
-        super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        super(workspacesManager, jobDescriptorFactory);
         this.recordingRepositoryFactory = repositories::newProjectRecordingRepository;
         this.recordingStorage = recordingStorage;
         this.period = period;

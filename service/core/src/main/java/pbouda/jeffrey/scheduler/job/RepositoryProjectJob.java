@@ -18,24 +18,26 @@
 
 package pbouda.jeffrey.scheduler.job;
 
-import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 
+/**
+ * Base class for PROJECT-level jobs that operate on repository storage.
+ * Extends ProjectJob and provides access to RemoteRepositoryStorage.
+ */
 public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends ProjectJob<T> {
 
     private final RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory;
 
-    public RepositoryProjectJob(
+    protected RepositoryProjectJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory) {
 
-        super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        super(workspacesManager, jobDescriptorFactory);
         this.remoteRepositoryManagerFactory = remoteRepositoryManagerFactory;
     }
 

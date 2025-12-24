@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 public sealed interface WorkspacesManager
-        permits SandboxWorkspacesManager, RemoteWorkspacesManager, LiveWorkspacesManager {
+        permits CompositeWorkspacesManager, LiveWorkspacesManager, RemoteWorkspacesManager, SandboxWorkspacesManager {
 
     record CreateWorkspaceRequest(
             String workspaceId,

@@ -22,7 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.manager.SchedulerManager;
+import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -31,7 +32,9 @@ import pbouda.jeffrey.scheduler.job.descriptor.RepositoryRecordingCleanerJobDesc
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<RepositoryRecordingCleanerJobDescriptor> {
 
@@ -40,11 +43,10 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
 
     public RepositoryRecordingCleanerProjectJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(workspacesManager, schedulerManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
     }
 
@@ -57,15 +59,41 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
         LOG.info("Cleaning the repository recordings: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
+        // Find the active session (newest one with ACTIVE status, or just the newest)
+        Optional<RecordingSession> activeSession = remoteRepositoryStorage.listSessions(false).stream()
+                .filter(session -> session.status() == RecordingStatus.ACTIVE)
+                .max(Comparator.comparing(RecordingSession::createdAt));
+
+        if (activeSession.isEmpty()) {
+            return;
+        }
+
+        RecordingSession session = activeSession.get();
+
+        // Get the session with files
+        Optional<RecordingSession> sessionWithFiles = remoteRepositoryStorage.singleSession(session.id(), true);
+        if (sessionWithFiles.isEmpty()) {
+            LOG.warn("Active session not found when fetching files: project='{}' session={}", projectName, session.id());
+            return;
+        }
+
         Instant currentTime = Instant.now();
-        List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions(false).stream()
-                .filter(session -> currentTime.isAfter(session.createdAt().plus(duration)))
+
+        // Find recording files older than the retention period that are finished
+        List<String> filesToDelete = sessionWithFiles.get().files().stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(RepositoryFile::isFinished)
+                .filter(file -> currentTime.isAfter(file.createdAt().plus(duration)))
+                .map(RepositoryFile::id)
                 .toList();
 
-        candidatesForDeletion.forEach(session -> {
-            remoteRepositoryStorage.deleteSession(session.id());
-            LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
-        });
+        if (filesToDelete.isEmpty()) {
+            return;
+        }
+
+        remoteRepositoryStorage.deleteRepositoryFiles(session.id(), filesToDelete);
+        LOG.info("Deleted {} recordings from active session: project='{}' session={}",
+                filesToDelete.size(), projectName, session.id());
     }
 
     @Override

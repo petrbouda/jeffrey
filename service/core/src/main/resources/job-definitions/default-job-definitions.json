@@ -21,8 +21,8 @@
     "params": {}
   },
   {
-    "id": "default-recording-storage-synchronizer",
-    "type": "RECORDING_STORAGE_SYNCHRONIZER",
+    "id": "default-project-recording-storage-synchronizer",
+    "type": "PROJECT_RECORDING_STORAGE_SYNCHRONIZER",
     "params": {}
   }
 ]

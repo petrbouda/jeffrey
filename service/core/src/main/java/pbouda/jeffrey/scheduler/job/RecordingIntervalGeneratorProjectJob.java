@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.JfrFileUtils;
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.manager.SchedulerManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
@@ -53,11 +52,10 @@ public class RecordingIntervalGeneratorProjectJob extends RepositoryProjectJob<R
 
     public RecordingIntervalGeneratorProjectJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
-        super(workspacesManager, schedulerManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
+        super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
     }
 

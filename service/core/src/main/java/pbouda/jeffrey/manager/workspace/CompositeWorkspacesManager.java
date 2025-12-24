@@ -25,7 +25,7 @@ import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 import java.util.List;
 import java.util.Optional;
 
-public class CompositeWorkspacesManager {
+public final class CompositeWorkspacesManager implements WorkspacesManager {
 
     private final WorkspacesRepository workspacesRepository;
     private final ObjectFactory<SandboxWorkspacesManager> sandboxWorkspacesManager;

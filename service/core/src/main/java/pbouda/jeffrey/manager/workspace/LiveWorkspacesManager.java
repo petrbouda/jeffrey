@@ -18,9 +18,8 @@
 
 package pbouda.jeffrey.manager.workspace;
 
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
@@ -85,7 +84,7 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
         }
 
         String description = request.description() != null
-                             && !request.description().trim().isEmpty() ? request.description().trim() : null;
+                && !request.description().trim().isEmpty() ? request.description().trim() : null;
 
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 null,
