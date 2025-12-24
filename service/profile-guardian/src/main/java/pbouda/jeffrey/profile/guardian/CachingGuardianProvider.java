@@ -20,39 +20,31 @@ package pbouda.jeffrey.profile.guardian;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.provider.api.cache.CachingSupplier;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * A caching decorator for {@link GuardianProvider} that caches the result in a {@link ProfileCacheRepository}.
+ */
 public class CachingGuardianProvider implements GuardianProvider {
 
     private static final TypeReference<List<GuardianResult>> GUARDIAN_RESULT_TYPE =
             new TypeReference<List<GuardianResult>>() {
             };
 
-    private final ProfileCacheRepository cacheRepository;
-    private final GuardianProvider guardianProvider;
+    private final CachingSupplier<List<GuardianResult>> cachingSupplier;
 
     public CachingGuardianProvider(
             ProfileCacheRepository cacheRepository,
-            GuardianProvider guardianProvider) {
-
-        this.cacheRepository = cacheRepository;
-        this.guardianProvider = guardianProvider;
+            GuardianProvider delegate) {
+        this.cachingSupplier = new CachingSupplier<>(
+                delegate, cacheRepository, CacheKey.PROFILE_GUARDIAN, GUARDIAN_RESULT_TYPE);
     }
 
     @Override
     public List<GuardianResult> get() {
-        Optional<List<GuardianResult>> cachedResults =
-                cacheRepository.get(CacheKey.PROFILE_GUARDIAN, GUARDIAN_RESULT_TYPE);
-
-        if (cachedResults.isPresent()) {
-            return cachedResults.get();
-        } else {
-            List<GuardianResult> results = guardianProvider.get();
-            cacheRepository.put(CacheKey.PROFILE_GUARDIAN, results);
-            return results;
-        }
+        return cachingSupplier.get();
     }
 }

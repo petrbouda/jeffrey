@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
+import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.common.settings.ActiveSetting;
 import pbouda.jeffrey.common.settings.ActiveSettings;
@@ -100,15 +101,29 @@ public class WriterResultCollector {
 
     private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {
         return List.of(
+                // Complex enhancers with unique logic
                 new ExecutionSamplesExtraEnhancer(settings),
-                new WallClockSamplesExtraEnhancer(),
-                new NativeMallocAllocationSamplesExtraEnhancer(),
-                new TlabAllocationSamplesExtraEnhancer(settings),
-                new MonitorEnterExtraEnhancer(settings),
-                new MonitorWaitExtraEnhancer(),
-                new ThreadParkExtraEnhancer(settings),
                 new WallClockSamplesWeightEnhancer(settings),
-                new ExecutionSamplesWeightEnhancer(settings)
+                new ExecutionSamplesWeightEnhancer(settings),
+
+                // Fixed source enhancers (parameterized)
+                new FixedSourceEnhancer(Type.WALL_CLOCK_SAMPLE, RecordingEventSource.ASYNC_PROFILER),
+                new FixedSourceEnhancer(Type.MALLOC, RecordingEventSource.ASYNC_PROFILER),
+                new FixedSourceEnhancer(Type.JAVA_MONITOR_WAIT, RecordingEventSource.JDK),
+
+                // Settings-based source enhancers (parameterized)
+                new SettingsBasedSourceEnhancer(
+                        Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
+                        ActiveSettings::allocationSupportedBy,
+                        settings),
+                new SettingsBasedSourceEnhancer(
+                        Type.JAVA_MONITOR_ENTER,
+                        ActiveSettings::monitorEnterSupportedBy,
+                        settings),
+                new SettingsBasedSourceEnhancer(
+                        Type.THREAD_PARK,
+                        ActiveSettings::threadParkSupportedBy,
+                        settings)
         );
     }
 

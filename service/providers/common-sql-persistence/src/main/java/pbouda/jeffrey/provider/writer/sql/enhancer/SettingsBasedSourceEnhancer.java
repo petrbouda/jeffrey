@@ -26,29 +26,42 @@ import pbouda.jeffrey.common.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
 import java.util.Optional;
+import java.util.function.Function;
 
-public class ThreadParkExtraEnhancer implements EventTypeEnhancer {
+/**
+ * A parameterized enhancer that looks up the {@link RecordingEventSource} from {@link ActiveSettings}.
+ * Replaces individual enhancer classes like ThreadParkExtraEnhancer, TlabAllocationSamplesExtraEnhancer,
+ * and MonitorEnterExtraEnhancer.
+ */
+public class SettingsBasedSourceEnhancer implements EventTypeEnhancer {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ThreadParkExtraEnhancer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SettingsBasedSourceEnhancer.class);
 
+    private final Type eventType;
+    private final Function<ActiveSettings, Optional<RecordingEventSource>> sourceExtractor;
     private final ActiveSettings settings;
 
-    public ThreadParkExtraEnhancer(ActiveSettings settings) {
+    public SettingsBasedSourceEnhancer(
+            Type eventType,
+            Function<ActiveSettings, Optional<RecordingEventSource>> sourceExtractor,
+            ActiveSettings settings) {
+        this.eventType = eventType;
+        this.sourceExtractor = sourceExtractor;
         this.settings = settings;
     }
 
     @Override
-    public boolean isApplicable(Type eventType) {
-        return Type.THREAD_PARK.sameAs(eventType);
+    public boolean isApplicable(Type type) {
+        return eventType.sameAs(type);
     }
 
     @Override
     public EventTypeBuilder apply(EventTypeBuilder event) {
-        Optional<RecordingEventSource> eventSourceOpt = settings.threadParkSupportedBy();
-        if (eventSourceOpt.isEmpty()) {
-            LOG.warn("The event source is not set for the Thread Park samples");
+        Optional<RecordingEventSource> sourceOpt = sourceExtractor.apply(settings);
+        if (sourceOpt.isEmpty()) {
+            LOG.warn("The event source is not set: event_type={}", eventType.code());
             return event;
         }
-        return event.withSource(eventSourceOpt.get());
+        return event.withSource(sourceOpt.get());
     }
 }

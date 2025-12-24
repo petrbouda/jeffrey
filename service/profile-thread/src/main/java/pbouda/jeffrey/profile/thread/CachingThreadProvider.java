@@ -19,33 +19,25 @@
 package pbouda.jeffrey.profile.thread;
 
 import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.provider.api.cache.CachingSupplier;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
-import java.util.Optional;
-
+/**
+ * A caching decorator for {@link ThreadInfoProvider} that caches the result in a {@link ProfileCacheRepository}.
+ */
 public class CachingThreadProvider implements ThreadInfoProvider {
 
-    private final ThreadInfoProvider threadInfoProvider;
-    private final ProfileCacheRepository cacheRepository;
+    private final CachingSupplier<ThreadRoot> cachingSupplier;
 
     public CachingThreadProvider(
-            ThreadInfoProvider profileThreadInfoProvider,
+            ThreadInfoProvider delegate,
             ProfileCacheRepository cacheRepository) {
-
-        this.threadInfoProvider = profileThreadInfoProvider;
-        this.cacheRepository = cacheRepository;
+        this.cachingSupplier = new CachingSupplier<>(
+                delegate, cacheRepository, CacheKey.PROFILE_THREAD, ThreadRoot.class);
     }
 
     @Override
     public ThreadRoot get() {
-        Optional<ThreadRoot> cached = cacheRepository.get(CacheKey.PROFILE_THREAD, ThreadRoot.class);
-
-        if (cached.isPresent()) {
-            return cached.get();
-        } else {
-            ThreadRoot threadRows = threadInfoProvider.get();
-            cacheRepository.put(CacheKey.PROFILE_THREAD, threadRows);
-            return threadRows;
-        }
+        return cachingSupplier.get();
     }
 }

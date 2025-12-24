@@ -22,15 +22,28 @@ import pbouda.jeffrey.common.model.RecordingEventSource;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
-public class NativeMallocAllocationSamplesExtraEnhancer implements EventTypeEnhancer {
+/**
+ * A parameterized enhancer that sets a fixed {@link RecordingEventSource} for a specific event type.
+ * Replaces individual enhancer classes like MonitorWaitExtraEnhancer, NativeMallocAllocationSamplesExtraEnhancer,
+ * and WallClockSamplesExtraEnhancer.
+ */
+public class FixedSourceEnhancer implements EventTypeEnhancer {
+
+    private final Type eventType;
+    private final RecordingEventSource source;
+
+    public FixedSourceEnhancer(Type eventType, RecordingEventSource source) {
+        this.eventType = eventType;
+        this.source = source;
+    }
 
     @Override
-    public boolean isApplicable(Type eventType) {
-        return Type.MALLOC.sameAs(eventType);
+    public boolean isApplicable(Type type) {
+        return eventType.sameAs(type);
     }
 
     @Override
     public EventTypeBuilder apply(EventTypeBuilder event) {
-        return event.withSource(RecordingEventSource.ASYNC_PROFILER);
+        return event.withSource(source);
     }
 }
