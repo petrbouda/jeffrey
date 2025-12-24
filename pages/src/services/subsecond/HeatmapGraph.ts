@@ -208,7 +208,8 @@ export default class HeatmapGraph {
         }
 
         if (this.firstSelected == null) {
-            this.firstSelected = selected;
+            // Clone the selection to avoid ApexCharts reusing/mutating the object
+            this.firstSelected = { ...selected };
             this.#removeHighlightedAreas()
         } else {
             this.highlightedAreas = this.#calculateHighlightedArea(
@@ -306,10 +307,13 @@ export default class HeatmapGraph {
     }
 
     #calculateStartEnd(x1: number, y1: number, x2: number, y2: number) {
-        if (x1 > x2 || (x1 === x2 && y1 > y2)) {
-            return [this.#calculateStartTime(x2, y2), this.#calculateEndTime(x1, y1)]
-        } else {
+        // Ensure start is before end: compare by column (x) first, then by row (y) within same column
+        // Note: y is seriesIndex (bucket), where LOWER index = EARLIER time within a second
+        const firstIsBefore = x1 < x2 || (x1 === x2 && y1 <= y2);
+        if (firstIsBefore) {
             return [this.#calculateStartTime(x1, y1), this.#calculateEndTime(x2, y2)]
+        } else {
+            return [this.#calculateStartTime(x2, y2), this.#calculateEndTime(x1, y1)]
         }
     }
 
