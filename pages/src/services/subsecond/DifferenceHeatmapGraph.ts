@@ -345,13 +345,19 @@ export default class DifferenceHeatmapGraph {
     }
 
     #calculateStartEnd(x1: number, y1: number, x2: number, y2: number) {
-        // Ensure start is before end: compare by column (x) first, then by row (y) within same column
-        // Note: y is seriesIndex (bucket), where LOWER index = EARLIER time within a second
-        const firstIsBefore = x1 < x2 || (x1 === x2 && y1 <= y2);
+        // Ensure values are numbers (ApexCharts may return strings)
+        const col1 = Number(x1);
+        const row1 = Number(y1);
+        const col2 = Number(x2);
+        const row2 = Number(y2);
+
+        // Ensure start is before end: compare by column first, then by row within same column
+        // Note: row is seriesIndex (bucket), where LOWER index = EARLIER time within a second
+        const firstIsBefore = col1 < col2 || (col1 === col2 && row1 <= row2);
         if (firstIsBefore) {
-            return [this.#calculateStartTime(x1, y1), this.#calculateEndTime(x2, y2)];
+            return [this.#calculateStartTime(col1, row1), this.#calculateEndTime(col2, row2)];
         } else {
-            return [this.#calculateStartTime(x2, y2), this.#calculateEndTime(x1, y1)];
+            return [this.#calculateStartTime(col2, row2), this.#calculateEndTime(col1, row1)];
         }
     }
 
