@@ -19,7 +19,7 @@
 package pbouda.jeffrey.resources.response;
 
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 
 public record RepositoryStatisticsResponse(
         int totalSessions,

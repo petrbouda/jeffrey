@@ -21,7 +21,7 @@ package pbouda.jeffrey.resources.pub;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.resources.response.RepositoryStatisticsResponse;
 

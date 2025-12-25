@@ -22,7 +22,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.manager.SchedulerManager;
 
 import java.util.List;

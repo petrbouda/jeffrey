@@ -113,7 +113,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>scheduler</artifactId>
+            <artifactId>profile-management</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-parser</artifactId>
         </dependency>
 
         <dependency>

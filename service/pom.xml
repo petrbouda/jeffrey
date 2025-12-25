@@ -35,8 +35,6 @@
     <modules>
         <module>common</module>
         <module>common-model</module>
-        <module>core</module>
-        <module>scheduler</module>
         <module>sql-builder</module>
         <module>flamegraph</module>
         <module>frame-ir</module>
@@ -47,6 +45,9 @@
         <module>subsecond</module>
         <module>timeseries</module>
         <module>tools</module>
+        <module>profile-parser</module>
+        <module>profile-management</module>
+        <module>core</module>
     </modules>
 
     <properties>
@@ -167,7 +168,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>scheduler</artifactId>
+                <artifactId>profile-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-management</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

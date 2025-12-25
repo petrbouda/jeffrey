@@ -19,7 +19,7 @@
 package pbouda.jeffrey.scheduler;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.FileUtils;
+import pbouda.jeffrey.common.util.FileUtils;
 
 import java.util.List;
 import java.util.Optional;

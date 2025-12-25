@@ -25,7 +25,7 @@ import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;

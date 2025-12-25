@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manager.project;
 
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.profile.manager.model.CreateProject;
 
 import java.util.List;
 import java.util.Optional;

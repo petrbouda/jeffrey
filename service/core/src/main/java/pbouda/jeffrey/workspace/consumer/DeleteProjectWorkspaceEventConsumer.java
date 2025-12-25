@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;

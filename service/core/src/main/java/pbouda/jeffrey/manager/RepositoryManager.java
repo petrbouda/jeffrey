@@ -23,8 +23,8 @@ import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.manager.model.RepositoryStatistics;
-import pbouda.jeffrey.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 
 import java.util.List;
 import java.util.Optional;

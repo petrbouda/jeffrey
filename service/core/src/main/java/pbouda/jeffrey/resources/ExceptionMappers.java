@@ -22,10 +22,10 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.exception.ErrorCode;
-import pbouda.jeffrey.exception.ErrorResponse;
-import pbouda.jeffrey.exception.ErrorType;
-import pbouda.jeffrey.exception.JeffreyException;
+import pbouda.jeffrey.common.exception.ErrorCode;
+import pbouda.jeffrey.common.exception.ErrorResponse;
+import pbouda.jeffrey.common.exception.ErrorType;
+import pbouda.jeffrey.common.exception.JeffreyException;
 
 public abstract class ExceptionMappers implements ExceptionMapper<JeffreyException> {
 

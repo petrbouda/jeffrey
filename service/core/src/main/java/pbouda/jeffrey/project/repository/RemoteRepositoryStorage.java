@@ -22,7 +22,7 @@ import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RepositoryType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 
 import java.io.InputStream;
 import java.util.List;

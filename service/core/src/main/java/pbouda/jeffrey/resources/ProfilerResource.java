@@ -20,7 +20,7 @@ package pbouda.jeffrey.resources;
 
 import jakarta.ws.rs.*;
 import pbouda.jeffrey.common.model.ProfilerInfo;
-import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.manager.ProfilerManager;
 
 import java.util.List;

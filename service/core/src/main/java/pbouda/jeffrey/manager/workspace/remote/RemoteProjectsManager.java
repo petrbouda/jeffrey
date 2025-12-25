@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.profile.manager.model.CreateProject;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.manager.project.ProjectsManager;

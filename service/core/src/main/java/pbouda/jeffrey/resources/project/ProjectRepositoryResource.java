@@ -23,7 +23,7 @@ import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.manager.RepositoryManager;
-import pbouda.jeffrey.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.resources.request.SelectedRecordingsRequest;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;

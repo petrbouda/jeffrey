@@ -22,12 +22,12 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.common.model.ProfileInfo;
 import pbouda.jeffrey.common.model.RecordingEventSource;
-import pbouda.jeffrey.manager.ProfileManager;
+import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.manager.ProfilesManager;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
-import pbouda.jeffrey.resources.project.profile.ProfileDiffResource;
-import pbouda.jeffrey.resources.project.profile.ProfileResource;
+import pbouda.jeffrey.profile.resources.project.profile.ProfileDiffResource;
+import pbouda.jeffrey.profile.resources.project.profile.ProfileResource;
 import pbouda.jeffrey.resources.request.CreateProfileRequest;
 import pbouda.jeffrey.resources.util.InstantUtils;
 

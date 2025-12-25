@@ -20,7 +20,7 @@ package pbouda.jeffrey.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.manager.custom.*;
+import pbouda.jeffrey.profile.manager.custom.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
 @Configuration

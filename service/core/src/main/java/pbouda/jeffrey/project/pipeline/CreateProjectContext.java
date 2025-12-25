@@ -19,7 +19,7 @@
 package pbouda.jeffrey.project.pipeline;
 
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.profile.manager.model.CreateProject;
 
 public record CreateProjectContext(CreateProject createProject, ProjectInfo projectInfo) {
 

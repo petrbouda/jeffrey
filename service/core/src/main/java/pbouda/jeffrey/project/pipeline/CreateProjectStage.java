@@ -56,7 +56,7 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
         var graphVisualization = new GraphVisualization(
                 Config.parseDouble(params, "graph-visualization.flamegraph-min-width", 0.00));
 
-        pbouda.jeffrey.manager.model.CreateProject project = context.createProject();
+        pbouda.jeffrey.profile.manager.model.CreateProject project = context.createProject();
 
         ProjectInfo projectInfo = new ProjectInfo(
                 IDGenerator.generate(),

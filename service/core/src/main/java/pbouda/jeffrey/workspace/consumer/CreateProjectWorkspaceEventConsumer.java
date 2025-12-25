@@ -24,7 +24,7 @@ import pbouda.jeffrey.common.Json;
 import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.profile.manager.model.CreateProject;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;

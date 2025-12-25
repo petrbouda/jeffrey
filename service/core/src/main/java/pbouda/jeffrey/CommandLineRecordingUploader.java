@@ -35,7 +35,7 @@ import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.configuration.AppConfiguration;
-import pbouda.jeffrey.manager.model.CreateProject;
+import pbouda.jeffrey.profile.manager.model.CreateProject;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.project.ProjectsManager;
 import pbouda.jeffrey.manager.workspace.SandboxWorkspacesManager;

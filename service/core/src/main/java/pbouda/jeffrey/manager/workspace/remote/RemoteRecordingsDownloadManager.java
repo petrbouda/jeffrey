@@ -26,7 +26,7 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.exception.Exceptions;
+import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.resources.response.RepositoryFileResponse;

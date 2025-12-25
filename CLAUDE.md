@@ -8,7 +8,64 @@ This is a full-stack application with:
 - **Backend**: Java Spring Boot REST API
 - **Frontend**: Vue 3 SPA with TypeScript
 - **Build System**: Maven (Java) + Vite (Frontend)
-- **Database**: SQLite for persistence
+- **Database**: DuckDB for persistence
+
+### Backend Domain Architecture
+
+The backend is organized into two main domains:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PLATFORM-MANAGEMENT                          │
+│  Workspaces → Projects → Recordings → Profiles List              │
+│  + Sessions, Scheduling                                          │
+│                                                                  │
+│  Module: service/platform-management                             │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ triggers profile creation/analysis
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       PROFILE DOMAIN                             │
+│                                                                  │
+│  ┌───────────────────────┐       ┌───────────────────────────┐  │
+│  │    profile-parser     │       │   profile-management      │  │
+│  │                       │       │                           │  │
+│  │  Path/InputStream     │ ProfileInfo                       │  │
+│  │        ↓              │──────>│  ProfileManager           │  │
+│  │  Parse JFR → Store DB │       │  Analysis features        │  │
+│  │        ↓              │       │  (Flamegraph, Timeseries,  │  │
+│  │  Returns ProfileInfo  │       │   Guardian, GC, Threads)  │  │
+│  │                       │       │                           │  │
+│  │  Module: profile-parser       │  Module: profile-management│  │
+│  └───────────────────────┘       └───────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Platform Management** (`service/platform-management`):
+- Manages workspaces, projects, recordings, and profile listings
+- Handles sessions and file uploads
+- Contains scheduling jobs for workspace/project lifecycle
+- REST resources: `/api/workspaces/**`, `/api/projects/**`
+- Triggers profile creation via profile-parser
+
+**Profile Domain** - Two sibling modules:
+
+- **Profile Parser** (`service/profile-parser`):
+  - Parses JFR files from Path or InputStream
+  - Extracts events and stores them to DuckDB
+  - Returns `ProfileInfo` as the result
+  - Pure library module (no web dependencies)
+
+- **Profile Management** (`service/profile-management`):
+  - All profile analysis features after a profile is selected
+  - ProfileManager with sub-managers (Flamegraph, Timeseries, Guardian, etc.)
+  - ProfileManagerFactoryRegistry groups related factories
+  - REST resources: `/api/profiles/**`
+
+**Core** (`service/core`):
+- Thin bootstrap layer with Spring Boot application
+- Application configuration and exception handling
+- Wires all modules together
 
 ## Technology Stack
 
@@ -32,21 +89,42 @@ This is a full-stack application with:
 
 ```
 jeffrey/
-├── service/                    # Java backend services
-│   ├── core/                  # Main Spring Boot application
-│   ├── providers/             # Data providers and parsers
-│   ├── common/                # Shared utilities
-│   └── ...                    # Other service modules
-├── pages/                     # Vue.js frontend application
+├── service/                        # Java backend services
+│   ├── core/                       # Spring Boot bootstrap, configuration
+│   ├── platform-management/        # Workspace/Project/Recording management
+│   ├── profile-parser/             # JFR parsing and profile creation
+│   ├── profile-management/         # Profile analysis domain
+│   ├── scheduler/                  # Scheduling infrastructure
+│   ├── providers/                  # Data providers
+│   │   ├── provider-api/           # Provider interfaces
+│   │   ├── duckdb-persistence/     # DuckDB implementation
+│   │   ├── common-sql-persistence/ # Shared SQL utilities
+│   │   ├── recording-storage-api/  # Storage interfaces
+│   │   └── filesystem-recording-storage/
+│   ├── recording-parser/           # JFR parsing
+│   │   ├── jfr-parser-api/         # Parser interfaces
+│   │   ├── jdk-jfr-parser/         # JDK-based parser
+│   │   └── db-jfr-parser/          # Database-based parser
+│   ├── flamegraph/                 # Flame graph generation
+│   ├── timeseries/                 # Time series analysis
+│   ├── subsecond/                  # Sub-second analysis
+│   ├── profile-guardian/           # Profile validation
+│   ├── profile-thread/             # Thread analysis
+│   ├── frame-ir/                   # Frame intermediate representation
+│   ├── common/                     # Shared utilities
+│   ├── common-model/               # Shared data models
+│   ├── sql-builder/                # SQL query building
+│   └── tools/                      # JDK tooling utilities
+├── pages/                          # Vue.js frontend application
 │   ├── src/
-│   │   ├── components/        # Reusable Vue components
-│   │   ├── services/          # API clients and utilities
-│   │   ├── views/             # Page components
+│   │   ├── components/             # Reusable Vue components
+│   │   ├── services/               # API clients and utilities
+│   │   ├── views/                  # Page components
 │   │   └── ...
 │   └── package.json
-├── build/                     # Build configurations
-├── docker/                    # Docker configurations
-└── pom.xml                    # Root Maven configuration
+├── build/                          # Build configurations
+├── docker/                         # Docker configurations
+└── pom.xml                         # Root Maven configuration
 ```
 
 ## Code Style and Conventions
