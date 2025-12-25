@@ -16,35 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler;
+package pbouda.jeffrey.manager.registry;
 
-import pbouda.jeffrey.scheduler.job.Job;
+import pbouda.jeffrey.manager.AutoAnalysisManager;
+import pbouda.jeffrey.manager.EventViewerManager;
+import pbouda.jeffrey.manager.GuardianManager;
 
-import java.util.concurrent.Future;
-
-public interface Scheduler extends AutoCloseable {
-
-    /**
-     * Starts the scheduler.
-     */
-    void start();
-
-    /**
-     * Executes a job immediately.
-     *
-     * @param job the job to execute
-     */
-    Future<?> submitNow(Job job);
-
-    /**
-     * Submits a job and waits for its completion.
-     *
-     * @param job the job to execute
-     */
-    void submitAndWait(Job job);
-
-    /**
-     * Shuts down the scheduler. Stops executing the tasks.
-     */
-    void close();
+public record AnalysisFactories(
+        GuardianManager.Factory guardian,
+        AutoAnalysisManager.Factory autoAnalysis,
+        EventViewerManager.Factory eventViewer) {
 }

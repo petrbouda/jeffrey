@@ -16,15 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.job;
+package pbouda.jeffrey.manager.registry;
 
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.manager.ContainerManager;
+import pbouda.jeffrey.manager.GarbageCollectionManager;
+import pbouda.jeffrey.manager.HeapMemoryManager;
+import pbouda.jeffrey.manager.JITCompilationManager;
+import pbouda.jeffrey.manager.ThreadManager;
 
-import java.time.Duration;
-
-public interface Job extends Runnable {
-
-    Duration period();
-
-    JobType jobType();
+public record JvmInsightFactories(
+        GarbageCollectionManager.Factory gc,
+        JITCompilationManager.Factory jitCompilation,
+        HeapMemoryManager.Factory heapMemory,
+        ContainerManager.Factory container,
+        ThreadManager.Factory thread) {
 }

@@ -22,6 +22,7 @@ import pbouda.jeffrey.common.model.job.JobInfo;
 import pbouda.jeffrey.manager.project.ProjectManager;
 import pbouda.jeffrey.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.scheduler.Job;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
 

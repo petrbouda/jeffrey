@@ -21,6 +21,7 @@ package pbouda.jeffrey.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.manager.registry.ProfileManagerFactoryRegistry;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 
 public class ProfileManagerImpl implements ProfileManager {
@@ -29,64 +30,16 @@ public class ProfileManagerImpl implements ProfileManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileRepository profileRepository;
-    private final FlamegraphManager.Factory flamegraphManagerFactory;
-    private final FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory;
-    private final SubSecondManager.Factory subSecondManagerFactory;
-    private final TimeseriesManager.Factory timeseriesManagerFactory;
-    private final TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory;
-    private final EventViewerManager.Factory eventViewerFactory;
-    private final GuardianManager.Factory guardianManagerFactory;
-    private final ProfileConfigurationManager.Factory configurationManagerFactory;
-    private final AutoAnalysisManager.Factory autoAnalysisManagerFactory;
-    private final ThreadManager.Factory threadManagerFactory;
-    private final AdditionalFilesManager.Factory additionalFeaturesManagerFactory;
-    private final JITCompilationManager.Factory jitCompilationManagerFactory;
-    private final GarbageCollectionManager.Factory gcManagerFactory;
-    private final ContainerManager.Factory containerManagerFactory;
-    private final ProfileFeaturesManager.Factory profileFeaturesManagerFactory;
-    private final HeapMemoryManager.Factory heapMemoryManagerFactory;
-    private final ProfileCustomManager.Factory profileCustomManagerFactory;
+    private final ProfileManagerFactoryRegistry registry;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
             ProfileRepository profileRepository,
-            FlamegraphManager.Factory flamegraphManagerFactory,
-            FlamegraphManager.DifferentialFactory flamegraphManagerDiffFactory,
-            SubSecondManager.Factory subSecondManagerFactory,
-            TimeseriesManager.Factory timeseriesManagerFactory,
-            TimeseriesManager.DifferentialFactory timeseriesManagerDiffFactory,
-            EventViewerManager.Factory eventViewerFactory,
-            GuardianManager.Factory guardianManagerFactory,
-            ProfileConfigurationManager.Factory configurationManagerFactory,
-            AutoAnalysisManager.Factory autoAnalysisManagerFactory,
-            ThreadManager.Factory threadManagerFactory,
-            AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
-            JITCompilationManager.Factory jitCompilationManagerFactory,
-            GarbageCollectionManager.Factory gcManagerFactory,
-            ContainerManager.Factory containerManagerFactory,
-            HeapMemoryManager.Factory heapMemoryManagerFactory,
-            ProfileFeaturesManager.Factory profileFeaturesManagerFactory,
-            ProfileCustomManager.Factory profileCustomManagerFactory) {
+            ProfileManagerFactoryRegistry registry) {
 
         this.profileInfo = profileInfo;
         this.profileRepository = profileRepository;
-        this.flamegraphManagerFactory = flamegraphManagerFactory;
-        this.flamegraphManagerDiffFactory = flamegraphManagerDiffFactory;
-        this.subSecondManagerFactory = subSecondManagerFactory;
-        this.timeseriesManagerFactory = timeseriesManagerFactory;
-        this.timeseriesManagerDiffFactory = timeseriesManagerDiffFactory;
-        this.eventViewerFactory = eventViewerFactory;
-        this.guardianManagerFactory = guardianManagerFactory;
-        this.configurationManagerFactory = configurationManagerFactory;
-        this.autoAnalysisManagerFactory = autoAnalysisManagerFactory;
-        this.threadManagerFactory = threadManagerFactory;
-        this.additionalFeaturesManagerFactory = additionalFeaturesManagerFactory;
-        this.jitCompilationManagerFactory = jitCompilationManagerFactory;
-        this.gcManagerFactory = gcManagerFactory;
-        this.containerManagerFactory = containerManagerFactory;
-        this.profileFeaturesManagerFactory = profileFeaturesManagerFactory;
-        this.heapMemoryManagerFactory = heapMemoryManagerFactory;
-        this.profileCustomManagerFactory = profileCustomManagerFactory;
+        this.registry = registry;
     }
 
     @Override
@@ -96,87 +49,87 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public ProfileConfigurationManager profileConfigurationManager() {
-        return configurationManagerFactory.apply(profileInfo);
+        return registry.configuration().apply(profileInfo);
     }
 
     @Override
     public AutoAnalysisManager autoAnalysisManager() {
-        return autoAnalysisManagerFactory.apply(profileInfo);
+        return registry.analysis().autoAnalysis().apply(profileInfo);
     }
 
     @Override
     public FlamegraphManager flamegraphManager() {
-        return flamegraphManagerFactory.apply(profileInfo);
+        return registry.visualization().flamegraph().apply(profileInfo);
     }
 
     @Override
     public FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager) {
-        return flamegraphManagerDiffFactory.apply(profileInfo, secondaryManager.info());
+        return registry.visualization().flamegraphDiff().apply(profileInfo, secondaryManager.info());
     }
 
     @Override
     public SubSecondManager subSecondManager() {
-        return subSecondManagerFactory.apply(profileInfo);
+        return registry.visualization().subSecond().apply(profileInfo);
     }
 
     @Override
     public TimeseriesManager timeseriesManager() {
-        return timeseriesManagerFactory.apply(profileInfo);
+        return registry.visualization().timeseries().apply(profileInfo);
     }
 
     @Override
     public TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager) {
-        return timeseriesManagerDiffFactory.apply(profileInfo, secondaryManager.info());
+        return registry.visualization().timeseriesDiff().apply(profileInfo, secondaryManager.info());
     }
 
     @Override
     public EventViewerManager eventViewerManager() {
-        return eventViewerFactory.apply(profileInfo);
+        return registry.analysis().eventViewer().apply(profileInfo);
     }
 
     @Override
     public ThreadManager threadManager() {
-        return threadManagerFactory.apply(profileInfo);
+        return registry.jvmInsight().thread().apply(profileInfo);
     }
 
     @Override
     public JITCompilationManager jitCompilationManager() {
-        return jitCompilationManagerFactory.apply(profileInfo);
+        return registry.jvmInsight().jitCompilation().apply(profileInfo);
     }
 
     @Override
     public GuardianManager guardianManager() {
-        return guardianManagerFactory.apply(profileInfo);
+        return registry.analysis().guardian().apply(profileInfo);
     }
 
     @Override
     public AdditionalFilesManager additionalFilesManager() {
-        return additionalFeaturesManagerFactory.apply(profileInfo);
+        return registry.additionalFiles().apply(profileInfo);
     }
 
     @Override
     public GarbageCollectionManager gcManager() {
-        return gcManagerFactory.apply(profileInfo);
+        return registry.jvmInsight().gc().apply(profileInfo);
     }
 
     @Override
     public ContainerManager containerManager() {
-        return containerManagerFactory.apply(profileInfo);
+        return registry.jvmInsight().container().apply(profileInfo);
     }
 
     @Override
     public HeapMemoryManager heapMemoryManager() {
-        return heapMemoryManagerFactory.apply(profileInfo);
+        return registry.jvmInsight().heapMemory().apply(profileInfo);
     }
 
     @Override
     public ProfileFeaturesManager featuresManager() {
-        return profileFeaturesManagerFactory.apply(profileInfo);
+        return registry.features().apply(profileInfo);
     }
 
     @Override
     public ProfileCustomManager custom() {
-        return profileCustomManagerFactory.apply(this);
+        return registry.custom().apply(this);
     }
 
     @Override

@@ -21,8 +21,6 @@ package pbouda.jeffrey.scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
-import pbouda.jeffrey.exception.Exceptions;
-import pbouda.jeffrey.scheduler.job.Job;
 
 import java.time.Duration;
 import java.util.List;
@@ -85,7 +83,7 @@ public class PeriodicalScheduler implements Scheduler {
                     .get(maxWaitTime.toMillis(), TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             LOG.error("An error occurred while waiting for the job to complete: job_type={}", job.jobType(), e);
-            throw Exceptions.internal("Failed to execute job and wait: " + job.jobType(), e);
+            throw new RuntimeException("Failed to execute job and wait: " + job.jobType(), e);
         }
     }
 

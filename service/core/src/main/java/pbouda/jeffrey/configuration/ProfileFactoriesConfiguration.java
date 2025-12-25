@@ -29,7 +29,10 @@ import pbouda.jeffrey.manager.*;
 import pbouda.jeffrey.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.manager.action.ProfileDataInitializerImpl;
 import pbouda.jeffrey.manager.custom.*;
-import pbouda.jeffrey.manager.HeapMemoryManager;
+import pbouda.jeffrey.manager.registry.AnalysisFactories;
+import pbouda.jeffrey.manager.registry.JvmInsightFactories;
+import pbouda.jeffrey.manager.registry.ProfileManagerFactoryRegistry;
+import pbouda.jeffrey.manager.registry.VisualizationFactories;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -46,47 +49,79 @@ import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 public class ProfileFactoriesConfiguration {
 
     @Bean
-    public ProfileManager.Factory profileManager(
-            Repositories repositories,
+    public VisualizationFactories visualizationFactories(
             FlamegraphManager.Factory flamegraphFactory,
-            FlamegraphManager.DifferentialFactory differentialFactory,
+            FlamegraphManager.DifferentialFactory flamegraphDiffFactory,
             SubSecondManager.Factory subSecondFactory,
             TimeseriesManager.Factory timeseriesFactory,
-            TimeseriesManager.DifferentialFactory timeseriesDiffFactory,
-            EventViewerManager.Factory eventViewerManagerFactory,
-            ProfileConfigurationManager.Factory configurationManagerFactory,
-            AutoAnalysisManager.Factory autoAnalysisManagerFactory,
-            ThreadManager.Factory threadInfoManagerFactory,
+            TimeseriesManager.DifferentialFactory timeseriesDiffFactory) {
+
+        return new VisualizationFactories(
+                flamegraphFactory,
+                flamegraphDiffFactory,
+                subSecondFactory,
+                timeseriesFactory,
+                timeseriesDiffFactory);
+    }
+
+    @Bean
+    public AnalysisFactories analysisFactories(
             GuardianManager.Factory guardianFactory,
-            AdditionalFilesManager.Factory additionalFeaturesManagerFactory,
-            JITCompilationManager.Factory jitCompilationManagerFactory,
-            GarbageCollectionManager.Factory gcManagerFactory,
-            ContainerManager.Factory containerManagerFactory,
-            HeapMemoryManager.Factory heapMemoryManagerFactory,
-            ProfileFeaturesManager.Factory profileFeaturesManagerFactory,
-            ProfileCustomManager.Factory profileCustomManagerFactory) {
+            AutoAnalysisManager.Factory autoAnalysisFactory,
+            EventViewerManager.Factory eventViewerFactory) {
+
+        return new AnalysisFactories(
+                guardianFactory,
+                autoAnalysisFactory,
+                eventViewerFactory);
+    }
+
+    @Bean
+    public JvmInsightFactories jvmInsightFactories(
+            GarbageCollectionManager.Factory gcFactory,
+            JITCompilationManager.Factory jitCompilationFactory,
+            HeapMemoryManager.Factory heapMemoryFactory,
+            ContainerManager.Factory containerFactory,
+            ThreadManager.Factory threadFactory) {
+
+        return new JvmInsightFactories(
+                gcFactory,
+                jitCompilationFactory,
+                heapMemoryFactory,
+                containerFactory,
+                threadFactory);
+    }
+
+    @Bean
+    public ProfileManagerFactoryRegistry profileManagerFactoryRegistry(
+            VisualizationFactories visualizationFactories,
+            AnalysisFactories analysisFactories,
+            JvmInsightFactories jvmInsightFactories,
+            ProfileConfigurationManager.Factory configurationFactory,
+            ProfileFeaturesManager.Factory featuresFactory,
+            AdditionalFilesManager.Factory additionalFilesFactory,
+            ProfileCustomManager.Factory customFactory) {
+
+        return new ProfileManagerFactoryRegistry(
+                visualizationFactories,
+                analysisFactories,
+                jvmInsightFactories,
+                configurationFactory,
+                featuresFactory,
+                additionalFilesFactory,
+                customFactory);
+    }
+
+    @Bean
+    public ProfileManager.Factory profileManager(
+            Repositories repositories,
+            ProfileManagerFactoryRegistry registry) {
 
         return profileInfo ->
                 new ProfileManagerImpl(
                         profileInfo,
                         repositories.newProfileRepository(profileInfo.id()),
-                        flamegraphFactory,
-                        differentialFactory,
-                        subSecondFactory,
-                        timeseriesFactory,
-                        timeseriesDiffFactory,
-                        eventViewerManagerFactory,
-                        guardianFactory,
-                        configurationManagerFactory,
-                        autoAnalysisManagerFactory,
-                        threadInfoManagerFactory,
-                        additionalFeaturesManagerFactory,
-                        jitCompilationManagerFactory,
-                        gcManagerFactory,
-                        containerManagerFactory,
-                        heapMemoryManagerFactory,
-                        profileFeaturesManagerFactory,
-                        profileCustomManagerFactory);
+                        registry);
     }
 
     @Bean

@@ -36,6 +36,7 @@
         <module>common</module>
         <module>common-model</module>
         <module>core</module>
+        <module>scheduler</module>
         <module>sql-builder</module>
         <module>flamegraph</module>
         <module>frame-ir</module>
@@ -162,6 +163,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>sql-builder</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>scheduler</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
