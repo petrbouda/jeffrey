@@ -173,7 +173,7 @@
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
 import {onBeforeMount, ref, computed} from "vue";
-import ProfileThreadClient from "@/services/thread/ProfileThreadClient.ts";
+import ProfileThreadClient from "@/services/api/ProfileThreadClient.ts";
 import ThreadComponent from "@/components/ThreadComponent.vue";
 import ThreadCommon from "@/services/thread/model/ThreadCommon";
 import ThreadRowData from "@/services/thread/model/ThreadRowData";

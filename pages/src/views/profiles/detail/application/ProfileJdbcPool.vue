@@ -176,11 +176,11 @@ import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import PoolData from '@/services/profile/custom/jdbc/model/PoolData.ts';
-import ProfileJdbcPoolClient from '@/services/profile/custom/jdbc/ProfileJdbcPoolClient.ts';
+import PoolData from '@/services/api/model/model/PoolData.ts';
+import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
 import FormattingService from '@/services/FormattingService.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
-import FeatureType from '@/services/profile/features/FeatureType';
+import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Define props

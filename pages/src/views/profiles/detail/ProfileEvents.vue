@@ -143,9 +143,9 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue';
-import EventViewerClient from '@/services/viewer/EventViewerClient';
-import EventTypeDescription from '@/services/viewer/model/EventTypeDescription';
-import EventFieldDescription from '@/services/viewer/model/EventFieldDescription';
+import EventViewerClient from '@/services/api/EventViewerClient';
+import EventTypeDescription from '@/services/api/model/EventTypeDescription';
+import EventFieldDescription from '@/services/api/model/EventFieldDescription';
 import FormattingService from '@/services/FormattingService';
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';

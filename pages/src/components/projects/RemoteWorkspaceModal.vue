@@ -137,10 +137,10 @@ import {computed, ref} from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import FormInput from '@/components/form/FormInput.vue';
 import Badge from '@/components/Badge.vue';
-import Workspace from '@/services/workspace/model/Workspace';
+import Workspace from '@/services/api/model/Workspace';
 import ToastService from '@/services/ToastService';
 import {useModal} from '@/composables/useModal';
-import RemoteWorkspaceClient from "@/services/workspace/RemoteWorkspaceClient.ts";
+import RemoteWorkspaceClient from "@/services/api/RemoteWorkspaceClient.ts";
 
 interface Emits {
   (e: 'workspace-added'): void;

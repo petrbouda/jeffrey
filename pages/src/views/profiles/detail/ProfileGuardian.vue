@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import type { PropType } from 'vue'; // Props definition
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import GuardianClient from '@/services/guardian/GuardianClient';
+import GuardianClient from '@/services/api/GuardianClient';
 import Utils from '@/services/Utils';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -27,14 +27,14 @@ import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import CardCarousel from '@/components/CardCarousel.vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import GuardianFlamegraphClient from '@/services/flamegraphs/client/GuardianFlamegraphClient';
+import GuardianFlamegraphClient from '@/services/api/GuardianFlamegraphClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
-import GuardAnalysisResult from '@/services/flamegraphs/model/guard/GuardAnalysisResult';
-import GuardResponse from '@/services/flamegraphs/model/guard/GuardResponse';
-import GuardVisualization from '@/services/flamegraphs/model/guard/GuardVisualization';
+import GuardAnalysisResult from '@/services/api/model/GuardAnalysisResult';
+import GuardResponse from '@/services/api/model/GuardResponse';
+import GuardVisualization from '@/services/api/model/GuardVisualization';
 import * as bootstrap from 'bootstrap';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';

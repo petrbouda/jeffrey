@@ -17,7 +17,7 @@
  */
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { ErrorResponse, isErrorResponse, isNotFoundError } from '@/services/model/ErrorResponse';
+import { ErrorResponse, isErrorResponse, isNotFoundError } from '@/services/api/model/ErrorResponse';
 import { ToastService } from '@/services/ToastService';
 
 /**

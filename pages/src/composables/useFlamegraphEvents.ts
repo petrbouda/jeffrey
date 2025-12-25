@@ -19,8 +19,8 @@
 import { ref, onBeforeMount } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import EventSummary from '@/services/flamegraphs/model/EventSummary';
-import EventSummariesClient from '@/services/flamegraphs/client/EventSummariesClient';
+import EventSummary from '@/services/api/model/EventSummary';
+import EventSummariesClient from '@/services/api/EventSummariesClient';
 import EventTypes from '@/services/EventTypes';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import GraphType from '@/services/flamegraphs/GraphType';

@@ -19,8 +19,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import Utils from "@/services/Utils";
-import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
-import { JobType } from "@/services/model/JobType.ts";
+import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient.ts";
+import { JobType } from "@/services/api/model/JobType.ts";
 import ToastService from "@/services/ToastService";
 
 interface DialogMessage {

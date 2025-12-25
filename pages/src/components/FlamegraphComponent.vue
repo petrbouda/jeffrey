@@ -24,8 +24,8 @@ import Utils from "@/services/Utils";
 import FlamegraphContextMenu from "@/services/flamegraphs/FlamegraphContextMenu";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
-import GuardMatched from "@/services/flamegraphs/model/guard/GuardMatched";
+import FlamegraphData from "@/services/api/model/FlamegraphData";
+import GuardMatched from "@/services/api/model/GuardMatched";
 import MessageBus from "@/services/MessageBus.ts";
 import LoadingIndicator from "@/components/LoadingIndicator.vue";
 

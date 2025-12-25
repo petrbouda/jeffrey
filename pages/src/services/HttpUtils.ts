@@ -35,6 +35,17 @@ export default class HttpUtils {
         }
     };
 
+    /**
+     * Returns Axios config with JSON Accept header and URL params.
+     * Use this instead of creating inline {headers: {Accept: 'application/json'}, params: {...}}.
+     */
+    static JSON_ACCEPT_WITH_PARAMS(params: Record<string, any>) {
+        return {
+            headers: { Accept: 'application/json' },
+            params
+        };
+    }
+
     static MULTIPART_FORM_DATA_HEADER = {
         headers: {
             'Content-Type': 'multipart/form-data'

@@ -17,9 +17,9 @@
  */
 
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
-import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import FlamegraphClient from "@/services/api/FlamegraphClient";
+import PrimaryFlamegraphClient from "@/services/api/PrimaryFlamegraphClient";
+import TimeRange from "@/services/api/model/TimeRange";
 
 export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 

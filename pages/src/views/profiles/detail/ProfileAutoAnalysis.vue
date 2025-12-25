@@ -108,10 +108,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref, nextTick } from 'vue';
-import AutoAnalysisClient from "@/services/AutoAnalysisClient.ts";
+import AutoAnalysisClient from "@/services/api/AutoAnalysisClient.ts";
 import { useRoute } from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
-import AnalysisResult from "@/services/model/AnalysisResult.ts";
+import AnalysisResult from "@/services/api/model/AnalysisResult.ts";
 import * as bootstrap from 'bootstrap';
 import PageHeader from '@/components/layout/PageHeader.vue';
 

@@ -116,9 +116,9 @@ import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import FormattingService from '@/services/FormattingService';
-import ProfileMethodTracingClient from '@/services/profile/custom/methodtracing/ProfileMethodTracingClient';
-import type MethodTracingSlowestData from '@/services/profile/custom/methodtracing/MethodTracingSlowestData';
-import FeatureType from '@/services/profile/features/FeatureType';
+import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
+import type MethodTracingSlowestData from '@/services/api/model/MethodTracingSlowestData';
+import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
 interface Props {

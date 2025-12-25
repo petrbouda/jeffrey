@@ -17,7 +17,7 @@
  */
 
 import {ref} from 'vue';
-import ProfileInfo from "@/services/project/model/ProfileInfo";
+import ProfileInfo from "@/services/api/model/ProfileInfo";
 
 export default class SecondaryProfileService {
     static profile = ref<ProfileInfo | null>(null);

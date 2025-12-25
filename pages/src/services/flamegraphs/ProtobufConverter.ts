@@ -17,12 +17,12 @@
  */
 
 import { pbouda } from '@/proto/flamegraph';
-import BothGraphData from '@/services/flamegraphs/model/BothGraphData';
-import FlamegraphData from '@/services/flamegraphs/model/FlamegraphData';
-import Frame from '@/services/flamegraphs/model/Frame';
-import FramePosition from '@/services/flamegraphs/model/FramePosition';
-import FrameSampleTypes from '@/services/flamegraphs/model/FrameSampleTypes';
-import DiffDetails from '@/services/flamegraphs/model/DiffDetails';
+import BothGraphData from '@/services/api/model/BothGraphData';
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import Frame from '@/services/api/model/Frame';
+import FramePosition from '@/services/api/model/FramePosition';
+import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
+import DiffDetails from '@/services/api/model/DiffDetails';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import Serie from '@/services/timeseries/model/Serie';
 

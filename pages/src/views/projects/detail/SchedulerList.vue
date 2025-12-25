@@ -19,11 +19,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
-import ProjectSchedulerClient from "@/services/project/ProjectSchedulerClient.ts";
-import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
-import JobInfo from "@/services/model/JobInfo.ts";
-import { JobType } from "@/services/model/JobType.ts";
-import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
+import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient.ts";
+import ProjectSettingsClient from "@/services/api/ProjectSettingsClient.ts";
+import JobInfo from "@/services/api/model/JobInfo.ts";
+import { JobType } from "@/services/api/model/JobType.ts";
+import SettingsResponse from "@/services/api/model/SettingsResponse.ts";
 import ToastService from "@/services/ToastService";
 import MessageBus from "@/services/MessageBus";
 import JobCard from "@/components/JobCard.vue";

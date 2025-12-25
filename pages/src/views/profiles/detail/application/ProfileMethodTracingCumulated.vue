@@ -153,10 +153,10 @@ import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import FormattingService from '@/services/FormattingService';
-import ProfileMethodTracingClient from '@/services/profile/custom/methodtracing/ProfileMethodTracingClient';
-import type MethodTracingCumulatedData from '@/services/profile/custom/methodtracing/MethodTracingCumulatedData';
-import type CumulatedStats from '@/services/profile/custom/methodtracing/CumulatedStats';
-import FeatureType from '@/services/profile/features/FeatureType';
+import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
+import type MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumulatedData';
+import type CumulatedStats from '@/services/api/model/CumulatedStats';
+import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
 interface Props {

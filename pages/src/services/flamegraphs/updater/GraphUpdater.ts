@@ -16,10 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FlamegraphData from "@/services/flamegraphs/model/FlamegraphData";
+import FlamegraphData from "@/services/api/model/FlamegraphData";
 import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
-import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
+import TimeRange from "@/services/api/model/TimeRange";
+import FlamegraphClient from "@/services/api/FlamegraphClient";
 
 export default abstract class GraphUpdater {
 

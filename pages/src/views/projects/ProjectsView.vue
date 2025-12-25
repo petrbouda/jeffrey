@@ -201,14 +201,14 @@ import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard
 import Badge from '@/components/Badge.vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import ProjectsClient from "@/services/ProjectsClient.ts";
-import WorkspaceProjectsClient from "@/services/workspace/WorkspaceProjectsClient.ts";
-import Project from "@/services/model/Project.ts";
-import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
-import Workspace from "@/services/workspace/model/Workspace.ts";
-import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
-import WorkspaceStatus from "@/services/workspace/model/WorkspaceStatus.ts";
-import CreateWorkspaceRequest from "@/services/workspace/model/CreateWorkspaceRequest.ts";
+import ProjectsClient from "@/services/api/ProjectsClient.ts";
+import WorkspaceProjectsClient from "@/services/api/WorkspaceProjectsClient.ts";
+import Project from "@/services/api/model/Project.ts";
+import WorkspaceClient from "@/services/api/WorkspaceClient.ts";
+import Workspace from "@/services/api/model/Workspace.ts";
+import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
+import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
+import CreateWorkspaceRequest from "@/services/api/model/CreateWorkspaceRequest.ts";
 import {useNavigation} from '@/composables/useNavigation';
 
 // Get workspace context from route

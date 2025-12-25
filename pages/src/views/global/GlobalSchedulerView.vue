@@ -90,8 +90,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import ToastService from '@/services/ToastService';
-import GlobalSchedulerClient from '@/services/GlobalSchedulerClient';
-import JobInfo from '@/services/model/JobInfo';
+import GlobalSchedulerClient from '@/services/api/GlobalSchedulerClient';
+import JobInfo from '@/services/api/model/JobInfo';
 import JobCard from '@/components/JobCard.vue';
 import JobsTable, { type JobDisplayInfo } from '@/components/scheduler/JobsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';

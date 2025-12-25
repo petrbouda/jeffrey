@@ -47,9 +47,9 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
-import WorkspaceType from '@/services/workspace/model/WorkspaceType';
-import Workspace from '@/services/workspace/model/Workspace';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceType from '@/services/api/model/WorkspaceType';
+import Workspace from '@/services/api/model/Workspace';
 
 const route = useRoute();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();

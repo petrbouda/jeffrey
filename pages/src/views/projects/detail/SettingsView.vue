@@ -112,8 +112,8 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import ProjectSettingsClient from '@/services/project/ProjectSettingsClient';
-import ProjectClient from '@/services/ProjectClient';
+import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
+import ProjectClient from '@/services/api/ProjectClient';
 import ToastService from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
 import LoadingState from '@/components/LoadingState.vue';

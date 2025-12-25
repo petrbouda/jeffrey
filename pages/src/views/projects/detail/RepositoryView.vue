@@ -1,27 +1,27 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useNavigation} from '@/composables/useNavigation';
-import ProjectRepositoryClient from "@/services/project/ProjectRepositoryClient.ts";
+import ProjectRepositoryClient from "@/services/api/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
-import ProjectSettingsClient from "@/services/project/ProjectSettingsClient.ts";
-import SettingsResponse from "@/services/project/model/SettingsResponse.ts";
-import RepositoryStatisticsModel from "@/services/project/model/RepositoryStatistics.ts";
+import ProjectSettingsClient from "@/services/api/ProjectSettingsClient.ts";
+import SettingsResponse from "@/services/api/model/SettingsResponse.ts";
+import RepositoryStatisticsModel from "@/services/api/model/RepositoryStatistics.ts";
 import {ToastService} from "@/services/ToastService";
-import RecordingSession from "@/services/model/data/RecordingSession.ts";
-import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
-import RecordingFileType from "@/services/model/data/RecordingFileType.ts";
+import RecordingSession from "@/services/api/model/RecordingSession.ts";
+import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
+import RecordingFileType from "@/services/api/model/RecordingFileType.ts";
 import * as bootstrap from 'bootstrap';
-import RepositoryFile from "@/services/model/data/RepositoryFile.ts";
+import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import RepositoryDisabledAlert from '@/components/alerts/RepositoryDisabledAlert.vue';
 import RepositoryStatistics from '@/components/RepositoryStatistics.vue';
-import ProjectClient from "@/services/ProjectClient.ts";
-import ProjectInfo from "@/services/project/model/ProjectInfo.ts";
-import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
-import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
-import Workspace from "@/services/workspace/model/Workspace.ts";
+import ProjectClient from "@/services/api/ProjectClient.ts";
+import ProjectInfo from "@/services/api/model/ProjectInfo.ts";
+import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
+import WorkspaceClient from "@/services/api/WorkspaceClient.ts";
+import Workspace from "@/services/api/model/Workspace.ts";
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 // Using formatFileType from Utils class

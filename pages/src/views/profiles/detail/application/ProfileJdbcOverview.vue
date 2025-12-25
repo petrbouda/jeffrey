@@ -96,11 +96,11 @@ import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcDistributionCharts from '@/components/jdbc/JdbcDistributionCharts.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
-import ProfileJdbcStatementClient from '@/services/profile/custom/jdbc/ProfileJdbcStatementClient.ts';
-import JdbcOverviewData from '@/services/profile/custom/jdbc/JdbcOverviewData.ts';
-import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
+import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
+import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
-import FeatureType from '@/services/profile/features/FeatureType';
+import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 // Define props

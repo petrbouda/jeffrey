@@ -26,7 +26,7 @@
 import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from '@/services/FormattingService.ts';
-import JdbcHeader from '@/services/profile/custom/jdbc/JdbcHeader.ts';
+import JdbcHeader from '@/services/api/model/JdbcHeader.ts';
 
 const props = defineProps<{
   jdbcHeader: JdbcHeader;

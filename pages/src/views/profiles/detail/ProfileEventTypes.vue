@@ -281,10 +281,10 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import EventViewerClient from '@/services/viewer/EventViewerClient';
-import EventType from '@/services/viewer/model/EventType';
+import EventViewerClient from '@/services/api/EventViewerClient';
+import EventType from '@/services/api/model/EventType';
 import * as bootstrap from 'bootstrap';
-import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
+import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';

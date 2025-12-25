@@ -17,7 +17,7 @@
  */
 
 import FrameRect from "@/services/flamegraphs/FrameRect";
-import Frame from "@/services/flamegraphs/model/Frame";
+import Frame from "@/services/api/model/Frame";
 
 export default class VisibleFrame {
     constructor(

@@ -64,8 +64,8 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
-import ProfileHeapMemoryClient from '@/services/profile/heap/ProfileHeapMemoryClient';
-import HeapMemoryTimeseriesType from '@/services/profile/heap/HeapMemoryTimeseriesType';
+import ProfileHeapMemoryClient from '@/services/api/ProfileHeapMemoryClient';
+import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();

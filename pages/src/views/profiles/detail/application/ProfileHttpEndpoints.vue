@@ -93,11 +93,11 @@ import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
-import ProfileHttpClient from '@/services/profile/custom/jdbc/ProfileHttpClient.ts';
-import HttpOverviewData from '@/services/profile/custom/http/HttpOverviewData.ts';
-import HttpSingleUriData from '@/services/profile/custom/http/HttpSingleUriData.ts';
+import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
+import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
+import HttpSingleUriData from '@/services/api/model/HttpSingleUriData.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
-import FeatureType from '@/services/profile/features/FeatureType';
+import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
 interface Props {

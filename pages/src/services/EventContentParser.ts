@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import WorkspaceEvent from './model/WorkspaceEvent';
-import WorkspaceEventType from './model/WorkspaceEventType';
+import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
+import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
 
 export interface ProjectCreatedContent {
     projectName: string;

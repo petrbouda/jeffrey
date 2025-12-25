@@ -587,9 +587,9 @@
 
 <script setup lang="ts">
 import {onMounted, ref, watch} from 'vue';
-import ProfilePerformanceCountersClient from '@/services/ProfilePerformanceCountersClient';
+import ProfilePerformanceCountersClient from '@/services/api/ProfilePerformanceCountersClient';
 import FormattingService from '@/services/FormattingService';
-import PerformanceCounter from "@/services/model/PerformanceCounter.ts";
+import PerformanceCounter from "@/services/api/model/PerformanceCounter.ts";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';

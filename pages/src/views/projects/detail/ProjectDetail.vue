@@ -138,12 +138,12 @@ import {useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import MessageBus from "@/services/MessageBus.ts";
 import Badge from '@/components/Badge.vue';
-import ProjectClient from "@/services/ProjectClient.ts";
-import Project from "@/services/model/Project.ts";
-import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
-import WorkspaceClient from "@/services/workspace/WorkspaceClient.ts";
-import Workspace from "@/services/workspace/model/Workspace.ts";
-import WorkspaceStatus from "@/services/workspace/model/WorkspaceStatus.ts";
+import ProjectClient from "@/services/api/ProjectClient.ts";
+import Project from "@/services/api/model/Project.ts";
+import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
+import WorkspaceClient from "@/services/api/WorkspaceClient.ts";
+import Workspace from "@/services/api/model/Workspace.ts";
+import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
 import { useNavigation } from '@/composables/useNavigation';
 
 const router = useRouter();

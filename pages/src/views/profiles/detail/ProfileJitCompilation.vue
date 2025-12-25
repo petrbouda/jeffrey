@@ -319,7 +319,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
-import ProfileCompilationClient from "@/services/compilation/ProfileCompilationClient.ts";
+import ProfileCompilationClient from "@/services/api/ProfileCompilationClient.ts";
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";

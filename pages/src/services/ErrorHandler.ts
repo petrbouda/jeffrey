@@ -17,7 +17,7 @@
  */
 
 import { ApiError } from '@/services/HttpInterceptor';
-import { ErrorResponse, isErrorResponse } from '@/services/model/ErrorResponse';
+import { ErrorResponse, isErrorResponse } from '@/services/api/model/ErrorResponse';
 import { ToastService } from '@/services/ToastService';
 
 /**

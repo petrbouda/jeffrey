@@ -65,7 +65,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import TimeRange from '@/services/flamegraphs/model/TimeRange';
+import TimeRange from '@/services/api/model/TimeRange';
 import LoadingIndicator from '@/components/LoadingIndicator.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';

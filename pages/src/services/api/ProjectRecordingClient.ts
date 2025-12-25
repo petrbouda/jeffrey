@@ -1,0 +1,81 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+import GlobalVars from '@/services/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/services/HttpUtils';
+import Recording from "@/services/api/model/Recording.ts";
+
+export default class ProjectRecordingClient {
+
+    private baseUrl: string;
+
+    constructor(workspaceId: string, projectId: string) {
+        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/recordings';
+    }
+
+    async upload(file: File, folderId: string | null): Promise<void> {
+        const formData = new FormData();
+        formData.append("file", file, file.name);
+        if (folderId) {
+            formData.append("folder_id", folderId);
+        }
+
+        return axios.post(this.baseUrl, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    async list(): Promise<Recording[]> {
+        return axios.get<Recording[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    async delete(id: string) {
+        return axios.delete(this.baseUrl + "/" + id, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    async downloadFile(recordingId: string, fileId: string): Promise<void> {
+        const downloadUrl = this.baseUrl + "/" + recordingId + "/files/" + encodeURIComponent(fileId) + "/download";
+
+        const response = await axios.get(downloadUrl, {
+            responseType: 'blob'
+        });
+
+        // Extract filename from Content-Disposition header or use fileId as fallback
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = fileId;
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (match) {
+                filename = match[1];
+            }
+        }
+
+        // Create blob URL and trigger download
+        const blob = new Blob([response.data]);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    }
+}

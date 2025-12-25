@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {computed} from 'vue';
-import RepositoryStatistics from "@/services/project/model/RepositoryStatistics.ts";
-import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+import RepositoryStatistics from "@/services/api/model/RepositoryStatistics.ts";
+import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
 import Utils from "@/services/Utils";
 import Badge from '@/components/Badge.vue';
 import FormattingService from "@/services/FormattingService.ts";

@@ -73,9 +73,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-// Generate unique IDs
-const inputId = computed(() => `input-${Math.random().toString(36).substring(2, 9)}`);
-const checkboxId = computed(() => `checkbox-${Math.random().toString(36).substring(2, 9)}`);
+// Generate unique IDs (stable - only generated once per component instance)
+const inputId = `input-${Math.random().toString(36).substring(2, 9)}`;
+const checkboxId = `checkbox-${Math.random().toString(36).substring(2, 9)}`;
 
 // Computed classes for input
 const inputClasses = computed(() => [

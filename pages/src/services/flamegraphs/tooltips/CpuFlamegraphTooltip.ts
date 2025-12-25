@@ -17,7 +17,7 @@
  */
 
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import Frame from "@/services/flamegraphs/model/Frame";
+import Frame from "@/services/api/model/Frame";
 import BasicFlamegraphTooltip from "@/services/flamegraphs/tooltips/BasicFlamegraphTooltip";
 
 export default class CpuFlamegraphTooltip extends FlamegraphTooltip {

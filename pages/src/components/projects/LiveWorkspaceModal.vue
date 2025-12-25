@@ -62,12 +62,12 @@
 import {ref} from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import FormInput from '@/components/form/FormInput.vue';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
-import CreateWorkspaceRequest from '@/services/workspace/model/CreateWorkspaceRequest';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import CreateWorkspaceRequest from '@/services/api/model/CreateWorkspaceRequest';
 import ToastService from '@/services/ToastService';
 import SlugService from '@/services/SlugService';
 import {useModal} from '@/composables/useModal';
-import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
+import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
 
 interface Emits {
   (e: 'workspace-created'): void;

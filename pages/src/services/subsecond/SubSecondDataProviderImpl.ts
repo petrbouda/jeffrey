@@ -21,7 +21,7 @@ import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
 import GlobalVars from "@/services/GlobalVars";
 import axios from "axios";
 import HttpUtils from "@/services/HttpUtils";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import TimeRange from "@/services/api/model/TimeRange";
 
 export default class SubSecondDataProviderImpl implements SubSecondDataProvider {
 

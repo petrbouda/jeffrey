@@ -21,7 +21,7 @@ import router from "@/router";
 import {computed, ref} from "vue";
 import Utils from "@/services/Utils";
 import {useRoute} from "vue-router";
-import EventSummary from "@/services/flamegraphs/model/EventSummary";
+import EventSummary from "@/services/api/model/EventSummary";
 
 const props = defineProps<{
   routerForward: string,

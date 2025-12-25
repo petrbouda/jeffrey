@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import type ProjectTemplateInfo from '@/services/project/model/ProjectTemplateInfo';
+import type ProjectTemplateInfo from '@/services/api/model/ProjectTemplateInfo';
 
 interface Props {
   modelValue: string | null;

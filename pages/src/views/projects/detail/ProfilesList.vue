@@ -129,8 +129,8 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref, computed} from 'vue';
 import ToastService from '@/services/ToastService';
-import Profile from "@/services/model/Profile.ts";
-import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
+import Profile from "@/services/api/model/Profile.ts";
+import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
@@ -140,7 +140,7 @@ import SearchBox from '@/components/SearchBox.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import BaseModal from '@/components/BaseModal.vue';
-import RecordingEventSource from "@/services/model/data/RecordingEventSource.ts";
+import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 

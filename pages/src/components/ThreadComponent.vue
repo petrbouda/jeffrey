@@ -18,12 +18,12 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import ThreadRowData from '@/services/thread/model/ThreadRowData';
+import ThreadRowData from '@/services/api/model/ThreadRowData';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import ThreadCommon from '@/services/thread/model/ThreadCommon';
+import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadRow from '@/services/thread/ThreadRow';
-import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
+import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';

@@ -295,12 +295,12 @@ import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHierarchy.vue';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
-import WorkspaceType from '@/services/workspace/model/WorkspaceType';
-import type Workspace from '@/services/workspace/model/Workspace';
-import ProfilerClient from '@/services/ProfilerClient';
-import ProjectsClient from '@/services/ProjectsClient';
-import type Project from '@/services/model/Project';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceType from '@/services/api/model/WorkspaceType';
+import type Workspace from '@/services/api/model/Workspace';
+import ProfilerClient from '@/services/api/ProfilerClient';
+import ProjectsClient from '@/services/api/ProjectsClient';
+import type Project from '@/services/api/model/Project';
 
 // Mode management
 const viewMode = ref<'view' | 'configure'>('configure');

@@ -23,7 +23,7 @@ import {
   type JobCreationParams
 } from './JobTypePlugin';
 import WorkspaceProfilerSettingsSynchronizerModal from '@/components/scheduler/WorkspaceProfilerSettingsSynchronizerModal.vue';
-import type JobInfo from '@/services/model/JobInfo';
+import type JobInfo from '@/services/api/model/JobInfo';
 
 /**
  * Form data structure for Workspace Profiler Settings Synchronizer

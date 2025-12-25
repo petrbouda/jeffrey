@@ -23,7 +23,7 @@ import {
   type JobCreationParams
 } from './JobTypePlugin';
 import WorkspaceEventsReplicatorModal from '@/components/scheduler/WorkspaceEventsReplicatorModal.vue';
-import type JobInfo from '@/services/model/JobInfo';
+import type JobInfo from '@/services/api/model/JobInfo';
 
 /**
  * Plugin for Workspace Events Replicator job type

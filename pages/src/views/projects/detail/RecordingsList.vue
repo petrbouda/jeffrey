@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
-import ProjectRecordingClient from '@/services/ProjectRecordingClient';
-import ProjectRecordingFolderClient from '@/services/ProjectRecordingFolderClient';
+import ProjectRecordingClient from '@/services/api/ProjectRecordingClient';
+import ProjectRecordingFolderClient from '@/services/api/ProjectRecordingFolderClient';
 import {ToastService} from '@/services/ToastService';
-import Recording from "@/services/model/Recording.ts";
-import RecordingFolder from "@/services/model/RecordingFolder.ts";
-import ProjectProfileClient from "@/services/ProjectProfileClient.ts";
+import Recording from "@/services/api/model/Recording.ts";
+import RecordingFolder from "@/services/api/model/RecordingFolder.ts";
+import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 import FormattingService from "@/services/FormattingService.ts";
 import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";

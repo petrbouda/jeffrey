@@ -17,7 +17,7 @@
  */
 
 import type { Component } from 'vue';
-import type JobInfo from '@/services/model/JobInfo';
+import type JobInfo from '@/services/api/model/JobInfo';
 
 /**
  * Job card metadata for displaying in the job types grid

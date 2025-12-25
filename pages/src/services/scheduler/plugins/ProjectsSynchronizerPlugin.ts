@@ -23,7 +23,7 @@ import {
   type JobCreationParams
 } from './JobTypePlugin';
 import ProjectsSynchronizerModal from '@/components/scheduler/ProjectsSynchronizerModal.vue';
-import type JobInfo from '@/services/model/JobInfo';
+import type JobInfo from '@/services/api/model/JobInfo';
 
 /**
  * Form data structure for Projects Synchronizer

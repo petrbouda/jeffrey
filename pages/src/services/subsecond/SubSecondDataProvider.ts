@@ -17,7 +17,7 @@
  */
 
 import SubSecondData from "@/services/subsecond/model/SubSecondData";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import TimeRange from "@/services/api/model/TimeRange";
 
 export default abstract class SubSecondDataProvider {
 

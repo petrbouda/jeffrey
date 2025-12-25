@@ -228,17 +228,17 @@ import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import Badge from '@/components/Badge.vue';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
-import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
-import GCOverviewData from '@/services/profile/gc/GCOverviewData';
-import ConcurrentEvent from '@/services/profile/gc/ConcurrentEvent';
-import GCEvent from '@/services/profile/gc/GCEvent';
+import ProfileGCClient from '@/services/api/ProfileGCClient';
+import GCOverviewData from '@/services/api/model/GCOverviewData';
+import ConcurrentEvent from '@/services/api/model/ConcurrentEvent';
+import GCEvent from '@/services/api/model/GCEvent';
 import FormattingService from '@/services/FormattingService';
 import {
   getConcurrentBadgeValue,
   getConcurrentBadgeVariant,
   getGenerationTypeBadgeVariant
-} from '@/services/profile/gc/GarbageCollectionUtils';
-import { GarbageCollectionCauseDescriptions } from '@/services/profile/gc/GarbageCollectionCauseDescriptions';
+} from '@/services/api/model/GarbageCollectionUtils';
+import { GarbageCollectionCauseDescriptions } from '@/services/api/model/GarbageCollectionCauseDescriptions';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import TimeRange from "@/services/api/model/TimeRange";
 
 export default class Utils {
 
@@ -34,16 +34,6 @@ export default class Utils {
 
     static #toMillis(seconds: number, millis: number) {
         return seconds * 1000 + millis
-    }
-
-    static formatDateTime(dateTime: string) {
-        const date = new Date(dateTime)
-        const month = ("0" + (date.getMonth() + 1)).slice(-2)
-        const day = ("0" + (date.getDate())).slice(-2)
-        const hour = ("0" + (date.getHours())).slice(-2)
-        const minute = ("0" + (date.getMinutes())).slice(-2)
-        const second = ("0" + (date.getSeconds())).slice(-2)
-        return date.getFullYear() + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second
     }
 
     static parseBoolean(value: any) {

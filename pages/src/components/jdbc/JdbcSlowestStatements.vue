@@ -103,7 +103,7 @@ import { computed, withDefaults } from 'vue';
 import ChartSection from '@/components/ChartSection.vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 import Badge from '@/components/Badge.vue';
-import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {

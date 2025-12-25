@@ -24,7 +24,7 @@ import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
 import DifferenceHeatmapTooltip from "@/services/subsecond/DifferenceHeatmapTooltip";
 import MessageBus from "@/services/MessageBus";
 import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import TimeRange from "@/services/api/model/TimeRange";
 import {computeDifference} from "@/services/subsecond/SubSecondDifferenceUtils";
 import SubSecondData from "@/services/subsecond/model/SubSecondData";
 

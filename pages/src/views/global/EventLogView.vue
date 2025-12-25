@@ -186,10 +186,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import WorkspaceEvent from '@/services/model/WorkspaceEvent';
-import WorkspaceEventType from '@/services/model/WorkspaceEventType';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
-import WorkspaceType from '@/services/workspace/model/WorkspaceType';
+import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
+import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceType from '@/services/api/model/WorkspaceType';
 import { EventContentParser } from '@/services/EventContentParser';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';

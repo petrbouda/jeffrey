@@ -21,34 +21,9 @@
       </template>
     </PageHeader>
 
-    <!-- Configuration Overview Cards -->
-    <div class="configuration-grid mb-4" v-if="configData?.configuration">
-      <DashboardCard
-          title="Host Information"
-          :valueA="formatBytes(configData?.configuration.hostTotalMemory || 0)"
-          :valueB="configData?.configuration.effectiveCpuCount?.toString() || 'N/A'"
-          labelA="Total Memory"
-          labelB="Effective CPUs"
-          variant="highlight"
-      />
-
-      <DashboardCard
-          title="Memory Limits"
-          :valueA="getMemoryRequest(configData?.configuration)"
-          :valueB="formatMemoryLimit(configData?.configuration.memoryLimit)"
-          labelA="Request"
-          labelB="Limit"
-          variant="success"
-      />
-
-      <DashboardCard
-          title="CPU Resources"
-          :valueA="formatCpuShares(configData?.configuration.cpuShares)"
-          :valueB="formatDuration(configData?.configuration.cpuQuota)"
-          labelA="Request"
-          labelB="Limit"
-          variant="info"
-      />
+    <!-- Configuration Overview -->
+    <div class="mb-4" v-if="configData?.configuration">
+      <StatsTable :metrics="overviewMetrics" />
     </div>
 
     <!-- Detailed Configuration Sections -->
@@ -117,14 +92,14 @@ import {computed, onMounted, ref, withDefaults} from 'vue';
 import {useRoute} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import DashboardCard from '@/components/DashboardCard.vue';
+import StatsTable from '@/components/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
-import ProfileContainerClient from '@/services/profile/container/ProfileContainerClient';
-import ContainerConfigurationData from '@/services/profile/container/ContainerConfigurationData';
+import ProfileContainerClient from '@/services/api/ProfileContainerClient';
+import ContainerConfigurationData from '@/services/api/model/ContainerConfigurationData';
 import FormattingService from '@/services/FormattingService';
-import FeatureType from '@/services/profile/features/FeatureType';
+import FeatureType from '@/services/api/model/FeatureType';
 import ContainerNotAvailableAlert from '@/components/alerts/ContainerNotAvailableAlert.vue';
 
 interface Props {
@@ -145,6 +120,62 @@ const configData = ref<ContainerConfigurationData | null>(null);
 
 const isContainerDashboardDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.CONTAINER_DASHBOARD);
+});
+
+const overviewMetrics = computed(() => {
+  const config = configData.value?.configuration;
+  if (!config) return [];
+
+  return [
+    {
+      icon: 'server',
+      title: 'Host Information',
+      value: formatBytes(config.hostTotalMemory || 0),
+      variant: 'highlight' as const,
+      breakdown: [
+        {
+          label: 'Total Memory',
+          value: formatBytes(config.hostTotalMemory || 0)
+        },
+        {
+          label: 'Effective CPUs',
+          value: config.effectiveCpuCount?.toString() || 'N/A'
+        }
+      ]
+    },
+    {
+      icon: 'memory',
+      title: 'Memory Limits',
+      value: getMemoryRequest(config),
+      variant: 'success' as const,
+      breakdown: [
+        {
+          label: 'Request',
+          value: getMemoryRequest(config)
+        },
+        {
+          label: 'Limit',
+          value: formatMemoryLimit(config.memoryLimit)
+        }
+      ]
+    },
+    {
+      icon: 'cpu',
+      title: 'CPU Resources',
+      value: formatCpuShares(config.cpuShares),
+      variant: 'info' as const,
+      breakdown: [
+        {
+          label: 'Request',
+          value: formatCpuShares(config.cpuShares)
+        },
+        {
+          label: 'Limit',
+          value: formatDuration(config.cpuQuota)
+        }
+      ]
+    }
+  ];
 });
 
 let containerClient: ProfileContainerClient;
@@ -210,12 +241,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.configuration-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
 .config-sections-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -230,17 +255,7 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .configuration-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .config-sections-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 576px) {
-  .configuration-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -169,8 +169,8 @@ import StatsTable from '@/components/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
-import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
-import GCConfigurationData from '@/services/profile/gc/GCConfigurationData';
+import ProfileGCClient from '@/services/api/ProfileGCClient';
+import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();

@@ -105,10 +105,10 @@ import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
 import FormattingService from '@/services/FormattingService';
-import ProfileMethodTracingClient from '@/services/profile/custom/methodtracing/ProfileMethodTracingClient';
-import type MethodTracingOverviewData from '@/services/profile/custom/methodtracing/MethodTracingOverviewData';
+import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
+import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
-import FeatureType from '@/services/profile/features/FeatureType';
+import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
 interface Props {

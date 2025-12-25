@@ -42,8 +42,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import Badge from '@/components/Badge.vue';
-import ProjectClient from "@/services/ProjectClient.ts";
-import Project from "@/services/model/Project.ts";
+import ProjectClient from "@/services/api/ProjectClient.ts";
+import Project from "@/services/api/model/Project.ts";
 import MessageBus from "@/services/MessageBus";
 
 const route = useRoute();

@@ -73,8 +73,8 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
-import ProfileGCClient from '@/services/profile/gc/ProfileGCClient';
-import GCTimeseriesType from '@/services/profile/gc/GCTimeseriesType';
+import ProfileGCClient from '@/services/api/ProfileGCClient';
+import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();

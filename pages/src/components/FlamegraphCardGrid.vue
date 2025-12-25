@@ -210,7 +210,7 @@ import { computed } from 'vue';
 import FlamegraphCard from '@/components/FlamegraphCard.vue';
 import FormattingService from '@/services/FormattingService';
 import GraphType from '@/services/flamegraphs/GraphType';
-import EventSummary from '@/services/flamegraphs/model/EventSummary';
+import EventSummary from '@/services/api/model/EventSummary';
 
 interface Props {
   graphMode: string;

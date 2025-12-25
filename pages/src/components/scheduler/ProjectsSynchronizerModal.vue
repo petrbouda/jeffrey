@@ -38,9 +38,9 @@
 import { ref, onMounted } from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
 import FormTemplateSelector from '@/components/form/FormTemplateSelector.vue';
-import ProjectsClient from '@/services/ProjectsClient';
-import ProjectTemplateInfo from '@/services/project/model/ProjectTemplateInfo';
-import TemplateTarget from '@/services/model/TemplateTarget';
+import ProjectsClient from '@/services/api/ProjectsClient';
+import ProjectTemplateInfo from '@/services/api/model/ProjectTemplateInfo';
+import TemplateTarget from '@/services/api/model/TemplateTarget';
 import { useModal } from '@/composables/useModal';
 
 interface Props {

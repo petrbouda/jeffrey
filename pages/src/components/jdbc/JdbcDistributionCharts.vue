@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import PieChart from '@/components/PieChart.vue';
-import JdbcUtils from '@/services/profile/custom/jdbc/JdbcUtils.ts';
+import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
 
 interface Props {
   operations: { label: string; value: number }[];

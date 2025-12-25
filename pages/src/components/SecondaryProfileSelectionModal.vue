@@ -318,15 +318,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
-import ProjectProfileClient from '@/services/ProjectProfileClient';
-import ProjectsClient from '@/services/ProjectsClient';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
+import ProjectProfileClient from '@/services/api/ProjectProfileClient';
+import ProjectsClient from '@/services/api/ProjectsClient';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
 import FormattingService from '@/services/FormattingService';
 import ToastService from '@/services/ToastService';
-import Profile from '@/services/model/Profile';
-import Project from '@/services/model/Project';
-import Workspace from '@/services/workspace/model/Workspace';
-import WorkspaceType from '@/services/workspace/model/WorkspaceType';
+import Profile from '@/services/api/model/Profile';
+import Project from '@/services/api/model/Project';
+import Workspace from '@/services/api/model/Workspace';
+import WorkspaceType from '@/services/api/model/WorkspaceType';
 
 interface Props {
   show: boolean;

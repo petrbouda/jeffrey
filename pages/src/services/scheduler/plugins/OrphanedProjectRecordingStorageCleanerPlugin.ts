@@ -23,7 +23,7 @@ import {
   type JobCreationParams
 } from './JobTypePlugin';
 import OrphanedProjectRecordingStorageCleanerModal from '@/components/scheduler/OrphanedProjectRecordingStorageCleanerModal.vue';
-import type JobInfo from '@/services/model/JobInfo';
+import type JobInfo from '@/services/api/model/JobInfo';
 
 /**
  * Plugin for Orphaned Project Recording Storage Cleaner job type

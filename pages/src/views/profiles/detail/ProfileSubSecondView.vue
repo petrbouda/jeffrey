@@ -37,9 +37,9 @@ import GraphType from "@/services/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';
-import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient";
-import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient";
-import DifferentialFlamegraphClient from "@/services/flamegraphs/client/DifferentialFlamegraphClient";
+import FlamegraphClient from "@/services/api/FlamegraphClient";
+import PrimaryFlamegraphClient from "@/services/api/PrimaryFlamegraphClient";
+import DifferentialFlamegraphClient from "@/services/api/DifferentialFlamegraphClient";
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import FlamegraphTooltipFactory from "@/services/flamegraphs/tooltips/FlamegraphTooltipFactory";
 import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
@@ -47,7 +47,7 @@ import SubSecondDataProviderImpl from "@/services/subsecond/SubSecondDataProvide
 import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import OnlyFlamegraphGraphUpdater from "@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
+import TimeRange from "@/services/api/model/TimeRange";
 import TimeseriesEventAxeFormatter from "@/services/timeseries/TimeseriesEventAxeFormatter";
 // Import Bootstrap modal functionality
 import * as bootstrap from 'bootstrap';

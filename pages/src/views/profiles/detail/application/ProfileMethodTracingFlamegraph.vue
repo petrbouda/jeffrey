@@ -24,14 +24,14 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
-import PrimaryFlamegraphClient from '@/services/flamegraphs/client/PrimaryFlamegraphClient';
+import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import EventTypes from '@/services/EventTypes';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import type FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
-import FeatureType from '@/services/profile/features/FeatureType';
+import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
 interface Props {

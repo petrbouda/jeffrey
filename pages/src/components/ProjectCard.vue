@@ -65,12 +65,12 @@
 
 <script setup lang="ts">
 import {computed, defineProps} from 'vue';
-import Project from "@/services/model/Project.ts";
-import RecordingStatus from "@/services/model/data/RecordingStatus.ts";
+import Project from "@/services/api/model/Project.ts";
+import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
 import Badge from '@/components/Badge.vue';
-import WorkspaceType from "@/services/workspace/model/WorkspaceType.ts";
+import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
 import {useNavigation} from '@/composables/useNavigation';
-import ProjectsClient from "@/services/ProjectsClient.ts";
+import ProjectsClient from "@/services/api/ProjectsClient.ts";
 import ToastService from "@/services/ToastService.ts";
 
 const props = defineProps<{

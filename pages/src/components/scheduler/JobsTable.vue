@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import JobInfo from '@/services/model/JobInfo';
+import JobInfo from '@/services/api/model/JobInfo';
 import '@/styles/shared-components.css';
 
 export interface JobDisplayInfo {

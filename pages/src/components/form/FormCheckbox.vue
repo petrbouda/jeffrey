@@ -19,8 +19,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-
 interface Props {
   modelValue: boolean;
   label: string;
@@ -34,8 +32,8 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Generate unique ID
-const checkboxId = computed(() => `checkbox-${Math.random().toString(36).substring(2, 9)}`);
+// Generate unique ID (stable - only generated once per component instance)
+const checkboxId = `checkbox-${Math.random().toString(36).substring(2, 9)}`;
 
 // Handle checkbox change
 const handleChange = (event: Event) => {

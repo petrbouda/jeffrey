@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import Frame from "@/services/flamegraphs/model/Frame";
+import Frame from "@/services/api/model/Frame";
 import EventTypes from "@/services/EventTypes";
 import FormattingService from "@/services/FormattingService";
-import FramePosition from "@/services/flamegraphs/model/FramePosition";
-import FrameSampleTypes from "@/services/flamegraphs/model/FrameSampleTypes";
+import FramePosition from "@/services/api/model/FramePosition";
+import FrameSampleTypes from "@/services/api/model/FrameSampleTypes";
 import JavaMethodParser from "@/services/flamegraphs/JavaMethodParser";
 
 export default abstract class FlamegraphTooltip {

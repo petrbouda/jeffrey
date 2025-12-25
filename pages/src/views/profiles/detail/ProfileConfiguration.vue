@@ -19,7 +19,7 @@
 <script setup lang="ts">
 
 import {onMounted, ref} from 'vue';
-import InformationClient from '@/services/InformationClient';
+import InformationClient from '@/services/api/InformationClient';
 import FormattingService from "@/services/FormattingService";
 import {useRoute} from "vue-router";
 import { useNavigation } from '@/composables/useNavigation';

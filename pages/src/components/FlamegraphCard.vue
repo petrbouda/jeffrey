@@ -197,7 +197,7 @@ Coul<!--
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router';
 import { ref } from 'vue';
-import EventSummary from '@/services/flamegraphs/model/EventSummary';
+import EventSummary from '@/services/api/model/EventSummary';
 import Utils from '@/services/Utils';
 import FormattingService from '@/services/FormattingService';
 

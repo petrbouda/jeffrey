@@ -229,14 +229,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
-import WorkspaceClient from '@/services/workspace/WorkspaceClient';
-import WorkspaceType from '@/services/workspace/model/WorkspaceType';
-import ProfilerClient from '@/services/ProfilerClient';
-import ProjectsClient from '@/services/ProjectsClient';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceType from '@/services/api/model/WorkspaceType';
+import ProfilerClient from '@/services/api/ProfilerClient';
+import ProjectsClient from '@/services/api/ProjectsClient';
 import ToastService from '@/services/ToastService';
-import type Workspace from '@/services/workspace/model/Workspace';
-import type Project from '@/services/model/Project';
-import type ProfilerSettings from '@/services/model/ProfilerSettings';
+import type Workspace from '@/services/api/model/Workspace';
+import type Project from '@/services/api/model/Project';
+import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
 interface WorkspaceWithSettings extends Workspace {
   hasCustomSettings: boolean;

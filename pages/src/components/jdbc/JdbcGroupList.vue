@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import JdbcGroup from '@/services/profile/custom/jdbc/JdbcGroup.ts';
+import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
 import FormattingService from "@/services/FormattingService.ts";
 import MetricsList from '@/components/MetricsList.vue';
 import type { MetricDefinition, SortOption } from '@/components/MetricsList.vue';

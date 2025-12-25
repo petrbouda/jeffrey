@@ -46,6 +46,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 interface Props {
   modalId: string;
   show: boolean;
@@ -74,10 +76,6 @@ const modalSize = computed(() => {
     default: return '';
   }
 });
-</script>
-
-<script lang="ts">
-import { computed } from 'vue';
 </script>
 
 <style scoped>

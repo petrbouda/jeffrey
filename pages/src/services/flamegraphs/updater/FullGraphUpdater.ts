@@ -17,9 +17,9 @@
  */
 
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import TimeRange from "@/services/flamegraphs/model/TimeRange";
-import FlamegraphClient from "@/services/flamegraphs/client/FlamegraphClient.ts";
-import PrimaryFlamegraphClient from "@/services/flamegraphs/client/PrimaryFlamegraphClient.ts";
+import TimeRange from "@/services/api/model/TimeRange";
+import FlamegraphClient from "@/services/api/FlamegraphClient.ts";
+import PrimaryFlamegraphClient from "@/services/api/PrimaryFlamegraphClient.ts";
 import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
 
 export default class FullGraphUpdater extends GraphUpdater {

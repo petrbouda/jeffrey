@@ -17,7 +17,7 @@
  */
 
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import Frame from "@/services/flamegraphs/model/Frame";
+import Frame from "@/services/api/model/Frame";
 import FrameColorResolver from "@/services/flamegraphs/FrameColorResolver";
 
 export default class BasicWithWeightFlamegraphTooltip extends FlamegraphTooltip {
