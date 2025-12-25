@@ -51,7 +51,6 @@ import pbouda.jeffrey.provider.api.RecordingParserProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
-import pbouda.jeffrey.provider.writer.clickhouse.ClickHousePersistenceProvider;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.recording.ProjectRecordingInitializerImpl;
@@ -110,9 +109,7 @@ public class AppConfiguration {
             Clock clock) {
 
         PersistenceProvider persistenceProvider;
-        if (databaseName.equalsIgnoreCase("clickhouse")) {
-            persistenceProvider = new ClickHousePersistenceProvider();
-        } else if (databaseName.equalsIgnoreCase("duckdb")) {
+        if (databaseName.equalsIgnoreCase("duckdb")) {
             persistenceProvider = new DuckDBPersistenceProvider();
         } else {
             throw new IllegalArgumentException("Unsupported persistence database: " + databaseName);
