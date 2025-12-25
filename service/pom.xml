@@ -47,7 +47,7 @@
         <module>tools</module>
         <module>profile-parser</module>
         <module>profile-management</module>
-        <module>core</module>
+        <module>platform-management</module>
     </modules>
 
     <properties>

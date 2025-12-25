@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Application" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
-    <module name="core" />
+    <module name="platform-management" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="pbouda.jeffrey.Application" />
     <option name="VM_PARAMETERS" value="-XX:+CrashOnOutOfMemoryError -agentpath:$USER_HOME$/.sdkman/candidates/java/25.0.1-amzn/lib/libasyncProfiler.dylib=start,event=cpu,alloc,lock,chunksize=5m,jfrsync=default,file=profile.jfr" />
     <extension name="coverage">
