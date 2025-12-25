@@ -48,7 +48,8 @@ const periodicRecordingGeneratorModalRef = ref<InstanceType<typeof PeriodicRecor
 const copyRecordingGeneratorModalRef = ref<InstanceType<typeof CopyRecordingGeneratorModal> | null>(null);
 
 const activeJobs = ref<JobInfo[]>([])
-const cleanerJobAlreadyExists = ref(false)
+const sessionCleanerJobAlreadyExists = ref(false)
+const recordingCleanerJobAlreadyExists = ref(false)
 const copyGeneratorJobAlreadyExists = ref(false)
 const jfrCompressionJobExists = ref(false)
 const recordingStorageSynchronizerJobExists = ref(false)
@@ -77,7 +78,8 @@ onMounted(async () => {
 
 function checkForExistingJobs(jobs: JobInfo[]) {
   // Reset the flags first
-  cleanerJobAlreadyExists.value = false;
+  sessionCleanerJobAlreadyExists.value = false;
+  recordingCleanerJobAlreadyExists.value = false;
   copyGeneratorJobAlreadyExists.value = false;
   jfrCompressionJobExists.value = false;
   recordingStorageSynchronizerJobExists.value = false;
@@ -85,7 +87,9 @@ function checkForExistingJobs(jobs: JobInfo[]) {
   // Check for existing jobs by type
   for (let job of jobs) {
     if (job.jobType === JobType.REPOSITORY_SESSION_CLEANER) {
-      cleanerJobAlreadyExists.value = true;
+      sessionCleanerJobAlreadyExists.value = true;
+    } else if (job.jobType === JobType.REPOSITORY_RECORDING_CLEANER) {
+      recordingCleanerJobAlreadyExists.value = true;
     } else if (job.jobType === JobType.COPY_RECORDING_GENERATOR) {
       copyGeneratorJobAlreadyExists.value = true;
     } else if (job.jobType === JobType.REPOSITORY_JFR_COMPRESSION) {
@@ -147,11 +151,13 @@ async function deleteActiveTask(id: string) {
 }
 
 // Handle job creation from JobCard component
-const handleCreateJob = (jobType: string) => {
+const handleCreateJob = async (jobType: string) => {
   switch (jobType) {
     case JobType.REPOSITORY_SESSION_CLEANER:
+      repositorySessionCleanerModalRef.value?.showModal(JobType.REPOSITORY_SESSION_CLEANER);
+      break;
     case JobType.REPOSITORY_RECORDING_CLEANER:
-      repositorySessionCleanerModalRef.value?.showModal();
+      repositorySessionCleanerModalRef.value?.showModal(JobType.REPOSITORY_RECORDING_CLEANER);
       break;
     case JobType.COPY_RECORDING_GENERATOR:
       copyRecordingGeneratorModalRef.value?.showModal();
@@ -159,6 +165,36 @@ const handleCreateJob = (jobType: string) => {
     case JobType.PERIODIC_RECORDING_GENERATOR:
       periodicRecordingGeneratorModalRef.value?.showModal();
       break;
+    case JobType.REPOSITORY_JFR_COMPRESSION:
+    case JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER:
+      // These jobs don't need configuration, create directly
+      await createSimpleJob(jobType);
+      break;
+  }
+};
+
+// Get human-readable name for job type
+const getJobTypeName = (jobType: string): string => {
+  switch (jobType) {
+    case JobType.REPOSITORY_JFR_COMPRESSION:
+      return 'JFR Compression';
+    case JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER:
+      return 'Recording Storage Synchronizer';
+    default:
+      return jobType;
+  }
+};
+
+// Create a job without configuration (no modal needed)
+const createSimpleJob = async (jobType: string) => {
+  const jobName = getJobTypeName(jobType);
+  try {
+    await schedulerService.create(jobType, new Map());
+    await updateJobList();
+    ToastService.success('Job Created', `${jobName} has been created successfully`);
+  } catch (error: any) {
+    console.error('Failed to create job:', error);
+    ToastService.error('Creation Failed', error.response?.data || `Failed to create ${jobName}.`);
   }
 };
 
@@ -231,9 +267,9 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
                   icon="bi-trash"
                   icon-color="text-teal"
                   icon-bg="bg-teal-soft"
-                  :disabled="cleanerJobAlreadyExists"
+                  :disabled="sessionCleanerJobAlreadyExists"
                   :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: cleanerJobAlreadyExists }
+                  { text: 'Job already exists', color: 'bg-success', condition: sessionCleanerJobAlreadyExists }
                 ]"
                   @create-job="handleCreateJob"
               />
@@ -248,9 +284,43 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
                   icon="bi-trash"
                   icon-color="text-teal"
                   icon-bg="bg-teal-soft"
-                  :disabled="cleanerJobAlreadyExists"
+                  :disabled="recordingCleanerJobAlreadyExists"
                   :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: cleanerJobAlreadyExists }
+                  { text: 'Job already exists', color: 'bg-success', condition: recordingCleanerJobAlreadyExists }
+                ]"
+                  @create-job="handleCreateJob"
+              />
+            </div>
+
+            <!-- JFR Compression -->
+            <div class="col-12 col-lg-6">
+              <JobCard
+                  :job-type="JobType.REPOSITORY_JFR_COMPRESSION"
+                  title="JFR Compression"
+                  description="Compresses finished JFR recording files using LZ4 compression to save storage space. Processes active and latest finished sessions automatically."
+                  icon="bi-file-zip"
+                  icon-color="text-orange"
+                  icon-bg="bg-orange-soft"
+                  :disabled="jfrCompressionJobExists"
+                  :badges="[
+                  { text: 'Job already exists', color: 'bg-success', condition: jfrCompressionJobExists }
+                ]"
+                  @create-job="handleCreateJob"
+              />
+            </div>
+
+            <!-- Recording Storage Synchronizer -->
+            <div class="col-12 col-lg-6">
+              <JobCard
+                  :job-type="JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER"
+                  title="Recording Storage Synchronizer"
+                  description="Synchronizes recording storage with the database by removing orphaned recordings that no longer exist in the database."
+                  icon="bi-arrow-repeat"
+                  icon-color="text-purple"
+                  icon-bg="bg-purple-soft"
+                  :disabled="recordingStorageSynchronizerJobExists"
+                  :badges="[
+                  { text: 'Job already exists', color: 'bg-success', condition: recordingStorageSynchronizerJobExists }
                 ]"
                   @create-job="handleCreateJob"
               />
@@ -289,38 +359,6 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
                   { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
                 ]"
                   @create-job="handleCreateJob"
-              />
-            </div>
-
-            <!-- JFR Compression -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.REPOSITORY_JFR_COMPRESSION"
-                  title="JFR Compression"
-                  description="Compresses finished JFR recording files using LZ4 compression to save storage space. Processes active and latest finished sessions automatically."
-                  icon="bi-file-zip"
-                  icon-color="text-orange"
-                  icon-bg="bg-orange-soft"
-                  :disabled="jfrCompressionJobExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: jfrCompressionJobExists }
-                ]"
-              />
-            </div>
-
-            <!-- Recording Storage Synchronizer -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER"
-                  title="Recording Storage Synchronizer"
-                  description="Synchronizes recording storage with the database by removing orphaned recordings that no longer exist in the database."
-                  icon="bi-arrow-repeat"
-                  icon-color="text-purple"
-                  icon-bg="bg-purple-soft"
-                  :disabled="recordingStorageSynchronizerJobExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: recordingStorageSynchronizerJobExists }
-                ]"
               />
             </div>
           </div>
