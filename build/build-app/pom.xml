@@ -30,7 +30,7 @@
     <artifactId>build-app</artifactId>
 
     <properties>
-        <mainClass>pbouda.jeffrey.Application</mainClass>
+        <mainClass>pbouda.jeffrey.platform.Application</mainClass>
         <finalName>jeffrey</finalName>
     </properties>
 
