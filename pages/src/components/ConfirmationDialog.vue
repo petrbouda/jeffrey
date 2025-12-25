@@ -1,49 +1,35 @@
 <script setup lang="ts">
 import {nextTick, watch} from 'vue';
 
-const props = defineProps({
-  // Main control state
-  show: {
-    type: Boolean,
-    required: true
-  },
-  // Dialog content
-  title: {
-    type: String,
-    default: 'Confirm Action'
-  },
-  message: {
-    type: String,
-    required: true
-  },
-  subMessage: {
-    type: String,
-    default: ''
-  },
-  // Dialog customization
-  confirmLabel: {
-    type: String,
-    default: 'Confirm'
-  },
-  cancelLabel: {
-    type: String,
-    default: 'Cancel'
-  },
-  confirmButtonClass: {
-    type: String,
-    default: 'btn-danger'
-  },
-  confirmButtonId: {
-    type: String,
-    default: 'confirm-button'
-  },
-  modalId: {
-    type: String,
-    default: 'confirmation-dialog'
-  }
+interface Props {
+  show: boolean;
+  message: string;
+  title?: string;
+  subMessage?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  confirmButtonClass?: string;
+  confirmButtonId?: string;
+  modalId?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  title: 'Confirm Action',
+  subMessage: '',
+  confirmLabel: 'Confirm',
+  cancelLabel: 'Cancel',
+  confirmButtonClass: 'btn-danger',
+  confirmButtonId: 'confirm-button',
+  modalId: 'confirmation-dialog'
 });
 
-const emit = defineEmits(['confirm', 'cancel', 'update:show']);
+interface Emits {
+  (e: 'confirm'): void;
+  (e: 'cancel'): void;
+  (e: 'update:show', value: boolean): void;
+}
+
+const emit = defineEmits<Emits>();
 
 // Focus modal when shown
 watch(() => props.show, (newVal) => {
@@ -69,7 +55,7 @@ const onCancel = () => {
 </script>
 
 <template>
-  <div class="modal"
+  <div class="modal modal-overlay"
        :class="{ 'd-block': show, 'd-none': !show }"
        @keyup.enter="onConfirm"
        tabindex="-1"
@@ -99,24 +85,4 @@ const onCancel = () => {
   </div>
 </template>
 
-<style scoped>
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-  padding: 1rem;
-}
-
-.btn-close {
-  margin: -0.5rem -0.5rem -0.5rem auto;
-}
-
-.d-block {
-  display: block !important;
-}
-
-.d-none {
-  display: none !important;
-}
-</style>
+<!-- Modal overlay styles provided by global .modal-overlay class in styles.scss -->

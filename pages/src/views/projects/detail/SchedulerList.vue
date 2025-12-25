@@ -42,10 +42,10 @@ const currentProject = ref<SettingsResponse | null>(null);
 const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectId.value!)
 const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
 
-// Modal visibility state
-const showRepositorySessionCleanerModal = ref(false);
-const showPeriodicRecordingGeneratorModal = ref(false);
-const showCopyRecordingGeneratorModal = ref(false);
+// Modal refs
+const repositorySessionCleanerModalRef = ref<InstanceType<typeof RepositorySessionCleanerModal> | null>(null);
+const periodicRecordingGeneratorModalRef = ref<InstanceType<typeof PeriodicRecordingGeneratorModal> | null>(null);
+const copyRecordingGeneratorModalRef = ref<InstanceType<typeof CopyRecordingGeneratorModal> | null>(null);
 
 const activeJobs = ref<JobInfo[]>([])
 const cleanerJobAlreadyExists = ref(false)
@@ -150,16 +150,14 @@ async function deleteActiveTask(id: string) {
 const handleCreateJob = (jobType: string) => {
   switch (jobType) {
     case JobType.REPOSITORY_SESSION_CLEANER:
-      showRepositorySessionCleanerModal.value = true;
-      break;
     case JobType.REPOSITORY_RECORDING_CLEANER:
-      showRepositorySessionCleanerModal.value = true;
+      repositorySessionCleanerModalRef.value?.showModal();
       break;
     case JobType.COPY_RECORDING_GENERATOR:
-      showCopyRecordingGeneratorModal.value = true;
+      copyRecordingGeneratorModalRef.value?.showModal();
       break;
     case JobType.PERIODIC_RECORDING_GENERATOR:
-      showPeriodicRecordingGeneratorModal.value = true;
+      periodicRecordingGeneratorModalRef.value?.showModal();
       break;
   }
 };
@@ -362,22 +360,18 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
 
   <!-- Modal Components -->
   <RepositorySessionCleanerModal
-    :show="showRepositorySessionCleanerModal"
+    ref="repositorySessionCleanerModalRef"
     :scheduler-service="schedulerService"
-    @close="showRepositorySessionCleanerModal = false"
     @saved="handleModalSaved" />
 
-
   <PeriodicRecordingGeneratorModal
-    :show="showPeriodicRecordingGeneratorModal"
+    ref="periodicRecordingGeneratorModalRef"
     :scheduler-service="schedulerService"
-    @close="showPeriodicRecordingGeneratorModal = false"
     @saved="handleModalSaved" />
 
   <CopyRecordingGeneratorModal
-    :show="showCopyRecordingGeneratorModal"
+    ref="copyRecordingGeneratorModalRef"
     :scheduler-service="schedulerService"
-    @close="showCopyRecordingGeneratorModal = false"
     @saved="handleModalSaved" />
 
   <!-- Bootstrap toast container will be added by the ToastService -->

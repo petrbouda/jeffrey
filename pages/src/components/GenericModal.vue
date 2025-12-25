@@ -17,7 +17,7 @@
   -->
 
 <template>
-  <div class="modal"
+  <div class="modal modal-overlay"
        :class="{ 'd-block': show, 'd-none': !show }"
        :id="modalId"
        tabindex="-1"
@@ -78,26 +78,4 @@ const modalSize = computed(() => {
 });
 </script>
 
-<style scoped>
-/* Modal backdrop and positioning */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1055;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  outline: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal.d-none {
-  display: none !important;
-}
-
-.modal.d-block {
-  display: block !important;
-}
-</style>
+<!-- Styles provided by global .modal-overlay class in styles.scss -->

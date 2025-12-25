@@ -19,52 +19,50 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import Utils from "@/services/Utils";
-import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient.ts";
-import { JobType } from "@/services/api/model/JobType.ts";
+import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient";
+import { JobType } from "@/services/api/model/JobType";
 import ToastService from "@/services/ToastService";
-
-interface DialogMessage {
-  severity: string;
-  content: string;
-}
+import BaseModal from "@/components/BaseModal.vue";
 
 const props = defineProps<{
-  show: boolean;
   schedulerService: ProjectSchedulerClient;
 }>();
 
 const emit = defineEmits<{
-  close: [];
   saved: [];
 }>();
 
+const baseModalRef = ref<InstanceType<typeof BaseModal> | null>(null);
+
 const filePattern = ref('periodic-15min/recording-%t.jfr');
-const periodPresets = ref(['1 min', '5 min', '15 min', '1 hour', 'Custom']);
+const periodPresets = ['1 min', '5 min', '15 min', '1 hour', 'Custom'];
 const selectedPeriod = ref('15 min');
 const customPeriod = ref(15);
 const customTimeUnit = ref('Minutes');
-const timeUnits = ref(['Minutes', 'Hours']);
+const timeUnits = ['Minutes', 'Hours'];
 const maxRecordings = ref(10);
-const messages = ref<DialogMessage[]>([]);
+const loading = ref(false);
+
+const showModal = () => {
+  resetForm();
+  baseModalRef.value?.showModal();
+};
 
 const closeModal = () => {
-  resetForm();
-  emit('close');
+  baseModalRef.value?.hideModal();
 };
 
 // Function to calculate the duration string based on period
 const calculateDurationString = () => {
-  let periodInMinutes = 15; // Default to 15 minutes
+  let periodInMinutes = 15;
 
   if (selectedPeriod.value === 'Custom') {
-    // Convert custom period to minutes
     if (customTimeUnit.value === 'Hours') {
       periodInMinutes = customPeriod.value * 60;
     } else {
       periodInMinutes = customPeriod.value;
     }
   } else {
-    // Parse the preset period value
     const periodValue = selectedPeriod.value;
     if (periodValue === '1 min') {
       periodInMinutes = 1;
@@ -77,7 +75,6 @@ const calculateDurationString = () => {
     }
   }
 
-  // Format the duration string
   if (periodInMinutes >= 60 && periodInMinutes % 60 === 0) {
     return periodInMinutes / 60 + 'h';
   } else {
@@ -91,26 +88,24 @@ const updateFilePattern = () => {
   filePattern.value = `periodic-${durationString}/recording-%t.jfr`;
 };
 
-const saveJob = async () => {
+const handleSubmit = async () => {
   if (Utils.isBlank(filePattern.value) ||
       (selectedPeriod.value === 'Custom' && !Utils.isPositiveNumber(customPeriod.value))) {
-    messages.value = [{severity: 'error', content: 'All fields are required and custom period must be a positive number'}];
+    baseModalRef.value?.setValidationErrors(['All fields are required and custom period must be a positive number']);
     return;
   }
-  messages.value = [];
+  baseModalRef.value?.clearValidationErrors();
 
   // Calculate period in minutes
-  let periodInMinutes = 15; // Default to 15 minutes
+  let periodInMinutes = 15;
 
   if (selectedPeriod.value === 'Custom') {
-    // Convert custom period to minutes
     if (customTimeUnit.value === 'Hours') {
       periodInMinutes = customPeriod.value * 60;
     } else {
       periodInMinutes = customPeriod.value;
     }
   } else {
-    // Parse the preset period value
     const periodValue = selectedPeriod.value;
     if (periodValue === '1 min') {
       periodInMinutes = 1;
@@ -128,6 +123,7 @@ const saveJob = async () => {
   jobParams.set('filePattern', filePattern.value);
   jobParams.set('maxRecordings', maxRecordings.value.toString());
 
+  loading.value = true;
   try {
     await props.schedulerService.create(JobType.PERIODIC_RECORDING_GENERATOR, jobParams);
     ToastService.success('Periodic Recording Generator Job', 'Generator Job has been created');
@@ -135,11 +131,14 @@ const saveJob = async () => {
     closeModal();
   } catch (error: any) {
     console.error('Failed to create periodic generator job:', error);
-    messages.value = [{
-      severity: 'error',
-      content: error.response?.data || 'Failed to create job.'
-    }];
+    baseModalRef.value?.setValidationErrors([error.response?.data || 'Failed to create job.']);
+  } finally {
+    loading.value = false;
   }
+};
+
+const handleCancel = () => {
+  closeModal();
 };
 
 const resetForm = () => {
@@ -147,23 +146,9 @@ const resetForm = () => {
   customPeriod.value = 15;
   customTimeUnit.value = 'Minutes';
   maxRecordings.value = 10;
-  messages.value = [];
-
-  // Update the file pattern based on the reset period
   updateFilePattern();
+  baseModalRef.value?.clearValidationErrors();
 };
-
-// Reset form when modal is shown
-watch(() => props.show, (isVisible) => {
-  if (isVisible) {
-    resetForm();
-    // Add modal-open class to body when modal is shown
-    document.body.classList.add('modal-open');
-  } else {
-    // Remove modal-open class from body when modal is hidden
-    document.body.classList.remove('modal-open');
-  }
-});
 
 // Watch for changes to period settings to update file pattern
 watch(selectedPeriod, () => {
@@ -181,175 +166,116 @@ watch(customTimeUnit, () => {
     updateFilePattern();
   }
 });
+
+defineExpose({
+  showModal,
+  closeModal
+});
 </script>
 
 <template>
-  <!-- Modal backdrop -->
-  <div v-if="props.show" class="modal-backdrop fade show" @click="closeModal"></div>
+  <BaseModal
+    ref="baseModalRef"
+    modal-id="periodicRecordingGeneratorModal"
+    title="Create a Periodic Recording Generator Job"
+    icon="bi-arrow-repeat"
+    icon-color="text-blue"
+    primary-button-text="Save Job"
+    primary-button-icon="bi-save"
+    :loading="loading"
+    @submit="handleSubmit"
+    @cancel="handleCancel"
+  >
+    <template #body>
+      <p class="text-muted mb-3">
+        File-Pattern can contain a prefix with a slash indicating a "folder" in the
+        Recordings section and <span class="fw-bold">%t</span> for replacing timestamps,
+        e.g. <code>periodic-15m/recording-%t.jfr</code>
+      </p>
 
-  <div class="modal fade" :class="{ show: props.show }" id="periodicRecordingGeneratorModal" tabindex="-1"
-       aria-labelledby="periodicRecordingGeneratorModalLabel" :aria-hidden="!props.show"
-       :style="{ display: props.show ? 'block' : 'none' }">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content rounded-1 shadow">
-        <div class="modal-header bg-blue-soft border-bottom-0">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-arrow-repeat fs-4 me-2 text-blue"></i>
-            <h5 class="modal-title mb-0 text-dark" id="periodicRecordingGeneratorModalLabel">Create a Periodic Recording Generator Job</h5>
-          </div>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body pt-4">
-          <p class="text-muted mb-3">
-            File-Pattern can contain a prefix with a slash indicating a "folder" in the
-            Recordings section and <span class="fw-bold">%t</span> for replacing timestamps,
-            e.g. <code>periodic-15m/recording-%t.jfr</code>
-          </p>
-
-          <div class="mb-4 row">
-            <label for="periodicFilepattern" class="col-sm-3 col-form-label fw-medium">File Pattern</label>
-            <div class="col-sm-9">
-              <div class="input-group search-container">
-                <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
-                <input type="text" id="periodicFilepattern" v-model="filePattern"
-                       class="form-control search-input" autocomplete="off"/>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-4 row">
-            <label for="periodicPeriod" class="col-sm-3 col-form-label fw-medium">Period</label>
-            <div class="col-sm-9">
-              <div>
-                <div class="btn-group" role="group" aria-label="Period presets">
-                  <button type="button" class="btn"
-                          v-for="preset in periodPresets" :key="preset"
-                          :class="selectedPeriod === preset ? 'btn-primary' : 'btn-outline-primary'"
-                          @click="selectedPeriod = preset">
-                    {{ preset }}
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="selectedPeriod === 'Custom'"
-                   class="d-flex gap-3 align-items-center mt-4">
-                <div class="input-group search-container flex-grow-1">
-                  <span class="input-group-text"><i class="bi bi-clock-history"></i></span>
-                  <input type="number" id="customPeriod" v-model="customPeriod"
-                         class="form-control search-input" autocomplete="off" min="1"/>
-                </div>
-                <div class="btn-group" role="group" aria-label="Time units">
-                  <button type="button" class="btn"
-                          v-for="unit in timeUnits" :key="unit"
-                          :class="customTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
-                          @click="customTimeUnit = unit">
-                    {{ unit }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-4 row">
-            <label for="maxRecordings" class="col-sm-3 col-form-label fw-medium">Max # of Recordings</label>
-            <div class="col-sm-9">
-              <div class="input-group search-container">
-                <span class="input-group-text"><i class="bi bi-list-ol"></i></span>
-                <input type="number" id="maxRecordings" v-model="maxRecordings"
-                       class="form-control search-input" autocomplete="off" min="0"/>
-              </div>
-              <div class="text-muted small mt-1">
-                <i class="bi bi-info-circle me-1"></i>Set to 0 for unlimited recordings
-              </div>
-            </div>
-          </div>
-
-          <div v-if="messages.length > 0" class="alert alert-danger mt-3">
-            <div v-for="(msg, idx) in messages" :key="idx">
-              <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ msg.content }}
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer border-top-0">
-          <button type="button" class="btn btn-light" @click="closeModal">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="saveJob">
-            <i class="bi bi-save me-1"></i> Save Job
-          </button>
+      <div class="mb-4 row">
+        <label for="periodicFilepattern" class="col-sm-3 col-form-label fw-medium">File Pattern</label>
+        <div class="col-sm-9">
+          <input
+            id="periodicFilepattern"
+            type="text"
+            class="form-control"
+            v-model="filePattern"
+            placeholder="e.g., periodic-15m/recording-%t.jfr"
+            autocomplete="off"
+          />
         </div>
       </div>
-    </div>
-  </div>
+
+      <div class="mb-4 row">
+        <label for="periodicPeriod" class="col-sm-3 col-form-label fw-medium">Period</label>
+        <div class="col-sm-9">
+          <div>
+            <div class="btn-group" role="group" aria-label="Period presets">
+              <button type="button" class="btn"
+                      v-for="preset in periodPresets" :key="preset"
+                      :class="selectedPeriod === preset ? 'btn-primary' : 'btn-outline-primary'"
+                      @click="selectedPeriod = preset">
+                {{ preset }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="selectedPeriod === 'Custom'"
+               class="d-flex gap-3 align-items-center mt-4">
+            <input
+              id="customPeriod"
+              type="number"
+              class="form-control flex-grow-1"
+              v-model.number="customPeriod"
+              :min="1"
+              placeholder="Period"
+              autocomplete="off"
+            />
+            <div class="btn-group" role="group" aria-label="Time units">
+              <button type="button" class="btn"
+                      v-for="unit in timeUnits" :key="unit"
+                      :class="customTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
+                      @click="customTimeUnit = unit">
+                {{ unit }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-4 row">
+        <label for="maxRecordings" class="col-sm-3 col-form-label fw-medium">Max # of Recordings</label>
+        <div class="col-sm-9">
+          <input
+            id="maxRecordings"
+            type="number"
+            class="form-control"
+            v-model.number="maxRecordings"
+            :min="0"
+            placeholder="Enter max recordings"
+            autocomplete="off"
+          />
+          <div class="text-muted small mt-1">
+            <i class="bi bi-info-circle me-1"></i>Set to 0 for unlimited recordings
+          </div>
+        </div>
+      </div>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
-/* Colors */
-.bg-blue-soft {
-  background-color: rgba(13, 110, 253, 0.15);
+.fw-medium {
+  font-weight: 500;
 }
 
-.text-blue {
-  color: #0d6efd;
-}
-
-/* Button styling */
-.btn-primary {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
-  box-shadow: 0 0.125rem 0.25rem rgba(94, 100, 255, 0.15);
-}
-
-.btn-primary:hover, .btn-primary:active {
-  background-color: #4a51eb !important;
-  border-color: #4a51eb !important;
-}
-
-.btn-outline-primary {
-  color: #5e64ff;
-  border-color: #5e64ff;
-}
-
-.btn-outline-primary:hover {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
-  color: #fff;
-}
-
-.btn-light {
-  background-color: #f8f9fa;
-  border-color: #f8f9fa;
-}
-
-.btn-light:hover {
-  background-color: #e9ecef;
-  border-color: #e9ecef;
-}
-
-/* Search input styles */
-.search-container {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
-  overflow: hidden;
-}
-
-.search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
+.form-control {
+  border: 1px solid #ced4da;
   height: 38px;
-  color: #5e64ff;
 }
 
-.search-input {
-  border-left: none;
-  font-size: 0.875rem;
-  height: 38px;
-  padding: 0.375rem 0.75rem;
-  line-height: 1.5;
-}
-
-.search-input:focus {
+.form-control:focus {
   box-shadow: none;
   border-color: #ced4da;
 }
@@ -362,53 +288,5 @@ code {
   font-size: 0.875rem;
   word-break: break-all;
   color: #212529;
-}
-
-/* Modal styling */
-.modal-content {
-  border: none;
-}
-
-.modal-header {
-  padding: 1.25rem 1.5rem;
-}
-
-.modal-footer {
-  padding: 1rem 1.5rem;
-}
-
-.modal-body {
-  padding: 0 1.5rem 1.5rem 1.5rem;
-}
-
-/* Alert styling */
-.alert {
-  border: none;
-  border-radius: 0.5rem;
-}
-
-/* Modal backdrop styling */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1040;
-  width: 100vw;
-  height: 100vh;
-  background-color: #000;
-  opacity: 0.5;
-}
-
-.modal-backdrop.fade {
-  opacity: 0;
-}
-
-.modal-backdrop.show {
-  opacity: 0.5;
-}
-
-/* Ensure modal appears above backdrop */
-.modal {
-  z-index: 1055;
 }
 </style>
