@@ -16,21 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.manager;
 
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.config.GraphParameters;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
-import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public interface TimeseriesManager {
+
+    record Generate(
+            Type eventType,
+            GraphParameters graphParameters,
+            ThreadInfo threadInfo) {
+    }
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, TimeseriesManager> {
+    }
+
+    @FunctionalInterface
+    interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, TimeseriesManager> {
+    }
+
+    TimeseriesData timeseries(Generate generate);
 }

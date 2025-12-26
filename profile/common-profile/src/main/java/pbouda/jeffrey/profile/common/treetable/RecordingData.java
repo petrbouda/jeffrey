@@ -16,21 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
-
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+package pbouda.jeffrey.profile.common.treetable;
 
 import java.util.List;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public record RecordingData(
+        List<String> categories,
+        String name,
+        String dateTime,
+        long sizeInBytes) implements TreeData {
+
+    @Override
+    public boolean isLeaf() {
+        return true;
+    }
 }

@@ -16,21 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.guardian.guard;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.profile.common.analysis.marker.Marker;
 
 import java.util.List;
 
-public record GenerateTimeseriesRequest(
+public record GuardVisualization(
+        String primaryProfileId,
         Type eventType,
-        String search,
         boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
+        boolean withTimeseries,
+        Matched matched,
         List<Marker> markers) {
+
+    public static GuardVisualization withTimeseries(
+            String profileId, Type eventType, boolean useWeight, Matched matched, List<Marker> markers) {
+        return new GuardVisualization(profileId, eventType, useWeight, true, matched, markers);
+    }
+
+    public static GuardVisualization withTimeseries(
+            String profileId, Type eventType, boolean useWeight, Matched matched, Marker marker) {
+        return new GuardVisualization(profileId, eventType, useWeight, true, matched, List.of(marker));
+    }
 }

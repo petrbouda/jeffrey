@@ -16,21 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.common.analysis.marker;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.analysis.AnalysisResult.Severity;
+import pbouda.jeffrey.profile.common.analysis.FramePath;
 
 import java.util.List;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public record Marker(Severity markerType, FramePath path) {
+
+    public static Marker empty() {
+        return new Marker(null, new FramePath(List.of()));
+    }
+
+    public static Marker ok(FramePath path) {
+        return new Marker(Severity.OK, path);
+    }
+
+    public static Marker warnings(FramePath path) {
+        return new Marker(Severity.WARNING, path);
+    }
 }

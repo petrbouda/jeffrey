@@ -28,28 +28,27 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>service</artifactId>
+    <artifactId>profile</artifactId>
 
     <packaging>pom</packaging>
 
     <modules>
-        <module>common</module>
-        <module>common-model</module>
-        <module>sql-builder</module>
-        <module>tools</module>
-        <module>providers</module>
-        <module>platform-management</module>
+        <module>common-profile</module>
+        <module>frame-ir</module>
+        <module>recording-parser</module>
+        <module>profile-guardian</module>
+        <module>profile-thread</module>
+        <module>flamegraph</module>
+        <module>subsecond</module>
+        <module>timeseries</module>
+        <module>profile-management</module>
     </modules>
 
     <properties>
         <eclipse-collections.version>12.0.0.M3</eclipse-collections.version>
         <flightrecorder.version>9.1.0</flightrecorder.version>
         <junit.version>5.13.4</junit.version>
-        <uuid-creator.version>6.1.1</uuid-creator.version>
-        <byte-buddy.version>1.17.5</byte-buddy.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
-        <lz4-java.version>1.8.0</lz4-java.version>
-        <jeffrey-events.version>0.2.1</jeffrey-events.version>
     </properties>
 
     <dependencyManagement>
@@ -62,19 +61,17 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- Profile common modules -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>common-profile</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Profile modules -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jfr-parser-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>recording-storage-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>filesystem-recording-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -99,23 +96,8 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>tools</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>timeseries</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openjdk.jmc</groupId>
-                <artifactId>flightrecorder</artifactId>
-                <version>${flightrecorder.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openjdk.jmc</groupId>
-                <artifactId>flightrecorder.rules.jdk</artifactId>
-                <version>${flightrecorder.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
@@ -134,12 +116,14 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>provider-api</artifactId>
+                <artifactId>profile-management</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <!-- Service modules that profile depends on -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>common-sql-persistence</artifactId>
+                <artifactId>provider-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -149,13 +133,20 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>sql-builder</artifactId>
+                <artifactId>recording-storage-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <!-- Third-party dependencies used by profile modules -->
             <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-management</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.openjdk.jmc</groupId>
+                <artifactId>flightrecorder</artifactId>
+                <version>${flightrecorder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmc</groupId>
+                <artifactId>flightrecorder.rules.jdk</artifactId>
+                <version>${flightrecorder.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.collections</groupId>
@@ -163,28 +154,9 @@
                 <version>${eclipse-collections.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.f4b6a3</groupId>
-                <artifactId>uuid-creator</artifactId>
-                <version>${uuid-creator.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.hdrhistogram</groupId>
                 <artifactId>HdrHistogram</artifactId>
                 <version>${hdrhistogram.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.lz4</groupId>
-                <artifactId>lz4-java</artifactId>
-                <version>${lz4-java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cafe.jeffrey-analyst</groupId>
-                <artifactId>jeffrey-events</artifactId>
-                <version>${jeffrey-events.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>pages</artifactId>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>

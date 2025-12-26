@@ -16,21 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.guardian.guard;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.analysis.AnalysisResult;
 
-import java.util.List;
+public record GuardAnalysisResult(
+        String rule,
+        AnalysisResult.Severity severity,
+        String explanation,
+        String summary,
+        String solution,
+        String score,
+        Guard.Category category,
+        GuardVisualization visualization) implements AnalysisResult {
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+    public static GuardAnalysisResult notApplicable(String rule, Guard.Category category) {
+        return new GuardAnalysisResult(rule, AnalysisResult.Severity.NA, null, null, null, null, category, null);
+    }
 }

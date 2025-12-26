@@ -16,21 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.flamegraph;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.config.GraphParameters;
 
-import java.util.List;
+public interface GraphGenerator {
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+    /**
+     * Generate graph data in Protocol Buffers format.
+     *
+     * @param params graph parameters
+     * @return graph data as protobuf bytes
+     */
+    byte[] generate(GraphParameters params);
 }

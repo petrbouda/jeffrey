@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,21 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.timeseries;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.config.GraphParameters;
 
-import java.util.List;
+public enum TimeseriesType {
+    SEARCHING,
+    PATH_MATCHING,
+    SIMPLE;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+    public static TimeseriesType resolve(GraphParameters params) {
+        if (params.containsSearchPattern()) {
+            return SEARCHING;
+        } else if (params.containsMarkers()) {
+            return PATH_MATCHING;
+        } else {
+            return SIMPLE;
+        }
+    }
 }

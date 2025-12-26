@@ -16,21 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.resources;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import jakarta.ws.rs.GET;
+import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
 
 import java.util.List;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public class AutoAnalysisResource {
+
+    private final AutoAnalysisManager autoAnalysisManager;
+
+    public AutoAnalysisResource(AutoAnalysisManager autoAnalysisManager) {
+        this.autoAnalysisManager = autoAnalysisManager;
+    }
+
+    @GET
+    public List<AutoAnalysisResult> list() {
+        return autoAnalysisManager.analysisResults();
+    }
 }

@@ -16,21 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.resources.request;
 
+import pbouda.jeffrey.profile.TimeRangeRequest;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
 import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.config.GraphComponents;
 
 import java.util.List;
 
-public record GenerateTimeseriesRequest(
+public record GenerateFlamegraphRequest(
+        String flamegraphName,
         Type eventType,
+        TimeRangeRequest timeRange,
         String search,
-        boolean useWeight,
+        boolean useThreadMode,
+        Boolean useWeight,
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         ThreadInfo threadInfo,
+        GraphComponents components,
         List<Marker> markers) {
 }

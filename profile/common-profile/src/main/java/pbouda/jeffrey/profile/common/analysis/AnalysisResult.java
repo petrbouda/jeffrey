@@ -16,21 +16,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.common.analysis;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+public interface AnalysisResult {
 
-import java.util.List;
+    enum Severity {
+        OK(4, "#4abf02"),
+        WARNING(1, "#e15a5a"),
+        NA(3, "#383838"),
+        INFO(2, "#03adfc"),
+        IGNORE(5, "#cbccc8");
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+        private final int order;
+        private final String color;
+
+        Severity(int order, String color) {
+            this.order = order;
+            this.color = color;
+        }
+
+        public int order() {
+            return order;
+        }
+
+        public String color() {
+            return color;
+        }
+    }
+
+    String rule();
+
+    Severity severity();
+
+    String explanation();
+
+    String summary();
+
+    String solution();
+
+    String score();
 }

@@ -16,21 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.guardian.guard;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 
-import java.util.List;
+import java.math.BigDecimal;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public record Matched(Severity severity, String color, BigDecimal percent) {
+    public static Matched severity(Severity severity, BigDecimal percent) {
+        return new Matched(severity, severity.color(), percent);
+    }
+
+    public static Matched ok(BigDecimal percent) {
+        return new Matched(Severity.OK, Severity.OK.color(), percent);
+    }
+
+    public static Matched warning(BigDecimal percent) {
+        return new Matched(Severity.WARNING, Severity.WARNING.color(), percent);
+    }
 }

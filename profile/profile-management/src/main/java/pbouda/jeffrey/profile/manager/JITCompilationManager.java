@@ -16,21 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.profile.common.event.JITCompilationStats;
+import pbouda.jeffrey.profile.common.event.JITLongCompilation;
+import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;
+import java.util.function.Function;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public interface JITCompilationManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, JITCompilationManager> {
+    }
+
+    JITCompilationStats statistics();
+
+    List<JITLongCompilation> compilations(int limit);
+
+    SingleSerie timeseries();
 }

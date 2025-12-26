@@ -16,21 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.guardian.type;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.common.model.EventSummary;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.config.GraphParameters;
+import pbouda.jeffrey.profile.guardian.GuardianResult;
+import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 
 import java.util.List;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public interface GuardianGroup {
+
+    List<GuardianResult> execute(EventSummary eventSummary, Preconditions preconditions);
+
+    List<Type> applicableTypes();
+
+    GraphParameters graphParameters();
 }

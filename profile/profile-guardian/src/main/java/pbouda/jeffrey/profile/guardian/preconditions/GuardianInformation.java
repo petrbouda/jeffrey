@@ -16,21 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 
-import java.util.List;
-
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public record GuardianInformation(
+        boolean debugSymbolsAvailable,
+        boolean kernelSymbolsAvailable,
+        RecordingEventSource eventSource,
+        GarbageCollectorType garbageCollectorType) {
 }

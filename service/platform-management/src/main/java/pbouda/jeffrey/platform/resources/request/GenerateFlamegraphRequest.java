@@ -21,8 +21,8 @@ package pbouda.jeffrey.platform.resources.request;
 import pbouda.jeffrey.platform.TimeRangeRequest;
 import pbouda.jeffrey.common.model.ThreadInfo;
 import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.analysis.marker.Marker;
-import pbouda.jeffrey.common.config.GraphComponents;
+import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.config.GraphComponents;
 
 import java.util.List;
 

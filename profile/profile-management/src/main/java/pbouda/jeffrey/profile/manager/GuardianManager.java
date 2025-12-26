@@ -16,21 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
 
 import java.util.List;
+import java.util.function.Function;
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+public interface GuardianManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, GuardianManager> {
+    }
+
+    /**
+     * Returns the result of flamegraph's analysis in the form of {@link AutoAnalysisResult} that is compatible with
+     * visualization components same as {@link AutoAnalysisManager} has.
+     *
+     * @return list of analysis items that represent the results of the guardian analysis
+     */
+    List<GuardAnalysisResult> guardResults();
 }
