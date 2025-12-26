@@ -29,7 +29,7 @@
 
     <modules>
         <module>service</module>
-        <module>profile</module>
+        <module>profiles</module>
         <module>pages</module>
         <module>cli</module>
         <module>build</module>
