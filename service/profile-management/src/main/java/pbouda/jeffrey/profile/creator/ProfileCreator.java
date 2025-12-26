@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2024 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,27 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.creator;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import pbouda.jeffrey.common.model.ProjectInfo;
 
-import java.io.Closeable;
-import java.time.Clock;
+import java.util.function.Function;
 
-public interface PersistenceProvider extends Closeable {
-
-    void initialize(PersistenceProperties properties, Clock clock);
-
-    void runMigrations();
+public interface ProfileCreator {
 
     /**
-     * Factory for creating EventWriter instances by profileId.
+     * Creates a new profile from a recording by parsing the JFR file
+     * and storing events to the database.
+     *
+     * @param recordingId the ID of the recording to parse
+     * @return the ID of the created profile
      */
-    EventWriter.Factory newEventWriterFactory();
+    String createProfile(String recordingId);
 
-    Repositories repositories();
-
-    @Override
-    void close();
+    @FunctionalInterface
+    interface Factory extends Function<ProjectInfo, ProfileCreator> {
+    }
 }

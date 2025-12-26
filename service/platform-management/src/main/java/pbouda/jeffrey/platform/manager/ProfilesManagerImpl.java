@@ -21,6 +21,7 @@ package pbouda.jeffrey.platform.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -35,19 +36,19 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     private final Repositories repositories;
     private final ProjectRepository projectRepository;
-    private final ProfileInitializationManager profileInitializationManager;
+    private final ProfileInitializer profileInitializer;
     private final ProfileManager.Factory profileManagerFactory;
 
     public ProfilesManagerImpl(
             Repositories repositories,
             ProjectRepository projectRepository,
             ProfileManager.Factory profileManagerFactory,
-            ProfileInitializationManager profileInitializationManager) {
+            ProfileInitializer profileInitializer) {
 
         this.repositories = repositories;
         this.projectRepository = projectRepository;
         this.profileManagerFactory = profileManagerFactory;
-        this.profileInitializationManager = profileInitializationManager;
+        this.profileInitializer = profileInitializer;
     }
 
     @Override
@@ -60,7 +61,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
     @Override
     public CompletableFuture<ProfileManager> createProfile(String recordingId) {
         return CompletableFuture.supplyAsync(
-                        () -> profileInitializationManager.initialize(recordingId),
+                        () -> profileInitializer.initialize(recordingId),
                         Schedulers.sharedVirtual())
                 .exceptionally(ex -> {
                     LOG.error("Could not create profile for recording: recording_id={} message={}",

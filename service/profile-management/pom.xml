@@ -74,6 +74,26 @@
             <artifactId>duckdb-persistence</artifactId>
         </dependency>
 
+        <!-- JFR Parsing -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jdk-jfr-parser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmc</groupId>
+            <artifactId>flightrecorder.rules.jdk</artifactId>
+        </dependency>
+
+        <!-- Recording Storage -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>recording-storage-api</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web for REST resources -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

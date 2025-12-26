@@ -114,4 +114,9 @@ public class JdbcRepositories implements Repositories {
     public WorkspacesRepository newWorkspacesRepository() {
         return new JdbcWorkspacesRepository(databaseClientProvider);
     }
+
+    @Override
+    public ProfileCreationRepository newProfileCreationRepository() {
+        return new JdbcProfileCreationRepository(databaseClientProvider, clock);
+    }
 }

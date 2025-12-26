@@ -16,27 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.settings;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.common.model.ProfileInfo;
 
-import java.io.Closeable;
-import java.time.Clock;
+import java.util.function.Function;
 
-public interface PersistenceProvider extends Closeable {
+public interface ActiveSettingsProvider {
 
-    void initialize(PersistenceProperties properties, Clock clock);
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, ActiveSettingsProvider> {
+    }
 
-    void runMigrations();
-
-    /**
-     * Factory for creating EventWriter instances by profileId.
-     */
-    EventWriter.Factory newEventWriterFactory();
-
-    Repositories repositories();
-
-    @Override
-    void close();
+    ActiveSettings get();
 }

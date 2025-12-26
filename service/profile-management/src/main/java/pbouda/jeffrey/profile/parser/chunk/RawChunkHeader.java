@@ -16,27 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.parser.chunk;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
-
-import java.io.Closeable;
-import java.time.Clock;
-
-public interface PersistenceProvider extends Closeable {
-
-    void initialize(PersistenceProperties properties, Clock clock);
-
-    void runMigrations();
-
-    /**
-     * Factory for creating EventWriter instances by profileId.
-     */
-    EventWriter.Factory newEventWriterFactory();
-
-    Repositories repositories();
-
-    @Override
-    void close();
+record RawChunkHeader(
+        int magic,
+        int version,
+        long size,
+        long offsetConstantPool,
+        long offsetMeta,
+        long startNanos,
+        long durationNanos,
+        long startTicks,
+        long ticksPerSecond,
+        int features) {
 }

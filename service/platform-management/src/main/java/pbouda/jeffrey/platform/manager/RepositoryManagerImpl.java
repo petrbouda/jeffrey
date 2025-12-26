@@ -32,7 +32,7 @@ import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
+import pbouda.jeffrey.profile.parser.chunk.Recordings;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 
 import java.nio.file.Path;

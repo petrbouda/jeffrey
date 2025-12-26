@@ -16,27 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+/**
+ * Profile-specific repository factories used by the profile-management domain.
+ * Contains methods for accessing repositories related to profile data, events, and caching.
+ */
+public interface ProfileRepositories {
 
-import java.io.Closeable;
-import java.time.Clock;
+    ProfileEventRepository newEventRepository(String profileId);
 
-public interface PersistenceProvider extends Closeable {
+    ProfileEventStreamRepository newEventStreamRepository(String profileId);
 
-    void initialize(PersistenceProperties properties, Clock clock);
+    ProfileEventTypeRepository newEventTypeRepository(String profileId);
 
-    void runMigrations();
+    ProfileRepository newProfileRepository(String profileId);
 
-    /**
-     * Factory for creating EventWriter instances by profileId.
-     */
-    EventWriter.Factory newEventWriterFactory();
+    ProfileCacheRepository newProfileCacheRepository(String profileId);
 
-    Repositories repositories();
-
-    @Override
-    void close();
+    ProfileCreationRepository newProfileCreationRepository();
 }

@@ -16,29 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.parser.fields;
 
-public interface EventWriter {
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jdk.jfr.EventType;
+import jdk.jfr.consumer.RecordedEvent;
 
-    /**
-     * Factory for creating EventWriter instances by profileId.
-     */
-    @FunctionalInterface
-    interface Factory {
-        EventWriter create(String profileId);
-    }
+import java.util.List;
+
+public interface EventFieldsMapper {
 
     /**
-     * New single-threaded writer is created for each thread that participates in the writing.
+     * Update event-types of the internal implementation
+     *
+     * @param eventTypes a list of EventType to update
      */
-    SingleThreadedEventWriter newSingleThreadedWriter();
+    void update(List<EventType> eventTypes);
 
     /**
-     * This method is called when the writer is completed.
-     * It's called always only once. After all threads that participate in the writing are finished and called
-     * {@link SingleThreadedEventWriter#onThreadComplete()}.
-     * <p>
-     * It waits for all {@link SingleThreadedEventWriter} to finish, and then it's called.
+     * Maps the fields of the {@link RecordedEvent} to the JSON object.
+     * TODO: change to byte[] to support binary encoding
+     *
+     * @param event the event to be mapped
+     * @return the JSON object with the fields of the event
      */
-     void onComplete();
+    ObjectNode map(RecordedEvent event);
 }

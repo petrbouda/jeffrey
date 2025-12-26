@@ -18,17 +18,12 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-public interface Repositories {
-
-    ProfileEventRepository newEventRepository(String profileId);
-
-    ProfileEventStreamRepository newEventStreamRepository(String profileId);
-
-    ProfileEventTypeRepository newEventTypeRepository(String profileId);
-
-    ProfileRepository newProfileRepository(String profileId);
-
-    ProfileCacheRepository newProfileCacheRepository(String profileId);
+/**
+ * Full repository factory interface used by platform-management domain.
+ * Extends {@link ProfileRepositories} with platform-specific repository methods
+ * for projects, workspaces, schedulers, and other platform entities.
+ */
+public interface Repositories extends ProfileRepositories {
 
     ProjectRepository newProjectRepository(String projectId);
 

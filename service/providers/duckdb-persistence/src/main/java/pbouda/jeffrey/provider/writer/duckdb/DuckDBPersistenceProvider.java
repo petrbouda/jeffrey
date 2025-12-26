@@ -24,19 +24,16 @@ import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.sql.JdbcRepositories;
 import pbouda.jeffrey.provider.writer.sql.SQLEventWriter;
-import pbouda.jeffrey.provider.writer.sql.SQLProfileInitializer;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolStatisticsPeriodicRecorder;
 import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.SimpleComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolver;
 import pbouda.jeffrey.provider.writer.sql.query.builder.QueryBuilderFactoryResolverImpl;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class DuckDBPersistenceProvider implements PersistenceProvider {
 
@@ -50,19 +47,10 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     private DatabaseClientProvider databaseClientProvider;
     private DataSource dataSource;
     private Function<String, EventWriter> eventWriterFactory;
-    private RecordingStorage recordingStorage;
-    private Supplier<RecordingEventParser> recordingEventParser;
     private Clock clock;
 
     @Override
-    public void initialize(
-            PersistenceProperties properties,
-            RecordingStorage recordingStorage,
-            Supplier<RecordingEventParser> recordingEventParser,
-            Clock clock) {
-
-        this.recordingStorage = recordingStorage;
-        this.recordingEventParser = recordingEventParser;
+    public void initialize(PersistenceProperties properties, Clock clock) {
         this.clock = clock;
         int batchSize = Config.parseInt(properties.database(), "batch-size", DEFAULT_BATCH_SIZE);
 
@@ -92,18 +80,8 @@ public class DuckDBPersistenceProvider implements PersistenceProvider {
     }
 
     @Override
-    public ProfileInitializer.Factory newProfileInitializerFactory() {
-        return newProfileInitializerFactory(this.eventWriterFactory);
-    }
-
-    public ProfileInitializer.Factory newProfileInitializerFactory(Function<String, EventWriter> eventWriterFactory) {
-        return projectInfo -> new SQLProfileInitializer(
-                projectInfo,
-                databaseClientProvider,
-                recordingStorage.projectRecordingStorage(projectInfo.id()),
-                recordingEventParser.get(),
-                eventWriterFactory,
-                clock);
+    public EventWriter.Factory newEventWriterFactory() {
+        return eventWriterFactory::apply;
     }
 
     @Override

@@ -16,27 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.parser.data;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import pbouda.jeffrey.provider.api.model.parser.RecordingTypeSpecificData;
 
-import java.io.Closeable;
-import java.time.Clock;
+import java.nio.file.Path;
+import java.util.List;
 
-public interface PersistenceProvider extends Closeable {
-
-    void initialize(PersistenceProperties properties, Clock clock);
-
-    void runMigrations();
+public interface JfrSpecificDataProvider {
 
     /**
-     * Factory for creating EventWriter instances by profileId.
+     * Generates data from the specific format of the source to be automatically cacheable.
+     *
+     * @param recordings files for parsing
+     * @return JFR specific data parsed from the recordings
      */
-    EventWriter.Factory newEventWriterFactory();
-
-    Repositories repositories();
-
-    @Override
-    void close();
+    RecordingTypeSpecificData provide(List<Path> recordings);
 }

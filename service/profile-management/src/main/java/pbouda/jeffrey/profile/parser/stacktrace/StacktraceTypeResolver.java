@@ -16,27 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.parser.stacktrace;
 
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import pbouda.jeffrey.common.model.StacktraceType;
+import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.provider.api.model.EventFrame;
+import pbouda.jeffrey.provider.api.model.EventThread;
 
-import java.io.Closeable;
-import java.time.Clock;
+public interface StacktraceTypeResolver {
 
-public interface PersistenceProvider extends Closeable {
+    void start(Type type);
 
-    void initialize(PersistenceProperties properties, Clock clock);
+    void applyThread(EventThread thread);
 
-    void runMigrations();
+    void applyFrame(EventFrame frame);
 
-    /**
-     * Factory for creating EventWriter instances by profileId.
-     */
-    EventWriter.Factory newEventWriterFactory();
-
-    Repositories repositories();
-
-    @Override
-    void close();
+    StacktraceType resolve();
 }

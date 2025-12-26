@@ -16,29 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.api;
+package pbouda.jeffrey.profile.parser.chunk;
 
-public interface EventWriter {
-
-    /**
-     * Factory for creating EventWriter instances by profileId.
-     */
-    @FunctionalInterface
-    interface Factory {
-        EventWriter create(String profileId);
-    }
+/**
+ * Constants for JFR chunk parsing.
+ */
+public interface JfrChunkConstants {
 
     /**
-     * New single-threaded writer is created for each thread that participates in the writing.
+     * Size of the JFR chunk header in bytes.
      */
-    SingleThreadedEventWriter newSingleThreadedWriter();
+    int CHUNK_HEADER_SIZE = 68;
 
     /**
-     * This method is called when the writer is completed.
-     * It's called always only once. After all threads that participate in the writing are finished and called
-     * {@link SingleThreadedEventWriter#onThreadComplete()}.
-     * <p>
-     * It waits for all {@link SingleThreadedEventWriter} to finish, and then it's called.
+     * Magic number identifying a JFR chunk ("FLR\0").
      */
-     void onComplete();
+    int CHUNK_MAGIC = 0x464c5200;
+
+    /**
+     * Feature flag mask indicating this is the final chunk in a recording.
+     */
+    int MASK_FINAL_CHUNK = 1 << 1;
 }

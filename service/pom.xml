@@ -45,7 +45,6 @@
         <module>subsecond</module>
         <module>timeseries</module>
         <module>tools</module>
-        <module>profile-parser</module>
         <module>profile-management</module>
         <module>platform-management</module>
     </modules>
@@ -148,11 +147,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-parser</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>common-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -164,11 +158,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>sql-builder</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

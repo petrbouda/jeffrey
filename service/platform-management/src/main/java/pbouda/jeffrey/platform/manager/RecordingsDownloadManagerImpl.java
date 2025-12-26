@@ -28,7 +28,7 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
-import pbouda.jeffrey.provider.reader.jfr.chunk.Recordings;
+import pbouda.jeffrey.profile.parser.chunk.Recordings;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 
 import java.nio.file.Files;

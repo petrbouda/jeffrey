@@ -35,7 +35,6 @@
         <module>provider-api</module>
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>
-        <module>jfr-parser</module>
         <module>common-sql-persistence</module>
         <module>duckdb-persistence</module>
     </modules>

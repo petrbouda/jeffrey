@@ -69,10 +69,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>duckdb-persistence</artifactId>
         </dependency>
         <dependency>
@@ -114,10 +110,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>profile-management</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-parser</artifactId>
         </dependency>
 
         <dependency>

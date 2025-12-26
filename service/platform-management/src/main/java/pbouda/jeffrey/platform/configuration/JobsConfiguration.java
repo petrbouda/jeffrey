@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.platform.appinitializer.JfrEventListenerInitializer;
 import pbouda.jeffrey.platform.appinitializer.SchedulerInitializer;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
+import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 
 import java.time.Duration;
 import java.util.List;

@@ -27,18 +27,15 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.platform.appinitializer.ProfilerInitializer;
 import pbouda.jeffrey.common.Config;
 import pbouda.jeffrey.common.compression.Lz4Compressor;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.platform.appinitializer.ProfilerInitializer;
 import pbouda.jeffrey.platform.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.platform.manager.*;
-import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
-import pbouda.jeffrey.profile.manager.AutoAnalysisManagerImpl;
-import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.platform.manager.project.CommonProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
@@ -47,19 +44,25 @@ import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
-import pbouda.jeffrey.provider.api.PersistenceProperties;
-import pbouda.jeffrey.provider.api.PersistenceProvider;
-import pbouda.jeffrey.provider.api.ProfileInitializer;
-import pbouda.jeffrey.provider.api.RecordingParserProvider;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.reader.jfr.JfrRecordingParserProvider;
-import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.platform.scheduler.job.SessionFileCompressor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.profile.creator.ProfileCreator;
+import pbouda.jeffrey.profile.creator.ProfileCreatorImpl;
+import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
+import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
+import pbouda.jeffrey.profile.manager.AutoAnalysisManagerImpl;
+import pbouda.jeffrey.profile.ProfileInitializer;
+import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
+import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
+import pbouda.jeffrey.provider.api.PersistenceProperties;
+import pbouda.jeffrey.provider.api.PersistenceProvider;
+import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
@@ -95,19 +98,10 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingParserProvider profileInitializerProvider(JeffreyDirs jeffreyDirs) {
-        RecordingParserProvider initializerProvider = new JfrRecordingParserProvider();
-        initializerProvider.initialize(jeffreyDirs);
-        return initializerProvider;
-    }
-
-    @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(
-            @Value("${jeffrey.persistence.mode:sqlite}") String databaseName,
+            @Value("${jeffrey.persistence.mode:duckdb}") String databaseName,
             JeffreyDirs ignored,
-            RecordingParserProvider recordingParserProvider,
-            RecordingStorage recordingStorage,
             PersistenceConfigProperties properties,
             Clock clock) {
 
@@ -120,10 +114,7 @@ public class AppConfiguration {
 
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
-                new PersistenceProperties(properties.getDatabase()),
-                recordingStorage,
-                recordingParserProvider::newRecordingEventParser,
-                clock);
+                new PersistenceProperties(properties.getDatabase()), clock);
 
         persistenceProvider.runMigrations();
         return persistenceProvider;
@@ -141,8 +132,22 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfileInitializer.Factory profileInitializerFactory(PersistenceProvider persistenceProvider) {
-        return persistenceProvider.newProfileInitializerFactory();
+    public ProfileCreator.Factory profileCreatorFactory(
+            JeffreyDirs jeffreyDirs,
+            Repositories repositories,
+            RecordingStorage recordingStorage,
+            PersistenceProvider persistenceProvider,
+            Clock clock) {
+
+        Lz4Compressor lz4Compressor = new Lz4Compressor(jeffreyDirs);
+        return projectInfo -> new ProfileCreatorImpl(
+                projectInfo,
+                repositories,
+                repositories.newProjectRecordingRepository(projectInfo.id()),
+                recordingStorage.projectRecordingStorage(projectInfo.id()),
+                new JfrRecordingEventParser(jeffreyDirs, lz4Compressor),
+                persistenceProvider.newEventWriterFactory(),
+                clock);
     }
 
     @Bean
@@ -169,14 +174,14 @@ public class AppConfiguration {
     public ProfilesManager.Factory profilesManager(
             Repositories repositories,
             ProfileManager.Factory profileFactory,
-            ProfileInitializationManager.Factory profileInitializationManagerFactory) {
+            ProfileInitializer.Factory profileInitializerFactory) {
 
         return projectInfo ->
                 new ProfilesManagerImpl(
                         repositories,
                         repositories.newProjectRepository(projectInfo.id()),
                         profileFactory,
-                        profileInitializationManagerFactory.apply(projectInfo));
+                        profileInitializerFactory.apply(projectInfo));
     }
 
     @Bean
@@ -219,7 +224,6 @@ public class AppConfiguration {
     public ProjectRecordingInitializer.Factory projectRecordingInitializer(
             Clock applicationClock,
             RecordingStorage recordingStorage,
-            RecordingParserProvider recordingParserProvider,
             Repositories repositories) {
 
         return projectInfo -> new ProjectRecordingInitializerImpl(
@@ -227,7 +231,7 @@ public class AppConfiguration {
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 repositories.newProjectRecordingRepository(projectInfo.id()),
-                recordingParserProvider.newRecordingInformationParser());
+                new JfrRecordingInformationParser());
     }
 
     @Bean
