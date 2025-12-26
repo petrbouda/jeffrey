@@ -11,8 +11,27 @@ RUN git clone https://github.com/petrbouda/jeffrey.git /sources/jeffrey \
 # Runtime stage
 FROM eclipse-temurin:25-jdk
 
-RUN mkdir /app
+ARG TARGETPLATFORM
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir /app /jeffrey-libs
+
+# Set architecture suffix for async-profiler (x64 or arm64)
+RUN echo "export AP_ARCH=$(case ${TARGETPLATFORM:-linux/amd64} in \
+    'linux/amd64')    echo 'x64'   ;; \
+    'linux/arm64')    echo 'arm64' ;; \
+    *)                echo ''      ;; esac)" >> /envfile
+
+# Download latest async-profiler and extract libasyncProfiler.so
+RUN . /envfile; \
+    AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/') \
+    && curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
+       | tar -xz -C /tmp \
+    && cp /tmp/async-profiler-*/lib/libasyncProfiler.so /jeffrey-libs/ \
+    && rm -rf /tmp/async-profiler-*
 
 COPY --from=builder /sources/jeffrey/build/build-app/target/jeffrey.jar /app/
+COPY --from=builder /sources/jeffrey/build/build-cli/target/jeffrey-cli.jar /jeffrey-libs/
 
 ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]
