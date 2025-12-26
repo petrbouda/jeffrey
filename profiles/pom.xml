@@ -28,7 +28,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>profile</artifactId>
+    <artifactId>profiles</artifactId>
 
     <packaging>pom</packaging>
 

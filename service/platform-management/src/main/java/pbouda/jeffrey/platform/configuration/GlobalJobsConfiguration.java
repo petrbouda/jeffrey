@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.platform.appinitializer.GlobalJobsInitializer;
+import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
@@ -76,8 +76,8 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean
-    public GlobalJobsInitializer globalJobsInitializer() {
-        return new GlobalJobsInitializer(schedulerManager);
+    public ApplicationInitializer applicationInitializer(Repositories repositories) {
+        return new ApplicationInitializer(schedulerManager, repositories.newProfilerRepository());
     }
 
     @Bean

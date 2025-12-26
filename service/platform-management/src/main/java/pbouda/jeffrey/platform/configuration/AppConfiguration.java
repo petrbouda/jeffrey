@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +33,7 @@ import pbouda.jeffrey.common.compression.Lz4Compressor;
 import pbouda.jeffrey.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.platform.appinitializer.ProfilerInitializer;
+import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
 import pbouda.jeffrey.platform.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.platform.manager.*;
@@ -49,12 +50,12 @@ import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.platform.scheduler.job.SessionFileCompressor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.profile.ProfileInitializer;
+import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import pbouda.jeffrey.profile.creator.ProfileCreator;
 import pbouda.jeffrey.profile.creator.ProfileCreatorImpl;
-import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
 import pbouda.jeffrey.profile.manager.AutoAnalysisManagerImpl;
-import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
@@ -125,11 +126,6 @@ public class AppConfiguration {
         return persistenceProvider.repositories();
     }
 
-
-    @Bean
-    public ProfilerInitializer profilerInitializer(Repositories repositories) {
-        return new ProfilerInitializer(repositories.newProfilerRepository());
-    }
 
     @Bean
     public ProfileCreator.Factory profileCreatorFactory(
@@ -298,5 +294,14 @@ public class AppConfiguration {
     @Bean
     public SessionFileCompressor sessionFileCompressor(JeffreyDirs jeffreyDirs) {
         return new SessionFileCompressor(new Lz4Compressor(jeffreyDirs));
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = "jeffrey.copy-libs.enabled", havingValue = "true", matchIfMissing = true)
+    public CopyLibsInitializer copyLibsInitializer(
+            @Value("${jeffrey.copy-libs.source}") String source,
+            @Value("${jeffrey.copy-libs.target}") String target) {
+
+        return new CopyLibsInitializer(Path.of(source), Path.of(target));
     }
 }

@@ -24,7 +24,7 @@
 
     <parent>
         <groupId>pbouda.jeffrey</groupId>
-        <artifactId>profile</artifactId>
+        <artifactId>profiles</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
