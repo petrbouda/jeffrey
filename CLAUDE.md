@@ -133,7 +133,26 @@ jeffrey/
 - **Package Structure**: `pbouda.jeffrey.*` with feature-based organization
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Architecture**: Manager pattern with service layer separation
-- **Comments**: AGPL license headers on all files
+- **Copyright Headers**: All Java files must include the AGPL license header with the current year (2025):
+  ```java
+  /*
+   * Jeffrey
+   * Copyright (C) 2025 Petr Bouda
+   *
+   * This program is free software: you can redistribute it and/or modify
+   * it under the terms of the GNU Affero General Public License as published by
+   * the Free Software Foundation, either version 3 of the License, or
+   * (at your option) any later version.
+   *
+   * This program is distributed in the hope that it will be useful,
+   * but WITHOUT ANY WARRANTY; without even the implied warranty of
+   * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   * GNU Affero General Public License for more details.
+   *
+   * You should have received a copy of the GNU Affero General Public License
+   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   */
+  ```
 - **Error Handling**: Custom exceptions with proper HTTP status mapping
 - **Logging**: Use SLF4J with structured key-value format:
   - Pattern: `"Description of what happened: key1={} key2={} key3={}"`

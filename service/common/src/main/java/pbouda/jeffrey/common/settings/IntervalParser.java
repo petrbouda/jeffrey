@@ -29,12 +29,13 @@ public class IntervalParser {
             return Duration.ZERO;
         }
 
+        // Check longer suffixes first to avoid ambiguity (e.g., "us" before "s")
         if (interval.endsWith("ms")) {
             return Duration.ofMillis(parseLong(interval, "ms"));
-        } else if (interval.endsWith("s")) {
-            return Duration.ofSeconds(parseLong(interval, "s"));
         } else if (interval.endsWith("us")) {
             return Duration.ofNanos(parseLong(interval, "us") * 1000);
+        } else if (interval.endsWith("s")) {
+            return Duration.ofSeconds(parseLong(interval, "s"));
         } else {
             throw new IllegalArgumentException("Invalid interval format: " + interval);
         }
