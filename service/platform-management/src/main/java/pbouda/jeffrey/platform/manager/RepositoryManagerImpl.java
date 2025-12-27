@@ -80,13 +80,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
     @Override
     public StreamedRecordingFile streamArtifact(String sessionId, String artifactId) {
         // Filter only recording files that are finished and takes all finished files in the session
-        Predicate<RepositoryFile> filder = repositoryFile -> {
+        Predicate<RepositoryFile> folder = repositoryFile -> {
             return artifactId.equalsIgnoreCase(repositoryFile.id());
         };
 
         RecordingSession recordingSession = resolveRecordingSession(sessionId);
         List<RepositoryFile> recordingFiles = recordingSession.files().stream()
-                .filter(filder)
+                .filter(folder)
                 .toList();
 
         return mergeAndStream(sessionId, recordingFiles);
