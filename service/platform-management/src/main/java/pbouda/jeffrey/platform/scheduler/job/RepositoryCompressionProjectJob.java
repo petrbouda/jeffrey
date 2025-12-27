@@ -27,6 +27,7 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositoryCompressionProjectJobDescriptor;
 
@@ -49,6 +50,11 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCompressionProjectJob.class);
 
+    /**
+     * Parameter key for specifying a target session ID for on-demand compression.
+     */
+    public static final String PARAM_SESSION_ID = "sessionId";
+
     private static final SupportedRecordingFile TYPE_TO_COMPRESS = SupportedRecordingFile.JFR;
 
     private final SessionFileCompressor sessionFileCompressor;
@@ -70,7 +76,8 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RepositoryCompressionProjectJobDescriptor jobDescriptor) {
+            RepositoryCompressionProjectJobDescriptor jobDescriptor,
+            JobContext context) {
 
         String projectName = manager.info().name();
         LOG.debug("Starting JFR compression check: project='{}'", projectName);
@@ -82,7 +89,32 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
             return;
         }
 
-        // Default behavior: ACTIVE session + latest FINISHED session
+        // Check if a specific session ID is provided in context
+        Optional<String> targetSessionId = context.get(PARAM_SESSION_ID);
+
+        if (targetSessionId.isPresent()) {
+            // Targeted mode: compress files for specific session
+            compressSpecificSession(sessions, targetSessionId.get(), projectName);
+        } else {
+            // Default periodic mode: ACTIVE + latest FINISHED sessions
+            compressDefaultSessions(sessions, projectName);
+        }
+    }
+
+    private void compressSpecificSession(List<RecordingSession> sessions, String sessionId, String projectName) {
+        Optional<RecordingSession> targetSession = sessions.stream()
+                .filter(s -> s.id().equals(sessionId))
+                .findFirst();
+
+        if (targetSession.isPresent()) {
+            LOG.info("Compressing files for specific session: project='{}' sessionId='{}'", projectName, sessionId);
+            sessionFileCompressor.compressSession(targetSession.get(), projectName, TYPE_TO_COMPRESS);
+        } else {
+            LOG.warn("Target session not found for compression: project='{}' sessionId='{}'", projectName, sessionId);
+        }
+    }
+
+    private void compressDefaultSessions(List<RecordingSession> sessions, String projectName) {
         // Find ACTIVE session (if any)
         Optional<RecordingSession> activeSession = sessions.stream()
                 .filter(s -> s.status() == RecordingStatus.ACTIVE)

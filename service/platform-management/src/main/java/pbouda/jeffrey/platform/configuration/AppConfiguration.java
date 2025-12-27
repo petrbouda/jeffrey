@@ -72,6 +72,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static pbouda.jeffrey.platform.configuration.GlobalJobsConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
 import static pbouda.jeffrey.platform.configuration.ProjectJobsConfiguration.REPOSITORY_COMPRESSION_TRIGGER;
@@ -101,18 +102,11 @@ public class AppConfiguration {
     @Bean
     // Inject HomeDirs to ensure that the JeffreyHome is initialized
     public PersistenceProvider persistenceProvider(
-            @Value("${jeffrey.persistence.mode:duckdb}") String databaseName,
             JeffreyDirs ignored,
             PersistenceConfigProperties properties,
             Clock clock) {
 
-        PersistenceProvider persistenceProvider;
-        if (databaseName.equalsIgnoreCase("duckdb")) {
-            persistenceProvider = new DuckDBPersistenceProvider();
-        } else {
-            throw new IllegalArgumentException("Unsupported persistence database: " + databaseName);
-        }
-
+        PersistenceProvider persistenceProvider = new DuckDBPersistenceProvider();
         Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
         persistenceProvider.initialize(
                 new PersistenceProperties(properties.getDatabase()), clock);
@@ -220,21 +214,22 @@ public class AppConfiguration {
     public ProjectRecordingInitializer.Factory projectRecordingInitializer(
             Clock applicationClock,
             RecordingStorage recordingStorage,
-            Repositories repositories) {
+            Repositories repositories,
+            JeffreyDirs jeffreyDirs) {
 
         return projectInfo -> new ProjectRecordingInitializerImpl(
                 applicationClock,
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 repositories.newProjectRecordingRepository(projectInfo.id()),
-                new JfrRecordingInformationParser());
+                new JfrRecordingInformationParser(jeffreyDirs));
     }
 
     @Bean
     public ProjectManager.Factory projectManagerFactory(
             Clock applicationClock,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) ObjectFactory<Runnable> projectsSynchronizerTrigger,
-            @Qualifier(REPOSITORY_COMPRESSION_TRIGGER) ObjectFactory<Runnable> repositoryCompressionTrigger,
+            @Qualifier(REPOSITORY_COMPRESSION_TRIGGER) ObjectFactory<Consumer<String>> repositoryCompressionTrigger,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,

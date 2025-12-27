@@ -32,6 +32,7 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClientImpl;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceManager;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 
 import javax.net.ssl.SSLContext;
@@ -52,7 +53,8 @@ public class RemoteWorkspaceConfiguration {
             Repositories repositories,
             RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE)
-            ProjectsManager.Factory commonProjectsManagerFactory) {
+            ProjectsManager.Factory commonProjectsManagerFactory,
+            JobDescriptorFactory jobDescriptorFactory) {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             URI baseUri = workspaceInfo.baseLocation().toUri();
@@ -61,7 +63,9 @@ public class RemoteWorkspaceConfiguration {
                     workspaceInfo,
                     repositories.newWorkspaceRepository(workspaceInfo.id()),
                     remoteWorkspaceClientFactory.apply(baseUri),
-                    commonProjectsManagerFactory);
+                    commonProjectsManagerFactory,
+                    repositories,
+                    jobDescriptorFactory);
         };
 
         return new RemoteWorkspacesManager(

@@ -27,6 +27,7 @@ import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositoryRecordingCleanerJobDescriptor;
 
@@ -50,10 +51,12 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
         this.period = period;
     }
 
+    @Override
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RepositoryRecordingCleanerJobDescriptor jobDescriptor) {
+            RepositoryRecordingCleanerJobDescriptor jobDescriptor,
+            JobContext context) {
 
         String projectName = manager.info().name();
         LOG.info("Cleaning the repository recordings: project='{}'", projectName);

@@ -19,6 +19,7 @@
 package pbouda.jeffrey.platform.manager.workspace.remote;
 
 import org.springframework.core.io.Resource;
+import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs.Directory;
 import pbouda.jeffrey.common.model.ProjectInfo;
@@ -26,7 +27,6 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryFileResponse;
@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class RemoteRecordingsDownloadManager implements RecordingsDownloadManager {
@@ -99,18 +98,16 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             throw Exceptions.emptyRecordingSession(recordingSessionId);
         }
 
-        // Resolve the type of the recording file (e.g. JFR, ...)
-        SupportedRecordingFile recordingType = resolveRecordingFileType(files);
-
         List<String> onlyRecordingFileIds = files.stream()
                 .filter(RepositoryFile::isRecordingFile)
+                .filter(RepositoryFile::isFinished)
                 .map(RepositoryFile::id)
                 .toList();
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
             CompletableFuture<RepositoryFile> recordingFuture = remoteWorkspaceClient.downloadRecordings(
                             workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, onlyRecordingFileIds)
-                    .thenApply(resource -> copyRecordingFile(resource, recordingType, tempDir));
+                    .thenApply(resource -> copyRecordingFile(resource, tempDir));
 
             List<CompletableFuture<RepositoryFile>> additionalFilesFutures = files.stream()
                     .filter(RepositoryFile::isArtifactFile)
@@ -144,18 +141,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         return results;
     }
 
-    private static SupportedRecordingFile resolveRecordingFileType(List<RepositoryFile> files) {
-        Optional<RepositoryFile> firstRecording = files.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .findFirst();
-
-        if (firstRecording.isEmpty()) {
-            throw new IllegalArgumentException("No recording file found in the provided files");
-        }
-
-        return firstRecording.get().fileType();
-    }
-
     private static RepositoryFile copyAdditionalFile(RepositoryFile file, Resource resource, Directory tempDir) {
         try {
             Path target = tempDir.resolve(resource.getFilename());
@@ -166,8 +151,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
     }
 
-    private static RepositoryFile copyRecordingFile(
-            Resource resource, SupportedRecordingFile recordingFile, Directory tempDir) {
+    private static RepositoryFile copyRecordingFile(Resource resource, Directory tempDir) {
         try {
             String filename = resource.getFilename();
             Path target = tempDir.resolve(filename);
@@ -177,7 +161,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     filename,
                     null,
                     size,
-                    recordingFile,
+                    SupportedRecordingFile.of(filename),
                     true,
                     true,
                     RecordingStatus.FINISHED,

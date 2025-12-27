@@ -289,7 +289,7 @@ const getFileTypeVariant = (fileType: string): string => {
     case 'JFR':
       return 'primary';
     case 'JFR_LZ4':
-      return 'success';  // Green to indicate compressed
+      return 'indigo';  // Darker blue to indicate compressed JFR
     case 'HEAP_DUMP':
       return 'purple';
     case 'ASPROF_TEMP':

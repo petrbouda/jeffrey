@@ -46,6 +46,7 @@ import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class CommonProjectManager implements ProjectManager {
 
@@ -60,14 +61,14 @@ public class CommonProjectManager implements ProjectManager {
     private final JobDescriptorFactory jobDescriptorFactory;
     private final CompositeWorkspacesManager compositeWorkspacesManager;
     private final Clock clock;
-    private final ObjectFactory<Runnable> repositoryCompressionTrigger;
+    private final ObjectFactory<Consumer<String>> repositoryCompressionTrigger;
     private final ObjectFactory<Runnable> projectsSynchronizerTrigger;
 
     public CommonProjectManager(
             Clock clock,
             ProjectInfo projectInfo,
             ObjectFactory<Runnable> projectsSynchronizerTrigger,
-            ObjectFactory<Runnable> repositoryCompressionTrigger,
+            ObjectFactory<Consumer<String>> repositoryCompressionTrigger,
             ProjectRecordingInitializer recordingInitializer,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories,

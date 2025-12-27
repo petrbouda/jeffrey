@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager {
@@ -53,14 +54,14 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
     private final RepositoryManager repositoryManager;
-    private final Runnable repositoryCompressionTrigger;
+    private final Consumer<String> repositoryCompressionTrigger;
 
 
     public RecordingsDownloadManagerImpl(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
             RepositoryManager repositoryManager,
-            Runnable repositoryCompressionTrigger) {
+            Consumer<String> repositoryCompressionTrigger) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
@@ -91,8 +92,8 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
         // If not all files are compressed, trigger compression and re-check
         // if still not compressed, throw an error
         if (!allCompressed) {
-            // Trigger repository compression to compress uncompressed files
-            repositoryCompressionTrigger.run();
+            // Trigger repository compression to compress uncompressed files for this session
+            repositoryCompressionTrigger.accept(sessionId);
 
             List<String> recordingIds = recordings.stream()
                     .map(RepositoryFile::id)
@@ -116,6 +117,7 @@ public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager 
         RecordingSession session = findRecordingSession(sessionId);
         return session.files().stream()
                 .filter(file -> recordingIds.contains(file.id()))
+                .filter(RepositoryFile::isRecordingFile)
                 .toList();
     }
 

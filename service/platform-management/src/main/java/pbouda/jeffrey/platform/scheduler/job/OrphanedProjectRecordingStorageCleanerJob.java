@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.OrphanedProjectRecordingStorageCleanerJobDescriptor;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
@@ -61,7 +62,8 @@ public class OrphanedProjectRecordingStorageCleanerJob
     @Override
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager,
-            OrphanedProjectRecordingStorageCleanerJobDescriptor jobDescriptor) {
+            OrphanedProjectRecordingStorageCleanerJobDescriptor jobDescriptor,
+            JobContext context) {
 
         String workspaceId = workspaceManager.resolveInfo().id();
 

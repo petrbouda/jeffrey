@@ -173,6 +173,14 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 long chunkSize = parseChunkSize(buffer);
                 buffer.clear();
 
+                // If chunk extends beyond file, truncate to remaining bytes
+                long remainingInFile = recordingSize - chunkStart;
+                if (chunkSize > remainingInFile) {
+                    LOG.warn("Chunk extends beyond file, truncating: chunkIndex={} position={} claimedSize={} remainingBytes={}",
+                            chunkIndex, chunkStart, chunkSize, remainingInFile);
+                    chunkSize = remainingInFile;
+                }
+
                 LOG.trace("Processing chunk {} at position {} with size {} bytes",
                         chunkIndex, chunkStart, chunkSize);
 

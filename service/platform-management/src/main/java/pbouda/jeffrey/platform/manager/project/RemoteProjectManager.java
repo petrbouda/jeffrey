@@ -26,6 +26,9 @@ import pbouda.jeffrey.platform.manager.*;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
 import java.util.Optional;
 
@@ -36,22 +39,25 @@ public class RemoteProjectManager implements ProjectManager {
     private final DetailedProjectInfo detailedProjectInfo;
     private final Optional<ProjectManager> commonProjectManager;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
-
-    private static final String UNSUPPORTED =
-            "Not supported operation in " + RemoteProjectManager.class.getSimpleName();
+    private final JobDescriptorFactory jobDescriptorFactory;
+    private final SchedulerRepository schedulerRepository;
 
     public RemoteProjectManager(
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             DetailedProjectInfo detailedProjectInfo,
             Optional<ProjectManager> commonProjectManager,
-            RemoteWorkspaceClient remoteWorkspaceClient) {
+            RemoteWorkspaceClient remoteWorkspaceClient,
+            Repositories repositories,
+            JobDescriptorFactory jobDescriptorFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.detailedProjectInfo = detailedProjectInfo;
         this.commonProjectManager = commonProjectManager;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.jobDescriptorFactory = jobDescriptorFactory;
+        this.schedulerRepository = repositories.newProjectSchedulerRepository(detailedProjectInfo.projectInfo().id());
     }
 
     @Override
@@ -97,8 +103,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public SchedulerManager schedulerManager() {
-        // Disabled for REMOTE Workspace
-        throw new UnsupportedOperationException(UNSUPPORTED);
+        return new SchedulerManagerImpl(schedulerRepository, jobDescriptorFactory);
     }
 
     @Override

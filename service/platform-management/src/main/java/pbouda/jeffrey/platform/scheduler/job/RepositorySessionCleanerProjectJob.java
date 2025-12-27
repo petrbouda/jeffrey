@@ -26,6 +26,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositorySessionCleanerProjectJobDescriptor;
 
@@ -49,10 +50,12 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
         this.period = period;
     }
 
+    @Override
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RepositorySessionCleanerProjectJobDescriptor jobDescriptor) {
+            RepositorySessionCleanerProjectJobDescriptor jobDescriptor,
+            JobContext context) {
 
         String projectName = manager.info().name();
         LOG.info("Cleaning the repository sessions: project='{}'", projectName);

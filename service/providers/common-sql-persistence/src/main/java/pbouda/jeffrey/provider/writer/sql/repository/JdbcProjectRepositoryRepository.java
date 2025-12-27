@@ -76,7 +76,9 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
 
     //language=SQL
     private static final String DELETE_REPOSITORY_SESSION = """
-            DELETE FROM repository_sessions WHERE project_id = :project_id  AND session_id = :session_id
+            DELETE FROM repository_sessions
+            WHERE session_id = :session_id
+            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)
             """;
 
     private final String projectId;

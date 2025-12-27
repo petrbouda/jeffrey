@@ -48,7 +48,7 @@ public class PeriodicalScheduler implements Scheduler {
                 scheduler.scheduleAtFixedRate(() -> {
                     // Try-catch handles the exceptions thrown by the tasks and avoids stopping the job.
                     try {
-                        job.run();
+                        job.execute(JobContext.EMPTY);
                     } catch (Exception e) {
                         LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), e);
                     }
@@ -58,7 +58,7 @@ public class PeriodicalScheduler implements Scheduler {
     }
 
     @Override
-    public Future<?> submitNow(Job job) {
+    public Future<?> submitNow(Job job, JobContext context) {
         if (scheduler == null) {
             LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
             return null;
@@ -66,23 +66,25 @@ public class PeriodicalScheduler implements Scheduler {
 
         Future<?> future = scheduler.submit(() -> {
             try {
-                job.run();
+                job.execute(context);
             } catch (Exception e) {
-                LOG.error("An error occurred during the immediate job execution: job_type={}", job.jobType(), e);
+                LOG.error("An error occurred during the immediate job execution: job_type={} context={}",
+                        job.jobType(), context.parameters(), e);
             }
         });
 
-        LOG.debug("Submitted job immediately: job_type={}", job.jobType());
+        LOG.debug("Submitted job immediately: job_type={} context={}", job.jobType(), context.parameters());
         return future;
     }
 
     @Override
-    public void submitAndWait(Job job) {
+    public void submitAndWait(Job job, JobContext context) {
         try {
-            submitNow(job)
+            submitNow(job, context)
                     .get(maxWaitTime.toMillis(), TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            LOG.error("An error occurred while waiting for the job to complete: job_type={}", job.jobType(), e);
+            LOG.error("An error occurred while waiting for the job to complete: job_type={} context={}",
+                    job.jobType(), context.parameters(), e);
             throw new RuntimeException("Failed to execute job and wait: " + job.jobType(), e);
         }
     }

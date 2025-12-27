@@ -25,6 +25,8 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspaceRepository;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 
@@ -35,19 +37,25 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private final WorkspaceRepository workspaceRepository;
     private final RemoteWorkspaceClient remoteWorkspaceClient;
     private final ProjectsManager.Factory commonProjectsManagerFactory;
+    private final Repositories repositories;
+    private final JobDescriptorFactory jobDescriptorFactory;
 
     public RemoteWorkspaceManager(
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             RemoteWorkspaceClient remoteWorkspaceClient,
-            ProjectsManager.Factory commonProjectsManagerFactory) {
+            ProjectsManager.Factory commonProjectsManagerFactory,
+            Repositories repositories,
+            JobDescriptorFactory jobDescriptorFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
         this.remoteWorkspaceClient = remoteWorkspaceClient;
         this.commonProjectsManagerFactory = commonProjectsManagerFactory;
+        this.repositories = repositories;
+        this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
     @Override
@@ -67,7 +75,9 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 jeffreyDirs,
                 workspaceInfo,
                 remoteWorkspaceClient,
-                commonProjectsManagerFactory.apply(workspaceInfo));
+                commonProjectsManagerFactory.apply(workspaceInfo),
+                repositories,
+                jobDescriptorFactory);
     }
 
     @Override

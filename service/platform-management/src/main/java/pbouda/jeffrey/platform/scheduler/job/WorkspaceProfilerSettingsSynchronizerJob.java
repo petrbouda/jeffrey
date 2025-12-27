@@ -6,6 +6,7 @@ import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
@@ -42,7 +43,7 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
 
     @Override
     protected void executeOnWorkspace(
-            WorkspaceManager workspaceManager, WorkspaceProfilerSettingsSynchronizerJobDescriptor jobDescriptor) {
+            WorkspaceManager workspaceManager, WorkspaceProfilerSettingsSynchronizerJobDescriptor jobDescriptor, JobContext context) {
 
         if (workspaceManager.type() != WorkspaceType.LIVE) {
             return;

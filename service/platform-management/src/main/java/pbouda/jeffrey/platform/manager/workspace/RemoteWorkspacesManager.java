@@ -21,6 +21,9 @@ package pbouda.jeffrey.platform.manager.workspace;
 import jakarta.ws.rs.NotFoundException;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceManager;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.net.URI;

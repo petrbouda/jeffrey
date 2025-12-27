@@ -22,9 +22,22 @@ import pbouda.jeffrey.common.model.job.JobType;
 
 import java.time.Duration;
 
-public interface Job extends Runnable {
+public interface Job {
 
+    /**
+     * Executes the job with the given context.
+     *
+     * @param context the execution context containing runtime parameters
+     */
+    void execute(JobContext context);
+
+    /**
+     * The period between executions for periodic jobs.
+     */
     Duration period();
 
+    /**
+     * The type of job for categorization and logging.
+     */
     JobType jobType();
 }

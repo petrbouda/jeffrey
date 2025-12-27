@@ -29,6 +29,7 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.platform.repository.model.RemoteProject;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
@@ -67,7 +68,8 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
     @Override
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager,
-            WorkspaceEventsReplicatorJobDescriptor jobDescriptor) {
+            WorkspaceEventsReplicatorJobDescriptor jobDescriptor,
+            JobContext context) {
 
         try {
             long migrated = replicateFilesystemEvents(workspaceManager);

@@ -27,6 +27,7 @@ import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.scheduler.Job;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 
@@ -52,7 +53,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
     }
 
     @Override
-    public void run() {
+    public void execute(JobContext context) {
         String simpleName = this.getClass().getSimpleName();
         List<JobInfo> allJobs = schedulerManager.all(jobType());
         if (allJobs.isEmpty()) {
@@ -81,7 +82,7 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
 
                     LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
                             simpleName, workspaceInfo.id(), workspacePath);
-                    executeOnWorkspace(workspaceManager, jobDescriptor);
+                    executeOnWorkspace(workspaceManager, jobDescriptor, context);
                     LOG.debug("Job completed: job={} workspace={} workspace_dir={}",
                             simpleName, workspaceManager.resolveInfo().id(), workspacePath);
                 }
@@ -89,5 +90,5 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
         }
     }
 
-    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager, T jobDescriptor);
+    protected abstract void executeOnWorkspace(WorkspaceManager workspaceManager, T jobDescriptor, JobContext context);
 }

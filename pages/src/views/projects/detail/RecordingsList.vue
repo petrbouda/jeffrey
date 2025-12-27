@@ -668,7 +668,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             <div class="d-flex align-items-center mt-1">
                               <Badge
                                 :value="Utils.formatFileType(file.type)"
-                                :variant="(file.type === 'JFR' || file.type === 'JFR_LZ4') ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
+                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey'))))"
                                 size="xxs"
                               />
                               <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
@@ -775,7 +775,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             <div class="d-flex align-items-center mt-1">
                               <Badge
                                 :value="Utils.formatFileType(file.type)"
-                                :variant="(file.type === 'JFR' || file.type === 'JFR_LZ4') ? 'info' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))"
+                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey'))))"
                                 size="xxs"
                               />
                               <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>

@@ -28,18 +28,38 @@ public interface Scheduler extends AutoCloseable {
     void start();
 
     /**
-     * Executes a job immediately.
+     * Executes a job immediately with the given context.
      *
-     * @param job the job to execute
+     * @param job     the job to execute
+     * @param context the execution context containing runtime parameters
      */
-    Future<?> submitNow(Job job);
+    Future<?> submitNow(Job job, JobContext context);
 
     /**
-     * Submits a job and waits for its completion.
+     * Executes a job immediately with empty context.
      *
      * @param job the job to execute
      */
-    void submitAndWait(Job job);
+    default Future<?> submitNow(Job job) {
+        return submitNow(job, JobContext.EMPTY);
+    }
+
+    /**
+     * Submits a job and waits for its completion with the given context.
+     *
+     * @param job     the job to execute
+     * @param context the execution context containing runtime parameters
+     */
+    void submitAndWait(Job job, JobContext context);
+
+    /**
+     * Submits a job and waits for its completion with empty context.
+     *
+     * @param job the job to execute
+     */
+    default void submitAndWait(Job job) {
+        submitAndWait(job, JobContext.EMPTY);
+    }
 
     /**
      * Shuts down the scheduler. Stops executing the tasks.

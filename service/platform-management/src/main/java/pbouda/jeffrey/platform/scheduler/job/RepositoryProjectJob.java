@@ -21,6 +21,7 @@ package pbouda.jeffrey.platform.scheduler.job;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 
@@ -42,11 +43,11 @@ public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends P
     }
 
     @Override
-    protected void execute(ProjectManager manager, T jobDescriptor) {
+    protected void execute(ProjectManager manager, T jobDescriptor, JobContext context) {
         RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(manager.info());
-        executeOnRepository(manager, remoteRepositoryStorage, jobDescriptor);
+        executeOnRepository(manager, remoteRepositoryStorage, jobDescriptor, context);
     }
 
     protected abstract void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, T jobDescriptor);
+            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, T jobDescriptor, JobContext context);
 }

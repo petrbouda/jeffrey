@@ -23,6 +23,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.scheduler.Job;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 
@@ -46,7 +47,7 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
     }
 
     @Override
-    public void run() {
+    public void execute(JobContext context) {
         // Iterate all workspaces (no isLive filter - runs for all projects)
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             // Iterate all projects in the workspace
@@ -57,12 +58,12 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
                 for (JobInfo jobInfo : projectJobs) {
                     if (jobInfo.enabled()) {
                         T jobDescriptor = jobDescriptorFactory.create(jobInfo);
-                        execute(projectManager, jobDescriptor);
+                        execute(projectManager, jobDescriptor, context);
                     }
                 }
             }
         }
     }
 
-    protected abstract void execute(ProjectManager projectManager, T jobDescriptor);
+    protected abstract void execute(ProjectManager projectManager, T jobDescriptor, JobContext context);
 }

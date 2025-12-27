@@ -29,6 +29,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
@@ -66,7 +67,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     @Override
     protected void executeOnWorkspace(
-            WorkspaceManager workspaceManager, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+            WorkspaceManager workspaceManager, ProjectsSynchronizerJobDescriptor jobDescriptor, JobContext context) {
         WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
 
         ProjectsManager projectsManager = workspaceManager.projectsManager();

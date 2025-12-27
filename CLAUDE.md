@@ -135,6 +135,10 @@ jeffrey/
 - **Architecture**: Manager pattern with service layer separation
 - **Comments**: AGPL license headers on all files
 - **Error Handling**: Custom exceptions with proper HTTP status mapping
+- **Logging**: Use SLF4J with structured key-value format:
+  - Pattern: `"Description of what happened: key1={} key2={} key3={}"`
+  - No commas between key-value pairs
+  - Example: `LOG.warn("Chunk extends beyond file, truncating: chunkIndex={} position={} claimedSize={}", index, pos, size)`
 
 ### Frontend (Vue/TypeScript)
 - **Components**: PascalCase for component names

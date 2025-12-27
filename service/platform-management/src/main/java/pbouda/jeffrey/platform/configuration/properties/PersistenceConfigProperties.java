@@ -25,16 +25,7 @@ import java.util.Map;
 
 @ConfigurationProperties("jeffrey.persistence")
 public class PersistenceConfigProperties {
-    private String mode;
     private Map<String, String> database = new HashMap<>();
-
-    public String getMode() {
-        return mode;
-    }
-
-    public void setMode(String mode) {
-        this.mode = mode;
-    }
 
     public Map<String, String> getDatabase() {
         return database;

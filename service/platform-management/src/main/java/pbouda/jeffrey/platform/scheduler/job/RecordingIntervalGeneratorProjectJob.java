@@ -25,6 +25,7 @@ import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RecordingIntervalGeneratorJobDescriptor;
 
@@ -63,7 +64,8 @@ public class RecordingIntervalGeneratorProjectJob extends RepositoryProjectJob<R
     protected void executeOnRepository(
             ProjectManager manager,
             RemoteRepositoryStorage remoteRepositoryStorage,
-            RecordingIntervalGeneratorJobDescriptor jobDescriptor) {
+            RecordingIntervalGeneratorJobDescriptor jobDescriptor,
+            JobContext context) {
 
         String projectId = manager.info().id();
 

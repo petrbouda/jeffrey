@@ -24,6 +24,7 @@ import pbouda.jeffrey.common.model.Recording;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
@@ -62,7 +63,7 @@ public class ProjectRecordingStorageSynchronizerJob extends ProjectJob<ProjectRe
     }
 
     @Override
-    protected void execute(ProjectManager projectManager, ProjectRecordingStorageSynchronizerJobDescriptor jobDescriptor) {
+    protected void execute(ProjectManager projectManager, ProjectRecordingStorageSynchronizerJobDescriptor jobDescriptor, JobContext context) {
         String projectId = projectManager.info().id();
         String projectName = projectManager.info().name();
 
