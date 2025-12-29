@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.RecordingEventSource;
 import pbouda.jeffrey.shared.model.repository.RecordingStatus;
@@ -70,6 +71,8 @@ public interface ProjectManager {
     RecordingsManager recordingsManager();
 
     RecordingsDownloadManager recordingsDownloadManager();
+
+    RepositoryStorage repositoryStorage();
 
     RepositoryManager repositoryManager();
 

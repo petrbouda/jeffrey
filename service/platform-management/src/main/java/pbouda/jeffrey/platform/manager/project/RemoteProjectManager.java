@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
@@ -100,6 +101,12 @@ public class RemoteProjectManager implements ProjectManager {
                 workspaceInfo,
                 remoteWorkspaceClient,
                 recordingsDownloadManager);
+    }
+
+    @Override
+    public RepositoryStorage repositoryStorage() {
+        throw new UnsupportedOperationException(
+                "Repository storage is not supported in " + RemoteProjectManager.class.getSimpleName());
     }
 
     @Override

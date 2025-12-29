@@ -131,7 +131,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         try {
             String filename = resource.getFilename();
             Path target = tempDir.resolve(filename);
-            Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             return target;
         } catch (IOException e) {
             throw new RuntimeException("Cannot copy file from remote source", e);

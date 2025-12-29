@@ -20,12 +20,12 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.model.job.JobType;
 import pbouda.jeffrey.shared.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositoryCompressionProjectJobDescriptor;
@@ -58,7 +58,7 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
     public RepositoryCompressionProjectJob(
             WorkspacesManager workspacesManager,
-            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
 
@@ -69,14 +69,14 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
     @Override
     protected void executeOnRepository(
             ProjectManager manager,
-            RemoteRepositoryStorage remoteRepositoryStorage,
+            RepositoryStorage repositoryStorage,
             RepositoryCompressionProjectJobDescriptor jobDescriptor,
             JobContext context) {
 
         String projectName = manager.info().name();
         LOG.debug("Starting JFR compression check: project='{}'", projectName);
 
-        List<RecordingSession> sessions = remoteRepositoryStorage.listSessions(true);
+        List<RecordingSession> sessions = repositoryStorage.listSessions(true);
 
         if (sessions.isEmpty()) {
             LOG.debug("No sessions found for compression: project='{}'", projectName);
@@ -88,15 +88,15 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
         if (targetSessionId.isPresent()) {
             // Targeted mode: compress files for specific session
-            compressSpecificSession(remoteRepositoryStorage, sessions, targetSessionId.get(), projectName);
+            compressSpecificSession(repositoryStorage, sessions, targetSessionId.get(), projectName);
         } else {
             // Default periodic mode: ACTIVE + latest FINISHED sessions
-            compressDefaultSessions(remoteRepositoryStorage, sessions, projectName);
+            compressDefaultSessions(repositoryStorage, sessions, projectName);
         }
     }
 
     private void compressSpecificSession(
-            RemoteRepositoryStorage remoteRepositoryStorage,
+            RepositoryStorage repositoryStorage,
             List<RecordingSession> sessions,
             String sessionId,
             String projectName) {
@@ -106,14 +106,14 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
         if (sessionExists) {
             LOG.info("Compressing files for specific session: project='{}' sessionId='{}'", projectName, sessionId);
-            remoteRepositoryStorage.compressSession(sessionId);
+            repositoryStorage.compressSession(sessionId);
         } else {
             LOG.warn("Target session not found for compression: project='{}' sessionId='{}'", projectName, sessionId);
         }
     }
 
     private void compressDefaultSessions(
-            RemoteRepositoryStorage remoteRepositoryStorage,
+            RepositoryStorage repositoryStorage,
             List<RecordingSession> sessions,
             String projectName) {
 
@@ -129,11 +129,11 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
         // Process ACTIVE session (compress only FINISHED files within it)
         activeSession.ifPresent(session ->
-                remoteRepositoryStorage.compressSession(session.id()));
+                repositoryStorage.compressSession(session.id()));
 
         // Process latest FINISHED session
         latestFinishedSession.ifPresent(session ->
-                remoteRepositoryStorage.compressSession(session.id()));
+                repositoryStorage.compressSession(session.id()));
     }
 
     @Override

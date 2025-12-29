@@ -21,7 +21,6 @@ package pbouda.jeffrey.shared.compression;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pbouda.jeffrey.shared.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 
 import java.io.IOException;
@@ -253,8 +252,7 @@ class Lz4CompressorTest {
             Path nonExistent = tempDir.resolve("does-not-exist.txt");
             Path target = tempDir.resolve("target.lz4");
 
-            assertThrows(RuntimeException.class, () ->
-                    Lz4Compressor.compress(nonExistent, target));
+            assertThrows(RuntimeException.class, () -> Lz4Compressor.compress(nonExistent, target));
         }
 
         @Test
@@ -263,8 +261,7 @@ class Lz4CompressorTest {
             Files.writeString(invalidFile, "This is not valid LZ4 data");
             Path target = tempDir.resolve("target.txt");
 
-            assertThrows(RuntimeException.class, () ->
-                    Lz4Compressor.decompress(invalidFile, target));
+            assertThrows(RuntimeException.class, () -> Lz4Compressor.decompress(invalidFile, target));
         }
     }
 
@@ -282,63 +279,56 @@ class Lz4CompressorTest {
         @Test
         void compressionReducesFileSizeForAllJfrFiles() throws IOException {
             try (var stream = Files.list(JFRS_DIR)) {
-                stream.filter(p -> p.toString().endsWith(".jfr"))
-                        .forEach(jfrFile -> {
-                            try {
-                                long originalSize = Files.size(jfrFile);
-                                String fileName = jfrFile.getFileName().toString();
+                stream.filter(p -> p.toString().endsWith(".jfr")).forEach(jfrFile -> {
+                    try {
+                        long originalSize = Files.size(jfrFile);
+                        String fileName = jfrFile.getFileName().toString();
 
-                                Path compressedFile = tempDir.resolve(fileName + ".lz4");
-                                Lz4Compressor.compress(jfrFile, compressedFile);
+                        Path compressedFile = tempDir.resolve(fileName + ".lz4");
+                        Lz4Compressor.compress(jfrFile, compressedFile);
 
-                                long compressedSize = Files.size(compressedFile);
-                                assertTrue(compressedSize > 0,
-                                        "Compressed file should not be empty: " + fileName);
-                                assertTrue(compressedSize < originalSize,
-                                        "Compressed size should be smaller than original for: " + fileName +
-                                                " (original=" + originalSize + ", compressed=" + compressedSize + ")");
-                            } catch (IOException e) {
-                                throw new RuntimeException("Failed for file: " + jfrFile, e);
-                            }
-                        });
+                        long compressedSize = Files.size(compressedFile);
+                        assertTrue(compressedSize > 0, "Compressed file should not be empty: " + fileName);
+                        assertTrue(compressedSize < originalSize, "Compressed size should be smaller than original for: " + fileName + " (original=" + originalSize + ", compressed=" + compressedSize + ")");
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed for file: " + jfrFile, e);
+                    }
+                });
             }
         }
 
         @Test
         void decompressStreamWorksWithAllJfrFiles() throws IOException {
             try (var stream = Files.list(JFRS_DIR)) {
-                stream.filter(p -> p.toString().endsWith(".jfr"))
-                        .forEach(jfrFile -> {
-                            try {
-                                byte[] originalContent = Files.readAllBytes(jfrFile);
-                                String fileName = jfrFile.getFileName().toString();
+                stream.filter(p -> p.toString().endsWith(".jfr")).forEach(jfrFile -> {
+                    try {
+                        byte[] originalContent = Files.readAllBytes(jfrFile);
+                        String fileName = jfrFile.getFileName().toString();
 
-                                Path compressedFile = tempDir.resolve(fileName + ".lz4");
-                                Lz4Compressor.compress(jfrFile, compressedFile);
+                        Path compressedFile = tempDir.resolve(fileName + ".lz4");
+                        Lz4Compressor.compress(jfrFile, compressedFile);
 
-                                try (InputStream decompressStream = Lz4Compressor.decompressStream(compressedFile)) {
-                                    byte[] decompressedContent = decompressStream.readAllBytes();
-                                    assertArrayEquals(originalContent, decompressedContent,
-                                            "Decompression stream failed for: " + fileName);
-                                }
-                            } catch (IOException e) {
-                                throw new RuntimeException("Failed for file: " + jfrFile, e);
-                            }
-                        });
+                        try (InputStream decompressStream = Lz4Compressor.decompressStream(compressedFile)) {
+                            byte[] decompressedContent = decompressStream.readAllBytes();
+                            assertArrayEquals(originalContent, decompressedContent, "Decompression stream failed for: " + fileName);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed for file: " + jfrFile, e);
+                    }
+                });
             }
         }
 
         @Test
         void allJfrFilesRoundTripSuccessfully() throws IOException {
             try (var stream = Files.list(JFRS_DIR)) {
-                stream.filter(p -> p.toString().endsWith(".jfr"))
-                        .forEach(jfrFile -> {
-                            try {
-                                verifyRoundTrip(jfrFile);
-                            } catch (IOException e) {
-                                throw new RuntimeException("Failed for file: " + jfrFile, e);
-                            }
-                        });
+                stream.filter(p -> p.toString().endsWith(".jfr")).forEach(jfrFile -> {
+                    try {
+                        verifyRoundTrip(jfrFile);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed for file: " + jfrFile, e);
+                    }
+                });
             }
         }
 
@@ -350,18 +340,14 @@ class Lz4CompressorTest {
             Path decompressedFile = tempDir.resolve(fileName + ".decompressed");
 
             Lz4Compressor.compress(jfrFile, compressedFile);
-            assertTrue(Files.exists(compressedFile),
-                    "Compressed file should exist for: " + fileName);
-            assertTrue(Files.size(compressedFile) > 0,
-                    "Compressed file should not be empty for: " + fileName);
+            assertTrue(Files.exists(compressedFile), "Compressed file should exist for: " + fileName);
+            assertTrue(Files.size(compressedFile) > 0, "Compressed file should not be empty for: " + fileName);
 
             Lz4Compressor.decompress(compressedFile, decompressedFile);
-            assertTrue(Files.exists(decompressedFile),
-                    "Decompressed file should exist for: " + fileName);
+            assertTrue(Files.exists(decompressedFile), "Decompressed file should exist for: " + fileName);
 
             byte[] decompressedContent = Files.readAllBytes(decompressedFile);
-            assertArrayEquals(originalContent, decompressedContent,
-                    "Round trip failed for: " + fileName);
+            assertArrayEquals(originalContent, decompressedContent, "Round trip failed for: " + fileName);
         }
     }
 }

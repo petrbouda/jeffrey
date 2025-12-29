@@ -26,7 +26,7 @@ import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.model.repository.RepositoryFile;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositoryRecordingCleanerJobDescriptor;
@@ -44,7 +44,7 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
 
     public RepositoryRecordingCleanerProjectJob(
             WorkspacesManager workspacesManager,
-            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
@@ -54,7 +54,7 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
     @Override
     protected void executeOnRepository(
             ProjectManager manager,
-            RemoteRepositoryStorage remoteRepositoryStorage,
+            RepositoryStorage repositoryStorage,
             RepositoryRecordingCleanerJobDescriptor jobDescriptor,
             JobContext context) {
 
@@ -63,7 +63,7 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
         Duration duration = jobDescriptor.toDuration();
 
         // Find the active session (newest one with ACTIVE status, or just the newest)
-        Optional<RecordingSession> activeSession = remoteRepositoryStorage.listSessions(false).stream()
+        Optional<RecordingSession> activeSession = repositoryStorage.listSessions(false).stream()
                 .filter(session -> session.status() == RecordingStatus.ACTIVE)
                 .max(Comparator.comparing(RecordingSession::createdAt));
 
@@ -74,7 +74,7 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
         RecordingSession session = activeSession.get();
 
         // Get the session with files
-        Optional<RecordingSession> sessionWithFiles = remoteRepositoryStorage.singleSession(session.id(), true);
+        Optional<RecordingSession> sessionWithFiles = repositoryStorage.singleSession(session.id(), true);
         if (sessionWithFiles.isEmpty()) {
             LOG.warn("Active session not found when fetching files: project='{}' session={}", projectName, session.id());
             return;
@@ -94,7 +94,7 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
             return;
         }
 
-        remoteRepositoryStorage.deleteRepositoryFiles(session.id(), filesToDelete);
+        repositoryStorage.deleteRepositoryFiles(session.id(), filesToDelete);
         LOG.info("Deleted {} recordings from active session: project='{}' session={}",
                 filesToDelete.size(), projectName, session.id());
     }

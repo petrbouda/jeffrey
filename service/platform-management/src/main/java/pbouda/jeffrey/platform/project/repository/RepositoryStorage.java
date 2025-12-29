@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public interface RemoteRepositoryStorage {
+public interface RepositoryStorage {
 
     @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, RemoteRepositoryStorage> {
+    interface Factory extends Function<ProjectInfo, RepositoryStorage> {
     }
 
     /**

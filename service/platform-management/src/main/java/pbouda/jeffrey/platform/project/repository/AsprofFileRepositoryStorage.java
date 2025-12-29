@@ -52,9 +52,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 
-public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorage {
+public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
 
     // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
     private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES =
@@ -74,7 +74,7 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
     private final Duration finishedPeriod;
     private final Clock clock;
 
-    public AsprofFileRemoteRepositoryStorage(
+    public AsprofFileRepositoryStorage(
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
             ProjectRepositoryRepository projectRepositoryRepository,

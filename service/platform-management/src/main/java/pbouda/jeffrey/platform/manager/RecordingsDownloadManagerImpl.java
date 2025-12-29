@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.manager;
 
 import pbouda.jeffrey.platform.project.repository.MergedRecording;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
@@ -31,11 +31,11 @@ import java.util.List;
 
 public class RecordingsDownloadManagerImpl implements RecordingsDownloadManager {
     private final ProjectRecordingInitializer recordingInitializer;
-    private final RemoteRepositoryStorage repositoryStorage;
+    private final RepositoryStorage repositoryStorage;
 
     public RecordingsDownloadManagerImpl(
             ProjectRecordingInitializer recordingInitializer,
-            RemoteRepositoryStorage repositoryStorage) {
+            RepositoryStorage repositoryStorage) {
 
         this.recordingInitializer = recordingInitializer;
         this.repositoryStorage = repositoryStorage;

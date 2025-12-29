@@ -20,14 +20,14 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
-import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.resources.request.SelectedRecordingsRequest;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 
 import java.util.List;
 

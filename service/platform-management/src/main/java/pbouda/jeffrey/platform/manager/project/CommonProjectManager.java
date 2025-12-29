@@ -19,6 +19,7 @@
 package pbouda.jeffrey.platform.manager.project;
 
 import org.springframework.beans.factory.ObjectFactory;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.Recording;
@@ -41,7 +42,6 @@ import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
@@ -64,7 +64,7 @@ public class CommonProjectManager implements ProjectManager {
     private final SchedulerRepository schedulerRepository;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final Repositories repositories;
-    private final RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory;
+    private final RepositoryStorage repositoryStorage;
     private final JobDescriptorFactory jobDescriptorFactory;
     private final CompositeWorkspacesManager compositeWorkspacesManager;
     private final Clock clock;
@@ -77,7 +77,7 @@ public class CommonProjectManager implements ProjectManager {
             ProjectRecordingInitializer recordingInitializer,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories,
-            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
+            RepositoryStorage repositoryStorage,
             CompositeWorkspacesManager compositeWorkspacesManager,
             JobDescriptorFactory jobDescriptorFactory) {
 
@@ -91,7 +91,7 @@ public class CommonProjectManager implements ProjectManager {
         this.schedulerRepository = repositories.newProjectSchedulerRepository(projectId);
         this.profilesManagerFactory = profilesManagerFactory;
         this.repositories = repositories;
-        this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
+        this.repositoryStorage = repositoryStorage;
         this.compositeWorkspacesManager = compositeWorkspacesManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
     }
@@ -108,9 +108,12 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
-        return new RecordingsDownloadManagerImpl(
-                recordingInitializer,
-                remoteRepositoryStorageFactory.apply(projectInfo));
+        return new RecordingsDownloadManagerImpl(recordingInitializer, repositoryStorage);
+    }
+
+    @Override
+    public RepositoryStorage repositoryStorage() {
+        return repositoryStorage;
     }
 
     @Override
@@ -125,7 +128,7 @@ public class CommonProjectManager implements ProjectManager {
                 projectInfo,
                 projectsSynchronizerTrigger.getObject(),
                 repositories.newProjectRepositoryRepository(projectInfo.id()),
-                remoteRepositoryStorageFactory.apply(projectInfo),
+                repositoryStorage,
                 workspaceOpt.get());
     }
 

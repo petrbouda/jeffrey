@@ -24,7 +24,7 @@ import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
@@ -36,12 +36,12 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private final ProjectsManager projectsManager;
     private final Repositories repositories;
-    private final RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory;
+    private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
 
     public DeleteSessionWorkspaceEventConsumer(
             ProjectsManager projectsManager,
             Repositories repositories,
-            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
 
         this.projectsManager = projectsManager;
         this.repositories = repositories;

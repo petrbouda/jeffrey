@@ -28,7 +28,7 @@ import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
@@ -48,12 +48,12 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     private static final WorkspaceEventConsumerType CONSUMER = WorkspaceEventConsumerType.PROJECT_SYNCHRONIZER_CONSUMER;
 
     private final Repositories repositories;
-    private final RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory;
+    private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
             Repositories repositories,
-            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
+            RepositoryStorage.Factory remoteRepositoryStorageFactory,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,

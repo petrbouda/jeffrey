@@ -20,7 +20,7 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
@@ -31,11 +31,11 @@ import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
  */
 public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends ProjectJob<T> {
 
-    private final RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory;
+    private final RepositoryStorage.Factory remoteRepositoryManagerFactory;
 
     protected RepositoryProjectJob(
             WorkspacesManager workspacesManager,
-            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory) {
 
         super(workspacesManager, jobDescriptorFactory);
@@ -44,10 +44,10 @@ public abstract class RepositoryProjectJob<T extends JobDescriptor<T>> extends P
 
     @Override
     protected void execute(ProjectManager manager, T jobDescriptor, JobContext context) {
-        RemoteRepositoryStorage remoteRepositoryStorage = remoteRepositoryManagerFactory.apply(manager.info());
-        executeOnRepository(manager, remoteRepositoryStorage, jobDescriptor, context);
+        RepositoryStorage repositoryStorage = remoteRepositoryManagerFactory.apply(manager.info());
+        executeOnRepository(manager, repositoryStorage, jobDescriptor, context);
     }
 
     protected abstract void executeOnRepository(
-            ProjectManager manager, RemoteRepositoryStorage remoteRepositoryStorage, T jobDescriptor, JobContext context);
+            ProjectManager manager, RepositoryStorage repositoryStorage, T jobDescriptor, JobContext context);
 }

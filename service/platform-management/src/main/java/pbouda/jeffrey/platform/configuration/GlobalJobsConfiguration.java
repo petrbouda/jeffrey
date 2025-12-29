@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
@@ -97,7 +97,7 @@ public class GlobalJobsConfiguration {
     public ProjectsSynchronizerJob projectsSynchronizerJob(
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
             Repositories repositories,
-            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
 
         return new ProjectsSynchronizerJob(
                 repositories,

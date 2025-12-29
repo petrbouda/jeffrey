@@ -28,6 +28,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.Config;
 import pbouda.jeffrey.shared.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
@@ -43,8 +45,6 @@ import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.platform.manager.project.CommonProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.AsprofFileRemoteRepositoryStorage;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
@@ -195,13 +195,13 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RemoteRepositoryStorage.Factory remoteRepositoryStorage(
+    public RepositoryStorage.Factory remoteRepositoryStorage(
             @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
             JeffreyDirs jeffreyDirs,
             Repositories repositories,
             Clock clock) {
         return projectId -> {
-            return new AsprofFileRemoteRepositoryStorage(
+            return new AsprofFileRepositoryStorage(
                     projectId,
                     jeffreyDirs,
                     repositories.newProjectRepositoryRepository(projectId.id()),
@@ -232,7 +232,7 @@ public class AppConfiguration {
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) ObjectFactory<Runnable> projectsSynchronizerTrigger,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
-            RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
+            RepositoryStorage.Factory repositoryStorageFactory,
             Repositories repositories,
             CompositeWorkspacesManager compositeWorkspacesManager,
             JobDescriptorFactory jobDescriptorFactory) {
@@ -244,7 +244,7 @@ public class AppConfiguration {
                     projectRecordingInitializerFactory.apply(projectInfo),
                     profilesManagerFactory,
                     repositories,
-                    remoteRepositoryStorageFactory,
+                    repositoryStorageFactory.apply(projectInfo),
                     compositeWorkspacesManager,
                     jobDescriptorFactory);
         };

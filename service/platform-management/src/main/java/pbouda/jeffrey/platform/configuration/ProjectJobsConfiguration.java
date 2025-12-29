@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
@@ -50,14 +50,14 @@ public class ProjectJobsConfiguration {
 
     private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
-    private final RemoteRepositoryStorage.Factory repositoryStorageFactory;
+    private final RepositoryStorage.Factory repositoryStorageFactory;
     private final LiveWorkspacesManager liveWorkspacesManager;
     private final JobDescriptorFactory jobDescriptorFactory;
     private final Duration defaultPeriod;
 
     public ProjectJobsConfiguration(
             LiveWorkspacesManager liveWorkspacesManager,
-            RemoteRepositoryStorage.Factory repositoryStorageFactory,
+            RepositoryStorage.Factory repositoryStorageFactory,
             JobDescriptorFactory jobDescriptorFactory,
             @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
 

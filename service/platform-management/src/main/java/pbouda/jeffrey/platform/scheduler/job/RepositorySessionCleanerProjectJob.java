@@ -20,12 +20,12 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.model.job.JobType;
 import pbouda.jeffrey.shared.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositorySessionCleanerProjectJobDescriptor;
@@ -43,7 +43,7 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
 
     public RepositorySessionCleanerProjectJob(
             WorkspacesManager workspacesManager,
-            RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
+            RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period) {
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
@@ -53,7 +53,7 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
     @Override
     protected void executeOnRepository(
             ProjectManager manager,
-            RemoteRepositoryStorage remoteRepositoryStorage,
+            RepositoryStorage repositoryStorage,
             RepositorySessionCleanerProjectJobDescriptor jobDescriptor,
             JobContext context) {
 
@@ -62,7 +62,7 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
         Duration duration = jobDescriptor.toDuration();
 
         Instant currentTime = Instant.now();
-        List<RecordingSession> candidatesForDeletion = remoteRepositoryStorage.listSessions(false).stream()
+        List<RecordingSession> candidatesForDeletion = repositoryStorage.listSessions(false).stream()
                 // Sort by created time descending
                 .sorted(Comparator.comparing(RecordingSession::createdAt).reversed())
                 // Keep at least one session

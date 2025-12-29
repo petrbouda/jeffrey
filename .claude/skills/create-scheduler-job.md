@@ -196,7 +196,7 @@ public class {JobName}Job extends RepositoryProjectJob
         @Override
         protected void executeOnRepository(
                 ProjectManager manager,
-                RemoteRepositoryStorage remoteRepositoryStorage, {
+                RemoteRepositoryStorage repositoryStorage, {
             JobName
         }
 

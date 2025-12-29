@@ -52,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class AsprofFileRemoteRepositoryStorageTest {
+class AsprofFileRepositoryStorageTest {
 
     private static final Path JFR_DIR = FileSystemUtils.classpathPath("jfrs");
     private static final String SESSION_ID = "test-session-123";
@@ -71,7 +71,7 @@ class AsprofFileRemoteRepositoryStorageTest {
 
     private Path sessionPath;
     private Path jeffreyTemp;
-    private AsprofFileRemoteRepositoryStorage storage;
+    private AsprofFileRepositoryStorage storage;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -126,7 +126,7 @@ class AsprofFileRemoteRepositoryStorageTest {
 
         // Create storage instance
         Clock fixedClock = Clock.fixed(now, ZoneId.systemDefault());
-        storage = new AsprofFileRemoteRepositoryStorage(
+        storage = new AsprofFileRepositoryStorage(
                 projectInfo,
                 jeffreyDirs,
                 projectRepositoryRepository,
