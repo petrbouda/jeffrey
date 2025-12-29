@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.resources;
 import jakarta.ws.rs.*;
 import pbouda.jeffrey.common.model.ProfilerInfo;
 import pbouda.jeffrey.common.exception.Exceptions;
-import pbouda.jeffrey.platform.manager.ProfilerManager;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,10 +34,10 @@ public class ProfilerResource {
             String agentSettings) {
     }
 
-    private final ProfilerManager profilerManager;
+    private final ProfilerRepository profilerRepository;
 
-    public ProfilerResource(ProfilerManager profilerManager) {
-        this.profilerManager = profilerManager;
+    public ProfilerResource(ProfilerRepository profilerRepository) {
+        this.profilerRepository = profilerRepository;
     }
 
     @POST
@@ -55,13 +55,13 @@ public class ProfilerResource {
                 request.projectId(),
                 request.agentSettings());
 
-        profilerManager.upsertSettings(profilerInfo);
+        profilerRepository.upsertSettings(profilerInfo);
     }
 
     @GET
     @Path("settings/all")
     public List<ProfilerSettingsEntity> findAllSettings() {
-        return profilerManager.findAllSettings().stream()
+        return profilerRepository.findAllSettings().stream()
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()))
                 .toList();
     }
@@ -77,7 +77,7 @@ public class ProfilerResource {
         if (projectId == null || projectId.isBlank()) {
             throw Exceptions.invalidRequest("Project ID query parameter is required");
         }
-        return profilerManager.findSettings(workspaceId, projectId)
+        return profilerRepository.findSettings(workspaceId, projectId)
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()));
     }
 
@@ -92,6 +92,6 @@ public class ProfilerResource {
         if (projectId == null || projectId.isBlank()) {
             throw Exceptions.invalidRequest("Project ID query parameter is required");
         }
-        profilerManager.deleteSettings(workspaceId, projectId);
+        profilerRepository.deleteSettings(workspaceId, projectId);
     }
 }

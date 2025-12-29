@@ -36,6 +36,11 @@ import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFile
 import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
+import pbouda.jeffrey.common.compression.Lz4Compressor;
+import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.profile.parser.chunk.Recordings;
+
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -43,19 +48,25 @@ import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.IntStream;
 
 public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRemoteRepositoryStorage.class);
 
+    // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
     private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES =
-            List.of(SupportedRecordingFile.JFR, SupportedRecordingFile.JFR_LZ4);
+            List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR);
 
     private static final List<String> RECORDING_EXTENSIONS = RECORDING_FILE_TYPES.stream()
             .map(SupportedRecordingFile::fileExtension)
             .toList();
 
+    private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = SupportedRecordingFile.JFR_LZ4;
+
+    private final Lock compressionLock = new ReentrantLock();
     private final ProjectInfo projectInfo;
     private final JeffreyDirs jeffreyDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
@@ -245,6 +256,134 @@ public class AsprofFileRemoteRepositoryStorage implements RemoteRepositoryStorag
             return new WithDetectionFileStrategy(sessionInfo.finishedFile(), finishedPeriod, clock);
         } else {
             return new WithoutDetectionFileStrategy(finishedPeriod, clock);
+        }
+    }
+
+    // ========== Recording Files ==========
+
+    @Override
+    public List<Path> recordings(String sessionId) {
+        return recordings(sessionId, null);
+    }
+
+    @Override
+    public List<Path> recordings(String sessionId, List<String> recordingIds) {
+        RecordingSession session = resolveSession(sessionId);
+
+        return session.files().stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(file -> file.status() == RecordingStatus.FINISHED)
+                .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
+                .map(this::ensureCompressed)
+                .distinct()
+                .toList();
+    }
+
+    // ========== Merge Recordings ==========
+
+    @Override
+    public MergedRecording mergeRecordings(String sessionId) {
+        return mergeRecordings(sessionId, null);
+    }
+
+    @Override
+    public MergedRecording mergeRecordings(String sessionId, List<String> recordingIds) {
+        List<Path> compressedPaths = recordings(sessionId, recordingIds);
+
+        if (compressedPaths.isEmpty()) {
+            throw Exceptions.emptyRecordingSession(sessionId);
+        }
+
+        // Create temp file for merged recording
+        Path tempFile = jeffreyDirs.temp().resolve(TARGET_COMPRESSED_TYPE.appendExtension(sessionId));
+        Path merged = Recordings.mergeByStreaming(compressedPaths, tempFile);
+
+        // Fallback for empty merged file (should not happen in normal cases, can happen in some blob storages)
+        if (FileSystemUtils.size(merged) <= 0) {
+            LOG.warn("Merged recording is empty, retrying by copy method: {}", merged);
+            FileSystemUtils.removeFile(merged);
+            Recordings.mergeByCopy(compressedPaths, tempFile);
+        }
+
+        return new MergedRecording(tempFile);
+    }
+
+    // ========== Artifact Files ==========
+
+    @Override
+    public List<Path> artifacts(String sessionId) {
+        return artifacts(sessionId, null);
+    }
+
+    @Override
+    public List<Path> artifacts(String sessionId, List<String> artifactIds) {
+        RecordingSession session = resolveSession(sessionId);
+
+        return session.files().stream()
+                .filter(file -> !file.isRecordingFile())
+                .filter(file -> artifactIds == null || artifactIds.contains(file.id()))
+                .map(RepositoryFile::filePath)
+                .toList();
+    }
+
+    // ========== Session Compression ==========
+
+    @Override
+    public int compressSession(String sessionId) {
+        // recordings() compresses all files and deletes originals via ensureCompressed()
+        return recordings(sessionId, null).size();
+    }
+
+    // ========== Private Helpers ==========
+
+    private RecordingSession resolveSession(String sessionId) {
+        Optional<RecordingSession> sessionOpt = singleSession(sessionId, true);
+        if (sessionOpt.isEmpty()) {
+            throw Exceptions.recordingSessionNotFound(sessionId);
+        }
+        return sessionOpt.get();
+    }
+
+    /**
+     * Ensures the recording file is compressed (JFR_LZ4 format).
+     * <p>
+     * If already compressed, returns the original path. Otherwise, compresses the file
+     * and stores the compressed version persistently in the same directory.
+     * Uses double-check locking pattern for thread safety.
+     * </p>
+     */
+    private Path ensureCompressed(RepositoryFile file) {
+        if (file.fileType() == TARGET_COMPRESSED_TYPE) {
+            return file.filePath();
+        }
+
+        Path sourcePath = file.filePath();
+        Path compressedPath = sourcePath.resolveSibling(file.name() + ".lz4");
+
+        // Fast path: check if already compressed by another thread
+        if (Files.exists(compressedPath)) {
+            FileSystemUtils.removeFile(sourcePath);
+            return compressedPath;
+        }
+
+        compressionLock.lock();
+        try {
+            // Double-check after acquiring lock
+            if (Files.exists(compressedPath)) {
+                FileSystemUtils.removeFile(sourcePath);
+                return compressedPath;
+            }
+
+            // Compress, verify, and delete original
+            Lz4Compressor.compress(sourcePath, compressedPath);
+            if (Files.exists(compressedPath) && Files.size(compressedPath) > 0) {
+                FileSystemUtils.removeFile(sourcePath);
+            }
+            return compressedPath;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to verify compressed file: " + compressedPath, e);
+        } finally {
+            compressionLock.unlock();
         }
     }
 

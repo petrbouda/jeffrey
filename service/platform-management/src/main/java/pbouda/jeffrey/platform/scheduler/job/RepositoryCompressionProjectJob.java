@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.job.JobType;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
 import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
@@ -55,20 +54,15 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
      */
     public static final String PARAM_SESSION_ID = "sessionId";
 
-    private static final SupportedRecordingFile TYPE_TO_COMPRESS = SupportedRecordingFile.JFR;
-
-    private final SessionFileCompressor sessionFileCompressor;
     private final Duration period;
 
     public RepositoryCompressionProjectJob(
             WorkspacesManager workspacesManager,
             RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
-            SessionFileCompressor sessionFileCompressor,
             Duration period) {
 
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
-        this.sessionFileCompressor = sessionFileCompressor;
         this.period = period;
     }
 
@@ -94,27 +88,35 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
         if (targetSessionId.isPresent()) {
             // Targeted mode: compress files for specific session
-            compressSpecificSession(sessions, targetSessionId.get(), projectName);
+            compressSpecificSession(remoteRepositoryStorage, sessions, targetSessionId.get(), projectName);
         } else {
             // Default periodic mode: ACTIVE + latest FINISHED sessions
-            compressDefaultSessions(sessions, projectName);
+            compressDefaultSessions(remoteRepositoryStorage, sessions, projectName);
         }
     }
 
-    private void compressSpecificSession(List<RecordingSession> sessions, String sessionId, String projectName) {
-        Optional<RecordingSession> targetSession = sessions.stream()
-                .filter(s -> s.id().equals(sessionId))
-                .findFirst();
+    private void compressSpecificSession(
+            RemoteRepositoryStorage remoteRepositoryStorage,
+            List<RecordingSession> sessions,
+            String sessionId,
+            String projectName) {
 
-        if (targetSession.isPresent()) {
+        boolean sessionExists = sessions.stream()
+                .anyMatch(s -> s.id().equals(sessionId));
+
+        if (sessionExists) {
             LOG.info("Compressing files for specific session: project='{}' sessionId='{}'", projectName, sessionId);
-            sessionFileCompressor.compressSession(targetSession.get(), projectName, TYPE_TO_COMPRESS);
+            remoteRepositoryStorage.compressSession(sessionId);
         } else {
             LOG.warn("Target session not found for compression: project='{}' sessionId='{}'", projectName, sessionId);
         }
     }
 
-    private void compressDefaultSessions(List<RecordingSession> sessions, String projectName) {
+    private void compressDefaultSessions(
+            RemoteRepositoryStorage remoteRepositoryStorage,
+            List<RecordingSession> sessions,
+            String projectName) {
+
         // Find ACTIVE session (if any)
         Optional<RecordingSession> activeSession = sessions.stream()
                 .filter(s -> s.status() == RecordingStatus.ACTIVE)
@@ -127,11 +129,11 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob<Reposi
 
         // Process ACTIVE session (compress only FINISHED files within it)
         activeSession.ifPresent(session ->
-                sessionFileCompressor.compressSession(session, projectName, TYPE_TO_COMPRESS));
+                remoteRepositoryStorage.compressSession(session.id()));
 
         // Process latest FINISHED session
         latestFinishedSession.ifPresent(session ->
-                sessionFileCompressor.compressSession(session, projectName, TYPE_TO_COMPRESS));
+                remoteRepositoryStorage.compressSession(session.id()));
     }
 
     @Override

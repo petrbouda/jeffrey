@@ -94,13 +94,11 @@ public class ProjectJobsConfiguration {
 
     @Bean
     public RepositoryCompressionProjectJob repositoryCompressionProjectJob(
-            SessionFileCompressor sessionFileCompressor,
             @Value("${jeffrey.job.repository-compression.period:}") Duration jobPeriod) {
         return new RepositoryCompressionProjectJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                sessionFileCompressor,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 

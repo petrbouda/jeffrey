@@ -50,7 +50,7 @@ public class ProjectResource {
 
     @Path("/settings")
     public ProjectSettingsResource settingsResource() {
-        return new ProjectSettingsResource(projectManager.settingsManager());
+        return new ProjectSettingsResource(projectManager.projectRepository());
     }
 
     @Path("/recordings")

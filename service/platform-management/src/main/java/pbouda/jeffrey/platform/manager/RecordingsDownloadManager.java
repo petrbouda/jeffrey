@@ -18,8 +18,7 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
-
+import java.nio.file.Path;
 import java.util.List;
 
 public interface RecordingsDownloadManager {
@@ -28,5 +27,16 @@ public interface RecordingsDownloadManager {
 
     void mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
 
-    void createNewRecording(String recordingName, List<RepositoryFile> repositoryFiles);
+    /**
+     * Creates a new recording from the given paths.
+     * <p>
+     * This method is used by remote download managers that have already downloaded
+     * the files to a temporary location and need to merge and store them.
+     * </p>
+     *
+     * @param recordingName the name for the new recording
+     * @param recordingPath path to the merged recording file
+     * @param artifactPaths paths to artifact files (heap dumps, logs, etc.)
+     */
+    void createNewRecording(String recordingName, Path recordingPath, List<Path> artifactPaths);
 }

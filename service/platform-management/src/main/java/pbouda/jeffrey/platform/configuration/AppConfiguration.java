@@ -36,7 +36,10 @@ import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
 import pbouda.jeffrey.platform.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
-import pbouda.jeffrey.platform.manager.*;
+import pbouda.jeffrey.platform.manager.ProfilesManager;
+import pbouda.jeffrey.platform.manager.ProfilesManagerImpl;
+import pbouda.jeffrey.platform.manager.SchedulerManager;
+import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.platform.manager.project.CommonProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
@@ -48,7 +51,6 @@ import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
-import pbouda.jeffrey.platform.scheduler.job.SessionFileCompressor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
@@ -62,6 +64,7 @@ import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.provider.api.PersistenceProperties;
 import pbouda.jeffrey.provider.api.PersistenceProvider;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
@@ -72,10 +75,8 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static pbouda.jeffrey.platform.configuration.GlobalJobsConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
-import static pbouda.jeffrey.platform.configuration.ProjectJobsConfiguration.REPOSITORY_COMPRESSION_TRIGGER;
 
 @Configuration
 @Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
@@ -229,7 +230,6 @@ public class AppConfiguration {
     public ProjectManager.Factory projectManagerFactory(
             Clock applicationClock,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) ObjectFactory<Runnable> projectsSynchronizerTrigger,
-            @Qualifier(REPOSITORY_COMPRESSION_TRIGGER) ObjectFactory<Consumer<String>> repositoryCompressionTrigger,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             RemoteRepositoryStorage.Factory remoteRepositoryStorageFactory,
@@ -241,7 +241,6 @@ public class AppConfiguration {
                     applicationClock,
                     projectInfo,
                     projectsSynchronizerTrigger,
-                    repositoryCompressionTrigger,
                     projectRecordingInitializerFactory.apply(projectInfo),
                     profilesManagerFactory,
                     repositories,
@@ -282,14 +281,10 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfilerManager profilerManager(Repositories repositories) {
-        return new ProfilerManagerImpl(repositories.newProfilerRepository());
+    public ProfilerRepository profilerRepository(Repositories repositories) {
+        return repositories.newProfilerRepository();
     }
 
-    @Bean
-    public SessionFileCompressor sessionFileCompressor(JeffreyDirs jeffreyDirs) {
-        return new SessionFileCompressor(new Lz4Compressor(jeffreyDirs));
-    }
 
     @Bean
     @ConditionalOnProperty(value = "jeffrey.copy-libs.enabled", havingValue = "true", matchIfMissing = true)

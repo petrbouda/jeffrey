@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 
@@ -54,6 +55,16 @@ public interface ProjectRecordingInitializer {
     default NewRecordingHolder newRecording(NewRecording recording) {
         return newRecording(recording, List.of());
     }
+
+    /**
+     * Initializes a new recording and provides a {@link NewRecordingHolder} that contains resources
+     * for managing the recording's lifecycle. It allows copying additional files (by path) to the recording.
+     *
+     * @param recording           the details of the recording including filename, folder ID, and input stream
+     * @param additionalFilePaths paths to additional files to be associated with the recording
+     * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
+     */
+    NewRecordingHolder newRecordingWithPaths(NewRecording recording, List<Path> additionalFilePaths);
 
     /**
      * Returns the recording storage for accessing recording files.

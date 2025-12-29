@@ -22,8 +22,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.platform.manager.SettingsManager;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 
 public class ProjectSettingsResource {
 
@@ -41,22 +41,22 @@ public class ProjectSettingsResource {
     public record ProjectSettingsUpdate(String name) {
     }
 
-    private final SettingsManager settingsManager;
+    private final ProjectRepository projectRepository;
 
-    public ProjectSettingsResource(SettingsManager settingsManager) {
-        this.settingsManager = settingsManager;
+    public ProjectSettingsResource(ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
     }
 
     @POST
     public void update(ProjectSettingsUpdate settings) {
         if (settings.name != null) {
-            settingsManager.updateName(settings.name);
+            projectRepository.updateProjectName(settings.name);
         }
     }
 
     @GET
     public SettingsResponse settings() {
-        return settingsManager.info()
+        return projectRepository.find()
                 .map(SettingsResponse::new)
                 .orElseThrow(NotFoundException::new);
     }

@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.RepositoryInfo;
 import pbouda.jeffrey.common.model.repository.RecordingSession;
@@ -28,33 +26,25 @@ import pbouda.jeffrey.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.project.repository.MergedRecording;
+import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.profile.parser.chunk.Recordings;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 public class RepositoryManagerImpl implements RepositoryManager {
-
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
-
-    private static final SupportedRecordingFile TARGET_RECORDING_FILE = SupportedRecordingFile.JFR_LZ4;
 
     private final Clock clock;
     private final ProjectInfo projectInfo;
     private final Runnable projectsSynchronizerTrigger;
-    private final Consumer<String> repositoryCompressionTrigger;
     private final ProjectRepositoryRepository repository;
     private final RemoteRepositoryStorage repositoryStorage;
     private final WorkspaceManager workspaceManager;
@@ -63,7 +53,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
             Clock clock,
             ProjectInfo projectInfo,
             Runnable projectsSynchronizerTrigger,
-            Consumer<String> repositoryCompressionTrigger,
             ProjectRepositoryRepository repository,
             RemoteRepositoryStorage repositoryStorage,
             WorkspaceManager workspaceManager) {
@@ -71,7 +60,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
         this.clock = clock;
         this.projectInfo = projectInfo;
         this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
-        this.repositoryCompressionTrigger = repositoryCompressionTrigger;
         this.repository = repository;
         this.repositoryStorage = repositoryStorage;
         this.workspaceManager = workspaceManager;
@@ -79,102 +67,31 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public StreamedRecordingFile streamArtifact(String sessionId, String artifactId) {
-        // Filter only recording files that are finished and takes all finished files in the session
-        Predicate<RepositoryFile> folder = repositoryFile -> {
-            return artifactId.equalsIgnoreCase(repositoryFile.id());
-        };
+        List<Path> artifactPaths = repositoryStorage.artifacts(sessionId, List.of(artifactId));
 
-        RecordingSession recordingSession = resolveRecordingSession(sessionId);
-        List<RepositoryFile> recordingFiles = recordingSession.files().stream()
-                .filter(folder)
-                .toList();
+        if (artifactPaths.isEmpty()) {
+            throw new IllegalArgumentException("Artifact not found: session_id=" + sessionId + " artifact_id=" + artifactId);
+        }
 
-        return mergeAndStream(sessionId, recordingFiles);
+        Path artifactPath = artifactPaths.getFirst();
+        String filename = artifactPath.getFileName().toString();
+        long size = artifactPath.toFile().length();
+
+        return new StreamedRecordingFile(filename, size, output -> Recordings.copyByStreaming(artifactPath, output));
     }
 
     @Override
     public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
-        // Filter only recording files that are finished and is contained in the given list of IDs
-        Predicate<RepositoryFile> filter = repositoryFile -> {
-            return repositoryFile.isRecordingFile()
-                    && recordingFileIds.contains(repositoryFile.id())
-                    && repositoryFile.status() == RecordingStatus.FINISHED;
-        };
-
-        RecordingSession recordingSession = resolveRecordingSession(sessionId);
-        List<RepositoryFile> recordingFiles = recordingSession.files().stream()
-                .filter(filter)
-                .toList();
-
-        return mergeAndStream(sessionId, recordingFiles);
-    }
-
-    private RecordingSession resolveRecordingSession(String sessionId) {
-        Optional<RecordingSession> sessionOpt = repositoryStorage.singleSession(sessionId, true);
-        if (sessionOpt.isEmpty()) {
-            throw Exceptions.recordingSessionNotFound(sessionId);
-        }
-        return sessionOpt.get();
-    }
-
-    private StreamedRecordingFile mergeAndStream(String sessionId, List<RepositoryFile> recordingFiles) {
-        // Ensure all recording files are compressed before streaming
-        List<RepositoryFile> finalRecordingFiles = ensureFilesCompressed(sessionId, recordingFiles);
-
-        // Sum the real size of all files on the filesystem
-        long sumOfSizes = finalRecordingFiles.stream()
-                .mapToLong(RepositoryFile::size)
-                .sum();
-
-        if (finalRecordingFiles.size() == 1) {
-            RepositoryFile file = finalRecordingFiles.getFirst();
-            return new StreamedRecordingFile(
-                    file.name(), sumOfSizes, output -> Recordings.copyByStreaming(file.filePath(), output));
-        } else if (finalRecordingFiles.size() > 1) {
-            List<Path> files = finalRecordingFiles.stream()
-                    .map(RepositoryFile::filePath)
-                    .toList();
-
-            RepositoryFile firstRecordingFile = finalRecordingFiles.getFirst();
-            String filename = firstRecordingFile.fileType().appendExtension(sessionId);
-            return new StreamedRecordingFile(
-                    filename, sumOfSizes, output -> Recordings.mergeByStreaming(files, output));
-        } else {
-            throw Exceptions.emptyRecordingSession(sessionId);
-        }
-    }
-
-    private List<RepositoryFile> ensureFilesCompressed(String sessionId, List<RepositoryFile> recordingFiles) {
-        if (allFilesCompressed(recordingFiles)) {
-            return recordingFiles;
-        }
-
-        // Trigger compression for the specific session
-        repositoryCompressionTrigger.accept(sessionId);
-
-        // Re-fetch files to get updated state
-        List<String> fileIds = recordingFiles.stream()
-                .map(RepositoryFile::id)
-                .toList();
-
-        RecordingSession updatedSession = resolveRecordingSession(sessionId);
-        List<RepositoryFile> updatedFiles = updatedSession.files().stream()
-                .filter(f -> fileIds.contains(f.id()))
-                .toList();
-
-        if (!allFilesCompressed(updatedFiles)) {
-            LOG.warn("Not all recording files were compressed after compression trigger: session_id={} file_ids={}",
-                    sessionId, fileIds);
-            throw Exceptions.compressionError("Cannot stream recordings, not all files are compressed");
-        }
-
-        return updatedFiles;
-    }
-
-    private boolean allFilesCompressed(List<RepositoryFile> recordingFiles) {
-        return recordingFiles.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .allMatch(file -> file.fileType() == TARGET_RECORDING_FILE);
+        MergedRecording merged = repositoryStorage.mergeRecordings(sessionId, recordingFileIds);
+        return new StreamedRecordingFile(
+                merged.filename(),
+                merged.size(),
+                output -> {
+                    try (var rec = merged) {
+                        Recordings.copyByStreaming(rec.path(), output);
+                    }
+                }
+        );
     }
 
     @Override

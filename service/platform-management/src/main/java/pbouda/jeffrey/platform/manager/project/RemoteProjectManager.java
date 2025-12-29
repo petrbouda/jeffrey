@@ -22,11 +22,17 @@ import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.model.ProjectInfo;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.platform.manager.*;
+import pbouda.jeffrey.platform.manager.ProfilesManager;
+import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
+import pbouda.jeffrey.platform.manager.RecordingsManager;
+import pbouda.jeffrey.platform.manager.RepositoryManager;
+import pbouda.jeffrey.platform.manager.SchedulerManager;
+import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 
@@ -107,8 +113,8 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
-    public SettingsManager settingsManager() {
-        return resolveProjectManager().settingsManager();
+    public ProjectRepository projectRepository() {
+        return resolveProjectManager().projectRepository();
     }
 
     @Override

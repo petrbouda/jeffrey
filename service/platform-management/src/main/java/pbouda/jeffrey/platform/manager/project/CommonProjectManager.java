@@ -29,7 +29,16 @@ import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.common.exception.Exceptions;
-import pbouda.jeffrey.platform.manager.*;
+import pbouda.jeffrey.platform.manager.ProfilesManager;
+import pbouda.jeffrey.platform.manager.ProfilesManagerImpl;
+import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
+import pbouda.jeffrey.platform.manager.RecordingsDownloadManagerImpl;
+import pbouda.jeffrey.platform.manager.RecordingsManager;
+import pbouda.jeffrey.platform.manager.RecordingsManagerImpl;
+import pbouda.jeffrey.platform.manager.RepositoryManager;
+import pbouda.jeffrey.platform.manager.RepositoryManagerImpl;
+import pbouda.jeffrey.platform.manager.SchedulerManager;
+import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
@@ -46,7 +55,6 @@ import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class CommonProjectManager implements ProjectManager {
 
@@ -61,14 +69,12 @@ public class CommonProjectManager implements ProjectManager {
     private final JobDescriptorFactory jobDescriptorFactory;
     private final CompositeWorkspacesManager compositeWorkspacesManager;
     private final Clock clock;
-    private final ObjectFactory<Consumer<String>> repositoryCompressionTrigger;
     private final ObjectFactory<Runnable> projectsSynchronizerTrigger;
 
     public CommonProjectManager(
             Clock clock,
             ProjectInfo projectInfo,
             ObjectFactory<Runnable> projectsSynchronizerTrigger,
-            ObjectFactory<Consumer<String>> repositoryCompressionTrigger,
             ProjectRecordingInitializer recordingInitializer,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories,
@@ -79,7 +85,6 @@ public class CommonProjectManager implements ProjectManager {
         this.clock = clock;
         String projectId = projectInfo.id();
         this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
-        this.repositoryCompressionTrigger = repositoryCompressionTrigger;
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
         this.projectRepository = repositories.newProjectRepository(projectId);
@@ -105,7 +110,8 @@ public class CommonProjectManager implements ProjectManager {
     @Override
     public RecordingsDownloadManager recordingsDownloadManager() {
         return new RecordingsDownloadManagerImpl(
-                projectInfo, recordingInitializer, repositoryManager(), repositoryCompressionTrigger.getObject());
+                recordingInitializer,
+                remoteRepositoryStorageFactory.apply(projectInfo));
     }
 
     @Override
@@ -119,7 +125,6 @@ public class CommonProjectManager implements ProjectManager {
                 clock,
                 projectInfo,
                 projectsSynchronizerTrigger.getObject(),
-                repositoryCompressionTrigger.getObject(),
                 repositories.newProjectRepositoryRepository(projectInfo.id()),
                 remoteRepositoryStorageFactory.apply(projectInfo),
                 workspaceOpt.get());
@@ -131,8 +136,8 @@ public class CommonProjectManager implements ProjectManager {
     }
 
     @Override
-    public SettingsManager settingsManager() {
-        return new SettingsManagerImpl(projectRepository);
+    public ProjectRepository projectRepository() {
+        return projectRepository;
     }
 
     @Override

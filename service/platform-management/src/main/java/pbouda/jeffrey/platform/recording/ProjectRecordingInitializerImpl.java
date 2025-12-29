@@ -131,6 +131,74 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     }
 
     @Override
+    public NewRecordingHolder newRecordingWithPaths(NewRecording newRecording, List<Path> additionalFilePaths) {
+        String recordingId = IDGenerator.generate();
+        Path targetPath = recordingStorage.uploadTarget(recordingId, newRecording.filename());
+
+        Runnable uploadCompleteCallback = () -> {
+            if (newRecording.folderId() != null) {
+                boolean folderExists = recordingRepository.folderExists(newRecording.folderId());
+                if (!folderExists) {
+                    throw new RuntimeException("Folder does not exist: " + newRecording.folderId());
+                }
+            }
+
+            try {
+                // Provide information about the Recording file
+                RecordingInformation information = recordingInformationParser.provide(targetPath);
+
+                Instant createdAt = clock.instant();
+                Recording recording = new Recording(
+                        recordingId,
+                        newRecording.recordingName(),
+                        projectInfo.id(),
+                        newRecording.folderId(),
+                        information.eventSource(),
+                        createdAt,
+                        information.recordingStartedAt(),
+                        information.recordingFinishedAt(),
+                        false,
+                        List.of());
+
+                RecordingFile recordingFile = new RecordingFile(
+                        IDGenerator.generate(),
+                        recordingId,
+                        newRecording.filename(),
+                        SupportedRecordingFile.of(newRecording.filename()),
+                        createdAt,
+                        FileSystemUtils.size(targetPath));
+
+                recordingRepository.insertRecording(recording, recordingFile);
+
+                // ------------------------------------------------------
+                // Upload Additional files to the newly created recording
+                // ------------------------------------------------------
+
+                recordingStorage.addArtifacts(recordingId, additionalFilePaths);
+
+                for (Path additionalFilePath : additionalFilePaths) {
+                    String filename = additionalFilePath.getFileName().toString();
+                    RecordingFile additionalRecordingFile = new RecordingFile(
+                            IDGenerator.generate(),
+                            recordingId,
+                            filename,
+                            SupportedRecordingFile.of(filename),
+                            createdAt,
+                            FileSystemUtils.size(additionalFilePath));
+
+                    recordingRepository.insertRecordingFile(additionalRecordingFile);
+                }
+
+            } catch (Exception e) {
+                FileSystemUtils.removeFile(targetPath);
+                throw new RuntimeException("Failed to upload recording: " + newRecording.filename(), e);
+            }
+        };
+
+        return new NewRecordingHolder(recordingId, targetPath, uploadCompleteCallback);
+    }
+
+    @Override
     public ProjectRecordingStorage recordingStorage() {
         return recordingStorage;
     }

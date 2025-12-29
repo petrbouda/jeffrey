@@ -74,8 +74,7 @@ public class Lz4Compressor {
     public Path compressToDir(Path source, Path targetDir) {
         String targetFilename = source.getFileName() + LZ4_EXTENSION;
         Path targetPath = targetDir.resolve(targetFilename);
-        compress(source, targetPath);
-        return targetPath;
+        return compress(source, targetPath);
     }
 
     /**
@@ -105,13 +104,15 @@ public class Lz4Compressor {
      * @param source the source file to compress
      * @param target the target file path for the compressed output
      */
-    public static void compress(Path source, Path target) {
+    public static Path compress(Path source, Path target) {
         try (InputStream in = Files.newInputStream(source);
              OutputStream out = new LZ4FrameOutputStream(Files.newOutputStream(target))) {
             in.transferTo(out);
         } catch (IOException e) {
             throw new RuntimeException("Failed to compress file: source=" + source + " target=" + target, e);
         }
+
+        return target;
     }
 
     /**

@@ -27,8 +27,8 @@ import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RecordingsManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
-import pbouda.jeffrey.platform.manager.SettingsManager;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 
 import java.util.function.Function;
 
@@ -75,7 +75,7 @@ public interface ProjectManager {
 
     SchedulerManager schedulerManager();
 
-    SettingsManager settingsManager();
+    ProjectRepository projectRepository();
 
     ProjectRecordingInitializer recordingInitializer();
 

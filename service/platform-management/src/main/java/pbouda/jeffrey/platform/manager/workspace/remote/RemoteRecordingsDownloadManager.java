@@ -23,9 +23,7 @@ import pbouda.jeffrey.common.exception.Exceptions;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.common.filesystem.JeffreyDirs.Directory;
 import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
@@ -35,7 +33,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -105,74 +102,43 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .toList();
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
-            CompletableFuture<RepositoryFile> recordingFuture = remoteWorkspaceClient.downloadRecordings(
+            // Download the merged recording file
+            CompletableFuture<Path> recordingF = remoteWorkspaceClient.downloadRecordings(
                             workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, onlyRecordingFileIds)
-                    .thenApply(resource -> copyRecordingFile(resource, tempDir));
+                    .thenApply(resource -> copyToTempDir(resource, tempDir));
 
-            List<CompletableFuture<RepositoryFile>> additionalFilesFutures = files.stream()
+            // Download artifact files (heap dumps, logs, etc.)
+            List<CompletableFuture<Path>> artifactsF = files.stream()
                     .filter(RepositoryFile::isArtifactFile)
-                    .map(file -> {
-                        CompletableFuture<Resource> future = remoteWorkspaceClient.downloadFile(
-                                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id());
-
-                        return future.thenApply(downloadedFile -> copyAdditionalFile(file, downloadedFile, tempDir));
-                    })
+                    .map(file -> remoteWorkspaceClient.downloadFile(
+                                    workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id())
+                            .thenApply(resource -> copyToTempDir(resource, tempDir)))
                     .toList();
 
-            List<RepositoryFile> repositoryFiles = waitForAll(recordingFuture, additionalFilesFutures);
+            // Wait for all downloads to complete
+            Path recordingPath = recordingF.join();
+            List<Path> artifactPaths = artifactsF.stream()
+                    .map(CompletableFuture::join)
+                    .toList();
 
-            // Create a new recording in the local repository
-            commonDownloadManager.createNewRecording(recordingSessionId, repositoryFiles);
+            // Create a new recording in the local recordings storage
+            commonDownloadManager.createNewRecording(recordingSessionId, recordingPath, artifactPaths);
         }
     }
 
-    private static List<RepositoryFile> waitForAll(
-            CompletableFuture<RepositoryFile> future,
-            List<CompletableFuture<RepositoryFile>> otherFutures) {
-
-        CompletableFuture.allOf(future, CompletableFuture.allOf(otherFutures.toArray(new CompletableFuture[0])))
-                .join();
-
-        List<RepositoryFile> results = new ArrayList<>();
-        results.add(future.join());
-        for (CompletableFuture<RepositoryFile> otherFuture : otherFutures) {
-            results.add(otherFuture.join());
-        }
-        return results;
-    }
-
-    private static RepositoryFile copyAdditionalFile(RepositoryFile file, Resource resource, Directory tempDir) {
-        try {
-            Path target = tempDir.resolve(resource.getFilename());
-            long size = Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            return file.withFilePath(target, size);
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot create an additional file from remote source", e);
-        }
-    }
-
-    private static RepositoryFile copyRecordingFile(Resource resource, Directory tempDir) {
+    private static Path copyToTempDir(Resource resource, Directory tempDir) {
         try {
             String filename = resource.getFilename();
             Path target = tempDir.resolve(filename);
-            long size = Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            return new RepositoryFile(
-                    filename,
-                    filename,
-                    null,
-                    size,
-                    SupportedRecordingFile.of(filename),
-                    true,
-                    true,
-                    RecordingStatus.FINISHED,
-                    target);
+            Files.copy(resource.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return target;
         } catch (IOException e) {
-            throw new RuntimeException("Cannot create a recording file from remote source", e);
+            throw new RuntimeException("Cannot copy file from remote source", e);
         }
     }
 
     @Override
-    public void createNewRecording(String recordingName, List<RepositoryFile> repositoryFiles) {
+    public void createNewRecording(String recordingName, Path recordingPath, List<Path> artifactPaths) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 }

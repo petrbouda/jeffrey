@@ -24,11 +24,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
-import pbouda.jeffrey.platform.manager.ProfilerManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
 import static pbouda.jeffrey.platform.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
@@ -41,7 +41,7 @@ public class RootInternalResource {
     private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
     private final ProjectTemplatesResolver projectTemplatesResolver;
     private final CompositeWorkspacesManager workspacesManager;
-    private final ProfilerManager profilerManager;
+    private final ProfilerRepository profilerRepository;
 
     @Inject
     public RootInternalResource(
@@ -49,13 +49,13 @@ public class RootInternalResource {
             RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
             ProjectTemplatesResolver projectTemplatesResolver,
             CompositeWorkspacesManager workspacesManager,
-            ProfilerManager profilerManager) {
+            ProfilerRepository profilerRepository) {
 
         this.globalSchedulerManager = globalSchedulerManager;
         this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
         this.projectTemplatesResolver = projectTemplatesResolver;
         this.workspacesManager = workspacesManager;
-        this.profilerManager = profilerManager;
+        this.profilerRepository = profilerRepository;
     }
 
     @Path("/projects")
@@ -80,7 +80,7 @@ public class RootInternalResource {
 
     @Path("/profiler")
     public ProfilerResource profilerResource() {
-        return new ProfilerResource(profilerManager);
+        return new ProfilerResource(profilerRepository);
     }
 
     @Path("/simulate")
