@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.profile.manager.model.CreateProject;
 
 import java.util.List;

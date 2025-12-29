@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.resources.response;
 
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 
 import java.time.Instant;
 import java.util.List;

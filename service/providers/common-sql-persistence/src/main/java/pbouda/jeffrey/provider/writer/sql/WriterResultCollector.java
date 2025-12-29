@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
-import pbouda.jeffrey.common.model.RecordingEventSource;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.settings.ActiveSetting;
-import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.settings.ActiveSetting;
+import pbouda.jeffrey.shared.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.DatabaseWriter;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;

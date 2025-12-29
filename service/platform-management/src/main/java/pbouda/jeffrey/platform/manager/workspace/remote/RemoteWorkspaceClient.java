@@ -19,8 +19,8 @@
 package pbouda.jeffrey.platform.manager.workspace.remote;
 
 import org.springframework.core.io.Resource;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;

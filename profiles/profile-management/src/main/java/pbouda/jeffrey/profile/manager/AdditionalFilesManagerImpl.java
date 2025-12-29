@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.profile.manager.additional.AdditionalFileParser;
 import pbouda.jeffrey.profile.manager.additional.PerfCountersAdditionalFileParser;
 import pbouda.jeffrey.profile.manager.model.PerfCounter;

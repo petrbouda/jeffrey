@@ -20,24 +20,24 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryInfo;
-import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.RepositoryInfo;
+import pbouda.jeffrey.shared.model.RepositoryType;
+import pbouda.jeffrey.shared.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.platform.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStrategy;
 import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
-import pbouda.jeffrey.common.compression.Lz4Compressor;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.shared.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.profile.parser.chunk.Recordings;
 
 import java.io.IOException;

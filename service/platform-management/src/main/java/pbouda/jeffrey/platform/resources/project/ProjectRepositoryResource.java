@@ -20,7 +20,7 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;

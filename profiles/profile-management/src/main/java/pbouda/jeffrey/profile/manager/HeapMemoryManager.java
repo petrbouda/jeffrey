@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import pbouda.jeffrey.timeseries.SingleSerie;

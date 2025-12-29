@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.shared.model.Recording;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 

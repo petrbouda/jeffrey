@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.feature.checker;
 
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureCheckResult;
 
 import java.util.Map;

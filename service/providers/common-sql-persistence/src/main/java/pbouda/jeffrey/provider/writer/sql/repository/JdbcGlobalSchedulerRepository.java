@@ -20,15 +20,14 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.util.List;
 
 public class JdbcGlobalSchedulerRepository implements SchedulerRepository {

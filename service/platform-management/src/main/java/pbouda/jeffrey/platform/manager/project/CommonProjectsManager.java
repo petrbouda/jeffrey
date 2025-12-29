@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.pipeline.Pipeline;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.platform.project.pipeline.Pipeline;
 import pbouda.jeffrey.profile.manager.model.CreateProject;
 import pbouda.jeffrey.platform.project.pipeline.CreateProjectContext;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;

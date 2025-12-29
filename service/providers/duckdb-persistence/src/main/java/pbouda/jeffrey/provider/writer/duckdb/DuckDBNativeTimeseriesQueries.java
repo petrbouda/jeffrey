@@ -1,6 +1,6 @@
 package pbouda.jeffrey.provider.writer.duckdb;
 
-import pbouda.jeffrey.common.model.EventTypeName;
+import pbouda.jeffrey.shared.model.EventTypeName;
 import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 
 public class DuckDBNativeTimeseriesQueries implements ComplexQueries.Timeseries {

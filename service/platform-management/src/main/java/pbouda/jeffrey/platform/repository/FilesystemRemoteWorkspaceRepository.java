@@ -20,11 +20,11 @@ package pbouda.jeffrey.platform.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.platform.repository.model.RemoteProject;
-import pbouda.jeffrey.platform.repository.model.RemoteSession;
-import pbouda.jeffrey.platform.repository.model.RemoteWorkspaceSettings;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.model.repository.RemoteSession;
+import pbouda.jeffrey.shared.model.repository.RemoteWorkspaceSettings;
 
 import java.io.IOException;
 import java.nio.file.Files;

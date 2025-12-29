@@ -20,8 +20,8 @@ package pbouda.jeffrey.profile.manager.additional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.util.FileUtils;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.profile.manager.model.PerfCounter;
 
 import java.nio.file.Path;
@@ -74,7 +74,7 @@ public class PerfCountersAdditionalFileParser implements AdditionalFileParser {
     }
 
     private static List<String[]> loadPerfCountersDesc() {
-        String content = FileUtils.readString("classpath:additional-info/perf-counters-desc.csv");
+        String content = FileSystemUtils.readString("classpath:additional-info/perf-counters-desc.csv");
         return content.lines()
                 .map(str -> str.split("\\|"))
                 .toList();

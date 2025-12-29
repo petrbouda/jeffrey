@@ -20,18 +20,17 @@ package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceLocation;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.IDGenerator;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;

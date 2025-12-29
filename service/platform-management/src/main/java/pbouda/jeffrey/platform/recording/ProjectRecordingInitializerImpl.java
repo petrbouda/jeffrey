@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.platform.recording;
 
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.common.model.RecordingFile;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.IDGenerator;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.Recording;
+import pbouda.jeffrey.shared.model.RecordingFile;
+import pbouda.jeffrey.shared.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.RecordingInformationParser;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;

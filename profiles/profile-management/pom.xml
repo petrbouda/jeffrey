@@ -35,11 +35,7 @@
         <!-- Core dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>common-model</artifactId>
+            <artifactId>shared</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

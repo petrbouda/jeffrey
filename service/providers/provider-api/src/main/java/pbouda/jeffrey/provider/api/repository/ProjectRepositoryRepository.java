@@ -19,8 +19,8 @@
 package pbouda.jeffrey.provider.api.repository;
 
 
-import pbouda.jeffrey.common.model.RepositoryInfo;
-import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.model.RepositoryInfo;
+import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
 
 import java.util.List;
 import java.util.Optional;

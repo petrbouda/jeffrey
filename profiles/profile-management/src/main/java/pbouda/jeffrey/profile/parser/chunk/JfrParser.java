@@ -20,8 +20,8 @@ package pbouda.jeffrey.profile.parser.chunk;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 
 import java.io.InputStream;

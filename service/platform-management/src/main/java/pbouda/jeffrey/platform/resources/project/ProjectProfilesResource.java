@@ -20,8 +20,8 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;

@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.configuration.workspace;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;

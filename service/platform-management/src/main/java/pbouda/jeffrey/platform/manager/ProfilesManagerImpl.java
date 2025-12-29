@@ -20,7 +20,7 @@ package pbouda.jeffrey.platform.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.shared.Schedulers;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;

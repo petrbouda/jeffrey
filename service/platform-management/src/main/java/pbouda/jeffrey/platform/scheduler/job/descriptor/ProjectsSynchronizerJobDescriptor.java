@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.scheduler.job.descriptor;
 
 import org.springframework.core.env.PropertyResolver;
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.shared.model.job.JobType;
 
 import java.util.HashMap;
 import java.util.Map;

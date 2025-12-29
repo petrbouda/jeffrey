@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.init.model;
 
+import pbouda.jeffrey.shared.model.RepositoryType;
 import picocli.CommandLine;
 
 public class RepositoryTypeConverter implements CommandLine.ITypeConverter<RepositoryType> {

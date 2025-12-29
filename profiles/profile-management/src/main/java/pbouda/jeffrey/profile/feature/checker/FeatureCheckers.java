@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.feature.checker;
 
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureType;
 
 import java.util.List;

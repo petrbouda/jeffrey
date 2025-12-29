@@ -19,8 +19,8 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.profile.common.treetable.EventViewerData;
 import pbouda.jeffrey.provider.api.model.FieldDescription;
 

@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.platform.configuration.AppConfiguration;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.RemoteWorkspacesManager;

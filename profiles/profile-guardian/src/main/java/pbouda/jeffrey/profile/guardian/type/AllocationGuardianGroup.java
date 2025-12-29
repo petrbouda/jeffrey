@@ -19,9 +19,9 @@
 package pbouda.jeffrey.profile.guardian.type;
 
 import pbouda.jeffrey.profile.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.settings.ActiveSettings;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;

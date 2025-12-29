@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.platform.manager.workspace;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.time.Instant;

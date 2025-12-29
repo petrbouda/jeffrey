@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.guardian;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.shared.persistence.CacheKey;
 import pbouda.jeffrey.provider.api.cache.CachingSupplier;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 

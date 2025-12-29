@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.platform.project.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.RepositoryType;
+import pbouda.jeffrey.shared.model.repository.RecordingSession;
 
 import java.nio.file.Path;
 import java.util.List;

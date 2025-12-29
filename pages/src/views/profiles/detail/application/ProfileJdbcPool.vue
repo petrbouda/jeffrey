@@ -176,7 +176,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import PoolData from '@/services/api/model/model/PoolData.ts';
+import PoolData from '@/services/api/model/PoolData.ts';
 import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
 import FormattingService from '@/services/FormattingService.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';

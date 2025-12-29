@@ -19,12 +19,12 @@
 package pbouda.jeffrey.platform.manager.workspace.remote;
 
 import org.springframework.core.io.Resource;
-import pbouda.jeffrey.common.exception.Exceptions;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs.Directory;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.exception.Exceptions;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs.Directory;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryFileResponse;
@@ -88,6 +88,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         processRecordingSession(recordingSessionId, files);
     }
 
+    // TODO: Simplify this behaviour
     private void processRecordingSession(String recordingSessionId, List<RepositoryFile> files) {
         // At least one recording file must be present, otherwise nothing to merge and download
         // 0...n additional recording files can be present (e.g. HeapDump, logs, etc.)

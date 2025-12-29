@@ -1,7 +1,7 @@
 package pbouda.jeffrey.provider.writer.sql.query;
 
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrStackTrace;
 import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;

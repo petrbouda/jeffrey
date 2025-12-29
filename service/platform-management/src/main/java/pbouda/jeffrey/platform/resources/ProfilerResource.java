@@ -19,8 +19,8 @@
 package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.common.model.ProfilerInfo;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.shared.model.ProfilerInfo;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
 import java.util.List;
@@ -43,19 +43,24 @@ public class ProfilerResource {
     @POST
     @Path("settings")
     public void upsertSettings(ProfilerSettingsEntity request) {
-        if (request.workspaceId() == null || request.workspaceId().isBlank()) {
-            throw Exceptions.invalidRequest("Workspace ID is required");
-        }
-        if (request.projectId() == null || request.projectId().isBlank()) {
-            throw Exceptions.invalidRequest("Project ID is required");
+        // Validate hierarchy: if projectId is provided, workspaceId must also be provided
+        // Valid combinations:
+        // - GLOBAL:    workspaceId=null, projectId=null
+        // - WORKSPACE: workspaceId=<id>, projectId=null
+        // - PROJECT:   workspaceId=<id>, projectId=<id>
+        String workspaceId = normalizeToNull(request.workspaceId());
+        String projectId = normalizeToNull(request.projectId());
+
+        if (projectId != null && workspaceId == null) {
+            throw Exceptions.invalidRequest("Workspace ID is required when Project ID is provided");
         }
 
-        ProfilerInfo profilerInfo = new ProfilerInfo(
-                request.workspaceId(),
-                request.projectId(),
-                request.agentSettings());
-
+        ProfilerInfo profilerInfo = new ProfilerInfo(workspaceId, projectId, request.agentSettings());
         profilerRepository.upsertSettings(profilerInfo);
+    }
+
+    private static String normalizeToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value.trim();
     }
 
     @GET
@@ -71,13 +76,15 @@ public class ProfilerResource {
     public Optional<ProfilerSettingsEntity> findSettings(
             @QueryParam("workspaceId") String workspaceId,
             @QueryParam("projectId") String projectId) {
-        if (workspaceId == null || workspaceId.isBlank()) {
-            throw Exceptions.invalidRequest("Workspace ID query parameter is required");
+        // Normalize and validate hierarchy
+        String wsId = normalizeToNull(workspaceId);
+        String projId = normalizeToNull(projectId);
+
+        if (projId != null && wsId == null) {
+            throw Exceptions.invalidRequest("Workspace ID is required when Project ID is provided");
         }
-        if (projectId == null || projectId.isBlank()) {
-            throw Exceptions.invalidRequest("Project ID query parameter is required");
-        }
-        return profilerRepository.findSettings(workspaceId, projectId)
+
+        return profilerRepository.findSettings(wsId, projId)
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()));
     }
 
@@ -86,12 +93,14 @@ public class ProfilerResource {
     public void deleteSettings(
             @QueryParam("workspaceId") String workspaceId,
             @QueryParam("projectId") String projectId) {
-        if (workspaceId == null || workspaceId.isBlank()) {
-            throw Exceptions.invalidRequest("Workspace ID query parameter is required");
+        // Normalize and validate hierarchy
+        String wsId = normalizeToNull(workspaceId);
+        String projId = normalizeToNull(projectId);
+
+        if (projId != null && wsId == null) {
+            throw Exceptions.invalidRequest("Workspace ID is required when Project ID is provided");
         }
-        if (projectId == null || projectId.isBlank()) {
-            throw Exceptions.invalidRequest("Project ID query parameter is required");
-        }
-        profilerRepository.deleteSettings(workspaceId, projectId);
+
+        profilerRepository.deleteSettings(wsId, projId);
     }
 }

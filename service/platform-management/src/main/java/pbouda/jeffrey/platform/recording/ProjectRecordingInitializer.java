@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.recording;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.repository.RepositoryFile;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;

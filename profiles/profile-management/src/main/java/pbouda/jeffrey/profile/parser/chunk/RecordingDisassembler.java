@@ -20,7 +20,7 @@ package pbouda.jeffrey.profile.parser.chunk;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.compression.Lz4Compressor;
 
 import java.io.EOFException;
 import java.io.IOException;

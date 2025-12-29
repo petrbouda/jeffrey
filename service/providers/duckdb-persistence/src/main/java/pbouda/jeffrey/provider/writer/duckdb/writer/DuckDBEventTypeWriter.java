@@ -20,7 +20,7 @@ package pbouda.jeffrey.provider.writer.duckdb.writer;
 
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
-import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.shared.Json;
 import pbouda.jeffrey.provider.api.DataSourceUtils;
 import pbouda.jeffrey.provider.api.model.EventType;
 import pbouda.jeffrey.provider.api.model.writer.EnhancedEventType;

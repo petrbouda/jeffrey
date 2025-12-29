@@ -28,11 +28,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.compression.Lz4Compressor;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.Config;
+import pbouda.jeffrey.shared.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
 import pbouda.jeffrey.platform.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;

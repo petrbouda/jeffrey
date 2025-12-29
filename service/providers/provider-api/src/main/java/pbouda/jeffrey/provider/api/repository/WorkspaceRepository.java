@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventConsumer;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventConsumer;
 
 import java.util.List;
 import java.util.Optional;

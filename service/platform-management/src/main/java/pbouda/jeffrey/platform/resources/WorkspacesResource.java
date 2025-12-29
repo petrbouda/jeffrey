@@ -20,9 +20,9 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;

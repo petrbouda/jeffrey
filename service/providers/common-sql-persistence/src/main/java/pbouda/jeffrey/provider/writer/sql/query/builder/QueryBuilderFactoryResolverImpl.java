@@ -1,6 +1,6 @@
 package pbouda.jeffrey.provider.writer.sql.query.builder;
 
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.provider.writer.sql.query.ComplexQueries;
 import pbouda.jeffrey.provider.writer.sql.query.SQLFormatter;
 

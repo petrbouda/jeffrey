@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.generator.subsecond.db;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 
 import java.util.Objects;
 

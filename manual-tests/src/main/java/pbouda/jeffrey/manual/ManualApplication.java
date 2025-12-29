@@ -2,7 +2,7 @@ package pbouda.jeffrey.manual;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import pbouda.jeffrey.flamegraph.proto.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;

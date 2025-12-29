@@ -21,13 +21,13 @@ package pbouda.jeffrey.profile.parser;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 
 import java.util.HashMap;
+
+import static pbouda.jeffrey.shared.model.Type.*;
 import java.util.List;
 import java.util.Map;
-
-import static pbouda.jeffrey.common.model.Type.*;
 
 public class WeightExtractorRegistry {
 

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.resources.response;
 
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 
 public record RepositoryStatisticsResponse(

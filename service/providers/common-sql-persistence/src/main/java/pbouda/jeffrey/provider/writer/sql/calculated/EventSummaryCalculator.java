@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sql.calculated;
 
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.provider.api.model.FieldDescription;
 
 import java.util.List;

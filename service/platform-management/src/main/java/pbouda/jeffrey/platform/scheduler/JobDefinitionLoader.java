@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.scheduler;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.common.util.FileUtils;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,12 +36,8 @@ public class JobDefinitionLoader {
         this.jobDefinitionPath = jobDefinitionPath;
     }
 
-    public List<JobDefinition> loadAll() {
-        return FileUtils.readJson(jobDefinitionPath, JOB_DEFINITIONS_TYPE);
-    }
-
     public Optional<JobDefinition> load(String jobDefinitionId) {
-        List<JobDefinition> jobDefinitions = FileUtils.readJson(jobDefinitionPath, JOB_DEFINITIONS_TYPE);
+        List<JobDefinition> jobDefinitions = FileSystemUtils.readJson(jobDefinitionPath, JOB_DEFINITIONS_TYPE);
         return jobDefinitions.stream()
                 .filter(def -> def.id().equals(jobDefinitionId))
                 .findFirst();

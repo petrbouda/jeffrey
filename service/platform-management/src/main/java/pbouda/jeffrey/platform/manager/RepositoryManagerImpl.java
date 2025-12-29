@@ -18,14 +18,14 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryInfo;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.RepositoryInfo;
+import pbouda.jeffrey.shared.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.MergedRecording;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;

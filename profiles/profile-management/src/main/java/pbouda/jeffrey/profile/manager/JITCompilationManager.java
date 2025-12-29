@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.profile.common.event.JITCompilationStats;
 import pbouda.jeffrey.profile.common.event.JITLongCompilation;
 import pbouda.jeffrey.timeseries.SingleSerie;

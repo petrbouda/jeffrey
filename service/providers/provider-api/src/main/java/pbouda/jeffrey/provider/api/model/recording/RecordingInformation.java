@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.model.recording;
 
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
 
 import java.time.Instant;
 

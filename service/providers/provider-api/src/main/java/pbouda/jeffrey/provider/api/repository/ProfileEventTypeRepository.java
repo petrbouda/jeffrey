@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.model.FieldDescription;
 

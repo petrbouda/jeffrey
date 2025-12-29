@@ -19,11 +19,11 @@
 package pbouda.jeffrey.profile.feature.checker;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.shared.Json;
 import pbouda.jeffrey.profile.common.event.ContainerConfiguration;
 import pbouda.jeffrey.profile.common.event.ContainerIOUsage;
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureCheckResult;
 import pbouda.jeffrey.profile.feature.FeatureType;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;

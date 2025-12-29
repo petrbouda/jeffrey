@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.project;
 
-import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.shared.model.RepositoryType;
 
 public record ProjectRepository(
         RepositoryType type,

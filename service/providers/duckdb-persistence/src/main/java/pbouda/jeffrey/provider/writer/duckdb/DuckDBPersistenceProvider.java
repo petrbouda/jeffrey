@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.writer.duckdb;
 
 import org.flywaydb.core.Flyway;
-import pbouda.jeffrey.common.Config;
+import pbouda.jeffrey.shared.Config;
 import pbouda.jeffrey.provider.api.*;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.sql.JdbcRepositories;

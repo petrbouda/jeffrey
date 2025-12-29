@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.platform.repository;
 
-import pbouda.jeffrey.platform.repository.model.RemoteProject;
-import pbouda.jeffrey.platform.repository.model.RemoteSession;
-import pbouda.jeffrey.platform.repository.model.RemoteWorkspaceSettings;
+import pbouda.jeffrey.shared.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.model.repository.RemoteSession;
+import pbouda.jeffrey.shared.model.repository.RemoteWorkspaceSettings;
 
 import java.util.List;
 

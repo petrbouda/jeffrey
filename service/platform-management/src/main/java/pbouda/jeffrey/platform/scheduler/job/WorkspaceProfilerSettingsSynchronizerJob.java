@@ -1,8 +1,8 @@
 package pbouda.jeffrey.platform.scheduler.job;
 
-import pbouda.jeffrey.common.model.ProfilerInfo;
-import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.model.ProfilerInfo;
+import pbouda.jeffrey.shared.model.job.JobType;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
@@ -10,8 +10,8 @@ import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
-import pbouda.jeffrey.platform.repository.model.ProfilerSettings;
-import pbouda.jeffrey.platform.repository.model.RemoteWorkspaceSettings;
+import pbouda.jeffrey.shared.model.repository.ProfilerSettings;
+import pbouda.jeffrey.shared.model.repository.RemoteWorkspaceSettings;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.WorkspaceProfilerSettingsSynchronizerJobDescriptor;
 

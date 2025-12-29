@@ -20,7 +20,7 @@ package pbouda.jeffrey.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.profile.creator.ProfileCreator;
 import pbouda.jeffrey.profile.manager.AdditionalFilesManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;

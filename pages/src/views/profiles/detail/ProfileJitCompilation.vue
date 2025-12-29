@@ -318,12 +318,12 @@ import {useNavigation} from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from "@/services/FormattingService.ts";
-import JITCompilationData from "@/services/compilation/model/JITCompilationData.ts";
+import JITCompilationData from "@/services/api/model/JITCompilationData.ts";
 import ProfileCompilationClient from "@/services/api/ProfileCompilationClient.ts";
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
-import JITLongCompilation from "@/services/compilation/model/JITLongCompilation.ts";
+import JITLongCompilation from "@/services/api/model/JITLongCompilation.ts";
 import {computed} from 'vue';
 
 const route = useRoute();

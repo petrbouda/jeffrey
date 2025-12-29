@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.platform.resources.workspace;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;

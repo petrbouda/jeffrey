@@ -22,7 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;

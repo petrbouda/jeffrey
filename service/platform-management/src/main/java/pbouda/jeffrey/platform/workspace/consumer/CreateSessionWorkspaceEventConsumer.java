@@ -20,11 +20,11 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.RepositoryInfo;
-import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.RepositoryInfo;
+import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;

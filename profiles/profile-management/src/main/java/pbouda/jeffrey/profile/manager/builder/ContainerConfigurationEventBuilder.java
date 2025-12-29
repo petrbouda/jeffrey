@@ -19,8 +19,8 @@
 package pbouda.jeffrey.profile.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.EventTypeName;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.EventTypeName;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.profile.manager.model.container.ContainerConfigurationData;
 import pbouda.jeffrey.profile.common.event.ContainerConfiguration;

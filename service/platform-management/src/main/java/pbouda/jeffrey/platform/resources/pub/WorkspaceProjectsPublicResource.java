@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.resources.pub;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;

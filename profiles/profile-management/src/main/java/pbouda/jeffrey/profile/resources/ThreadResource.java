@@ -20,7 +20,7 @@ package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.manager.ThreadManager;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadStats;

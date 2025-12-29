@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.shared.persistence.CacheKey;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 
 import java.util.List;

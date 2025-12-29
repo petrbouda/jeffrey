@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.provider.api.repository.ProfileRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
 import pbouda.jeffrey.provider.writer.sql.StatementLabel;

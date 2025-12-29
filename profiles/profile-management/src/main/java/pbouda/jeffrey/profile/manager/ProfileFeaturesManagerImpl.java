@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureCheckResult;
 import pbouda.jeffrey.profile.feature.FeatureType;
 import pbouda.jeffrey.profile.feature.checker.ContainerDashboardFeatureChecker;

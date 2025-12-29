@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.manager;
 
 import pbouda.jeffrey.profile.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.profile.model.EventSummaryResult;
 
 import java.util.List;

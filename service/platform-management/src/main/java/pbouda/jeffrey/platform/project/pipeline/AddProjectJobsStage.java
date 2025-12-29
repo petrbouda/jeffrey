@@ -20,11 +20,10 @@ package pbouda.jeffrey.platform.project.pipeline;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.pipeline.Stage;
+import pbouda.jeffrey.shared.IDGenerator;
 import pbouda.jeffrey.platform.project.template.ProjectTemplate;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
-import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobInfo;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.JobDefinition;

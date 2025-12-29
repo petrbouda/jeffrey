@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.resources.pub;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;

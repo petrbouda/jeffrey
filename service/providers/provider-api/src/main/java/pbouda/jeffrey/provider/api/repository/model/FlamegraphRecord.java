@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository.model;
 
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;

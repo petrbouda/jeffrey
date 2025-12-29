@@ -19,9 +19,9 @@
 package pbouda.jeffrey.profile.settings;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.common.settings.ActiveSetting;
-import pbouda.jeffrey.common.settings.ActiveSettings;
-import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.shared.settings.ActiveSetting;
+import pbouda.jeffrey.shared.settings.ActiveSettings;
+import pbouda.jeffrey.shared.persistence.CacheKey;
 import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 

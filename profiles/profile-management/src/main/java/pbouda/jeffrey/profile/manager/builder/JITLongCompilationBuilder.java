@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.shared.Json;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.profile.common.event.JITLongCompilation;
 import pbouda.jeffrey.provider.api.repository.model.GenericRecord;

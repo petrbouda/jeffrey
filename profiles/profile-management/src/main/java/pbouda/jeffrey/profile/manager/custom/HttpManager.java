@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
 
 import java.util.function.Function;

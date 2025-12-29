@@ -20,10 +20,10 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.repository.RecordingSession;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.model.job.JobType;
+import pbouda.jeffrey.shared.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.repository.RepositoryFile;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RemoteRepositoryStorage;

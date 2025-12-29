@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.project.repository.file;
 
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
 import java.time.Instant;

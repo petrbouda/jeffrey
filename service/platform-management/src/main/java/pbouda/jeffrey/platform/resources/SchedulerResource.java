@@ -20,9 +20,9 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.exception.Exceptions;
+import pbouda.jeffrey.shared.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobType;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 
 import java.util.List;

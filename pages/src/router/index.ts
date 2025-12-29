@@ -97,6 +97,12 @@ const router = createRouter({
                   name: 'project-scheduler',
                   component: () => import('@/views/projects/detail/SchedulerList.vue'),
                   meta: { layout: 'project' }
+                },
+                {
+                  path: 'profiler-settings',
+                  name: 'project-profiler-settings',
+                  component: () => import('@/views/projects/detail/ProjectProfilerSettingsView.vue'),
+                  meta: { layout: 'project' }
                 }
               ]
             },

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.frameir.frame;
 
-import pbouda.jeffrey.common.RecordedClassMapper;
+import pbouda.jeffrey.shared.RecordedClassMapper;
 import pbouda.jeffrey.profile.common.model.FrameType;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;

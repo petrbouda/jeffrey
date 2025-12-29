@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.workspace;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 
 import java.util.List;

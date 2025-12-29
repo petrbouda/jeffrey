@@ -19,8 +19,8 @@
 package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;
@@ -28,7 +28,6 @@ import pbouda.jeffrey.provider.writer.sql.StatementLabel;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
-import javax.sql.DataSource;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;

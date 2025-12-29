@@ -19,15 +19,15 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.DurationUtils;
-import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.shared.DurationUtils;
+import pbouda.jeffrey.shared.Json;
 import pbouda.jeffrey.profile.common.event.JITCompilationStats;
 import pbouda.jeffrey.profile.common.event.JITLongCompilation;
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.StacktraceType;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.StacktraceType;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.builder.JITLongCompilationBuilder;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;

@@ -19,7 +19,7 @@
 package pbouda.jeffrey.timeseries;
 
 import pbouda.jeffrey.profile.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.builder.RecordBuilder;
 import pbouda.jeffrey.provider.api.repository.model.TimeseriesRecord;
 

@@ -20,7 +20,7 @@ package pbouda.jeffrey.profile.manager.custom.builder;
 
 import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodStats;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingHeader;

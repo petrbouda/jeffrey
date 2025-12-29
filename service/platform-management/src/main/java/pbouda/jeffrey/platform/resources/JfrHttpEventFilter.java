@@ -27,7 +27,7 @@ import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 import org.glassfish.jersey.server.ExtendedUriInfo;
-import pbouda.jeffrey.common.Json;
+import pbouda.jeffrey.shared.Json;
 
 import java.io.IOException;
 

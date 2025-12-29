@@ -20,8 +20,8 @@ package pbouda.jeffrey.provider.writer.duckdb;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.metrics.PoolStats;
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.DurationUtils;
+import pbouda.jeffrey.shared.Config;
+import pbouda.jeffrey.shared.DurationUtils;
 import pbouda.jeffrey.provider.api.DataSourceProvider;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrHikariDataSource;
 import pbouda.jeffrey.provider.writer.sql.metrics.JfrPoolMetricsTracker;

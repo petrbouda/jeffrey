@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.timeseries;
 
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;

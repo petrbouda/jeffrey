@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.scheduler.job.descriptor;
 
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.shared.model.job.JobType;
 
 import java.time.LocalTime;
 import java.util.Map;

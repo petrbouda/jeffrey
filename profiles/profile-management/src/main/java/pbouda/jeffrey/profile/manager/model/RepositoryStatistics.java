@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.model;
 
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 
 /**
  * Repository statistics containing aggregated information about sessions, files, and storage.

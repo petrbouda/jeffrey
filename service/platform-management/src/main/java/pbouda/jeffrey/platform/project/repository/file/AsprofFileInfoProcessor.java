@@ -20,8 +20,8 @@ package pbouda.jeffrey.platform.project.repository.file;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 
 import java.nio.file.Path;
 import java.time.Instant;

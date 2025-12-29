@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.resources.project;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
 import pbouda.jeffrey.provider.api.repository.ProjectRepository;
 

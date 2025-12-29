@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadRoot;

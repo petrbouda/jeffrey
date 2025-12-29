@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.workspace;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;

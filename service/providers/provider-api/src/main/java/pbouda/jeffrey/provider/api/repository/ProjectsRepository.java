@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;
 
 import java.util.List;

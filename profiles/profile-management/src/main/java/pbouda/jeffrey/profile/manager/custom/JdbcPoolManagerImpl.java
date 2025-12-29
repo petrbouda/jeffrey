@@ -19,9 +19,9 @@
 package pbouda.jeffrey.profile.manager.custom;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.custom.builder.JdbcPoolStatisticsBuilder;
 import pbouda.jeffrey.profile.manager.custom.builder.JdbcPooledEventBuilder;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;

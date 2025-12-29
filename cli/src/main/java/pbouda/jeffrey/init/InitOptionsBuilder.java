@@ -2,8 +2,8 @@ package pbouda.jeffrey.init;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import pbouda.jeffrey.shared.model.RepositoryType;
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.init.model.RepositoryType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

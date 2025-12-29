@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.api.repository.model;
 
-import pbouda.jeffrey.common.model.GraphVisualization;
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.GraphVisualization;
+import pbouda.jeffrey.shared.model.ProjectInfo;
 
 public record CreateProject(ProjectInfo projectInfo, GraphVisualization graphVisualization) {
 }

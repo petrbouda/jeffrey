@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
-import pbouda.jeffrey.common.settings.ActiveSetting;
+import pbouda.jeffrey.shared.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 import pbouda.jeffrey.provider.api.model.writer.EventThreadWithHash;
 

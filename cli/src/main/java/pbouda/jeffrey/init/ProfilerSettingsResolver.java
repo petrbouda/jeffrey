@@ -1,7 +1,8 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.init.model.ProfilerSettings;
-import pbouda.jeffrey.init.model.RemoteWorkspaceSettings;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.repository.ProfilerSettings;
+import pbouda.jeffrey.shared.model.repository.RemoteWorkspaceSettings;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -102,7 +103,7 @@ public class ProfilerSettingsResolver {
     private static RemoteWorkspaceSettings readSettings(Path settingsFile) {
         try {
             String content = Files.readString(settingsFile);
-            return Json.fromString(content, RemoteWorkspaceSettings.class);
+            return Json.read(content, RemoteWorkspaceSettings.class);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read profiler settings file: " + settingsFile, e);
         }

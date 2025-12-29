@@ -19,8 +19,8 @@
 package pbouda.jeffrey.profile.parser;
 
 import jdk.jfr.consumer.RecordedEvent;
-import pbouda.jeffrey.common.BytesUtils;
-import pbouda.jeffrey.common.DurationUtils;
+import pbouda.jeffrey.shared.BytesUtils;
+import pbouda.jeffrey.shared.DurationUtils;
 
 import java.util.function.Function;
 import java.util.function.LongFunction;

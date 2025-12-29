@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RecordingEventSource;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RecordingsManager;

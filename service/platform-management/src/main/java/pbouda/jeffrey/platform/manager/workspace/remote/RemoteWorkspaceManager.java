@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.platform.manager.workspace.remote;
 
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;

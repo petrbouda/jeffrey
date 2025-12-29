@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sql;
 
-import pbouda.jeffrey.common.model.StacktraceTag;
-import pbouda.jeffrey.common.settings.ActiveSetting;
+import pbouda.jeffrey.shared.model.StacktraceTag;
+import pbouda.jeffrey.shared.settings.ActiveSetting;
 import pbouda.jeffrey.provider.api.EventWriters;
 import pbouda.jeffrey.provider.api.SingleThreadedEventWriter;
 import pbouda.jeffrey.provider.api.model.*;

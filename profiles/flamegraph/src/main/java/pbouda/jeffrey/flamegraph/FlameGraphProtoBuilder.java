@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.flamegraph;
 
-import pbouda.jeffrey.common.BytesUtils;
-import pbouda.jeffrey.common.DurationUtils;
+import pbouda.jeffrey.shared.BytesUtils;
+import pbouda.jeffrey.shared.DurationUtils;
 import pbouda.jeffrey.profile.common.model.FrameType;
 import pbouda.jeffrey.flamegraph.diff.StringUtils;
 import pbouda.jeffrey.flamegraph.proto.FlamegraphData;

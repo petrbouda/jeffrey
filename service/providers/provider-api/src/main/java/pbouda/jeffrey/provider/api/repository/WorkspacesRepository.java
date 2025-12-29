@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;

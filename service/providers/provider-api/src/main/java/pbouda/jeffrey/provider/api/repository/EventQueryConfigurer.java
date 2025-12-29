@@ -19,11 +19,11 @@
 package pbouda.jeffrey.provider.api.repository;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.model.StacktraceTag;
-import pbouda.jeffrey.common.model.StacktraceType;
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.StacktraceTag;
+import pbouda.jeffrey.shared.model.StacktraceType;
+import pbouda.jeffrey.shared.model.ThreadInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 
 import java.util.List;
 import java.util.function.Predicate;

@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.storage.recording.filesystem;
 
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 

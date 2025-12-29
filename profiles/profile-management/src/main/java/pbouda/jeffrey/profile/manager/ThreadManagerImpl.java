@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.common.model.EventSummary;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.builder.CPULoadBuilder;
 import pbouda.jeffrey.profile.manager.builder.ThreadTimeseriesBuilder;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;

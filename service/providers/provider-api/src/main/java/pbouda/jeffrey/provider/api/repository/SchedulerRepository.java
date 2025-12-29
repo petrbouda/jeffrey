@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobInfo;
 
 import java.util.List;
 

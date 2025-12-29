@@ -20,7 +20,7 @@ package pbouda.jeffrey.platform.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.shared.Schedulers;
 
 import java.time.Duration;
 import java.util.List;

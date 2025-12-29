@@ -18,9 +18,8 @@
 
 package pbouda.jeffrey.provider.api.repository;
 
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.common.model.RecordingFile;
-import pbouda.jeffrey.provider.api.model.recording.NewRecording;
+import pbouda.jeffrey.shared.model.Recording;
+import pbouda.jeffrey.shared.model.RecordingFile;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.util.List;

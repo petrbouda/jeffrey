@@ -20,12 +20,12 @@ package pbouda.jeffrey.provider.writer.sql.enhancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.RecordingEventSource;
-import pbouda.jeffrey.common.model.EventSubtype;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.settings.ActiveSetting;
-import pbouda.jeffrey.common.settings.ActiveSettings;
-import pbouda.jeffrey.common.settings.IntervalParser;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.EventSubtype;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.DurationUtils;
+import pbouda.jeffrey.shared.settings.ActiveSetting;
+import pbouda.jeffrey.shared.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
 import java.time.Duration;
@@ -35,6 +35,7 @@ import java.util.Optional;
 public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExecutionSamplesWeightEnhancer.class);
+    private static final Duration ASYNC_PROFILER_DEFAULT_INTERVAL = Duration.ofMillis(10);
 
     private final ActiveSettings settings;
 
@@ -61,12 +62,12 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
                 .orElse(null);
 
         Optional<Duration> periodOpt = switch (eventSource) {
-            case JDK -> execSettings.getParam("period").map(IntervalParser::parse);
+            case JDK -> execSettings.getParam("period").map(DurationUtils::parse);
             case ASYNC_PROFILER -> {
                 yield execSettings.getParam("interval")
                         .map(Long::parseLong)
                         .map(Duration::ofNanos)
-                        .map(interval -> interval == Duration.ZERO ? IntervalParser.ASYNC_PROFILER_DEFAULT : interval);
+                        .map(interval -> interval == Duration.ZERO ? ASYNC_PROFILER_DEFAULT_INTERVAL : interval);
             }
             case UNKNOWN -> Optional.empty();
             case null -> Optional.empty();

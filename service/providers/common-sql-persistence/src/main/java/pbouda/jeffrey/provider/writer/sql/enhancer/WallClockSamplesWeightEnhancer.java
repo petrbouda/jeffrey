@@ -20,9 +20,9 @@ package pbouda.jeffrey.provider.writer.sql.enhancer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.settings.ActiveSetting;
-import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.settings.ActiveSetting;
+import pbouda.jeffrey.shared.settings.ActiveSettings;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
 import java.time.Duration;

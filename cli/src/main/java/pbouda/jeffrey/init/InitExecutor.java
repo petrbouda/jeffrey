@@ -1,6 +1,7 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.init.model.RemoteProject;
+import pbouda.jeffrey.shared.IDGenerator;
+import pbouda.jeffrey.shared.model.repository.RemoteProject;
 
 import java.io.IOException;
 import java.nio.file.Files;

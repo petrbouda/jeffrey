@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.ProfilingStartEnd;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.SimpleTimeseriesBuilder;

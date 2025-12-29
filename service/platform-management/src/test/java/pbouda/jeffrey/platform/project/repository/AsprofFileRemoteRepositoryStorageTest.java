@@ -22,15 +22,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pbouda.jeffrey.common.compression.Lz4Compressor;
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.RepositoryInfo;
-import pbouda.jeffrey.common.model.RepositoryType;
-import pbouda.jeffrey.common.model.workspace.RepositorySessionInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.shared.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.RepositoryInfo;
+import pbouda.jeffrey.shared.model.RepositoryType;
+import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,11 +49,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AsprofFileRemoteRepositoryStorageTest {
 
-    private static final Path JFRS_DIR = Path.of("../common/src/test/resources/jfrs");
+    private static final Path JFR_DIR = FileSystemUtils.classpathPath("jfrs");
     private static final String SESSION_ID = "test-session-123";
     private static final String PROJECT_ID = "test-project-456";
     private static final String WORKSPACE_ID = "test-workspace-789";
@@ -63,36 +65,31 @@ class AsprofFileRemoteRepositoryStorageTest {
 
     // IDs are filenames without extension (FileSystemUtils.removeExtension uses getFileName())
     private static final String FILE_ID_1 = "profile-20250101-120000";
-    private static final String FILE_ID_2 = "profile-20250101-120001";
 
     @TempDir
     Path tempDir;
 
-    private Path repositoryPath;
     private Path sessionPath;
-    private Path jeffreyHome;
     private Path jeffreyTemp;
-    private JeffreyDirs jeffreyDirs;
-    private ProjectRepositoryRepository projectRepositoryRepository;
     private AsprofFileRemoteRepositoryStorage storage;
 
     @BeforeEach
     void setUp() throws IOException {
         // Set up directory structure
         // Structure: workspacesPath / relativeWorkspacePath / relativeProjectPath / relativeSessionPath
-        jeffreyHome = tempDir.resolve("jeffrey-home");
+        Path jeffreyHome = tempDir.resolve("jeffrey-home");
         jeffreyTemp = tempDir.resolve("jeffrey-temp");
-        repositoryPath = tempDir.resolve("repository");
+        Path repositoryPath = tempDir.resolve("repository");
         sessionPath = repositoryPath.resolve(SESSION_ID);
 
         Files.createDirectories(jeffreyHome);
         Files.createDirectories(jeffreyTemp);
         Files.createDirectories(sessionPath);
 
-        jeffreyDirs = new JeffreyDirs(jeffreyHome, jeffreyTemp);
+        JeffreyDirs jeffreyDirs = new JeffreyDirs(jeffreyHome, jeffreyTemp);
 
         // Mock ProjectRepositoryRepository
-        projectRepositoryRepository = mock(ProjectRepositoryRepository.class);
+        ProjectRepositoryRepository projectRepositoryRepository = mock(ProjectRepositoryRepository.class);
 
         // RepositoryInfo: workspacesPath is the base, relativeWorkspacePath and relativeProjectPath are empty
         RepositoryInfo repositoryInfo = new RepositoryInfo(
@@ -139,7 +136,7 @@ class AsprofFileRemoteRepositoryStorageTest {
     }
 
     private void copyJfrToSession(String sourceFileName, String targetFileName) throws IOException {
-        Path source = JFRS_DIR.resolve(sourceFileName);
+        Path source = JFR_DIR.resolve(sourceFileName);
         Path target = sessionPath.resolve(targetFileName);
         Files.copy(source, target);
     }
@@ -155,7 +152,7 @@ class AsprofFileRemoteRepositoryStorageTest {
         void returnsCompressedPaths_whenFilesAlreadyCompressed() throws IOException {
             // Copy JFR and compress it
             Path jfrFile = sessionPath.resolve(FORMATTED_FILE_1);
-            Files.copy(JFRS_DIR.resolve("profile-1.jfr"), jfrFile);
+            Files.copy(JFR_DIR.resolve("profile-1.jfr"), jfrFile);
             Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
             Lz4Compressor.compress(jfrFile, compressedFile);
             Files.delete(jfrFile); // Remove uncompressed to leave only .lz4

@@ -28,6 +28,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>shared</module>
         <module>service</module>
         <module>profiles</module>
         <module>pages</module>
@@ -41,18 +42,16 @@
         <picocli.version>4.7.7</picocli.version>
         <jackson.version>2.19.2</jackson.version>
         <typesafe-config.version>1.4.3</typesafe-config.version>
+        <lz4.version>1.10.2</lz4.version>
+        <junit.version>5.13.4</junit.version>
+        <uuid-creator.version>6.1.1</uuid-creator.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>common-model</artifactId>
+                <artifactId>shared</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -110,14 +109,25 @@
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.f4b6a3</groupId>
-                <artifactId>uuid-creator</artifactId>
-                <version>6.1.1</version>
-            </dependency>
-            <dependency>
                 <groupId>com.typesafe</groupId>
                 <artifactId>config</artifactId>
                 <version>${typesafe-config.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>at.yawk.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.f4b6a3</groupId>
+                <artifactId>uuid-creator</artifactId>
+                <version>${uuid-creator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

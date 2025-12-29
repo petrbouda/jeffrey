@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.custom.builder.JdbcOverviewEventBuilder;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;

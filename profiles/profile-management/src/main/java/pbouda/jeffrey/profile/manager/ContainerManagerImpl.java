@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.profile.manager.builder.ContainerConfigurationEventBuilder;
 import pbouda.jeffrey.profile.manager.model.container.ContainerConfigurationData;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;

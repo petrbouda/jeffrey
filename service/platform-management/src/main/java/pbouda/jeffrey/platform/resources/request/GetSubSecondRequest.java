@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.resources.request;
 
 import pbouda.jeffrey.platform.TimeRangeRequest;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 
 public record GetSubSecondRequest(Type eventType, boolean useWeight, TimeRangeRequest timeRange) {
 }

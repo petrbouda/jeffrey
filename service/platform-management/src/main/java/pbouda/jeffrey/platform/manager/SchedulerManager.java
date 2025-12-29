@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.shared.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobType;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 
 import java.util.List;

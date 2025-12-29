@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.resources.workspace;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;

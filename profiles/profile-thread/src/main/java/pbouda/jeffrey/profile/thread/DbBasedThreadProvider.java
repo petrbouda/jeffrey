@@ -20,9 +20,9 @@ package pbouda.jeffrey.profile.thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ThreadInfo;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;

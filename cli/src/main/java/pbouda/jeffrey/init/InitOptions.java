@@ -1,7 +1,7 @@
 package pbouda.jeffrey.init;
 
+import pbouda.jeffrey.shared.model.RepositoryType;
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.init.model.RepositoryType;
 
 /**
  * Immutable configuration options for initializing a Jeffrey project and session.

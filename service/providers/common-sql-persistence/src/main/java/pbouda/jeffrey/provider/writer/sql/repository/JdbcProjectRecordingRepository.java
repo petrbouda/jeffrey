@@ -19,9 +19,9 @@
 package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.Recording;
-import pbouda.jeffrey.common.model.RecordingFile;
+import pbouda.jeffrey.shared.IDGenerator;
+import pbouda.jeffrey.shared.model.Recording;
+import pbouda.jeffrey.shared.model.RecordingFile;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.writer.sql.GroupLabel;

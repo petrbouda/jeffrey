@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.flamegraph.api;
 
-import pbouda.jeffrey.common.Schedulers;
+import pbouda.jeffrey.shared.Schedulers;
 import pbouda.jeffrey.profile.common.config.GraphComponents;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;

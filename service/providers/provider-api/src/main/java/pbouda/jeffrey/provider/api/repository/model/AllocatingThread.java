@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.api.repository.model;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
+import pbouda.jeffrey.shared.model.ThreadInfo;
 
 /**
  * A thread that is allocating memory.

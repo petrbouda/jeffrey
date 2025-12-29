@@ -24,8 +24,8 @@ import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedThread;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.RecordedClassMapper;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.RecordedClassMapper;
 
 import java.time.Duration;
 import java.time.Instant;

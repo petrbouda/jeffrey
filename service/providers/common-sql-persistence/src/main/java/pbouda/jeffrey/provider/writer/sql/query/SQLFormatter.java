@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.provider.writer.sql.query;
 
-import pbouda.jeffrey.common.model.ThreadInfo;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.ThreadInfo;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.sql.Condition;
 import pbouda.jeffrey.sql.SQLBuilder;
 

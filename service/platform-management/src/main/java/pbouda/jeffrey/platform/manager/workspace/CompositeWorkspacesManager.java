@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.manager.workspace;
 
 import org.springframework.beans.factory.ObjectFactory;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.provider.api.repository.WorkspacesRepository;
 
 import java.util.List;

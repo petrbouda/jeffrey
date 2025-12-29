@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.profile.guardian.type;
 
-import pbouda.jeffrey.common.model.EventSummary;
+import pbouda.jeffrey.shared.model.EventSummary;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.settings.ActiveSettings;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.settings.ActiveSettings;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.RecordsFrameIterator;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
@@ -29,7 +29,6 @@ import pbouda.jeffrey.profile.guardian.guard.Guard;
 import pbouda.jeffrey.profile.guardian.guard.TotalSamplesGuard;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.traverse.FrameTraversal;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
 
 import java.util.ArrayList;

@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.project.repository.detection;
 
-import pbouda.jeffrey.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 
 import java.nio.file.Path;
 import java.time.Clock;

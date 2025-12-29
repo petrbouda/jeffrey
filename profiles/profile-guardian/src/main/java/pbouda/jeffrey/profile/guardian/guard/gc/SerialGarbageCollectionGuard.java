@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.guard.gc;
 
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 import pbouda.jeffrey.profile.common.analysis.AnalysisResult;
 import pbouda.jeffrey.profile.guardian.Formatter;

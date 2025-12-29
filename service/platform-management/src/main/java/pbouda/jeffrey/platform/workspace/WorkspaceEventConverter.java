@@ -1,12 +1,12 @@
 package pbouda.jeffrey.platform.workspace;
 
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.platform.repository.model.RemoteProject;
-import pbouda.jeffrey.platform.repository.model.RemoteSession;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.model.repository.RemoteSession;
 import pbouda.jeffrey.platform.workspace.model.ProjectCreatedEventContent;
 import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
 

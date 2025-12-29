@@ -19,12 +19,12 @@
 package pbouda.jeffrey.provider.writer.sql.repository;
 
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.*;
-import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.*;
+import pbouda.jeffrey.shared.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobType;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 
 import java.sql.ResultSet;

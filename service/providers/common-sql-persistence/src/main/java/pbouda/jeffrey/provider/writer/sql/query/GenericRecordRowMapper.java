@@ -20,8 +20,8 @@ package pbouda.jeffrey.provider.writer.sql.query;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrThread;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;

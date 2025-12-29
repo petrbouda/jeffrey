@@ -4,9 +4,9 @@ import pbouda.jeffrey.init.InitExecutor;
 import pbouda.jeffrey.init.InitOptions;
 import pbouda.jeffrey.init.InitOptionsBuilder;
 import pbouda.jeffrey.init.Replacements;
+import pbouda.jeffrey.shared.model.RepositoryType;
 import pbouda.jeffrey.init.model.HeapDumpType;
 import pbouda.jeffrey.init.model.HeapDumpTypeConverter;
-import pbouda.jeffrey.init.model.RepositoryType;
 import pbouda.jeffrey.init.model.RepositoryTypeConverter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -43,7 +43,7 @@ public class InitCommand implements Runnable {
     @Option(names = {"--profiler-config"}, description = "Custom profiler configuration")
     private String profilerConfig;
 
-    @Option(names = {"--repository-type"}, description = "Type of repository for the project (only ASPROF)", defaultValue = "ASPROF", converter = RepositoryTypeConverter.class)
+    @Option(names = {"--repository-type"}, description = "Type of repository for the project (only ASYNC_PROFILER)", defaultValue = "ASYNC_PROFILER", converter = RepositoryTypeConverter.class)
     private RepositoryType repositoryType;
 
     @Option(names = {"--enable-perf-counters"}, description = "Enable PerfCounters (can be used to detect finished session)", defaultValue = "false")

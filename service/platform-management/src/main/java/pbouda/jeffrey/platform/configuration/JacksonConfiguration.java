@@ -21,12 +21,12 @@ package pbouda.jeffrey.platform.configuration;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.common.serde.RelativeTimeRangeDeserializer;
-import pbouda.jeffrey.common.serde.RelativeTimeRangeSerializer;
-import pbouda.jeffrey.common.serde.TypeDeserializer;
-import pbouda.jeffrey.common.serde.TypeSerializer;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.serde.RelativeTimeRangeDeserializer;
+import pbouda.jeffrey.shared.serde.RelativeTimeRangeSerializer;
+import pbouda.jeffrey.shared.serde.TypeDeserializer;
+import pbouda.jeffrey.shared.serde.TypeSerializer;
 
 @Configuration
 public class JacksonConfiguration {

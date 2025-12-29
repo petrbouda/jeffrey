@@ -22,7 +22,7 @@ import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.common.pipeline.Pipeline;
+import pbouda.jeffrey.platform.project.pipeline.Pipeline;
 import pbouda.jeffrey.platform.configuration.AppConfiguration;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.platform.manager.project.CommonProjectsManager;

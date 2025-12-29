@@ -92,6 +92,17 @@
                   <span>Repository</span>
                 </router-link>
                 <router-link
+                    :to="generateProjectUrl('profiler-settings')"
+                    class="nav-item"
+                    :class="{ 'disabled-feature': isSandboxWorkspace }"
+                    :title="isSandboxWorkspace ? 'Profiler Settings is not available in Sandbox workspaces' : ''"
+                    :tabindex="isSandboxWorkspace ? -1 : 0"
+                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
+                    active-class="active">
+                  <i class="bi bi-cpu"></i>
+                  <span>Profiler Settings</span>
+                </router-link>
+                <router-link
                     :to="generateProjectUrl('scheduler')"
                     class="nav-item"
                     :class="{ 'disabled-feature': isSchedulerDisabled }"

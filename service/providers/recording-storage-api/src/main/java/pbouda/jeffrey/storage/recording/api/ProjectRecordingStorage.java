@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.storage.recording.api;
 
-import pbouda.jeffrey.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.ProjectInfo;
 
 import java.nio.file.Path;
 import java.util.List;

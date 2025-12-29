@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.manager;
 
 import pbouda.jeffrey.profile.common.config.GraphParameters;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.profile.model.EventSummaryResult;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;

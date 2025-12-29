@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.project.template;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import pbouda.jeffrey.common.util.FileUtils;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,11 +37,11 @@ public class ProjectTemplatesLoader {
     }
 
     public List<ProjectTemplate> loadAll() {
-        return FileUtils.readJson(projectTemplatesPath, PROJECT_TEMPLATES_TYPE);
+        return FileSystemUtils.readJson(projectTemplatesPath, PROJECT_TEMPLATES_TYPE);
     }
 
     public Optional<ProjectTemplate> load(String templateId) {
-        List<ProjectTemplate> projectTemplates = FileUtils.readJson(projectTemplatesPath, PROJECT_TEMPLATES_TYPE);
+        List<ProjectTemplate> projectTemplates = FileSystemUtils.readJson(projectTemplatesPath, PROJECT_TEMPLATES_TYPE);
         return projectTemplates.stream()
                 .filter(template -> template.id().equals(templateId))
                 .findFirst();

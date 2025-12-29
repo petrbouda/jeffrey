@@ -19,9 +19,9 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.common.model.Type;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.generator.subsecond.db.SubSecondConfig;
 import pbouda.jeffrey.generator.subsecond.db.api.SubSecondGenerator;
 

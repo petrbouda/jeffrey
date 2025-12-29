@@ -1,6 +1,6 @@
 package pbouda.jeffrey.manual;
 
-import pbouda.jeffrey.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
 

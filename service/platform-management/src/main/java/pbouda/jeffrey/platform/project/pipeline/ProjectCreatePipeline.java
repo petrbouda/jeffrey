@@ -18,9 +18,6 @@
 
 package pbouda.jeffrey.platform.project.pipeline;
 
-import pbouda.jeffrey.common.pipeline.Pipeline;
-import pbouda.jeffrey.common.pipeline.Stage;
-
 import java.util.ArrayList;
 import java.util.List;
 

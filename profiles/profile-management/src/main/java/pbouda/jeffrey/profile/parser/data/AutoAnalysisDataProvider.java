@@ -27,7 +27,7 @@ import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.common.persistence.CacheKey;
+import pbouda.jeffrey.shared.persistence.CacheKey;
 import pbouda.jeffrey.provider.api.model.parser.RecordingTypeSpecificData;
 
 import java.io.File;

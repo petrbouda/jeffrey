@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 
 public record GuardianInformation(

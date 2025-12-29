@@ -18,12 +18,11 @@
 
 package pbouda.jeffrey.platform.project.pipeline;
 
-import pbouda.jeffrey.common.Config;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.GraphVisualization;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.common.pipeline.Stage;
+import pbouda.jeffrey.shared.Config;
+import pbouda.jeffrey.shared.IDGenerator;
+import pbouda.jeffrey.shared.model.GraphVisualization;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.provider.api.repository.ProjectsRepository;
 import pbouda.jeffrey.provider.api.repository.model.CreateProject;

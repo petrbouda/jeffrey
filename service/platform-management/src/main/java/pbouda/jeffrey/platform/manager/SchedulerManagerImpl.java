@@ -20,9 +20,9 @@ package pbouda.jeffrey.platform.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.IDGenerator;
-import pbouda.jeffrey.common.model.job.JobInfo;
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.shared.IDGenerator;
+import pbouda.jeffrey.shared.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobType;
 import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;

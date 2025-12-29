@@ -23,9 +23,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.util.FileUtils;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
 import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
 
@@ -48,7 +48,7 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     private static final List<FieldNames> EVENT_TYPE_FIELD_NAMES;
 
     static {
-        List<FieldNames> fieldNames = FileUtils.readJson(
+        List<FieldNames> fieldNames = FileSystemUtils.readJson(
                 "classpath:additional-info/event-type-fields.json", FIELD_NAME_LIST);
         EVENT_TYPE_FIELD_NAMES = Objects.requireNonNullElseGet(fieldNames, List::of);
     }

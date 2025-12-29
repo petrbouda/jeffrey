@@ -1,8 +1,9 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.init.model.RemoteProject;
-import pbouda.jeffrey.init.model.RemoteSession;
-import pbouda.jeffrey.init.model.RepositoryType;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.model.repository.RemoteSession;
+import pbouda.jeffrey.shared.model.RepositoryType;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -80,7 +81,7 @@ public class FileSystemRepository {
         if (Files.exists(projectInfoFile)) {
             try {
                 String jsonContent = Files.readString(projectInfoFile);
-                return Optional.of(Json.fromString(jsonContent, RemoteProject.class));
+                return Optional.of(Json.read(jsonContent, RemoteProject.class));
             } catch (Exception e) {
                 throw new RuntimeException("Failed to read project info from: " + projectInfoFile + ", error: " + e.getMessage());
             }

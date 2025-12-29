@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.resources.response;
 
-import pbouda.jeffrey.common.model.workspace.WorkspaceStatus;
-import pbouda.jeffrey.common.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
 
 public record WorkspaceResponse(
         String id,

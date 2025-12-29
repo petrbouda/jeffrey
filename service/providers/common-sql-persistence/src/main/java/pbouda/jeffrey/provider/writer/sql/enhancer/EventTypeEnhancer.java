@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.provider.writer.sql.enhancer;
 
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.model.Type;
 import pbouda.jeffrey.provider.api.model.EventTypeBuilder;
 
 import java.util.function.UnaryOperator;

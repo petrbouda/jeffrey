@@ -20,9 +20,9 @@ package pbouda.jeffrey.profile.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.POST;
-import pbouda.jeffrey.common.model.ProfileInfo;
-import pbouda.jeffrey.common.model.ProfilingStartEnd;
-import pbouda.jeffrey.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.model.ProfilingStartEnd;
+import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.resources.request.GetSubSecondRequest;
 import pbouda.jeffrey.profile.manager.SubSecondManager;
 

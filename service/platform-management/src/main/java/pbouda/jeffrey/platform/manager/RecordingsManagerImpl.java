@@ -20,13 +20,14 @@ package pbouda.jeffrey.platform.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.ProjectInfo;
-import pbouda.jeffrey.common.model.Recording;
+import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.Recording;
 import pbouda.jeffrey.provider.api.NewRecordingHolder;
 import pbouda.jeffrey.provider.api.model.recording.NewRecording;
 import pbouda.jeffrey.provider.api.model.recording.RecordingFolder;
 import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.shared.model.RecordingFile;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -105,7 +106,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
         // Find the file metadata by ID to get the filename
         Optional<String> filenameOpt = recording.files().stream()
                 .filter(file -> file.id().equals(fileId))
-                .map(pbouda.jeffrey.common.model.RecordingFile::filename)
+                .map(RecordingFile::filename)
                 .findFirst();
 
         if (filenameOpt.isEmpty()) {

@@ -21,8 +21,8 @@ package pbouda.jeffrey.profile.parser.fields;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
-import pbouda.jeffrey.common.Json;
-import pbouda.jeffrey.common.model.Type;
+import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.model.Type;
 
 import java.util.ArrayList;
 import java.util.List;

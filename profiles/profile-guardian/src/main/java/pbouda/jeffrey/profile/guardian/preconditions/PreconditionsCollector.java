@@ -21,7 +21,7 @@ package pbouda.jeffrey.profile.guardian.preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.jfrparser.jdk.Collector;
-import pbouda.jeffrey.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.model.RecordingEventSource;
 
 import java.util.function.Supplier;
 

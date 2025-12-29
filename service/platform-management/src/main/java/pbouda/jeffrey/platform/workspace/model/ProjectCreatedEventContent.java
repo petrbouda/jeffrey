@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.workspace.model;
 
 
-import pbouda.jeffrey.common.model.RepositoryType;
+import pbouda.jeffrey.shared.model.RepositoryType;
 
 import java.util.Map;
 

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.scheduler.job;
 
-import pbouda.jeffrey.common.model.job.JobInfo;
+import pbouda.jeffrey.shared.model.job.JobInfo;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;

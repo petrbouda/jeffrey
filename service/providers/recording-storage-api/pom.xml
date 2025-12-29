@@ -32,7 +32,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>common-model</artifactId>
+            <artifactId>shared</artifactId>
         </dependency>
     </dependencies>
 </project>
