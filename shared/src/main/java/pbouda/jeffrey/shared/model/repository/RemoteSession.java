@@ -25,5 +25,6 @@ public record RemoteSession(
         long createdAt,
         String finishedFile,
         String relativeSessionPath,
-        String profilerSettings) {
+        String profilerSettings,
+        boolean messagingEnabled) {
 }

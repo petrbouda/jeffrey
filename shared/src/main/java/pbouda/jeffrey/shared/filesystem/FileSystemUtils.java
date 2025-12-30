@@ -117,6 +117,15 @@ public abstract class FileSystemUtils {
         return path;
     }
 
+    public static Path removeAndCreateDirectories(Path path) {
+        try {
+            removeDirectory(path);
+            return Files.createDirectories(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot create parent directories: " + path);
+        }
+    }
+
     public static List<Path> allFilesInDirectory(Path dir) {
         try (var stream = Files.walk(dir, 1)) {
             return stream
@@ -237,7 +246,7 @@ public abstract class FileSystemUtils {
         }
     }
 
-    private static String readFromClasspath(String pathOnClasspath) {
+    public static String readFromClasspath(String pathOnClasspath) {
         String path = pathOnClasspath.substring("classpath:".length());
         try (InputStream stream = FileSystemUtils.class.getClassLoader().getResourceAsStream(path)) {
             if (stream == null) {

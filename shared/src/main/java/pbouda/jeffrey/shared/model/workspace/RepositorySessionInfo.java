@@ -27,6 +27,7 @@ public record RepositorySessionInfo(
         Path relativeSessionPath,
         String finishedFile,
         String profilerSettings,
+        boolean messagingEnabled,
         Instant originCreatedAt,
         Instant createdAt) {
 }

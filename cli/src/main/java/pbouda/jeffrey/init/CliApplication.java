@@ -1,6 +1,5 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.init.command.InitCommand;
 import pbouda.jeffrey.init.command.InitFromFileCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -8,7 +7,6 @@ import picocli.CommandLine.Command;
 @Command(
         name = "",
         subcommands = {
-                InitCommand.class,
                 InitFromFileCommand.class,
         },
         mixinStandardHelpOptions = true,

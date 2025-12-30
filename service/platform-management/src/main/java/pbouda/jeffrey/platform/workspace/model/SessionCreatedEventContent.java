@@ -21,5 +21,6 @@ package pbouda.jeffrey.platform.workspace.model;
 public record SessionCreatedEventContent(
         String relativeSessionPath,
         String finishedFile,
-        String profilerSettings) {
+        String profilerSettings,
+        boolean messagingEnabled) {
 }

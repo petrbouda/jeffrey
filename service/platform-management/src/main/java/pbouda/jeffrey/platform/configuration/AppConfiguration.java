@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.Config;
 import pbouda.jeffrey.shared.compression.Lz4Compressor;
@@ -195,19 +196,28 @@ public class AppConfiguration {
     }
 
     @Bean
+    public RecordingFileEventEmitter recordingFileEventEmitter(
+            Clock clock,
+            CompositeWorkspacesManager compositeWorkspacesManager) {
+        return new RecordingFileEventEmitter(clock, compositeWorkspacesManager);
+    }
+
+    @Bean
     public RepositoryStorage.Factory remoteRepositoryStorage(
-            @Value("${jeffrey.project.remote-repository.detection.finished-period:30m}") Duration finishedPeriod,
+            @Value("${jeffrey.project.repository-storage.detection.finished-period:30m}") Duration finishedPeriod,
             JeffreyDirs jeffreyDirs,
             Repositories repositories,
-            Clock clock) {
+            Clock clock,
+            RecordingFileEventEmitter recordingFileEventEmitter) {
         return projectId -> {
             return new AsprofFileRepositoryStorage(
+                    clock,
                     projectId,
                     jeffreyDirs,
                     repositories.newProjectRepositoryRepository(projectId.id()),
                     new AsprofFileInfoProcessor(),
                     finishedPeriod,
-                    clock);
+                    recordingFileEventEmitter);
         };
     }
 

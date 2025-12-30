@@ -1,6 +1,7 @@
 package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.model.repository.ProfilerSettings;
 import pbouda.jeffrey.shared.model.repository.RemoteWorkspaceSettings;
 

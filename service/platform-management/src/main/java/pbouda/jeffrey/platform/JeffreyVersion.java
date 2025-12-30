@@ -20,11 +20,7 @@ package pbouda.jeffrey.platform;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
 
 public abstract class JeffreyVersion {
 
@@ -38,19 +34,14 @@ public abstract class JeffreyVersion {
     }
 
     public static String resolveJeffreyVersion() {
-        try (InputStream in = Application.class.getClassLoader()
-                .getResourceAsStream(JEFFREY_VERSION)) {
-            if (in != null) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                    String version = reader.readLine();
-                    return version.isBlank() ? NO_VERSION : version;
-                }
-            } else {
-                LOG.warn("Unable to read a version: {}", JEFFREY_VERSION);
+        try {
+            String version = FileSystemUtils.readFromClasspath("classpath:" + JEFFREY_VERSION);
+            if (version.isBlank()) {
                 return NO_VERSION;
+            } else {
+                return version;
             }
-        } catch (IOException ex) {
-            LOG.warn("Unable to read a version: {}", JEFFREY_VERSION, ex);
+        } catch (Exception ex) {
             return NO_VERSION;
         }
     }

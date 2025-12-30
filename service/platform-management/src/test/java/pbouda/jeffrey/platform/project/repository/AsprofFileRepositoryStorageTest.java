@@ -49,8 +49,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class AsprofFileRepositoryStorageTest {
 
@@ -72,6 +72,8 @@ class AsprofFileRepositoryStorageTest {
     private Path sessionPath;
     private Path jeffreyTemp;
     private AsprofFileRepositoryStorage storage;
+    private RecordingFileEventEmitter eventEmitter;
+    private ProjectInfo projectInfo;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -113,7 +115,7 @@ class AsprofFileRepositoryStorageTest {
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));
 
         // Create ProjectInfo
-        ProjectInfo projectInfo = new ProjectInfo(
+        projectInfo = new ProjectInfo(
                 PROJECT_ID,
                 PROJECT_ID,
                 "Test Project",
@@ -124,15 +126,19 @@ class AsprofFileRepositoryStorageTest {
                 now,
                 Map.of());
 
+        // Create mock event emitter
+        eventEmitter = mock(RecordingFileEventEmitter.class);
+
         // Create storage instance
         Clock fixedClock = Clock.fixed(now, ZoneId.systemDefault());
         storage = new AsprofFileRepositoryStorage(
+                fixedClock,
                 projectInfo,
                 jeffreyDirs,
                 projectRepositoryRepository,
                 new AsprofFileInfoProcessor(),
                 Duration.ofMinutes(5),
-                fixedClock);
+                eventEmitter);
     }
 
     private void copyJfrToSession(String sourceFileName, String targetFileName) throws IOException {
@@ -441,6 +447,163 @@ class AsprofFileRepositoryStorageTest {
             assertEquals(1, compressedCount);
             assertTrue(Files.exists(compressedFile));
             assertFalse(Files.exists(sessionPath.resolve(FORMATTED_FILE_1)));
+        }
+    }
+
+    @Nested
+    class EventEmission {
+
+        @Test
+        void emitsEvent_whenFileIsCompressed() throws IOException {
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            createFinishedFile();
+
+            storage.recordings(SESSION_ID);
+
+            // Verify event emitter was called once with correct parameters
+            verify(eventEmitter, times(1)).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
+                    any(),
+                    anyLong(),
+                    anyLong(),
+                    any(Path.class));
+        }
+
+        @Test
+        void emitsEventForEachFile_whenMultipleFilesAreCompressed() throws IOException {
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            copyJfrToSession("profile-2.jfr", FORMATTED_FILE_2);
+            createFinishedFile();
+
+            storage.recordings(SESSION_ID);
+
+            // Verify event emitter was called twice (once per file)
+            verify(eventEmitter, times(2)).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
+                    any(),
+                    anyLong(),
+                    anyLong(),
+                    any(Path.class));
+        }
+
+        @Test
+        void doesNotEmitEvent_whenFileAlreadyCompressed() throws IOException {
+            // Create and compress file first
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
+            Lz4Compressor.compress(sessionPath.resolve(FORMATTED_FILE_1), compressedFile);
+            Files.delete(sessionPath.resolve(FORMATTED_FILE_1)); // Remove original
+            createFinishedFile();
+
+            storage.recordings(SESSION_ID);
+
+            // Verify event emitter was never called (file was already compressed)
+            verify(eventEmitter, never()).emitRecordingFileCreated(
+                    any(),
+                    any(),
+                    any(),
+                    anyLong(),
+                    anyLong(),
+                    any(Path.class));
+        }
+
+        @Test
+        void doesNotEmitEvent_whenCompressedVersionAlreadyExists() throws IOException {
+            // Create both original and compressed file (simulating interrupted compression)
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
+            Lz4Compressor.compress(sessionPath.resolve(FORMATTED_FILE_1), compressedFile);
+            // Keep original file (simulating race condition)
+            createFinishedFile();
+
+            storage.recordings(SESSION_ID);
+
+            // Verify event emitter was not called (fast path - compressed file exists)
+            verify(eventEmitter, never()).emitRecordingFileCreated(
+                    any(),
+                    any(),
+                    any(),
+                    anyLong(),
+                    anyLong(),
+                    any(Path.class));
+        }
+
+        @Test
+        void emitsEventWithCorrectSizes() throws IOException {
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            createFinishedFile();
+
+            // Capture the original file size before compression
+            long originalSize = Files.size(sessionPath.resolve(FORMATTED_FILE_1));
+
+            storage.recordings(SESSION_ID);
+
+            // Verify event was emitted with correct original size
+            // Note: LZ4 compression has overhead, so compressed size can be larger for very small files
+            verify(eventEmitter).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
+                    any(),
+                    eq(originalSize),
+                    longThat(compressedSize -> compressedSize > 0),
+                    any(Path.class));
+        }
+
+        @Test
+        void emitsEventWithCorrectPath() throws IOException {
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            createFinishedFile();
+
+            storage.recordings(SESSION_ID);
+
+            Path expectedCompressedPath = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
+
+            verify(eventEmitter).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
+                    any(),
+                    anyLong(),
+                    anyLong(),
+                    eq(expectedCompressedPath));
+        }
+
+        @Test
+        void emitsEventOnlyOnce_whenCalledConcurrently() throws Exception {
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            createFinishedFile();
+
+            int threadCount = 10;
+            ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+            for (int i = 0; i < threadCount; i++) {
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        storage.recordings(SESSION_ID);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            startLatch.countDown();
+            assertTrue(doneLatch.await(30, TimeUnit.SECONDS));
+            executor.shutdown();
+
+            // Verify event emitter was called exactly once (only one thread compresses)
+            verify(eventEmitter, times(1)).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
+                    any(),
+                    anyLong(),
+                    anyLong(),
+                    any(Path.class));
         }
     }
 }

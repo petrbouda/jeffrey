@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -19,33 +17,26 @@ public class InitExecutor {
 
     private static final Clock CLOCK = Clock.systemUTC();
 
-    private static final String DEFAULT_FILE_TEMPLATE = "profile-%t.jfr";
     private static final String ENV_FILE_NAME = ".env";
     private static final String WORKSPACES_DIR_NAME = "workspaces";
-    private static final String JEFFREY_HOME_PROP = "JEFFREY_HOME";
-    private static final String JEFFREY_WORKSPACES_PROP = "JEFFREY_WORKSPACES";
-    private static final String JEFFREY_WORKSPACE_PROP = "JEFFREY_CURRENT_WORKSPACE";
-    private static final String JEFFREY_SESSION_PROP = "JEFFREY_CURRENT_SESSION";
-    private static final String JEFFREY_PROJECT_PROP = "JEFFREY_CURRENT_PROJECT";
-    private static final String JEFFREY_FILE_PATTERN_PROP = "JEFFREY_FILE_PATTERN";
-    private static final String JEFFREY_PROFILER_CONFIG_PROP = "JEFFREY_PROFILER_CONFIG";
-    private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
+
+    private final EnvFileBuilder envFileBuilder = new EnvFileBuilder();
 
     /**
-     * Executes the initialization with the given options.
+     * Executes the initialization with the given configuration.
      *
-     * @param options validated initialization options
+     * @param config validated initialization configuration
      * @throws Exception if initialization fails
      */
-    public void execute(InitOptions options) throws Exception {
+    public void execute(InitConfig config) throws Exception {
         Path jeffreyHome;
         Path workspacesPath;
 
-        if (options.useJeffreyHome()) {
-            jeffreyHome = createDirectories(Path.of(options.jeffreyHomePath()));
+        if (config.useJeffreyHome()) {
+            jeffreyHome = createDirectories(Path.of(config.getJeffreyHome()));
             workspacesPath = createDirectories(jeffreyHome.resolve(WORKSPACES_DIR_NAME));
         } else {
-            workspacesPath = createDirectories(Path.of(options.workspacesDir()));
+            workspacesPath = createDirectories(Path.of(config.getWorkspacesDir()));
             jeffreyHome = null;
         }
 
@@ -53,12 +44,12 @@ public class InitExecutor {
             throw new RuntimeException("Cannot create parent directories: " + workspacesPath);
         }
 
-        Path workspacePath = createDirectories(workspacesPath.resolve(options.workspaceId()));
+        Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceId()));
 
         FileSystemRepository repository = new FileSystemRepository(CLOCK);
 
         String projectId;
-        Path projectPath = workspacePath.resolve(options.projectName());
+        Path projectPath = workspacePath.resolve(config.getProjectName());
 
         Optional<RemoteProject> projectOpt = repository.findProject(projectPath);
         if (projectOpt.isPresent()) {
@@ -69,53 +60,61 @@ public class InitExecutor {
             createDirectories(projectPath);
             repository.addProject(
                     projectId,
-                    options.projectName(),
-                    options.projectLabel(),
-                    options.workspaceId(),
-                    options.workspacesDir(),
-                    options.repositoryType(),
-                    parseAttributes(options.attributes()),
+                    config.getProjectName(),
+                    config.getProjectLabel(),
+                    config.getWorkspaceId(),
+                    config.getWorkspacesDir(),
+                    config.resolveRepositoryType(),
+                    config.getAttributes(),
                     projectPath);
         }
 
         String sessionId = IDGenerator.generate();
         Path newSessionPath = createDirectories(projectPath.resolve(sessionId));
 
+        if (config.isMessagingEnabled()) {
+            createDirectories(newSessionPath.resolve(FeatureBuilder.MESSAGING_REPO_DIR));
+        }
+
         String features = new FeatureBuilder()
-                .setHeapDumpEnabled(options.enableHeapDump())
-                .setPerfCountersEnabled(options.enablePerfCounters())
-                .setJvmLogging(options.enableJvmLogging())
-                .setAdditionalJvmOptions(options.additionalJvmOptions())
+                .setHeapDumpEnabled(config.resolveHeapDumpType())
+                .setPerfCountersEnabled(config.isPerfCountersEnabled())
+                .setJvmLogging(config.getJvmLoggingCommand())
+                .setMessagingEnabled(config.isMessagingEnabled())
+                .setMessagingMaxAge(config.getMessagingMaxAge())
+                .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
                 .build(newSessionPath);
 
-        String profilerSettings = new ProfilerSettingsResolver(options.silent()).resolve(
-                options.profilerPath(),
-                options.profilerConfig(),
+        String profilerSettings = new ProfilerSettingsResolver(config.isSilent()).resolve(
+                config.getProfilerPath(),
+                config.getProfilerConfig(),
                 workspacePath,
-                options.projectName(),
+                config.getProjectName(),
                 newSessionPath,
                 features);
 
         repository.addSession(
                 sessionId,
                 projectId,
-                options.workspaceId(),
-                options.enablePerfCounters() ? FeatureBuilder.PERF_COUNTERS_FILE : null,
+                config.getWorkspaceId(),
+                config.isPerfCountersEnabled() ? FeatureBuilder.PERF_COUNTERS_FILE : null,
                 profilerSettings,
+                config.isMessagingEnabled(),
                 newSessionPath);
 
-        String variables = variables(
+        EnvFileBuilder.Context envContext = new EnvFileBuilder.Context(
                 jeffreyHome,
                 workspacesPath,
                 workspacePath,
                 projectPath,
                 newSessionPath,
                 profilerSettings,
-                options.useJeffreyHome(),
-                options.exportJdkJavaOptions());
+                config.useJeffreyHome(),
+                config.isJdkJavaOptionsEnabled());
+        String variables = envFileBuilder.build(envContext);
 
         Path envFile = createEnvFile(projectPath, variables);
-        if (!options.silent()) {
+        if (!config.isSilent()) {
             System.out.println("# ENV file to with variables to source: ");
             System.out.println("# " + envFile);
             System.out.println(Files.readString(envFile));
@@ -127,63 +126,7 @@ public class InitExecutor {
         return Files.writeString(envFilePath, variables);
     }
 
-    private static String variables(
-            Path jeffreyHome,
-            Path workspacesPath,
-            Path workspacePath,
-            Path projectPath,
-            Path sessionPath,
-            String profilerSettings,
-            boolean useJeffreyHome,
-            boolean exportJdkJavaOptions) {
-
-        String output = "";
-        if (useJeffreyHome) {
-            output += var(JEFFREY_HOME_PROP, jeffreyHome);
-        }
-        output += var(JEFFREY_WORKSPACES_PROP, workspacesPath);
-        output += var(JEFFREY_WORKSPACE_PROP, workspacePath);
-        output += var(JEFFREY_PROJECT_PROP, projectPath);
-        output += var(JEFFREY_SESSION_PROP, sessionPath);
-        output += var(JEFFREY_FILE_PATTERN_PROP, sessionPath.resolve(DEFAULT_FILE_TEMPLATE));
-        if (profilerSettings != null && !profilerSettings.isEmpty()) {
-            output += var(JEFFREY_PROFILER_CONFIG_PROP, wrapQuotes(profilerSettings), true);
-            if (exportJdkJavaOptions) {
-                output += var(JDK_JAVA_OPTIONS_PROP, wrapQuotes(profilerSettings), false);
-            }
-        }
-        return output;
-    }
-
-    private static String var(String name, Path value) {
-        return var(name, value.toString(), true);
-    }
-
-    private static String var(String name, String value, boolean addNewLine) {
-        return "export " + name + "=" + value + (addNewLine ? "\n" : "");
-    }
-
     private static Path createDirectories(Path path) throws IOException {
         return Files.exists(path) ? path : Files.createDirectories(path);
-    }
-
-    private static Map<String, String> parseAttributes(String[] keyValuePairs) {
-        Map<String, String> attributes = new HashMap<>();
-        if (keyValuePairs != null) {
-            for (String attribute : keyValuePairs) {
-                String trimmed = attribute.trim();
-                String[] parts = trimmed.split("/", 2);
-                if (parts.length == 2) {
-                    attributes.put(parts[0].trim(), parts[1].trim());
-                } else if (!trimmed.isEmpty()) {
-                    System.err.println("[WARNING] Invalid attribute format: " + trimmed + " (expected: key/value)");
-                }
-            }
-        }
-        return attributes;
-    }
-
-    private static String wrapQuotes(String value) {
-        return "'" + value + "'";
     }
 }

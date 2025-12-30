@@ -20,6 +20,14 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.project.repository.detection.StatusStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
+import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
+import pbouda.jeffrey.profile.parser.chunk.Recordings;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.shared.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.model.ProjectInfo;
@@ -30,15 +38,6 @@ import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.model.repository.RepositoryFile;
 import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
-import pbouda.jeffrey.platform.project.repository.detection.StatusStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
-import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
-import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
-
-import pbouda.jeffrey.shared.compression.Lz4Compressor;
-import pbouda.jeffrey.shared.exception.Exceptions;
-import pbouda.jeffrey.profile.parser.chunk.Recordings;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -67,27 +66,30 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = SupportedRecordingFile.JFR_LZ4;
 
     private final Lock compressionLock = new ReentrantLock();
+    private final Clock clock;
     private final ProjectInfo projectInfo;
     private final JeffreyDirs jeffreyDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
     private final Duration finishedPeriod;
-    private final Clock clock;
+    private final RecordingFileEventEmitter eventEmitter;
 
     public AsprofFileRepositoryStorage(
+            Clock clock,
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor,
             Duration finishedPeriod,
-            Clock clock) {
+            RecordingFileEventEmitter eventEmitter) {
 
+        this.clock = clock;
         this.projectInfo = projectInfo;
         this.jeffreyDirs = jeffreyDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
         this.finishedPeriod = finishedPeriod;
-        this.clock = clock;
+        this.eventEmitter = eventEmitter;
     }
 
     private RepositoryInfo repositoryInfo() {
@@ -274,7 +276,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
                 .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
-                .map(this::ensureCompressed)
+                .map(file -> ensureCompressed(sessionId, file))
                 .distinct()
                 .toList();
     }
@@ -350,9 +352,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * If already compressed, returns the original path. Otherwise, compresses the file
      * and stores the compressed version persistently in the same directory.
      * Uses double-check locking pattern for thread safety.
+     * Emits RECORDING_FILE_CREATED event when actual compression happens.
      * </p>
      */
-    private Path ensureCompressed(RepositoryFile file) {
+    private Path ensureCompressed(String sessionId, RepositoryFile file) {
         if (file.fileType() == TARGET_COMPRESSED_TYPE) {
             return file.filePath();
         }
@@ -374,10 +377,17 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 return compressedPath;
             }
 
+            // Capture original file size before compression
+            long originalSize = Files.size(sourcePath);
+
             // Compress, verify, and delete original
             Lz4Compressor.compress(sourcePath, compressedPath);
-            if (Files.exists(compressedPath) && Files.size(compressedPath) > 0) {
+            long compressedSize = Files.size(compressedPath);
+            if (Files.exists(compressedPath) && compressedSize > 0) {
                 FileSystemUtils.removeFile(sourcePath);
+
+                // Emit event - only when actual compression happened and file stored
+                eventEmitter.emitRecordingFileCreated(projectInfo, sessionId, file, originalSize, compressedSize, compressedPath);
             }
             return compressedPath;
         } catch (IOException e) {

@@ -23,4 +23,5 @@ public enum WorkspaceEventType {
     PROJECT_DELETED,
     SESSION_CREATED,
     SESSION_DELETED,
+    RECORDING_FILE_CREATED,
 }

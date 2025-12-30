@@ -54,7 +54,7 @@ public class JeffreyDirs {
 
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
-        FileSystemUtils.createDirectories(tempDir);
+        FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
     }
 

@@ -16,18 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.init.model;
+package pbouda.jeffrey.platform.workspace.model;
 
-import picocli.CommandLine;
+import java.time.Instant;
 
-public class HeapDumpTypeConverter implements CommandLine.ITypeConverter<HeapDumpType> {
-
-    @Override
-    public HeapDumpType convert(String value) {
-        try {
-            return HeapDumpType.resolve(value);
-        } catch (IllegalArgumentException e) {
-            throw new CommandLine.TypeConversionException(e.getMessage());
-        }
-    }
+public record RecordingFileCreatedEventContent(
+        String filePath,
+        String fileName,
+        long originalSize,
+        long compressedSize,
+        Instant originalFileCreatedAt,
+        Instant originalFileModifiedAt) {
 }

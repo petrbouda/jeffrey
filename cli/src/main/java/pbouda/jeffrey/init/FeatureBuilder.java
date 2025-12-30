@@ -7,6 +7,7 @@ import java.nio.file.Path;
 public class FeatureBuilder {
 
     public static final String PERF_COUNTERS_FILE = "perf-counters.hsperfdata";
+    public static final String MESSAGING_REPO_DIR = "messaging-repo";
 
     /* Performance data JVM options */
     private static final String PERF_DATA_OPTIONS = "-XX:+UsePerfData -XX:PerfDataSaveFile="
@@ -25,9 +26,17 @@ public class FeatureBuilder {
     private static final String HEAP_DUMP_EXIT_OPTIONS = HEAP_DUMP_BASE_OPTIONS
             + "-XX:+ExitOnOutOfMemoryError ";
 
+    /* Messaging JFR options */
+    private static final String MESSAGING_FLIGHT_RECORDER_OPTIONS =
+            "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + MESSAGING_REPO_DIR + ",preserve-repository=true";
+    private static final String MESSAGING_START_RECORDING_TEMPLATE =
+            "-XX:StartFlightRecording=name=jeffrey-messaging,maxage=%s,jeffrey.LogMessage#enabled=true,jeffrey.Alert#enabled=true";
+
     private boolean perfCountersEnabled;
     private HeapDumpType heapDumpType;
     private String jvmLogging;
+    private boolean messagingEnabled;
+    private String messagingMaxAge = "24h";
     private String additionalJvmOptions;
 
     public FeatureBuilder setPerfCountersEnabled(boolean enabled) {
@@ -42,6 +51,16 @@ public class FeatureBuilder {
 
     public FeatureBuilder setJvmLogging(String jvmLogging) {
         this.jvmLogging = jvmLogging;
+        return this;
+    }
+
+    public FeatureBuilder setMessagingEnabled(boolean enabled) {
+        this.messagingEnabled = enabled;
+        return this;
+    }
+
+    public FeatureBuilder setMessagingMaxAge(String maxAge) {
+        this.messagingMaxAge = maxAge;
         return this;
     }
 
@@ -70,6 +89,13 @@ public class FeatureBuilder {
         if (jvmLogging != null && !jvmLogging.isBlank()) {
             options.append("-Xlog:");
             options.append(jvmLogging.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(" ");
+        }
+
+        if (messagingEnabled) {
+            options.append(MESSAGING_FLIGHT_RECORDER_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(" ");
+            options.append(String.format(MESSAGING_START_RECORDING_TEMPLATE, messagingMaxAge));
             options.append(" ");
         }
 

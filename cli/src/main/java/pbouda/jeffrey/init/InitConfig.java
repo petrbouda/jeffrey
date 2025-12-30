@@ -1,0 +1,407 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.init;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigBeanFactory;
+import com.typesafe.config.ConfigFactory;
+import pbouda.jeffrey.init.model.HeapDumpType;
+import pbouda.jeffrey.shared.model.RepositoryType;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+
+/**
+ * Configuration class for HOCON-based initialization.
+ * Used with {@link com.typesafe.config.ConfigBeanFactory} for automatic parsing.
+ */
+public class InitConfig {
+
+    // Default configuration with all optional fields
+    private static final String DEFAULTS = """
+            silent = false
+            jeffrey-home = ""
+            workspaces-dir = ""
+            profiler-path = ""
+            profiler-config = ""
+            workspace-id = ""
+            project-name = ""
+            project-label = ""
+            repository-type = ""
+            attributes = {}
+            perf-counters { enabled = false }
+            heap-dump { enabled = false, type = "exit" }
+            jvm-logging { enabled = false, command = "" }
+            messaging { enabled = false, max-age = "24h" }
+            jdk-java-options { enabled = false, additional-options = "" }
+            """;
+
+    /**
+     * Creates an InitConfig from a HOCON configuration file.
+     *
+     * @param configFile path to the HOCON configuration file
+     * @return validated InitConfig instance
+     */
+    public static InitConfig fromHoconFile(Path configFile) {
+        if (!Files.exists(configFile)) {
+            throw new IllegalArgumentException("Config file does not exist: " + configFile);
+        }
+
+        Config defaults = ConfigFactory.parseString(DEFAULTS);
+        Config hoconConfig = ConfigFactory.parseFile(configFile.toFile())
+                .withFallback(defaults)
+                .resolve();
+        InitConfig config = ConfigBeanFactory.create(hoconConfig, InitConfig.class);
+        config.validate();
+
+        return config;
+    }
+
+    private boolean silent;
+    private String jeffreyHome;
+    private String workspacesDir;
+    private String workspaceId;
+    private String projectName;
+    private String projectLabel;
+    private String profilerPath;
+    private String profilerConfig;
+    private String repositoryType;
+    private PerfCountersConfig perfCounters;
+    private HeapDumpConfig heapDump;
+    private JvmLoggingConfig jvmLogging;
+    private MessagingConfig messaging;
+    private JdkJavaOptionsConfig jdkJavaOptions;
+    private Map<String, Object> attributes;
+
+    public boolean isSilent() {
+        return silent;
+    }
+
+    public void setSilent(boolean silent) {
+        this.silent = silent;
+    }
+
+    public String getJeffreyHome() {
+        return nullIfBlank(jeffreyHome);
+    }
+
+    public void setJeffreyHome(String jeffreyHome) {
+        this.jeffreyHome = jeffreyHome;
+    }
+
+    public String getWorkspacesDir() {
+        return nullIfBlank(workspacesDir);
+    }
+
+    public void setWorkspacesDir(String workspacesDir) {
+        this.workspacesDir = workspacesDir;
+    }
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public void setWorkspaceId(String workspaceId) {
+        this.workspaceId = workspaceId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getProjectLabel() {
+        return nullIfBlank(projectLabel);
+    }
+
+    public void setProjectLabel(String projectLabel) {
+        this.projectLabel = projectLabel;
+    }
+
+    public String getProfilerPath() {
+        return nullIfBlank(profilerPath);
+    }
+
+    public void setProfilerPath(String profilerPath) {
+        this.profilerPath = profilerPath;
+    }
+
+    public String getProfilerConfig() {
+        return nullIfBlank(profilerConfig);
+    }
+
+    public void setProfilerConfig(String profilerConfig) {
+        this.profilerConfig = profilerConfig;
+    }
+
+    public String getRepositoryType() {
+        return nullIfBlank(repositoryType);
+    }
+
+    public void setRepositoryType(String repositoryType) {
+        this.repositoryType = repositoryType;
+    }
+
+    private static String nullIfBlank(String value) {
+        return (value == null || value.isBlank()) ? null : value;
+    }
+
+    public PerfCountersConfig getPerfCounters() {
+        return perfCounters;
+    }
+
+    public void setPerfCounters(PerfCountersConfig perfCounters) {
+        this.perfCounters = perfCounters;
+    }
+
+    public HeapDumpConfig getHeapDump() {
+        return heapDump;
+    }
+
+    public void setHeapDump(HeapDumpConfig heapDump) {
+        this.heapDump = heapDump;
+    }
+
+    public JvmLoggingConfig getJvmLogging() {
+        return jvmLogging;
+    }
+
+    public void setJvmLogging(JvmLoggingConfig jvmLogging) {
+        this.jvmLogging = jvmLogging;
+    }
+
+    public MessagingConfig getMessaging() {
+        return messaging;
+    }
+
+    public void setMessaging(MessagingConfig messaging) {
+        this.messaging = messaging;
+    }
+
+    public JdkJavaOptionsConfig getJdkJavaOptions() {
+        return jdkJavaOptions;
+    }
+
+    public void setJdkJavaOptions(JdkJavaOptionsConfig jdkJavaOptions) {
+        this.jdkJavaOptions = jdkJavaOptions;
+    }
+
+    public Map<String, String> getAttributes() {
+        if (attributes == null || attributes.isEmpty()) {
+            return null;
+        }
+        Map<String, String> result = new java.util.HashMap<>();
+        for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+            if (entry.getValue() != null) {
+                result.put(entry.getKey(), entry.getValue().toString());
+            }
+        }
+        return result;
+    }
+
+    public void setAttributes(Map<String, Object> attributes) {
+        this.attributes = attributes;
+    }
+
+    public static class PerfCountersConfig {
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    public static class HeapDumpConfig {
+        private boolean enabled;
+        private String type = "exit";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+    }
+
+    public static class JvmLoggingConfig {
+        private boolean enabled;
+        private String command;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getCommand() {
+            return command;
+        }
+
+        public void setCommand(String command) {
+            this.command = command;
+        }
+    }
+
+    public static class MessagingConfig {
+        private boolean enabled;
+        private String maxAge = "24h";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getMaxAge() {
+            return maxAge;
+        }
+
+        public void setMaxAge(String maxAge) {
+            this.maxAge = maxAge;
+        }
+    }
+
+    public static class JdkJavaOptionsConfig {
+        private boolean enabled;
+        private String additionalOptions;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getAdditionalOptions() {
+            return additionalOptions;
+        }
+
+        public void setAdditionalOptions(String additionalOptions) {
+            this.additionalOptions = additionalOptions;
+        }
+    }
+
+    // ==================== Helper Methods ====================
+
+    private static boolean isNullOrBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    public boolean useJeffreyHome() {
+        return !isNullOrBlank(jeffreyHome);
+    }
+
+    public boolean isPerfCountersEnabled() {
+        return perfCounters != null && perfCounters.isEnabled();
+    }
+
+    public boolean isMessagingEnabled() {
+        return messaging != null && messaging.isEnabled();
+    }
+
+    public String getMessagingMaxAge() {
+        if (messaging != null && !isNullOrBlank(messaging.getMaxAge())) {
+            return messaging.getMaxAge();
+        }
+        return "24h";
+    }
+
+    public boolean isJdkJavaOptionsEnabled() {
+        return jdkJavaOptions != null && jdkJavaOptions.isEnabled();
+    }
+
+    public String getAdditionalJvmOptions() {
+        if (jdkJavaOptions != null && !isNullOrBlank(jdkJavaOptions.getAdditionalOptions())) {
+            return jdkJavaOptions.getAdditionalOptions();
+        }
+        return null;
+    }
+
+    public String getJvmLoggingCommand() {
+        if (jvmLogging != null && jvmLogging.isEnabled() && !isNullOrBlank(jvmLogging.getCommand())) {
+            return jvmLogging.getCommand();
+        }
+        return null;
+    }
+
+    public RepositoryType resolveRepositoryType() {
+        return !isNullOrBlank(repositoryType) ? RepositoryType.resolve(repositoryType) : RepositoryType.ASYNC_PROFILER;
+    }
+
+    public HeapDumpType resolveHeapDumpType() {
+        if (heapDump != null && heapDump.isEnabled()) {
+            String type = heapDump.getType();
+            return HeapDumpType.resolve(!isNullOrBlank(type) ? type : "exit");
+        }
+        return null;
+    }
+
+    // ==================== Validation ====================
+
+    private void validate() {
+        boolean hasJeffreyHome = !isNullOrBlank(jeffreyHome);
+        boolean hasWorkspacesDir = !isNullOrBlank(workspacesDir);
+
+        if (!hasJeffreyHome && !hasWorkspacesDir) {
+            throw new IllegalArgumentException("Either 'jeffrey-home' or 'workspaces-dir' must be specified");
+        }
+
+        if (hasJeffreyHome && hasWorkspacesDir) {
+            throw new IllegalArgumentException("Cannot specify both 'jeffrey-home' and 'workspaces-dir'");
+        }
+
+        if (isNullOrBlank(workspaceId)) {
+            throw new IllegalArgumentException("'workspace-id' must be specified");
+        }
+
+        if (isNullOrBlank(projectName)) {
+            throw new IllegalArgumentException("'project-name' must be specified");
+        }
+
+        if (!projectName.matches("^[a-zA-Z0-9_-]+$")) {
+            throw new IllegalArgumentException("Project name can only contain alphanumeric characters, underscores, and dashes");
+        }
+
+        if (isMessagingEnabled() && !isNullOrBlank(profilerConfig)) {
+            throw new IllegalArgumentException("Cannot specify both 'messaging.enabled' and 'profiler-config'");
+        }
+    }
+}
