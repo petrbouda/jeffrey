@@ -112,7 +112,8 @@ class AsprofFileRepositoryStorageTest {
                 null,                 // profilerSettings
                 false,                // streamingEnabled
                 now,                  // originCreatedAt
-                now);                 // createdAt
+                now,                  // createdAt
+                null);                // finishedAt
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));
 
         // Create ProjectInfo

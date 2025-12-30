@@ -25,14 +25,17 @@ import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
@@ -143,5 +146,34 @@ public class ProjectJobsConfiguration {
                     : JobContext.EMPTY;
             scheduler.submitAndWait(repositoryCompressionJob, context);
         };
+    }
+
+    @Bean
+    public SessionFinishEventEmitter sessionFinishEventEmitter(
+            Clock clock,
+            CompositeWorkspacesManager compositeWorkspacesManager) {
+
+        return new SessionFinishEventEmitter(clock, compositeWorkspacesManager);
+    }
+
+    @Bean
+    public SessionFinishDetectorProjectJob sessionFinishDetectorProjectJob(
+            Clock clock,
+            JeffreyDirs jeffreyDirs,
+            Repositories repositories,
+            SessionFinishEventEmitter sessionFinishEventEmitter,
+            @Value("${jeffrey.job.session-finish-detector.period:10s}") Duration jobPeriod,
+            @Value("${jeffrey.project.repository-storage.detection.finished-period:30m}") Duration finishedPeriod) {
+
+        return new SessionFinishDetectorProjectJob(
+                liveWorkspacesManager,
+                repositoryStorageFactory,
+                jobDescriptorFactory,
+                jobPeriod,
+                finishedPeriod,
+                clock,
+                jeffreyDirs,
+                repositories,
+                sessionFinishEventEmitter);
     }
 }

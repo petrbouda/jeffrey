@@ -73,7 +73,7 @@ public class InitExecutor {
         Path newSessionPath = createDirectories(projectPath.resolve(sessionId));
 
         if (config.isMessagingEnabled()) {
-            createDirectories(newSessionPath.resolve(FeatureBuilder.MESSAGING_REPO_DIR));
+            createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
         }
 
         String features = new FeatureBuilder()

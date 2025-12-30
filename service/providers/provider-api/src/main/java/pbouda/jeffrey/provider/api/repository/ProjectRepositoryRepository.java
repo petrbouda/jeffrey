@@ -22,6 +22,7 @@ package pbouda.jeffrey.provider.api.repository;
 import pbouda.jeffrey.shared.model.RepositoryInfo;
 import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,4 +66,20 @@ public interface ProjectRepositoryRepository {
      * @return the workspace session if it exists, otherwise an empty optional
      */
     Optional<RepositorySessionInfo> findSessionById(String sessionId);
+
+    /**
+     * Find all sessions that have not been marked as finished yet.
+     * A session is considered unfinished if its finished_at column is NULL.
+     *
+     * @return list of unfinished sessions
+     */
+    List<RepositorySessionInfo> findUnfinishedSessions();
+
+    /**
+     * Mark a session as finished by setting the finished_at timestamp.
+     *
+     * @param sessionId  the session ID to mark as finished
+     * @param finishedAt the timestamp when the session was detected as finished
+     */
+    void markSessionFinished(String sessionId, Instant finishedAt);
 }

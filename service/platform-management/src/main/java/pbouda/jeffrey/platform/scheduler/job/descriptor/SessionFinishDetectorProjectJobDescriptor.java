@@ -16,14 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export enum JobType {
-    REPOSITORY_SESSION_CLEANER = 'REPOSITORY_SESSION_CLEANER',
-    REPOSITORY_RECORDING_CLEANER = 'REPOSITORY_RECORDING_CLEANER',
-    INTERVAL_RECORDING_GENERATOR = 'INTERVAL_RECORDING_GENERATOR',
-    PERIODIC_RECORDING_GENERATOR = 'PERIODIC_RECORDING_GENERATOR',
-    COPY_RECORDING_GENERATOR = 'COPY_RECORDING_GENERATOR',
-    REPOSITORY_JFR_COMPRESSION = 'REPOSITORY_JFR_COMPRESSION',
-    SESSION_FINISH_DETECTOR = 'SESSION_FINISH_DETECTOR',
-    PROJECT_RECORDING_STORAGE_SYNCHRONIZER = 'PROJECT_RECORDING_STORAGE_SYNCHRONIZER',
-    ORPHANED_PROJECT_RECORDING_STORAGE_CLEANER = 'ORPHANED_PROJECT_RECORDING_STORAGE_CLEANER'
+package pbouda.jeffrey.platform.scheduler.job.descriptor;
+
+import pbouda.jeffrey.shared.model.job.JobType;
+
+import java.util.Map;
+
+/**
+ * Job descriptor for the session finish detector job.
+ * This job detects when sessions become FINISHED and emits SESSION_FINISHED events.
+ */
+public record SessionFinishDetectorProjectJobDescriptor() implements JobDescriptor<SessionFinishDetectorProjectJobDescriptor> {
+
+    @Override
+    public Map<String, String> params() {
+        return Map.of();
+    }
+
+    @Override
+    public JobType type() {
+        return JobType.SESSION_FINISH_DETECTOR;
+    }
 }

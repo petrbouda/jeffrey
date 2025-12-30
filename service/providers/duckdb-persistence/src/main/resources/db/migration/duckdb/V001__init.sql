@@ -219,6 +219,7 @@ CREATE TABLE IF NOT EXISTS repository_sessions
     streaming_enabled     BOOLEAN NOT NULL DEFAULT FALSE,
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
+    finished_at           TIMESTAMPTZ,
     PRIMARY KEY (repository_id, session_id)
 );
 

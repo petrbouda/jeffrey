@@ -31,7 +31,8 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         WorkspaceEventsReplicatorJobDescriptor,
         RepositoryCompressionProjectJobDescriptor,
         ProjectRecordingStorageSynchronizerJobDescriptor,
-        OrphanedProjectRecordingStorageCleanerJobDescriptor {
+        OrphanedProjectRecordingStorageCleanerJobDescriptor,
+        SessionFinishDetectorProjectJobDescriptor {
 
     Map<String, String> params();
 

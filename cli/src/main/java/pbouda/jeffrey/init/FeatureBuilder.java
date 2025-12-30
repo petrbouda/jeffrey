@@ -7,7 +7,7 @@ import java.nio.file.Path;
 public class FeatureBuilder {
 
     public static final String PERF_COUNTERS_FILE = "perf-counters.hsperfdata";
-    public static final String MESSAGING_REPO_DIR = "messaging-repo";
+    public static final String STREAMING_REPO_DIR = "streaming-repo";
 
     /* Performance data JVM options */
     private static final String PERF_DATA_OPTIONS = "-XX:+UsePerfData -XX:PerfDataSaveFile="
@@ -28,9 +28,9 @@ public class FeatureBuilder {
 
     /* Messaging JFR options */
     private static final String MESSAGING_FLIGHT_RECORDER_OPTIONS =
-            "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + MESSAGING_REPO_DIR + ",preserve-repository=true";
+            "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
     private static final String MESSAGING_START_RECORDING_TEMPLATE =
-            "-XX:StartFlightRecording=name=jeffrey-messaging,maxage=%s,jeffrey.LogMessage#enabled=true,jeffrey.Alert#enabled=true";
+            "-XX:StartFlightRecording=name=jeffrey-streaming,maxage=%s,jeffrey.LogMessage#enabled=true,jeffrey.Alert#enabled=true";
 
     private boolean perfCountersEnabled;
     private HeapDumpType heapDumpType;

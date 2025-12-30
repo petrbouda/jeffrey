@@ -80,6 +80,20 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)
             """;
 
+    //language=SQL
+    private static final String SELECT_UNFINISHED_SESSIONS = """
+            SELECT rs.* FROM repository_sessions rs
+            JOIN repositories r ON rs.repository_id = r.repository_id
+            WHERE r.project_id = :project_id AND rs.finished_at IS NULL
+            ORDER BY rs.origin_created_at DESC""";
+
+    //language=SQL
+    private static final String UPDATE_SESSION_FINISHED = """
+            UPDATE repository_sessions
+            SET finished_at = :finished_at
+            WHERE session_id = :session_id
+            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
+
     private final String projectId;
     private final DatabaseClient databaseClient;
     private final Clock clock;
@@ -180,6 +194,27 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 workspaceSessionMapper());
     }
 
+    @Override
+    public List<RepositorySessionInfo> findUnfinishedSessions() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_UNFINISHED_SESSIONS,
+                SELECT_UNFINISHED_SESSIONS,
+                paramSource,
+                workspaceSessionMapper());
+    }
+
+    @Override
+    public void markSessionFinished(String sessionId, java.time.Instant finishedAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("session_id", sessionId)
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.UPDATE_SESSION_FINISHED, UPDATE_SESSION_FINISHED, paramSource);
+    }
 
     private static RowMapper<RepositorySessionInfo> workspaceSessionMapper() {
         return (rs, _) -> {
@@ -191,7 +226,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                     rs.getString("profiler_settings"),
                     rs.getBoolean("streaming_enabled"),
                     Mappers.instant(rs, "origin_created_at"),
-                    Mappers.instant(rs, "created_at")
+                    Mappers.instant(rs, "created_at"),
+                    Mappers.instant(rs, "finished_at")
             );
         };
     }

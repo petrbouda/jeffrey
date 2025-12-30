@@ -29,5 +29,6 @@ public record RepositorySessionInfo(
         String profilerSettings,
         boolean streamingEnabled,
         Instant originCreatedAt,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant finishedAt) {
 }

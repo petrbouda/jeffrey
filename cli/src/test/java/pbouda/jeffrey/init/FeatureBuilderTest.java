@@ -150,10 +150,10 @@ class FeatureBuilderTest {
                     .build(SESSION_PATH);
 
             assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
-            assertTrue(result.contains(FeatureBuilder.MESSAGING_REPO_DIR));
+            assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
             assertTrue(result.contains("preserve-repository=true"));
             assertTrue(result.contains("-XX:StartFlightRecording="));
-            assertTrue(result.contains("name=jeffrey-messaging"));
+            assertTrue(result.contains("name=jeffrey-streaming"));
             assertTrue(result.contains("maxage=24h")); // default
             assertTrue(result.contains("jeffrey.LogMessage#enabled=true"));
             assertTrue(result.contains("jeffrey.Alert#enabled=true"));
@@ -229,7 +229,7 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:+UsePerfData"));
             assertTrue(result.contains("-XX:+CrashOnOutOfMemoryError"));
             assertTrue(result.contains("-Xlog:"));
-            assertTrue(result.contains("jeffrey-messaging"));
+            assertTrue(result.contains("jeffrey-streaming"));
             assertTrue(result.contains("maxage=6h"));
             assertTrue(result.contains("-Xmx1200m"));
         }
