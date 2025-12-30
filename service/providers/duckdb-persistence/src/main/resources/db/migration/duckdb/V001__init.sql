@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS repository_sessions
     relative_session_path VARCHAR NOT NULL,
     profiler_settings     VARCHAR,
     finished_file         VARCHAR,
+    streaming_enabled     BOOLEAN NOT NULL DEFAULT FALSE,
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (repository_id, session_id)

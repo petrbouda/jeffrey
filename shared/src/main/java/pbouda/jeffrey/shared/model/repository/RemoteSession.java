@@ -26,5 +26,5 @@ public record RemoteSession(
         String finishedFile,
         String relativeSessionPath,
         String profilerSettings,
-        boolean messagingEnabled) {
+        boolean streamingEnabled) {
 }

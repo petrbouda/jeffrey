@@ -110,6 +110,7 @@ class AsprofFileRepositoryStorageTest {
                 Path.of(SESSION_ID),  // relativeSessionPath
                 ".finished",          // finishedFile
                 null,                 // profilerSettings
+                false,                // streamingEnabled
                 now,                  // originCreatedAt
                 now);                 // createdAt
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));

@@ -56,8 +56,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
             INSERT INTO repository_sessions
-            (session_id, repository_id, relative_session_path, profiler_settings, finished_file, origin_created_at, created_at)
-            VALUES (:session_id, :repository_id, :relative_session_path, :profiler_settings, :finished_file, :origin_created_at, :created_at)
+            (session_id, repository_id, relative_session_path, profiler_settings, finished_file, streaming_enabled, origin_created_at, created_at)
+            VALUES (:session_id, :repository_id, :relative_session_path, :profiler_settings, :finished_file, :streaming_enabled, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -139,6 +139,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
                 .addValue("profiler_settings", session.profilerSettings())
                 .addValue("finished_file", session.finishedFile())
+                .addValue("streaming_enabled", session.streamingEnabled())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
@@ -188,6 +189,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                     Path.of(rs.getString("relative_session_path")),
                     rs.getString("finished_file"),
                     rs.getString("profiler_settings"),
+                    rs.getBoolean("streaming_enabled"),
                     Mappers.instant(rs, "origin_created_at"),
                     Mappers.instant(rs, "created_at")
             );

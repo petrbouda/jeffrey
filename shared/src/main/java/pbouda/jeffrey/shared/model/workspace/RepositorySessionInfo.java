@@ -27,7 +27,7 @@ public record RepositorySessionInfo(
         Path relativeSessionPath,
         String finishedFile,
         String profilerSettings,
-        boolean messagingEnabled,
+        boolean streamingEnabled,
         Instant originCreatedAt,
         Instant createdAt) {
 }

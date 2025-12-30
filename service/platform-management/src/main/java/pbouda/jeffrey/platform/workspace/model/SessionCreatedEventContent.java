@@ -22,5 +22,5 @@ public record SessionCreatedEventContent(
         String relativeSessionPath,
         String finishedFile,
         String profilerSettings,
-        boolean messagingEnabled) {
+        boolean streamingEnabled) {
 }

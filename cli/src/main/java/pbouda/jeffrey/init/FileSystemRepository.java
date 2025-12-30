@@ -58,7 +58,7 @@ public class FileSystemRepository {
             String workspaceId,
             String finishedFile,
             String profilerSettings,
-            boolean messagingEnabled,
+            boolean streamingEnabled,
             Path sessionPath) {
         try {
             RemoteSession session = new RemoteSession(
@@ -69,7 +69,7 @@ public class FileSystemRepository {
                     finishedFile,
                     sessionId,
                     profilerSettings,
-                    messagingEnabled);
+                    streamingEnabled);
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             Files.writeString(sessionInfoFile, Json.toString(session));
