@@ -178,7 +178,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_SESSIONS_BY_PROJECT_ID,
                 SELECT_SESSIONS_BY_PROJECT_ID,
                 paramSource,
-                workspaceSessionMapper());
+                repositorySessionMapper());
     }
 
     @Override
@@ -191,7 +191,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_SESSION_BY_PROJECT_AND_SESSION_ID,
                 SELECT_SESSION_BY_PROJECT_AND_SESSION_ID,
                 paramSource,
-                workspaceSessionMapper());
+                repositorySessionMapper());
     }
 
     @Override
@@ -203,7 +203,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_UNFINISHED_SESSIONS,
                 SELECT_UNFINISHED_SESSIONS,
                 paramSource,
-                workspaceSessionMapper());
+                repositorySessionMapper());
     }
 
     @Override
@@ -216,7 +216,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         databaseClient.update(StatementLabel.UPDATE_SESSION_FINISHED, UPDATE_SESSION_FINISHED, paramSource);
     }
 
-    private static RowMapper<RepositorySessionInfo> workspaceSessionMapper() {
+    private static RowMapper<RepositorySessionInfo> repositorySessionMapper() {
         return (rs, _) -> {
             return new RepositorySessionInfo(
                     rs.getString("session_id"),

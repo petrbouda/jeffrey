@@ -19,10 +19,16 @@
 package pbouda.jeffrey.shared.model;
 
 
+import java.nio.file.Path;
+
 public record RepositoryInfo(
         String id,
         RepositoryType repositoryType,
         String workspacesPath,
         String relativeWorkspacePath,
         String relativeProjectPath) {
+
+    public Path absoluteProjectPath() {
+        return Path.of(workspacesPath, relativeWorkspacePath, relativeProjectPath);
+    }
 }

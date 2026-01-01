@@ -167,6 +167,10 @@ public abstract class FileSystemUtils {
     }
 
     public static void removeDirectory(Path directory) {
+        if (!FileSystemUtils.isDirectory(directory)) {
+            return;
+        }
+
         try (Stream<Path> files = Files.walk(directory)) {
             files.sorted(Comparator.reverseOrder())
                     .map(Path::toFile)

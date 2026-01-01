@@ -68,6 +68,11 @@ public class ProjectResource {
         return new SchedulerResource(projectManager.schedulerManager());
     }
 
+    @Path("/messages")
+    public ProjectMessagesResource messagesResource() {
+        return new ProjectMessagesResource(projectManager.messagesManager());
+    }
+
     @GET
     @Path("/initializing")
     public boolean initializing() {

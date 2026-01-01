@@ -153,10 +153,10 @@ export default class FormattingService {
 
         if (diffMs < 60000) { // less than 1 minute
             const seconds = Math.floor(diffMs / 1000);
-            return seconds <= 1 ? 'just now' : `${seconds} seconds ago`;
+            return seconds <= 1 ? 'just now' : `${seconds} secs ago`;
         } else if (diffMs < 3600000) { // less than 1 hour
             const minutes = Math.floor(diffMs / 60000);
-            return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+            return minutes === 1 ? '1 min ago' : `${minutes} mins ago`;
         } else if (diffMs < 86400000) { // less than 1 day
             const hours = Math.floor(diffMs / 3600000);
             return hours === 1 ? '1 hour ago' : `${hours} hours ago`;

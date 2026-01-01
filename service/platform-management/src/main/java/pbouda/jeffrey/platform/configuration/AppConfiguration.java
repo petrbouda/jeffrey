@@ -69,6 +69,8 @@ import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
+import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.streaming.JfrStreamingInitializer;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import java.nio.file.Files;
@@ -304,4 +306,18 @@ public class AppConfiguration {
 
         return new CopyLibsInitializer(Path.of(source), Path.of(target));
     }
+
+    @Bean(destroyMethod = "close")
+    public JfrStreamingConsumerManager jfrStreamingConsumerManager(JeffreyDirs jeffreyDirs) {
+        return new JfrStreamingConsumerManager(jeffreyDirs);
+    }
+
+    // @Bean
+    // public JfrStreamingInitializer jfrStreamingInitializer(
+    //         JfrStreamingConsumerManager jfrStreamingConsumerManager,
+    //         CompositeWorkspacesManager compositeWorkspacesManager,
+    //         Repositories repositories) {
+    //
+    //     return new JfrStreamingInitializer(jfrStreamingConsumerManager, compositeWorkspacesManager, repositories);
+    // }
 }

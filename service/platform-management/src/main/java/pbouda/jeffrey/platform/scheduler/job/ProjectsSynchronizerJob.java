@@ -34,6 +34,7 @@ import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
+import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.workspace.consumer.*;
 
 import java.time.Duration;
@@ -49,11 +50,13 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     private final Repositories repositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
+    private final JfrStreamingConsumerManager streamingConsumerManager;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
             Repositories repositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
+            JfrStreamingConsumerManager streamingConsumerManager,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
@@ -62,6 +65,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.repositories = repositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
+        this.streamingConsumerManager = streamingConsumerManager;
         this.period = period;
     }
 
@@ -74,6 +78,9 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         List<WorkspaceEventConsumer> consumers = List.of(
                 new CreateProjectWorkspaceEventConsumer(projectsManager),
                 new CreateSessionWorkspaceEventConsumer(projectsManager),
+                // Not enabled yet
+                // new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager),
+                new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, repositories, remoteRepositoryStorageFactory),
                 new DeleteProjectWorkspaceEventConsumer(projectsManager, repositories, remoteRepositoryStorageFactory));
 

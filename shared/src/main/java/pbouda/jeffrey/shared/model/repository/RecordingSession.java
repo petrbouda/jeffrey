@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.shared.model.repository;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
@@ -27,6 +28,8 @@ public record RecordingSession(
         Instant createdAt,
         RecordingStatus status,
         String profilerSettings,
+        Path absolutePath,
+        Path absoluteStreamingPath,
         List<RepositoryFile> files) {
 }
 

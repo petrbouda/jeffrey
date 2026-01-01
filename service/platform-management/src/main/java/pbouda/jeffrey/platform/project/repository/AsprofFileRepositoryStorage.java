@@ -55,6 +55,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(AsprofFileRepositoryStorage.class);
 
+    public static final String STREAMING_REPO_DIR = "streaming-repo";
+
     // JFR_LZ4 must come first so removeExtension matches longer extension first (.jfr.lz4 before .jfr)
     private static final List<SupportedRecordingFile> RECORDING_FILE_TYPES =
             List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR);
@@ -92,7 +94,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         this.eventEmitter = eventEmitter;
     }
 
-    private RepositoryInfo repositoryInfo() {
+    @Override
+    public RepositoryInfo repositoryInfo() {
         List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
         if (repositoryInfos.isEmpty()) {
             throw new IllegalStateException("No repository info found for project: " + projectInfo.id());
@@ -178,6 +181,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 sessionInfo.originCreatedAt(),
                 recordingStatus,
                 sessionInfo.profilerSettings(),
+                sessionPath,
+                sessionPath.resolve(STREAMING_REPO_DIR),
                 repositoryFiles);
     }
 

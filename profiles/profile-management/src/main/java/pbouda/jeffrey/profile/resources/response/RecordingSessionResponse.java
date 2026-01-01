@@ -51,6 +51,8 @@ public record RecordingSessionResponse(
                 response.createdAt(),
                 response.status(),
                 response.profilerSettings(),
+                null,
+                null,
                 response.files().stream()
                         .map(RepositoryFileResponse::from)
                         .toList());

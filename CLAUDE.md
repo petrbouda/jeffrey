@@ -101,6 +101,7 @@ jeffrey/
 │   │   ├── common-sql-persistence/ # Shared SQL utilities
 │   │   ├── recording-storage-api/  # Storage interfaces
 │   │   └── filesystem-recording-storage/
+│   ├── jfr-repository-parser/      # JFR repository parsing (streaming-repo)
 │   ├── recording-parser/           # JFR parsing
 │   │   ├── jfr-parser-api/         # Parser interfaces
 │   │   ├── jdk-jfr-parser/         # JDK-based parser
@@ -158,6 +159,11 @@ jeffrey/
   - Pattern: `"Description of what happened: key1={} key2={} key3={}"`
   - No commas between key-value pairs
   - Example: `LOG.warn("Chunk extends beyond file, truncating: chunkIndex={} position={} claimedSize={}", index, pos, size)`
+- **Time Handling**: Always use `java.time.Clock` instead of `Instant.now()` or `System.currentTimeMillis()`:
+  - Inject `Clock` as a constructor parameter for testability
+  - Use `clock.instant()` to get the current time
+  - Example: `private final Clock clock; ... Instant now = clock.instant();`
+  - This allows tests to use fixed time via `Clock.fixed()` for deterministic behavior
 
 ### Frontend (Vue/TypeScript)
 - **Components**: PascalCase for component names

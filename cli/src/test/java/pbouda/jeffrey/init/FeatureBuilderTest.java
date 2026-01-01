@@ -21,6 +21,7 @@ package pbouda.jeffrey.init;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.init.model.HeapDumpType;
+import pbouda.jeffrey.shared.model.EventTypeName;
 
 import java.nio.file.Path;
 
@@ -155,8 +156,7 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:StartFlightRecording="));
             assertTrue(result.contains("name=jeffrey-streaming"));
             assertTrue(result.contains("maxage=24h")); // default
-            assertTrue(result.contains("jeffrey.LogMessage#enabled=true"));
-            assertTrue(result.contains("jeffrey.Alert#enabled=true"));
+            assertTrue(result.contains(EventTypeName.IMPORTANT_MESSAGE + "#enabled=true"));
         }
 
         @Test

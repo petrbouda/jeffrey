@@ -95,6 +95,9 @@ public abstract class EventTypeName {
     public static final String HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange";
     public static final String HTTP_CLIENT_EXCHANGE = "jeffrey.HttpClientExchange";
 
+    // Streaming events
+    public static final String IMPORTANT_MESSAGE = "jeffrey.ImportantMessage";
+
     // Container events
     public static final String CONTAINER_CONFIGURATION = "jdk.ContainerConfiguration";
     public static final String CONTAINER_CPU_THROTTLING = "jdk.ContainerCPUThrottling";

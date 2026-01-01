@@ -16,8 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.workspace.model;
+package pbouda.jeffrey.platform.manager.jfr.model;
 
-public record SessionFinishedEventContent(
-        String relativeSessionPath) {
+/**
+ * Severity levels for important messages.
+ * Matches cafe.jeffrey.jfr.events.message.Severity
+ */
+public enum Severity {
+    CRITICAL,
+    HIGH,
+    MEDIUM,
+    LOW;
+
+    /**
+     * Parses severity from string, defaulting to LOW if unknown.
+     *
+     * @param value the string value to parse
+     * @return the Severity enum value
+     */
+    public static Severity fromString(String value) {
+        if (value == null) {
+            return MEDIUM;
+        }
+        try {
+            return valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return MEDIUM;
+        }
+    }
 }

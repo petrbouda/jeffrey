@@ -8,11 +8,11 @@ import picocli.CommandLine.Parameters;
 import java.nio.file.Path;
 
 @Command(
-        name = InitFromFileCommand.COMMAND_NAME,
+        name = InitCommand.COMMAND_NAME,
         description = "Initialize Jeffrey project and current session from a HOCON configuration file.",
         mixinStandardHelpOptions = true
 )
-public class InitFromFileCommand implements Runnable {
+public class InitCommand implements Runnable {
 
     public static final String COMMAND_NAME = "init";
 

@@ -103,6 +103,18 @@ const router = createRouter({
                   name: 'project-profiler-settings',
                   component: () => import('@/views/projects/detail/ProjectProfilerSettingsView.vue'),
                   meta: { layout: 'project' }
+                },
+                {
+                  path: 'alerts',
+                  name: 'project-alerts',
+                  component: () => import('@/views/projects/detail/AlertsView.vue'),
+                  meta: { layout: 'project' }
+                },
+                {
+                  path: 'messages',
+                  name: 'project-messages',
+                  component: () => import('@/views/projects/detail/ImportantMessagesView.vue'),
+                  meta: { layout: 'project' }
                 }
               ]
             },

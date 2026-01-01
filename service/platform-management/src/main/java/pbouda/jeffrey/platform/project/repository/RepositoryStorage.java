@@ -19,6 +19,7 @@
 package pbouda.jeffrey.platform.project.repository;
 
 import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.model.RepositoryInfo;
 import pbouda.jeffrey.shared.model.RepositoryType;
 import pbouda.jeffrey.shared.model.repository.RecordingSession;
 
@@ -32,6 +33,13 @@ public interface RepositoryStorage {
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, RepositoryStorage> {
     }
+
+    /**
+     * Information about the repository.
+     *
+     * @return information about the repository.
+     */
+    RepositoryInfo repositoryInfo();
 
     /**
      * Lists of files for the given session.

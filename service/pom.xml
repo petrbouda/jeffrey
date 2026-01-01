@@ -36,6 +36,7 @@
         <module>sql-builder</module>
         <module>tools</module>
         <module>providers</module>
+        <module>jfr-repository-parser</module>
         <module>platform-management</module>
     </modules>
 
@@ -45,7 +46,7 @@
         <junit.version>5.13.4</junit.version>
         <byte-buddy.version>1.17.5</byte-buddy.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
-        <jeffrey-events.version>0.2.1</jeffrey-events.version>
+        <jeffrey-events.version>0.2.3</jeffrey-events.version>
     </properties>
 
     <dependencyManagement>
@@ -156,6 +157,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>profile-management</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jfr-repository-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

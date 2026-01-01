@@ -1,13 +1,13 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.init.command.InitFromFileCommand;
+import pbouda.jeffrey.init.command.InitCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 @Command(
         name = "",
         subcommands = {
-                InitFromFileCommand.class,
+                InitCommand.class,
         },
         mixinStandardHelpOptions = true,
         description = "Jeffrey CLI Application to simplify the setup and maintenance",
@@ -15,7 +15,7 @@ import picocli.CommandLine.Command;
 )
 public class CliApplication {
 
-    public static void main(String... args) {
+    static void main(String... args) {
         try {
             new CommandLine(new CliApplication())
                     .setUsageHelpWidth(160)

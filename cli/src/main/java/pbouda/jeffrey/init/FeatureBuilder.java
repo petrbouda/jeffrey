@@ -1,6 +1,7 @@
 package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.init.model.HeapDumpType;
+import pbouda.jeffrey.shared.model.EventTypeName;
 
 import java.nio.file.Path;
 
@@ -30,7 +31,8 @@ public class FeatureBuilder {
     private static final String MESSAGING_FLIGHT_RECORDER_OPTIONS =
             "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
     private static final String MESSAGING_START_RECORDING_TEMPLATE =
-            "-XX:StartFlightRecording=name=jeffrey-streaming,maxage=%s,jeffrey.LogMessage#enabled=true,jeffrey.Alert#enabled=true";
+            "-XX:StartFlightRecording=name=jeffrey-streaming,maxage=%s,"
+                    + EventTypeName.IMPORTANT_MESSAGE + "#enabled=true";
 
     private boolean perfCountersEnabled;
     private HeapDumpType heapDumpType;

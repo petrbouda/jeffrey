@@ -23,6 +23,7 @@ import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.platform.manager.MessagesManager;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RecordingsManager;
@@ -90,6 +91,11 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public RecordingsManager recordingsManager() {
         return resolveProjectManager().recordingsManager();
+    }
+
+    @Override
+    public MessagesManager messagesManager() {
+        return resolveProjectManager().messagesManager();
     }
 
     @Override

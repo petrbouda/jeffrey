@@ -32,6 +32,7 @@ import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
@@ -97,11 +98,13 @@ public class GlobalJobsConfiguration {
     public ProjectsSynchronizerJob projectsSynchronizerJob(
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
             Repositories repositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory,
+            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
 
         return new ProjectsSynchronizerJob(
                 repositories,
                 remoteRepositoryStorageFactory,
+                jfrStreamingConsumerManager,
                 liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,

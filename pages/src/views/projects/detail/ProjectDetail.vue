@@ -115,6 +115,28 @@
                   <Badge v-if="projectInfo != null && projectInfo.jobCount > 0 && !isSchedulerDisabled" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <router-link
+                    :to="generateProjectUrl('alerts')"
+                    class="nav-item"
+                    :class="{ 'disabled-feature': isSandboxWorkspace }"
+                    :title="isSandboxWorkspace ? 'Alerts not available in Sandbox workspaces' : ''"
+                    :tabindex="isSandboxWorkspace ? -1 : 0"
+                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
+                    active-class="active">
+                  <i class="bi bi-bell"></i>
+                  <span>Alerts</span>
+                </router-link>
+                <router-link
+                    :to="generateProjectUrl('messages')"
+                    class="nav-item"
+                    :class="{ 'disabled-feature': isSandboxWorkspace }"
+                    :title="isSandboxWorkspace ? 'Messages not available in Sandbox workspaces' : ''"
+                    :tabindex="isSandboxWorkspace ? -1 : 0"
+                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
+                    active-class="active">
+                  <i class="bi bi-chat-square-text"></i>
+                  <span>Messages</span>
+                </router-link>
+                <router-link
                     :to="generateProjectUrl('settings')"
                     class="nav-item"
                     active-class="active">

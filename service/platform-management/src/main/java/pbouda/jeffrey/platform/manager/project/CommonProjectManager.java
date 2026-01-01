@@ -19,7 +19,19 @@
 package pbouda.jeffrey.platform.manager.project;
 
 import org.springframework.beans.factory.ObjectFactory;
+import pbouda.jeffrey.platform.manager.*;
+import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
+import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.api.repository.ProjectRepository;
+import pbouda.jeffrey.provider.api.repository.Repositories;
+import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
+import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.shared.model.ProfileInfo;
 import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.Recording;
@@ -29,26 +41,6 @@ import pbouda.jeffrey.shared.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.exception.Exceptions;
-import pbouda.jeffrey.platform.manager.ProfilesManager;
-import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
-import pbouda.jeffrey.platform.manager.RecordingsDownloadManagerImpl;
-import pbouda.jeffrey.platform.manager.RecordingsManager;
-import pbouda.jeffrey.platform.manager.RecordingsManagerImpl;
-import pbouda.jeffrey.platform.manager.RepositoryManager;
-import pbouda.jeffrey.platform.manager.RepositoryManagerImpl;
-import pbouda.jeffrey.platform.manager.SchedulerManager;
-import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
-import pbouda.jeffrey.profile.manager.ProfileManager;
-import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
-import pbouda.jeffrey.provider.api.repository.ProjectRepository;
-import pbouda.jeffrey.provider.api.repository.Repositories;
-import pbouda.jeffrey.provider.api.repository.SchedulerRepository;
-import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 
 import java.time.Clock;
 import java.util.Comparator;
@@ -104,6 +96,11 @@ public class CommonProjectManager implements ProjectManager {
     @Override
     public RecordingsManager recordingsManager() {
         return new RecordingsManagerImpl(projectInfo, recordingInitializer, recordingRepository);
+    }
+
+    @Override
+    public MessagesManager messagesManager() {
+        return new MessagesManagerImpl(clock, repositoryStorage);
     }
 
     @Override
