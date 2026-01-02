@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.platform.configuration;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,19 +25,17 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
-import pbouda.jeffrey.platform.scheduler.JobContext;
-import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Configuration for PROJECT-level scheduler jobs.
@@ -46,8 +43,6 @@ import java.util.function.Consumer;
  */
 @Configuration
 public class ProjectJobsConfiguration {
-
-    public static final String REPOSITORY_COMPRESSION_TRIGGER = "REPOSITORY_COMPRESSION_TRIGGER";
 
     private static final String PROJECT_SCHEDULER = "PROJECT_SCHEDULER";
 
@@ -72,7 +67,7 @@ public class ProjectJobsConfiguration {
 
     @Bean(name = PROJECT_SCHEDULER, destroyMethod = "close")
     public Scheduler projectScheduler(List<ProjectJob<?>> jobs) {
-        return new PeriodicalScheduler(jobs, Duration.ofSeconds(5));
+        return new PeriodicalScheduler(jobs);
     }
 
     @Bean
@@ -128,24 +123,6 @@ public class ProjectJobsConfiguration {
                 repositories,
                 recordingStorage,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
-    }
-
-    /**
-     * Compression trigger that accepts an optional sessionId parameter.
-     * When sessionId is provided, only that specific session is compressed.
-     * When sessionId is null, the default behavior (ACTIVE + latest FINISHED sessions) is used.
-     */
-    @Bean(REPOSITORY_COMPRESSION_TRIGGER)
-    public Consumer<String> repositoryCompressionTrigger(
-            @Qualifier(PROJECT_SCHEDULER) Scheduler scheduler,
-            RepositoryCompressionProjectJob repositoryCompressionJob) {
-
-        return sessionId -> {
-            JobContext context = sessionId != null
-                    ? JobContext.of(RepositoryCompressionProjectJob.PARAM_SESSION_ID, sessionId)
-                    : JobContext.EMPTY;
-            scheduler.submitAndWait(repositoryCompressionJob, context);
-        };
     }
 
     @Bean

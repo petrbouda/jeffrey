@@ -32,6 +32,7 @@ import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
@@ -82,9 +83,12 @@ public abstract class WorkspaceJob<T extends JobDescriptor<T>> implements Job {
 
                     LOG.debug("Executing Job: job={} workspace={} workspace_dir={}",
                             simpleName, workspaceInfo.id(), workspacePath);
+
+                    long start = System.nanoTime();
                     executeOnWorkspace(workspaceManager, jobDescriptor, context);
-                    LOG.debug("Job completed: job={} workspace={} workspace_dir={}",
-                            simpleName, workspaceManager.resolveInfo().id(), workspacePath);
+                    Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
+                    LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} workspace_dir={}",
+                            simpleName, elapsed.toMillis(), workspaceManager.resolveInfo().id(), workspacePath);
                 }
             }
         }

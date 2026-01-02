@@ -20,25 +20,27 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.model.job.JobType;
-import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
-import pbouda.jeffrey.shared.model.repository.RemoteProject;
 import pbouda.jeffrey.platform.scheduler.JobContext;
+import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
+import pbouda.jeffrey.shared.model.job.JobType;
+import pbouda.jeffrey.shared.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
 
@@ -46,7 +48,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
 
     private final Duration period;
     private final Clock clock;
-    private final Runnable migrationCallback;
+    private final SchedulerTrigger migrationCallback;
 
     private final Set<String> processedProjects = new HashSet<>();
     private final Set<String> processedSessions = new HashSet<>();
@@ -57,7 +59,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
             JobDescriptorFactory jobDescriptorFactory,
             Duration period,
             Clock clock,
-            Runnable migrationCallback) {
+            SchedulerTrigger migrationCallback) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.period = period;
@@ -73,10 +75,10 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
 
         try {
             long migrated = replicateFilesystemEvents(workspaceManager);
-
             if (migrated > 0) {
                 // Execute after successful migration
-                migrationCallback.run();
+                migrationCallback.execute()
+                        .orTimeout(5, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             LOG.error("Failed to replicate filesystem events for workspace: {}",

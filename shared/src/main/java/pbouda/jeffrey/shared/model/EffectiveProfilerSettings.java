@@ -15,12 +15,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export type SettingsLevel = 'PROJECT' | 'WORKSPACE' | 'GLOBAL' | 'NONE';
+
+package pbouda.jeffrey.shared.model;
 
 /**
- * Effective profiler settings for a project, resolved from the hierarchy.
+ * Represents the effective profiler settings for a project, resolved from the hierarchy.
+ *
+ * @param agentSettings The effective agent settings value
+ * @param level         The level where settings come from (PROJECT, WORKSPACE, GLOBAL, or NONE)
  */
-export default interface ProfilerSettings {
-    agentSettings: string | null;
-    level: SettingsLevel;
+public record EffectiveProfilerSettings(
+        String agentSettings,
+        SettingsLevel level) {
+
+    public enum SettingsLevel {
+        PROJECT,
+        WORKSPACE,
+        GLOBAL,
+        NONE
+    }
+
+    public static EffectiveProfilerSettings none() {
+        return new EffectiveProfilerSettings(null, SettingsLevel.NONE);
+    }
 }

@@ -53,6 +53,11 @@ public class ProjectResource {
         return new ProjectSettingsResource(projectManager.projectRepository());
     }
 
+    @Path("/profiler/settings")
+    public ProjectProfilerSettingsResource profilerSettingsResource() {
+        return new ProjectProfilerSettingsResource(projectManager.profilerSettingsManager());
+    }
+
     @Path("/recordings")
     public ProjectRecordingsResource recordingResource() {
         return new ProjectRecordingsResource(projectManager.recordingsManager());

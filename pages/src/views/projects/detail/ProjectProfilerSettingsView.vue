@@ -1,10 +1,6 @@
 <template>
-  <!-- Remote Workspace: Under Development Message -->
-  <ProfilerSettingsRemoteAlert v-if="isRemoteWorkspace" />
-
-  <!-- Live Workspace: Full Functionality -->
+  <!-- Profiler Settings for both LIVE and REMOTE workspaces -->
   <PageHeader
-      v-else
       title="Profiler Settings"
       description="Configure profiler agent settings for this project"
       icon="bi-cpu"
@@ -37,7 +33,7 @@
               class="btn btn-outline-danger btn-sm ms-auto"
               @click="deleteProjectSettings"
               :disabled="isDeleting"
-              :title="`Deleting will revert to ${parentSettingsLevel} settings`"
+              title="Delete project-level settings"
           >
             <span v-if="isDeleting" class="spinner-border spinner-border-sm" role="status"></span>
             <i v-else class="bi bi-trash"></i>
@@ -89,16 +85,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
-import ProfilerClient from '@/services/api/ProfilerClient';
-import WorkspaceClient from '@/services/api/WorkspaceClient';
+import ProjectProfilerClient from '@/services/api/ProjectProfilerClient';
 import ToastService from '@/services/ToastService';
 import Badge from '@/components/Badge.vue';
 import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import ProfilerSettingsRemoteAlert from '@/components/alerts/ProfilerSettingsRemoteAlert.vue';
-import WorkspaceType from '@/services/api/model/WorkspaceType';
-import type Workspace from '@/services/api/model/Workspace';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
 const { workspaceId, projectId } = useNavigation();
@@ -108,55 +100,18 @@ const isLoading = ref(true);
 const isDeleting = ref(false);
 const currentStep = ref(1);
 const newCommand = ref('');
-const workspaceInfo = ref<Workspace | null>(null);
 
-// Settings at different levels
-const globalSettings = ref<ProfilerSettings | null>(null);
-const workspaceSettings = ref<ProfilerSettings | null>(null);
-const projectSettings = ref<ProfilerSettings | null>(null);
-
-// Computed: Check if Remote workspace
-const isRemoteWorkspace = computed(() => {
-  return workspaceInfo.value?.type === WorkspaceType.REMOTE;
-});
+// Effective settings from backend (already resolved from hierarchy)
+const effectiveSettings = ref<ProfilerSettings | null>(null);
 
 // Computed: Current effective settings
-const currentSettings = computed(() => {
-  if (projectSettings.value?.agentSettings) {
-    return projectSettings.value.agentSettings;
-  }
-  if (workspaceSettings.value?.agentSettings) {
-    return workspaceSettings.value.agentSettings;
-  }
-  if (globalSettings.value?.agentSettings) {
-    return globalSettings.value.agentSettings;
-  }
-  return null;
-});
+const currentSettings = computed(() => effectiveSettings.value?.agentSettings ?? null);
 
 // Computed: Settings level (where the current settings come from)
-const settingsLevel = computed<'PROJECT' | 'WORKSPACE' | 'GLOBAL' | 'NONE'>(() => {
-  if (projectSettings.value?.agentSettings) {
-    return 'PROJECT';
-  }
-  if (workspaceSettings.value?.agentSettings) {
-    return 'WORKSPACE';
-  }
-  if (globalSettings.value?.agentSettings) {
-    return 'GLOBAL';
-  }
-  return 'NONE';
-});
+const settingsLevel = computed(() => effectiveSettings.value?.level ?? 'NONE');
 
 // Computed: Badge label
-const settingsLevelLabel = computed(() => {
-  switch (settingsLevel.value) {
-    case 'PROJECT': return 'PROJECT';
-    case 'WORKSPACE': return 'WORKSPACE';
-    case 'GLOBAL': return 'GLOBAL';
-    default: return 'NONE';
-  }
-});
+const settingsLevelLabel = computed(() => settingsLevel.value);
 
 // Computed: Badge variant
 const settingsLevelVariant = computed(() => {
@@ -168,46 +123,11 @@ const settingsLevelVariant = computed(() => {
   }
 });
 
-// Computed: Parent settings level (for revert hint)
-const parentSettingsLevel = computed(() => {
-  if (workspaceSettings.value?.agentSettings) {
-    return 'workspace';
-  }
-  if (globalSettings.value?.agentSettings) {
-    return 'global';
-  }
-  return 'none (no parent settings)';
-});
-
-// Load all settings
+// Load effective settings using the project-level API (works for both LIVE and REMOTE workspaces)
 async function loadSettings() {
   isLoading.value = true;
   try {
-    // Fetch workspace info first to check type
-    const workspaces = await WorkspaceClient.list();
-    workspaceInfo.value = workspaces.find(w => w.id === workspaceId.value) || null;
-
-    // Skip loading settings for Remote workspaces
-    if (isRemoteWorkspace.value) {
-      isLoading.value = false;
-      return;
-    }
-
-    // Fetch all settings levels
-    const allSettings = await ProfilerClient.fetchAll();
-
-    // Find settings at each level
-    globalSettings.value = allSettings.find(
-        s => s.workspaceId === null && s.projectId === null
-    ) || null;
-
-    workspaceSettings.value = allSettings.find(
-        s => s.workspaceId === workspaceId.value && s.projectId === null
-    ) || null;
-
-    projectSettings.value = allSettings.find(
-        s => s.workspaceId === workspaceId.value && s.projectId === projectId.value
-    ) || null;
+    effectiveSettings.value = await ProjectProfilerClient.fetch(workspaceId.value, projectId.value);
   } catch (error) {
     console.error('Failed to load profiler settings:', error);
     ToastService.error('Error', 'Failed to load profiler settings');
@@ -229,12 +149,12 @@ async function copyToClipboard() {
   }
 }
 
-// Delete project-level settings
+// Delete project-level settings using the project-level API
 async function deleteProjectSettings() {
   isDeleting.value = true;
   try {
-    await ProfilerClient.delete(workspaceId.value, projectId.value);
-    projectSettings.value = null;
+    await ProjectProfilerClient.delete(workspaceId.value, projectId.value);
+    await loadSettings();
     ToastService.success('Settings Deleted', 'Project-level profiler settings have been removed.');
   } catch (error) {
     console.error('Failed to delete settings:', error);
@@ -244,12 +164,12 @@ async function deleteProjectSettings() {
   }
 }
 
-// Apply new settings
+// Apply new settings using the project-level API
 async function applySettings(command: string) {
   if (!command?.trim()) return;
 
   try {
-    await ProfilerClient.upsert(workspaceId.value, projectId.value, command.trim());
+    await ProjectProfilerClient.upsert(workspaceId.value, projectId.value, command.trim());
     ToastService.success('Settings Applied', 'Profiler settings have been applied to this project.');
     await loadSettings();
     newCommand.value = '';

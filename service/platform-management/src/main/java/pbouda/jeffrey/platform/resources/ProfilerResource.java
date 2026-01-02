@@ -24,7 +24,6 @@ import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public class ProfilerResource {
 
@@ -64,28 +63,11 @@ public class ProfilerResource {
     }
 
     @GET
-    @Path("settings/all")
+    @Path("settings")
     public List<ProfilerSettingsEntity> findAllSettings() {
         return profilerRepository.findAllSettings().stream()
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()))
                 .toList();
-    }
-
-    @GET
-    @Path("settings")
-    public Optional<ProfilerSettingsEntity> findSettings(
-            @QueryParam("workspaceId") String workspaceId,
-            @QueryParam("projectId") String projectId) {
-        // Normalize and validate hierarchy
-        String wsId = normalizeToNull(workspaceId);
-        String projId = normalizeToNull(projectId);
-
-        if (projId != null && wsId == null) {
-            throw Exceptions.invalidRequest("Workspace ID is required when Project ID is provided");
-        }
-
-        return profilerRepository.findSettings(wsId, projId)
-                .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()));
     }
 
     @DELETE

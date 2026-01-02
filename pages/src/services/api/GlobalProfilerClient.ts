@@ -21,9 +21,16 @@ import axios from 'axios';
 import HttpUtils from '@/services/HttpUtils';
 import ProfilerSettings from "@/services/api/model/ProfilerSettings.ts";
 
-export default class ProfilerClient {
+/**
+ * Client for global profiler settings API.
+ * Used for managing settings at global, workspace, or project level from a central location.
+ */
+export default class GlobalProfilerClient {
     private static baseUrl: string = GlobalVars.internalUrl + '/profiler/settings'
 
+    /**
+     * Upsert settings at any level (global, workspace, or project)
+     */
     static upsert(workspaceId: string | null, projectId: string | null, agentSettings: string): Promise<void> {
         const content = {
             workspaceId: workspaceId,
@@ -31,21 +38,21 @@ export default class ProfilerClient {
             agentSettings: agentSettings,
         };
 
-        return axios.post(ProfilerClient.baseUrl, content, HttpUtils.JSON_HEADERS)
+        return axios.post(GlobalProfilerClient.baseUrl, content, HttpUtils.JSON_HEADERS)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static fetchAll(): Promise<ProfilerSettings> {
-        return axios.get(ProfilerClient.baseUrl + "/all",  HttpUtils.JSON_ACCEPT_HEADER)
+    /**
+     * Fetch all settings across all levels
+     */
+    static fetchAll(): Promise<ProfilerSettings[]> {
+        return axios.get(GlobalProfilerClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 
-    static fetch(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
-        return axios.get(ProfilerClient.baseUrl,
-            HttpUtils.JSON_ACCEPT_WITH_PARAMS({workspaceId: workspaceId, projectId: projectId}))
-            .then(HttpUtils.RETURN_DATA);
-    }
-
+    /**
+     * Delete settings at a specific level
+     */
     static delete(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
         const data = {
             params: {
@@ -54,7 +61,7 @@ export default class ProfilerClient {
             }
         }
 
-        return axios.delete(ProfilerClient.baseUrl, data)
+        return axios.delete(GlobalProfilerClient.baseUrl, data)
             .then(HttpUtils.RETURN_DATA);
     }
 }

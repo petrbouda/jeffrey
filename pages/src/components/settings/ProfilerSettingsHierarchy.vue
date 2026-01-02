@@ -231,7 +231,7 @@ import { ref, computed, onMounted } from 'vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceType from '@/services/api/model/WorkspaceType';
-import ProfilerClient from '@/services/api/ProfilerClient';
+import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
 import ProjectsClient from '@/services/api/ProjectsClient';
 import ToastService from '@/services/ToastService';
 import type Workspace from '@/services/api/model/Workspace';
@@ -383,7 +383,7 @@ const copyCommand = async () => {
 
 const loadAllSettings = async () => {
   try {
-    const settings = await ProfilerClient.fetchAll();
+    const settings = await GlobalProfilerClient.fetchAll();
 
     // fetchAll returns an array of all settings
     if (Array.isArray(settings)) {
@@ -512,7 +512,7 @@ const handleWorkspaceDelete = async (workspace: WorkspaceWithSettings) => {
 
   try {
     // Delete workspace settings (workspaceId set, projectId is null)
-    await ProfilerClient.delete(workspace.id, null);
+    await GlobalProfilerClient.delete(workspace.id, null);
 
     ToastService.success('Deleted', `Custom settings for workspace "${workspace.name}" have been deleted.`);
 
@@ -552,7 +552,7 @@ const handleProjectDelete = async (project: ProjectWithSettings) => {
 
   try {
     // Delete project settings (both workspaceId and projectId are set)
-    await ProfilerClient.delete(selectedWorkspaceId.value, project.id);
+    await GlobalProfilerClient.delete(selectedWorkspaceId.value, project.id);
 
     ToastService.success('Deleted', `Custom settings for project "${project.name}" have been deleted.`);
 

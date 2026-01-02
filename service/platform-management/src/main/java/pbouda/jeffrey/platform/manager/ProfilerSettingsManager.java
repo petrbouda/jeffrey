@@ -15,12 +15,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export type SettingsLevel = 'PROJECT' | 'WORKSPACE' | 'GLOBAL' | 'NONE';
+
+package pbouda.jeffrey.platform.manager;
+
+import pbouda.jeffrey.shared.model.EffectiveProfilerSettings;
 
 /**
- * Effective profiler settings for a project, resolved from the hierarchy.
+ * Manager for profiler settings at project level.
+ * Handles fetching, upserting, and deleting profiler settings.
  */
-export default interface ProfilerSettings {
-    agentSettings: string | null;
-    level: SettingsLevel;
+public interface ProfilerSettingsManager {
+
+    /**
+     * Fetches the effective profiler settings for this project,
+     * resolved from the hierarchy: project > workspace > global.
+     */
+    EffectiveProfilerSettings fetchEffectiveSettings();
+
+    /**
+     * Upserts profiler settings for this project.
+     */
+    void upsertSettings(String agentSettings);
+
+    /**
+     * Deletes project-level profiler settings.
+     */
+    void deleteSettings();
 }

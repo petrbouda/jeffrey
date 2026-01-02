@@ -15,12 +15,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-export type SettingsLevel = 'PROJECT' | 'WORKSPACE' | 'GLOBAL' | 'NONE';
 
-/**
- * Effective profiler settings for a project, resolved from the hierarchy.
- */
-export default interface ProfilerSettings {
-    agentSettings: string | null;
-    level: SettingsLevel;
+package pbouda.jeffrey.platform.resources.request;
+
+public record ProfilerSettingsRequest(
+        String workspaceId,
+        String projectId,
+        String agentSettings) {
 }

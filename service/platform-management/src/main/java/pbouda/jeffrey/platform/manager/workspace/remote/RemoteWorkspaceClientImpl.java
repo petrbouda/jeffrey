@@ -32,6 +32,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import pbouda.jeffrey.shared.Schedulers;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.model.EffectiveProfilerSettings;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
@@ -40,6 +41,9 @@ import pbouda.jeffrey.shared.exception.Exceptions;
 import pbouda.jeffrey.shared.exception.RemoteJeffreyUnavailableException;
 import pbouda.jeffrey.platform.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.FilesDownloadRequest;
+import pbouda.jeffrey.platform.resources.request.ProfilerSettingsRequest;
+import pbouda.jeffrey.platform.resources.response.ImportantMessageResponse;
+import pbouda.jeffrey.platform.resources.response.ProfilerSettingsResponse;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
@@ -67,6 +71,10 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             new ParameterizedTypeReference<>() {
             };
 
+    private static final ParameterizedTypeReference<List<ImportantMessageResponse>> MESSAGE_LIST_TYPE =
+            new ParameterizedTypeReference<>() {
+            };
+
     private static final String API_WORKSPACES = "/api/public/workspaces";
     private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{workspaceId}";
     private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{workspaceId}/projects";
@@ -75,6 +83,9 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_SESSION = API_WORKSPACES_PROJECTS + "/{projectId}/repository/sessions/{sessionId}";
     private static final String API_DOWNLOAD_SELECTED_RECORDINGS = API_SESSION + "/recordings";
     private static final String API_DOWNLOAD_SELECTED_FILE = API_SESSION + "/artifact";
+    private static final String API_PROFILER_SETTINGS = API_WORKSPACES_PROJECTS + "/{projectId}/profiler/settings";
+    private static final String API_MESSAGES = API_WORKSPACES_PROJECTS + "/{projectId}/messages";
+    private static final String API_ALERTS = API_MESSAGES + "/alerts";
 
     private final RestClient restClient;
     private final URI uri;
@@ -200,6 +211,72 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
                         .toEntity(Resource.class);
             }).getBody();
         }, Schedulers.sharedVirtual());
+    }
+
+    @Override
+    public EffectiveProfilerSettings fetchProfilerSettings(String workspaceId, String projectId) {
+        ResponseEntity<ProfilerSettingsResponse> settings = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_PROFILER_SETTINGS, workspaceId, projectId)
+                    .retrieve()
+                    .toEntity(ProfilerSettingsResponse.class);
+        });
+
+        ProfilerSettingsResponse body = settings.getBody();
+        return body != null ? body.toModel() : EffectiveProfilerSettings.none();
+    }
+
+    @Override
+    public void upsertProfilerSettings(String workspaceId, String projectId, String agentSettings) {
+        invokePost(uri, () -> {
+            return restClient.post()
+                    .uri(API_PROFILER_SETTINGS, workspaceId, projectId)
+                    .body(new ProfilerSettingsRequest(workspaceId, projectId, agentSettings))
+                    .retrieve()
+                    .toBodilessEntity();
+        });
+    }
+
+    @Override
+    public void deleteProfilerSettings(String workspaceId, String projectId) {
+        invokeDelete(uri, () -> {
+            return restClient.delete()
+                    .uri(API_PROFILER_SETTINGS, workspaceId, projectId)
+                    .retrieve()
+                    .toBodilessEntity();
+        });
+    }
+
+    @Override
+    public List<ImportantMessageResponse> getMessages(String workspaceId, String projectId, Long start, Long end) {
+        ResponseEntity<List<ImportantMessageResponse>> messages = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path(API_MESSAGES)
+                            .queryParamIfPresent("start", java.util.Optional.ofNullable(start))
+                            .queryParamIfPresent("end", java.util.Optional.ofNullable(end))
+                            .build(workspaceId, projectId))
+                    .retrieve()
+                    .toEntity(MESSAGE_LIST_TYPE);
+        });
+
+        return messages.getBody() != null ? messages.getBody() : List.of();
+    }
+
+    @Override
+    public List<ImportantMessageResponse> getAlerts(String workspaceId, String projectId, Long start, Long end) {
+        ResponseEntity<List<ImportantMessageResponse>> alerts = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path(API_ALERTS)
+                            .queryParamIfPresent("start", java.util.Optional.ofNullable(start))
+                            .queryParamIfPresent("end", java.util.Optional.ofNullable(end))
+                            .build(workspaceId, projectId))
+                    .retrieve()
+                    .toEntity(MESSAGE_LIST_TYPE);
+        });
+
+        return alerts.getBody() != null ? alerts.getBody() : List.of();
     }
 
     private static <T> ResponseEntity<T> invokeGet(URI uri, Supplier<ResponseEntity<T>> invocation) {

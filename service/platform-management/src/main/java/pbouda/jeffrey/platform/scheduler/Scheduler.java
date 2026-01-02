@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.scheduler;
 
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 public interface Scheduler extends AutoCloseable {
 
@@ -33,32 +33,15 @@ public interface Scheduler extends AutoCloseable {
      * @param job     the job to execute
      * @param context the execution context containing runtime parameters
      */
-    Future<?> submitNow(Job job, JobContext context);
+    CompletableFuture<Void> submit(Job job, JobContext context);
 
     /**
-     * Executes a job immediately with empty context.
-     *
-     * @param job the job to execute
-     */
-    default Future<?> submitNow(Job job) {
-        return submitNow(job, JobContext.EMPTY);
-    }
-
-    /**
-     * Submits a job and waits for its completion with the given context.
+     * Executes a job immediately without any context.
      *
      * @param job     the job to execute
-     * @param context the execution context containing runtime parameters
      */
-    void submitAndWait(Job job, JobContext context);
-
-    /**
-     * Submits a job and waits for its completion with empty context.
-     *
-     * @param job the job to execute
-     */
-    default void submitAndWait(Job job) {
-        submitAndWait(job, JobContext.EMPTY);
+    default CompletableFuture<Void> submit(Job job) {
+        return submit(job, JobContext.EMPTY);
     }
 
     /**

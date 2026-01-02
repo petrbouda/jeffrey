@@ -298,7 +298,7 @@ import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHie
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceType from '@/services/api/model/WorkspaceType';
 import type Workspace from '@/services/api/model/Workspace';
-import ProfilerClient from '@/services/api/ProfilerClient';
+import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
 import ProjectsClient from '@/services/api/ProjectsClient';
 import type Project from '@/services/api/model/Project';
 
@@ -492,12 +492,12 @@ const applyConfiguration = async () => {
   try {
     if (applicationScope.value === 'global') {
       // Global configuration: workspaceId = null, projectId = null
-      await ProfilerClient.upsert(null, null, finalCommand.value);
+      await GlobalProfilerClient.upsert(null, null, finalCommand.value);
       ToastService.success('Configuration Applied', 'Profiler configuration has been applied globally.');
     } else if (applicationScope.value === 'workspaces') {
       // Workspace-specific configuration: apply to each selected workspace
       const promises = selectedWorkspaces.value.map(workspaceId =>
-          ProfilerClient.upsert(workspaceId, null, finalCommand.value)
+          GlobalProfilerClient.upsert(workspaceId, null, finalCommand.value)
       );
 
       await Promise.all(promises);
@@ -505,7 +505,7 @@ const applyConfiguration = async () => {
     } else if (applicationScope.value === 'projects') {
       // Project-specific configuration: apply to each selected project
       const promises = selectedProjects.value.map(({workspaceId, projectId}) =>
-          ProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
+          GlobalProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
       );
 
       await Promise.all(promises);

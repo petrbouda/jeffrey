@@ -29,7 +29,6 @@ import pbouda.jeffrey.provider.writer.sql.client.DatabaseClient;
 import pbouda.jeffrey.provider.writer.sql.client.DatabaseClientProvider;
 
 import java.util.List;
-import java.util.Optional;
 
 public class JdbcProfilerRepository implements ProfilerRepository {
 
@@ -40,11 +39,6 @@ public class JdbcProfilerRepository implements ProfilerRepository {
             INSERT INTO profiler_settings (workspace_id, project_id, agent_settings)
             VALUES (:workspace_id, :project_id, :agent_settings)
             ON CONFLICT (workspace_id, project_id) DO UPDATE SET agent_settings = EXCLUDED.agent_settings""";
-
-    //language=SQL
-    private static final String FIND_SETTINGS = """
-            SELECT * FROM profiler_settings
-            WHERE workspace_id = :workspace_id AND project_id = :project_id""";
 
     //language=SQL
     private static final String FIND_WORKSPACE_SETTINGS = """
@@ -60,6 +54,14 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     private static final String DELETE_SETTINGS = """
             DELETE FROM profiler_settings
             WHERE workspace_id = :workspace_id AND project_id = :project_id""";
+
+    //language=SQL
+    private static final String FETCH_PROFILER_SETTINGS = """
+            SELECT * FROM profiler_settings
+            WHERE (workspace_id = :workspace_id AND project_id = :project_id)
+               OR (workspace_id = :workspace_id AND project_id = '<EMPTY>')
+               OR (workspace_id = '<EMPTY>' AND project_id = '<EMPTY>')"""
+            .replace("<EMPTY>", EMPTY);
 
     private final DatabaseClient databaseClient;
 
@@ -106,13 +108,13 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     }
 
     @Override
-    public Optional<ProfilerInfo> findSettings(String workspaceId, String projectId) {
+    public List<ProfilerInfo> fetchProfilerSettings(String workspaceId, String projectId) {
         SqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceId)
                 .addValue("project_id", projectId);
 
-        return databaseClient.querySingle(
-                StatementLabel.FIND_PROFILER_SETTINGS, FIND_SETTINGS, paramSource, settingsMapper());
+        return databaseClient.query(
+                StatementLabel.FIND_PROFILER_SETTINGS, FETCH_PROFILER_SETTINGS, paramSource, settingsMapper());
     }
 
     @Override

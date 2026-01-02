@@ -24,6 +24,7 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.profile.manager.ProfileManager;
@@ -46,6 +47,8 @@ import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public class CommonProjectManager implements ProjectManager {
 
@@ -60,12 +63,12 @@ public class CommonProjectManager implements ProjectManager {
     private final JobDescriptorFactory jobDescriptorFactory;
     private final CompositeWorkspacesManager compositeWorkspacesManager;
     private final Clock clock;
-    private final ObjectFactory<Runnable> projectsSynchronizerTrigger;
+    private final ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger;
 
     public CommonProjectManager(
             Clock clock,
             ProjectInfo projectInfo,
-            ObjectFactory<Runnable> projectsSynchronizerTrigger,
+            ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             ProjectRecordingInitializer recordingInitializer,
             ProfilesManager.Factory profilesManagerFactory,
             Repositories repositories,
@@ -132,6 +135,14 @@ public class CommonProjectManager implements ProjectManager {
     @Override
     public SchedulerManager schedulerManager() {
         return new SchedulerManagerImpl(schedulerRepository, jobDescriptorFactory);
+    }
+
+    @Override
+    public ProfilerSettingsManager profilerSettingsManager() {
+        return new LiveProfilerSettingsManager(
+                repositories.newProfilerRepository(),
+                projectInfo.workspaceId(),
+                projectInfo.id());
     }
 
     @Override
@@ -204,6 +215,6 @@ public class CommonProjectManager implements ProjectManager {
                 .batchInsertEvents(List.of(workspaceEvent));
 
         // Trigger event synchronization
-        projectsSynchronizerTrigger.getObject().run();
+        projectsSynchronizerTrigger.getObject().execute();
     }
 }

@@ -25,6 +25,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.resources.pub.WorkspacesPublicResource;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
 @Path("/public")
 @Produces(MediaType.APPLICATION_JSON)
@@ -32,14 +33,19 @@ import pbouda.jeffrey.platform.resources.pub.WorkspacesPublicResource;
 public class RootPublicResource {
 
     private final LiveWorkspacesManager workspacesManager;
+    private final ProfilerRepository profilerRepository;
 
     @Inject
-    public RootPublicResource(LiveWorkspacesManager workspacesManager) {
+    public RootPublicResource(
+            LiveWorkspacesManager workspacesManager,
+            ProfilerRepository profilerRepository) {
+
         this.workspacesManager = workspacesManager;
+        this.profilerRepository = profilerRepository;
     }
 
     @Path("/workspaces")
     public WorkspacesPublicResource workspaceResource() {
-        return new WorkspacesPublicResource(workspacesManager);
+        return new WorkspacesPublicResource(workspacesManager, profilerRepository);
     }
 }

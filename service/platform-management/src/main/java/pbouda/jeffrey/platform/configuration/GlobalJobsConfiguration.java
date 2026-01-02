@@ -27,12 +27,14 @@ import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
+import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
+import pbouda.jeffrey.platform.scheduler.SchedulerTriggerImpl;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
@@ -73,7 +75,7 @@ public class GlobalJobsConfiguration {
 
     @Bean(name = GLOBAL_SCHEDULER, destroyMethod = "close")
     public Scheduler globalScheduler(List<WorkspaceJob<?>> jobs) {
-        return new PeriodicalScheduler(jobs, Duration.ofSeconds(5));
+        return new PeriodicalScheduler(jobs);
     }
 
     @Bean
@@ -114,7 +116,7 @@ public class GlobalJobsConfiguration {
     @Bean
     public WorkspaceEventsReplicatorJob workspaceEventsReplicatorJob(
             Clock clock,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) Runnable projectsSynchronizerTrigger,
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
 
         return new WorkspaceEventsReplicatorJob(
@@ -141,9 +143,9 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean(PROJECTS_SYNCHRONIZER_TRIGGER)
-    public Runnable projectsSynchronizerTrigger(
+    public SchedulerTrigger projectsSynchronizerTrigger(
             @Qualifier(GLOBAL_SCHEDULER) ObjectFactory<Scheduler> scheduler,
             ProjectsSynchronizerJob projectsSynchronizerJob) {
-        return () -> scheduler.getObject().submitAndWait(projectsSynchronizerJob);
+        return new SchedulerTriggerImpl(scheduler, projectsSynchronizerJob);
     }
 }

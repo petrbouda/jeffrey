@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.scheduler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.shared.CompletableFutures;
 import pbouda.jeffrey.shared.Schedulers;
 
 import java.time.Duration;
@@ -30,69 +31,57 @@ public class PeriodicalScheduler implements Scheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicalScheduler.class);
 
+    private static final Duration DEFAULT_POLLING_DURATION = Duration.ofMillis(10);
+
     private final List<? extends Job> jobs;
-    private final Duration maxWaitTime;
 
     private ScheduledExecutorService scheduler;
 
-    public PeriodicalScheduler(List<? extends Job> jobs, Duration maxWaitTime) {
+    public PeriodicalScheduler(List<? extends Job> jobs) {
         this.jobs = jobs;
-        this.maxWaitTime = maxWaitTime;
     }
 
     @Override
     public void start() {
         if (scheduler == null) {
-            scheduler = Executors.newSingleThreadScheduledExecutor(Schedulers.platformThreadfactory("periodical-scheduler"));
+            scheduler = Executors.newSingleThreadScheduledExecutor(
+                    Schedulers.platformThreadfactory("periodical-scheduler"));
+
             for (Job job : jobs) {
-                scheduler.scheduleAtFixedRate(() -> {
-                    // Try-catch handles the exceptions thrown by the tasks and avoids stopping the job.
-                    try {
-                        job.execute(JobContext.EMPTY);
-                    } catch (Exception e) {
-                        LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), e);
-                    }
-                }, 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
+                scheduler.scheduleAtFixedRate(
+                        new ExecutedJob(job, JobContext.EMPTY), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
             }
         }
     }
 
     @Override
-    public Future<?> submitNow(Job job, JobContext context) {
+    public CompletableFuture<Void> submit(Job job, JobContext context) {
         if (scheduler == null) {
             LOG.warn("Scheduler is not started, cannot execute job immediately: job_type={}", job.jobType());
             return null;
         }
 
-        Future<?> future = scheduler.submit(() -> {
-            try {
-                job.execute(context);
-            } catch (Exception e) {
-                LOG.error("An error occurred during the immediate job execution: job_type={} context={}",
-                        job.jobType(), context.parameters(), e);
-            }
-        });
+        Future<Void> future = scheduler.submit(new ExecutedJob(job, context), null);
 
         LOG.debug("Submitted job immediately: job_type={} context={}", job.jobType(), context.parameters());
-        return future;
-    }
-
-    @Override
-    public void submitAndWait(Job job, JobContext context) {
-        try {
-            submitNow(job, context)
-                    .get(maxWaitTime.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            LOG.error("An error occurred while waiting for the job to complete: job_type={} context={}",
-                    job.jobType(), context.parameters(), e);
-            throw new RuntimeException("Failed to execute job and wait: " + job.jobType(), e);
-        }
+        return CompletableFutures.from(future, scheduler, DEFAULT_POLLING_DURATION);
     }
 
     @Override
     public void close() {
         if (scheduler != null) {
             scheduler.shutdown();
+        }
+    }
+
+    private record ExecutedJob(Job job, JobContext context) implements Runnable {
+        @Override
+        public void run() {
+            try {
+                job.execute(context);
+            } catch (Exception e) {
+                LOG.error("An error occurred during the job execution: job_type={}", job.jobType(), e);
+            }
         }
     }
 }

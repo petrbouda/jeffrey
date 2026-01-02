@@ -18,7 +18,15 @@
 
 package pbouda.jeffrey.platform.manager;
 
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.project.repository.MergedRecording;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.profile.parser.chunk.Recordings;
+import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.RepositoryInfo;
 import pbouda.jeffrey.shared.model.repository.RecordingSession;
@@ -27,13 +35,6 @@ import pbouda.jeffrey.shared.model.repository.RepositoryFile;
 import pbouda.jeffrey.shared.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.platform.project.repository.MergedRecording;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
-import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
-import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
-import pbouda.jeffrey.profile.parser.chunk.Recordings;
-import pbouda.jeffrey.provider.api.repository.ProjectRepositoryRepository;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -44,7 +45,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     private final Clock clock;
     private final ProjectInfo projectInfo;
-    private final Runnable projectsSynchronizerTrigger;
+    private final SchedulerTrigger projectsSynchronizerTrigger;
     private final ProjectRepositoryRepository repository;
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceManager workspaceManager;
@@ -52,7 +53,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     public RepositoryManagerImpl(
             Clock clock,
             ProjectInfo projectInfo,
-            Runnable projectsSynchronizerTrigger,
+            SchedulerTrigger projectsSynchronizerTrigger,
             ProjectRepositoryRepository repository,
             RepositoryStorage repositoryStorage,
             WorkspaceManager workspaceManager) {
@@ -198,7 +199,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .batchInsertEvents(List.of(workspaceEvent));
 
         // Trigger event synchronization
-        projectsSynchronizerTrigger.run();
+        projectsSynchronizerTrigger.execute();
     }
 
     @Override

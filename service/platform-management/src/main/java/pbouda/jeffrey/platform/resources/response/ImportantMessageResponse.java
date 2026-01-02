@@ -19,6 +19,9 @@
 package pbouda.jeffrey.platform.resources.response;
 
 import pbouda.jeffrey.platform.manager.jfr.model.ImportantMessage;
+import pbouda.jeffrey.platform.manager.jfr.model.Severity;
+
+import java.time.Instant;
 
 /**
  * Response DTO for ImportantMessage events.
@@ -47,5 +50,18 @@ public record ImportantMessageResponse(
                 msg.sessionId(),
                 msg.createdAt().toString()
         );
+    }
+
+    public ImportantMessage toModel() {
+        return new ImportantMessage(
+                type,
+                title,
+                message,
+                Severity.fromString(severity),
+                category,
+                source,
+                isAlert,
+                sessionId,
+                Instant.parse(createdAt));
     }
 }

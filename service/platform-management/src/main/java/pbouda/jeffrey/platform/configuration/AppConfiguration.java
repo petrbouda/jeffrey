@@ -28,14 +28,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
-import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
-import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.shared.Config;
-import pbouda.jeffrey.shared.compression.Lz4Compressor;
-import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
-import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
-import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
 import pbouda.jeffrey.platform.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
@@ -46,13 +38,18 @@ import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.platform.manager.project.CommonProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
+import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
+import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import pbouda.jeffrey.profile.creator.ProfileCreator;
@@ -68,9 +65,12 @@ import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.api.repository.Repositories;
 import pbouda.jeffrey.provider.writer.duckdb.DuckDBPersistenceProvider;
+import pbouda.jeffrey.shared.Config;
+import pbouda.jeffrey.shared.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
-import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
-import pbouda.jeffrey.platform.streaming.JfrStreamingInitializer;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
 import java.nio.file.Files;
@@ -241,7 +241,8 @@ public class AppConfiguration {
     @Bean
     public ProjectManager.Factory projectManagerFactory(
             Clock applicationClock,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) ObjectFactory<Runnable> projectsSynchronizerTrigger,
+            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER)
+            ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             ProfilesManager.Factory profilesManagerFactory,
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             RepositoryStorage.Factory repositoryStorageFactory,

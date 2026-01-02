@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.scheduler.job;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.model.job.JobInfo;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
@@ -27,6 +29,7 @@ import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptor;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -35,6 +38,8 @@ import java.util.List;
  * project-level schedulers to find job configurations.
  */
 public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectJob.class);
 
     private final WorkspacesManager workspacesManager;
     protected final JobDescriptorFactory jobDescriptorFactory;
@@ -48,6 +53,8 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
 
     @Override
     public void execute(JobContext context) {
+        String simpleName = this.getClass().getSimpleName();
+
         // Iterate all workspaces (no isLive filter - runs for all projects)
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             // Iterate all projects in the workspace
@@ -58,7 +65,12 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
                 for (JobInfo jobInfo : projectJobs) {
                     if (jobInfo.enabled()) {
                         T jobDescriptor = jobDescriptorFactory.create(jobInfo);
+
+                        long start = System.nanoTime();
                         execute(projectManager, jobDescriptor, context);
+                        Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
+                        LOG.debug("Job completed: job={} elapsed_ms={} workspace_id={} project_id={}",
+                                simpleName, elapsed.toMillis(), workspaceManager.resolveInfo().id(), projectManager.info().id());
                     }
                 }
             }

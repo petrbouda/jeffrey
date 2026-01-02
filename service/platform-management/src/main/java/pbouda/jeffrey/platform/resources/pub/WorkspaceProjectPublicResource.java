@@ -23,13 +23,17 @@ import jakarta.ws.rs.Path;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
+import pbouda.jeffrey.shared.model.ProjectInfo;
 
 public class WorkspaceProjectPublicResource {
 
     private final ProjectManager projectManager;
+    private final ProfilerRepository profilerRepository;
 
-    public WorkspaceProjectPublicResource(ProjectManager projectManager) {
+    public WorkspaceProjectPublicResource(ProjectManager projectManager, ProfilerRepository profilerRepository) {
         this.projectManager = projectManager;
+        this.profilerRepository = profilerRepository;
     }
 
     @GET
@@ -41,5 +45,16 @@ public class WorkspaceProjectPublicResource {
     @Path("/repository")
     public ProjectRepositoryPublicResource repositoryResource() {
         return new ProjectRepositoryPublicResource(projectManager);
+    }
+
+    @Path("/profiler/settings")
+    public ProjectProfilerSettingsPublicResource profilerSettingsResource() {
+        ProjectInfo projectInfo = projectManager.info();
+        return new ProjectProfilerSettingsPublicResource(profilerRepository, projectInfo.workspaceId(), projectInfo.id());
+    }
+
+    @Path("/messages")
+    public ProjectMessagesPublicResource messagesResource() {
+        return new ProjectMessagesPublicResource(projectManager.messagesManager());
     }
 }

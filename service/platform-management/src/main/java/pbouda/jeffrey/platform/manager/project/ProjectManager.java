@@ -24,6 +24,7 @@ import pbouda.jeffrey.shared.model.RecordingEventSource;
 import pbouda.jeffrey.shared.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.MessagesManager;
+import pbouda.jeffrey.platform.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RecordingsManager;
@@ -80,6 +81,8 @@ public interface ProjectManager {
     RepositoryManager repositoryManager();
 
     SchedulerManager schedulerManager();
+
+    ProfilerSettingsManager profilerSettingsManager();
 
     ProjectRepository projectRepository();
 

@@ -24,9 +24,12 @@ import pbouda.jeffrey.shared.model.ProjectInfo;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.shared.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.MessagesManager;
+import pbouda.jeffrey.platform.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RecordingsManager;
+import pbouda.jeffrey.platform.manager.RemoteMessagesManager;
+import pbouda.jeffrey.platform.manager.RemoteProfilerSettingsManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
@@ -95,7 +98,10 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public MessagesManager messagesManager() {
-        return resolveProjectManager().messagesManager();
+        return new RemoteMessagesManager(
+                remoteWorkspaceClient,
+                workspaceInfo.originId(),
+                detailedProjectInfo.projectInfo().originId());
     }
 
     @Override
@@ -123,6 +129,14 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public SchedulerManager schedulerManager() {
         return new SchedulerManagerImpl(schedulerRepository, jobDescriptorFactory);
+    }
+
+    @Override
+    public ProfilerSettingsManager profilerSettingsManager() {
+        return new RemoteProfilerSettingsManager(
+                remoteWorkspaceClient,
+                workspaceInfo,
+                detailedProjectInfo.projectInfo().originId());
     }
 
     @Override

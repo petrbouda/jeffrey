@@ -26,15 +26,18 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
+import pbouda.jeffrey.provider.api.repository.ProfilerRepository;
 
 import java.util.List;
 
 public class WorkspacesPublicResource {
 
     private final WorkspacesManager workspacesManager;
+    private final ProfilerRepository profilerRepository;
 
-    public WorkspacesPublicResource(WorkspacesManager workspacesManager) {
+    public WorkspacesPublicResource(WorkspacesManager workspacesManager, ProfilerRepository profilerRepository) {
         this.workspacesManager = workspacesManager;
+        this.profilerRepository = profilerRepository;
     }
 
     @Path("/{workspaceId}")
@@ -42,7 +45,7 @@ public class WorkspacesPublicResource {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
 
-        return new WorkspacePublicResource(workspaceManager);
+        return new WorkspacePublicResource(workspaceManager, profilerRepository);
     }
 
     @GET
