@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.profile.query.builder.QueryBuilderFactoryResolver
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
 import pbouda.jeffrey.provider.profile.writer.SQLEventWriter;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.persistence.DatabaseManager;
 
 public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvider {
 
@@ -42,8 +43,8 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
     }
 
     @Override
-    public ProfileDatabaseProvider profileDatabaseProvider() {
-        return new DuckDBProfileDatabaseProvider(jeffreyDirs);
+    public DatabaseManager databaseManager() {
+        return new DuckDBProfileDatabaseManager(jeffreyDirs);
     }
 
     @Override
@@ -52,7 +53,7 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
     }
 
     @Override
-    public ProfileRepositories profileRepositories() {
+    public ProfileRepositories repositories() {
         ComplexQueries defaultComplexQueries = new SimpleComplexQueries(
                 DuckDBFlamegraphQueries.of(),
                 DuckDBTimeseriesQueries.of(),

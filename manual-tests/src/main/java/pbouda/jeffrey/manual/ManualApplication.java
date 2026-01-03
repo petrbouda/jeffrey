@@ -8,23 +8,20 @@ import pbouda.jeffrey.flamegraph.proto.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
-import pbouda.jeffrey.provider.platform.DuckDBDataSourceProvider;
 import pbouda.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
 import pbouda.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
+import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
 import javax.sql.DataSource;
 import java.util.List;
-import java.util.Map;
 
 public class ManualApplication {
     static void main() {
         IO.println("Manual tests");
 
-        DuckDBDataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
-        DataSource datasource = dataSourceProvider.database(Map.of(
-                "url", "jdbc:duckdb:/Users/petrbouda/.jeffrey/jeffrey-data.db",
-                "pool-size", "10"
-        ));
+        String home = System.getProperty("user.home");
+        DataSource datasource = new SimpleJdbcDataSource(
+                "jdbc:duckdb:" + home + "/.jeffrey/jeffrey-data.db");
 
         String flamegraphSql = DuckDBFlamegraphQueries.of().simple();
 

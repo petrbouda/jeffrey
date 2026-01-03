@@ -2,21 +2,18 @@ package pbouda.jeffrey.manual;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.provider.platform.DuckDBDataSourceProvider;
+import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
 import javax.sql.DataSource;
 import java.util.List;
-import java.util.Map;
 
 public class ManualTimeseriesApplication {
     static void main() {
         IO.println("Manual tests");
 
-        DuckDBDataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
-        DataSource datasource = dataSourceProvider.database(Map.of(
-                "url", "jdbc:duckdb:/Users/petrbouda/.jeffrey/jeffrey-data.db",
-                "pool-size", "10"
-        ));
+        String home = System.getProperty("user.home");
+        DataSource datasource = new SimpleJdbcDataSource(
+                "jdbc:duckdb:" + home + "/.jeffrey/jeffrey-data.db");
 
         String flamegraphSql = "----";
 

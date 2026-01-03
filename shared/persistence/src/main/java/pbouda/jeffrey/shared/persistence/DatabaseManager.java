@@ -16,35 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.profile;
+package pbouda.jeffrey.shared.persistence;
 
-import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
-import pbouda.jeffrey.shared.persistence.DatabaseManager;
+import javax.sql.DataSource;
 
-/**
- * Provider for profile-level persistence operations.
- * Manages per-profile databases and event writing.
- */
-public interface ProfilePersistenceProvider {
+public interface DatabaseManager {
 
     /**
-     * Get the profile database provider for managing per-profile databases.
+     * Opens the database using a simple JDBC datasource.
      *
-     * @return profile database provider
+     * @param databaseUri the database URI (URL or file path)
+     * @param readOnly    whether to open the database in read-only mode
+     * @return a DataSource instance for the database
      */
-    DatabaseManager databaseManager();
+    DataSource open(String databaseUri, boolean readOnly);
 
     /**
-     * Get the factory for creating event writers.
+     * Runs Flyway migrations on the platform database.
      *
-     * @return event writer factory
+     * @param dataSource the DataSource to run migrations on
      */
-    EventWriter.Factory eventWriterFactory();
-
-    /**
-     * Get the profile repositories factory.
-     *
-     * @return profile repositories factory
-     */
-    ProfileRepositories repositories();
+    void runMigrations(DataSource dataSource);
 }

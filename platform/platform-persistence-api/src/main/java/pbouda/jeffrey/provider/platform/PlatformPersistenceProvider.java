@@ -20,35 +20,28 @@ package pbouda.jeffrey.provider.platform;
 
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 
-import java.io.Closeable;
 import java.time.Clock;
 
 /**
  * Provider for platform-level persistence operations.
  * Manages the platform database (projects, workspaces, schedulers, etc.)
  */
-public interface PlatformPersistenceProvider extends Closeable {
+public interface PlatformPersistenceProvider {
 
     /**
-     * Initialize the persistence provider with the given properties.
+     * Initialize the persistence provider with the given database URL.
+     * Opens the database connection and runs migrations.
      *
-     * @param properties persistence configuration properties
+     * @param databaseUrl the JDBC URL for the database
      * @param clock clock for time-based operations
      */
-    void initialize(PersistenceProperties properties, Clock clock);
-
-    /**
-     * Run database migrations for the platform database.
-     */
-    void runMigrations();
+    void initialize(String databaseUrl, Clock clock);
 
     /**
      * Get the platform repositories factory.
+     * Must be called after {@link #initialize(String, Clock)}.
      *
      * @return platform repositories factory
      */
     PlatformRepositories platformRepositories();
-
-    @Override
-    void close();
 }

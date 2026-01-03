@@ -22,33 +22,37 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
-import pbouda.jeffrey.profile.manager.*;
-import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
-import pbouda.jeffrey.profile.manager.action.ProfileDataInitializerImpl;
-import pbouda.jeffrey.profile.manager.custom.*;
-import pbouda.jeffrey.profile.manager.registry.AnalysisFactories;
-import pbouda.jeffrey.profile.manager.registry.JvmInsightFactories;
-import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
-import pbouda.jeffrey.profile.manager.registry.VisualizationFactories;
+import pbouda.jeffrey.profile.creator.ProfileCreator;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
 import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
-import pbouda.jeffrey.profile.thread.CachingThreadProvider;
-import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
-import pbouda.jeffrey.profile.creator.ProfileCreator;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.provider.profile.ProfileDatabaseProvider;
-import pbouda.jeffrey.provider.profile.repository.*;
+import pbouda.jeffrey.profile.manager.*;
+import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
+import pbouda.jeffrey.profile.manager.action.ProfileDataInitializerImpl;
+import pbouda.jeffrey.profile.manager.custom.HttpManager;
+import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
+import pbouda.jeffrey.profile.manager.custom.JdbcStatementManager;
+import pbouda.jeffrey.profile.manager.custom.MethodTracingManager;
+import pbouda.jeffrey.profile.manager.registry.AnalysisFactories;
+import pbouda.jeffrey.profile.manager.registry.JvmInsightFactories;
+import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
+import pbouda.jeffrey.profile.manager.registry.VisualizationFactories;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.settings.CachedActiveSettingsProvider;
+import pbouda.jeffrey.profile.thread.CachingThreadProvider;
+import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
+import pbouda.jeffrey.provider.profile.repository.*;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.persistence.DatabaseManager;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
@@ -56,6 +60,14 @@ import javax.sql.DataSource;
 @Configuration
 @Import(ProfileCustomFactoriesConfiguration.class)
 public class ProfileFactoriesConfiguration {
+
+    private final ProfileRepositories profileRepositories;
+    private final DatabaseManager profileDatabaseProvider;
+
+    public ProfileFactoriesConfiguration(ProfilePersistenceProvider persistenceProvider) {
+        this.profileRepositories = persistenceProvider.repositories();
+        this.profileDatabaseProvider = persistenceProvider.databaseManager();
+    }
 
     @Bean
     public VisualizationFactories visualizationFactories(
@@ -125,7 +137,6 @@ public class ProfileFactoriesConfiguration {
     public ProfileManager.Factory profileManager(
             PlatformRepositories platformRepositories,
             ProfileManagerFactoryRegistry registry,
-            ProfileDatabaseProvider profileDatabaseProvider,
             JeffreyDirs jeffreyDirs) {
 
         return profileInfo ->
@@ -133,7 +144,6 @@ public class ProfileFactoriesConfiguration {
                         profileInfo,
                         platformRepositories.newProfileRepository(profileInfo.id()),
                         registry,
-                        profileDatabaseProvider,
                         jeffreyDirs);
     }
 
@@ -153,41 +163,42 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public ActiveSettingsProvider.Factory settingsProviderFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory() {
+        return profileInfo -> {
+            var profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
+            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
+            return new AutoAnalysisManagerImpl(cacheRepository);
+        };
+    }
+
+    @Bean
+    public ActiveSettingsProvider.Factory settingsProviderFactory() {
 
         return (ProfileInfo profileInfo) -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new CachedActiveSettingsProvider(
-                    repositories.newEventTypeRepository(profileDb),
-                    repositories.newProfileCacheRepository(profileDb));
+                    profileRepositories.newEventTypeRepository(profileDb),
+                    profileRepositories.newProfileCacheRepository(profileDb));
         };
     }
 
     @Bean
-    public ProfileConfigurationManager.Factory profileConfigurationManagerFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
+    public ProfileConfigurationManager.Factory profileConfigurationManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
-            return new ProfileConfigurationManagerImpl(repositories.newEventTypeRepository(profileDb));
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
+            return new ProfileConfigurationManagerImpl(profileRepositories.newEventTypeRepository(profileDb));
         };
     }
 
     @Bean
-    public GuardianManager.Factory guardianFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider,
-            ActiveSettingsProvider.Factory settingsProviderFactory) {
-
+    public GuardianManager.Factory guardianFactory(ActiveSettingsProvider.Factory settingsProviderFactory) {
         return (profileInfo) -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
-            ProfileEventRepository eventsRepository = repositories.newEventRepository(profileDb);
-            ProfileEventStreamRepository eventsStreamRepository = repositories.newEventStreamRepository(profileDb);
-            ProfileEventTypeRepository eventsTypeRepository = repositories.newEventTypeRepository(profileDb);
-            ProfileCacheRepository cacheRepository = repositories.newProfileCacheRepository(profileDb);
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
+            ProfileEventRepository eventsRepository = profileRepositories.newEventRepository(profileDb);
+            ProfileEventStreamRepository eventsStreamRepository = profileRepositories.newEventStreamRepository(profileDb);
+            ProfileEventTypeRepository eventsTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
+            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
             ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileInfo);
 
             Guardian guardian = new Guardian(
@@ -201,101 +212,81 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public FlamegraphManager.Factory flamegraphFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public FlamegraphManager.Factory flamegraphFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
-            ProfileEventTypeRepository eventTypeRepository = repositories.newEventTypeRepository(profileDb);
-            ProfileEventStreamRepository eventRepository = repositories.newEventStreamRepository(profileDb);
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
+            ProfileEventTypeRepository eventTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
+            ProfileEventStreamRepository eventRepository = profileRepositories.newEventStreamRepository(profileDb);
             return new PrimaryFlamegraphManager(eventTypeRepository, new DbBasedFlamegraphGenerator(eventRepository));
         };
     }
 
     @Bean
-    public FlamegraphManager.DifferentialFactory differentialGraphFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public FlamegraphManager.DifferentialFactory differentialGraphFactory() {
         return (primary, secondary) -> {
-            DataSource primaryDb = databaseProvider.open(primary.id());
-            DataSource secondaryDb = databaseProvider.open(secondary.id());
+            DataSource primaryDb = profileDatabaseProvider.open(primary.id(), true);
+            DataSource secondaryDb = profileDatabaseProvider.open(secondary.id(), true);
             return new DiffFlamegraphManagerImpl(
-                    repositories.newEventTypeRepository(primaryDb),
-                    repositories.newEventTypeRepository(secondaryDb),
+                    profileRepositories.newEventTypeRepository(primaryDb),
+                    profileRepositories.newEventTypeRepository(secondaryDb),
                     new DbBasedDiffgraphGenerator(
-                            repositories.newEventStreamRepository(primaryDb),
-                            repositories.newEventStreamRepository(secondaryDb))
+                            profileRepositories.newEventStreamRepository(primaryDb),
+                            profileRepositories.newEventStreamRepository(secondaryDb))
             );
         };
     }
 
     @Bean
-    public SubSecondManager.Factory subSecondFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public SubSecondManager.Factory subSecondFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new SubSecondManagerImpl(
                     profileInfo,
-                    new DbBasedSubSecondGeneratorImpl(repositories.newEventStreamRepository(profileDb)));
+                    new DbBasedSubSecondGeneratorImpl(profileRepositories.newEventStreamRepository(profileDb)));
         };
     }
 
     @Bean
-    public TimeseriesManager.Factory timeseriesFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
+    public TimeseriesManager.Factory timeseriesFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new PrimaryTimeseriesManager(
                     profileInfo.profilingStartEnd(),
-                    repositories.newEventStreamRepository(profileDb));
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 
     @Bean
-    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory() {
         return (primary, secondary) -> {
-            DataSource primaryDb = databaseProvider.open(primary.id());
-            DataSource secondaryDb = databaseProvider.open(secondary.id());
+            DataSource primaryDb = profileDatabaseProvider.open(primary.id(), true);
+            DataSource secondaryDb = profileDatabaseProvider.open(secondary.id(), true);
             return new DiffTimeseriesManager(
                     primary.profilingStartEnd(),
                     secondary.profilingStartEnd(),
-                    repositories.newEventStreamRepository(primaryDb),
-                    repositories.newEventStreamRepository(secondaryDb));
+                    profileRepositories.newEventStreamRepository(primaryDb),
+                    profileRepositories.newEventStreamRepository(secondaryDb));
         };
     }
 
     @Bean
-    public EventViewerManager.Factory eventViewerManager(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public EventViewerManager.Factory eventViewerManager() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new EventViewerManagerImpl(
-                    repositories.newEventRepository(profileDb),
-                    repositories.newEventTypeRepository(profileDb));
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventTypeRepository(profileDb));
         };
     }
 
     @Bean
-    public ThreadManager.Factory threadInfoFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public ThreadManager.Factory threadInfoFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
-            ProfileEventRepository eventRepository = repositories.newEventRepository(profileDb);
-            ProfileEventStreamRepository eventStreamRepository = repositories.newEventStreamRepository(profileDb);
-            ProfileEventTypeRepository eventTypeRepository = repositories.newEventTypeRepository(profileDb);
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
+            ProfileEventRepository eventRepository = profileRepositories.newEventRepository(profileDb);
+            ProfileEventStreamRepository eventStreamRepository = profileRepositories.newEventStreamRepository(profileDb);
+            ProfileEventTypeRepository eventTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
 
             return new ThreadManagerImpl(
                     profileInfo,
@@ -304,7 +295,7 @@ public class ProfileFactoriesConfiguration {
                     eventTypeRepository,
                     new CachingThreadProvider(
                             new DbBasedThreadProvider(profileInfo, eventRepository, eventStreamRepository),
-                            repositories.newProfileCacheRepository(profileDb)));
+                            profileRepositories.newProfileCacheRepository(profileDb)));
         };
     }
 
@@ -314,7 +305,6 @@ public class ProfileFactoriesConfiguration {
             ProfileManager.Factory profileManagerFactory,
             ProfileCreator.Factory profileCreatorFactory,
             ProfileDataInitializer profileDataInitializer) {
-
         return projectInfo ->
                 new ProfileInitializerImpl(
                         platformRepositories,
@@ -324,82 +314,64 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider,
-            RecordingStorage recordingStorage) {
-
+    public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(RecordingStorage recordingStorage) {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new AdditionalFilesManagerImpl(
-                    repositories.newProfileCacheRepository(profileDb),
+                    profileRepositories.newProfileCacheRepository(profileDb),
                     recordingStorage.projectRecordingStorage(profileInfo.projectId()));
         };
     }
 
     @Bean
-    public JITCompilationManager.Factory jitCompilationManager(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public JITCompilationManager.Factory jitCompilationManager() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new JITCompilationManagerImpl(
                     profileInfo,
-                    repositories.newEventTypeRepository(profileDb),
-                    repositories.newEventRepository(profileDb),
-                    repositories.newEventStreamRepository(profileDb));
+                    profileRepositories.newEventTypeRepository(profileDb),
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 
     @Bean
-    public GarbageCollectionManager.Factory gcManagerFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
+    public GarbageCollectionManager.Factory gcManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new GarbageCollectionManagerImpl(
                     profileInfo,
-                    repositories.newEventRepository(profileDb),
-                    repositories.newEventStreamRepository(profileDb));
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 
     @Bean
-    public ContainerManager.Factory containerManagerFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public ContainerManager.Factory containerManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
-            return new ContainerManagerImpl(repositories.newEventStreamRepository(profileDb));
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
+            return new ContainerManagerImpl(profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 
     @Bean
-    public HeapMemoryManager.Factory heapMemoryManagerFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public HeapMemoryManager.Factory heapMemoryManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new HeapMemoryManagerImpl(
-                    profileInfo, repositories.newEventStreamRepository(profileDb));
+                    profileInfo, profileRepositories.newEventStreamRepository(profileDb));
         };
     }
 
     @Bean
-    public ProfileFeaturesManager.Factory featuresManagerFactory(
-            ProfileRepositories repositories,
-            ProfileDatabaseProvider databaseProvider) {
-
+    public ProfileFeaturesManager.Factory featuresManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseProvider.open(profileInfo.id());
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id(), true);
             return new ProfileFeaturesManagerImpl(
-                    repositories.newEventRepository(profileDb),
-                    repositories.newEventTypeRepository(profileDb),
-                    repositories.newProfileCacheRepository(profileDb));
+                    profileRepositories.newEventRepository(profileDb),
+                    profileRepositories.newEventTypeRepository(profileDb),
+                    profileRepositories.newProfileCacheRepository(profileDb));
         };
     }
 

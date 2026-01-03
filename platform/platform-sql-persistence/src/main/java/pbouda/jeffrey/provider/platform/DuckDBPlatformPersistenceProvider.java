@@ -18,9 +18,7 @@
 
 package pbouda.jeffrey.provider.platform;
 
-import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
@@ -28,42 +26,20 @@ import java.time.Clock;
 
 public class DuckDBPlatformPersistenceProvider implements PlatformPersistenceProvider {
 
-    private static final String PLATFORM_MIGRATIONS_LOCATION = "classpath:db/migration/platform";
+    private final DuckDBDatabaseManager databaseProvider = new DuckDBDatabaseManager();
 
-    private final DuckDBDataSourceProvider dataSourceProvider = new DuckDBDataSourceProvider();
-
-    private DatabaseClientProvider databaseClientProvider;
     private DataSource dataSource;
     private Clock clock;
 
     @Override
-    public void initialize(PersistenceProperties properties, Clock clock) {
+    public void initialize(String databaseUrl, Clock clock) {
         this.clock = clock;
-        this.dataSource = dataSourceProvider.database(properties.database());
-        this.databaseClientProvider = new DatabaseClientProvider(dataSource);
-    }
-
-    @Override
-    public void runMigrations() {
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .validateOnMigrate(true)
-                .validateMigrationNaming(true)
-                .locations(PLATFORM_MIGRATIONS_LOCATION)
-                .sqlMigrationPrefix("V")
-                .sqlMigrationSeparator("__")
-                .load();
-
-        flyway.migrate();
+        this.dataSource = databaseProvider.open(databaseUrl, false);
+        this.databaseProvider.runMigrations(dataSource);
     }
 
     @Override
     public PlatformRepositories platformRepositories() {
-        return new JdbcPlatformRepositories(databaseClientProvider, clock);
-    }
-
-    @Override
-    public void close() {
-        DataSourceUtils.close(this.dataSource);
+        return new JdbcPlatformRepositories(new DatabaseClientProvider(dataSource), clock);
     }
 }

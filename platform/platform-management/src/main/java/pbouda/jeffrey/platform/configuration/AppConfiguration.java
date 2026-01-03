@@ -54,21 +54,15 @@ import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import pbouda.jeffrey.profile.creator.ProfileCreator;
 import pbouda.jeffrey.profile.creator.ProfileCreatorImpl;
-import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
-import pbouda.jeffrey.profile.manager.AutoAnalysisManagerImpl;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
-import pbouda.jeffrey.provider.platform.PersistenceProperties;
+import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
-import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
-import pbouda.jeffrey.provider.profile.ProfileDatabaseProvider;
-import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
-import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
+import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.Config;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -108,19 +102,16 @@ public class AppConfiguration {
     }
 
     @Bean
-    // Inject HomeDirs to ensure that the JeffreyHome is initialized
+    // Inject JeffreyDirs to ensure that the JeffreyHome is initialized before opening the database
     public PlatformPersistenceProvider platformPersistenceProvider(
             JeffreyDirs ignored,
             PersistenceConfigProperties properties,
             Clock clock) {
 
-        DuckDBPlatformPersistenceProvider persistenceProvider = new DuckDBPlatformPersistenceProvider();
-        Runtime.getRuntime().addShutdownHook(new Thread(persistenceProvider::close));
-        persistenceProvider.initialize(
-                new PersistenceProperties(properties.getDatabase()), clock);
-
-        persistenceProvider.runMigrations();
-        return persistenceProvider;
+        String databaseUrl = properties.getDatabase().get("url");
+        DuckDBPlatformPersistenceProvider provider = new DuckDBPlatformPersistenceProvider();
+        provider.initialize(databaseUrl, clock);
+        return provider;
     }
 
     @Bean
@@ -134,46 +125,22 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfileRepositories profileRepositories(ProfilePersistenceProvider profilePersistenceProvider) {
-        return profilePersistenceProvider.profileRepositories();
-    }
-
-    @Bean
-    public ProfileDatabaseProvider profileDatabaseProvider(ProfilePersistenceProvider profilePersistenceProvider) {
-        return profilePersistenceProvider.profileDatabaseProvider();
-    }
-
-    @Bean
     public ProfileCreator.Factory profileCreatorFactory(
             JeffreyDirs jeffreyDirs,
-            ProfileRepositories profileRepositories,
             PlatformRepositories platformRepositories,
             RecordingStorage recordingStorage,
-            ProfileDatabaseProvider profileDatabaseProvider,
             ProfilePersistenceProvider profilePersistenceProvider,
             Clock clock) {
 
         return projectInfo -> new ProfileCreatorImpl(
                 projectInfo,
-                profileDatabaseProvider,
-                profileRepositories,
+                profilePersistenceProvider.databaseManager(),
+                profilePersistenceProvider.repositories(),
                 platformRepositories,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
                 new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
                 profilePersistenceProvider.eventWriterFactory(),
                 clock);
-    }
-
-    @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
-            ProfileRepositories profileRepositories,
-            ProfileDatabaseProvider databaseProvider) {
-
-        return profileInfo -> {
-            var profileDb = databaseProvider.open(profileInfo.id());
-            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
-            return new AutoAnalysisManagerImpl(cacheRepository);
-        };
     }
 
     @Bean

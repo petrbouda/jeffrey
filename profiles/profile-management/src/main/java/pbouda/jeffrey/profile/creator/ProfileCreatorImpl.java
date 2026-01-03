@@ -25,7 +25,6 @@ import pbouda.jeffrey.provider.platform.repository.ProfileRepository;
 import pbouda.jeffrey.provider.platform.repository.ProfileRepository.InsertProfile;
 import pbouda.jeffrey.provider.platform.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.profile.EventWriter;
-import pbouda.jeffrey.provider.profile.ProfileDatabaseProvider;
 import pbouda.jeffrey.provider.profile.RecordingEventParser;
 import pbouda.jeffrey.provider.profile.model.parser.ParserResult;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
@@ -34,6 +33,7 @@ import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.Recording;
 import pbouda.jeffrey.shared.persistence.DataSourceUtils;
+import pbouda.jeffrey.shared.persistence.DatabaseManager;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import javax.sql.DataSource;
@@ -47,7 +47,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileCreatorImpl.class);
 
     private final ProjectInfo projectInfo;
-    private final ProfileDatabaseProvider profileDatabaseProvider;
+    private final DatabaseManager databaseManager;
     private final ProjectRecordingStorage projectRecordingStorage;
     private final RecordingEventParser recordingEventParser;
     private final EventWriter.Factory eventWriterFactory;
@@ -58,7 +58,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
 
     public ProfileCreatorImpl(
             ProjectInfo projectInfo,
-            ProfileDatabaseProvider profileDatabaseProvider,
+            DatabaseManager databaseManager,
             ProfileRepositories profileRepositories,
             PlatformRepositories platformRepositories,
             ProjectRecordingStorage projectRecordingStorage,
@@ -67,7 +67,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
             Clock clock) {
 
         this.projectInfo = projectInfo;
-        this.profileDatabaseProvider = profileDatabaseProvider;
+        this.databaseManager = databaseManager;
         this.profileRepositories = profileRepositories;
         this.platformRepositories = platformRepositories;
         this.recordingRepository = platformRepositories.newProjectRecordingRepository(projectInfo.id());
@@ -110,7 +110,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
         profileRepository.insert(insertProfile);
 
         // Create the profile directory and database
-        DataSource dataSource = profileDatabaseProvider.create(profileId);
+        DataSource dataSource = databaseManager.open(profileId, false);
         try {
             // Write events to the profile's own database
             EventWriter eventWriter = eventWriterFactory.create(dataSource);
