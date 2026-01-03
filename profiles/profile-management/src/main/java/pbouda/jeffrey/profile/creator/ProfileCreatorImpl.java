@@ -21,8 +21,8 @@ package pbouda.jeffrey.profile.creator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.provider.platform.repository.ProfileCreationRepository;
-import pbouda.jeffrey.provider.platform.repository.ProfileCreationRepository.InsertProfile;
+import pbouda.jeffrey.provider.platform.repository.ProfileRepository;
+import pbouda.jeffrey.provider.platform.repository.ProfileRepository.InsertProfile;
 import pbouda.jeffrey.provider.platform.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.ProfileDatabaseProvider;
@@ -52,7 +52,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
     private final RecordingEventParser recordingEventParser;
     private final EventWriter.Factory eventWriterFactory;
     private final ProjectRecordingRepository recordingRepository;
-    private final ProfileCreationRepository profileCreationRepository;
+    private final PlatformRepositories platformRepositories;
     private final ProfileRepositories profileRepositories;
     private final Clock clock;
 
@@ -69,12 +69,12 @@ public class ProfileCreatorImpl implements ProfileCreator {
         this.projectInfo = projectInfo;
         this.profileDatabaseProvider = profileDatabaseProvider;
         this.profileRepositories = profileRepositories;
+        this.platformRepositories = platformRepositories;
         this.recordingRepository = platformRepositories.newProjectRecordingRepository(projectInfo.id());
         this.projectRecordingStorage = projectRecordingStorage;
         this.recordingEventParser = recordingEventParser;
         this.eventWriterFactory = eventWriterFactory;
         this.clock = clock;
-        this.profileCreationRepository = platformRepositories.newProfileCreationRepository();
     }
 
     @Override
@@ -95,9 +95,11 @@ public class ProfileCreatorImpl implements ProfileCreator {
         String profileId = IDGenerator.generate();
         Instant profileCreatedAt = clock.instant();
 
+        // Create repository for this profile
+        ProfileRepository profileRepository = platformRepositories.newProfileRepository(profileId);
+
         var insertProfile = new InsertProfile(
                 projectInfo.id(),
-                profileId,
                 profileName,
                 recording.eventSource(),
                 profileCreatedAt,
@@ -105,7 +107,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
                 recording.recordingStartedAt(),
                 recording.recordingFinishedAt());
 
-        profileCreationRepository.insertProfile(insertProfile);
+        profileRepository.insert(insertProfile);
 
         // Create the profile directory and database
         DataSource dataSource = profileDatabaseProvider.create(profileId);
@@ -125,11 +127,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
         }
 
         // Finish the initialization of the profile in the platform database
-        this.profileCreationRepository.initializeProfile(profileId);
-
-        // Update Recording Finished At (information from Recordings does not have to be accurate)
-        // Use the latest event timestamp as the recording finished at
-        profileCreationRepository.updateFinishedAtTimestamp(profileId);
+        profileRepository.initializeProfile();
 
         long millis = clock.instant().minusMillis(profileCreatedAt.toEpochMilli()).toEpochMilli();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileId, millis);

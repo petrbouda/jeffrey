@@ -32,6 +32,33 @@ import java.util.Optional;
 public class JdbcProfileRepository implements ProfileRepository {
 
     //language=SQL
+    private static final String INSERT_PROFILE = """
+            INSERT INTO profiles (
+                 profile_id,
+                 project_id,
+                 profile_name,
+                 event_source,
+                 created_at,
+                 recording_id,
+                 recording_started_at,
+                 recording_finished_at)
+
+                VALUES (:profile_id,
+                        :project_id,
+                        :profile_name,
+                        :event_source,
+                        :created_at,
+                        :recording_id,
+                        :recording_started_at,
+                        :recording_finished_at)""";
+
+    //language=SQL
+    private static final String INITIALIZE_PROFILE = """
+            UPDATE profiles
+                SET initialized_at = :initialized_at
+                WHERE profile_id = :profile_id""";
+
+    //language=SQL
     private static final String ENABLE_PROFILE =
             "UPDATE profiles SET enabled_at = :enabled_at WHERE profile_id = :profile_id";
 
@@ -44,14 +71,8 @@ public class JdbcProfileRepository implements ProfileRepository {
             "UPDATE profiles SET profile_name = :profile_name WHERE profile_id = :profile_id";
 
     //language=SQL
-    private static final String DELETE_PROFILE = """
-            DELETE FROM cache WHERE profile_id = '%profile_id%';
-            DELETE FROM stacktraces WHERE profile_id = '%profile_id%';
-            DELETE FROM frames WHERE profile_id = '%profile_id%';
-            DELETE FROM threads WHERE profile_id = '%profile_id%';
-            DELETE FROM events WHERE profile_id = '%profile_id%';
-            DELETE FROM event_types WHERE profile_id = '%profile_id%';
-            DELETE FROM profiles WHERE profile_id = '%profile_id%';""";
+    private static final String DELETE_PROFILE =
+            "DELETE FROM profiles WHERE profile_id = :profile_id";
 
     private final String profileId;
     private final DatabaseClient databaseClient;
@@ -70,6 +91,30 @@ public class JdbcProfileRepository implements ProfileRepository {
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_PROFILE, SELECT_SINGLE_PROFILE, paramSource, Mappers.profileInfoMapper());
+    }
+
+    @Override
+    public void insert(InsertProfile profile) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("project_id", profile.projectId())
+                .addValue("profile_name", profile.profileName())
+                .addValue("event_source", profile.eventSource().name())
+                .addValue("created_at", profile.createdAt().atOffset(ZoneOffset.UTC))
+                .addValue("recording_id", profile.recordingId())
+                .addValue("recording_started_at", profile.recordingStartedAt().atOffset(ZoneOffset.UTC))
+                .addValue("recording_finished_at", profile.recordingFinishedAt().atOffset(ZoneOffset.UTC));
+
+        databaseClient.insert(StatementLabel.INSERT_PROFILE, INSERT_PROFILE, params);
+    }
+
+    @Override
+    public void initializeProfile() {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("initialized_at", clock.instant().atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.INITIALIZE_PROFILE, INITIALIZE_PROFILE, params);
     }
 
     @Override
@@ -95,6 +140,9 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     @Override
     public void delete() {
-        databaseClient.delete(StatementLabel.DELETE_PROFILE, DELETE_PROFILE.replaceAll("%profile_id%", profileId));
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId);
+
+        databaseClient.delete(StatementLabel.DELETE_PROFILE, DELETE_PROFILE, paramSource);
     }
 }

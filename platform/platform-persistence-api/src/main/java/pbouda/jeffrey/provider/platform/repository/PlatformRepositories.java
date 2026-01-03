@@ -44,16 +44,10 @@ public interface PlatformRepositories {
 
     /**
      * Creates a repository for managing profile metadata in the platform database.
+     * Handles both creation and management of profile records.
      *
      * @param profileId the profile identifier
-     * @return a new profile metadata repository
+     * @return a new profile repository
      */
     ProfileRepository newProfileRepository(String profileId);
-
-    /**
-     * Creates a repository for profile creation operations in the platform database.
-     *
-     * @return a new profile creation repository
-     */
-    ProfileCreationRepository newProfileCreationRepository();
 }

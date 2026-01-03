@@ -1,0 +1,172 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.provider.platform.repository;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import pbouda.jeffrey.shared.common.model.RepositoryInfo;
+import pbouda.jeffrey.shared.common.model.RepositoryType;
+import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import pbouda.jeffrey.test.DuckDBTest;
+import pbouda.jeffrey.test.TestUtils;
+
+import javax.sql.DataSource;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@DuckDBTest(migration = "classpath:db/migration/platform")
+class JdbcProjectRepositoryRepositoryTest {
+
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            Instant.parse("2025-01-15T12:00:00Z"), ZoneId.of("UTC"));
+
+    @Nested
+    class RepositoryMethods {
+
+        @Test
+        void insertsAndRetrievesRepository(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            RepositoryInfo repoInfo = new RepositoryInfo(null, RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
+            repository.insert(repoInfo);
+
+            List<RepositoryInfo> result = repository.getAll();
+            assertEquals(1, result.size());
+            assertEquals(RepositoryType.ASYNC_PROFILER, result.get(0).repositoryType());
+        }
+
+        @Test
+        void returnsEmptyList_whenNoRepositories(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            List<RepositoryInfo> result = repository.getAll();
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void deletesRepository(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            repository.delete("repo-001");
+
+            List<RepositoryInfo> result = repository.getAll();
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void deletesAllRepositories(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            repository.deleteAll();
+
+            List<RepositoryInfo> result = repository.getAll();
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class SessionMethods {
+
+        @Test
+        void createsAndFindsSessions(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            RepositorySessionInfo sessionInfo = new RepositorySessionInfo(
+                    null, "repo-001", Path.of("session-test"), "finished.flag", "cpu=true",
+                    false, Instant.parse("2025-01-15T10:00:00Z"), null, null);
+
+            repository.createSession(sessionInfo);
+
+            List<RepositorySessionInfo> result = repository.findAllSessions();
+            assertEquals(1, result.size());
+            assertEquals("cpu=true", result.get(0).profilerSettings());
+        }
+
+        @Test
+        void findsSessionById(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            Optional<RepositorySessionInfo> result = repository.findSessionById("session-001");
+
+            assertTrue(result.isPresent());
+            assertEquals("session-001", result.get().sessionId());
+        }
+
+        @Test
+        void returnsEmpty_whenSessionNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            Optional<RepositorySessionInfo> result = repository.findSessionById("non-existent");
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void findsUnfinishedSessions(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            List<RepositorySessionInfo> result = repository.findUnfinishedSessions();
+
+            assertEquals(1, result.size());
+            assertEquals("session-002", result.get(0).sessionId());
+            assertNull(result.get(0).finishedAt());
+        }
+
+        @Test
+        void marksSessionFinished(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            Instant finishedAt = Instant.parse("2025-01-15T14:00:00Z");
+            repository.markSessionFinished("session-002", finishedAt);
+
+            Optional<RepositorySessionInfo> result = repository.findSessionById("session-002");
+            assertTrue(result.isPresent());
+            assertNotNull(result.get().finishedAt());
+        }
+
+        @Test
+        void deletesSession(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            repository.deleteSession("session-001");
+
+            Optional<RepositorySessionInfo> result = repository.findSessionById("session-001");
+            assertTrue(result.isEmpty());
+        }
+    }
+}

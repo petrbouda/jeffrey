@@ -19,11 +19,14 @@
 package pbouda.jeffrey.provider.platform.repository;
 
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
  * Repository for managing profile metadata in the platform database.
+ * Handles both creation and management of profile records.
  */
 public interface ProfileRepository {
 
@@ -33,6 +36,19 @@ public interface ProfileRepository {
      * @return the profile if it exists, otherwise an empty optional
      */
     Optional<ProfileInfo> find();
+
+    /**
+     * Insert a new profile record. The profile is created as disabled and not initialized.
+     * After all events are parsed, call {@link #initializeProfile()} to mark as initialized.
+     *
+     * @param profile the profile data to insert
+     */
+    void insert(InsertProfile profile);
+
+    /**
+     * Mark the profile as initialized after all events have been parsed and stored.
+     */
+    void initializeProfile();
 
     /**
      * Newly created Profile is disabled by default. We need to explicitly call to enabled it after all
@@ -49,7 +65,20 @@ public interface ProfileRepository {
     ProfileInfo update(String name);
 
     /**
-     * Delete the profile.
+     * Delete the profile metadata from the platform database.
      */
     void delete();
+
+    /**
+     * Data required to insert a new profile record.
+     */
+    record InsertProfile(
+            String projectId,
+            String profileName,
+            RecordingEventSource eventSource,
+            Instant createdAt,
+            String recordingId,
+            Instant recordingStartedAt,
+            Instant recordingFinishedAt) {
+    }
 }

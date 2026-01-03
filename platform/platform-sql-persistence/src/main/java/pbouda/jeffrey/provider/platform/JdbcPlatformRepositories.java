@@ -82,9 +82,4 @@ public class JdbcPlatformRepositories implements PlatformRepositories {
     public ProfileRepository newProfileRepository(String profileId) {
         return new JdbcProfileRepository(profileId, databaseClientProvider, clock);
     }
-
-    @Override
-    public ProfileCreationRepository newProfileCreationRepository() {
-        return new JdbcProfileCreationRepository(databaseClientProvider, clock);
-    }
 }
