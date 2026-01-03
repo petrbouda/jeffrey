@@ -21,12 +21,10 @@ package pbouda.jeffrey.provider.profile.writer;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import pbouda.jeffrey.shared.common.Json;
-import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 import pbouda.jeffrey.provider.profile.model.EventType;
 import pbouda.jeffrey.provider.profile.model.writer.EnhancedEventType;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -34,14 +32,13 @@ import static pbouda.jeffrey.provider.profile.writer.DuckDBAppenderUtils.nullabl
 
 public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventType> {
 
-    public DuckDBEventTypeWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
+    public DuckDBEventTypeWriter(Executor executor, DuckDBConnection connection, int batchSize) {
+        super(executor, "event_types", connection, batchSize, StatementLabel.INSERT_EVENT_TYPES);
     }
 
     @Override
     public void execute(DuckDBConnection connection, List<EnhancedEventType> batch) throws Exception {
-        DuckDBConnection unwrapped = DataSourceUtils.unwrapConnection(connection, DuckDBConnection.class);
-        try (DuckDBAppender appender = unwrapped.createAppender("event_types")) {
+        try (DuckDBAppender appender = connection.createAppender("event_types")) {
             for (EnhancedEventType entity : batch) {
                 EventType eventType = entity.eventType();
 

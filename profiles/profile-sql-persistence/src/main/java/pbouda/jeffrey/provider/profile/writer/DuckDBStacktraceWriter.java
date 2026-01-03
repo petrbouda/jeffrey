@@ -23,14 +23,13 @@ import org.duckdb.DuckDBConnection;
 import pbouda.jeffrey.provider.profile.model.writer.EventStacktraceWithHash;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.concurrent.Executor;
 
 public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktraceWithHash> {
 
-    public DuckDBStacktraceWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, "stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
+    public DuckDBStacktraceWriter(Executor executor, DuckDBConnection connection, int batchSize) {
+        super(executor, "stacktraces", connection, batchSize, StatementLabel.INSERT_STACKTRACES);
     }
 
     @Override
