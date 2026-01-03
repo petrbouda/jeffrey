@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.jfrparser.jdk;
 
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 
 import java.util.Collection;
 import java.util.List;

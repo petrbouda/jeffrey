@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.profile.resources.response;
 
-import pbouda.jeffrey.shared.model.RecordingEventSource;
-import pbouda.jeffrey.shared.model.repository.RecordingStatus;
-import pbouda.jeffrey.shared.model.workspace.WorkspaceType;
+import pbouda.jeffrey.shared.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
 public record ProjectResponse(
         String id,

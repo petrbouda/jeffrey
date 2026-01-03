@@ -35,25 +35,17 @@
         <!-- Core dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>shared</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>common-profile</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>provider-api</artifactId>
+            <artifactId>platform-persistence-api</artifactId>
         </dependency>
 
         <!-- Analysis modules -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>flamegraph</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>timeseries</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -68,17 +60,13 @@
             <artifactId>profile-thread</artifactId>
         </dependency>
 
-        <!-- Persistence -->
+        <!-- Persistence (transitive: profile-persistence-api) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>duckdb-persistence</artifactId>
+            <artifactId>profile-sql-persistence</artifactId>
         </dependency>
 
         <!-- JFR Parsing -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jdk-jfr-parser</artifactId>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>tools</artifactId>

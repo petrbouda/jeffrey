@@ -20,13 +20,13 @@ package pbouda.jeffrey.profile.manager.custom.builder;
 
 import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodStats;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingHeader;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.util.Comparator;

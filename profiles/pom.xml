@@ -41,6 +41,8 @@
         <module>flamegraph</module>
         <module>subsecond</module>
         <module>timeseries</module>
+        <module>profile-persistence-api</module>
+        <module>profile-sql-persistence</module>
         <module>profile-management</module>
     </modules>
 
@@ -53,18 +55,10 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>4.0.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
             <!-- Shared modules from root and service -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>shared</artifactId>
+                <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -121,21 +115,20 @@
                 <artifactId>profile-guardian</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-management</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- Service modules that profile depends on -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>provider-api</artifactId>
+                <artifactId>profile-persistence-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>duckdb-persistence</artifactId>
+                <artifactId>platform-persistence-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -143,13 +136,18 @@
                 <artifactId>recording-storage-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>sql-builder</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- Third-party dependencies used by profile modules -->
-            <dependency>
-                <groupId>org.openjdk.jmc</groupId>
-                <artifactId>flightrecorder</artifactId>
-                <version>${flightrecorder.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.openjdk.jmc</groupId>
                 <artifactId>flightrecorder.rules.jdk</artifactId>

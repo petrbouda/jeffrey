@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

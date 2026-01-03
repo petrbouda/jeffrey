@@ -1,9 +1,9 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.shared.Json;
-import pbouda.jeffrey.shared.model.repository.RemoteProject;
-import pbouda.jeffrey.shared.model.repository.RemoteSession;
-import pbouda.jeffrey.shared.model.RepositoryType;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.common.model.repository.RemoteSession;
+import pbouda.jeffrey.shared.common.model.RepositoryType;
 
 import java.io.IOException;
 import java.nio.file.Files;

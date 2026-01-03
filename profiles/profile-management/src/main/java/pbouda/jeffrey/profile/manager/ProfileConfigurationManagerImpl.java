@@ -23,11 +23,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.Json;
-import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.provider.api.model.EventTypeWithFields;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.provider.profile.model.EventTypeWithFields;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
 
 import java.util.List;
 import java.util.Map;

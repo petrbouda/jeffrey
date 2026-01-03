@@ -1,8 +1,8 @@
 package pbouda.jeffrey.manual;
 
-import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
-import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
+import pbouda.jeffrey.provider.profile.model.recording.RecordingInformation;
 
 import java.nio.file.Path;
 

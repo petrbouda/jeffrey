@@ -19,8 +19,8 @@
 package pbouda.jeffrey.profile.manager.builder;
 
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;
 
 public class NonConcurrentGCOverviewEventBuilder extends GCOverviewEventBuilder {

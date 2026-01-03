@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.additional;
 
-import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.nio.file.Path;
 import java.util.Optional;

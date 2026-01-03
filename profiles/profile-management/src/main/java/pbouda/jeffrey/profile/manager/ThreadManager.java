@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
-import pbouda.jeffrey.provider.api.repository.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.model.AllocatingThread;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

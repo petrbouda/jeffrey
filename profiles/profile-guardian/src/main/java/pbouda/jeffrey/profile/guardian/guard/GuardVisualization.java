@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.guardian.guard;
 
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.common.analysis.marker.Marker;
 
 import java.util.List;

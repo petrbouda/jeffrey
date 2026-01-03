@@ -21,7 +21,7 @@ package pbouda.jeffrey.init;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.shared.model.EventTypeName;
+import pbouda.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 

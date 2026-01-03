@@ -18,17 +18,17 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.model.heap.AllocationTimeseriesBuilder;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesBuilder;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

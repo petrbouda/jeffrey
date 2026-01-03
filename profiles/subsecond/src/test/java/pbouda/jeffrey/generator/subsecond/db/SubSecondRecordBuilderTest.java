@@ -21,9 +21,7 @@ package pbouda.jeffrey.generator.subsecond.db;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import pbouda.jeffrey.provider.api.repository.model.SubSecondRecord;
-
-import java.util.List;
+import pbouda.jeffrey.provider.profile.model.SubSecondRecord;
 
 import static org.junit.jupiter.api.Assertions.*;
 

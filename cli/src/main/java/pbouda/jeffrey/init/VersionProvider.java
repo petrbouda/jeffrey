@@ -1,6 +1,6 @@
 package pbouda.jeffrey.init;
 
-import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import picocli.CommandLine;
 
 public class VersionProvider implements CommandLine.IVersionProvider {

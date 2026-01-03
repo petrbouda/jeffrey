@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
 import pbouda.jeffrey.timeseries.SingleSerie;

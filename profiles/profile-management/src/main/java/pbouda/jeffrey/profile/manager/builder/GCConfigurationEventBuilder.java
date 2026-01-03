@@ -20,12 +20,12 @@ package pbouda.jeffrey.profile.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
-import pbouda.jeffrey.shared.Json;
+import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.profile.common.event.*;
-import pbouda.jeffrey.shared.model.EventTypeName;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
+import pbouda.jeffrey.shared.common.model.EventTypeName;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.*;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 public class GCConfigurationEventBuilder implements RecordBuilder<GenericRecord, GCConfigurationData> {
 

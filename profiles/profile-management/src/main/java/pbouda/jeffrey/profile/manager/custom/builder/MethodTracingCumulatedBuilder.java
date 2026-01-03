@@ -22,8 +22,8 @@ import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.profile.manager.custom.model.method.CumulatedStats;
 import pbouda.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 import java.util.Comparator;
 import java.util.HashMap;

@@ -19,9 +19,9 @@
 package pbouda.jeffrey.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.TimeseriesSearchRecord;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.TimeseriesSearchRecord;
 
 public class TimeseriesSearchBuilder implements RecordBuilder<TimeseriesSearchRecord, TimeseriesData> {
 

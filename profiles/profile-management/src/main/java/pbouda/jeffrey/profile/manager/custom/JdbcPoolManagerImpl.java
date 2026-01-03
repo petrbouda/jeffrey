@@ -19,17 +19,17 @@
 package pbouda.jeffrey.profile.manager.custom;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.custom.builder.JdbcPoolStatisticsBuilder;
 import pbouda.jeffrey.profile.manager.custom.builder.JdbcPooledEventBuilder;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.PoolConfiguration;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.PoolEventStatistics;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.PoolStatistics;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.SecondValueTimeseriesBuilder;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;

@@ -2,7 +2,7 @@ package pbouda.jeffrey.manual;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.provider.writer.duckdb.DuckDBDataSourceProvider;
+import pbouda.jeffrey.provider.platform.DuckDBDataSourceProvider;
 
 import javax.sql.DataSource;
 import java.util.List;

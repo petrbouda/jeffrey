@@ -20,9 +20,9 @@ package pbouda.jeffrey.profile.manager.custom.builder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 import java.time.Duration;
 import java.util.ArrayList;

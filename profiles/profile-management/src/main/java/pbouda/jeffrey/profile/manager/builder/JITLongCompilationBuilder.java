@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.manager.builder;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.shared.Json;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
 import pbouda.jeffrey.profile.common.event.JITLongCompilation;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 import java.util.ArrayList;
 import java.util.Comparator;

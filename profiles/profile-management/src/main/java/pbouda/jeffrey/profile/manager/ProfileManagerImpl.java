@@ -20,9 +20,11 @@ package pbouda.jeffrey.profile.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
-import pbouda.jeffrey.provider.api.repository.ProfileRepository;
+import pbouda.jeffrey.provider.profile.ProfileDatabaseProvider;
+import pbouda.jeffrey.provider.platform.repository.ProfileRepository;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 
 public class ProfileManagerImpl implements ProfileManager {
 
@@ -31,15 +33,21 @@ public class ProfileManagerImpl implements ProfileManager {
     private final ProfileInfo profileInfo;
     private final ProfileRepository profileRepository;
     private final ProfileManagerFactoryRegistry registry;
+    private final ProfileDatabaseProvider profileDatabaseProvider;
+    private final JeffreyDirs jeffreyDirs;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
             ProfileRepository profileRepository,
-            ProfileManagerFactoryRegistry registry) {
+            ProfileManagerFactoryRegistry registry,
+            ProfileDatabaseProvider profileDatabaseProvider,
+            JeffreyDirs jeffreyDirs) {
 
         this.profileInfo = profileInfo;
         this.profileRepository = profileRepository;
         this.registry = registry;
+        this.profileDatabaseProvider = profileDatabaseProvider;
+        this.jeffreyDirs = jeffreyDirs;
     }
 
     @Override
@@ -144,7 +152,10 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public void delete() {
+        // 1. Delete profile metadata from platform database
         this.profileRepository.delete();
+        // 2. Delete profile database and directory
+        profileDatabaseProvider.delete(profileInfo.id());
 
         LOG.info("Profile deleted: project_id={} profile_id={} name={}",
                 profileInfo.projectId(), profileInfo.id(), profileInfo.name());

@@ -18,12 +18,12 @@
 
 package pbouda.jeffrey.profile.feature.checker;
 
-import pbouda.jeffrey.shared.model.EventSummary;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.EventSummary;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureCheckResult;
 import pbouda.jeffrey.profile.feature.FeatureType;
 import pbouda.jeffrey.profile.manager.AdditionalFilesManagerImpl;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 
 import java.util.Map;
 

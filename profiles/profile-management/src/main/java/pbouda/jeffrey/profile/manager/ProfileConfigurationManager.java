@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.function.Function;
 

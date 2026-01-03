@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.creator;
 
-import pbouda.jeffrey.shared.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
 import java.util.function.Function;
 

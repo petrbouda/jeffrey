@@ -20,12 +20,12 @@ package pbouda.jeffrey.profile.thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.ThreadInfo;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ThreadInfo;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 import java.time.Duration;
 import java.util.*;

@@ -19,15 +19,15 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import pbouda.jeffrey.shared.Json;
-import pbouda.jeffrey.shared.model.EventSummary;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.model.EventSummary;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.common.treetable.EventViewerData;
 import pbouda.jeffrey.profile.common.treetable.Tree;
 import pbouda.jeffrey.profile.common.treetable.TreeData;
-import pbouda.jeffrey.provider.api.model.FieldDescription;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.profile.model.FieldDescription;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
 
 import java.util.List;
 

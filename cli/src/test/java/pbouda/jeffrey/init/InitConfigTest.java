@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.shared.filesystem.FileSystemUtils;
-import pbouda.jeffrey.shared.model.RepositoryType;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.common.model.RepositoryType;
 
 import java.io.IOException;
 import java.nio.file.Files;

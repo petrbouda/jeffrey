@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.parser.stacktrace;
 
 
-import pbouda.jeffrey.shared.model.StacktraceType;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.provider.api.model.EventFrame;
-import pbouda.jeffrey.provider.api.model.EventThread;
+import pbouda.jeffrey.shared.common.model.StacktraceType;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.provider.profile.model.EventFrame;
+import pbouda.jeffrey.provider.profile.model.EventThread;
 
 public class AlwaysApplicationStacktraceTypeResolver implements StacktraceTypeResolver {
 

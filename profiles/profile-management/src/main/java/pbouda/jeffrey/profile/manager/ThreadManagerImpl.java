@@ -19,21 +19,21 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import pbouda.jeffrey.shared.model.EventSummary;
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.EventSummary;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.builder.CPULoadBuilder;
 import pbouda.jeffrey.profile.manager.builder.ThreadTimeseriesBuilder;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadStats;
 import pbouda.jeffrey.profile.thread.ThreadInfoProvider;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
-import pbouda.jeffrey.provider.api.repository.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.profile.model.AllocatingThread;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.Comparator;

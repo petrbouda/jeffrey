@@ -21,7 +21,7 @@ package pbouda.jeffrey.profile.parser.tag;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
 import pbouda.jeffrey.profile.common.model.FrameType;
-import pbouda.jeffrey.shared.model.StacktraceTag;
+import pbouda.jeffrey.shared.common.model.StacktraceTag;
 
 public class UnsafeAllocationStacktraceTagResolver implements StacktraceTagResolver {
 

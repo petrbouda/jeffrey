@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.manager;
 
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
-import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;

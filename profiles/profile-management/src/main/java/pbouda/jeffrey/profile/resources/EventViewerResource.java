@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.common.treetable.EventViewerData;
 import pbouda.jeffrey.profile.manager.EventViewerManager;
-import pbouda.jeffrey.provider.api.model.FieldDescription;
+import pbouda.jeffrey.provider.profile.model.FieldDescription;
 
 import java.util.List;
 

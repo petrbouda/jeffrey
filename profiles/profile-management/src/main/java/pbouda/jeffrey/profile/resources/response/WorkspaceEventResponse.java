@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.resources.response;
 
-import pbouda.jeffrey.shared.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
 public record WorkspaceEventResponse(
         Long eventId,

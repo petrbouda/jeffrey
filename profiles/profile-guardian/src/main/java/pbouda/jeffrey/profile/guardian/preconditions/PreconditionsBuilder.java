@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.profile.guardian.preconditions;
 
-import pbouda.jeffrey.shared.model.RecordingEventSource;
-import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.common.model.EventSummary;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
-import pbouda.jeffrey.shared.GraphType;
+import pbouda.jeffrey.shared.common.GraphType;
 
 import java.util.List;
 

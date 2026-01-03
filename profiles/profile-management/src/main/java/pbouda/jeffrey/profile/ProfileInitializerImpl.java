@@ -20,12 +20,12 @@ package pbouda.jeffrey.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.creator.ProfileCreator;
 import pbouda.jeffrey.profile.manager.AdditionalFilesManager;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
-import pbouda.jeffrey.provider.api.repository.ProfileRepositories;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 
 import java.time.Duration;
 
@@ -33,13 +33,13 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerImpl.class);
 
-    private final ProfileRepositories repositories;
+    private final PlatformRepositories repositories;
     private final ProfileManager.Factory profileManagerFactory;
     private final ProfileCreator profileCreator;
     private final ProfileDataInitializer profileDataInitializer;
 
     public ProfileInitializerImpl(
-            ProfileRepositories repositories,
+            PlatformRepositories repositories,
             ProfileManager.Factory profileManagerFactory,
             ProfileCreator profileCreator,
             ProfileDataInitializer profileDataInitializer) {

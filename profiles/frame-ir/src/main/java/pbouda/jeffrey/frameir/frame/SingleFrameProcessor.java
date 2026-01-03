@@ -19,7 +19,7 @@
 package pbouda.jeffrey.frameir.frame;
 
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
-import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
 
 import java.util.List;
 

@@ -25,8 +25,8 @@ import pbouda.jeffrey.frameir.frame.*;
 import pbouda.jeffrey.frameir.frame.FrameProcessor.NewFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
 
 import java.util.ArrayList;
 import java.util.List;

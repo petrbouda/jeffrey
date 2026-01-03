@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.manager;
 
 import pbouda.jeffrey.profile.common.config.GraphParameters;
-import pbouda.jeffrey.shared.model.ProfilingStartEnd;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.shared.common.model.ProfilingStartEnd;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesResolver;
 

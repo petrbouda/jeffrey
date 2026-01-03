@@ -18,17 +18,17 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.shared.model.EventSummary;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.EventSummary;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureCheckResult;
 import pbouda.jeffrey.profile.feature.FeatureType;
 import pbouda.jeffrey.profile.feature.checker.ContainerDashboardFeatureChecker;
 import pbouda.jeffrey.profile.feature.checker.FeatureChecker;
 import pbouda.jeffrey.profile.feature.checker.FeatureCheckers;
 import pbouda.jeffrey.profile.feature.checker.PerfCounterDashboardFeatureChecker;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileEventTypeRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
 
 import java.util.List;
 import java.util.Map;

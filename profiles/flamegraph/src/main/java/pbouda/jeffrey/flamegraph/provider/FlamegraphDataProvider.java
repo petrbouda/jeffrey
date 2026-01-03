@@ -23,8 +23,8 @@ import pbouda.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.frameir.FrameBuilderResolver;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 public class FlamegraphDataProvider {
 

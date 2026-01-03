@@ -24,10 +24,10 @@ import org.eclipse.collections.api.tuple.primitive.IntLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.IntLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
 import pbouda.jeffrey.profile.manager.custom.model.http.*;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;

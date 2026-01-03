@@ -19,7 +19,7 @@
 package pbouda.jeffrey.profile.model;
 
 
-import pbouda.jeffrey.shared.model.EventSummary;
+import pbouda.jeffrey.shared.common.model.EventSummary;
 
 import java.util.Map;
 

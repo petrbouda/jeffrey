@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.manager.model.gc;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import pbouda.jeffrey.shared.Json;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;
 

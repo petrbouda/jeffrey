@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.profile.resources.response;
 
-import pbouda.jeffrey.shared.model.repository.RecordingStatus;
-import pbouda.jeffrey.shared.model.repository.RepositoryFile;
-import pbouda.jeffrey.shared.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.time.Instant;
 

@@ -19,8 +19,8 @@
 package pbouda.jeffrey.profile.resources.request;
 
 import pbouda.jeffrey.profile.TimeRangeRequest;
-import pbouda.jeffrey.shared.model.ThreadInfo;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.ThreadInfo;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.common.analysis.marker.Marker;
 import pbouda.jeffrey.profile.common.config.GraphComponents;
 

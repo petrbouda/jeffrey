@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.shared.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;

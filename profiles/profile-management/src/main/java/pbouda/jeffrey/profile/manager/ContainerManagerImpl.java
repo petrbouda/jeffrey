@@ -18,11 +18,11 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.builder.ContainerConfigurationEventBuilder;
 import pbouda.jeffrey.profile.manager.model.container.ContainerConfigurationData;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 

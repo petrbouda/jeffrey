@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.profile.parser.data;
 
-import pbouda.jeffrey.provider.api.model.parser.RecordingTypeSpecificData;
+import pbouda.jeffrey.provider.profile.model.parser.RecordingTypeSpecificData;
 
 import java.nio.file.Path;
 import java.util.List;

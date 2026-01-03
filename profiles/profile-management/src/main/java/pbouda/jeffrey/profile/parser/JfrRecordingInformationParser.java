@@ -20,10 +20,10 @@ package pbouda.jeffrey.profile.parser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.compression.Lz4Compressor;
-import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
-import pbouda.jeffrey.provider.api.RecordingInformationParser;
-import pbouda.jeffrey.provider.api.model.recording.RecordingInformation;
+import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.provider.profile.RecordingInformationParser;
+import pbouda.jeffrey.provider.profile.model.recording.RecordingInformation;
 import pbouda.jeffrey.profile.parser.chunk.JfrParser;
 
 import java.io.InputStream;

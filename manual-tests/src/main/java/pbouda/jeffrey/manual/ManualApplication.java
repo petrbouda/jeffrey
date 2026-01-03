@@ -2,15 +2,15 @@ package pbouda.jeffrey.manual;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.flamegraph.FlameGraphProtoBuilder;
 import pbouda.jeffrey.flamegraph.proto.FlamegraphData;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
-import pbouda.jeffrey.provider.api.repository.model.FlamegraphRecord;
-import pbouda.jeffrey.provider.writer.duckdb.DuckDBDataSourceProvider;
-import pbouda.jeffrey.provider.writer.duckdb.DuckDBFlamegraphQueries;
-import pbouda.jeffrey.provider.writer.sql.query.FlamegraphRecordRowMapper;
+import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.platform.DuckDBDataSourceProvider;
+import pbouda.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
+import pbouda.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
 
 import javax.sql.DataSource;
 import java.util.List;

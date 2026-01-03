@@ -29,7 +29,7 @@
 
     <modules>
         <module>shared</module>
-        <module>service</module>
+        <module>platform</module>
         <module>profiles</module>
         <module>pages</module>
         <module>cli</module>
@@ -45,13 +45,24 @@
         <lz4.version>1.10.2</lz4.version>
         <junit.version>5.13.4</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
+        <jeffrey-events.version>0.2.3</jeffrey-events.version>
+        <spring-boot.version>4.0.0</spring-boot.version>
+        <duckdb.version>1.4.1.0</duckdb.version>
+        <flyway.version>10.24.0</flyway.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>shared</artifactId>
+                <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -67,7 +78,17 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>provider-api</artifactId>
+                <artifactId>platform-persistence-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-persistence-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -128,6 +149,23 @@
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-events</artifactId>
+                <version>${jeffrey-events.version}</version>
+            </dependency>
+
+            <!-- DuckDB -->
+            <dependency>
+                <groupId>org.duckdb</groupId>
+                <artifactId>duckdb_jdbc</artifactId>
+                <version>${duckdb.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-database-duckdb</artifactId>
+                <version>${flyway.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

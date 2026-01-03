@@ -24,15 +24,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.jfrparser.api.type.JfrClass;
 import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackFrame;
 import pbouda.jeffrey.jfrparser.api.type.JfrStackTrace;
 import pbouda.jeffrey.profile.common.analysis.FramePath;
 import pbouda.jeffrey.profile.common.analysis.marker.Marker;
-import pbouda.jeffrey.provider.api.repository.model.SecondValue;
-import pbouda.jeffrey.provider.api.repository.model.TimeseriesRecord;
+import pbouda.jeffrey.provider.profile.model.SecondValue;
+import pbouda.jeffrey.provider.profile.model.TimeseriesRecord;
 
 import java.time.Duration;
 import java.util.List;

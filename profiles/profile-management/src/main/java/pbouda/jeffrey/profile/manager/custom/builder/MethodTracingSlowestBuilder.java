@@ -23,8 +23,8 @@ import pbouda.jeffrey.jfrparser.api.type.JfrMethod;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestHeader;
 import pbouda.jeffrey.profile.manager.custom.model.method.SlowestMethodTrace;
-import pbouda.jeffrey.provider.api.builder.RecordBuilder;
-import pbouda.jeffrey.provider.api.repository.model.GenericRecord;
+import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
+import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 import java.util.*;
 

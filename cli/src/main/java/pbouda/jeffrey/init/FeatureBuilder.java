@@ -1,7 +1,7 @@
 package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.shared.model.EventTypeName;
+import pbouda.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 

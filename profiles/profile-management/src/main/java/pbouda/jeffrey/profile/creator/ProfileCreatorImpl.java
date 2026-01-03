@@ -20,19 +20,23 @@ package pbouda.jeffrey.profile.creator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.IDGenerator;
-import pbouda.jeffrey.shared.model.ProjectInfo;
-import pbouda.jeffrey.shared.model.Recording;
-import pbouda.jeffrey.provider.api.EventWriter;
-import pbouda.jeffrey.provider.api.RecordingEventParser;
-import pbouda.jeffrey.provider.api.model.parser.ParserResult;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileCreationRepository;
-import pbouda.jeffrey.provider.api.repository.ProfileCreationRepository.InsertProfile;
-import pbouda.jeffrey.provider.api.repository.ProfileRepositories;
-import pbouda.jeffrey.provider.api.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProfileCreationRepository;
+import pbouda.jeffrey.provider.platform.repository.ProfileCreationRepository.InsertProfile;
+import pbouda.jeffrey.provider.platform.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.profile.EventWriter;
+import pbouda.jeffrey.provider.profile.ProfileDatabaseProvider;
+import pbouda.jeffrey.provider.profile.RecordingEventParser;
+import pbouda.jeffrey.provider.profile.model.parser.ParserResult;
+import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
+import pbouda.jeffrey.shared.common.IDGenerator;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.Recording;
+import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
+import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -43,6 +47,7 @@ public class ProfileCreatorImpl implements ProfileCreator {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileCreatorImpl.class);
 
     private final ProjectInfo projectInfo;
+    private final ProfileDatabaseProvider profileDatabaseProvider;
     private final ProjectRecordingStorage projectRecordingStorage;
     private final RecordingEventParser recordingEventParser;
     private final EventWriter.Factory eventWriterFactory;
@@ -53,21 +58,23 @@ public class ProfileCreatorImpl implements ProfileCreator {
 
     public ProfileCreatorImpl(
             ProjectInfo projectInfo,
+            ProfileDatabaseProvider profileDatabaseProvider,
             ProfileRepositories profileRepositories,
-            ProjectRecordingRepository recordingRepository,
+            PlatformRepositories platformRepositories,
             ProjectRecordingStorage projectRecordingStorage,
             RecordingEventParser recordingEventParser,
             EventWriter.Factory eventWriterFactory,
             Clock clock) {
 
         this.projectInfo = projectInfo;
+        this.profileDatabaseProvider = profileDatabaseProvider;
         this.profileRepositories = profileRepositories;
-        this.recordingRepository = recordingRepository;
+        this.recordingRepository = platformRepositories.newProjectRecordingRepository(projectInfo.id());
         this.projectRecordingStorage = projectRecordingStorage;
         this.recordingEventParser = recordingEventParser;
         this.eventWriterFactory = eventWriterFactory;
         this.clock = clock;
-        this.profileCreationRepository = profileRepositories.newProfileCreationRepository();
+        this.profileCreationRepository = platformRepositories.newProfileCreationRepository();
     }
 
     @Override
@@ -100,20 +107,29 @@ public class ProfileCreatorImpl implements ProfileCreator {
 
         profileCreationRepository.insertProfile(insertProfile);
 
-        EventWriter eventWriter = eventWriterFactory.create(profileId);
-        ParserResult parserResult = recordingEventParser.start(eventWriter, recordingPathOpt.get());
-        eventWriter.onComplete();
+        // Create the profile directory and database
+        DataSource dataSource = profileDatabaseProvider.create(profileId);
+        try {
+            // Write events to the profile's own database
+            EventWriter eventWriter = eventWriterFactory.create(dataSource);
+            ParserResult parserResult = recordingEventParser.start(eventWriter, recordingPathOpt.get());
+            eventWriter.onComplete();
 
-        // Finish the initialization of the profile
+            // Store specific data in the profile cache
+            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(dataSource);
+            parserResult.specificData()
+                    .forEach(data -> cacheRepository.put(data.key(), data.content()));
+        } finally {
+            // Close the datasource to release the database file
+            DataSourceUtils.close(dataSource);
+        }
+
+        // Finish the initialization of the profile in the platform database
         this.profileCreationRepository.initializeProfile(profileId);
 
         // Update Recording Finished At (information from Recordings does not have to be accurate)
         // Use the latest event timestamp as the recording finished at
         profileCreationRepository.updateFinishedAtTimestamp(profileId);
-
-        ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileId);
-        parserResult.specificData()
-                .forEach(data -> cacheRepository.put(data.key(), data.content()));
 
         long millis = clock.instant().minusMillis(profileCreatedAt.toEpochMilli()).toEpochMilli();
         LOG.info("Events persisted to the database: profile_id={} elapsed_ms={}", profileId, millis);

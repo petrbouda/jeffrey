@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import pbouda.jeffrey.timeseries.SingleSerie;
 

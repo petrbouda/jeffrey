@@ -36,7 +36,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>shared</artifactId>
+            <artifactId>common</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -48,7 +48,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>provider-api</artifactId>
+            <artifactId>profile-persistence-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.collections</groupId>

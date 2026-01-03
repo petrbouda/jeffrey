@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.flamegraph.diff;
 
-import pbouda.jeffrey.shared.Schedulers;
+import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.profile.common.config.GraphComponents;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
@@ -29,7 +29,7 @@ import pbouda.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import pbouda.jeffrey.frameir.DiffFrame;
 import pbouda.jeffrey.frameir.DiffTreeGenerator;
 import pbouda.jeffrey.frameir.Frame;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.timeseries.SingleSerie;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 import pbouda.jeffrey.timeseries.TimeseriesUtils;

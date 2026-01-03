@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.profile.thread;
 
-import pbouda.jeffrey.shared.persistence.CacheKey;
-import pbouda.jeffrey.provider.api.cache.CachingSupplier;
-import pbouda.jeffrey.provider.api.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.profile.cache.CachingSupplier;
+import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import pbouda.jeffrey.shared.common.CacheKey;
 
 /**
  * A caching decorator for {@link ThreadInfoProvider} that caches the result in a {@link ProfileCacheRepository}.

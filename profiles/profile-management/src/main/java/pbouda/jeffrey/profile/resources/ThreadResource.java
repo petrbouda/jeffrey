@@ -20,13 +20,13 @@ package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.ThreadManager;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadStats;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
 import pbouda.jeffrey.profile.thread.ThreadRoot;
-import pbouda.jeffrey.provider.api.repository.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.model.AllocatingThread;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 import java.util.List;

@@ -32,7 +32,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>shared</artifactId>
+            <artifactId>common</artifactId>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

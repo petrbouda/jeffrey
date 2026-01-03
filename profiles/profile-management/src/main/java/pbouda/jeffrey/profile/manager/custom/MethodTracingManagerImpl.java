@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.shared.model.ProfileInfo;
-import pbouda.jeffrey.shared.model.Type;
-import pbouda.jeffrey.shared.model.time.RelativeTimeRange;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.profile.manager.custom.builder.MethodTracingCumulatedBuilder;
 import pbouda.jeffrey.profile.manager.custom.builder.MethodTracingOverviewBuilder;
 import pbouda.jeffrey.profile.manager.custom.builder.MethodTracingSlowestBuilder;
@@ -28,8 +28,8 @@ import pbouda.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
-import pbouda.jeffrey.provider.api.repository.EventQueryConfigurer;
-import pbouda.jeffrey.provider.api.repository.ProfileEventStreamRepository;
+import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 public class MethodTracingManagerImpl implements MethodTracingManager {
 

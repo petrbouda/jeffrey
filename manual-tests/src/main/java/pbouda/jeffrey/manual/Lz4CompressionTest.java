@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.manual;
 
-import pbouda.jeffrey.shared.compression.Lz4Compressor;
-import pbouda.jeffrey.shared.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 
 import java.io.IOException;
 import java.io.OutputStream;

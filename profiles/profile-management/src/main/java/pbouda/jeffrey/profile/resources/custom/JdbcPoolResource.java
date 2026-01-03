@@ -21,7 +21,7 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import pbouda.jeffrey.shared.model.Type;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import pbouda.jeffrey.timeseries.SingleSerie;
