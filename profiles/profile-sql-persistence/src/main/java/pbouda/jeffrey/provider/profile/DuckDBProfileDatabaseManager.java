@@ -25,6 +25,7 @@ import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
 import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
+import pbouda.jeffrey.shared.persistence.SingleConnectionDataSource;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -75,8 +76,9 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     private static DataSource createDataSource(Path dbPath, boolean readOnly) {
         String url = "jdbc:duckdb:" + dbPath.toAbsolutePath();
         if (readOnly) {
-            url += "?access_mode=read_only";
+            return new SimpleJdbcDataSource(url + "?access_mode=read_only");
+        } else {
+            return new SingleConnectionDataSource(url);
         }
-        return new SimpleJdbcDataSource(url);
     }
 }

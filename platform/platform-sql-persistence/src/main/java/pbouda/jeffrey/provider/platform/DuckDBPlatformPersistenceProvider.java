@@ -26,7 +26,7 @@ import java.time.Clock;
 
 public class DuckDBPlatformPersistenceProvider implements PlatformPersistenceProvider {
 
-    private final DuckDBDatabaseManager databaseProvider = new DuckDBDatabaseManager();
+    private final DuckDBPlatformDatabaseManager databaseProvider = new DuckDBPlatformDatabaseManager();
 
     private DataSource dataSource;
     private Clock clock;

@@ -18,19 +18,31 @@
 
 package pbouda.jeffrey.provider.platform;
 
+import com.zaxxer.hikari.HikariConfig;
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
-import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
+import pbouda.jeffrey.shared.persistence.metrics.JfrHikariDataSource;
+import pbouda.jeffrey.shared.persistence.metrics.JfrMetricsTrackerFactory;
 
 import javax.sql.DataSource;
 
-public class DuckDBDatabaseManager implements DatabaseManager {
+public class DuckDBPlatformDatabaseManager implements DatabaseManager {
 
     private static final String PLATFORM_MIGRATIONS_LOCATION = "classpath:db/migration/platform";
 
     @Override
     public DataSource open(String databaseUri, boolean readOnly) {
-        return new SimpleJdbcDataSource(databaseUri);
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(databaseUri);
+        config.setPoolName("platform-duckdb-pool");
+        config.setMetricsTrackerFactory(new JfrMetricsTrackerFactory());
+        config.setMaximumPoolSize(10);
+
+        if (readOnly) {
+            config.addDataSourceProperty("duckdb.read_only", "true");
+        }
+
+        return new JfrHikariDataSource(config);
     }
 
     @Override
