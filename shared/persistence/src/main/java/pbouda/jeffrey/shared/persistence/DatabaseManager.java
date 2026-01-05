@@ -26,10 +26,9 @@ public interface DatabaseManager {
      * Opens the database using a simple JDBC datasource.
      *
      * @param databaseUri the database URI (URL or file path)
-     * @param readOnly    whether to open the database in read-only mode
      * @return a DataSource instance for the database
      */
-    DataSource open(String databaseUri, boolean readOnly);
+    DataSource open(String databaseUri);
 
     /**
      * Runs Flyway migrations on the platform database.

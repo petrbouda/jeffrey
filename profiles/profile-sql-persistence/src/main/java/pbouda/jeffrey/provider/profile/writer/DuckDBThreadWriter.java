@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.profile.model.EventThread;
 import pbouda.jeffrey.provider.profile.model.writer.EventThreadWithHash;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -31,8 +32,8 @@ import static pbouda.jeffrey.provider.profile.writer.DuckDBAppenderUtils.nullabl
 
 public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash> {
 
-    public DuckDBThreadWriter(Executor executor, DuckDBConnection connection, int batchSize) {
-        super(executor, "threads", connection, batchSize, StatementLabel.INSERT_THREADS);
+    public DuckDBThreadWriter(Executor executor, DataSource dataSource, int batchSize) {
+        super(executor, "threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
     }
 
     @Override

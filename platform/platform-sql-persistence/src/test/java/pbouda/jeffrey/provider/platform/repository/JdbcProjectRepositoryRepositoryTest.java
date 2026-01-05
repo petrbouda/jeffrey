@@ -48,7 +48,8 @@ class JdbcProjectRepositoryRepositoryTest {
     class RepositoryMethods {
 
         @Test
-        void insertsAndRetrievesRepository(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsAndRetrievesRepository(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -61,7 +62,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void returnsEmptyList_whenNoRepositories(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoRepositories(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -71,7 +73,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void deletesRepository(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesRepository(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -82,7 +85,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void deletesAllRepositories(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesAllRepositories(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -97,7 +101,8 @@ class JdbcProjectRepositoryRepositoryTest {
     class SessionMethods {
 
         @Test
-        void createsAndFindsSessions(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void createsAndFindsSessions(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -113,7 +118,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void findsSessionById(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void findsSessionById(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -124,7 +130,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenSessionNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmpty_whenSessionNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -134,7 +141,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void findsUnfinishedSessions(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void findsUnfinishedSessions(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -146,7 +154,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void marksSessionFinished(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void marksSessionFinished(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
@@ -159,7 +168,8 @@ class JdbcProjectRepositoryRepositoryTest {
         }
 
         @Test
-        void deletesSession(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesSession(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 

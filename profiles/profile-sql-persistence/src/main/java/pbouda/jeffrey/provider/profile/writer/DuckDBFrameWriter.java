@@ -24,13 +24,14 @@ import pbouda.jeffrey.provider.profile.model.EventFrame;
 import pbouda.jeffrey.provider.profile.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.concurrent.Executor;
 
 public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> {
 
-    public DuckDBFrameWriter(Executor executor, DuckDBConnection connection, int batchSize) {
-        super(executor, "frames", connection, batchSize, StatementLabel.INSERT_FRAMES);
+    public DuckDBFrameWriter(Executor executor, DataSource dataSource, int batchSize) {
+        super(executor, "frames", dataSource, batchSize, StatementLabel.INSERT_FRAMES);
     }
 
     @Override

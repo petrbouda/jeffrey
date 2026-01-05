@@ -20,6 +20,7 @@ package pbouda.jeffrey.provider.platform;
 
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import pbouda.jeffrey.shared.persistence.metrics.JfrPoolStatisticsPeriodicRecorder;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -34,8 +35,13 @@ public class DuckDBPlatformPersistenceProvider implements PlatformPersistencePro
     @Override
     public void initialize(String databaseUrl, Clock clock) {
         this.clock = clock;
-        this.dataSource = databaseProvider.open(databaseUrl, false);
+
+        // Start JFR recording for Connection Pool statistics
+        JfrPoolStatisticsPeriodicRecorder.registerToFlightRecorder();
+
+        this.dataSource = databaseProvider.open(databaseUrl);
         this.databaseProvider.runMigrations(dataSource);
+
     }
 
     @Override

@@ -45,7 +45,8 @@ class JdbcProfileRepositoryTest {
     class FindMethod {
 
         @Test
-        void returnsProfile_whenExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProfile_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
 
@@ -56,7 +57,8 @@ class JdbcProfileRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenNotExists(DatabaseClientProvider provider) {
+        void returnsEmpty_whenNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileRepository repository = new JdbcProfileRepository("non-existent", provider, FIXED_CLOCK);
 
             Optional<ProfileInfo> result = repository.find();
@@ -69,7 +71,8 @@ class JdbcProfileRepositoryTest {
     class InsertMethod {
 
         @Test
-        void insertsProfile(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsProfile(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("new-profile-001", provider, FIXED_CLOCK);
 
@@ -96,7 +99,8 @@ class JdbcProfileRepositoryTest {
     class InitializeProfileMethod {
 
         @Test
-        void initializesProfile(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void initializesProfile(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
 
@@ -113,7 +117,8 @@ class JdbcProfileRepositoryTest {
     class UpdateMethod {
 
         @Test
-        void updatesName(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void updatesName(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
 
@@ -127,7 +132,8 @@ class JdbcProfileRepositoryTest {
     class EnableProfileMethod {
 
         @Test
-        void enablesProfile(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void enablesProfile(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("profile-002", provider, FIXED_CLOCK);
 
@@ -144,7 +150,8 @@ class JdbcProfileRepositoryTest {
     class DeleteMethod {
 
         @Test
-        void deletesProfile(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesProfile(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
 
@@ -158,7 +165,8 @@ class JdbcProfileRepositoryTest {
         }
 
         @Test
-        void deletesNothingWhenProfileNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesNothingWhenProfileNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("non-existent", provider, FIXED_CLOCK);
 

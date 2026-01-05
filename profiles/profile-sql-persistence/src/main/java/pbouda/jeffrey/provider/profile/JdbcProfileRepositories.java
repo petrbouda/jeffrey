@@ -39,6 +39,11 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     }
 
     @Override
+    public DatabaseClientProvider databaseClientProvider(DataSource dataSource) {
+        return new DatabaseClientProvider(dataSource);
+    }
+
+    @Override
     public ProfileEventRepository newEventRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         return new JdbcProfileEventRepository(sqlFormatter, profileClientProvider);

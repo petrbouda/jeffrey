@@ -38,7 +38,8 @@ class JdbcProfilerRepositoryTest {
     class UpsertSettingsMethod {
 
         @Test
-        void insertsNewSettings(DatabaseClientProvider provider) {
+        void insertsNewSettings(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
             ProfilerInfo profilerInfo = new ProfilerInfo("ws-001", "proj-001", "cpu=true");
@@ -50,7 +51,8 @@ class JdbcProfilerRepositoryTest {
         }
 
         @Test
-        void updatesExistingSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void updatesExistingSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
@@ -67,7 +69,8 @@ class JdbcProfilerRepositoryTest {
         }
 
         @Test
-        void insertsGlobalSettings(DatabaseClientProvider provider) {
+        void insertsGlobalSettings(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
             ProfilerInfo profilerInfo = new ProfilerInfo(null, null, "global-cpu=true");
@@ -84,7 +87,8 @@ class JdbcProfilerRepositoryTest {
     class FetchProfilerSettingsMethod {
 
         @Test
-        void returnsMatchingSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsMatchingSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
@@ -95,7 +99,8 @@ class JdbcProfilerRepositoryTest {
         }
 
         @Test
-        void returnsGlobalAndWorkspaceSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsGlobalAndWorkspaceSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
@@ -110,7 +115,8 @@ class JdbcProfilerRepositoryTest {
     class FindWorkspaceSettingsMethod {
 
         @Test
-        void returnsWorkspaceAndGlobalSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsWorkspaceAndGlobalSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
@@ -125,7 +131,8 @@ class JdbcProfilerRepositoryTest {
     class FindAllSettingsMethod {
 
         @Test
-        void returnsEmptyList_whenNoSettings(DatabaseClientProvider provider) {
+        void returnsEmptyList_whenNoSettings(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
             List<ProfilerInfo> result = repository.findAllSettings();
@@ -134,7 +141,8 @@ class JdbcProfilerRepositoryTest {
         }
 
         @Test
-        void returnsAllSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsAllSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
@@ -148,7 +156,8 @@ class JdbcProfilerRepositoryTest {
     class DeleteSettingsMethod {
 
         @Test
-        void deletesSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 
@@ -159,7 +168,8 @@ class JdbcProfilerRepositoryTest {
         }
 
         @Test
-        void deletesGlobalSettings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesGlobalSettings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/profiler/insert-profiler-settings.sql");
             JdbcProfilerRepository repository = new JdbcProfilerRepository(provider);
 

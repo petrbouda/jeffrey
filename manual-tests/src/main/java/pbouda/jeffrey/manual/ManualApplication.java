@@ -13,21 +13,20 @@ import pbouda.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
 import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
 import javax.sql.DataSource;
+import java.nio.file.Path;
 import java.util.List;
 
 public class ManualApplication {
     static void main() {
         IO.println("Manual tests");
 
-        String home = System.getProperty("user.home");
-        DataSource datasource = new SimpleJdbcDataSource(
-                "jdbc:duckdb:" + home + "/.jeffrey/jeffrey-data.db");
+        Path databasePath = Path.of("manual-tests/database/profile-data.db");
+        DataSource datasource = new SimpleJdbcDataSource("jdbc:duckdb:" + databasePath.toAbsolutePath());
 
         String flamegraphSql = DuckDBFlamegraphQueries.of().simple();
 
         var client = new NamedParameterJdbcTemplate(datasource);
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("profile_id", "019aa845-b71e-7a0c-8138-fa35df42737e")
                 .addValue("event_type", "jdk.ExecutionSample")
                 .addValue("from_time", null)
                 .addValue("to_time", null)

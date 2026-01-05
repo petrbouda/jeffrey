@@ -18,11 +18,10 @@
 
 package pbouda.jeffrey.provider.platform;
 
-import com.zaxxer.hikari.HikariConfig;
 import org.flywaydb.core.Flyway;
+import pbouda.jeffrey.shared.persistence.DataSourceParams;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
-import pbouda.jeffrey.shared.persistence.metrics.JfrHikariDataSource;
-import pbouda.jeffrey.shared.persistence.metrics.JfrMetricsTrackerFactory;
+import pbouda.jeffrey.shared.persistence.DuckDBDataSourceProvider;
 
 import javax.sql.DataSource;
 
@@ -30,19 +29,17 @@ public class DuckDBPlatformDatabaseManager implements DatabaseManager {
 
     private static final String PLATFORM_MIGRATIONS_LOCATION = "classpath:db/migration/platform";
 
+    private static final int MAX_POOL_SIZE = 25;
+
     @Override
-    public DataSource open(String databaseUri, boolean readOnly) {
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(databaseUri);
-        config.setPoolName("platform-duckdb-pool");
-        config.setMetricsTrackerFactory(new JfrMetricsTrackerFactory());
-        config.setMaximumPoolSize(10);
+    public DataSource open(String databaseUri) {
+        DataSourceParams.Builder dataSourceParams = DataSourceParams.builder()
+                .url(databaseUri)
+                .poolName("platform-database-pool")
+                .maxPoolSize(MAX_POOL_SIZE)
+                .enableMetrics(true);
 
-        if (readOnly) {
-            config.addDataSourceProperty("duckdb.read_only", "true");
-        }
-
-        return new JfrHikariDataSource(config);
+        return DuckDBDataSourceProvider.open(dataSourceParams.build());
     }
 
     @Override

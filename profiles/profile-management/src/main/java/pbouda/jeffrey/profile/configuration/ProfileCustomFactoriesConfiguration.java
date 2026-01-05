@@ -41,7 +41,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public JdbcPoolManager.Factory jdbcPoolManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id(), true);
+            DataSource dataSource = databaseManager.open(profileInfo.id());
             return new JdbcPoolManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
@@ -50,7 +50,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public JdbcStatementManager.Factory jdbcStatementManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id(), true);
+            DataSource dataSource = databaseManager.open(profileInfo.id());
             return new JdbcStatementManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
@@ -59,7 +59,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public HttpManager.Factory httpManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id(), true);
+            DataSource dataSource = databaseManager.open(profileInfo.id());
             return new HttpManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
@@ -68,7 +68,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public MethodTracingManager.Factory methodTracingManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id(), true);
+            DataSource dataSource = databaseManager.open(profileInfo.id());
             return new MethodTracingManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };

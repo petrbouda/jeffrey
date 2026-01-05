@@ -40,7 +40,8 @@ class JdbcProjectRepositoryTest {
     class FindMethod {
 
         @Test
-        void returnsProject_whenExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProject_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
 
@@ -51,7 +52,8 @@ class JdbcProjectRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenNotExists(DatabaseClientProvider provider) {
+        void returnsEmpty_whenNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProjectRepository repository = new JdbcProjectRepository("non-existent", provider);
 
             Optional<ProjectInfo> result = repository.find();
@@ -64,7 +66,8 @@ class JdbcProjectRepositoryTest {
     class FindAllProfilesMethod {
 
         @Test
-        void returnsEmptyList_whenNoProfiles(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoProfiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
 
@@ -74,7 +77,8 @@ class JdbcProjectRepositoryTest {
         }
 
         @Test
-        void returnsProfiles_whenProfilesExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProfiles_whenProfilesExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
 
@@ -88,7 +92,8 @@ class JdbcProjectRepositoryTest {
     class UpdateProjectNameMethod {
 
         @Test
-        void updatesName(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void updatesName(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
 
@@ -104,7 +109,8 @@ class JdbcProjectRepositoryTest {
     class DeleteMethod {
 
         @Test
-        void deletesProject_andRelatedData(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesProject_andRelatedData(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
             JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
 

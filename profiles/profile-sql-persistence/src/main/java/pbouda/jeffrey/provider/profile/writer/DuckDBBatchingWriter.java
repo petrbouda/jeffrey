@@ -22,8 +22,11 @@ import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.profile.DatabaseWriter;
+import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -36,7 +39,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
     private final Executor executor;
     private final String tableName;
-    private final DuckDBConnection connection;
+    private final DataSource dataSource;
     private final int batchSize;
     private final StatementLabel statementLabel;
 
@@ -45,13 +48,13 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     public DuckDBBatchingWriter(
             Executor executor,
             String tableName,
-            DuckDBConnection connection,
+            DataSource dataSource,
             int batchSize,
             StatementLabel statementLabel) {
 
         this.executor = executor;
         this.tableName = tableName;
-        this.connection = connection;
+        this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.statementLabel = statementLabel;
     }
@@ -84,8 +87,9 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
         executor.execute(() -> {
             long start = System.nanoTime();
 
-            try {
-                execute(connection, copiedBatch);
+            try (Connection conn = dataSource.getConnection()) {
+                DuckDBConnection duckDBConnection = DataSourceUtils.unwrapConnection(conn, DuckDBConnection.class);
+                execute(duckDBConnection, copiedBatch);
             } catch (Exception e) {
                 LOG.error("Failed to insert batch of items: type={} size={}",
                         tableName, copiedBatch.size(), e);
@@ -102,10 +106,5 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     @Override
     public void close() {
         sendBatch(batch);
-        try {
-            connection.close();
-        } catch (SQLException e) {
-            LOG.error("Failed to close connection: type={}", tableName, e);
-        }
     }
 }

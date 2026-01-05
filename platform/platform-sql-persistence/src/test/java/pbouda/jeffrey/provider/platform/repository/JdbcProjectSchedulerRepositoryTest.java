@@ -40,7 +40,8 @@ class JdbcProjectSchedulerRepositoryTest {
     class AllMethod {
 
         @Test
-        void returnsEmptyList_whenNoJobs(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoJobs(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
 
@@ -50,7 +51,8 @@ class JdbcProjectSchedulerRepositoryTest {
         }
 
         @Test
-        void returnsProjectJobs(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProjectJobs(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
 
@@ -60,7 +62,8 @@ class JdbcProjectSchedulerRepositoryTest {
         }
 
         @Test
-        void filtersJobsByProject(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void filtersJobsByProject(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-other", provider);
 
@@ -74,7 +77,8 @@ class JdbcProjectSchedulerRepositoryTest {
     class InsertMethod {
 
         @Test
-        void insertsJob(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsJob(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
 
@@ -91,7 +95,8 @@ class JdbcProjectSchedulerRepositoryTest {
     class UpdateEnabledMethod {
 
         @Test
-        void updatesEnabledFlag(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void updatesEnabledFlag(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
 
@@ -110,7 +115,8 @@ class JdbcProjectSchedulerRepositoryTest {
     class DeleteMethod {
 
         @Test
-        void deletesJob(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesJob(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
 

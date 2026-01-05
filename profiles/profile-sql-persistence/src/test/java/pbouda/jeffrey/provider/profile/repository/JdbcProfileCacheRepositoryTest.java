@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +38,8 @@ class JdbcProfileCacheRepositoryTest {
     class PutMethod {
 
         @Test
-        void storesSimpleObject(DatabaseClientProvider provider) {
+        void storesSimpleObject(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             repository.put("test-key", Map.of("name", "test", "value", 123));
@@ -46,7 +48,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void storesList(DatabaseClientProvider provider) {
+        void storesList(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             repository.put("list-key", List.of("item1", "item2", "item3"));
@@ -55,7 +58,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void updatesExistingKey(DatabaseClientProvider provider) {
+        void updatesExistingKey(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             repository.put("update-key", "initial-value");
@@ -71,7 +75,8 @@ class JdbcProfileCacheRepositoryTest {
     class ContainsMethod {
 
         @Test
-        void returnsTrueWhenKeyExists(DatabaseClientProvider provider) {
+        void returnsTrueWhenKeyExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             repository.put("existing-key", "some-value");
@@ -80,7 +85,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void returnsFalseWhenKeyNotExists(DatabaseClientProvider provider) {
+        void returnsFalseWhenKeyNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             assertFalse(repository.contains("non-existing-key"));
@@ -91,7 +97,8 @@ class JdbcProfileCacheRepositoryTest {
     class GetWithClassMethod {
 
         @Test
-        void retrievesStringValue(DatabaseClientProvider provider) {
+        void retrievesStringValue(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             repository.put("string-key", "test-value");
@@ -102,7 +109,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void retrievesIntegerValue(DatabaseClientProvider provider) {
+        void retrievesIntegerValue(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             repository.put("int-key", 42);
@@ -113,7 +121,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void returnsEmptyWhenKeyNotExists(DatabaseClientProvider provider) {
+        void returnsEmptyWhenKeyNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             Optional<String> result = repository.get("missing-key", String.class);
@@ -126,7 +135,8 @@ class JdbcProfileCacheRepositoryTest {
     class GetWithTypeReferenceMethod {
 
         @Test
-        void retrievesListOfStrings(DatabaseClientProvider provider) {
+        void retrievesListOfStrings(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
             List<String> expected = List.of("a", "b", "c");
 
@@ -138,7 +148,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void retrievesMapOfStringToInteger(DatabaseClientProvider provider) {
+        void retrievesMapOfStringToInteger(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
             Map<String, Integer> expected = Map.of("one", 1, "two", 2);
 
@@ -150,7 +161,8 @@ class JdbcProfileCacheRepositoryTest {
         }
 
         @Test
-        void returnsEmptyWhenKeyNotExists(DatabaseClientProvider provider) {
+        void returnsEmptyWhenKeyNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileCacheRepository repository = new JdbcProfileCacheRepository(provider);
 
             Optional<List<String>> result = repository.get("missing-key", new TypeReference<>() {});

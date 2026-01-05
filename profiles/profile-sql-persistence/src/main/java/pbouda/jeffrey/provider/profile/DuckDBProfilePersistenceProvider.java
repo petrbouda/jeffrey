@@ -24,27 +24,30 @@ import pbouda.jeffrey.provider.profile.query.builder.QueryBuilderFactoryResolver
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
 import pbouda.jeffrey.provider.profile.writer.SQLEventWriter;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.persistence.CachingDatabaseManager;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
+
+import java.time.Clock;
 
 public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvider {
 
-    private static final int DEFAULT_BATCH_SIZE = 3000;
+    private static final int DEFAULT_BATCH_SIZE = 10000;
 
-    private final JeffreyDirs jeffreyDirs;
     private final int batchSize;
+    private final DatabaseManager databaseManager;
 
-    public DuckDBProfilePersistenceProvider(JeffreyDirs jeffreyDirs) {
-        this(jeffreyDirs, DEFAULT_BATCH_SIZE);
+    public DuckDBProfilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs) {
+        this(clock, jeffreyDirs, DEFAULT_BATCH_SIZE);
     }
 
-    public DuckDBProfilePersistenceProvider(JeffreyDirs jeffreyDirs, int batchSize) {
-        this.jeffreyDirs = jeffreyDirs;
+    public DuckDBProfilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs, int batchSize) {
         this.batchSize = batchSize;
+        this.databaseManager = new CachingDatabaseManager(new DuckDBProfileDatabaseManager(jeffreyDirs), clock);
     }
 
     @Override
     public DatabaseManager databaseManager() {
-        return new DuckDBProfileDatabaseManager(jeffreyDirs);
+        return databaseManager;
     }
 
     @Override

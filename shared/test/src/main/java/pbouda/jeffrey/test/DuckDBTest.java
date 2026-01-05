@@ -36,8 +36,8 @@ import java.lang.annotation.Target;
  * @DuckDBTest(migration = "classpath:db/migration/platform")
  * class MyRepositoryTest {
  *     @Test
- *     void testMethod(DatabaseClientProvider provider) {
- *         // provider is injected automatically
+ *     void testMethod(DataSource dataSource) {
+ *         // dataSource is injected automatically
  *     }
  * }
  * }</pre>

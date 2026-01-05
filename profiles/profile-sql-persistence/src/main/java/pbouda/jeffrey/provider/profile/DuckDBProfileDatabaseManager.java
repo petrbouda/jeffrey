@@ -19,23 +19,21 @@
 package pbouda.jeffrey.provider.profile;
 
 import org.flywaydb.core.Flyway;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.persistence.DataSourceParams;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
-import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
-import pbouda.jeffrey.shared.persistence.SingleConnectionDataSource;
+import pbouda.jeffrey.shared.persistence.DuckDBDataSourceProvider;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
 
 public class DuckDBProfileDatabaseManager implements DatabaseManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DuckDBProfileDatabaseManager.class);
-
     private static final String PROFILE_DB_FILENAME = "profile-data.db";
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
+    private static final int MAX_POOL_SIZE = 10;
+
     private final JeffreyDirs jeffreyDirs;
 
     public DuckDBProfileDatabaseManager(JeffreyDirs jeffreyDirs) {
@@ -43,20 +41,18 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     }
 
     @Override
-    public DataSource open(String profileId, boolean readOnly) {
+    public DataSource open(String profileId) {
         Path profileDirectory = jeffreyDirs.profileDirectory(profileId);
         Path dbPath = profileDirectory.resolve(PROFILE_DB_FILENAME);
 
         if (!dbPath.toFile().exists()) {
             FileSystemUtils.createDirectories(profileDirectory);
-            LOG.info("Creating profile database: profileId={} path={}", profileId, dbPath);
-
-            DataSource dataSource = createDataSource(dbPath, false);
+            DataSource dataSource = createDataSource(dbPath, profileId);
             runMigrations(dataSource);
             return dataSource;
         }
 
-        return createDataSource(dbPath, readOnly);
+        return createDataSource(dbPath, profileId);
     }
 
     @Override
@@ -73,12 +69,14 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
         flyway.migrate();
     }
 
-    private static DataSource createDataSource(Path dbPath, boolean readOnly) {
+    private static DataSource createDataSource(Path dbPath, String profileId) {
         String url = "jdbc:duckdb:" + dbPath.toAbsolutePath();
-        if (readOnly) {
-            return new SimpleJdbcDataSource(url + "?access_mode=read_only");
-        } else {
-            return new SingleConnectionDataSource(url);
-        }
+        DataSourceParams params = DataSourceParams.builder()
+                .url(url)
+                .poolName("profile-database-pool-" + profileId)
+                .maxPoolSize(MAX_POOL_SIZE)
+                .build();
+
+        return DuckDBDataSourceProvider.open(params);
     }
 }

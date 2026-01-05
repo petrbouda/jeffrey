@@ -25,6 +25,7 @@ import pbouda.jeffrey.provider.profile.model.EventType;
 import pbouda.jeffrey.provider.profile.model.writer.EnhancedEventType;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -32,8 +33,8 @@ import static pbouda.jeffrey.provider.profile.writer.DuckDBAppenderUtils.nullabl
 
 public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventType> {
 
-    public DuckDBEventTypeWriter(Executor executor, DuckDBConnection connection, int batchSize) {
-        super(executor, "event_types", connection, batchSize, StatementLabel.INSERT_EVENT_TYPES);
+    public DuckDBEventTypeWriter(Executor executor, DataSource dataSource, int batchSize) {
+        super(executor, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
     }
 
     @Override

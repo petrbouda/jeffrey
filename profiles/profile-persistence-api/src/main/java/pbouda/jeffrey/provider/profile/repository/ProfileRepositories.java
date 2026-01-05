@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.provider.profile.repository;
 
+import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
+
 import javax.sql.DataSource;
 
 /**
@@ -27,34 +29,42 @@ import javax.sql.DataSource;
 public interface ProfileRepositories {
 
     /**
+     * Creates a database client provider for the given profile database connection.
+     *
+     * @param dataSource the profile database connection
+     * @return a new database client provider for the profile
+     */
+    DatabaseClientProvider databaseClientProvider(DataSource dataSource);
+
+    /**
      * Creates an event repository for accessing profile event data.
      *
-     * @param profileDb the profile database connection
+     * @param dataSource the profile database connection
      * @return a new event repository for the profile
      */
-    ProfileEventRepository newEventRepository(DataSource profileDb);
+    ProfileEventRepository newEventRepository(DataSource dataSource);
 
     /**
      * Creates an event stream repository for streaming profile event data.
      *
-     * @param profileDb the profile database connection
+     * @param dataSource the profile database connection
      * @return a new event stream repository for the profile
      */
-    ProfileEventStreamRepository newEventStreamRepository(DataSource profileDb);
+    ProfileEventStreamRepository newEventStreamRepository(DataSource dataSource);
 
     /**
      * Creates an event type repository for accessing profile event types.
      *
-     * @param profileDb the profile database connection
+     * @param dataSource the profile database connection
      * @return a new event type repository for the profile
      */
-    ProfileEventTypeRepository newEventTypeRepository(DataSource profileDb);
+    ProfileEventTypeRepository newEventTypeRepository(DataSource dataSource);
 
     /**
      * Creates a cache repository for accessing profile-specific cached data.
      *
-     * @param profileDb the profile database connection
+     * @param dataSource the profile database connection
      * @return a new cache repository for the profile
      */
-    ProfileCacheRepository newProfileCacheRepository(DataSource profileDb);
+    ProfileCacheRepository newProfileCacheRepository(DataSource dataSource);
 }

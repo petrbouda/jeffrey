@@ -34,7 +34,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,7 +46,8 @@ class JdbcProjectsRepositoryTest {
     class FindAllProjectsMethod {
 
         @Test
-        void returnsEmptyList_whenNoProjects(DatabaseClientProvider provider) {
+        void returnsEmptyList_whenNoProjects(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
             List<ProjectInfo> result = repository.findAllProjects();
@@ -56,7 +56,8 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void returnsAllProjects_whenProjectsExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsAllProjects_whenProjectsExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
@@ -72,7 +73,8 @@ class JdbcProjectsRepositoryTest {
     class FindAllProjectsByWorkspaceMethod {
 
         @Test
-        void returnsEmptyList_whenNoProjectsInWorkspace(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoProjectsInWorkspace(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             // Insert workspace without projects
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
@@ -83,7 +85,8 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void returnsProjectsForWorkspace_whenProjectsExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProjectsForWorkspace_whenProjectsExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-multiple-workspaces-with-projects.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
@@ -95,7 +98,8 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void filtersCorrectly_byWorkspaceId(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void filtersCorrectly_byWorkspaceId(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-multiple-workspaces-with-projects.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
@@ -110,7 +114,8 @@ class JdbcProjectsRepositoryTest {
     class CreateMethod {
 
         @Test
-        void insertsProject_andReturnsProjectInfo(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsProject_andReturnsProjectInfo(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             // Need to insert workspace first
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
@@ -140,7 +145,8 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void doesNotInsertDuplicate_whenOriginIdExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void doesNotInsertDuplicate_whenOriginIdExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
@@ -170,7 +176,8 @@ class JdbcProjectsRepositoryTest {
     class FindByOriginProjectIdMethod {
 
         @Test
-        void returnsProject_whenOriginIdExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProject_whenOriginIdExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
@@ -182,7 +189,8 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenOriginIdNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmpty_whenOriginIdNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
@@ -192,7 +200,8 @@ class JdbcProjectsRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenNoProjects(DatabaseClientProvider provider) {
+        void returnsEmpty_whenNoProjects(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
 
             Optional<ProjectInfo> result = repository.findByOriginProjectId("any-origin");

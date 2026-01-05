@@ -44,7 +44,8 @@ class JdbcProjectRecordingRepositoryTest {
     class FindAllRecordingsMethod {
 
         @Test
-        void returnsEmptyList_whenNoRecordings(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoRecordings(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -54,7 +55,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void returnsRecordings_whenRecordingsExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsRecordings_whenRecordingsExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -64,7 +66,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void includesRecordingFiles(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void includesRecordingFiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -83,7 +86,8 @@ class JdbcProjectRecordingRepositoryTest {
     class FindRecordingMethod {
 
         @Test
-        void returnsRecording_whenExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsRecording_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -94,7 +98,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmpty_whenNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -104,7 +109,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void includesRecordingFiles(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void includesRecordingFiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -121,7 +127,8 @@ class JdbcProjectRecordingRepositoryTest {
     class InsertRecordingMethod {
 
         @Test
-        void insertsRecordingAndFile(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsRecordingAndFile(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -146,7 +153,8 @@ class JdbcProjectRecordingRepositoryTest {
     class DeleteRecordingMethod {
 
         @Test
-        void deletesRecordingAndFiles(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesRecordingAndFiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -161,7 +169,8 @@ class JdbcProjectRecordingRepositoryTest {
     class FolderMethods {
 
         @Test
-        void insertsFolderAndReturnsId(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsFolderAndReturnsId(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -172,7 +181,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void findsAllFolders(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void findsAllFolders(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -183,7 +193,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void folderExists_returnsTrue_whenFolderExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void folderExists_returnsTrue_whenFolderExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -193,7 +204,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void folderExists_returnsFalse_whenFolderNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void folderExists_returnsFalse_whenFolderNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 
@@ -203,7 +215,8 @@ class JdbcProjectRecordingRepositoryTest {
         }
 
         @Test
-        void deletesFolder_andRecordingsInFolder(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesFolder_andRecordingsInFolder(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
 

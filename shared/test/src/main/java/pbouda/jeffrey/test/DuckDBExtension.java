@@ -19,23 +19,19 @@
 package pbouda.jeffrey.test;
 
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolver;
+import org.junit.jupiter.api.extension.*;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.Optional;
 
 /**
  * JUnit 5 extension for DuckDB integration tests.
  * <p>
  * Creates a fresh in-memory DuckDB connection before each test and closes it after.
- * Supports parameter injection of {@link Connection}, {@link DataSource}, and {@link DatabaseClientProvider}.
+ * Supports parameter injection of {@link Connection} and {@link DataSource}.
  * <p>
  * When used with {@link DuckDBTest} annotation, can run Flyway migrations before each test.
  */
@@ -46,7 +42,6 @@ public class DuckDBExtension implements BeforeEachCallback, AfterEachCallback, P
 
     private static final String CONNECTION_KEY = "connection";
     private static final String DATASOURCE_KEY = "dataSource";
-    private static final String PROVIDER_KEY = "databaseClientProvider";
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
@@ -54,7 +49,6 @@ public class DuckDBExtension implements BeforeEachCallback, AfterEachCallback, P
 
         // Wrap connection in DataSource that doesn't close the connection
         SingleConnectionDataSource dataSource = new SingleConnectionDataSource(conn, true);
-        DatabaseClientProvider provider = new DatabaseClientProvider(dataSource);
 
         // Run migrations if configured
         runMigrations(context, dataSource);
@@ -63,7 +57,6 @@ public class DuckDBExtension implements BeforeEachCallback, AfterEachCallback, P
         ExtensionContext.Store store = context.getStore(NS);
         store.put(CONNECTION_KEY, conn);
         store.put(DATASOURCE_KEY, dataSource);
-        store.put(PROVIDER_KEY, provider);
     }
 
     @Override
@@ -84,9 +77,7 @@ public class DuckDBExtension implements BeforeEachCallback, AfterEachCallback, P
     @Override
     public boolean supportsParameter(ParameterContext paramContext, ExtensionContext extContext) {
         Class<?> type = paramContext.getParameter().getType();
-        return type == Connection.class
-                || type == DataSource.class
-                || type == DatabaseClientProvider.class;
+        return type == Connection.class || type == DataSource.class;
     }
 
     @Override
@@ -98,8 +89,6 @@ public class DuckDBExtension implements BeforeEachCallback, AfterEachCallback, P
             return store.get(CONNECTION_KEY, Connection.class);
         } else if (type == DataSource.class) {
             return store.get(DATASOURCE_KEY, DataSource.class);
-        } else if (type == DatabaseClientProvider.class) {
-            return store.get(PROVIDER_KEY, DatabaseClientProvider.class);
         }
 
         throw new IllegalArgumentException("Unsupported parameter type: " + type);
@@ -118,22 +107,22 @@ public class DuckDBExtension implements BeforeEachCallback, AfterEachCallback, P
                 });
     }
 
-    private java.util.Optional<DuckDBTest> findDuckDBTestAnnotation(ExtensionContext context) {
+    private Optional<DuckDBTest> findDuckDBTestAnnotation(ExtensionContext context) {
         // For nested test classes, we need to check the enclosing class hierarchy
         return context.getTestClass()
                 .flatMap(this::findAnnotationInHierarchy);
     }
 
-    private java.util.Optional<DuckDBTest> findAnnotationInHierarchy(Class<?> clazz) {
+    private Optional<DuckDBTest> findAnnotationInHierarchy(Class<?> clazz) {
         Class<?> current = clazz;
         while (current != null) {
             DuckDBTest annotation = current.getAnnotation(DuckDBTest.class);
             if (annotation != null) {
-                return java.util.Optional.of(annotation);
+                return Optional.of(annotation);
             }
             // Check enclosing class for nested test classes
             current = current.getEnclosingClass();
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 }

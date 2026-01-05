@@ -38,4 +38,5 @@ public enum GroupLabel {
     WORKSPACES,
     EXTERNAL_WORKSPACES,
     ALLOCATING_THREADS,
+    INFRASTRUCTURE,
 }

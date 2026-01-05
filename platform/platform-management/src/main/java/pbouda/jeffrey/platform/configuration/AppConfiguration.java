@@ -52,10 +52,7 @@ import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
-import pbouda.jeffrey.profile.creator.ProfileCreator;
-import pbouda.jeffrey.profile.creator.ProfileCreatorImpl;
 import pbouda.jeffrey.profile.manager.ProfileManager;
-import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
@@ -64,7 +61,6 @@ import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.Config;
-import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -115,32 +111,13 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfilePersistenceProvider profilePersistenceProvider(JeffreyDirs jeffreyDirs) {
-        return new DuckDBProfilePersistenceProvider(jeffreyDirs);
+    public ProfilePersistenceProvider profilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs) {
+        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs);
     }
 
     @Bean
     public PlatformRepositories platformRepositories(PlatformPersistenceProvider platformPersistenceProvider) {
         return platformPersistenceProvider.platformRepositories();
-    }
-
-    @Bean
-    public ProfileCreator.Factory profileCreatorFactory(
-            JeffreyDirs jeffreyDirs,
-            PlatformRepositories platformRepositories,
-            RecordingStorage recordingStorage,
-            ProfilePersistenceProvider profilePersistenceProvider,
-            Clock clock) {
-
-        return projectInfo -> new ProfileCreatorImpl(
-                projectInfo,
-                profilePersistenceProvider.databaseManager(),
-                profilePersistenceProvider.repositories(),
-                platformRepositories,
-                recordingStorage.projectRecordingStorage(projectInfo.id()),
-                new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
-                profilePersistenceProvider.eventWriterFactory(),
-                clock);
     }
 
     @Bean

@@ -43,7 +43,8 @@ class JdbcWorkspacesRepositoryTest {
     class FindAllMethod {
 
         @Test
-        void returnsEmptyList_whenNoWorkspaces(DatabaseClientProvider provider) {
+        void returnsEmptyList_whenNoWorkspaces(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
             List<WorkspaceInfo> result = repository.findAll();
@@ -52,7 +53,8 @@ class JdbcWorkspacesRepositoryTest {
         }
 
         @Test
-        void returnsWorkspaces_whenWorkspacesExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsWorkspaces_whenWorkspacesExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
@@ -65,7 +67,8 @@ class JdbcWorkspacesRepositoryTest {
         }
 
         @Test
-        void excludesDeletedWorkspaces(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void excludesDeletedWorkspaces(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
@@ -80,7 +83,8 @@ class JdbcWorkspacesRepositoryTest {
     class FindMethod {
 
         @Test
-        void returnsWorkspace_whenExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsWorkspace_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
@@ -93,7 +97,8 @@ class JdbcWorkspacesRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenNotExists(DatabaseClientProvider provider) {
+        void returnsEmpty_whenNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
             Optional<WorkspaceInfo> result = repository.find("non-existent-id");
@@ -102,7 +107,8 @@ class JdbcWorkspacesRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenWorkspaceIsDeleted(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmpty_whenWorkspaceIsDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
@@ -116,7 +122,8 @@ class JdbcWorkspacesRepositoryTest {
     class CreateMethod {
 
         @Test
-        void insertsWorkspace_andReturnsWithGeneratedId(DatabaseClientProvider provider) {
+        void insertsWorkspace_andReturnsWithGeneratedId(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
             WorkspaceInfo input = new WorkspaceInfo(
                     null, // ID will be generated
@@ -148,7 +155,8 @@ class JdbcWorkspacesRepositoryTest {
     class ExistsByNameMethod {
 
         @Test
-        void returnsTrue_whenNameExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsTrue_whenNameExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
@@ -158,7 +166,8 @@ class JdbcWorkspacesRepositoryTest {
         }
 
         @Test
-        void returnsFalse_whenNameNotExists(DatabaseClientProvider provider) {
+        void returnsFalse_whenNameNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
             boolean result = repository.existsByName("Non Existent");
@@ -167,7 +176,8 @@ class JdbcWorkspacesRepositoryTest {
         }
 
         @Test
-        void returnsFalse_whenWorkspaceIsDeleted(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsFalse_whenWorkspaceIsDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 

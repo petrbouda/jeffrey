@@ -399,6 +399,10 @@ public class DatabaseClient {
         }
     }
 
+    public void walCheckpoint() {
+        execute(StatementLabel.WAL_CHECK_POINT, "FORCE CHECKPOINT;");
+    }
+
     private static long sumRows(int[] updateCount) {
         long count = 0L;
         for (int i : updateCount) {

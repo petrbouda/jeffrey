@@ -45,8 +45,9 @@ class JdbcProfileEventRepositoryTest {
     class LatestJsonFieldsMethod {
 
         @Test
-        void returnsLatestFields(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsLatestFields(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             Optional<ObjectNode> result = repository.latestJsonFields(Type.fromCode("jdk.ExecutionSample"));
@@ -56,7 +57,8 @@ class JdbcProfileEventRepositoryTest {
         }
 
         @Test
-        void returnsEmptyWhenNoEvents(DatabaseClientProvider provider) {
+        void returnsEmptyWhenNoEvents(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             Optional<ObjectNode> result = repository.latestJsonFields(Type.fromCode("jdk.ExecutionSample"));
@@ -65,8 +67,9 @@ class JdbcProfileEventRepositoryTest {
         }
 
         @Test
-        void returnsEmptyForNonExistentEventType(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyForNonExistentEventType(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             Optional<ObjectNode> result = repository.latestJsonFields(Type.fromCode("jdk.NonExistent"));
@@ -79,8 +82,9 @@ class JdbcProfileEventRepositoryTest {
     class AllocatingThreadsMethod {
 
         @Test
-        void returnsThreadsOrderedByWeight(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsThreadsOrderedByWeight(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-allocating-threads.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             List<AllocatingThread> result = repository.allocatingThreads(10);
@@ -94,8 +98,9 @@ class JdbcProfileEventRepositoryTest {
         }
 
         @Test
-        void respectsLimit(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void respectsLimit(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-allocating-threads.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             List<AllocatingThread> result = repository.allocatingThreads(2);
@@ -106,7 +111,8 @@ class JdbcProfileEventRepositoryTest {
         }
 
         @Test
-        void returnsEmptyListWhenNoData(DatabaseClientProvider provider) {
+        void returnsEmptyListWhenNoData(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             List<AllocatingThread> result = repository.allocatingThreads(10);
@@ -119,8 +125,9 @@ class JdbcProfileEventRepositoryTest {
     class EventsByTypeWithFieldsMethod {
 
         @Test
-        void returnsEventsWithFields(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEventsWithFields(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             List<JsonNode> result = repository.eventsByTypeWithFields(Type.fromCode("jdk.ExecutionSample"));
@@ -129,8 +136,9 @@ class JdbcProfileEventRepositoryTest {
         }
 
         @Test
-        void returnsEmptyListForNonExistentType(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyListForNonExistentType(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             List<JsonNode> result = repository.eventsByTypeWithFields(Type.fromCode("jdk.NonExistent"));
@@ -143,23 +151,26 @@ class JdbcProfileEventRepositoryTest {
     class ContainsEventTypeMethod {
 
         @Test
-        void returnsTrueWhenEventTypeExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsTrueWhenEventTypeExists(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             assertTrue(repository.containsEventType(Type.fromCode("jdk.ExecutionSample")));
         }
 
         @Test
-        void returnsFalseWhenEventTypeNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsFalseWhenEventTypeNotExists(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             assertFalse(repository.containsEventType(Type.fromCode("jdk.NonExistent")));
         }
 
         @Test
-        void returnsFalseWhenNoEvents(DatabaseClientProvider provider) {
+        void returnsFalseWhenNoEvents(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
 
             assertFalse(repository.containsEventType(Type.fromCode("jdk.ExecutionSample")));

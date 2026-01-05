@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 public abstract class Schedulers {
@@ -36,13 +37,17 @@ public abstract class Schedulers {
         }
     }
 
-    private static final ExecutorService PARALLEL = Executors.newFixedThreadPool(
-            Runtime.getRuntime().availableProcessors(),
-            platformThreadfactory("parallel"));
+    private static final ExecutorService PARALLEL =
+            Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), platformThreadfactory("parallel"));
 
-    private static final ExecutorService SINGLE = Executors.newSingleThreadExecutor(platformThreadfactory("single"));
+    private static final ExecutorService SINGLE =
+            Executors.newSingleThreadExecutor(platformThreadfactory("single"));
 
-    private static final ExecutorService VIRTUAL = Executors.newThreadPerTaskExecutor(virtualThreadfactory());
+    private static final ExecutorService VIRTUAL =
+            Executors.newThreadPerTaskExecutor(virtualThreadfactory());
+
+    private static final ScheduledExecutorService SINGLE_SCHEDULED =
+            Executors.newSingleThreadScheduledExecutor(platformThreadfactory("single-scheduled"));
 
     public static ExecutorService sharedParallel() {
         return PARALLEL;
@@ -54,6 +59,10 @@ public abstract class Schedulers {
 
     public static ExecutorService sharedVirtual() {
         return VIRTUAL;
+    }
+
+    public static ScheduledExecutorService sharedSingleScheduled() {
+        return SINGLE_SCHEDULED;
     }
 
     public static ThreadFactory platformThreadfactory(String prefix) {
@@ -75,6 +84,7 @@ public abstract class Schedulers {
             PARALLEL.close();
             SINGLE.close();
             VIRTUAL.close();
+            SINGLE_SCHEDULED.close();
         }));
     }
 }

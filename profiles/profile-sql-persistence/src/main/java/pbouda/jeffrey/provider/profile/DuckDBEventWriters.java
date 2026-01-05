@@ -18,19 +18,16 @@
 
 package pbouda.jeffrey.provider.profile;
 
-import org.duckdb.DuckDBConnection;
 import pbouda.jeffrey.provider.profile.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.provider.profile.writer.*;
-import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 
 import javax.sql.DataSource;
-import java.sql.SQLException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DuckDBEventWriters implements EventWriters {
 
-    private static final Executor EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executor = Executors.newFixedThreadPool(20);
 
     private final DuckDBEventWriter eventWriter;
     private final DuckDBEventTypeWriter eventTypeWriter;
@@ -39,19 +36,11 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBFrameWriter frameWriter;
 
     public DuckDBEventWriters(DataSource dataSource, int batchSize) {
-        try {
-            this.eventWriter = new DuckDBEventWriter(EXECUTOR, unwrap(dataSource), batchSize);
-            this.eventTypeWriter = new DuckDBEventTypeWriter(EXECUTOR, unwrap(dataSource), batchSize);
-            this.stacktraceWriter = new DuckDBStacktraceWriter(EXECUTOR, unwrap(dataSource), batchSize);
-            this.threadWriter = new DuckDBThreadWriter(EXECUTOR, unwrap(dataSource), batchSize);
-            this.frameWriter = new DuckDBFrameWriter(EXECUTOR, unwrap(dataSource), batchSize);
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to obtain connections for event writers", e);
-        }
-    }
-
-    private static DuckDBConnection unwrap(DataSource dataSource) throws SQLException {
-        return DataSourceUtils.unwrapConnection(dataSource.getConnection(), DuckDBConnection.class);
+        this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize);
+        this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
+        this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
+        this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);
+        this.frameWriter = new DuckDBFrameWriter(executor, dataSource, batchSize);
     }
 
     @Override
@@ -86,5 +75,7 @@ public class DuckDBEventWriters implements EventWriters {
         stacktraceWriter.close();
         threadWriter.close();
         frameWriter.close();
+
+        executor.shutdown();
     }
 }

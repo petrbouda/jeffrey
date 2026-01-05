@@ -48,7 +48,8 @@ class JdbcWorkspaceRepositoryTest {
     class DeleteMethod {
 
         @Test
-        void returnsTrue_whenWorkspaceExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsTrue_whenWorkspaceExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -58,7 +59,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void returnsFalse_whenWorkspaceNotExists(DatabaseClientProvider provider) {
+        void returnsFalse_whenWorkspaceNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("non-existent", provider, FIXED_CLOCK);
 
             boolean result = repository.delete();
@@ -71,7 +73,8 @@ class JdbcWorkspaceRepositoryTest {
     class FindAllProjectsMethod {
 
         @Test
-        void returnsEmptyList_whenNoProjects(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoProjects(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -81,7 +84,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void returnsProjects_whenProjectsExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsProjects_whenProjectsExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-with-projects-and-events.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -95,7 +99,8 @@ class JdbcWorkspaceRepositoryTest {
     class EventsMethod {
 
         @Test
-        void returnsEmptyList_whenNoEvents(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyList_whenNoEvents(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -105,7 +110,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void returnsEvents_whenEventsExist(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEvents_whenEventsExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-with-projects-and-events.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -116,7 +122,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void returnsEventsFromOffset(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEventsFromOffset(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-with-projects-and-events.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -132,7 +139,8 @@ class JdbcWorkspaceRepositoryTest {
     class BatchInsertEventsMethod {
 
         @Test
-        void insertsEvents(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void insertsEvents(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -150,7 +158,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void handlesEmptyList(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void handlesEmptyList(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -165,7 +174,8 @@ class JdbcWorkspaceRepositoryTest {
     class EventConsumerMethod {
 
         @Test
-        void createsAndFindsConsumer(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void createsAndFindsConsumer(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -177,7 +187,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void returnsEmpty_whenConsumerNotExists(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmpty_whenConsumerNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 
@@ -187,7 +198,8 @@ class JdbcWorkspaceRepositoryTest {
         }
 
         @Test
-        void updatesConsumerOffset(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void updatesConsumerOffset(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-with-event-consumer.sql");
             JdbcWorkspaceRepository repository = new JdbcWorkspaceRepository("ws-001", provider, FIXED_CLOCK);
 

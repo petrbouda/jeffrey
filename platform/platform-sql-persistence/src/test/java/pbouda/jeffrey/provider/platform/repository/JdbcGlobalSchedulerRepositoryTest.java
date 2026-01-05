@@ -40,7 +40,8 @@ class JdbcGlobalSchedulerRepositoryTest {
     class AllMethod {
 
         @Test
-        void returnsEmptyList_whenNoJobs(DatabaseClientProvider provider) {
+        void returnsEmptyList_whenNoJobs(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             List<JobInfo> result = repository.all();
@@ -49,7 +50,8 @@ class JdbcGlobalSchedulerRepositoryTest {
         }
 
         @Test
-        void returnsGlobalJobs(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsGlobalJobs(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-global-jobs.sql");
             JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
@@ -59,7 +61,8 @@ class JdbcGlobalSchedulerRepositoryTest {
         }
 
         @Test
-        void doesNotReturnProjectJobs(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void doesNotReturnProjectJobs(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-project-jobs.sql");
             JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
@@ -73,7 +76,8 @@ class JdbcGlobalSchedulerRepositoryTest {
     class InsertMethod {
 
         @Test
-        void insertsJob(DatabaseClientProvider provider) {
+        void insertsJob(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
             JobInfo jobInfo = new JobInfo("new-job-001", null, JobType.PROJECTS_SYNCHRONIZER, Map.of(), true);
@@ -89,7 +93,8 @@ class JdbcGlobalSchedulerRepositoryTest {
     class UpdateEnabledMethod {
 
         @Test
-        void updatesEnabledFlag(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void updatesEnabledFlag(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-global-jobs.sql");
             JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 
@@ -108,7 +113,8 @@ class JdbcGlobalSchedulerRepositoryTest {
     class DeleteMethod {
 
         @Test
-        void deletesJob(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void deletesJob(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/scheduler/insert-global-jobs.sql");
             JdbcGlobalSchedulerRepository repository = new JdbcGlobalSchedulerRepository(provider);
 

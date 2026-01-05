@@ -45,8 +45,9 @@ class JdbcProfileEventTypeRepositoryTest {
     class SingleFieldsByEventTypeMethod {
 
         @Test
-        void returnsEventTypeWithFields(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEventTypeWithFields(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             Optional<EventTypeWithFields> result = repository.singleFieldsByEventType(Type.fromCode("jdk.ExecutionSample"));
@@ -58,8 +59,9 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void returnsEmptyWhenNoEventsForType(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyWhenNoEventsForType(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             // ThreadAllocationStatistics has no events with fields in insert-events-with-types.sql
@@ -69,7 +71,8 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void returnsEmptyForNonExistentType(DatabaseClientProvider provider) {
+        void returnsEmptyForNonExistentType(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             Optional<EventTypeWithFields> result = repository.singleFieldsByEventType(Type.fromCode("jdk.NonExistent"));
@@ -82,8 +85,9 @@ class JdbcProfileEventTypeRepositoryTest {
     class EventColumnsMethod {
 
         @Test
-        void returnsColumnsFromDatabase(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsColumnsFromDatabase(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<FieldDescription> result = repository.eventColumns(Type.fromCode("jdk.ExecutionSample"));
@@ -94,8 +98,9 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void returnsEmptyListWhenNoColumns(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyListWhenNoColumns(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             // ThreadAllocationStatistics has columns = NULL
@@ -105,7 +110,8 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void returnsEmptyListForNonExistentType(DatabaseClientProvider provider) {
+        void returnsEmptyListForNonExistentType(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<FieldDescription> result = repository.eventColumns(Type.fromCode("jdk.NonExistent"));
@@ -118,8 +124,9 @@ class JdbcProfileEventTypeRepositoryTest {
     class EventSummariesWithTypesMethod {
 
         @Test
-        void returnsSummariesForSpecifiedTypes(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsSummariesForSpecifiedTypes(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<EventSummary> result = repository.eventSummaries(List.of(
@@ -131,8 +138,9 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void aggregatesSamplesAndWeight(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void aggregatesSamplesAndWeight(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<EventSummary> result = repository.eventSummaries(List.of(Type.fromCode("jdk.ExecutionSample")));
@@ -144,8 +152,9 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void returnsEmptyListForNonExistentTypes(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsEmptyListForNonExistentTypes(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<EventSummary> result = repository.eventSummaries(List.of(Type.fromCode("jdk.NonExistent")));
@@ -158,8 +167,9 @@ class JdbcProfileEventTypeRepositoryTest {
     class EventSummariesAllMethod {
 
         @Test
-        void returnsAllEventSummaries(DatabaseClientProvider provider, DataSource dataSource) throws SQLException {
+        void returnsAllEventSummaries(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<EventSummary> result = repository.eventSummaries();
@@ -169,7 +179,8 @@ class JdbcProfileEventTypeRepositoryTest {
         }
 
         @Test
-        void returnsEmptyListWhenNoEventTypes(DatabaseClientProvider provider) {
+        void returnsEmptyListWhenNoEventTypes(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
             JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
 
             List<EventSummary> result = repository.eventSummaries();
