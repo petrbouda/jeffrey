@@ -185,33 +185,6 @@ cp jmh-tests/data/<database>.db jmh-tests/data/<database>-experimental.db
 
 ---
 
-## Verification Modes
-
-Benchmarks support two verification modes via JMH `-p` parameter:
-
-### HASH_ONLY (Default)
-Compares SHA-256 hashes of the output. Fast and sufficient for most cases.
-
-```bash
-# Default - hash comparison only
-java -jar jmh-tests/target/benchmarks.jar <Benchmark> -prof gc $ASYNC_PROF
-```
-
-### FULL_OUTPUT
-Saves the current output to `jmh-tests/target/verification-output/` when verification fails.
-Use this mode when you need to debug differences.
-
-```bash
-# Enable full output for debugging
-java -jar jmh-tests/target/benchmarks.jar <Benchmark> -prof gc $ASYNC_PROF -p verificationMode=FULL_OUTPUT
-```
-
-**Output location**: `jmh-tests/target/verification-output/<BenchmarkName>/`
-- `current-frame.json` - The actual output
-- `current-frame.sha256` - Hash of the output
-
----
-
 ## Results Folder Structure
 
 ```

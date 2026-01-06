@@ -30,7 +30,6 @@ import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.jmh.flamegraph.mapper.OptimizedFlamegraphRecordWithThreadsRowMapper;
 import pbouda.jeffrey.jmh.flamegraph.utils.FramesCache;
 import pbouda.jeffrey.jmh.flamegraph.verification.BenchmarkVerification;
-import pbouda.jeffrey.jmh.flamegraph.verification.VerificationMode;
 import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
 import pbouda.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
 import pbouda.jeffrey.provider.profile.query.FlamegraphRecordWithThreadsRowMapper;
@@ -84,15 +83,12 @@ public class FlamegraphByThreadAndWeightBenchmark {
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 
-    @Param({"HASH_ONLY"})
-    private String verificationMode;
-
     private final BenchmarkVerification verification = new BenchmarkVerification("ByThreadAndWeightFlamegraphBenchmark");
     private Frame lastBuiltFrame;
 
     @TearDown(Level.Invocation)
     public void verifyInvocation() {
-        verification.verify(lastBuiltFrame, VerificationMode.valueOf(verificationMode));
+        verification.verify(lastBuiltFrame);
         lastBuiltFrame = null;
     }
 
