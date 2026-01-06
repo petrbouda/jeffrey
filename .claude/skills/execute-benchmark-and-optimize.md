@@ -200,7 +200,7 @@ cp jmh-tests/data/<database>.db jmh-tests/data/<database>-experimental.db
 └── <timestamp>/                    # e.g., 2025-01-06_09-15-30
     └── <BenchmarkClass>/
         ├── baseline-output.json    # Output for verification
-        ├── baseline.sha256         # Hash for quick comparison
+        ├── baseline-frame.murmur3  # Hash for quick comparison
         └── optimization-results.md # All iterations documented
 ```
 
@@ -261,7 +261,7 @@ Example: `jmh-tests/target/benchmarks/FlamegraphBenchmark-2025-01-06_16-45-00.md
 
 #### Verification
 - Status: PASS/FAIL
-- Hash: [SHA-256 if applicable]
+- Hash: [murmur3 if applicable]
 
 #### Decision
 KEEP / REVERT (reason)
