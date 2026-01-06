@@ -56,6 +56,17 @@ BenchmarkClass.optimized       avgt   10   130.051 ±  2.890  ms/op
 - **Error**: 99.9% confidence interval
 - **Cnt**: Number of measurement iterations
 
+## Results Folder Structure
+
+```
+jmh-tests/target/benchmarks/
+├── <ClassName>-<timestamp>.md              # Benchmark results report
+└── async-profiler/
+    └── <FullClassName>.<method>-AverageTime/
+        ├── flame-cpu-forward.html          # CPU flamegraph (forward)
+        └── flame-cpu-reverse.html          # CPU flamegraph (reverse)
+```
+
 ## Generate Results Report
 
 **MANDATORY**: After running benchmarks, ALWAYS generate a markdown report with results and recommendations. This is NOT optional.
