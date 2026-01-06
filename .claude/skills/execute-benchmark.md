@@ -4,6 +4,14 @@ Run a JMH benchmark and display results. Use this skill to quickly measure perfo
 
 **Requires**: Java 25 (use `sdk use java 25.0.1-amzn` if using SDKMAN)
 
+## Mandatory Requirements
+
+**ALWAYS** follow these requirements when executing benchmarks:
+
+1. **ALWAYS use `-prof gc`** - GC profiler for allocation and GC statistics
+2. **ALWAYS use `-prof async`** - Async-profiler for CPU flamegraphs (when available at `$JAVA_HOME/lib/`)
+3. **ALWAYS generate the final report** - Markdown report at `jmh-tests/target/benchmarks/<ClassName>-<timestamp>.md`
+
 ## Usage
 
 ```bash
@@ -13,20 +21,19 @@ mvn package -pl jmh-tests -am -DskipTests -q
 # Create output directory for async-profiler flamegraphs
 mkdir -p jmh-tests/target/benchmarks/async-profiler
 
-# Check if async-profiler is available and set flamegraph output
-# Default: CPU profiling. Use event=alloc for allocation profiling when explicitly requested
-ASYNC_PROF=""
-if [ -f "$JAVA_HOME/lib/libasyncProfiler.dylib" ] || [ -f "$JAVA_HOME/lib/libasyncProfiler.so" ]; then
-  ASYNC_PROF='-prof "async:output=flamegraph;event=cpu;dir=jmh-tests/target/benchmarks/async-profiler"'
-fi
-
 # Run benchmark with profiling (from project root)
-java -jar jmh-tests/target/benchmarks.jar <BenchmarkClass> -prof gc $ASYNC_PROF
+# Always include -prof gc for GC statistics
+# Include -prof async when libasyncProfiler.dylib exists in $JAVA_HOME/lib/
+java -jar jmh-tests/target/benchmarks.jar <BenchmarkClass> \
+  -prof gc \
+  -prof "async:output=flamegraph;event=cpu;dir=jmh-tests/target/benchmarks/async-profiler"
 ```
 
-**Note**: Always run with `-prof gc`. Add async-profiler flamegraph output only if async-profiler library is available at `$JAVA_HOME/lib/`.
+**Note**: The async-profiler is available in Amazon Corretto JDK 25 at `$JAVA_HOME/lib/libasyncProfiler.dylib`. If using a different JDK without async-profiler, omit the `-prof async` option.
 
-**Profiling Mode**: Default is CPU (`event=cpu`). For allocation profiling, replace `event=cpu` with `event=alloc` in the ASYNC_PROF variable. Only one async-profiler event type can be used per run.
+**MANDATORY**: Always run with `-prof gc` AND `-prof async` (when async-profiler is available at `$JAVA_HOME/lib/`). Never skip profiling.
+
+**Profiling Mode**: Default is CPU (`event=cpu`). For allocation profiling, replace `event=cpu` with `event=alloc`. Only one async-profiler event type can be used per run.
 
 **Async Profiler Output**: HTML flamegraphs are generated at `jmh-tests/target/benchmarks/async-profiler/<SimpleClassName>.<method>/`
 
@@ -51,7 +58,7 @@ BenchmarkClass.optimized       avgt   10   130.051 ±  2.890  ms/op
 
 ## Generate Results Report
 
-**IMPORTANT**: After running benchmarks, always generate a markdown report with results and recommendations.
+**MANDATORY**: After running benchmarks, ALWAYS generate a markdown report with results and recommendations. This is NOT optional.
 
 ### Output Location
 ```

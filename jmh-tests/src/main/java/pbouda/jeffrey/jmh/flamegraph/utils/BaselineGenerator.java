@@ -31,13 +31,14 @@ import pbouda.jeffrey.provider.profile.query.FlamegraphRecordWithThreadsRowMappe
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -97,11 +98,11 @@ public class BaselineGenerator {
 
         Frame frame = buildFrameTree(records);
         byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = sha256(jsonBytes);
+        String hash = hashFrame(frame);
 
         Path baselineDir = Path.of("jmh-tests/data/baseline/SimpleFlamegraphBenchmark");
         Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.sha256"), hash);
+        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
         Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
 
         System.out.println("  Records: " + records.size());
@@ -120,11 +121,11 @@ public class BaselineGenerator {
 
         Frame frame = buildFrameTree(records);
         byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = sha256(jsonBytes);
+        String hash = hashFrame(frame);
 
         Path baselineDir = Path.of("jmh-tests/data/baseline/FlamegraphBenchmark");
         Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.sha256"), hash);
+        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
         Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
 
         System.out.println("  Records: " + records.size());
@@ -144,11 +145,11 @@ public class BaselineGenerator {
 
         Frame frame = buildFrameTree(records);
         byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = sha256(jsonBytes);
+        String hash = hashFrame(frame);
 
         Path baselineDir = Path.of("jmh-tests/data/baseline/ByThreadFlamegraphBenchmark");
         Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.sha256"), hash);
+        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
         Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
 
         System.out.println("  Records: " + records.size());
@@ -167,11 +168,11 @@ public class BaselineGenerator {
 
         Frame frame = buildFrameTree(records);
         byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = sha256(jsonBytes);
+        String hash = hashFrame(frame);
 
         Path baselineDir = Path.of("jmh-tests/data/baseline/ByThreadAndWeightFlamegraphBenchmark");
         Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.sha256"), hash);
+        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
         Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
 
         System.out.println("  Records: " + records.size());
@@ -187,13 +188,40 @@ public class BaselineGenerator {
         return builder.build();
     }
 
-    private static String sha256(byte[] data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+    /**
+     * Computes a murmur3 hash of the entire Frame tree structure.
+     * This must match the hashing logic in BenchmarkVerification.
+     */
+    @SuppressWarnings("UnstableApiUsage")
+    private static String hashFrame(Frame frame) {
+        Hasher hasher = Hashing.murmur3_32_fixed().newHasher();
+        hashFrameRecursive(hasher, frame);
+        return hasher.hash().toString();
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private static void hashFrameRecursive(Hasher hasher, Frame frame) {
+        // Hash frame fields
+        if (frame.methodName() != null) {
+            hasher.putString(frame.methodName(), StandardCharsets.UTF_8);
+        }
+        hasher.putInt(frame.lineNumber());
+        hasher.putInt(frame.bci());
+        hasher.putLong(frame.totalSamples());
+        hasher.putLong(frame.totalWeight());
+        hasher.putLong(frame.selfSamples());
+        hasher.putLong(frame.selfWeight());
+        hasher.putLong(frame.c1Samples());
+        hasher.putLong(frame.interpretedSamples());
+        hasher.putLong(frame.jitCompiledSamples());
+        hasher.putLong(frame.inlinedSamples());
+
+        // Hash children count to detect structural differences
+        hasher.putInt(frame.size());
+
+        // Recursively hash children (TreeMap ensures consistent ordering)
+        for (Frame child : frame.values()) {
+            hashFrameRecursive(hasher, child);
         }
     }
 }

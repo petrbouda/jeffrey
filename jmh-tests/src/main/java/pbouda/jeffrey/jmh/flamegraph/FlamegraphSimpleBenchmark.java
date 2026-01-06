@@ -50,8 +50,8 @@ import java.util.function.Supplier;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-@Warmup(iterations = 5, time = 1)
-@Measurement(iterations = 10, time = 1)
+@Warmup(iterations = 2)
+@Measurement(iterations = 4)
 @Fork(value = 1, jvmArgs = {"-Xms2g", "-Xmx2g"})
 public class FlamegraphSimpleBenchmark {
 

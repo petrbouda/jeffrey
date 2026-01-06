@@ -2,6 +2,14 @@
 
 This skill guides iterative performance optimization using JMH benchmarks with automatic verification and results tracking. Applicable to any benchmark in the `jmh-tests` module.
 
+## Mandatory Requirements
+
+**ALWAYS** follow these requirements when executing benchmarks:
+
+1. **ALWAYS use `-prof gc`** - GC profiler for allocation and GC statistics
+2. **ALWAYS use `-prof async`** - Async-profiler for CPU flamegraphs (when available at `$JAVA_HOME/lib/`)
+3. **ALWAYS generate the final report** - Markdown report at `jmh-tests/target/benchmarks/<ClassName>-<timestamp>.md`
+
 ## Critical Instructions
 
 **ALWAYS use ultrathink (extended thinking)** when executing this skill. Deep analysis is required to:
@@ -59,7 +67,7 @@ java -jar jmh-tests/target/benchmarks.jar <BenchmarkClass> -prof gc $ASYNC_PROF
 java -jar jmh-tests/target/benchmarks.jar -prof gc $ASYNC_PROF
 ```
 
-**Note**: Always run with `-prof gc`. Add async-profiler flamegraph output only if async-profiler library is available at `$JAVA_HOME/lib/`.
+**MANDATORY**: Always run with `-prof gc` AND `-prof async` (when async-profiler is available at `$JAVA_HOME/lib/`). Never skip profiling.
 
 **Profiling Mode**: Default is CPU (`event=cpu`). For allocation profiling, replace `event=cpu` with `event=alloc` in the ASYNC_PROF variable. Only one async-profiler event type can be used per run.
 
@@ -200,7 +208,7 @@ cp jmh-tests/data/<database>.db jmh-tests/data/<database>-experimental.db
 
 ## Final Results Report
 
-**IMPORTANT**: At the end of the optimization session, always generate a final markdown report.
+**MANDATORY**: At the end of the optimization session, ALWAYS generate a final markdown report. This is NOT optional.
 
 ### Output Location
 ```
@@ -389,10 +397,10 @@ if [ -f "$JAVA_HOME/lib/libasyncProfiler.dylib" ] || [ -f "$JAVA_HOME/lib/libasy
 fi
 ```
 
-**Default profiling**:
-- `-prof gc` - GC statistics (allocation rate, GC count, GC time) - **always use**
-- `-prof "async:output=flamegraph;event=cpu;dir=..."` - CPU flamegraph (default) - **if available**
-- `-prof "async:output=flamegraph;event=alloc;dir=..."` - Allocation flamegraph (use when explicitly requested) - **if available**
+**Required profiling (MANDATORY)**:
+- `-prof gc` - GC statistics (allocation rate, GC count, GC time) - **ALWAYS use**
+- `-prof "async:output=flamegraph;event=cpu;dir=..."` - CPU flamegraph (default) - **ALWAYS use when available**
+- `-prof "async:output=flamegraph;event=alloc;dir=..."` - Allocation flamegraph (use when explicitly requested) - **ALWAYS use when available**
 
 **Note**: Only one async-profiler event type can be used per JMH run.
 
