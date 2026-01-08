@@ -71,6 +71,7 @@ public enum StatementLabel {
     FIND_LATEST_JSON,
     FIND_ALL_LATEST_EVENTS,
     STREAM_EVENTS,
+    LOAD_FRAMES_CACHE,
 
     /**
      * {@link GroupLabel#ALLOCATING_THREADS}

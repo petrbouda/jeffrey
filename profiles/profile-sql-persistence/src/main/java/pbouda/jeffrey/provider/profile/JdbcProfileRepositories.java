@@ -21,6 +21,7 @@ package pbouda.jeffrey.provider.profile;
 import pbouda.jeffrey.provider.profile.query.SQLFormatter;
 import pbouda.jeffrey.provider.profile.query.builder.QueryBuilderFactoryResolver;
 import pbouda.jeffrey.provider.profile.repository.*;
+import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
@@ -29,13 +30,16 @@ public class JdbcProfileRepositories implements ProfileRepositories {
 
     private final SQLFormatter sqlFormatter;
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
+    private final FrameResolutionMode frameResolutionMode;
 
     public JdbcProfileRepositories(
             SQLFormatter sqlFormatter,
-            QueryBuilderFactoryResolver queryBuilderFactoryResolver) {
+            QueryBuilderFactoryResolver queryBuilderFactoryResolver,
+            FrameResolutionMode frameResolutionMode) {
 
         this.sqlFormatter = sqlFormatter;
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
+        this.frameResolutionMode = frameResolutionMode;
     }
 
     @Override
@@ -52,7 +56,8 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     @Override
     public ProfileEventStreamRepository newEventStreamRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
-        return new JdbcProfileEventStreamRepository(queryBuilderFactoryResolver, profileClientProvider);
+        return new JdbcProfileEventStreamRepository(
+                queryBuilderFactoryResolver, profileClientProvider, frameResolutionMode);
     }
 
     @Override
