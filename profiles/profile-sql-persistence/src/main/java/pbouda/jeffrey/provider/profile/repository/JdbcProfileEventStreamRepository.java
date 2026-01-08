@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.provider.profile.model.*;
+import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.model.StacktraceTag;
 import pbouda.jeffrey.shared.common.model.StacktraceType;
 import pbouda.jeffrey.shared.common.model.Type;
@@ -49,13 +50,16 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
     private final QueryBuilderFactoryResolver queryBuilderFactoryResolver;
     private final DatabaseClient databaseClient;
+    private final FrameResolutionMode frameResolutionMode;
 
     public JdbcProfileEventStreamRepository(
             QueryBuilderFactoryResolver queryBuilderFactoryResolver,
-            DatabaseClientProvider databaseClientProvider) {
+            DatabaseClientProvider databaseClientProvider,
+            FrameResolutionMode frameResolutionMode) {
 
         this.queryBuilderFactoryResolver = queryBuilderFactoryResolver;
         this.databaseClient = databaseClientProvider.provide(PROFILE_EVENTS);
+        this.frameResolutionMode = frameResolutionMode;
     }
 
     @Override
@@ -173,7 +177,27 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
         MapSqlParameterSource baseParams = createBaseParams(configurer);
 
-        ComplexQueries.Flamegraph flamegraphQueries = factory.complexQueries().flamegraph();
+        // DuckDBFlamegraphQueries is required for optimized queries
+        DuckDBFlamegraphQueries flamegraphQueries = (DuckDBFlamegraphQueries) factory.complexQueries().flamegraph();
+
+        if (frameResolutionMode == FrameResolutionMode.CACHE) {
+            // Load frames fresh for this request - no caching between generations
+            FramesCache framesCache = FramesCache.load(databaseClient);
+
+            if (configurer.threads()) {
+                return new FlamegraphOptions(
+                        flamegraphQueries.byThreadAndWeightOptimized(),
+                        baseParams,
+                        new CachingFlamegraphRecordWithThreadsRowMapper(eventType, framesCache, true));
+            } else {
+                return new FlamegraphOptions(
+                        flamegraphQueries.byWeightOptimized(),
+                        baseParams,
+                        new CachingFlamegraphRecordRowMapper(eventType, framesCache, true));
+            }
+        }
+
+        // DATABASE mode: SQL-side frame resolution (original implementation)
         if (configurer.threads()) {
             return new FlamegraphOptions(
                     flamegraphQueries.byThreadAndWeight(),

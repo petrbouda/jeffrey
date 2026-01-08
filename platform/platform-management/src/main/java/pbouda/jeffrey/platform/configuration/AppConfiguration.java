@@ -61,6 +61,7 @@ import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.Config;
+import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -111,8 +112,13 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfilePersistenceProvider profilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs) {
-        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs);
+    public ProfilePersistenceProvider profilePersistenceProvider(
+            Clock clock,
+            JeffreyDirs jeffreyDirs,
+            @Value("${jeffrey.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
+
+        LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
+        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs, frameResolutionMode);
     }
 
     @Bean

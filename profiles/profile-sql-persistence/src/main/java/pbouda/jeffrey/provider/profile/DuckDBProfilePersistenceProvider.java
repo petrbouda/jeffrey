@@ -23,6 +23,7 @@ import pbouda.jeffrey.provider.profile.query.builder.QueryBuilderFactoryResolver
 import pbouda.jeffrey.provider.profile.query.builder.QueryBuilderFactoryResolverImpl;
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
 import pbouda.jeffrey.provider.profile.writer.SQLEventWriter;
+import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.persistence.CachingDatabaseManager;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
@@ -35,14 +36,20 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     private final int batchSize;
     private final DatabaseManager databaseManager;
+    private final FrameResolutionMode frameResolutionMode;
 
     public DuckDBProfilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs) {
-        this(clock, jeffreyDirs, DEFAULT_BATCH_SIZE);
+        this(clock, jeffreyDirs, FrameResolutionMode.CACHE, DEFAULT_BATCH_SIZE);
     }
 
-    public DuckDBProfilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs, int batchSize) {
+    public DuckDBProfilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs, FrameResolutionMode frameResolutionMode) {
+        this(clock, jeffreyDirs, frameResolutionMode, DEFAULT_BATCH_SIZE);
+    }
+
+    public DuckDBProfilePersistenceProvider(Clock clock, JeffreyDirs jeffreyDirs, FrameResolutionMode frameResolutionMode, int batchSize) {
         this.batchSize = batchSize;
         this.databaseManager = new CachingDatabaseManager(new DuckDBProfileDatabaseManager(jeffreyDirs), clock);
+        this.frameResolutionMode = frameResolutionMode;
     }
 
     @Override
@@ -71,6 +78,6 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
         QueryBuilderFactoryResolver queryBuilderFactoryResolver = new QueryBuilderFactoryResolverImpl(
                 sqlFormatter, defaultComplexQueries, nativeComplexQueries);
 
-        return new JdbcProfileRepositories(sqlFormatter, queryBuilderFactoryResolver);
+        return new JdbcProfileRepositories(sqlFormatter, queryBuilderFactoryResolver, frameResolutionMode);
     }
 }
