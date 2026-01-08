@@ -27,14 +27,16 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
-import pbouda.jeffrey.jmh.flamegraph.mapper.OptimizedFlamegraphRecordWithThreadsRowMapper;
-import pbouda.jeffrey.jmh.flamegraph.utils.FramesCache;
 import pbouda.jeffrey.jmh.flamegraph.verification.BenchmarkVerification;
 import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
+import pbouda.jeffrey.provider.profile.query.CachingFlamegraphRecordWithThreadsRowMapper;
 import pbouda.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
 import pbouda.jeffrey.provider.profile.query.FlamegraphRecordWithThreadsRowMapper;
+import pbouda.jeffrey.provider.profile.query.FramesCache;
 import pbouda.jeffrey.shared.common.model.Type;
+import pbouda.jeffrey.shared.persistence.GroupLabel;
 import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -65,7 +67,7 @@ public class FlamegraphByThreadAndWeightBenchmark {
             .addValue("excluded_tags", null);
 
     // Baseline supplier (SQL-side frame resolution)
-    private static final Supplier<List<FlamegraphRecord>> BASELINE_INVOCATION = () -> {
+    private static final Supplier<List<FlamegraphRecord>> DATABASE_FRAME_INVOCATION = () -> {
         DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byThreadAndWeight();
@@ -74,12 +76,13 @@ public class FlamegraphByThreadAndWeightBenchmark {
     };
 
     // Optimized supplier that uses cached frames
-    private static final Supplier<List<FlamegraphRecord>> OPTIMIZED_INVOCATION = () -> {
-        DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
+    private static final Supplier<List<FlamegraphRecord>> CACHE_FRAME_INVOCATION = () -> {
+        SimpleJdbcDataSource ds = new SimpleJdbcDataSource(JDBC_URL);
+        DatabaseClient databaseClient = new DatabaseClient(ds, GroupLabel.PROFILE_EVENTS);
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
         String sql = DuckDBFlamegraphQueries.of().byThreadAndWeightOptimized();
-        OptimizedFlamegraphRecordWithThreadsRowMapper rowMapper = new OptimizedFlamegraphRecordWithThreadsRowMapper(
-                Type.EXECUTION_SAMPLE, FramesCache.load(ds), true);
+        CachingFlamegraphRecordWithThreadsRowMapper rowMapper = new CachingFlamegraphRecordWithThreadsRowMapper(
+                Type.EXECUTION_SAMPLE, FramesCache.load(databaseClient), true);
         return jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
     };
 
@@ -96,8 +99,8 @@ public class FlamegraphByThreadAndWeightBenchmark {
      * Baseline: SQL-side frame resolution with thread and weight grouping.
      */
     @Benchmark
-    public Frame baseline() {
-        List<FlamegraphRecord> records = BASELINE_INVOCATION.get();
+    public Frame databaseFrameResolution() {
+        List<FlamegraphRecord> records = DATABASE_FRAME_INVOCATION.get();
         lastBuiltFrame = buildFrameTree(records);
         return lastBuiltFrame;
     }
@@ -106,8 +109,8 @@ public class FlamegraphByThreadAndWeightBenchmark {
      * Optimized: Java-side frame resolution with cached frames, thread and weight grouping.
      */
     @Benchmark
-    public Frame optimized() {
-        List<FlamegraphRecord> records = OPTIMIZED_INVOCATION.get();
+    public Frame cacheFrameResolution() {
+        List<FlamegraphRecord> records = CACHE_FRAME_INVOCATION.get();
         lastBuiltFrame = buildFrameTree(records);
         return lastBuiltFrame;
     }
