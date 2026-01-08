@@ -16,10 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.jmh.flamegraph.utils;
+package pbouda.jeffrey.jmh;
 
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -27,6 +29,7 @@ import pbouda.jeffrey.frameir.Frame;
 import pbouda.jeffrey.frameir.FrameBuilder;
 import pbouda.jeffrey.jmh.flamegraph.mapper.FlamegraphRecordByThreadRowMapper;
 import pbouda.jeffrey.jmh.flamegraph.mapper.SimpleFlamegraphRecordRowMapper;
+import pbouda.jeffrey.jmh.flamegraph.utils.FrameJsonSerializer;
 import pbouda.jeffrey.provider.profile.model.FlamegraphRecord;
 import pbouda.jeffrey.provider.profile.query.DuckDBFlamegraphQueries;
 import pbouda.jeffrey.provider.profile.query.FlamegraphRecordRowMapper;
@@ -35,22 +38,38 @@ import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Utility to generate baseline hash files for benchmark verification.
- * Run this after creating new benchmarks to generate the expected baseline hashes.
+ * Generates baseline hash files for benchmark verification.
+ * <p>
+ * This utility queries the DuckDB database and generates baseline hashes for each benchmark.
+ * These baselines are used by {@link pbouda.jeffrey.jmh.flamegraph.verification.BenchmarkVerification}
+ * to verify that benchmark results remain consistent.
+ * <p>
+ * Run from the project root directory:
+ * <pre>
+ * mvn -pl jmh-tests exec:java -Dexec.mainClass="pbouda.jeffrey.jmh.JmhBaselineGenerator"
+ * </pre>
+ * Or via IDE by running the main method.
+ * <p>
+ * Prerequisites: Run {@link JmhDatabaseInitializer} first to create the database.
  */
-public class BaselineGenerator {
+public class JmhBaselineGenerator {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JmhBaselineGenerator.class);
 
     private static final Path DATABASE_PATH = Path.of("jmh-tests/data/profile-data.db");
+    private static final Path BASELINE_DIR = Path.of("jmh-tests/data/baseline");
     private static final String JDBC_URL = "jdbc:duckdb:" + DATABASE_PATH.toAbsolutePath();
     private static final String EVENT_TYPE = "jdk.ExecutionSample";
-    private static final Path BASELINE_DIR = Path.of("jmh-tests/data/baseline");
 
     private static final MapSqlParameterSource QUERY_PARAMS = new MapSqlParameterSource()
             .addValue("event_type", EVENT_TYPE)
@@ -100,8 +119,26 @@ public class BaselineGenerator {
                     QUERY_PARAMS_WITH_THREAD)
     );
 
-    public static void main(String[] args) throws IOException {
-        System.out.println("Generating baseline files...\n");
+    private final Clock clock;
+
+    public JmhBaselineGenerator(Clock clock) {
+        this.clock = clock;
+    }
+
+    public static void main(String[] args) {
+        JmhBaselineGenerator generator = new JmhBaselineGenerator(Clock.systemUTC());
+        generator.generate();
+    }
+
+    public void generate() {
+        Instant startedAt = clock.instant();
+
+        if (!Files.exists(DATABASE_PATH)) {
+            LOG.error("Database not found. Run JmhDatabaseInitializer first: path={}", DATABASE_PATH.toAbsolutePath());
+            System.exit(1);
+        }
+
+        LOG.info("Generating baseline files for {} benchmarks", BENCHMARKS.size());
 
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(new SimpleJdbcDataSource(JDBC_URL));
 
@@ -109,22 +146,31 @@ public class BaselineGenerator {
             generateBaseline(jdbcTemplate, config);
         }
 
-        System.out.println("\nAll baselines generated successfully!");
+        long elapsedMs = clock.instant().toEpochMilli() - startedAt.toEpochMilli();
+        LOG.info("All baselines generated successfully: count={} elapsed_ms={}", BENCHMARKS.size(), elapsedMs);
     }
 
-    private static void generateBaseline(NamedParameterJdbcTemplate jdbcTemplate, BenchmarkConfig config) throws IOException {
-        System.out.println("Generating " + config.name() + " baseline...");
+    private void generateBaseline(NamedParameterJdbcTemplate jdbcTemplate, BenchmarkConfig config) {
+        LOG.info("Generating baseline: benchmark={}", config.name());
 
-        List<FlamegraphRecord> records = jdbcTemplate.query(config.sqlSupplier().get(), config.params(), config.rowMapper());
+        List<FlamegraphRecord> records = jdbcTemplate.query(
+                config.sqlSupplier().get(),
+                config.params(),
+                config.rowMapper());
+
         Frame frame = buildFrameTree(records);
+        String hash = hashFrame(frame);
 
         Path baselineDir = BASELINE_DIR.resolve(config.name());
-        Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hashFrame(frame));
-        Files.write(baselineDir.resolve("baseline-frame.json"), FrameJsonSerializer.toJsonBytes(frame));
+        try {
+            Files.createDirectories(baselineDir);
+            Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
+            Files.write(baselineDir.resolve("baseline-frame.json"), FrameJsonSerializer.toJsonBytes(frame));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to write baseline for " + config.name(), e);
+        }
 
-        System.out.println("  Records: " + records.size());
-        System.out.println("  Saved to: " + baselineDir);
+        LOG.info("Baseline generated: benchmark={} records={} hash={}", config.name(), records.size(), hash);
     }
 
     private static Frame buildFrameTree(List<FlamegraphRecord> records) {
