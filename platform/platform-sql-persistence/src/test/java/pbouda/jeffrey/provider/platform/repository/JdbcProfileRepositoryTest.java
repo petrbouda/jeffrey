@@ -28,18 +28,13 @@ import pbouda.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DuckDBTest(migration = "classpath:db/migration/platform")
 class JdbcProfileRepositoryTest {
-
-    private static final Clock FIXED_CLOCK = Clock.fixed(
-            Instant.parse("2025-01-15T12:00:00Z"), ZoneId.of("UTC"));
 
     @Nested
     class FindMethod {
@@ -48,7 +43,7 @@ class JdbcProfileRepositoryTest {
         void returnsProfile_whenExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider);
 
             Optional<ProfileInfo> result = repository.find();
 
@@ -59,7 +54,7 @@ class JdbcProfileRepositoryTest {
         @Test
         void returnsEmpty_whenNotExists(DataSource dataSource) {
             var provider = new DatabaseClientProvider(dataSource);
-            JdbcProfileRepository repository = new JdbcProfileRepository("non-existent", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("non-existent", provider);
 
             Optional<ProfileInfo> result = repository.find();
 
@@ -74,7 +69,7 @@ class JdbcProfileRepositoryTest {
         void insertsProfile(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("new-profile-001", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("new-profile-001", provider);
 
             ProfileRepository.InsertProfile insertProfile = new ProfileRepository.InsertProfile(
                     "proj-001",
@@ -96,31 +91,13 @@ class JdbcProfileRepositoryTest {
     }
 
     @Nested
-    class InitializeProfileMethod {
-
-        @Test
-        void initializesProfile(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
-
-            // This method marks the profile as initialized (sets initialized_at timestamp)
-            repository.initializeProfile();
-
-            // Verify the profile still exists after initialization
-            Optional<ProfileInfo> result = repository.find();
-            assertTrue(result.isPresent());
-        }
-    }
-
-    @Nested
     class UpdateMethod {
 
         @Test
         void updatesName(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider);
 
             ProfileInfo result = repository.update("Updated Profile Name");
 
@@ -135,10 +112,10 @@ class JdbcProfileRepositoryTest {
         void enablesProfile(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("profile-002", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("profile-002", provider);
 
             // Profile-002 has enabled_at = NULL initially
-            repository.enableProfile();
+            repository.enableProfile(Instant.parse("2025-01-15T12:00:00Z"));
 
             Optional<ProfileInfo> result = repository.find();
             assertTrue(result.isPresent());
@@ -153,7 +130,7 @@ class JdbcProfileRepositoryTest {
         void deletesProfile(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("profile-001", provider);
 
             // Verify profile exists before deletion
             assertTrue(repository.find().isPresent());
@@ -168,13 +145,13 @@ class JdbcProfileRepositoryTest {
         void deletesNothingWhenProfileNotExists(DataSource dataSource) throws SQLException {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProfileRepository repository = new JdbcProfileRepository("non-existent", provider, FIXED_CLOCK);
+            JdbcProfileRepository repository = new JdbcProfileRepository("non-existent", provider);
 
             // Should not throw, just delete 0 rows
             repository.delete();
 
             // Other profiles should still exist
-            JdbcProfileRepository existingRepo = new JdbcProfileRepository("profile-001", provider, FIXED_CLOCK);
+            JdbcProfileRepository existingRepo = new JdbcProfileRepository("profile-001", provider);
             assertTrue(existingRepo.find().isPresent());
         }
     }

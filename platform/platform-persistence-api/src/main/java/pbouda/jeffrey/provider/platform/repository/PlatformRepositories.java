@@ -42,12 +42,5 @@ public interface PlatformRepositories {
 
     WorkspacesRepository newWorkspacesRepository();
 
-    /**
-     * Creates a repository for managing profile metadata in the platform database.
-     * Handles both creation and management of profile records.
-     *
-     * @param profileId the profile identifier
-     * @return a new profile repository
-     */
     ProfileRepository newProfileRepository(String profileId);
 }

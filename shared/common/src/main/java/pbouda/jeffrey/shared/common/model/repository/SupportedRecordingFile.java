@@ -46,6 +46,12 @@ public enum SupportedRecordingFile {
             new AsprofCacheFileMatcher(),
             false
     ),
+    HEAP_DUMP_GZ(
+            "GZ Compressed Heap Dump",
+            FileExtensions.HPROF_GZ,
+            filename -> filename.endsWith("." + FileExtensions.HPROF_GZ),
+            true
+    ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,

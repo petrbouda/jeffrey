@@ -134,16 +134,22 @@ public class AppConfiguration {
 
     @Bean
     public ProfilesManager.Factory profilesManager(
+            Clock applicationClock,
             PlatformRepositories platformRepositories,
             ProfileManager.Factory profileFactory,
-            ProfileInitializer.Factory profileInitializerFactory) {
+            RecordingStorage recordingStorage,
+            ProfileInitializer profileInitializer) {
 
         return projectInfo ->
                 new ProfilesManagerImpl(
+                        applicationClock,
+                        projectInfo,
                         platformRepositories,
                         platformRepositories.newProjectRepository(projectInfo.id()),
+                        platformRepositories.newProjectRecordingRepository(projectInfo.id()),
+                        recordingStorage.projectRecordingStorage(projectInfo.id()),
                         profileFactory,
-                        profileInitializerFactory.apply(projectInfo));
+                        profileInitializer);
     }
 
     @Bean

@@ -18,17 +18,13 @@
 
 package pbouda.jeffrey.profile;
 
-import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
-import java.util.function.Function;
+import java.nio.file.Path;
 
 public interface ProfileInitializer {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProfileInitializer> {
-    }
-
-    ProfileManager initialize(String recordingId);
+    ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath);
 
 }

@@ -28,12 +28,12 @@ import pbouda.jeffrey.jfrparser.db.type.DbJfrMethod;
 import pbouda.jeffrey.jfrparser.db.type.DbJfrThread;
 import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.profile.model.GenericRecord;
-import pbouda.jeffrey.shared.persistence.Mappers;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 
 public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
 
@@ -50,7 +50,7 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
     @Override
     public GenericRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         String eventType = rs.getString("event_type");
-        Instant timestamp = Mappers.instant(rs, "start_timestamp");
+        Instant timestamp = instant(rs, "start_timestamp");
         long timestampFromStart = rs.getLong("start_timestamp_from_beginning");
 
         Long duration = rs.getLong("duration");
@@ -97,5 +97,13 @@ public class GenericRecordRowMapper implements RowMapper<GenericRecord> {
                 samples,
                 weight,
                 jsonFields);
+    }
+
+    public static Instant instant(ResultSet rs, String columnName) throws SQLException {
+        OffsetDateTime dateTime = rs.getObject(columnName, OffsetDateTime.class);
+        if (dateTime != null) {
+            return dateTime.toInstant();
+        }
+        return null;
     }
 }

@@ -38,23 +38,19 @@ public interface ProfileRepository {
     Optional<ProfileInfo> find();
 
     /**
-     * Insert a new profile record. The profile is created as disabled and not initialized.
-     * After all events are parsed, call {@link #initializeProfile()} to mark as initialized.
+     * Insert a new profile record. The profile is created as disabled.
      *
      * @param profile the profile data to insert
      */
     void insert(InsertProfile profile);
 
     /**
-     * Mark the profile as initialized after all events have been parsed and stored.
-     */
-    void initializeProfile();
-
-    /**
      * Newly created Profile is disabled by default. We need to explicitly call to enabled it after all
      * post-creation activities (caching etc.). After enabling, the profile is ready to be used by the system.
+     *
+     * @param enabledAt the timestamp when the profile is enabled
      */
-    void enableProfile();
+    void enableProfile(Instant enabledAt);
 
     /**
      * Update the profile name.

@@ -16,7 +16,8 @@ public class FeatureBuilder {
 
     /* Heap dump JVM Base options */
     private static final String HEAP_DUMP_BASE_OPTIONS = "-XX:+HeapDumpOnOutOfMemoryError "
-            + "-XX:HeapDumpPath=" + Path.of(Replacements.CURRENT_SESSION, "heap-dump.hprof") + " ";
+            + "-XX:HeapDumpGzipLevel=1 "
+            + "-XX:HeapDumpPath=" + Path.of(Replacements.CURRENT_SESSION, "heap-dump.hprof.gz") + " ";
 
     /* Heap dump JVM Crash options */
     private static final String HEAP_DUMP_CRASH_OPTIONS = HEAP_DUMP_BASE_OPTIONS

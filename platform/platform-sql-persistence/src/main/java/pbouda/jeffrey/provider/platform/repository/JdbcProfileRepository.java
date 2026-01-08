@@ -25,7 +25,7 @@ import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Clock;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
@@ -42,7 +42,7 @@ public class JdbcProfileRepository implements ProfileRepository {
                  recording_id,
                  recording_started_at,
                  recording_finished_at)
-
+            
                 VALUES (:profile_id,
                         :project_id,
                         :profile_name,
@@ -51,12 +51,6 @@ public class JdbcProfileRepository implements ProfileRepository {
                         :recording_id,
                         :recording_started_at,
                         :recording_finished_at)""";
-
-    //language=SQL
-    private static final String INITIALIZE_PROFILE = """
-            UPDATE profiles
-                SET initialized_at = :initialized_at
-                WHERE profile_id = :profile_id""";
 
     //language=SQL
     private static final String ENABLE_PROFILE =
@@ -76,12 +70,10 @@ public class JdbcProfileRepository implements ProfileRepository {
 
     private final String profileId;
     private final DatabaseClient databaseClient;
-    private final Clock clock;
 
-    public JdbcProfileRepository(String profileId, DatabaseClientProvider databaseClientProvider, Clock clock) {
+    public JdbcProfileRepository(String profileId, DatabaseClientProvider databaseClientProvider) {
         this.profileId = profileId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILES);
-        this.clock = clock;
     }
 
     @Override
@@ -109,19 +101,10 @@ public class JdbcProfileRepository implements ProfileRepository {
     }
 
     @Override
-    public void initializeProfile() {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("profile_id", profileId)
-                .addValue("initialized_at", clock.instant().atOffset(ZoneOffset.UTC));
-
-        databaseClient.update(StatementLabel.INITIALIZE_PROFILE, INITIALIZE_PROFILE, params);
-    }
-
-    @Override
-    public void enableProfile() {
+    public void enableProfile(Instant enabledAt) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("profile_id", profileId)
-                .addValue("enabled_at", clock.instant().atOffset(ZoneOffset.UTC));
+                .addValue("enabled_at", enabledAt.atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.ENABLED_PROFILE, ENABLE_PROFILE, paramSource);
     }

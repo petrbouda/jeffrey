@@ -137,7 +137,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 // Count by file type
                 switch (file.fileType()) {
                     case JFR, JFR_LZ4 -> jfrFiles++;
-                    case HEAP_DUMP -> heapDumpFiles++;
+                    case HEAP_DUMP, HEAP_DUMP_GZ -> heapDumpFiles++;
                     default -> otherFiles++;
                 }
             }

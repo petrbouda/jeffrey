@@ -79,6 +79,8 @@ export default class Utils {
                 return 'JFR (LZ4)';
             case 'PERF_COUNTERS':
                 return 'Perf Counters';
+            case 'HEAP_DUMP_GZ':
+                return 'Heap Dump (GZ)';
             case 'HEAP_DUMP':
                 return 'Heap Dump';
             case 'UNKNOWN':

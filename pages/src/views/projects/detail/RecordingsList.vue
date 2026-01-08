@@ -69,6 +69,7 @@ const toggleRecordingFiles = (recording: Recording) => {
 const FILE_TYPE_PRIORITY: Record<string, number> = {
   'JFR': 1,
   'JFR_LZ4': 1,
+  'HEAP_DUMP_GZ': 2,
   'HEAP_DUMP': 2,
   'PERF_COUNTERS': 3,
   'JVM_LOG': 4,
@@ -91,6 +92,8 @@ const getFileTypeClass = (fileType: string): string => {
     case 'JFR':
     case 'JFR_LZ4':
       return 'file-type-jfr';
+    case 'HEAP_DUMP_GZ':
+      return 'file-type-heap-dump-gz';
     case 'HEAP_DUMP':
       return 'file-type-heap-dump';
     case 'PERF_COUNTERS':
@@ -657,6 +660,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                           <div class="recording-file-icon-medium me-2">
                             <i class="bi" :class="{
                               'bi-file-earmark-code': file.type === 'JFR' || file.type === 'JFR_LZ4',
+                              'bi-file-earmark-zip': file.type === 'HEAP_DUMP_GZ',
                               'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
                               'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
                               'bi-file-earmark-text': file.type === 'JVM_LOG',
@@ -668,7 +672,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             <div class="d-flex align-items-center mt-1">
                               <Badge
                                 :value="Utils.formatFileType(file.type)"
-                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey'))))"
+                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP_GZ' ? 'violet' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))))"
                                 size="xxs"
                               />
                               <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
@@ -764,6 +768,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                           <div class="recording-file-icon-medium me-2">
                             <i class="bi" :class="{
                               'bi-file-earmark-code': file.type === 'JFR' || file.type === 'JFR_LZ4',
+                              'bi-file-earmark-zip': file.type === 'HEAP_DUMP_GZ',
                               'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
                               'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
                               'bi-file-earmark-text': file.type === 'JVM_LOG',
@@ -775,7 +780,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             <div class="d-flex align-items-center mt-1">
                               <Badge
                                 :value="Utils.formatFileType(file.type)"
-                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey'))))"
+                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP_GZ' ? 'violet' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))))"
                                 size="xxs"
                               />
                               <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
@@ -1093,6 +1098,25 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 .recording-file-row.file-type-heap-dump .recording-file-icon-medium {
   background-color: rgba(111, 66, 193, 0.15);
   color: #6f42c1;
+}
+
+/* HEAP_DUMP_GZ file styling - deeper purple/violet theme */
+.recording-file-row.file-type-heap-dump-gz {
+  background-color: rgba(81, 45, 168, 0.08);
+  border-left: 3px solid #512da8;
+  border-top: 1px solid rgba(81, 45, 168, 0.2);
+  border-right: 1px solid rgba(81, 45, 168, 0.2);
+  border-bottom: 1px solid rgba(81, 45, 168, 0.2);
+}
+
+.recording-file-row.file-type-heap-dump-gz:hover {
+  background-color: rgba(81, 45, 168, 0.12);
+  box-shadow: 0 2px 5px rgba(81, 45, 168, 0.15);
+}
+
+.recording-file-row.file-type-heap-dump-gz .recording-file-icon-medium {
+  background-color: rgba(81, 45, 168, 0.15);
+  color: #512da8;
 }
 
 /* PERF_COUNTERS file styling - sky blue theme */

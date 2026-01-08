@@ -252,6 +252,11 @@ const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
     classes.push('heap-dump-file');
   }
 
+  // Add heap dump GZ file class for HEAP_DUMP_GZ files
+  if (source.fileType === 'HEAP_DUMP_GZ') {
+    classes.push('heap-dump-gz-file');
+  }
+
   // Add perf counters file class for PERF_COUNTERS files
   if (source.fileType === 'PERF_COUNTERS') {
     classes.push('perf-counters-file');
@@ -290,6 +295,8 @@ const getFileTypeVariant = (fileType: string): string => {
       return 'primary';
     case 'JFR_LZ4':
       return 'indigo';  // Darker blue to indicate compressed JFR
+    case 'HEAP_DUMP_GZ':
+      return 'violet';
     case 'HEAP_DUMP':
       return 'purple';
     case 'ASPROF_TEMP':
@@ -762,7 +769,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                       <div class="recording-file-icon-medium me-3">
                         <i class="bi" :class="{
                           'bi-file-earmark-code': source.fileType === 'JFR',
-                          'bi-file-earmark-zip': source.fileType === 'JFR_LZ4',
+                          'bi-file-earmark-zip': source.fileType === 'JFR_LZ4' || source.fileType === 'HEAP_DUMP_GZ',
                           'bi-file-earmark-binary': source.fileType === 'HEAP_DUMP',
                           'bi-hourglass-split': source.fileType === 'ASPROF_TEMP',
                           'bi-file-earmark-bar-graph': source.fileType === 'PERF_COUNTERS',
@@ -1214,6 +1221,27 @@ code {
 .child-row.heap-dump-file .recording-file-icon-medium {
   background-color: rgba(111, 66, 193, 0.15) !important;
   color: #6f42c1 !important;
+}
+
+/* Heap dump GZ file styling - deeper purple/violet theme */
+.child-row.heap-dump-gz-file {
+  background-color: rgba(81, 45, 168, 0.08) !important;
+  border-left: 3px solid #512da8 !important;
+  border-top: 1px solid rgba(81, 45, 168, 0.2) !important;
+  border-right: 1px solid rgba(81, 45, 168, 0.2) !important;
+  border-bottom: 1px solid rgba(81, 45, 168, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(81, 45, 168, 0.15) !important;
+}
+
+.child-row.heap-dump-gz-file:hover {
+  background-color: rgba(81, 45, 168, 0.12) !important;
+  box-shadow: 0 2px 5px rgba(81, 45, 168, 0.2) !important;
+}
+
+/* Heap dump GZ file icon styling - deeper purple/violet theme */
+.child-row.heap-dump-gz-file .recording-file-icon-medium {
+  background-color: rgba(81, 45, 168, 0.15) !important;
+  color: #512da8 !important;
 }
 
 /* Perf counters file styling - sky blue theme */

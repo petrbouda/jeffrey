@@ -99,7 +99,6 @@ CREATE TABLE IF NOT EXISTS profiles
     recording_id          VARCHAR NOT NULL,
     recording_started_at  TIMESTAMPTZ NOT NULL,
     recording_finished_at TIMESTAMPTZ NOT NULL,
-    initialized_at        TIMESTAMPTZ,
     enabled_at            TIMESTAMPTZ,
     PRIMARY KEY (profile_id)
 );

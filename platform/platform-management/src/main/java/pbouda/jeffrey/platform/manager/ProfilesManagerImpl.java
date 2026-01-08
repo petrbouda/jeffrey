@@ -20,12 +20,22 @@ package pbouda.jeffrey.platform.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
-import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProfileRepository;
+import pbouda.jeffrey.provider.platform.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
+import pbouda.jeffrey.shared.common.IDGenerator;
+import pbouda.jeffrey.shared.common.Schedulers;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.Recording;
+import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -34,19 +44,30 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesManagerImpl.class);
 
+    private final Clock clock;
+    private final ProjectInfo projectInfo;
     private final PlatformRepositories platformRepositories;
     private final ProjectRepository projectRepository;
     private final ProfileInitializer profileInitializer;
+    private final ProjectRecordingRepository projectRecordingRepository;
+    private final ProjectRecordingStorage projectRecordingStorage;
     private final ProfileManager.Factory profileManagerFactory;
 
     public ProfilesManagerImpl(
+            Clock clock,
+            ProjectInfo projectInfo,
             PlatformRepositories platformRepositories,
             ProjectRepository projectRepository,
+            ProjectRecordingRepository projectRecordingRepository,
+            ProjectRecordingStorage projectRecordingStorage,
             ProfileManager.Factory profileManagerFactory,
             ProfileInitializer profileInitializer) {
-
+        this.clock = clock;
+        this.projectInfo = projectInfo;
         this.platformRepositories = platformRepositories;
         this.projectRepository = projectRepository;
+        this.projectRecordingRepository = projectRecordingRepository;
+        this.projectRecordingStorage = projectRecordingStorage;
         this.profileManagerFactory = profileManagerFactory;
         this.profileInitializer = profileInitializer;
     }
@@ -60,14 +81,48 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public CompletableFuture<ProfileManager> createProfile(String recordingId) {
-        return CompletableFuture.supplyAsync(
-                        () -> profileInitializer.initialize(recordingId),
-                        Schedulers.sharedVirtual())
+        return CompletableFuture.supplyAsync(() -> createProfileInternal(recordingId), Schedulers.sharedVirtual())
                 .exceptionally(ex -> {
                     LOG.error("Could not create profile for recording: recording_id={} message={}",
                             recordingId, ex.getMessage(), ex);
                     throw new RuntimeException("Could not create profile for recording: " + recordingId, ex);
                 });
+    }
+
+    private ProfileManager createProfileInternal(String recordingId) {
+        // --- Create profile from recording ---
+        Recording recording = projectRecordingRepository.findById(recordingId)
+                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
+
+        Optional<Path> recordingPathOpt = projectRecordingStorage.findRecording(recordingId);
+        if (recordingPathOpt.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Recording not found: recording_id=" + recordingId + " project_id=" + projectInfo.id());
+        }
+
+        String profileId = IDGenerator.generate();
+        Instant profileCreatedAt = clock.instant();
+
+        // Create an empty profile to be able to see profile initialization progress
+        ProfileRepository profileRepository = platformRepositories.newProfileRepository(profileId);
+
+        var insertProfile = new ProfileRepository.InsertProfile(
+                projectInfo.id(),
+                recording.recordingName(),
+                recording.eventSource(),
+                profileCreatedAt,
+                recordingId,
+                recording.recordingStartedAt(),
+                recording.recordingFinishedAt());
+
+        profileRepository.insert(insertProfile);
+
+        ProfileInfo profileInfo = platformRepositories.newProfileRepository(profileId).find()
+                .orElseThrow(() -> new RuntimeException("Could not find newly created profile: " + profileId));
+
+        ProfileManager profileManager = profileInitializer.initialize(profileInfo, recordingId, recordingPathOpt.get());
+        profileRepository.enableProfile(clock.instant());
+        return profileManager;
     }
 
     @Override

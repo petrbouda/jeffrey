@@ -27,8 +27,6 @@ import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
-import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
-import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
@@ -44,6 +42,7 @@ import pbouda.jeffrey.profile.manager.registry.AnalysisFactories;
 import pbouda.jeffrey.profile.manager.registry.JvmInsightFactories;
 import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import pbouda.jeffrey.profile.manager.registry.VisualizationFactories;
+import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.settings.CachedActiveSettingsProvider;
 import pbouda.jeffrey.profile.thread.CachingThreadProvider;
@@ -52,6 +51,7 @@ import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.repository.*;
+import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
@@ -305,25 +305,19 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public ProfileInitializer.Factory profileInitializer(
-            PlatformRepositories platformRepositories,
+    public ProfileInitializer profileInitializer(
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
-            RecordingStorage recordingStorage,
             JeffreyDirs jeffreyDirs,
             Clock clock) {
-        return projectInfo ->
-                new ProfileInitializerImpl(
-                        projectInfo,
-                        platformRepositories,
-                        profileRepositories,
-                        profileDatabaseProvider,
-                        recordingStorage.projectRecordingStorage(projectInfo.id()),
-                        new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
-                        eventWriterFactory,
-                        profileManagerFactory,
-                        profileDataInitializer,
-                        clock);
+        return new ProfileInitializerImpl(
+                profileRepositories,
+                profileDatabaseProvider,
+                new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
+                eventWriterFactory,
+                profileManagerFactory,
+                profileDataInitializer,
+                clock);
     }
 
     @Bean

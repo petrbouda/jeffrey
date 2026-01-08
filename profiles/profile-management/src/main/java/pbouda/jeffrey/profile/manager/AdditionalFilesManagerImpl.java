@@ -68,7 +68,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
     }
 
     @Override
-    public boolean performanceCountersExists() {
+    public boolean performanceCountersExists()  {
         return cacheRepository.contains(PERF_COUNTERS_KEY);
     }
 

@@ -34,6 +34,11 @@ public class JdbcPlatformRepositories implements PlatformRepositories {
     }
 
     @Override
+    public ProfileRepository newProfileRepository(String profileId) {
+        return new JdbcProfileRepository(profileId, databaseClientProvider);
+    }
+
+    @Override
     public ProjectRepository newProjectRepository(String projectId) {
         return new JdbcProjectRepository(projectId, databaseClientProvider);
     }
@@ -76,10 +81,5 @@ public class JdbcPlatformRepositories implements PlatformRepositories {
     @Override
     public WorkspacesRepository newWorkspacesRepository() {
         return new JdbcWorkspacesRepository(databaseClientProvider);
-    }
-
-    @Override
-    public ProfileRepository newProfileRepository(String profileId) {
-        return new JdbcProfileRepository(profileId, databaseClientProvider, clock);
     }
 }

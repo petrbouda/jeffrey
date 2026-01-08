@@ -18,4 +18,4 @@
 
 // UI component types
 export type Size = 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
-export type Variant = 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';
+export type Variant = 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger' | 'light' | 'dark' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'violet' | 'grey' | 'pink' | 'yellow' | 'cyan' | 'indigo' | 'teal' | 'lime' | 'brown';

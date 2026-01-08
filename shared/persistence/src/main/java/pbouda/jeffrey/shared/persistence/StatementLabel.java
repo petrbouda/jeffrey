@@ -26,7 +26,6 @@ public enum StatementLabel {
      * {@link GroupLabel#INTERNAL_PROFILES}
      */
     INSERT_PROFILE,
-    INITIALIZE_PROFILE,
     MAX_EVENT_TIMESTAMP,
     UPDATE_PROFILE_FINISHED_AT,
 

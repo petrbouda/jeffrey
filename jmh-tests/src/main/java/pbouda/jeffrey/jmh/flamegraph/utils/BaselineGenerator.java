@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.jmh.flamegraph.utils;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import pbouda.jeffrey.frameir.Frame;
@@ -31,15 +34,12 @@ import pbouda.jeffrey.provider.profile.query.FlamegraphRecordWithThreadsRowMappe
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.persistence.SimpleJdbcDataSource;
 
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
-
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Utility to generate baseline hash files for benchmark verification.
@@ -48,8 +48,9 @@ import java.util.List;
 public class BaselineGenerator {
 
     private static final Path DATABASE_PATH = Path.of("jmh-tests/data/profile-data.db");
-    private static final String EVENT_TYPE = "jdk.ExecutionSample";
     private static final String JDBC_URL = "jdbc:duckdb:" + DATABASE_PATH.toAbsolutePath();
+    private static final String EVENT_TYPE = "jdk.ExecutionSample";
+    private static final Path BASELINE_DIR = Path.of("jmh-tests/data/baseline");
 
     private static final MapSqlParameterSource QUERY_PARAMS = new MapSqlParameterSource()
             .addValue("event_type", EVENT_TYPE)
@@ -69,114 +70,60 @@ public class BaselineGenerator {
             .addValue("included_tags", null)
             .addValue("excluded_tags", null);
 
+    private record BenchmarkConfig(
+            String name,
+            Supplier<String> sqlSupplier,
+            RowMapper<FlamegraphRecord> rowMapper,
+            MapSqlParameterSource params
+    ) {}
+
+    private static final List<BenchmarkConfig> BENCHMARKS = List.of(
+            new BenchmarkConfig(
+                    "SimpleFlamegraphBenchmark",
+                    () -> DuckDBFlamegraphQueries.of().simple(),
+                    new SimpleFlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE),
+                    QUERY_PARAMS),
+            new BenchmarkConfig(
+                    "FlamegraphBenchmark",
+                    () -> DuckDBFlamegraphQueries.of().byWeight(),
+                    new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE),
+                    QUERY_PARAMS),
+            new BenchmarkConfig(
+                    "ByThreadFlamegraphBenchmark",
+                    () -> DuckDBFlamegraphQueries.of().byThread(),
+                    new FlamegraphRecordByThreadRowMapper(Type.EXECUTION_SAMPLE),
+                    QUERY_PARAMS_WITH_THREAD),
+            new BenchmarkConfig(
+                    "ByThreadAndWeightFlamegraphBenchmark",
+                    () -> DuckDBFlamegraphQueries.of().byThreadAndWeight(),
+                    new FlamegraphRecordWithThreadsRowMapper(Type.EXECUTION_SAMPLE),
+                    QUERY_PARAMS_WITH_THREAD)
+    );
+
     public static void main(String[] args) throws IOException {
         System.out.println("Generating baseline files...\n");
 
-        // Generate SimpleFlamegraphBenchmark baseline
-        generateSimpleFlamegraphBenchmarkBaseline();
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(new SimpleJdbcDataSource(JDBC_URL));
 
-        // Generate FlamegraphBenchmark baseline
-        generateFlamegraphBenchmarkBaseline();
-
-        // Generate ByThreadFlamegraphBenchmark baseline
-        generateByThreadFlamegraphBenchmarkBaseline();
-
-        // Generate ByThreadAndWeightFlamegraphBenchmark baseline
-        generateByThreadAndWeightFlamegraphBenchmarkBaseline();
+        for (BenchmarkConfig config : BENCHMARKS) {
+            generateBaseline(jdbcTemplate, config);
+        }
 
         System.out.println("\nAll baselines generated successfully!");
     }
 
-    private static void generateSimpleFlamegraphBenchmarkBaseline() throws IOException {
-        System.out.println("Generating SimpleFlamegraphBenchmark baseline...");
+    private static void generateBaseline(NamedParameterJdbcTemplate jdbcTemplate, BenchmarkConfig config) throws IOException {
+        System.out.println("Generating " + config.name() + " baseline...");
 
-        DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
-        String sql = DuckDBFlamegraphQueries.of().simple();
-        SimpleFlamegraphRecordRowMapper rowMapper = new SimpleFlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE);
-        List<FlamegraphRecord> records = jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
-
+        List<FlamegraphRecord> records = jdbcTemplate.query(config.sqlSupplier().get(), config.params(), config.rowMapper());
         Frame frame = buildFrameTree(records);
-        byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = hashFrame(frame);
 
-        Path baselineDir = Path.of("jmh-tests/data/baseline/SimpleFlamegraphBenchmark");
+        Path baselineDir = BASELINE_DIR.resolve(config.name());
         Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
-        Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
+        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hashFrame(frame));
+        Files.write(baselineDir.resolve("baseline-frame.json"), FrameJsonSerializer.toJsonBytes(frame));
 
         System.out.println("  Records: " + records.size());
-        System.out.println("  Hash: " + hash);
-        System.out.println("  Saved to: " + baselineDir);
-    }
-
-    private static void generateFlamegraphBenchmarkBaseline() throws IOException {
-        System.out.println("Generating FlamegraphBenchmark baseline...");
-
-        DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
-        String sql = DuckDBFlamegraphQueries.of().byWeight();
-        FlamegraphRecordRowMapper rowMapper = new FlamegraphRecordRowMapper(Type.EXECUTION_SAMPLE);
-        List<FlamegraphRecord> records = jdbcTemplate.query(sql, QUERY_PARAMS, rowMapper);
-
-        Frame frame = buildFrameTree(records);
-        byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = hashFrame(frame);
-
-        Path baselineDir = Path.of("jmh-tests/data/baseline/FlamegraphBenchmark");
-        Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
-        Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
-
-        System.out.println("  Records: " + records.size());
-        System.out.println("  Hash: " + hash);
-        System.out.println("  Saved to: " + baselineDir);
-    }
-
-    private static void generateByThreadFlamegraphBenchmarkBaseline() throws IOException {
-        System.out.println("Generating ByThreadFlamegraphBenchmark baseline...");
-
-        DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
-        String sql = DuckDBFlamegraphQueries.of().byThread();
-        // byThread query doesn't include weight_entity, use the appropriate mapper
-        FlamegraphRecordByThreadRowMapper rowMapper = new FlamegraphRecordByThreadRowMapper(Type.EXECUTION_SAMPLE);
-        List<FlamegraphRecord> records = jdbcTemplate.query(sql, QUERY_PARAMS_WITH_THREAD, rowMapper);
-
-        Frame frame = buildFrameTree(records);
-        byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = hashFrame(frame);
-
-        Path baselineDir = Path.of("jmh-tests/data/baseline/ByThreadFlamegraphBenchmark");
-        Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
-        Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
-
-        System.out.println("  Records: " + records.size());
-        System.out.println("  Hash: " + hash);
-        System.out.println("  Saved to: " + baselineDir);
-    }
-
-    private static void generateByThreadAndWeightFlamegraphBenchmarkBaseline() throws IOException {
-        System.out.println("Generating ByThreadAndWeightFlamegraphBenchmark baseline...");
-
-        DataSource ds = new SimpleJdbcDataSource(JDBC_URL);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(ds);
-        String sql = DuckDBFlamegraphQueries.of().byThreadAndWeight();
-        FlamegraphRecordWithThreadsRowMapper rowMapper = new FlamegraphRecordWithThreadsRowMapper(Type.EXECUTION_SAMPLE);
-        List<FlamegraphRecord> records = jdbcTemplate.query(sql, QUERY_PARAMS_WITH_THREAD, rowMapper);
-
-        Frame frame = buildFrameTree(records);
-        byte[] jsonBytes = FrameJsonSerializer.toJsonBytes(frame);
-        String hash = hashFrame(frame);
-
-        Path baselineDir = Path.of("jmh-tests/data/baseline/ByThreadAndWeightFlamegraphBenchmark");
-        Files.createDirectories(baselineDir);
-        Files.writeString(baselineDir.resolve("baseline-frame.murmur3"), hash);
-        Files.write(baselineDir.resolve("baseline-frame.json"), jsonBytes);
-
-        System.out.println("  Records: " + records.size());
-        System.out.println("  Hash: " + hash);
         System.out.println("  Saved to: " + baselineDir);
     }
 
@@ -188,10 +135,6 @@ public class BaselineGenerator {
         return builder.build();
     }
 
-    /**
-     * Computes a murmur3 hash of the entire Frame tree structure.
-     * This must match the hashing logic in BenchmarkVerification.
-     */
     @SuppressWarnings("UnstableApiUsage")
     private static String hashFrame(Frame frame) {
         Hasher hasher = Hashing.murmur3_32_fixed().newHasher();
@@ -201,7 +144,6 @@ public class BaselineGenerator {
 
     @SuppressWarnings("UnstableApiUsage")
     private static void hashFrameRecursive(Hasher hasher, Frame frame) {
-        // Hash frame fields
         if (frame.methodName() != null) {
             hasher.putString(frame.methodName(), StandardCharsets.UTF_8);
         }
@@ -215,11 +157,8 @@ public class BaselineGenerator {
         hasher.putLong(frame.interpretedSamples());
         hasher.putLong(frame.jitCompiledSamples());
         hasher.putLong(frame.inlinedSamples());
-
-        // Hash children count to detect structural differences
         hasher.putInt(frame.size());
 
-        // Recursively hash children (TreeMap ensures consistent ordering)
         for (Frame child : frame.values()) {
             hashFrameRecursive(hasher, child);
         }
