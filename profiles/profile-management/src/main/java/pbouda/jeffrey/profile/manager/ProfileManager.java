@@ -60,6 +60,8 @@ public interface ProfileManager {
 
     HeapMemoryManager heapMemoryManager();
 
+    HeapDumpManager heapDumpManager();
+
     ProfileFeaturesManager featuresManager();
 
     ProfileCustomManager custom();

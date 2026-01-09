@@ -1,0 +1,71 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+import BaseProfileClient from '@/services/api/BaseProfileClient';
+import HeapSummary from '@/services/api/model/HeapSummary';
+import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
+import OQLQueryResult from '@/services/api/model/OQLQueryResult';
+import GCRootSummary from '@/services/api/model/GCRootSummary';
+import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
+
+export default class HeapDumpClient extends BaseProfileClient {
+
+    constructor(workspaceId: string, projectId: string, profileId: string) {
+        super(workspaceId, projectId, profileId, 'heap');
+    }
+
+    public exists(): Promise<boolean> {
+        return this.get<boolean>('/exists');
+    }
+
+    public isCacheReady(): Promise<boolean> {
+        return this.get<boolean>('/cache-ready');
+    }
+
+    public getSummary(): Promise<HeapSummary> {
+        return this.get<HeapSummary>('/summary');
+    }
+
+    public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {
+        return this.get<ClassHistogramEntry[]>('/histogram', { topN, sortBy });
+    }
+
+    public executeQuery(query: string, limit: number = 100, offset: number = 0, includeRetainedSize: boolean = true): Promise<OQLQueryResult> {
+        return this.post<OQLQueryResult>('/query', { query, limit, offset, includeRetainedSize });
+    }
+
+    public getThreads(): Promise<HeapThreadInfo[]> {
+        return this.get<HeapThreadInfo[]>('/threads');
+    }
+
+    public getGCRoots(): Promise<GCRootSummary> {
+        return this.get<GCRootSummary>('/gc-roots');
+    }
+
+    public unload(): Promise<void> {
+        return this.post<void>('/unload', {});
+    }
+
+    public deleteCache(): Promise<void> {
+        return this.post<void>('/delete-cache', {});
+    }
+
+    public deleteHeapDump(): Promise<void> {
+        return this.post<void>('/delete', {});
+    }
+}

@@ -43,8 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 .chart-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border: 1px solid #dee2e6;
   overflow: hidden;
 }
 
@@ -54,7 +53,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 .chart-header {
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #dee2e6;
 }
 
 .chart-header h4 {

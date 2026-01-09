@@ -41,6 +41,7 @@
         <module>flamegraph</module>
         <module>subsecond</module>
         <module>timeseries</module>
+        <module>heap-dump</module>
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
@@ -113,6 +114,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>profile-guardian</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>heap-dump</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- Service modules that profile depends on -->

@@ -31,6 +31,8 @@ import pbouda.jeffrey.profile.guardian.CachingGuardianProvider;
 import pbouda.jeffrey.profile.guardian.Guardian;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
 import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
+import pbouda.jeffrey.profile.heapdump.HeapLoader;
+import pbouda.jeffrey.profile.heapdump.SimpleHeapLoader;
 import pbouda.jeffrey.profile.manager.*;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializerImpl;
@@ -108,14 +110,16 @@ public class ProfileFactoriesConfiguration {
             JITCompilationManager.Factory jitCompilationFactory,
             HeapMemoryManager.Factory heapMemoryFactory,
             ContainerManager.Factory containerFactory,
-            ThreadManager.Factory threadFactory) {
+            ThreadManager.Factory threadFactory,
+            HeapDumpManager.Factory heapDumpFactory) {
 
         return new JvmInsightFactories(
                 gcFactory,
                 jitCompilationFactory,
                 heapMemoryFactory,
                 containerFactory,
-                threadFactory);
+                threadFactory,
+                heapDumpFactory);
     }
 
     @Bean
@@ -394,5 +398,21 @@ public class ProfileFactoriesConfiguration {
             return _ -> {
             };
         }
+    }
+
+    @Bean
+    public HeapLoader heapLoader() {
+        return new SimpleHeapLoader();
+    }
+
+    @Bean
+    public HeapDumpManager.Factory heapDumpManagerFactory(
+            HeapLoader heapLoader,
+            AdditionalFilesManager.Factory additionalFilesManagerFactory) {
+
+        return profileInfo -> new HeapDumpManagerImpl(
+                profileInfo,
+                heapLoader,
+                additionalFilesManagerFactory.apply(profileInfo));
     }
 }

@@ -21,7 +21,9 @@ package pbouda.jeffrey.profile.manager;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.model.PerfCounter;
 
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 public interface AdditionalFilesManager {
@@ -35,4 +37,18 @@ public interface AdditionalFilesManager {
     boolean performanceCountersExists();
 
     List<PerfCounter> performanceCounters();
+
+    /**
+     * Check if a heap dump file exists for this recording.
+     *
+     * @return true if a heap dump file is available
+     */
+    boolean heapDumpExists();
+
+    /**
+     * Get the path to the heap dump file if one exists.
+     *
+     * @return path to heap dump, or empty if not available
+     */
+    Optional<Path> getHeapDumpPath();
 }

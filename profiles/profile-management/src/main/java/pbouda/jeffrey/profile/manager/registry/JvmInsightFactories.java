@@ -20,6 +20,7 @@ package pbouda.jeffrey.profile.manager.registry;
 
 import pbouda.jeffrey.profile.manager.ContainerManager;
 import pbouda.jeffrey.profile.manager.GarbageCollectionManager;
+import pbouda.jeffrey.profile.manager.HeapDumpManager;
 import pbouda.jeffrey.profile.manager.HeapMemoryManager;
 import pbouda.jeffrey.profile.manager.JITCompilationManager;
 import pbouda.jeffrey.profile.manager.ThreadManager;
@@ -29,5 +30,6 @@ public record JvmInsightFactories(
         JITCompilationManager.Factory jitCompilation,
         HeapMemoryManager.Factory heapMemory,
         ContainerManager.Factory container,
-        ThreadManager.Factory thread) {
+        ThreadManager.Factory thread,
+        HeapDumpManager.Factory heapDump) {
 }

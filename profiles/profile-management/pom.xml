@@ -49,6 +49,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>heap-dump</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>subsecond</artifactId>
         </dependency>
         <dependency>

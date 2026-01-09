@@ -38,6 +38,18 @@
           <small>Profiling graphs and visualizations</small>
         </div>
       </div>
+      <div class="nav-pill"
+           :class="{ 'active': selectedMode === 'HeapDump' }"
+           @click="selectMode('HeapDump')"
+           title="Heap dump memory analysis">
+        <div class="pill-content">
+          <div class="title-row">
+            <i class="bi bi-database"></i>
+            <span>Heap Dump Analysis</span>
+          </div>
+          <small>Memory analysis from heap dumps</small>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -410,6 +422,67 @@
                 </div>
               </div>
             </template>
+
+            <!-- Heap Dump Analysis Mode Menu -->
+            <template v-else-if="selectedMode === 'HeapDump'">
+              <div class="nav-section">
+                <div class="nav-section-title">OVERVIEW</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/settings`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-memory"></i>
+                    <span>Heap Dump Overview</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">ANALYSIS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/histogram`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-list-ol"></i>
+                    <span>Class Histogram</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/oql`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-terminal"></i>
+                    <span>OQL Query</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">DETAILS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/gc-roots`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-diagram-3"></i>
+                    <span>GC Roots</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/threads`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-cpu"></i>
+                    <span>Threads</span>
+                  </router-link>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -560,16 +633,16 @@ const isFeatureDisabled = (menuItem: string): boolean => {
   return featureType ? disabledFeatures.value.includes(featureType) : false;
 };
 // Initialize mode from sessionStorage or default to 'JVM'
-const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' => {
+const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' | 'HeapDump' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
   // Handle backward compatibility: 'JDK' -> 'JVM', 'Custom' -> 'Application'
   if (stored === 'JDK') return 'JVM';
   if (stored === 'Custom') return 'Application';
-  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization') return stored;
+  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization' || stored === 'HeapDump') return stored;
   return 'JVM';
 };
 
-const selectedMode = ref<'JVM' | 'Application' | 'Visualization'>(getStoredMode());
+const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump'>(getStoredMode());
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 
@@ -699,7 +772,7 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const selectMode = (mode: 'JVM' | 'Application' | 'Visualization') => {
+const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') => {
   selectedMode.value = mode;
 };
 

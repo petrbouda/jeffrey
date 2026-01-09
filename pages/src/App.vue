@@ -23,7 +23,7 @@ onMounted(() => {
 /* Global styles */
 .app-container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--color-bg-body);
 }
 
 /* Custom scrollbar */

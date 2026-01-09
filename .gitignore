@@ -53,3 +53,4 @@ profile.jfr
 .mcp.json
 
 jmh-tests/data/*
+jmh-tests/dependency-reduced-pom.xml
