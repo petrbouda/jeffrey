@@ -38,6 +38,18 @@
           <small>Profiling graphs and visualizations</small>
         </div>
       </div>
+      <div class="nav-pill"
+           :class="{ 'active': selectedMode === 'HeapDump' }"
+           @click="selectMode('HeapDump')"
+           title="Heap dump memory analysis">
+        <div class="pill-content">
+          <div class="title-row">
+            <i class="bi bi-database"></i>
+            <span>Heap Dump Analysis</span>
+          </div>
+          <small>Memory analysis from heap dumps</small>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -410,6 +422,71 @@
                 </div>
               </div>
             </template>
+
+            <!-- Heap Dump Analysis Mode Menu -->
+            <template v-else-if="selectedMode === 'HeapDump'">
+              <div class="nav-section">
+                <div class="nav-section-title">OVERVIEW</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/settings`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-memory"></i>
+                    <span>Heap Dump Overview</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">ANALYSIS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/histogram`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-list-ol"></i>
+                    <span>Class Histogram</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/oql`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-terminal"></i>
+                    <span>OQL Query</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">DETAILS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/gc-roots`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-diagram-3"></i>
+                    <span>GC Roots</span>
+                  </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/threads`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-cpu"></i>
+                    <span>Threads</span>
+                  </router-link>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -506,7 +583,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue';
+import {onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
@@ -521,6 +598,7 @@ import GuardianClient from "@/services/api/GuardianClient";
 import AutoAnalysisClient from "@/services/api/AutoAnalysisClient";
 import ProfileFeaturesClient from "@/services/api/ProfileFeaturesClient";
 import FeatureType from "@/services/api/model/FeatureType";
+import HeapDumpClient from "@/services/api/HeapDumpClient";
 
 const route = useRoute();
 const router = useRouter();
@@ -539,6 +617,7 @@ const showSecondaryProfileSelectionModal = ref(false);
 const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
 const disabledFeatures = ref<FeatureType[]>([]);
+const heapDumpReady = ref(false);
 
 // Mapping function to determine which features are associated with menu items
 const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
@@ -560,16 +639,16 @@ const isFeatureDisabled = (menuItem: string): boolean => {
   return featureType ? disabledFeatures.value.includes(featureType) : false;
 };
 // Initialize mode from sessionStorage or default to 'JVM'
-const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' => {
+const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' | 'HeapDump' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
   // Handle backward compatibility: 'JDK' -> 'JVM', 'Custom' -> 'Application'
   if (stored === 'JDK') return 'JVM';
   if (stored === 'Custom') return 'Application';
-  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization') return stored;
+  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization' || stored === 'HeapDump') return stored;
   return 'JVM';
 };
 
-const selectedMode = ref<'JVM' | 'Application' | 'Visualization'>(getStoredMode());
+const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump'>(getStoredMode());
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 
@@ -625,6 +704,17 @@ onMounted(async () => {
       console.error('Failed to load disabled features:', error);
     }
 
+    // Check if heap dump is ready (cache initialized)
+    try {
+      const heapDumpClient = new HeapDumpClient(workspaceId.value!, projectId.value!, profileId);
+      const exists = await heapDumpClient.exists();
+      if (exists) {
+        heapDumpReady.value = await heapDumpClient.isCacheReady();
+      }
+    } catch (error) {
+      console.error('Failed to check heap dump status:', error);
+      heapDumpReady.value = false;
+    }
 
     // Check if there's a previously selected secondary profile in SecondaryProfileService
     const savedProfile = SecondaryProfileService.get();
@@ -699,8 +789,18 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const selectMode = (mode: 'JVM' | 'Application' | 'Visualization') => {
+const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') => {
   selectedMode.value = mode;
+
+  // Navigate to the first item in the selected mode's menu
+  const firstRoutes: Record<string, string> = {
+    'JVM': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/overview`,
+    'Application': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/application/http/overview?mode=server`,
+    'Visualization': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/flamegraphs/primary`,
+    'HeapDump': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/heap-dump/settings`
+  };
+
+  router.push(firstRoutes[mode]);
 };
 
 const toggleHeapMemorySubmenu = () => {
@@ -763,6 +863,17 @@ const handleSecondaryProfileCleared = () => {
   SecondaryProfileService.remove();
 };
 
+// Handle heap dump status changes
+const handleHeapDumpStatusChanged = (ready: boolean) => {
+  heapDumpReady.value = ready;
+};
+
+// Set up message bus listener
+MessageBus.on(MessageBus.HEAP_DUMP_STATUS_CHANGED, handleHeapDumpStatusChanged);
+
+onUnmounted(() => {
+  MessageBus.off(MessageBus.HEAP_DUMP_STATUS_CHANGED, handleHeapDumpStatusChanged);
+});
 
 </script>
 

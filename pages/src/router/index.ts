@@ -242,6 +242,36 @@ const router = createRouter({
                   meta: { layout: 'profile' }
                 },
                 {
+                  path: 'heap-dump/settings',
+                  name: 'profile-heap-dump-settings',
+                  component: () => import('@/views/profiles/detail/ProfileHeapDumpSettings.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'heap-dump/histogram',
+                  name: 'profile-heap-dump-histogram',
+                  component: () => import('@/views/profiles/detail/ProfileHeapDumpHistogram.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'heap-dump/oql',
+                  name: 'profile-heap-dump-oql',
+                  component: () => import('@/views/profiles/detail/ProfileHeapDumpOQL.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'heap-dump/gc-roots',
+                  name: 'profile-heap-dump-gc-roots',
+                  component: () => import('@/views/profiles/detail/ProfileHeapDumpGCRoots.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
+                  path: 'heap-dump/threads',
+                  name: 'profile-heap-dump-threads',
+                  component: () => import('@/views/profiles/detail/ProfileHeapDumpThreads.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
                   path: 'container/configuration',
                   name: 'profile-container-configuration',
                   component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),

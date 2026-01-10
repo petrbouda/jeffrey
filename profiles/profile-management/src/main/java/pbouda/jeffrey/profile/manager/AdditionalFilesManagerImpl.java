@@ -26,9 +26,14 @@ import pbouda.jeffrey.profile.manager.model.PerfCounter;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
@@ -37,20 +42,29 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             };
 
     public static final String PERF_COUNTERS_KEY = "performance_counters";
+    private static final Path HEAP_DUMP_ANALYSIS_FOLDER = Path.of("heap-dump-analysis");
 
     private final ProfileCacheRepository cacheRepository;
     private final ProjectRecordingStorage projectRecordingStorage;
+    private final Path heapDumpAnalysisPath;
 
     private final Map<SupportedRecordingFile, AdditionalFileParser> parsers = Map.of(
             SupportedRecordingFile.PERF_COUNTERS, new PerfCountersAdditionalFileParser()
     );
 
+    // Cached heap dump path (lazy loaded)
+    private Path heapDumpPath;
+    private boolean heapDumpPathResolved;
+
     public AdditionalFilesManagerImpl(
             ProfileCacheRepository cacheRepository,
-            ProjectRecordingStorage projectRecordingStorage) {
+            ProjectRecordingStorage projectRecordingStorage,
+            JeffreyDirs jeffreyDirs,
+            String profileId) {
 
         this.cacheRepository = cacheRepository;
         this.projectRecordingStorage = projectRecordingStorage;
+        this.heapDumpAnalysisPath = jeffreyDirs.profileDirectory(profileId).resolve(HEAP_DUMP_ANALYSIS_FOLDER);
     }
 
 
@@ -76,5 +90,48 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
     public List<PerfCounter> performanceCounters() {
         return this.cacheRepository.get(PERF_COUNTERS_KEY, PERF_COUNTER_TYPE)
                 .orElse(List.of());
+    }
+
+    @Override
+    public boolean heapDumpExists() {
+        return getHeapDumpPath().isPresent();
+    }
+
+    @Override
+    public Optional<Path> getHeapDumpPath() {
+        if (!heapDumpPathResolved) {
+            resolveHeapDumpPath();
+        }
+        return Optional.ofNullable(heapDumpPath);
+    }
+
+    private synchronized void resolveHeapDumpPath() {
+        if (heapDumpPathResolved) {
+            return;
+        }
+
+        // Look for heap dump in profile's heap-dump-analysis folder
+        if (Files.exists(heapDumpAnalysisPath) && Files.isDirectory(heapDumpAnalysisPath)) {
+            try (var files = Files.list(heapDumpAnalysisPath)) {
+                Optional<Path> found = files
+                        .filter(file -> {
+                            SupportedRecordingFile fileType = SupportedRecordingFile.of(file);
+                            return fileType == SupportedRecordingFile.HEAP_DUMP ||
+                                    fileType == SupportedRecordingFile.HEAP_DUMP_GZ;
+                        })
+                        .findFirst();
+                if (found.isPresent()) {
+                    heapDumpPath = found.get();
+                }
+            } catch (IOException e) {
+                // Heap dump not accessible - heapDumpPath remains null
+            }
+        }
+        heapDumpPathResolved = true;
+    }
+
+    @Override
+    public Path getHeapDumpAnalysisPath() {
+        return heapDumpAnalysisPath;
     }
 }

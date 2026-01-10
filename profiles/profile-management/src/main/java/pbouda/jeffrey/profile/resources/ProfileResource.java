@@ -124,6 +124,11 @@ public class ProfileResource {
         return new HeapMemoryResource(profileManager.heapMemoryManager());
     }
 
+    @Path("/heap")
+    public HeapDumpResource heapDumpResource() {
+        return new HeapDumpResource(profileManager.heapDumpManager());
+    }
+
     @Path("/features")
     public ProfileFeaturesResource featuresResource() {
         return new ProfileFeaturesResource(profileManager.featuresManager());

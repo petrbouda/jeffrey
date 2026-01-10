@@ -130,6 +130,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public HeapDumpManager heapDumpManager() {
+        return registry.jvmInsight().heapDump().apply(profileInfo);
+    }
+
+    @Override
     public ProfileFeaturesManager featuresManager() {
         return registry.features().apply(profileInfo);
     }

@@ -30,6 +30,7 @@ import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
+import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
 import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
@@ -304,7 +305,7 @@ class AsprofFileRepositoryStorageTest {
 
             // Should only include the heap dump, not the JFR file
             assertEquals(1, artifacts.size());
-            assertTrue(artifacts.getFirst().toString().endsWith(".hprof"));
+            assertTrue(artifacts.getFirst().toString().endsWith(FileExtensions.HPROF));
         }
 
         @Test
@@ -321,7 +322,7 @@ class AsprofFileRepositoryStorageTest {
             List<Path> filtered = storage.artifacts(SESSION_ID, List.of(heapDumpId));
 
             assertEquals(1, filtered.size());
-            assertTrue(filtered.getFirst().toString().endsWith(".hprof"));
+            assertTrue(filtered.getFirst().toString().endsWith(FileExtensions.HPROF));
         }
 
         @Test
