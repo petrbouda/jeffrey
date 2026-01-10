@@ -20,6 +20,7 @@ package pbouda.jeffrey.profile.heapdump.analyzer;
 
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
+import org.netbeans.lib.profiler.heap.JavaClass;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 import org.netbeans.modules.profiler.oql.engine.api.OQLException;
 import org.slf4j.Logger;
@@ -117,6 +118,13 @@ public class OQLQueryExecutor {
             return retained != null
                     ? OQLResultEntry.ofInstanceWithRetained(instance.getInstanceId(), instance.getJavaClass().getName(), value, instance.getSize(), retained)
                     : OQLResultEntry.ofInstance(instance.getInstanceId(), instance.getJavaClass().getName(), value, instance.getSize());
+        }
+        if (obj instanceof JavaClass javaClass) {
+            String className = javaClass.getName();
+            long instanceCount = javaClass.getInstancesCount();
+            long totalSize = javaClass.getAllInstancesSize();
+            String value = String.format("instances=%d, size=%d", instanceCount, totalSize);
+            return OQLResultEntry.ofJavaClass(javaClass.getJavaClassId(), className, value, totalSize);
         }
         return OQLResultEntry.ofValue(obj != null ? obj.toString() : "null");
     }

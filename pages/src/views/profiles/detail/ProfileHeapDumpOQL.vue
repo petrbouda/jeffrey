@@ -11,6 +11,12 @@
     </div>
   </div>
 
+  <HeapDumpNotInitialized
+      v-else-if="!cacheReady"
+      icon="terminal"
+      message="The heap dump needs to be initialized before you can execute OQL queries. This process builds indexes and prepares the data for analysis."
+  />
+
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
@@ -105,8 +111,8 @@
       <div class="table-card">
         <div class="results-toolbar">
           <div class="results-info">
-            <span class="results-count">{{ filteredResults.length }} of {{ oqlResult.totalCount }}</span>
-            <span v-if="oqlResult.hasMore" class="truncated-badge">truncated</span>
+            <span class="results-count">{{ filteredResults.length }} results</span>
+            <span v-if="oqlResult.hasMore" class="truncated-badge">limit reached</span>
             <span class="meta-item"><i class="bi bi-stopwatch me-1"></i>{{ oqlResult.executionTimeMs }}ms</span>
           </div>
           <div class="results-controls">
@@ -124,22 +130,28 @@
             </select>
           </div>
         </div>
-        <div class="results-list">
-          <div class="results-header-row">
-            <div class="col-index">#</div>
-            <div class="col-content">Object</div>
-            <div class="col-size">Size</div>
-            <div v-if="hasRetainedSize" class="col-retained">Retained</div>
-          </div>
-          <div v-for="(entry, index) in filteredResults" :key="index" class="result-row">
-            <div class="col-index">{{ index + 1 }}</div>
-            <div class="col-content">
-              <code v-if="entry.className">{{ entry.className }}</code>
-              <span class="value" :title="entry.value">{{ truncateValue(entry.value, 300) }}</span>
-            </div>
-            <div class="col-size">{{ entry.size ? FormattingService.formatBytes(entry.size) : '-' }}</div>
-            <div v-if="hasRetainedSize" class="col-retained">{{ entry.retainedSize ? FormattingService.formatBytes(entry.retainedSize) : '-' }}</div>
-          </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Object</th>
+                <th class="text-end" style="width: 100px;">Size</th>
+                <th v-if="hasRetainedSize" class="text-end" style="width: 100px;">Retained</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(entry, index) in filteredResults" :key="index">
+                <td class="text-muted">{{ index + 1 }}</td>
+                <td>
+                  <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
+                  <div v-if="entry.value" class="value-text" :title="entry.value">{{ truncateValue(entry.value, 300) }}</div>
+                </td>
+                <td class="text-end font-monospace">{{ entry.size ? FormattingService.formatBytes(entry.size) : '-' }}</td>
+                <td v-if="hasRetainedSize" class="text-end font-monospace">{{ entry.retainedSize ? FormattingService.formatBytes(entry.retainedSize) : '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -165,6 +177,7 @@ import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
+import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import FormattingService from '@/services/FormattingService';
@@ -175,6 +188,7 @@ const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
+const cacheReady = ref(false);
 
 const oqlQuery = ref('');
 const oqlLimit = ref(50);
@@ -310,6 +324,13 @@ const clearResults = () => {
   oqlError.value = null;
 };
 
+const scrollToTop = () => {
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+};
+
 const loadData = async () => {
   try {
     if (!workspaceId.value || !projectId.value) return;
@@ -321,6 +342,10 @@ const loadData = async () => {
 
     heapExists.value = await client.exists();
 
+    if (heapExists.value) {
+      cacheReady.value = await client.isCacheReady();
+    }
+
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to initialize OQL interface';
     console.error('Error initializing OQL interface:', err);
@@ -330,6 +355,7 @@ const loadData = async () => {
 };
 
 onMounted(() => {
+  scrollToTop();
   loadData();
 });
 </script>
@@ -423,14 +449,14 @@ onMounted(() => {
 
 .query-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
   border: none;
   border-bottom: 1px solid #dee2e6;
   background-color: #f8f9fa;
   font-family: var(--font-family-base);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   resize: vertical;
-  min-height: 80px;
+  min-height: 120px;
   transition: background-color 0.2s ease;
 }
 
@@ -518,80 +544,52 @@ onMounted(() => {
   color: #6c757d;
 }
 
-/* Results List */
-.results-list {
-  display: grid;
-  grid-template-columns: 40px 1fr 80px;
-}
-
-.results-list:has(.col-retained) {
-  grid-template-columns: 40px 1fr 80px 90px;
-}
-
-.results-header-row {
-  display: contents;
-}
-
-.results-header-row > div {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.7rem;
+/* Table Styles - matching Class Histogram */
+.table thead th {
+  background-color: #fafbfc;
   font-weight: 600;
+  color: #495057;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #6c757d;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.result-row {
-  display: contents;
-}
-
-.result-row > div {
-  padding: 0.625rem 0.75rem;
+.table td {
   font-size: 0.8rem;
+  padding: 0.6rem 0.75rem;
+  vertical-align: middle;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.result-row:hover > div {
-  background-color: #fafbfc;
+.table tbody tr:hover {
+  background-color: rgba(66, 133, 244, 0.04);
 }
 
-.col-index {
-  color: #adb5bd;
-  font-size: 0.75rem;
-  text-align: right;
-  padding-top: 0.75rem;
+.table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.col-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.col-content code {
+.class-name {
   font-size: 0.8rem;
-  color: #6f42c1;
-  background: transparent;
   word-break: break-all;
-  line-height: 1.3;
+  background-color: transparent;
+  color: #6f42c1;
 }
 
-.col-content .value {
+.value-text {
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #6c757d;
   word-break: break-word;
   line-height: 1.4;
+  margin-top: 0.25rem;
 }
 
-.col-size,
-.col-retained {
+.font-monospace {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
-  color: #495057;
-  text-align: right;
-  padding-top: 0.75rem;
 }
 
 .empty-state {

@@ -11,6 +11,12 @@
     </div>
   </div>
 
+  <HeapDumpNotInitialized
+      v-else-if="!cacheReady"
+      icon="diagram-3"
+      message="The heap dump needs to be initialized before you can view GC roots. This process builds indexes and prepares the data for analysis."
+  />
+
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
@@ -95,6 +101,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import PieChart from '@/components/PieChart.vue';
+import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import FormattingService from '@/services/FormattingService';
@@ -105,6 +112,7 @@ const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
+const cacheReady = ref(false);
 const gcRootData = ref<GCRootSummary | null>(null);
 
 let client: HeapDumpClient;
@@ -181,6 +189,13 @@ const formatRootCount = (value: number): string => {
   return FormattingService.formatNumber(value) + ' roots';
 };
 
+const scrollToTop = () => {
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+};
+
 const loadData = async () => {
   try {
     if (!workspaceId.value || !projectId.value) return;
@@ -197,6 +212,13 @@ const loadData = async () => {
       return;
     }
 
+    cacheReady.value = await client.isCacheReady();
+
+    if (!cacheReady.value) {
+      loading.value = false;
+      return;
+    }
+
     gcRootData.value = await client.getGCRoots();
 
   } catch (err) {
@@ -208,6 +230,7 @@ const loadData = async () => {
 };
 
 onMounted(() => {
+  scrollToTop();
   loadData();
 });
 </script>

@@ -97,6 +97,11 @@ public class SimpleHeapLoader implements HeapLoader {
 
         long decompressMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         LOG.debug("Heap dump decompressed: path={} durationMs={}", decompressedPath, decompressMs);
+
+        // Remove the compressed file to save disk space
+        Files.deleteIfExists(gzippedPath);
+        LOG.debug("Removed compressed heap dump file: path={}", gzippedPath);
+
         return loadHeap(decompressedPath);
     }
 

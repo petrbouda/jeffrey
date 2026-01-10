@@ -54,4 +54,11 @@ public record OQLResultEntry(
     public static OQLResultEntry ofInstanceWithRetained(long objectId, String className, String value, long size, long retainedSize) {
         return new OQLResultEntry(objectId, className, value, size, retainedSize);
     }
+
+    /**
+     * Create an entry for a JavaClass result.
+     */
+    public static OQLResultEntry ofJavaClass(long classId, String className, String value, long totalSize) {
+        return new OQLResultEntry(classId, className, value, totalSize, null);
+    }
 }

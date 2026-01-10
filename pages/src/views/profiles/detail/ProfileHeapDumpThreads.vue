@@ -11,6 +11,12 @@
     </div>
   </div>
 
+  <HeapDumpNotInitialized
+      v-else-if="!cacheReady"
+      icon="cpu"
+      message="The heap dump needs to be initialized before you can view thread information. This process builds indexes and prepares the data for analysis."
+  />
+
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
@@ -124,6 +130,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import Badge from '@/components/Badge.vue';
+import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 
@@ -133,6 +140,7 @@ const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
+const cacheReady = ref(false);
 const threadsData = ref<HeapThreadInfo[]>([]);
 const searchQuery = ref('');
 const daemonFilter = ref('all');
@@ -211,6 +219,13 @@ const getPriorityClass = (priority: number): string => {
   return 'low';
 };
 
+const scrollToTop = () => {
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+};
+
 const loadData = async () => {
   try {
     if (!workspaceId.value || !projectId.value) return;
@@ -227,6 +242,13 @@ const loadData = async () => {
       return;
     }
 
+    cacheReady.value = await client.isCacheReady();
+
+    if (!cacheReady.value) {
+      loading.value = false;
+      return;
+    }
+
     threadsData.value = await client.getThreads();
 
   } catch (err) {
@@ -238,6 +260,7 @@ const loadData = async () => {
 };
 
 onMounted(() => {
+  scrollToTop();
   loadData();
 });
 </script>

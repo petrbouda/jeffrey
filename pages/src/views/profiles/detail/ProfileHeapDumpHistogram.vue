@@ -11,6 +11,12 @@
     </div>
   </div>
 
+  <HeapDumpNotInitialized
+      v-else-if="!cacheReady"
+      icon="bar-chart-steps"
+      message="The heap dump needs to be initialized before you can view the class histogram. This process builds indexes and prepares the data for analysis."
+  />
+
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
@@ -97,6 +103,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
+import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import HeapSummary from '@/services/api/model/HeapSummary';
@@ -108,6 +115,7 @@ const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
 const heapExists = ref(false);
+const cacheReady = ref(false);
 const histogramData = ref<ClassHistogramEntry[]>([]);
 const summary = ref<HeapSummary | null>(null);
 const histogramTopN = ref(50);
@@ -177,6 +185,13 @@ const loadHistogram = async () => {
 };
 
 
+const scrollToTop = () => {
+  const workspaceContent = document.querySelector('.workspace-content');
+  if (workspaceContent) {
+    workspaceContent.scrollTop = 0;
+  }
+};
+
 const loadData = async () => {
   try {
     if (!workspaceId.value || !projectId.value) return;
@@ -189,6 +204,13 @@ const loadData = async () => {
     heapExists.value = await client.exists();
 
     if (!heapExists.value) {
+      loading.value = false;
+      return;
+    }
+
+    cacheReady.value = await client.isCacheReady();
+
+    if (!cacheReady.value) {
       loading.value = false;
       return;
     }
@@ -211,6 +233,7 @@ const loadData = async () => {
 };
 
 onMounted(() => {
+  scrollToTop();
   loadData();
 });
 </script>
