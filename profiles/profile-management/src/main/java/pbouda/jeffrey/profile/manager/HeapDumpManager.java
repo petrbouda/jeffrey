@@ -27,6 +27,7 @@ import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.function.Function;
 
@@ -118,4 +119,12 @@ public interface HeapDumpManager {
      * This completely removes all heap dump data for this profile.
      */
     void deleteHeapDump();
+
+    /**
+     * Upload a heap dump file.
+     *
+     * @param inputStream the input stream of the heap dump file
+     * @param filename    the original filename (must end with .hprof or .hprof.gz)
+     */
+    void uploadHeapDump(InputStream inputStream, String filename);
 }

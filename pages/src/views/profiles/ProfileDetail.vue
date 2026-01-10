@@ -774,6 +774,16 @@ const toggleSidebar = () => {
 
 const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') => {
   selectedMode.value = mode;
+
+  // Navigate to the first item in the selected mode's menu
+  const firstRoutes: Record<string, string> = {
+    'JVM': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/overview`,
+    'Application': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/application/http/overview?mode=server`,
+    'Visualization': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/flamegraphs/primary`,
+    'HeapDump': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/heap-dump/settings`
+  };
+
+  router.push(firstRoutes[mode]);
 };
 
 const toggleHeapMemorySubmenu = () => {

@@ -38,8 +38,10 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 
@@ -274,5 +276,31 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             LOG.warn("Failed to load heap dump: profileId={} path={}", profileInfo.id(), heapPath.get());
         }
         return heap;
+    }
+
+    @Override
+    public void uploadHeapDump(InputStream inputStream, String filename) {
+        // Validate filename extension
+        String lowerFilename = filename.toLowerCase();
+        if (!lowerFilename.endsWith("." + FileExtensions.HPROF) &&
+                !lowerFilename.endsWith("." + FileExtensions.HPROF_GZ)) {
+            throw new IllegalArgumentException("Invalid file type. Only .hprof and .hprof.gz files are supported.");
+        }
+
+        Path heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
+
+        try {
+            // Create the directory if it doesn't exist
+            Files.createDirectories(heapDumpAnalysisPath);
+
+            // Save the file
+            Path targetPath = heapDumpAnalysisPath.resolve(filename);
+            Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            LOG.info("Heap dump uploaded: profileId={} path={}", profileInfo.id(), targetPath);
+        } catch (IOException e) {
+            LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
+            throw new RuntimeException("Failed to upload heap dump: " + e.getMessage(), e);
+        }
     }
 }

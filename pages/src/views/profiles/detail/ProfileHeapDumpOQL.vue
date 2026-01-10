@@ -427,8 +427,8 @@ onMounted(() => {
   border: none;
   border-bottom: 1px solid #dee2e6;
   background-color: #f8f9fa;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-  font-size: 0.875rem;
+  font-family: var(--font-family-base);
+  font-size: 0.8rem;
   resize: vertical;
   min-height: 80px;
   transition: background-color 0.2s ease;

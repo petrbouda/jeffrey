@@ -18,11 +18,15 @@
 
 package pbouda.jeffrey.profile.resources;
 
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
@@ -32,6 +36,7 @@ import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -140,5 +145,20 @@ public class HeapDumpResource {
     @Path("/delete")
     public void deleteHeapDump() {
         heapDumpManager.deleteHeapDump();
+    }
+
+    /**
+     * Upload a heap dump file.
+     *
+     * @param fileInputStream the input stream of the uploaded file
+     * @param cdh             content disposition header with filename
+     */
+    @POST
+    @Path("/upload")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public void uploadHeapDump(
+            @FormDataParam("file") InputStream fileInputStream,
+            @FormDataParam("file") FormDataContentDisposition cdh) {
+        heapDumpManager.uploadHeapDump(fileInputStream, cdh.getFileName());
     }
 }

@@ -325,12 +325,16 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(RecordingStorage recordingStorage) {
+    public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
+            RecordingStorage recordingStorage,
+            JeffreyDirs jeffreyDirs) {
         return profileInfo -> {
             DataSource profileDb = profileDatabaseProvider.open(profileInfo.id());
             return new AdditionalFilesManagerImpl(
                     profileRepositories.newProfileCacheRepository(profileDb),
-                    recordingStorage.projectRecordingStorage(profileInfo.projectId()));
+                    recordingStorage.projectRecordingStorage(profileInfo.projectId()),
+                    jeffreyDirs,
+                    profileInfo.id());
         };
     }
 

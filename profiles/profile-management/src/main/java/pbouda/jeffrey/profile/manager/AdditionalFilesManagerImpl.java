@@ -26,6 +26,9 @@ import pbouda.jeffrey.profile.manager.model.PerfCounter;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -39,16 +42,15 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             };
 
     public static final String PERF_COUNTERS_KEY = "performance_counters";
+    private static final Path HEAP_DUMP_ANALYSIS_FOLDER = Path.of("heap-dump-analysis");
 
     private final ProfileCacheRepository cacheRepository;
     private final ProjectRecordingStorage projectRecordingStorage;
+    private final Path heapDumpAnalysisPath;
 
     private final Map<SupportedRecordingFile, AdditionalFileParser> parsers = Map.of(
             SupportedRecordingFile.PERF_COUNTERS, new PerfCountersAdditionalFileParser()
     );
-
-    // Recording ID is set when processAdditionalFiles is called during profile initialization
-    private String recordingId;
 
     // Cached heap dump path (lazy loaded)
     private Path heapDumpPath;
@@ -56,18 +58,18 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     public AdditionalFilesManagerImpl(
             ProfileCacheRepository cacheRepository,
-            ProjectRecordingStorage projectRecordingStorage) {
+            ProjectRecordingStorage projectRecordingStorage,
+            JeffreyDirs jeffreyDirs,
+            String profileId) {
 
         this.cacheRepository = cacheRepository;
         this.projectRecordingStorage = projectRecordingStorage;
+        this.heapDumpAnalysisPath = jeffreyDirs.profileDirectory(profileId).resolve(HEAP_DUMP_ANALYSIS_FOLDER);
     }
 
 
     @Override
     public void processAdditionalFiles(String recordingId) {
-        // Store recording ID for later use (e.g., heap dump path resolution)
-        this.recordingId = recordingId;
-
         List<Path> findAdditionalFiles = projectRecordingStorage.findArtifacts(recordingId);
         for (Path additionalFile : findAdditionalFiles) {
             SupportedRecordingFile fileType = SupportedRecordingFile.of(additionalFile);
@@ -108,28 +110,28 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             return;
         }
 
-        // PoC: Use hardcoded path for heap dump
-        Path hardcodedPath = Path.of("/Users/petrbouda/heap-dump.hprof.gz");
-        if (Files.exists(hardcodedPath)) {
-            heapDumpPath = hardcodedPath;
-            heapDumpPathResolved = true;
-            return;
-        }
-
-        // Fallback to original behavior: look in recording storage
-        if (recordingId == null) {
-            // Recording ID not set yet - cannot resolve heap dump path
-            return;
-        }
-
-        List<Path> artifacts = projectRecordingStorage.findArtifacts(recordingId);
-        for (Path artifact : artifacts) {
-            SupportedRecordingFile fileType = SupportedRecordingFile.of(artifact);
-            if (fileType == SupportedRecordingFile.HEAP_DUMP || fileType == SupportedRecordingFile.HEAP_DUMP_GZ) {
-                heapDumpPath = artifact;
-                break;
+        // Look for heap dump in profile's heap-dump-analysis folder
+        if (Files.exists(heapDumpAnalysisPath) && Files.isDirectory(heapDumpAnalysisPath)) {
+            try (var files = Files.list(heapDumpAnalysisPath)) {
+                Optional<Path> found = files
+                        .filter(file -> {
+                            SupportedRecordingFile fileType = SupportedRecordingFile.of(file);
+                            return fileType == SupportedRecordingFile.HEAP_DUMP ||
+                                    fileType == SupportedRecordingFile.HEAP_DUMP_GZ;
+                        })
+                        .findFirst();
+                if (found.isPresent()) {
+                    heapDumpPath = found.get();
+                }
+            } catch (IOException e) {
+                // Heap dump not accessible - heapDumpPath remains null
             }
         }
         heapDumpPathResolved = true;
+    }
+
+    @Override
+    public Path getHeapDumpAnalysisPath() {
+        return heapDumpAnalysisPath;
     }
 }
