@@ -26,20 +26,27 @@ import pbouda.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.GCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
+import pbouda.jeffrey.profile.heapdump.analyzer.StringAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import pbouda.jeffrey.profile.heapdump.model.JvmStringFlag;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
+import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
+import pbouda.jeffrey.provider.profile.model.JvmFlag;
+import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.Map;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
@@ -52,9 +59,22 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpManagerImpl.class);
 
+    private static final Map<String, String> FLAG_DESCRIPTIONS = Map.ofEntries(
+            Map.entry("UseStringDeduplication", "Enable string deduplication during GC"),
+            Map.entry("StringDeduplicationAgeThreshold", "GC cycles before string becomes dedup candidate"),
+            Map.entry("UseG1GC", "Enable G1 Garbage Collector"),
+            Map.entry("UseZGC", "Enable Z Garbage Collector"),
+            Map.entry("UseShenandoahGC", "Enable Shenandoah Garbage Collector"),
+            Map.entry("UseParallelGC", "Enable Parallel Garbage Collector"),
+            Map.entry("UseSerialGC", "Enable Serial Garbage Collector"),
+            Map.entry("CompactStrings", "Use compact representation for Latin-1 strings (Java 9+)"),
+            Map.entry("OptimizeStringConcat", "Optimize string concatenation operations")
+    );
+
     private final ProfileInfo profileInfo;
     private final HeapLoader heapLoader;
     private final AdditionalFilesManager additionalFilesManager;
+    private final ProfileEventRepository eventRepository;
 
     // Analyzers
     private final HeapSummaryAnalyzer summaryAnalyzer;
@@ -62,15 +82,18 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final OQLQueryExecutor queryExecutor;
     private final ThreadAnalyzer threadAnalyzer;
     private final GCRootAnalyzer gcRootAnalyzer;
+    private final StringAnalyzer stringAnalyzer;
 
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
             HeapLoader heapLoader,
-            AdditionalFilesManager additionalFilesManager) {
+            AdditionalFilesManager additionalFilesManager,
+            ProfileEventRepository eventRepository) {
 
         this.profileInfo = profileInfo;
         this.heapLoader = heapLoader;
         this.additionalFilesManager = additionalFilesManager;
+        this.eventRepository = eventRepository;
 
         // Initialize analyzers
         this.summaryAnalyzer = new HeapSummaryAnalyzer();
@@ -78,6 +101,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.queryExecutor = new OQLQueryExecutor();
         this.threadAnalyzer = new ThreadAnalyzer();
         this.gcRootAnalyzer = new GCRootAnalyzer();
+        this.stringAnalyzer = new StringAnalyzer();
     }
 
     @Override
@@ -302,5 +326,66 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
             throw new RuntimeException("Failed to upload heap dump: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public boolean stringAnalysisExists() {
+        return additionalFilesManager.stringAnalysisExists();
+    }
+
+    @Override
+    public StringAnalysisReport getStringAnalysis() {
+        return additionalFilesManager.getStringAnalysis().orElse(null);
+    }
+
+    @Override
+    public void runStringAnalysis(int topN) {
+        getHeap().ifPresent(heap -> {
+            LOG.info("Running string analysis: profileId={} topN={}", profileInfo.id(), topN);
+
+            // Analyze heap for string deduplication
+            StringAnalysisReport heapAnalysis = stringAnalyzer.analyze(heap, topN);
+
+            // Get JVM flags related to strings from JFR events
+            List<JvmStringFlag> jvmFlags = getStringRelatedJvmFlags();
+
+            // Create complete report with JVM flags
+            StringAnalysisReport report = new StringAnalysisReport(
+                    heapAnalysis.totalStrings(),
+                    heapAnalysis.totalStringShallowSize(),
+                    heapAnalysis.uniqueArrays(),
+                    heapAnalysis.sharedArrays(),
+                    heapAnalysis.totalSharedStrings(),
+                    heapAnalysis.memorySavedByDedup(),
+                    heapAnalysis.potentialSavings(),
+                    heapAnalysis.alreadyDeduplicated(),
+                    heapAnalysis.opportunities(),
+                    jvmFlags
+            );
+
+            additionalFilesManager.saveStringAnalysis(report);
+            LOG.info("String analysis completed: profileId={} totalStrings={} potentialSavings={} jvmFlags={}",
+                    profileInfo.id(), report.totalStrings(), report.potentialSavings(), jvmFlags.size());
+        });
+    }
+
+    private List<JvmStringFlag> getStringRelatedJvmFlags() {
+        List<JvmFlag> flags = eventRepository.getStringRelatedFlags();
+        return flags.stream()
+                // Filter out disabled GC flags (only show enabled GC)
+                .filter(flag -> !GarbageCollectorType.isGcFlag(flag.name()) || "true".equals(flag.value()))
+                .map(flag -> new JvmStringFlag(
+                        flag.name(),
+                        flag.value(),
+                        flag.type(),
+                        flag.origin(),
+                        FLAG_DESCRIPTIONS.getOrDefault(flag.name(), "")
+                ))
+                .toList();
+    }
+
+    @Override
+    public void deleteStringAnalysis() {
+        additionalFilesManager.deleteStringAnalysis();
     }
 }

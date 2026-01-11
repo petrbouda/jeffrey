@@ -22,9 +22,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.ThreadInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.model.JvmFlag;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -32,6 +34,7 @@ import pbouda.jeffrey.provider.profile.query.SQLFormatter;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static pbouda.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
 
@@ -69,6 +72,38 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
     //language=SQL
     private static final String CONTAINS_EVENT =
             "SELECT COUNT(*) FROM events WHERE event_type = (:code)";
+
+    private static final Set<String> FLAG_EVENT_TYPES = Set.of(
+            EventTypeName.BOOLEAN_FLAG,
+            EventTypeName.INT_FLAG,
+            EventTypeName.UNSIGNED_INT_FLAG,
+            EventTypeName.STRING_FLAG
+    );
+
+    //language=SQL
+    private static final String STRING_RELATED_FLAGS_QUERY = """
+            SELECT
+                last(event_type) as event_type,
+                json_extract_string(fields, '$.name') as flag_name,
+                last(json_extract_string(fields, '$.value')) as flag_value,
+                last(json_extract_string(fields, '$.origin')) as origin
+            FROM events
+            WHERE event_type IN (:flag_event_types)
+              AND json_extract_string(fields, '$.name') IN (:flag_names)
+            GROUP BY flag_name
+            """;
+
+    private static final Set<String> STRING_RELATED_FLAG_NAMES = Set.of(
+            "UseStringDeduplication",
+            "StringDeduplicationAgeThreshold",
+            "UseG1GC",
+            "UseZGC",
+            "UseShenandoahGC",
+            "UseParallelGC",
+            "UseSerialGC",
+            "CompactStrings",
+            "OptimizeStringConcat"
+    );
 
     private final SQLFormatter sqlFormatter;
     private final DatabaseClient databaseClient;
@@ -128,5 +163,38 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 .addValue("code", type.code());
 
         return databaseClient.queryExists(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource);
+    }
+
+    @Override
+    public List<JvmFlag> getStringRelatedFlags() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("flag_event_types", FLAG_EVENT_TYPES)
+                .addValue("flag_names", STRING_RELATED_FLAG_NAMES);
+
+        return databaseClient.query(
+                StatementLabel.STRING_RELATED_FLAGS,
+                STRING_RELATED_FLAGS_QUERY,
+                paramSource,
+                (rs, _) -> {
+                    String eventType = rs.getString("event_type");
+                    String flagType = extractFlagType(eventType);
+                    return new JvmFlag(
+                            rs.getString("flag_name"),
+                            rs.getString("flag_value"),
+                            flagType,
+                            rs.getString("origin")
+                    );
+                });
+    }
+
+    private String extractFlagType(String eventType) {
+        return switch (eventType) {
+            case EventTypeName.BOOLEAN_FLAG -> "Boolean";
+            case EventTypeName.INT_FLAG -> "Int";
+            case EventTypeName.UNSIGNED_INT_FLAG -> "UnsignedInt";
+            case EventTypeName.STRING_FLAG -> "String";
+            case EventTypeName.LONG_FLAG -> "Long";
+            default -> "Unknown";
+        };
     }
 }

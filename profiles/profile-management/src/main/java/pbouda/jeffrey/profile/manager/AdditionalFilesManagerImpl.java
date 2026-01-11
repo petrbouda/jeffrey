@@ -19,6 +19,10 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.profile.manager.additional.AdditionalFileParser;
 import pbouda.jeffrey.profile.manager.additional.PerfCountersAdditionalFileParser;
@@ -37,12 +41,17 @@ import java.util.Optional;
 
 public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AdditionalFilesManagerImpl.class);
+
     private static final TypeReference<List<PerfCounter>> PERF_COUNTER_TYPE =
             new TypeReference<List<PerfCounter>>() {
             };
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     public static final String PERF_COUNTERS_KEY = "performance_counters";
     private static final Path HEAP_DUMP_ANALYSIS_FOLDER = Path.of("heap-dump-analysis");
+    private static final String STRING_ANALYSIS_FILE = "string-analysis.json";
 
     private final ProfileCacheRepository cacheRepository;
     private final ProjectRecordingStorage projectRecordingStorage;
@@ -133,5 +142,58 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
     @Override
     public Path getHeapDumpAnalysisPath() {
         return heapDumpAnalysisPath;
+    }
+
+    @Override
+    public boolean stringAnalysisExists() {
+        Path stringAnalysisPath = heapDumpAnalysisPath.resolve(STRING_ANALYSIS_FILE);
+        return Files.exists(stringAnalysisPath);
+    }
+
+    @Override
+    public Optional<StringAnalysisReport> getStringAnalysis() {
+        Path stringAnalysisPath = heapDumpAnalysisPath.resolve(STRING_ANALYSIS_FILE);
+        if (!Files.exists(stringAnalysisPath)) {
+            return Optional.empty();
+        }
+
+        try {
+            StringAnalysisReport report = OBJECT_MAPPER.readValue(
+                    stringAnalysisPath.toFile(), StringAnalysisReport.class);
+            return Optional.of(report);
+        } catch (IOException e) {
+            LOG.error("Failed to read string analysis: path={}", stringAnalysisPath, e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void saveStringAnalysis(StringAnalysisReport report) {
+        try {
+            // Create the directory if it doesn't exist
+            Files.createDirectories(heapDumpAnalysisPath);
+
+            Path stringAnalysisPath = heapDumpAnalysisPath.resolve(STRING_ANALYSIS_FILE);
+            OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
+                    .writeValue(stringAnalysisPath.toFile(), report);
+
+            LOG.info("String analysis saved: path={}", stringAnalysisPath);
+        } catch (IOException e) {
+            LOG.error("Failed to save string analysis: path={}", heapDumpAnalysisPath, e);
+            throw new RuntimeException("Failed to save string analysis: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteStringAnalysis() {
+        Path stringAnalysisPath = heapDumpAnalysisPath.resolve(STRING_ANALYSIS_FILE);
+        if (Files.exists(stringAnalysisPath)) {
+            try {
+                Files.delete(stringAnalysisPath);
+                LOG.info("String analysis deleted: path={}", stringAnalysisPath);
+            } catch (IOException e) {
+                LOG.error("Failed to delete string analysis: path={}", stringAnalysisPath, e);
+            }
+        }
     }
 }

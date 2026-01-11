@@ -24,6 +24,7 @@ import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
+import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
 
 export default class HeapDumpClient extends BaseProfileClient {
 
@@ -76,5 +77,21 @@ export default class HeapDumpClient extends BaseProfileClient {
         formData.append("file", file, file.name);
         return axios.post(`${this.baseUrl}/upload`, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
             .then(HttpUtils.RETURN_DATA);
+    }
+
+    public stringAnalysisExists(): Promise<boolean> {
+        return this.get<boolean>('/string-analysis/exists');
+    }
+
+    public getStringAnalysis(): Promise<StringAnalysisReport> {
+        return this.get<StringAnalysisReport>('/string-analysis');
+    }
+
+    public runStringAnalysis(topN: number = 100): Promise<void> {
+        return this.post<void>('/string-analysis/run', {}, { topN });
+    }
+
+    public deleteStringAnalysis(): Promise<void> {
+        return this.post<void>('/string-analysis/delete', {});
     }
 }

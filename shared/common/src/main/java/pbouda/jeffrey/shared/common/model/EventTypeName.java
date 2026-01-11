@@ -103,4 +103,11 @@ public abstract class EventTypeName {
     public static final String CONTAINER_CPU_THROTTLING = "jdk.ContainerCPUThrottling";
     public static final String CONTAINER_MEMORY_USAGE = "jdk.ContainerMemoryUsage";
     public static final String CONTAINER_IO_USAGE = "jdk.ContainerIOUsage";
+
+    // JVM Flag events
+    public static final String BOOLEAN_FLAG = "jdk.BooleanFlag";
+    public static final String INT_FLAG = "jdk.IntFlag";
+    public static final String UNSIGNED_INT_FLAG = "jdk.UnsignedIntFlag";
+    public static final String LONG_FLAG = "jdk.LongFlag";
+    public static final String STRING_FLAG = "jdk.StringFlag";
 }

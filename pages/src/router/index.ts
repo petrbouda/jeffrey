@@ -254,6 +254,12 @@ const router = createRouter({
                   meta: { layout: 'profile' }
                 },
                 {
+                  path: 'heap-dump/string-analysis',
+                  name: 'profile-heap-dump-string-analysis',
+                  component: () => import('@/views/profiles/detail/ProfileHeapDumpStringAnalysis.vue'),
+                  meta: { layout: 'profile' }
+                },
+                {
                   path: 'heap-dump/oql',
                   name: 'profile-heap-dump-oql',
                   component: () => import('@/views/profiles/detail/ProfileHeapDumpOQL.vue'),

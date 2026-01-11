@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
 
+import pbouda.jeffrey.provider.profile.model.JvmFlag;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +37,13 @@ public interface ProfileEventRepository {
     List<JsonNode> eventsByTypeWithFields(Type type);
 
     boolean containsEventType(Type type);
+
+    /**
+     * Retrieves JVM flags related to String handling from JFR flag events.
+     * Queries jdk.BooleanFlag, jdk.IntFlag, and jdk.UnsignedIntFlag events
+     * for flags related to string deduplication, GC, and string representation.
+     *
+     * @return list of JVM flags related to string handling
+     */
+    List<JvmFlag> getStringRelatedFlags();
 }

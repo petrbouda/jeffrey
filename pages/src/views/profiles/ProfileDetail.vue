@@ -452,6 +452,15 @@
                     <span>Class Histogram</span>
                   </router-link>
                   <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/string-analysis`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-fonts"></i>
+                    <span>String Analysis</span>
+                  </router-link>
+                  <router-link
                       :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/oql`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"

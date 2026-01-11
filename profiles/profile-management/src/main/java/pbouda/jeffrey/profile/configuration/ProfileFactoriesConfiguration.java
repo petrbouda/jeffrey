@@ -414,9 +414,13 @@ public class ProfileFactoriesConfiguration {
             HeapLoader heapLoader,
             AdditionalFilesManager.Factory additionalFilesManagerFactory) {
 
-        return profileInfo -> new HeapDumpManagerImpl(
-                profileInfo,
-                heapLoader,
-                additionalFilesManagerFactory.apply(profileInfo));
+        return profileInfo -> {
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id());
+            return new HeapDumpManagerImpl(
+                    profileInfo,
+                    heapLoader,
+                    additionalFilesManagerFactory.apply(profileInfo),
+                    profileRepositories.newEventRepository(profileDb));
+        };
     }
 }

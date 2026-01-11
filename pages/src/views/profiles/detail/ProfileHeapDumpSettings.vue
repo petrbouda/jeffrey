@@ -284,18 +284,24 @@ const processHeapDump = async () => {
   processingMessage.value = 'Loading heap dump...';
 
   try {
-    processingProgress.value = 25;
+    processingProgress.value = 20;
     await sleep(300);
 
     processingMessage.value = 'Parsing heap structure...';
-    processingProgress.value = 50;
+    processingProgress.value = 40;
     await sleep(300);
 
     processingMessage.value = 'Building indexes...';
-    processingProgress.value = 75;
+    processingProgress.value = 60;
 
     const summary = await client.getSummary();
     lastSummary.value = summary;
+
+    processingMessage.value = 'Running string analysis...';
+    processingProgress.value = 80;
+
+    // Run string analysis as part of initialization
+    await client.runStringAnalysis(100);
 
     processingMessage.value = 'Done';
     processingProgress.value = 100;
@@ -314,6 +320,8 @@ const processHeapDump = async () => {
 const clearCache = async () => {
   try {
     await client.deleteCache();
+    // Also delete string analysis so it gets regenerated on next initialization
+    await client.deleteStringAnalysis();
     cacheReady.value = false;
     lastSummary.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);

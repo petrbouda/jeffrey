@@ -34,6 +34,7 @@ import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
+import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 
 import java.io.InputStream;
@@ -160,5 +161,44 @@ public class HeapDumpResource {
             @FormDataParam("file") InputStream fileInputStream,
             @FormDataParam("file") FormDataContentDisposition cdh) {
         heapDumpManager.uploadHeapDump(fileInputStream, cdh.getFileName());
+    }
+
+    /**
+     * Check if string analysis results exist.
+     */
+    @GET
+    @Path("/string-analysis/exists")
+    public boolean stringAnalysisExists() {
+        return heapDumpManager.stringAnalysisExists();
+    }
+
+    /**
+     * Get pre-computed string analysis results.
+     */
+    @GET
+    @Path("/string-analysis")
+    public StringAnalysisReport getStringAnalysis() {
+        return heapDumpManager.getStringAnalysis();
+    }
+
+    /**
+     * Run string analysis and save results to JSON file.
+     *
+     * @param topN number of top entries to include in each list (default 100)
+     */
+    @POST
+    @Path("/string-analysis/run")
+    public void runStringAnalysis(
+            @QueryParam("topN") @DefaultValue("100") int topN) {
+        heapDumpManager.runStringAnalysis(topN);
+    }
+
+    /**
+     * Delete string analysis results.
+     */
+    @POST
+    @Path("/string-analysis/delete")
+    public void deleteStringAnalysis() {
+        heapDumpManager.deleteStringAnalysis();
     }
 }

@@ -25,6 +25,7 @@ import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
+import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.io.InputStream;
@@ -127,4 +128,30 @@ public interface HeapDumpManager {
      * @param filename    the original filename (must end with .hprof or .hprof.gz)
      */
     void uploadHeapDump(InputStream inputStream, String filename);
+
+    /**
+     * Check if string analysis results exist for this profile.
+     *
+     * @return true if string-analysis.json exists
+     */
+    boolean stringAnalysisExists();
+
+    /**
+     * Get the pre-computed string analysis results.
+     *
+     * @return string analysis report, or null if not yet computed
+     */
+    StringAnalysisReport getStringAnalysis();
+
+    /**
+     * Run string analysis and save results to JSON file.
+     *
+     * @param topN number of top entries to include in the report
+     */
+    void runStringAnalysis(int topN);
+
+    /**
+     * Delete the string analysis results.
+     */
+    void deleteStringAnalysis();
 }
