@@ -43,7 +43,8 @@ public class ProjectProfilesResource {
             String createdAt,
             RecordingEventSource eventSource,
             boolean enabled,
-            long durationInMillis) {
+            long durationInMillis,
+            long sizeInBytes) {
     }
 
     private final ProfilesManager profilesManager;
@@ -101,20 +102,21 @@ public class ProjectProfilesResource {
     @GET
     public List<ProfileResponse> profiles() {
         return profilesManager.allProfiles().stream()
-                .map(ProfileManager::info)
-                .sorted(Comparator.comparing(ProfileInfo::createdAt).reversed())
+                .sorted(Comparator.comparing((ProfileManager pm) -> pm.info().createdAt()).reversed())
                 .map(ProjectProfilesResource::toResponse)
                 .toList();
     }
 
-    private static ProfileResponse toResponse(ProfileInfo profileInfo) {
+    private static ProfileResponse toResponse(ProfileManager profileManager) {
+        ProfileInfo profileInfo = profileManager.info();
         return new ProfileResponse(
                 profileInfo.id(),
                 profileInfo.name(),
                 InstantUtils.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource(),
                 profileInfo.enabled(),
-                profileInfo.duration().toMillis());
+                profileInfo.duration().toMillis(),
+                profileManager.sizeInBytes());
     }
 
     @POST

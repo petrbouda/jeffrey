@@ -12,72 +12,112 @@
       class="mb-3"
     />
 
+    <!-- Profiles Header Bar -->
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-3 gap-3">
+        <div class="profiles-header-bar flex-grow-1 d-flex align-items-center px-3">
+          <span class="header-text">Profiles ({{ filteredProfiles.length }})</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading Indicator -->
     <LoadingState v-if="loading" message="Loading profiles..." />
 
-    <!-- Profiles Table -->
-    <div v-else class="table-responsive">
-      <table class="table table-hover border">
-        <thead class="table-light">
-        <tr>
-          <th style="width: 5%"></th>
-          <th style="width: 60%">Name</th>
-          <th style="width: 20%">Created at</th>
-          <th style="width: 15%" class="text-end">Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="profile in filteredProfiles" :key="profile.id" :class="{ 'table-secondary': profile.deleting || !profile.enabled }">
-          <td>
-            <router-link :to="generateProfileUrl('overview', profile.id)"
-                         class="btn btn-primary btn-sm"
-                         data-bs-toggle="tooltip"
-                         @click="selectProfile"
-                         title="View Profile"
-                         :class="{ 'disabled': profile.deleting || !profile.enabled }"
-                         :style="{ 'pointer-events': (profile.deleting || !profile.enabled) ? 'none' : 'auto' }">
-              <i class="bi bi-eye"></i>
-            </router-link>
-          </td>
-          <td class="fw-bold" :class="{ 'text-muted': profile.deleting || !profile.enabled }">
-            {{ profile.name }}
-            <Badge class="ms-2" :value="profile.eventSource || RecordingEventSource.JDK" :variant="getSourceVariant(profile.eventSource || RecordingEventSource.JDK)" size="xs" />
-            <Badge v-if="profile.deleting" value="Deleting" variant="red" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
-            <Badge v-else-if="!profile.enabled" value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm" class="ms-1" />
-            <!-- Source type badge - assuming 'JDK' for demonstration -->
-            <!-- Note: The sourceType property may need to be added to the Profile model -->
-          </td>
-          <td :class="{ 'text-muted': profile.deleting || !profile.enabled }">{{ profile.createdAt }}</td>
-          <td>
-            <div class="d-flex gap-2 justify-content-end">
-              <button class="btn btn-outline-secondary btn-sm"
-                      @click="editProfile(profile)"
-                      data-bs-toggle="tooltip"
-                      title="Edit Profile"
-                      :disabled="profile.deleting || !profile.enabled">
+    <!-- Profiles List -->
+    <div v-else class="col-12">
+      <EmptyState
+        v-if="filteredProfiles.length === 0"
+        icon="bi-person-vcard"
+        title="No Profiles Found"
+        description="No profiles found. Create a new profile from a recording to get started."
+      />
+
+      <div v-else>
+        <div v-for="profile in filteredProfiles" :key="profile.id"
+             class="child-row p-3 mb-2 rounded"
+             :class="{ 'disabled-profile': profile.deleting || !profile.enabled }">
+          <div class="d-flex justify-content-between align-items-center">
+            <!-- Left: View button + Profile info -->
+            <div class="d-flex align-items-center">
+              <router-link
+                :to="generateProfileUrl('overview', profile.id)"
+                class="btn btn-primary view-btn me-3"
+                @click="selectProfile"
+                :class="{ 'disabled': profile.deleting || !profile.enabled }"
+                :style="{ 'pointer-events': (profile.deleting || !profile.enabled) ? 'none' : 'auto' }"
+              >
+                <i class="bi bi-eye"></i>
+              </router-link>
+              <div>
+                <div class="fw-bold">
+                  <i class="bi bi-person-vcard me-2 text-secondary"></i>
+                  {{ profile.name }}
+                  <!-- Event source badge -->
+                  <Badge
+                    class="ms-2"
+                    :value="profile.eventSource || RecordingEventSource.JDK"
+                    :variant="getSourceVariant(profile.eventSource || RecordingEventSource.JDK)"
+                    size="xs"
+                  />
+                  <!-- Status badges -->
+                  <Badge
+                    v-if="profile.deleting"
+                    value="Deleting"
+                    variant="red"
+                    size="xs"
+                    icon="spinner-border spinner-border-sm"
+                    class="ms-1"
+                  />
+                  <Badge
+                    v-else-if="!profile.enabled"
+                    value="Initializing"
+                    variant="orange"
+                    size="xs"
+                    icon="spinner-border spinner-border-sm"
+                    class="ms-1"
+                  />
+                </div>
+                <!-- Metadata row -->
+                <div class="d-flex text-muted small mt-1">
+                  <div class="me-3">
+                    <i class="bi bi-stopwatch me-1"></i>
+                    {{ FormattingService.formatDurationInMillis2Units(profile.durationInMillis) }}
+                  </div>
+                  <div class="me-3">
+                    <i class="bi bi-hdd me-1"></i>
+                    {{ FormattingService.formatBytes(profile.sizeInBytes) }}
+                  </div>
+                  <div>
+                    <i class="bi bi-calendar me-1"></i>
+                    {{ profile.createdAt }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Action buttons -->
+            <div class="d-flex">
+              <button
+                class="action-btn action-menu-btn action-info-btn me-2"
+                @click="editProfile(profile)"
+                :disabled="profile.deleting || !profile.enabled"
+                title="Edit Profile"
+              >
                 <i class="bi bi-pencil"></i>
               </button>
-              <button class="btn btn-danger btn-sm"
-                      @click="deleteProfile(profile)"
-                      data-bs-toggle="tooltip"
-                      title="Delete Profile"
-                      :disabled="profile.deleting">
+              <button
+                class="action-btn action-menu-btn action-danger-btn"
+                @click="deleteProfile(profile)"
+                :disabled="profile.deleting"
+                title="Delete Profile"
+              >
                 <i class="bi bi-trash"></i>
               </button>
             </div>
-          </td>
-        </tr>
-        <tr v-if="filteredProfiles.length === 0 && !loading">
-          <td colspan="4">
-            <EmptyState
-              icon="bi-person-vcard"
-              title="No Profiles Found"
-              description="No profiles found. Create a new profile from a recording to get started."
-            />
-          </td>
-        </tr>
-        </tbody>
-      </table>
+          </div>
+        </div>
+      </div>
     </div>
   </PageHeader>
 
@@ -133,6 +173,7 @@ import Profile from "@/services/api/model/Profile.ts";
 import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
+import FormattingService from "@/services/FormattingService.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -399,5 +440,130 @@ const stopPolling = () => {
 </script>
 
 <style scoped>
-/* Minimal scoped styles - shared styles come from shared-components.css */
+/* Child row styling (from RecordingsList.vue) */
+.child-row {
+  background-color: white;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  border-left: 3px solid #6c757d;
+}
+
+.child-row:hover {
+  background-color: rgba(248, 249, 250, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  border-left-color: #5e64ff;
+}
+
+/* Disabled profile styling */
+.disabled-profile {
+  opacity: 0.6;
+}
+
+.disabled-profile:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-left-color: #6c757d;
+}
+
+/* Action button styling (from RecordingsList.vue) */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  height: 28px;
+  width: 28px;
+  padding: 0;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.action-menu-btn {
+  color: #5e64ff;
+  background-color: rgba(94, 100, 255, 0.1);
+  border-radius: 4px;
+  height: 30px;
+  width: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.action-menu-btn:hover {
+  background-color: rgba(94, 100, 255, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.action-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.action-info-btn {
+  color: #fff;
+  background-color: #5e64ff;
+  border-color: #5e64ff;
+}
+
+.action-info-btn:hover:not(:disabled) {
+  background-color: #4a50e3;
+  border-color: #4a50e3;
+  color: #fff;
+}
+
+.action-danger-btn {
+  color: #fff;
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.action-danger-btn:hover:not(:disabled) {
+  background-color: #c82333;
+  border-color: #bd2130;
+  color: #fff;
+}
+
+/* Profiles header bar styling */
+.profiles-header-bar {
+  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
+  border: 1px solid #4a50e2;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
+  position: relative;
+  height: 31px;
+}
+
+.header-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(1px);
+}
+
+/* View button square styling (matching RecordingsList) */
+.view-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 </style>

@@ -26,7 +26,8 @@ export default class Profile {
         public createdAt: string,
         public eventSource: RecordingEventSource,
         public enabled: boolean,
-        public durationInMillis: number
+        public durationInMillis: number,
+        public sizeInBytes: number
     ) {
     }
 }

@@ -68,5 +68,13 @@ public interface ProfileManager {
 
     ProfileInfo updateName(String name);
 
+    /**
+     * Returns the total size of the profile directory in bytes.
+     * This includes the DuckDB database and any additional files.
+     *
+     * @return size in bytes
+     */
+    long sizeInBytes();
+
     void delete();
 }

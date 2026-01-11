@@ -166,6 +166,35 @@ public abstract class FileSystemUtils {
         }
     }
 
+    /**
+     * Calculates the total size of all files in a directory recursively.
+     *
+     * @param directory the directory to calculate size for
+     * @return total size in bytes, or 0 if directory doesn't exist or is empty
+     */
+    public static long directorySize(Path directory) {
+        if (!isDirectory(directory)) {
+            return 0L;
+        }
+
+        try (Stream<Path> files = Files.walk(directory)) {
+            return files
+                    .filter(Files::isRegularFile)
+                    .mapToLong(path -> {
+                        try {
+                            return Files.size(path);
+                        } catch (IOException e) {
+                            LOG.warn("Cannot read file size: path={}", path);
+                            return 0L;
+                        }
+                    })
+                    .sum();
+        } catch (IOException e) {
+            LOG.warn("Cannot calculate directory size: directory={}", directory);
+            return 0L;
+        }
+    }
+
     public static void removeDirectory(Path directory) {
         if (!FileSystemUtils.isDirectory(directory)) {
             return;

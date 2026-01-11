@@ -155,6 +155,12 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public long sizeInBytes() {
+        Path profileDirectory = jeffreyDirs.profileDirectory(profileInfo.id());
+        return FileSystemUtils.directorySize(profileDirectory);
+    }
+
+    @Override
     public void delete() {
         // 1. Delete profile metadata from platform database
         this.profileRepository.delete();
