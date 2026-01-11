@@ -25,6 +25,8 @@ import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
+import InstanceDetail from '@/services/api/model/InstanceDetail';
+import InstanceTreeResponse from '@/services/api/model/InstanceTreeResponse';
 
 export default class HeapDumpClient extends BaseProfileClient {
 
@@ -93,5 +95,17 @@ export default class HeapDumpClient extends BaseProfileClient {
 
     public deleteStringAnalysis(): Promise<void> {
         return this.post<void>('/string-analysis/delete', {});
+    }
+
+    public getInstanceDetail(objectId: number, includeRetained: boolean = false): Promise<InstanceDetail> {
+        return this.get<InstanceDetail>(`/instance/${objectId}`, { includeRetained });
+    }
+
+    public getReferrers(objectId: number, limit: number = 50, offset: number = 0): Promise<InstanceTreeResponse> {
+        return this.get<InstanceTreeResponse>(`/instance/${objectId}/referrers`, { limit, offset });
+    }
+
+    public getReachables(objectId: number, limit: number = 50, offset: number = 0): Promise<InstanceTreeResponse> {
+        return this.get<InstanceTreeResponse>(`/instance/${objectId}/reachables`, { limit, offset });
     }
 }

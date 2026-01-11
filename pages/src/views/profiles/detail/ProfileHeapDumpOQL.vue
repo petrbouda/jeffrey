@@ -151,10 +151,28 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(entry, index) in filteredResults" :key="index">
+              <tr v-for="(entry, index) in filteredResults" :key="index" class="result-row">
                 <td class="text-muted">{{ index + 1 }}</td>
-                <td>
-                  <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
+                <td class="object-cell">
+                  <div class="object-header">
+                    <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
+                    <div v-if="entry.objectId" class="action-buttons">
+                      <button
+                          class="btn btn-action"
+                          title="Show Referrers (who references this)"
+                          @click="openTreeModal(entry.objectId!, 'REFERRERS')"
+                      >
+                        <i class="bi bi-box-arrow-in-left"></i>
+                      </button>
+                      <button
+                          class="btn btn-action"
+                          title="Show Reachables (what this references)"
+                          @click="openTreeModal(entry.objectId!, 'REACHABLES')"
+                      >
+                        <i class="bi bi-box-arrow-right"></i>
+                      </button>
+                    </div>
+                  </div>
                   <div v-if="entry.value" class="value-text" :title="entry.value">{{ truncateValue(entry.value, 300) }}</div>
                 </td>
                 <td class="text-end font-monospace">{{ entry.size ? FormattingService.formatBytes(entry.size) : '-' }}</td>
@@ -171,9 +189,13 @@
       <div class="text-center py-5">
         <i class="bi bi-terminal text-muted" style="font-size: 3rem;"></i>
         <p class="text-muted mt-3 mb-0">Enter an OQL query above and click Execute to see results.</p>
-        <button class="btn btn-outline-primary btn-sm mt-3" @click="showExamples = true" v-if="!showExamples">
-          <i class="bi bi-lightbulb me-1"></i>
-          Show Example Queries
+        <button
+            v-if="aiAvailable"
+            class="btn btn-ai-assistant-lg mt-4"
+            @click="showAssistant = true"
+        >
+          <i class="bi bi-stars me-2"></i>
+          Ask AI Assistant
         </button>
       </div>
     </div>
@@ -189,6 +211,17 @@
         @apply="applyQueryFromAssistant"
         @run="runQueryFromAssistant"
     />
+
+    <!-- Instance Tree Modal -->
+    <InstanceTreeModal
+        v-if="workspaceId && projectId && selectedObjectId !== null"
+        v-model:show="showTreeModal"
+        :object-id="selectedObjectId"
+        :initial-mode="treeMode"
+        :workspace-id="workspaceId"
+        :project-id="projectId"
+        :profile-id="profileId"
+    />
   </div>
 </template>
 
@@ -201,6 +234,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import OqlAssistantPanel from '@/components/oql/OqlAssistantPanel.vue';
+import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
@@ -225,6 +259,9 @@ const resultFilter = ref('');
 const resultSort = ref('retained-desc');
 const showAssistant = ref(false);
 const aiAvailable = ref(false);
+const showTreeModal = ref(false);
+const selectedObjectId = ref<number | null>(null);
+const treeMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
 
 let client: HeapDumpClient;
 
@@ -359,6 +396,12 @@ const runQueryFromAssistant = async (query: string) => {
   oqlQuery.value = query;
   showAssistant.value = false;
   await executeQuery();
+};
+
+const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
+  selectedObjectId.value = objectId;
+  treeMode.value = mode;
+  showTreeModal.value = true;
 };
 
 const checkAiAvailability = async () => {
@@ -745,5 +788,93 @@ onMounted(() => {
     opacity: 0.8;
     transform: scale(1.15);
   }
+}
+
+/* Large AI Assistant Button for empty state */
+.btn-ai-assistant-lg {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ai-assistant-lg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.btn-ai-assistant-lg:hover {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+  box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
+  transform: translateY(-2px);
+  color: white;
+}
+
+.btn-ai-assistant-lg:hover::before {
+  left: 100%;
+}
+
+.btn-ai-assistant-lg:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+}
+
+.btn-ai-assistant-lg i {
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+/* Object cell with inline action buttons */
+.object-cell {
+  position: relative;
+}
+
+.object-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-buttons {
+  display: inline-flex;
+  gap: 0.125rem;
+  margin-left: 0.25rem;
+}
+
+.btn-action {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  border: none;
+  background-color: transparent;
+  color: #6c757d;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.btn-action:hover {
+  background-color: rgba(111, 66, 193, 0.15);
+  color: #6f42c1;
+}
+
+.btn-action i {
+  font-size: 0.9rem;
 }
 </style>

@@ -196,7 +196,7 @@ public class InstanceValueFormatter {
                     sb.append((char) num.intValue());
                 }
             }
-            return "\"" + sb + (n.intValue() > MAX_STRING_LENGTH ? "..." : "") + "\"";
+            return "\"" + sb + "\"";
         }
         return "StringBuilder@" + Long.toHexString(instance.getInstanceId());
     }
@@ -211,10 +211,16 @@ public class InstanceValueFormatter {
     private String formatDefault(Instance instance, String className) {
         for (String fieldName : List.of("name", "value", "id", "key")) {
             Object fieldValue = instance.getValueOfField(fieldName);
-            if (fieldValue instanceof Instance fieldInstance
-                    && "java.lang.String".equals(fieldInstance.getJavaClass().getName())) {
-                return simpleClassName(className) + "[" + formatString(fieldInstance) + "]";
+            if (fieldValue instanceof Instance fieldInstance) {
+                String fieldClassName = fieldInstance.getJavaClass().getName();
+                if ("java.lang.String".equals(fieldClassName)) {
+                    return simpleClassName(className) + "[" + formatString(fieldInstance) + "]";
+                } else {
+                    // For non-String objects, show their simple class name and id
+                    return simpleClassName(className) + "[" + simpleClassName(fieldClassName) + "@" + Long.toHexString(fieldInstance.getInstanceId()) + "]";
+                }
             } else if (fieldValue != null) {
+                // Primitive value
                 return simpleClassName(className) + "[" + fieldValue + "]";
             }
         }
@@ -228,6 +234,6 @@ public class InstanceValueFormatter {
 
     private String truncate(String str, int maxLen) {
         if (str == null || str.length() <= maxLen) return str;
-        return str.substring(0, maxLen) + "...";
+        return str.substring(0, maxLen);
     }
 }

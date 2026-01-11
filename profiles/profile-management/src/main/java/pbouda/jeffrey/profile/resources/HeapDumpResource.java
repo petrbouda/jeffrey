@@ -23,6 +23,7 @@ import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
@@ -34,6 +35,8 @@ import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
+import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
@@ -218,5 +221,51 @@ public class HeapDumpResource {
     @Path("/string-analysis/delete")
     public void deleteStringAnalysis() {
         heapDumpManager.deleteStringAnalysis();
+    }
+
+    /**
+     * Get detailed information about an instance including all its fields.
+     *
+     * @param objectId            the object ID of the instance
+     * @param includeRetainedSize whether to calculate retained size (default false)
+     */
+    @GET
+    @Path("/instance/{objectId}")
+    public InstanceDetail getInstanceDetail(
+            @PathParam("objectId") long objectId,
+            @QueryParam("includeRetained") @DefaultValue("false") boolean includeRetainedSize) {
+        return heapDumpManager.getInstanceDetail(objectId, includeRetainedSize);
+    }
+
+    /**
+     * Get referrers of an instance (objects that reference this instance).
+     *
+     * @param objectId the object ID to find referrers for
+     * @param limit    maximum number of referrers to return (default 50)
+     * @param offset   offset for pagination (default 0)
+     */
+    @GET
+    @Path("/instance/{objectId}/referrers")
+    public InstanceTreeResponse getReferrers(
+            @PathParam("objectId") long objectId,
+            @QueryParam("limit") @DefaultValue("50") int limit,
+            @QueryParam("offset") @DefaultValue("0") int offset) {
+        return heapDumpManager.getReferrers(objectId, limit, offset);
+    }
+
+    /**
+     * Get reachables from an instance (objects that this instance references).
+     *
+     * @param objectId the object ID to find reachables for
+     * @param limit    maximum number of reachables to return (default 50)
+     * @param offset   offset for pagination (default 0)
+     */
+    @GET
+    @Path("/instance/{objectId}/reachables")
+    public InstanceTreeResponse getReachables(
+            @PathParam("objectId") long objectId,
+            @QueryParam("limit") @DefaultValue("50") int limit,
+            @QueryParam("offset") @DefaultValue("0") int offset) {
+        return heapDumpManager.getReachables(objectId, limit, offset);
     }
 }

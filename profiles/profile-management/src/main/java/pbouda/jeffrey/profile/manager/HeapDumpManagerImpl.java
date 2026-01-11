@@ -25,6 +25,8 @@ import pbouda.jeffrey.profile.heapdump.HeapLoader;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.GCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.InstanceDetailAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.InstanceTreeAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
 import pbouda.jeffrey.profile.heapdump.analyzer.StringAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
@@ -32,6 +34,8 @@ import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
+import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.JvmStringFlag;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
@@ -83,6 +87,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final ThreadAnalyzer threadAnalyzer;
     private final GCRootAnalyzer gcRootAnalyzer;
     private final StringAnalyzer stringAnalyzer;
+    private final InstanceDetailAnalyzer instanceDetailAnalyzer;
+    private final InstanceTreeAnalyzer instanceTreeAnalyzer;
 
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
@@ -102,6 +108,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.threadAnalyzer = new ThreadAnalyzer();
         this.gcRootAnalyzer = new GCRootAnalyzer();
         this.stringAnalyzer = new StringAnalyzer();
+        this.instanceDetailAnalyzer = new InstanceDetailAnalyzer();
+        this.instanceTreeAnalyzer = new InstanceTreeAnalyzer();
     }
 
     @Override
@@ -387,5 +395,26 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void deleteStringAnalysis() {
         additionalFilesManager.deleteStringAnalysis();
+    }
+
+    @Override
+    public InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize) {
+        return getHeap()
+                .map(heap -> instanceDetailAnalyzer.analyze(heap, objectId, includeRetainedSize))
+                .orElse(null);
+    }
+
+    @Override
+    public InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
+        return getHeap()
+                .map(heap -> instanceTreeAnalyzer.getReferrers(heap, objectId, limit, offset))
+                .orElse(InstanceTreeResponse.notFound());
+    }
+
+    @Override
+    public InstanceTreeResponse getReachables(long objectId, int limit, int offset) {
+        return getHeap()
+                .map(heap -> instanceTreeAnalyzer.getReachables(heap, objectId, limit, offset))
+                .orElse(InstanceTreeResponse.notFound());
     }
 }

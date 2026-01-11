@@ -22,6 +22,8 @@ import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
+import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
@@ -154,4 +156,33 @@ public interface HeapDumpManager {
      * Delete the string analysis results.
      */
     void deleteStringAnalysis();
+
+    /**
+     * Get detailed information about an instance including all its fields.
+     *
+     * @param objectId            the object ID of the instance
+     * @param includeRetainedSize whether to calculate retained size (expensive operation)
+     * @return instance details or null if not found
+     */
+    InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize);
+
+    /**
+     * Get referrers of an instance (objects that reference this instance).
+     *
+     * @param objectId the object ID to find referrers for
+     * @param limit    maximum number of referrers to return
+     * @param offset   offset for pagination
+     * @return tree response with referrers
+     */
+    InstanceTreeResponse getReferrers(long objectId, int limit, int offset);
+
+    /**
+     * Get reachables from an instance (objects that this instance references).
+     *
+     * @param objectId the object ID to find reachables for
+     * @param limit    maximum number of reachables to return
+     * @param offset   offset for pagination
+     * @return tree response with reachables
+     */
+    InstanceTreeResponse getReachables(long objectId, int limit, int offset);
 }
