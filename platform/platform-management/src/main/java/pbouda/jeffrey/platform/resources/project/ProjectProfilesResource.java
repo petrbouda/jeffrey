@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.profile.manager.ProfileManager;
@@ -49,21 +51,31 @@ public class ProjectProfilesResource {
 
     private final ProfilesManager profilesManager;
     private final ProjectsManager projectsManager;
+    private final OqlAssistantService oqlAssistantService;
+    private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     /**
-     * @param profilesManager Primary Profiles Manager
-     * @param projectsManager Projects Manager to retrieve Profiles from different Projects
+     * @param profilesManager          Primary Profiles Manager
+     * @param projectsManager          Projects Manager to retrieve Profiles from different Projects
+     * @param oqlAssistantService      AI-powered OQL assistant service
+     * @param heapDumpContextExtractor Extracts heap dump context for AI prompts
      */
-    public ProjectProfilesResource(ProfilesManager profilesManager, ProjectsManager projectsManager) {
+    public ProjectProfilesResource(
+            ProfilesManager profilesManager,
+            ProjectsManager projectsManager,
+            OqlAssistantService oqlAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor) {
         this.profilesManager = profilesManager;
         this.projectsManager = projectsManager;
+        this.oqlAssistantService = oqlAssistantService;
+        this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
     @Path("/{profileId}")
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = profilesManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found"));
-        return new ProfileResource(profileManager);
+        return new ProfileResource(profileManager, oqlAssistantService, heapDumpContextExtractor);
     }
 
     @Path("/{primaryProfileId}/diff/{secondaryProfileId}")

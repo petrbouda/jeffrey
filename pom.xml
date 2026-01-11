@@ -48,6 +48,7 @@
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.2.3</jeffrey-events.version>
         <spring-boot.version>4.0.0</spring-boot.version>
+        <spring-ai.version>2.0.0-M1</spring-ai.version>
         <duckdb.version>1.4.1.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
     </properties>
@@ -58,6 +59,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -90,6 +98,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>profile-sql-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>ai-assistant</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

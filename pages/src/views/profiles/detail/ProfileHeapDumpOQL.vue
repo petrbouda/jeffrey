@@ -23,23 +23,16 @@
     <PageHeader
         title="OQL Query"
         description="Execute Object Query Language queries against the heap dump"
-        icon="bi-terminal">
-      <template #actions>
-        <button
-            class="btn btn-sm"
-            :class="showExamples ? 'btn-purple' : 'btn-outline-purple'"
-            @click="showExamples = !showExamples"
-        >
-          <i class="bi bi-lightbulb me-1"></i>
-          Examples
-        </button>
-      </template>
-    </PageHeader>
+        icon="bi-terminal"
+    />
 
     <!-- Example Queries Section (Collapsible) -->
     <div v-if="showExamples" class="examples-card mb-4">
       <div class="examples-header">
         <h6 class="mb-0"><i class="bi bi-code-square me-2"></i>Example Queries</h6>
+        <button class="btn btn-sm btn-outline-secondary" @click="showExamples = false">
+          <i class="bi bi-x-lg me-1"></i>Hide
+        </button>
       </div>
       <div class="examples-body">
         <div class="examples-list">
@@ -76,6 +69,23 @@
           <button class="btn btn-sm btn-outline-secondary" @click="clearResults" :disabled="!oqlResult && !oqlError">
             <i class="bi bi-x-lg me-1"></i>
             Clear
+          </button>
+          <div class="toolbar-divider"></div>
+          <button
+              v-if="aiAvailable"
+              class="btn btn-sm btn-ai-assistant"
+              @click="showAssistant = true"
+          >
+            <i class="bi bi-stars me-1"></i>
+            AI Assistant
+          </button>
+          <button
+              class="btn btn-sm"
+              :class="showExamples ? 'btn-purple' : 'btn-outline-purple'"
+              @click="showExamples = !showExamples"
+          >
+            <i class="bi bi-lightbulb me-1"></i>
+            Examples
           </button>
         </div>
         <div class="d-flex align-items-center gap-3">
@@ -167,6 +177,18 @@
         </button>
       </div>
     </div>
+
+    <!-- AI Assistant Panel -->
+    <OqlAssistantPanel
+        v-if="workspaceId && projectId"
+        :is-open="showAssistant"
+        :workspace-id="workspaceId"
+        :project-id="projectId"
+        :profile-id="profileId"
+        @close="showAssistant = false"
+        @apply="applyQueryFromAssistant"
+        @run="runQueryFromAssistant"
+    />
   </div>
 </template>
 
@@ -178,7 +200,9 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
+import OqlAssistantPanel from '@/components/oql/OqlAssistantPanel.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
+import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import FormattingService from '@/services/FormattingService';
 
@@ -199,6 +223,8 @@ const showExamples = ref(false);
 const includeRetainedSize = ref(true);
 const resultFilter = ref('');
 const resultSort = ref('retained-desc');
+const showAssistant = ref(false);
+const aiAvailable = ref(false);
 
 let client: HeapDumpClient;
 
@@ -324,6 +350,28 @@ const clearResults = () => {
   oqlError.value = null;
 };
 
+const applyQueryFromAssistant = (query: string) => {
+  oqlQuery.value = query;
+  showAssistant.value = false;
+};
+
+const runQueryFromAssistant = async (query: string) => {
+  oqlQuery.value = query;
+  showAssistant.value = false;
+  await executeQuery();
+};
+
+const checkAiAvailability = async () => {
+  try {
+    if (!workspaceId.value || !projectId.value) return;
+    const aiClient = new OqlAssistantClient(workspaceId.value, projectId.value, profileId);
+    const status = await aiClient.getStatus();
+    aiAvailable.value = status.enabled && status.configured;
+  } catch {
+    aiAvailable.value = false;
+  }
+};
+
 const scrollToTop = () => {
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
@@ -344,6 +392,8 @@ const loadData = async () => {
 
     if (heapExists.value) {
       cacheReady.value = await client.isCacheReady();
+      // Check AI availability in parallel
+      checkAiAvailability();
     }
 
   } catch (err) {
@@ -373,6 +423,9 @@ onMounted(() => {
 }
 
 .examples-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 0.75rem 1rem;
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
@@ -472,6 +525,21 @@ onMounted(() => {
   align-items: center;
   padding: 0.5rem 1rem;
   background-color: #fff;
+}
+
+.query-toolbar .btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background-color: #dee2e6;
+  margin: 0 0.25rem;
 }
 
 .select-narrow {
@@ -618,5 +686,64 @@ onMounted(() => {
   background-color: #6f42c1;
   border-color: #6f42c1;
   color: white;
+}
+
+/* AI Assistant Button - Eye-catching design */
+.btn-ai-assistant {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  border: none;
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ai-assistant::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btn-ai-assistant:hover {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+  color: white;
+}
+
+.btn-ai-assistant:hover::before {
+  left: 100%;
+}
+
+.btn-ai-assistant:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+}
+
+.btn-ai-assistant i {
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+  }
 }
 </style>

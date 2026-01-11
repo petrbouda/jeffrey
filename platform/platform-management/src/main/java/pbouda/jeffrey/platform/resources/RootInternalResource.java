@@ -24,6 +24,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
@@ -42,6 +44,8 @@ public class RootInternalResource {
     private final ProjectTemplatesResolver projectTemplatesResolver;
     private final CompositeWorkspacesManager workspacesManager;
     private final ProfilerRepository profilerRepository;
+    private final OqlAssistantService oqlAssistantService;
+    private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     @Inject
     public RootInternalResource(
@@ -49,13 +53,17 @@ public class RootInternalResource {
             RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
             ProjectTemplatesResolver projectTemplatesResolver,
             CompositeWorkspacesManager workspacesManager,
-            ProfilerRepository profilerRepository) {
+            ProfilerRepository profilerRepository,
+            OqlAssistantService oqlAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor) {
 
         this.globalSchedulerManager = globalSchedulerManager;
         this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
         this.projectTemplatesResolver = projectTemplatesResolver;
         this.workspacesManager = workspacesManager;
         this.profilerRepository = profilerRepository;
+        this.oqlAssistantService = oqlAssistantService;
+        this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
     @Path("/projects")
@@ -70,7 +78,10 @@ public class RootInternalResource {
 
     @Path("/workspaces")
     public WorkspacesResource workspaceResource() {
-        return new WorkspacesResource(workspacesManager);
+        return new WorkspacesResource(
+                workspacesManager,
+                oqlAssistantService,
+                heapDumpContextExtractor);
     }
 
     @Path("/remote-workspaces")

@@ -22,6 +22,8 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.custom.*;
@@ -32,9 +34,16 @@ public class ProfileResource {
     }
 
     private final ProfileManager profileManager;
+    private final OqlAssistantService oqlAssistantService;
+    private final HeapDumpContextExtractor heapDumpContextExtractor;
 
-    public ProfileResource(ProfileManager profileManager) {
+    public ProfileResource(
+            ProfileManager profileManager,
+            OqlAssistantService oqlAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor) {
         this.profileManager = profileManager;
+        this.oqlAssistantService = oqlAssistantService;
+        this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
     @Path("/analysis")
@@ -126,7 +135,10 @@ public class ProfileResource {
 
     @Path("/heap")
     public HeapDumpResource heapDumpResource() {
-        return new HeapDumpResource(profileManager.heapDumpManager());
+        return new HeapDumpResource(
+                profileManager.heapDumpManager(),
+                oqlAssistantService,
+                heapDumpContextExtractor);
     }
 
     @Path("/features")

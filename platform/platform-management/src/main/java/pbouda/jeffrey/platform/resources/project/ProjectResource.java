@@ -21,6 +21,8 @@ package pbouda.jeffrey.platform.resources.project;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInfo;
@@ -33,19 +35,33 @@ public class ProjectResource {
 
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
+    private final OqlAssistantService oqlAssistantService;
+    private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     /**
-     * @param projectManager  Primary Project Manager
-     * @param projectsManager Projects Manager to retrieve Profiles from different Projects
+     * @param projectManager           Primary Project Manager
+     * @param projectsManager          Projects Manager to retrieve Profiles from different Projects
+     * @param oqlAssistantService      AI-powered OQL assistant service
+     * @param heapDumpContextExtractor Extracts heap dump context for AI prompts
      */
-    public ProjectResource(ProjectManager projectManager, ProjectsManager projectsManager) {
+    public ProjectResource(
+            ProjectManager projectManager,
+            ProjectsManager projectsManager,
+            OqlAssistantService oqlAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor) {
         this.projectManager = projectManager;
         this.projectsManager = projectsManager;
+        this.oqlAssistantService = oqlAssistantService;
+        this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
     @Path("/profiles")
     public ProjectProfilesResource profilesResource() {
-        return new ProjectProfilesResource(projectManager.profilesManager(), projectsManager);
+        return new ProjectProfilesResource(
+                projectManager.profilesManager(),
+                projectsManager,
+                oqlAssistantService,
+                heapDumpContextExtractor);
     }
 
     @Path("/settings")

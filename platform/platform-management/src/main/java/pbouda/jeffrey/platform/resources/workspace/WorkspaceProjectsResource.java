@@ -26,6 +26,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -53,11 +55,19 @@ public class WorkspaceProjectsResource {
     private final WorkspaceInfo workspaceInfo;
     private final ProjectsManager projectsManager;
     private final WorkspaceManager workspaceManager;
+    private final OqlAssistantService oqlAssistantService;
+    private final HeapDumpContextExtractor heapDumpContextExtractor;
 
-    public WorkspaceProjectsResource(WorkspaceInfo workspaceInfo, WorkspaceManager workspaceManager) {
+    public WorkspaceProjectsResource(
+            WorkspaceInfo workspaceInfo,
+            WorkspaceManager workspaceManager,
+            OqlAssistantService oqlAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.projectsManager = workspaceManager.projectsManager();
+        this.oqlAssistantService = oqlAssistantService;
+        this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
     @Path("/{projectId}")
@@ -65,7 +75,11 @@ public class WorkspaceProjectsResource {
         ProjectManager projectManager = projectsManager.project(projectId)
                 .orElseThrow(() -> new NotFoundException("Project not found"));
 
-        return new ProjectResource(projectManager, projectsManager);
+        return new ProjectResource(
+                projectManager,
+                projectsManager,
+                oqlAssistantService,
+                heapDumpContextExtractor);
     }
 
     /**

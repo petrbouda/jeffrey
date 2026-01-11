@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
@@ -43,9 +45,16 @@ public class WorkspacesResource {
     }
 
     private final CompositeWorkspacesManager workspacesManager;
+    private final OqlAssistantService oqlAssistantService;
+    private final HeapDumpContextExtractor heapDumpContextExtractor;
 
-    public WorkspacesResource(CompositeWorkspacesManager workspacesManager) {
+    public WorkspacesResource(
+            CompositeWorkspacesManager workspacesManager,
+            OqlAssistantService oqlAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor) {
         this.workspacesManager = workspacesManager;
+        this.oqlAssistantService = oqlAssistantService;
+        this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
     @Path("/{workspaceId}")
@@ -61,7 +70,11 @@ public class WorkspacesResource {
             throw Exceptions.invalidRequest("Invalid workspace type: expected " + type + " but found " + workspaceInfo.type());
         }
 
-        return new WorkspaceResource(workspaceInfo, workspaceManager);
+        return new WorkspaceResource(
+                workspaceInfo,
+                workspaceManager,
+                oqlAssistantService,
+                heapDumpContextExtractor);
     }
 
     @GET
