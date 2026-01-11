@@ -59,7 +59,7 @@ public final class OqlSystemPrompt {
 
         ```sql
         select s from java.lang.String s where sizeof(s) > 1024
-        select {obj: s, size: rsizeof(s)} from java.lang.String s where rsizeof(s) > 10000
+        select s from java.lang.String s where rsizeof(s) > 10000
         ```
 
         **Reference traversal:**
@@ -108,12 +108,16 @@ public final class OqlSystemPrompt {
         4. If you're unsure about the exact class name, use the provided class list
         5. For memory leak investigation, suggest checking referrers
         6. Always prefer retained size (rsizeof) over shallow size for leak detection
+        7. IMPORTANT: Prefer returning direct instances over anonymous objects.
+           - Good: `select b from java.nio.DirectByteBuffer b`
+           - Avoid: `select {buffer: b, capacity: b.capacity()} from java.nio.DirectByteBuffer b`
+           Anonymous objects don't display well in the results table. Users can click on instances to see details.
 
         ## Common Memory Analysis Patterns
 
         **Find potential leaks (large retained size):**
         ```sql
-        select {class: classof(o).name, retained: rsizeof(o)} from java.lang.Object o where rsizeof(o) > 1000000
+        select o from java.lang.Object o where rsizeof(o) > 1000000
         ```
 
         **String duplicates:**
@@ -121,14 +125,19 @@ public final class OqlSystemPrompt {
         select unique(s.toString()) from java.lang.String s
         ```
 
-        **Collection sizing issues:**
+        **Large collections:**
         ```sql
-        select {map: h, size: h.size, retained: rsizeof(h)} from java.util.HashMap h where h.size > 1000
+        select h from java.util.HashMap h where h.size > 1000
         ```
 
         **Find what's holding an object:**
         ```sql
         select referrers(o) from java.lang.Object o where objectid(o) == <id>
+        ```
+
+        **Direct buffers analysis:**
+        ```sql
+        select b from java.nio.DirectByteBuffer b where b.capacity() > 1048576
         ```
         """;
 

@@ -31,6 +31,7 @@ import pbouda.jeffrey.profile.heapdump.model.OQLResultEntry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -110,6 +111,7 @@ public class OQLQueryExecutor {
         return collected;
     }
 
+    @SuppressWarnings("unchecked")
     private OQLResultEntry toEntry(Object obj, OQLEngine engine, InstanceValueFormatter formatter, boolean includeRetained) {
         if (obj instanceof Instance instance) {
             String value = formatter.format(instance);
@@ -126,7 +128,82 @@ public class OQLQueryExecutor {
             String value = String.format("instances=%d, size=%d", instanceCount, totalSize);
             return OQLResultEntry.ofJavaClass(javaClass.getJavaClassId(), className, value, totalSize);
         }
+        // Handle JavaScript objects from OQL (ScriptObjectMirror implements Map)
+        if (obj instanceof Map<?, ?> map) {
+            String value = formatJsObject((Map<String, Object>) map, formatter, 0);
+            return OQLResultEntry.ofValue(value);
+        }
         return OQLResultEntry.ofValue(obj != null ? obj.toString() : "null");
+    }
+
+    private static final int MAX_FORMAT_DEPTH = 3;
+
+    /**
+     * Format a JavaScript object (from OQL) as a readable string.
+     * Recursively formats nested objects and Instance references with depth limiting.
+     */
+    @SuppressWarnings("unchecked")
+    private String formatJsObject(Map<String, Object> map, InstanceValueFormatter formatter, int depth) {
+        if (depth > MAX_FORMAT_DEPTH) {
+            return "{...}";
+        }
+        StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            // Skip internal JavaScript properties and functions
+            if (key.startsWith("__") || key.equals("constructor")) {
+                continue;
+            }
+            if (!first) sb.append(", ");
+            first = false;
+            sb.append(key).append(": ");
+            sb.append(formatJsValue(entry.getValue(), formatter, depth + 1));
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private String formatJsValue(Object value, InstanceValueFormatter formatter, int depth) {
+        if (value == null) {
+            return "null";
+        }
+        if (depth > MAX_FORMAT_DEPTH) {
+            return "...";
+        }
+        try {
+            if (value instanceof Instance instance) {
+                return formatter.format(instance);
+            }
+            if (value instanceof JavaClass javaClass) {
+                return javaClass.getName();
+            }
+            if (value instanceof Map<?, ?> nestedMap) {
+                return formatJsObject((Map<String, Object>) nestedMap, formatter, depth);
+            }
+            if (value instanceof List<?> list) {
+                StringBuilder sb = new StringBuilder("[");
+                for (int i = 0; i < Math.min(list.size(), 10); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(formatJsValue(list.get(i), formatter, depth + 1));
+                }
+                if (list.size() > 10) {
+                    sb.append(", ... (").append(list.size() - 10).append(" more)");
+                }
+                sb.append("]");
+                return sb.toString();
+            }
+            // For Numbers, Strings, Booleans - use toString directly
+            if (value instanceof Number || value instanceof Boolean || value instanceof String) {
+                return value.toString();
+            }
+            // For other types, get class name to avoid calling potentially problematic toString()
+            return value.getClass().getSimpleName() + "@" + Integer.toHexString(System.identityHashCode(value));
+        } catch (Exception e) {
+            LOG.trace("Failed to format JS value: type={}", value.getClass().getName(), e);
+            return "<error>";
+        }
     }
 
     private long calculateRetainedSize(OQLEngine engine, long objectId) {
