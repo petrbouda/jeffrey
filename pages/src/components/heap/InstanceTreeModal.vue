@@ -53,7 +53,9 @@
                 Reachables<i class="bi bi-arrow-right-circle ms-1"></i>
               </button>
             </div>
-            <button type="button" class="btn-close ms-3" @click="closeModal" aria-label="Close"></button>
+            <button type="button" class="close-btn ms-3" @click="closeModal" aria-label="Close" title="Close">
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
         </div>
 
@@ -109,7 +111,9 @@
 
         <!-- Footer -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="closeModal">Close</button>
+          <button type="button" class="btn btn-outline-secondary" @click="closeModal">
+            <i class="bi bi-x-circle me-1"></i>Close
+          </button>
         </div>
       </div>
     </div>
@@ -300,6 +304,36 @@ onMounted(() => {
 .header-controls {
   display: flex;
   align-items: center;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.close-btn:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: #fff;
+}
+
+.close-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.close-btn i {
+  font-size: 1rem;
 }
 
 .modal-body {

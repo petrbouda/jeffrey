@@ -23,18 +23,28 @@ import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import java.nio.file.Path;
 import java.util.Optional;
 
-public interface AdditionalFileParser {
+/**
+ * Processor for additional files found in recording storage.
+ * Different implementations handle different file types (e.g., performance counters, heap dumps).
+ */
+public interface AdditionalFileProcessor {
 
     /**
-     * Parses the given file and returns an object representation of its content.
+     * Processes the given file and returns the result of processing.
+     * The result type indicates how the processing outcome should be handled:
+     * <ul>
+     *   <li>{@link ProcessingResult.CacheableResult} - content should be stored in the cache repository</li>
+     *   <li>{@link ProcessingResult.FileTransferResult} - file was copied to destination</li>
+     *   <li>{@link ProcessingResult.NoOpResult} - no action taken</li>
+     * </ul>
      *
-     * @param filePath the path to the file to be parsed
-     * @return an object representation of the file content
+     * @param filePath the path to the file to be processed
+     * @return the processing result, or empty if processing failed
      */
-    Optional<Object> parse(Path filePath);
+    Optional<ProcessingResult> process(Path filePath);
 
     /**
-     * Returns the supported recording file type for this parser.
+     * Returns the supported recording file type for this processor.
      *
      * @return the supported recording file type
      */

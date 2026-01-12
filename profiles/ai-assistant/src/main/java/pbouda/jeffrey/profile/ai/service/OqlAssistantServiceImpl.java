@@ -24,9 +24,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
-import pbouda.jeffrey.profile.ai.config.AiAssistantProperties;
 import pbouda.jeffrey.profile.ai.model.*;
-import pbouda.jeffrey.profile.ai.prompt.OqlSystemPrompt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,18 +37,18 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
     private static final Logger LOG = LoggerFactory.getLogger(OqlAssistantServiceImpl.class);
 
     private final ChatClient chatClient;
-    private final AiAssistantProperties properties;
+    private final AiAssistantConfig aiAssistantConfig;
     private final HeapDumpContextExtractor contextExtractor;
     private final OqlExtractor oqlExtractor;
 
     public OqlAssistantServiceImpl(
             ChatClient chatClient,
-            AiAssistantProperties properties) {
+            AiAssistantConfig aiAssistantConfig) {
         this.chatClient = chatClient;
-        this.properties = properties;
+        this.aiAssistantConfig = aiAssistantConfig;
         this.contextExtractor = new HeapDumpContextExtractor();
         this.oqlExtractor = new OqlExtractor();
-        LOG.info("OQL Assistant initialized: provider={}", properties.provider());
+        LOG.info("OQL Assistant initialized: provider={}", aiAssistantConfig.provider());
     }
 
     @Override
@@ -61,8 +59,8 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
     @Override
     public AiStatusResponse getStatus() {
         return new AiStatusResponse(
-                properties.enabled(),
-                properties.provider(),
+                aiAssistantConfig.enabled(),
+                aiAssistantConfig.provider(),
                 isAvailable()
         );
     }
@@ -125,7 +123,7 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
         String userMessageWithContext = """
                 ## Current Heap Dump Context
                 %s
-
+                
                 ## User Request
                 %s
                 """.formatted(contextText, request.message());

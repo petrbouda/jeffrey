@@ -136,30 +136,21 @@ const selectSection = () => {
   >
 
     <div class="config-container">
-      <!-- Tab navigation -->
-      <div class="mb-3">
-        <div class="card">
-          <div class="card-header bg-white">
-            <div class="nav-container">
-              <ul class="nav nav-pills nav-fill" role="tablist">
-                <li class="nav-item" v-for="(item, index) in items" :key="index">
-                  <button 
-                    class="nav-link" 
-                    :class="{ 'active': active === index }" 
-                    @click="active = index; selectSection()"
-                    :id="`tab-${index}`"
-                    type="button" 
-                    role="tab" 
-                    :aria-selected="active === index">
-                    {{ item.label }}
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
+      <!-- Section navigation pills -->
+      <div class="pills-wrapper mb-3">
+        <div class="pills-scroll">
+          <button
+            v-for="(item, index) in items"
+            :key="index"
+            class="config-pill"
+            :class="{ 'active': active === index }"
+            @click="active = index; selectSection()"
+            type="button">
+            {{ item.label }}
+          </button>
         </div>
       </div>
-      
+
       <!-- Configuration table -->
       <div class="card mb-4">
         <div class="card-body p-0">
@@ -193,78 +184,77 @@ const selectSection = () => {
   border-radius: 0.4rem;
 }
 
-/* Tab navigation styles - more compact */
-.card-header {
-  padding: 0.75rem 1rem;
-  background-color: #fff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+/* Pills navigation - auto-width, scrollable */
+.pills-wrapper {
+  background: #fafbfc;
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid #e9ecef;
 }
 
-.nav-container {
+.pills-scroll {
+  display: flex;
+  gap: 0.5rem;
   overflow-x: auto;
-  -ms-overflow-style: none;
   scrollbar-width: none;
-  margin-right: -0.25rem;
-  margin-left: -0.25rem;
-  padding: 0 0.25rem;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  -ms-overflow-style: none;
+  padding: 0.25rem;
 }
 
-.nav-pills {
-  gap: 0.15rem;
-  
-  .nav-link {
-    color: #6c757d;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    margin: 0;
-    border-radius: 0.2rem;
-    transition: all 0.2s ease;
-    font-size: 0.7rem;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    line-height: 1.2;
-
-    &:hover {
-      color: #5e64ff;
-      background-color: rgba(94, 100, 255, 0.08);
-    }
-
-    &.active {
-      background-color: #5e64ff;
-      color: white;
-      font-weight: 600;
-      box-shadow: 0 0.125rem 0.25rem rgba(94, 100, 255, 0.2);
-    }
-  }
+.pills-scroll::-webkit-scrollbar {
+  display: none;
 }
 
-/* Table styles - matching ProfileEventTypes */
+.config-pill {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6c757d;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.config-pill:hover {
+  color: #5e64ff;
+  border-color: #5e64ff;
+  background: rgba(94, 100, 255, 0.04);
+}
+
+.config-pill.active {
+  color: #fff;
+  background: #5e64ff;
+  border-color: #5e64ff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.25);
+}
+
+/* Table styles */
 .config-tree-table {
   width: 100%;
   table-layout: fixed;
 }
 
 .config-tree-table th:nth-child(1) {
-  width: 30%;
+  width: 20%;
 }
 
 .config-tree-table th:nth-child(2) {
-  width: 70%;
+  width: 80%;
 }
 
 .config-tree-table th {
-  padding: 0.75rem 0.75rem;
-  font-size: 0.8rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
 }
 
 .config-tree-table td {
-  padding: 0.6rem 0.75rem;
-  font-size: 0.8rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.8125rem;
   vertical-align: middle;
 }
 
@@ -284,9 +274,9 @@ const selectSection = () => {
 
 .config-value {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.85em;
+  font-size: 0.8125rem;
   color: #495057;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .config-row {
@@ -297,7 +287,7 @@ const selectSection = () => {
   background-color: #f8f9fa;
 }
 
-/* Card styles matching ProfileEventTypes */
+/* Card styles */
 .card {
   border: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -305,10 +295,15 @@ const selectSection = () => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .card-header {
-    padding: 0.5rem 0.75rem;
+  .pills-wrapper {
+    padding: 0.375rem;
   }
-  
+
+  .config-pill {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
   .config-tree-table {
     table-layout: auto;
   }
@@ -316,23 +311,23 @@ const selectSection = () => {
   .config-name-cell {
     max-width: 200px;
   }
-  
+
   .config-tree-table th:nth-child(1) {
-    width: 30%;
+    width: 25%;
   }
-  
+
   .config-tree-table th:nth-child(2) {
-    width: 70%;
+    width: 75%;
   }
-  
+
   .config-tree-table th {
-    padding: 0.6rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
   }
-  
+
   .config-tree-table td {
-    padding: 0.5rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -341,20 +336,20 @@ const selectSection = () => {
   .config-value-cell {
     white-space: normal;
   }
-  
-  .nav-pills .nav-link {
-    padding: 0.15rem 0.3rem;
-    font-size: 0.6rem;
+
+  .config-pill {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
   }
-  
+
   .config-tree-table th {
-    padding: 0.5rem 0.4rem;
-    font-size: 0.7rem;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.75rem;
   }
-  
+
   .config-tree-table td {
-    padding: 0.4rem 0.4rem;
-    font-size: 0.7rem;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.75rem;
   }
 }
 </style>

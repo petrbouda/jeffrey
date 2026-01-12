@@ -298,10 +298,16 @@ const processHeapDump = async () => {
     lastSummary.value = summary;
 
     processingMessage.value = 'Running string analysis...';
-    processingProgress.value = 80;
+    processingProgress.value = 70;
 
     // Run string analysis as part of initialization
     await client.runStringAnalysis(100);
+
+    processingMessage.value = 'Running thread analysis...';
+    processingProgress.value = 85;
+
+    // Run thread analysis as part of initialization
+    await client.runThreadAnalysis();
 
     processingMessage.value = 'Done';
     processingProgress.value = 100;
@@ -320,8 +326,9 @@ const processHeapDump = async () => {
 const clearCache = async () => {
   try {
     await client.deleteCache();
-    // Also delete string analysis so it gets regenerated on next initialization
+    // Also delete analyses so they get regenerated on next initialization
     await client.deleteStringAnalysis();
+    await client.deleteThreadAnalysis();
     cacheReady.value = false;
     lastSummary.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);

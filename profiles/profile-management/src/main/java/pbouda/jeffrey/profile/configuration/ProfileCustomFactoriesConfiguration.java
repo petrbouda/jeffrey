@@ -19,7 +19,6 @@
 package pbouda.jeffrey.profile.configuration;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.profile.manager.custom.*;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
@@ -27,7 +26,6 @@ import pbouda.jeffrey.shared.persistence.DatabaseManager;
 
 import javax.sql.DataSource;
 
-@Configuration
 public class ProfileCustomFactoriesConfiguration {
 
     private final ProfileRepositories repositories;

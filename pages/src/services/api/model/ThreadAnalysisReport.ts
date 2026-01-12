@@ -16,10 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface HeapThreadInfo {
-    objectId: number;
-    name: string;
-    daemon: boolean;
-    priority: number;
-    retainedSize?: number;
+import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
+
+export default interface ThreadAnalysisReport {
+    totalThreads: number;
+    daemonThreads: number;
+    userThreads: number;
+    totalRetainedSize: number;
+    threads: HeapThreadInfo[];
 }

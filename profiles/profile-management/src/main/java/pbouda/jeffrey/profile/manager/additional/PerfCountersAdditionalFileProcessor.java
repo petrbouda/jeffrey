@@ -20,9 +20,9 @@ package pbouda.jeffrey.profile.manager.additional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.profile.manager.model.PerfCounter;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.profile.manager.model.PerfCounter;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,12 +32,14 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class PerfCountersAdditionalFileParser implements AdditionalFileParser {
+public class PerfCountersAdditionalFileProcessor implements AdditionalFileProcessor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PerfCountersAdditionalFileParser.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PerfCountersAdditionalFileProcessor.class);
+
+    public static final String PERF_COUNTERS_CACHE_KEY = "performance_counters";
 
     @Override
-    public Optional<Object> parse(Path filePath) {
+    public Optional<ProcessingResult> process(Path filePath) {
         Map<String, Object> result;
         try {
             result = PerfCountersParser.parse(filePath);
@@ -70,7 +72,7 @@ public class PerfCountersAdditionalFileParser implements AdditionalFileParser {
             }
         }
 
-        return Optional.of(counters);
+        return Optional.of(new ProcessingResult.CacheableResult(PERF_COUNTERS_CACHE_KEY, counters));
     }
 
     private static List<String[]> loadPerfCountersDesc() {

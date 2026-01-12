@@ -22,7 +22,7 @@ import pbouda.jeffrey.shared.common.model.EventSummary;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.feature.FeatureCheckResult;
 import pbouda.jeffrey.profile.feature.FeatureType;
-import pbouda.jeffrey.profile.manager.AdditionalFilesManagerImpl;
+import pbouda.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 
 import java.util.Map;
@@ -37,7 +37,7 @@ public class PerfCounterDashboardFeatureChecker implements FeatureChecker {
 
     @Override
     public FeatureCheckResult check(Map<Type, EventSummary> eventSummaries) {
-        boolean enabled = cacheRepository.contains(AdditionalFilesManagerImpl.PERF_COUNTERS_KEY);
+        boolean enabled = cacheRepository.contains(PerfCountersAdditionalFileProcessor.PERF_COUNTERS_CACHE_KEY);
         return new FeatureCheckResult(FeatureType.PERF_COUNTERS_DASHBOARD, enabled);
     }
 }

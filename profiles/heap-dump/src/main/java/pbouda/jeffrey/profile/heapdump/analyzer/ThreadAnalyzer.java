@@ -21,12 +21,17 @@ package pbouda.jeffrey.profile.heapdump.analyzer;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.JavaClass;
+import org.netbeans.lib.profiler.heap.PrimitiveArrayInstance;
+import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
+import org.netbeans.modules.profiler.oql.engine.api.OQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Analyzes Thread objects in a heap dump.
@@ -42,8 +47,19 @@ public class ThreadAnalyzer {
      * @param heap the loaded heap dump
      * @return list of thread information
      */
-    @SuppressWarnings("unchecked")
     public List<HeapThreadInfo> analyze(Heap heap) {
+        return analyze(heap, false);
+    }
+
+    /**
+     * Extract information about all Thread instances in the heap.
+     *
+     * @param heap                the loaded heap dump
+     * @param includeRetainedSize whether to calculate retained size (expensive operation)
+     * @return list of thread information
+     */
+    @SuppressWarnings("unchecked")
+    public List<HeapThreadInfo> analyze(Heap heap, boolean includeRetainedSize) {
         List<HeapThreadInfo> threads = new ArrayList<>();
 
         JavaClass threadClass = heap.getJavaClassByName(THREAD_CLASS);
@@ -52,13 +68,13 @@ public class ThreadAnalyzer {
             return threads;
         }
 
+        OQLEngine engine = includeRetainedSize ? new OQLEngine(heap) : null;
+
         List<Instance> instances = (List<Instance>) threadClass.getInstances();
         for (Instance instance : instances) {
             try {
-                HeapThreadInfo threadInfo = extractThreadInfo(instance);
-                if (threadInfo != null) {
-                    threads.add(threadInfo);
-                }
+                HeapThreadInfo threadInfo = extractThreadInfo(instance, engine);
+                threads.add(threadInfo);
             } catch (Exception e) {
                 LOG.debug("Failed to extract thread info for instance: id={}", instance.getInstanceId(), e);
             }
@@ -67,7 +83,7 @@ public class ThreadAnalyzer {
         return threads;
     }
 
-    private HeapThreadInfo extractThreadInfo(Instance threadInstance) {
+    private HeapThreadInfo extractThreadInfo(Instance threadInstance, OQLEngine engine) {
         String name = getStringFieldValue(threadInstance, "name");
         if (name == null) {
             name = "unnamed-" + threadInstance.getInstanceId();
@@ -76,12 +92,33 @@ public class ThreadAnalyzer {
         boolean daemon = getBooleanFieldValue(threadInstance, "daemon");
         int priority = getIntFieldValue(threadInstance, "priority", 5);
 
+        Long retainedSize = null;
+        if (engine != null) {
+            retainedSize = calculateRetainedSize(engine, threadInstance.getInstanceId());
+        }
+
         return new HeapThreadInfo(
                 threadInstance.getInstanceId(),
                 name,
                 daemon,
-                priority
+                priority,
+                retainedSize
         );
+    }
+
+    private Long calculateRetainedSize(OQLEngine engine, long objectId) {
+        AtomicLong size = new AtomicLong(0);
+        try {
+            engine.executeQuery("select rsizeof(heap.findObject(" + objectId + "))", result -> {
+                if (result instanceof Number n) {
+                    size.set(n.longValue());
+                }
+                return true;
+            });
+        } catch (OQLException e) {
+            LOG.debug("Failed to calculate retained size: objectId={} error={}", objectId, e.getMessage());
+        }
+        return size.get() > 0 ? size.get() : null;
     }
 
     private String getStringFieldValue(Instance instance, String fieldName) {
@@ -94,46 +131,39 @@ public class ThreadAnalyzer {
     }
 
     private String extractStringValue(Instance stringInstance) {
-        // Check if this is actually a String class
         if (!"java.lang.String".equals(stringInstance.getJavaClass().getName())) {
             return stringInstance.toString();
         }
 
-        // Get the value field (char[] or byte[] depending on JDK version)
-        Object valueField = stringInstance.getValueOfField("value");
-        if (valueField instanceof List<?> valueArray) {
-            // JDK 9+: byte[] with coder, or JDK 8: char[]
-            Object coderField = stringInstance.getValueOfField("coder");
-            boolean isLatin1 = coderField == null || (coderField instanceof Number n && n.intValue() == 0);
-
-            StringBuilder sb = new StringBuilder();
-            if (isLatin1) {
-                // LATIN1 encoding (1 byte per char) or old char[] format
-                for (Object val : valueArray) {
-                    if (val instanceof Character c) {
-                        sb.append(c);
-                    } else if (val instanceof Number n) {
-                        sb.append((char) (n.intValue() & 0xFF));
-                    }
-                }
-            } else {
-                // UTF16 encoding (2 bytes per char)
-                byte[] bytes = new byte[valueArray.size()];
-                int i = 0;
-                for (Object val : valueArray) {
-                    if (val instanceof Number n) {
-                        bytes[i++] = n.byteValue();
-                    }
-                }
-                // Convert UTF-16 bytes to string
-                for (int j = 0; j < bytes.length - 1; j += 2) {
-                    int ch = ((bytes[j] & 0xFF) << 8) | (bytes[j + 1] & 0xFF);
-                    sb.append((char) ch);
-                }
+        try {
+            Object valueField = stringInstance.getValueOfField("value");
+            if (!(valueField instanceof PrimitiveArrayInstance array)) {
+                return null;
             }
-            return sb.toString();
+
+            @SuppressWarnings("unchecked")
+            List<String> values = (List<String>) array.getValues();
+            if (values.isEmpty()) {
+                return "";
+            }
+
+            byte[] bytes = new byte[values.size()];
+            for (int i = 0; i < values.size(); i++) {
+                bytes[i] = Byte.parseByte(values.get(i));
+            }
+
+            // coder: 0 = LATIN1, 1 = UTF16
+            Object coder = stringInstance.getValueOfField("coder");
+            boolean isLatin1 = coder == null || ((Number) coder).intValue() == 0;
+
+            return isLatin1
+                    ? new String(bytes, StandardCharsets.ISO_8859_1)
+                    : new String(bytes, StandardCharsets.UTF_16LE);
+
+        } catch (Exception e) {
+            LOG.debug("Failed to extract string value: instanceId={}", stringInstance.getInstanceId(), e);
+            return null;
         }
-        return "Thread-" + stringInstance.getInstanceId();
     }
 
     private boolean getBooleanFieldValue(Instance instance, String fieldName) {

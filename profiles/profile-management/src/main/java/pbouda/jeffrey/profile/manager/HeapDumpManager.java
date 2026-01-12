@@ -28,6 +28,7 @@ import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.io.InputStream;
@@ -99,6 +100,14 @@ public interface HeapDumpManager {
     List<HeapThreadInfo> getThreads();
 
     /**
+     * Get thread information from the heap.
+     *
+     * @param includeRetainedSize whether to calculate retained size (expensive operation)
+     * @return list of thread info
+     */
+    List<HeapThreadInfo> getThreads(boolean includeRetainedSize);
+
+    /**
      * Get GC root summary.
      *
      * @return GC root summary
@@ -156,6 +165,30 @@ public interface HeapDumpManager {
      * Delete the string analysis results.
      */
     void deleteStringAnalysis();
+
+    /**
+     * Check if thread analysis results exist for this profile.
+     *
+     * @return true if thread-analysis.json exists
+     */
+    boolean threadAnalysisExists();
+
+    /**
+     * Get the pre-computed thread analysis results.
+     *
+     * @return thread analysis report, or null if not yet computed
+     */
+    ThreadAnalysisReport getThreadAnalysis();
+
+    /**
+     * Run thread analysis with retained heap calculation and save results to JSON file.
+     */
+    void runThreadAnalysis();
+
+    /**
+     * Delete the thread analysis results.
+     */
+    void deleteThreadAnalysis();
 
     /**
      * Get detailed information about an instance including all its fields.

@@ -50,6 +50,22 @@
           <small>Memory analysis from heap dumps</small>
         </div>
       </div>
+
+      <!-- Comparison Panel Toggle -->
+      <div class="comparison-toggle-wrapper ms-auto">
+        <button
+          class="comparison-toggle-btn"
+          :class="{ 'active': comparisonPanelVisible, 'has-profile': secondaryProfile }"
+          @click="toggleComparisonPanel"
+          :title="comparisonPanelVisible ? 'Hide differential panel' : 'Show differential panel'"
+        >
+          <i class="bi bi-layers"></i>
+          <span class="toggle-label">Secondary Profile</span>
+          <span class="toggle-status" :class="{ 'set': secondaryProfile }">
+            {{ secondaryProfile ? 'SET' : 'NOT SET' }}
+          </span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -506,7 +522,7 @@
     <div class="profile-main-content">
 
       <!-- Compact Differential Analysis Bar -->
-      <div class="compact-comparison-bar mb-3" v-if="!sidebarCollapsed">
+      <div class="compact-comparison-bar mb-3" v-if="!sidebarCollapsed && comparisonPanelVisible">
         <div class="comparison-cards">
           <!-- Primary Profile -->
           <div class="compact-card primary">
@@ -661,9 +677,25 @@ const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump'>(g
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 
+// Initialize comparison panel visibility from sessionStorage
+const getStoredComparisonPanelState = (): boolean => {
+  const stored = sessionStorage.getItem('profile-comparison-panel-visible');
+  return stored !== 'false'; // Default to visible
+};
+const comparisonPanelVisible = ref(getStoredComparisonPanelState());
+
+const toggleComparisonPanel = () => {
+  comparisonPanelVisible.value = !comparisonPanelVisible.value;
+};
+
 // Watch for mode changes and persist to sessionStorage
 watch(selectedMode, (newMode) => {
   sessionStorage.setItem('profile-sidebar-mode', newMode);
+});
+
+// Watch for comparison panel visibility changes and persist to sessionStorage
+watch(comparisonPanelVisible, (newValue) => {
+  sessionStorage.setItem('profile-comparison-panel-visible', String(newValue));
 });
 
 // Watch for route changes to auto-expand submenus
@@ -755,19 +787,9 @@ onMounted(async () => {
       const redirectPath = currentPath.replace('/differential', '/primary');
       router.replace(redirectPath);
 
-      // Show a message
+      // Show a message and automatically display the comparison panel
       ToastService.warn('No Secondary Profile', "Please select a secondary profile to view differential analysis");
-
-      // Highlight the secondary profile selection bar with red color
-      setTimeout(() => {
-        const selectionBar = document.querySelector('.secondary-profile-bar');
-        if (selectionBar) {
-          selectionBar.classList.add('highlight-selection-bar-error');
-          setTimeout(() => {
-            selectionBar.classList.remove('highlight-selection-bar-error');
-          }, 2000);
-        }
-      }, 500); // Small delay to ensure the page has rendered
+      comparisonPanelVisible.value = true;
     }
   } catch (error) {
     console.error('Failed to load profile:', error);
@@ -825,17 +847,9 @@ const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
   if (secondaryProfile.value) {
     router.push(`/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/${type}/differential`);
   } else {
-    // Show a toast message that secondary profile selection is required
+    // Show a toast message and automatically display the comparison panel
     ToastService.warn('No Secondary Profile', 'Please select a secondary profile for comparison');
-
-    // Highlight the secondary profile selection bar with red color without scrolling
-    const selectionBar = document.querySelector('.secondary-profile-bar');
-    if (selectionBar) {
-      selectionBar.classList.add('highlight-selection-bar-error');
-      setTimeout(() => {
-        selectionBar.classList.remove('highlight-selection-bar-error');
-      }, 2000);
-    }
+    comparisonPanelVisible.value = true;
   }
 };
 
@@ -1697,6 +1711,108 @@ onUnmounted(() => {
 
 .disabled-feature:hover i {
   color: #64748b !important;
+}
+
+/* Comparison Toggle Button */
+.comparison-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+}
+
+.comparison-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #718096;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.comparison-toggle-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #cbd5e1;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.comparison-toggle-btn:hover {
+  color: #5e64ff;
+  background: rgba(94, 100, 255, 0.04);
+}
+
+.comparison-toggle-btn:hover::before {
+  background: #a5b4fc;
+}
+
+.comparison-toggle-btn.active {
+  color: #5e64ff;
+  background: rgba(94, 100, 255, 0.08);
+}
+
+.comparison-toggle-btn.active::before {
+  background: #5e64ff;
+  height: 70%;
+}
+
+.comparison-toggle-btn i {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.comparison-toggle-btn .toggle-label {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.comparison-toggle-btn .toggle-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 2px;
+  background: #fef3c7;
+  color: #b45309;
+  transition: all 0.2s ease;
+}
+
+.comparison-toggle-btn .toggle-status.set {
+  background: #d1fae5;
+  color: #047857;
+}
+
+/* Responsive adjustments for toggle button */
+@media (max-width: 992px) {
+  .comparison-toggle-btn .toggle-label {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .comparison-toggle-wrapper {
+    padding: 0.5rem;
+  }
+  .comparison-toggle-btn .toggle-status {
+    display: none;
+  }
 }
 
 </style>

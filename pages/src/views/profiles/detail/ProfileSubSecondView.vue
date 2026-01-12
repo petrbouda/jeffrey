@@ -55,21 +55,15 @@ import * as bootstrap from 'bootstrap';
 const route = useRoute()
 const { workspaceId, projectId } = useNavigation();
 
-const queryParams = router.currentRoute.value.query
-const eventType = queryParams.eventType as string | undefined
-
-// Validate required query parameter
-if (!eventType) {
-  console.error('SubSecondView: eventType query parameter is required')
-  router.back()
-}
-
 const showDialog = ref<boolean>(false);
 const subSecondRef = ref<InstanceType<typeof SubSecondComponent> | null>(null);
 const timeseriesData = ref<number[][] | null>(null);
 const timeseriesSecondaryData = ref<number[][] | undefined>(undefined);
 
-const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL;
+// Reactive refs for template-bound values - initialized in onBeforeMount when route is resolved
+const eventType = ref<string>('');
+const useWeight = ref(false);
+const isDifferential = ref(false);
 
 let graphUpdater: GraphUpdater
 let flamegraphTooltip: FlamegraphTooltip
@@ -129,9 +123,27 @@ watch(showDialog, (isVisible) => {
 let primarySubSecondDataProvider: SubSecondDataProvider
 let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
 
-let useWeight = queryParams.useWeight === 'true'
-
 onBeforeMount(() => {
+  // Read query params here where the route is guaranteed to be resolved
+  const queryParams = route.query;
+
+  const eventTypeValue = queryParams.eventType as string | undefined;
+  const useWeightValue = queryParams.useWeight === 'true';
+  const isPrimaryValue = queryParams.graphMode === GraphType.PRIMARY;
+  const isDifferentialValue = queryParams.graphMode === GraphType.DIFFERENTIAL;
+
+  // Validate required query parameter
+  if (!eventTypeValue) {
+    console.error('SubSecondView: eventType query parameter is required')
+    router.back()
+    return
+  }
+
+  // Set reactive refs for template
+  eventType.value = eventTypeValue;
+  useWeight.value = useWeightValue;
+  isDifferential.value = isDifferentialValue;
+
   // Scroll the workspace-content container to top
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
@@ -142,30 +154,29 @@ onBeforeMount(() => {
       workspaceId.value!,
       projectId.value!,
       route.params.profileId as string,
-      eventType!,
-      useWeight,
+      eventTypeValue,
+      useWeightValue,
   )
 
-  if (queryParams.graphMode === GraphType.DIFFERENTIAL) {
+  if (isDifferentialValue) {
     secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
         workspaceId.value!,
         SecondaryProfileService.projectId() as string,
         SecondaryProfileService.id() as string,
-        eventType!,
-        useWeight,
+        eventTypeValue,
+        useWeightValue,
     )
   }
 
-  let isPrimary = queryParams.graphMode === GraphType.PRIMARY
   let flamegraphClient: FlamegraphClient
-  if (isPrimary) {
+  if (isPrimaryValue) {
     flamegraphClient = new PrimaryFlamegraphClient(
         workspaceId.value!,
         projectId.value!,
         route.params.profileId as string,
-        eventType!,
+        eventTypeValue,
         false,
-        useWeight,
+        useWeightValue,
         false,
         false,
         false,
@@ -178,8 +189,8 @@ onBeforeMount(() => {
         projectId.value!,
         route.params.profileId as string,
         SecondaryProfileService.id() as string,
-        eventType!,
-        useWeight,
+        eventTypeValue,
+        useWeightValue,
         false,
         false,
         false,
@@ -188,7 +199,7 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, false)
-  flamegraphTooltip = FlamegraphTooltipFactory.create(eventType!, useWeight, !isPrimary)
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventTypeValue, useWeightValue, !isPrimaryValue)
 
   // Fetch timeseries data for the brush chart
   timeseriesClient.provideTimeseries(null)

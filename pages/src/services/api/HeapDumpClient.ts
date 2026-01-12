@@ -25,6 +25,7 @@ import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
+import ThreadAnalysisReport from '@/services/api/model/ThreadAnalysisReport';
 import InstanceDetail from '@/services/api/model/InstanceDetail';
 import InstanceTreeResponse from '@/services/api/model/InstanceTreeResponse';
 
@@ -95,6 +96,22 @@ export default class HeapDumpClient extends BaseProfileClient {
 
     public deleteStringAnalysis(): Promise<void> {
         return this.post<void>('/string-analysis/delete', {});
+    }
+
+    public threadAnalysisExists(): Promise<boolean> {
+        return this.get<boolean>('/thread-analysis/exists');
+    }
+
+    public getThreadAnalysis(): Promise<ThreadAnalysisReport> {
+        return this.get<ThreadAnalysisReport>('/thread-analysis');
+    }
+
+    public runThreadAnalysis(): Promise<void> {
+        return this.post<void>('/thread-analysis/run', {});
+    }
+
+    public deleteThreadAnalysis(): Promise<void> {
+        return this.post<void>('/thread-analysis/delete', {});
     }
 
     public getInstanceDetail(objectId: number, includeRetained: boolean = false): Promise<InstanceDetail> {

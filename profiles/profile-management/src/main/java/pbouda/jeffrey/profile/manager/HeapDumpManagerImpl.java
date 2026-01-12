@@ -41,6 +41,7 @@ import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
@@ -169,8 +170,13 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public List<HeapThreadInfo> getThreads() {
+        return getThreads(false);
+    }
+
+    @Override
+    public List<HeapThreadInfo> getThreads(boolean includeRetainedSize) {
         return getHeap()
-                .map(threadAnalyzer::analyze)
+                .map(heap -> threadAnalyzer.analyze(heap, includeRetainedSize))
                 .orElse(List.of());
     }
 
@@ -395,6 +401,50 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void deleteStringAnalysis() {
         additionalFilesManager.deleteStringAnalysis();
+    }
+
+    @Override
+    public boolean threadAnalysisExists() {
+        return additionalFilesManager.threadAnalysisExists();
+    }
+
+    @Override
+    public ThreadAnalysisReport getThreadAnalysis() {
+        return additionalFilesManager.getThreadAnalysis().orElse(null);
+    }
+
+    @Override
+    public void runThreadAnalysis() {
+        getHeap().ifPresent(heap -> {
+            LOG.info("Running thread analysis with retained heap: profileId={}", profileInfo.id());
+
+            // Analyze threads with retained size calculation (expensive)
+            List<HeapThreadInfo> threads = threadAnalyzer.analyze(heap, true);
+
+            // Calculate summary statistics
+            int daemonCount = (int) threads.stream().filter(HeapThreadInfo::daemon).count();
+            int userCount = threads.size() - daemonCount;
+            long totalRetained = threads.stream()
+                    .mapToLong(t -> t.retainedSize() != null ? t.retainedSize() : 0L)
+                    .sum();
+
+            ThreadAnalysisReport report = new ThreadAnalysisReport(
+                    threads.size(),
+                    daemonCount,
+                    userCount,
+                    totalRetained,
+                    threads
+            );
+
+            additionalFilesManager.saveThreadAnalysis(report);
+            LOG.info("Thread analysis completed: profileId={} totalThreads={} totalRetained={}",
+                    profileInfo.id(), report.totalThreads(), report.totalRetainedSize());
+        });
+    }
+
+    @Override
+    public void deleteThreadAnalysis() {
+        additionalFilesManager.deleteThreadAnalysis();
     }
 
     @Override

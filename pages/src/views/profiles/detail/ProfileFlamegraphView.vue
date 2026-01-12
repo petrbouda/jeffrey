@@ -20,8 +20,7 @@
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import router from '@/router';
-import { onBeforeMount } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import GraphType from '@/services/flamegraphs/GraphType';
 import { useRoute } from 'vue-router';
@@ -34,22 +33,17 @@ import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
-let queryParams = router.currentRoute.value.query;
-
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
 
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 
-const eventType = queryParams.eventType as string;
-const useThreadMode = queryParams.useThreadMode === 'true';
-const useWeight = queryParams.useWeight === 'true';
-const excludeNonJavaSamples = queryParams.excludeNonJavaSamples === 'true';
-const excludeIdleSamples = queryParams.excludeIdleSamples === 'true';
-const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 'true';
-const isDifferential = queryParams.graphMode === GraphType.DIFFERENTIAL;
-const isPrimary = queryParams.graphMode === GraphType.PRIMARY;
+// Reactive refs for template-bound values - initialized in onBeforeMount when route is resolved
+const eventType = ref<string>('');
+const useWeight = ref(false);
+const isDifferential = ref(false);
+const isPrimary = ref(false);
 
 function scrollToTop() {
   const workspaceContent = document.querySelector('.workspace-content');
@@ -59,15 +53,33 @@ function scrollToTop() {
 }
 
 onBeforeMount(() => {
+  // Read query params here where the route is guaranteed to be resolved
+  const queryParams = route.query;
+
+  const eventTypeValue = queryParams.eventType as string;
+  const useThreadMode = queryParams.useThreadMode === 'true';
+  const useWeightValue = queryParams.useWeight === 'true';
+  const excludeNonJavaSamples = queryParams.excludeNonJavaSamples === 'true';
+  const excludeIdleSamples = queryParams.excludeIdleSamples === 'true';
+  const onlyUnsafeAllocationSamples = queryParams.onlyUnsafeAllocationSamples === 'true';
+  const isPrimaryValue = queryParams.graphMode === GraphType.PRIMARY;
+  const isDifferentialValue = queryParams.graphMode === GraphType.DIFFERENTIAL;
+
+  // Set reactive refs for template
+  eventType.value = eventTypeValue;
+  useWeight.value = useWeightValue;
+  isPrimary.value = isPrimaryValue;
+  isDifferential.value = isDifferentialValue;
+
   let flamegraphClient;
-  if (queryParams.graphMode === GraphType.PRIMARY) {
+  if (isPrimaryValue) {
     flamegraphClient = new PrimaryFlamegraphClient(
       workspaceId.value!,
       projectId.value!,
       route.params.profileId as string,
-      eventType,
+      eventTypeValue,
       useThreadMode,
-      useWeight,
+      useWeightValue,
       excludeNonJavaSamples,
       excludeIdleSamples,
       onlyUnsafeAllocationSamples,
@@ -79,8 +91,8 @@ onBeforeMount(() => {
       projectId.value!,
       route.params.profileId as string,
       SecondaryProfileService.id() as string,
-      eventType,
-      useWeight,
+      eventTypeValue,
+      useWeightValue,
       excludeNonJavaSamples,
       excludeIdleSamples,
       onlyUnsafeAllocationSamples
@@ -88,8 +100,8 @@ onBeforeMount(() => {
   }
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, true);
-  graphUpdater.setTimeseriesSearchEnabled(isPrimary);
-  flamegraphTooltip = FlamegraphTooltipFactory.create(eventType, useWeight, isDifferential);
+  graphUpdater.setTimeseriesSearchEnabled(isPrimaryValue);
+  flamegraphTooltip = FlamegraphTooltipFactory.create(eventTypeValue, useWeightValue, isDifferentialValue);
 });
 </script>
 

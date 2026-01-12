@@ -18,20 +18,23 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
+import java.util.List;
+
 /**
- * Thread information extracted from a heap dump.
+ * Complete report for thread analysis in a heap dump including retained heap sizes.
+ * The retained heap calculation is expensive, so results are pre-computed and stored.
  *
- * @param objectId     the object ID of the Thread instance in the heap
- * @param name         thread name
- * @param daemon       whether the thread is a daemon thread
- * @param priority     thread priority
- * @param retainedSize retained heap size in bytes (null if not calculated - expensive operation)
+ * @param totalThreads      total Thread instances in the heap
+ * @param daemonThreads     number of daemon threads
+ * @param userThreads       number of user (non-daemon) threads
+ * @param totalRetainedSize total retained heap size of all threads in bytes
+ * @param threads           list of thread information with retained sizes
  */
-public record HeapThreadInfo(
-        long objectId,
-        String name,
-        boolean daemon,
-        int priority,
-        Long retainedSize
+public record ThreadAnalysisReport(
+        int totalThreads,
+        int daemonThreads,
+        int userThreads,
+        long totalRetainedSize,
+        List<HeapThreadInfo> threads
 ) {
 }

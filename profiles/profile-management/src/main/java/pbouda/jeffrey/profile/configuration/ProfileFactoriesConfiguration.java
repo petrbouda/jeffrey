@@ -20,7 +20,6 @@ package pbouda.jeffrey.profile.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
@@ -62,7 +61,6 @@ import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import javax.sql.DataSource;
 import java.time.Clock;
 
-@Configuration
 @Import(ProfileCustomFactoriesConfiguration.class)
 public class ProfileFactoriesConfiguration {
 

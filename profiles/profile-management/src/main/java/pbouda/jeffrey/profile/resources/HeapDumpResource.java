@@ -41,6 +41,7 @@ import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 
 import java.io.InputStream;
@@ -126,11 +127,14 @@ public class HeapDumpResource {
 
     /**
      * Get thread information from the heap.
+     *
+     * @param includeRetainedSize whether to calculate retained size (default false - expensive operation)
      */
     @GET
     @Path("/threads")
-    public List<HeapThreadInfo> threads() {
-        return heapDumpManager.getThreads();
+    public List<HeapThreadInfo> threads(
+            @QueryParam("includeRetained") @DefaultValue("false") boolean includeRetainedSize) {
+        return heapDumpManager.getThreads(includeRetainedSize);
     }
 
     /**
@@ -221,6 +225,43 @@ public class HeapDumpResource {
     @Path("/string-analysis/delete")
     public void deleteStringAnalysis() {
         heapDumpManager.deleteStringAnalysis();
+    }
+
+    /**
+     * Check if thread analysis results exist.
+     */
+    @GET
+    @Path("/thread-analysis/exists")
+    public boolean threadAnalysisExists() {
+        return heapDumpManager.threadAnalysisExists();
+    }
+
+    /**
+     * Get pre-computed thread analysis results with retained heap sizes.
+     */
+    @GET
+    @Path("/thread-analysis")
+    public ThreadAnalysisReport getThreadAnalysis() {
+        return heapDumpManager.getThreadAnalysis();
+    }
+
+    /**
+     * Run thread analysis with retained heap calculation and save results to JSON file.
+     * This is an expensive operation that computes retained heap for all threads.
+     */
+    @POST
+    @Path("/thread-analysis/run")
+    public void runThreadAnalysis() {
+        heapDumpManager.runThreadAnalysis();
+    }
+
+    /**
+     * Delete thread analysis results.
+     */
+    @POST
+    @Path("/thread-analysis/delete")
+    public void deleteThreadAnalysis() {
+        heapDumpManager.deleteThreadAnalysis();
     }
 
     /**

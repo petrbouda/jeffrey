@@ -30,79 +30,76 @@
       <!-- Summary Metrics -->
       <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
-      <!-- Filter Controls -->
-      <div class="filter-controls mb-3">
-        <div class="row align-items-center g-3">
-          <div class="col-auto">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input
-                  type="text"
-                  v-model="searchQuery"
-                  class="form-control"
-                  placeholder="Search thread name..."
-                  style="min-width: 220px;"
-              />
-            </div>
+      <!-- Results Toolbar -->
+      <div class="table-card">
+        <div class="results-toolbar">
+          <div class="results-info">
+            <span class="results-count">{{ filteredThreads.length }} threads</span>
+            <span v-if="filteredThreads.length !== threadsData.length" class="filtered-badge">
+              filtered from {{ threadsData.length }}
+            </span>
           </div>
-          <div class="col-auto">
-            <select v-model="daemonFilter" class="form-select form-select-sm">
+          <div class="results-controls">
+            <input
+                type="text"
+                v-model="searchQuery"
+                class="form-control form-control-sm filter-input"
+                placeholder="Filter..."
+            />
+            <select v-model="daemonFilter" class="form-select form-select-sm type-select">
               <option value="all">All Threads</option>
               <option value="daemon">Daemon Only</option>
               <option value="non-daemon">Non-Daemon Only</option>
             </select>
           </div>
-          <div class="col-auto">
-            <select v-model="priorityFilter" class="form-select form-select-sm">
-              <option value="all">All Priorities</option>
-              <option value="high">High (7-10)</option>
-              <option value="normal">Normal (5-6)</option>
-              <option value="low">Low (1-4)</option>
-            </select>
-          </div>
-          <div class="col-auto ms-auto">
-            <small class="text-muted">
-              <i class="bi bi-funnel me-1"></i>
-              Showing {{ filteredThreads.length }} of {{ threadsData.length }} threads
-            </small>
-          </div>
         </div>
-      </div>
-
-      <!-- Threads Table -->
-      <div class="table-card">
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead>
             <tr>
               <th style="width: 50px;">#</th>
-              <th>Thread Name</th>
-              <th class="text-center" style="width: 100px;">Type</th>
-              <th class="text-center" style="width: 100px;">Priority</th>
+              <SortableTableHeader
+                  column="name"
+                  label="Thread"
+                  :sort-column="sortColumn"
+                  :sort-direction="sortDirection"
+                  @sort="toggleSort"
+              />
+              <SortableTableHeader
+                  v-if="hasRetainedSize"
+                  column="retained"
+                  label="Retained Size"
+                  :sort-column="sortColumn"
+                  :sort-direction="sortDirection"
+                  align="end"
+                  width="140px"
+                  @sort="toggleSort"
+              />
             </tr>
             </thead>
             <tbody>
             <tr v-for="(thread, index) in filteredThreads" :key="thread.objectId">
               <td class="text-muted">{{ index + 1 }}</td>
-              <td>
-                <div class="d-flex align-items-center">
-                  <span
-                      class="thread-indicator"
-                      :class="thread.daemon ? 'daemon' : 'user'"
-                  ></span>
+              <td class="thread-cell">
+                <div class="thread-header">
                   <span class="thread-name">{{ thread.name }}</span>
+                  <InstanceActionButtons
+                      :object-id="thread.objectId"
+                      @show-referrers="openTreeModal($event, 'REFERRERS')"
+                      @show-reachables="openTreeModal($event, 'REACHABLES')"
+                  />
+                </div>
+                <div class="thread-meta">
+                  <span class="meta-label">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
+                  <span class="meta-separator">•</span>
+                  <span class="meta-label" :class="'priority-' + getPriorityClass(thread.priority)">
+                    Priority {{ thread.priority }}
+                  </span>
                 </div>
               </td>
-              <td class="text-center">
-                <Badge
-                    :value="thread.daemon ? 'Daemon' : 'User'"
-                    :variant="thread.daemon ? 'secondary' : 'primary'"
-                    size="s"
-                />
-              </td>
-              <td class="text-center">
-                <span class="priority-badge" :class="getPriorityClass(thread.priority)">
-                  {{ thread.priority }}
+              <td v-if="hasRetainedSize" class="text-end align-middle">
+                <span class="retained-size">
+                  {{ thread.retainedSize != null ? FormattingService.formatBytes(thread.retainedSize) : '-' }}
                 </span>
               </td>
             </tr>
@@ -118,6 +115,17 @@
         <p class="text-muted mt-3 mb-0">No thread information available in this heap dump.</p>
       </div>
     </div>
+
+    <!-- Instance Tree Modal -->
+    <InstanceTreeModal
+        v-if="workspaceId && projectId && selectedObjectId !== null"
+        v-model:show="showTreeModal"
+        :object-id="selectedObjectId"
+        :initial-mode="treeMode"
+        :workspace-id="workspaceId"
+        :project-id="projectId"
+        :profile-id="profileId"
+    />
   </div>
 </template>
 
@@ -129,10 +137,13 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import Badge from '@/components/Badge.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
+import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
+import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
+import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
+import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
@@ -142,16 +153,31 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const threadsData = ref<HeapThreadInfo[]>([]);
+const totalRetainedSize = ref<number>(0);
 const searchQuery = ref('');
 const daemonFilter = ref('all');
-const priorityFilter = ref('all');
+const sortColumn = ref('retained');
+const sortDirection = ref<'asc' | 'desc'>('desc');
+const showTreeModal = ref(false);
+const selectedObjectId = ref<number | null>(null);
+const treeMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
 
 let client: HeapDumpClient;
+
+// Check if any thread has retained size
+const hasRetainedSize = computed(() =>
+    threadsData.value.some(t => t.retainedSize != null)
+);
 
 // Computed counts
 const daemonCount = computed(() => threadsData.value.filter(t => t.daemon).length);
 const nonDaemonCount = computed(() => threadsData.value.filter(t => !t.daemon).length);
-const highPriorityCount = computed(() => threadsData.value.filter(t => t.priority >= 7).length);
+const lowPriorityCount = computed(() => threadsData.value.filter(t => t.priority <= 5).length);
+const highPriorityCount = computed(() => threadsData.value.filter(t => t.priority > 5).length);
+const highestPriority = computed(() => {
+  if (threadsData.value.length === 0) return 0;
+  return Math.max(...threadsData.value.map(t => t.priority));
+});
 
 // Computed metrics for StatsTable
 const summaryMetrics = computed(() => [
@@ -162,31 +188,23 @@ const summaryMetrics = computed(() => [
     variant: 'highlight' as const,
     breakdown: [
       { label: 'Daemon', value: daemonCount.value, color: '#6c757d' },
-      { label: 'User', value: nonDaemonCount.value, color: '#4285F4' }
+      { label: 'Non-Daemon', value: nonDaemonCount.value, color: '#4285F4' }
     ]
   },
   {
-    icon: 'gear',
-    title: 'Daemon Threads',
-    value: daemonCount.value.toString(),
-    variant: 'info' as const
-  },
-  {
-    icon: 'person',
-    title: 'User Threads',
-    value: nonDaemonCount.value.toString(),
-    variant: 'success' as const
-  },
-  {
     icon: 'lightning',
-    title: 'High Priority',
-    value: highPriorityCount.value.toString(),
-    variant: 'warning' as const
+    title: 'Highest Priority',
+    value: highestPriority.value.toString(),
+    variant: 'info' as const,
+    breakdown: [
+      { label: 'Less Equal 5', value: lowPriorityCount.value, color: '#6c757d' },
+      { label: 'Higher 5', value: highPriorityCount.value, color: '#fd7e14' }
+    ]
   }
 ]);
 
 const filteredThreads = computed(() => {
-  let result = threadsData.value;
+  let result = [...threadsData.value];
 
   // Search filter
   if (searchQuery.value) {
@@ -201,22 +219,36 @@ const filteredThreads = computed(() => {
     result = result.filter(t => !t.daemon);
   }
 
-  // Priority filter
-  if (priorityFilter.value === 'high') {
-    result = result.filter(t => t.priority >= 7);
-  } else if (priorityFilter.value === 'normal') {
-    result = result.filter(t => t.priority >= 5 && t.priority < 7);
-  } else if (priorityFilter.value === 'low') {
-    result = result.filter(t => t.priority < 5);
+  // Sorting
+  const direction = sortDirection.value === 'asc' ? 1 : -1;
+  if (sortColumn.value === 'retained') {
+    result.sort((a, b) => direction * ((a.retainedSize ?? 0) - (b.retainedSize ?? 0)));
+  } else {
+    result.sort((a, b) => direction * a.name.localeCompare(b.name));
   }
 
   return result;
 });
 
+const toggleSort = (column: string) => {
+  if (sortColumn.value === column) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn.value = column;
+    sortDirection.value = 'desc';
+  }
+};
+
 const getPriorityClass = (priority: number): string => {
   if (priority >= 7) return 'high';
   if (priority >= 5) return 'normal';
   return 'low';
+};
+
+const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
+  selectedObjectId.value = objectId;
+  treeMode.value = mode;
+  showTreeModal.value = true;
 };
 
 const scrollToTop = () => {
@@ -249,7 +281,12 @@ const loadData = async () => {
       return;
     }
 
-    threadsData.value = await client.getThreads();
+    // Load from pre-computed analysis (created during heap dump initialization)
+    const report = await client.getThreadAnalysis();
+    if (report) {
+      threadsData.value = report.threads;
+      totalRetainedSize.value = report.totalRetainedSize;
+    }
 
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load thread information';
@@ -270,18 +307,62 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.filter-controls {
-  background-color: #f8f9fa;
-  padding: 0.875rem 1rem;
-  border: 1px solid #dee2e6;
-}
-
+/* Table Card */
 .table-card {
   background: white;
   border: 1px solid #dee2e6;
   overflow: hidden;
 }
 
+/* Results Toolbar - matching OQL style */
+.results-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.results-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.results-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.results-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6c757d;
+  background-color: #e9ecef;
+  padding: 0.125rem 0.5rem;
+}
+
+.filtered-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #856404;
+  background-color: #fff3cd;
+  padding: 0.125rem 0.375rem;
+}
+
+.filter-input {
+  width: 140px;
+}
+
+.type-select {
+  width: 130px;
+}
+
+/* Table Styles - matching OQL */
 .table thead th {
   background-color: #fafbfc;
   font-weight: 600;
@@ -294,69 +375,72 @@ onMounted(() => {
 }
 
 .table td {
-  font-size: 0.85rem;
-  padding: 0.75rem;
+  font-size: 0.8rem;
+  padding: 0.6rem 0.75rem;
   vertical-align: middle;
   border-bottom: 1px solid #f0f0f0;
 }
 
 .table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
+  background-color: rgba(66, 133, 244, 0.02);
 }
 
 .table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.thread-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-  flex-shrink: 0;
+/* Thread Cell - Two-line layout */
+.thread-cell {
+  padding: 0.75rem !important;
 }
 
-.thread-indicator.daemon {
-  background-color: #6c757d;
-}
-
-.thread-indicator.user {
-  background-color: #4285F4;
+.thread-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .thread-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6f42c1;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.thread-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.meta-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.meta-label.priority-high {
+  color: #dc3545;
+}
+
+.meta-label.priority-normal {
+  color: #856404;
+}
+
+.meta-label.priority-low {
+  color: #6c757d;
+}
+
+.meta-separator {
+  color: #dee2e6;
+  font-size: 0.5rem;
+}
+
+.retained-size {
   font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
-  word-break: break-all;
-}
-
-.priority-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  height: 22px;
-  padding: 0 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.priority-badge.high {
-  background-color: #fff5f5;
-  color: #dc3545;
-  border: 1px solid #f5c2c7;
-}
-
-.priority-badge.normal {
-  background-color: #fff8e6;
-  color: #856404;
-  border: 1px solid #ffc107;
-}
-
-.priority-badge.low {
-  background-color: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #dee2e6;
 }
 
 .empty-state {

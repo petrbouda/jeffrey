@@ -51,7 +51,7 @@ import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.profile.ProfileInitializer;
-import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
+import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
@@ -77,10 +77,10 @@ import java.util.List;
 import static pbouda.jeffrey.platform.configuration.GlobalJobsConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
 
 @Configuration
-@Import({ProfileFactoriesConfiguration.class, JobsConfiguration.class})
+@Import({ProfilesConfiguration.class, JobsConfiguration.class})
 @EnableConfigurationProperties({
         PersistenceConfigProperties.class,
-        ProjectProperties.class
+        ProjectProperties.class,
 })
 public class AppConfiguration {
 

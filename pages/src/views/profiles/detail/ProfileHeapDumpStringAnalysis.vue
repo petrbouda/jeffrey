@@ -144,15 +144,45 @@
                 <thead>
                 <tr>
                   <th style="width: 50px;">#</th>
-                  <th>Content</th>
-                  <th class="text-end" style="width: 100px;">Count</th>
-                  <th class="text-end" style="width: 120px;">Array Size</th>
-                  <th class="text-end" style="width: 120px;">Saved</th>
+                  <SortableTableHeader
+                      column="content"
+                      label="Content"
+                      :sort-column="dedupSortColumn"
+                      :sort-direction="dedupSortDirection"
+                      @sort="toggleDedupSort"
+                  />
+                  <SortableTableHeader
+                      column="count"
+                      label="Count"
+                      :sort-column="dedupSortColumn"
+                      :sort-direction="dedupSortDirection"
+                      align="end"
+                      width="100px"
+                      @sort="toggleDedupSort"
+                  />
+                  <SortableTableHeader
+                      column="arraySize"
+                      label="Array Size"
+                      :sort-column="dedupSortColumn"
+                      :sort-direction="dedupSortDirection"
+                      align="end"
+                      width="120px"
+                      @sort="toggleDedupSort"
+                  />
+                  <SortableTableHeader
+                      column="savings"
+                      label="Saved"
+                      :sort-column="dedupSortColumn"
+                      :sort-direction="dedupSortDirection"
+                      align="end"
+                      width="120px"
+                      @sort="toggleDedupSort"
+                  />
                   <th style="width: 180px;">% of Max</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in report.alreadyDeduplicated" :key="index">
+                <tr v-for="(entry, index) in sortedDeduplicated" :key="index">
                   <td class="text-muted">{{ index + 1 }}</td>
                   <td>
                     <code class="string-content">{{ entry.content }}</code>
@@ -200,15 +230,45 @@
                 <thead>
                 <tr>
                   <th style="width: 50px;">#</th>
-                  <th>Content</th>
-                  <th class="text-end" style="width: 100px;">Count</th>
-                  <th class="text-end" style="width: 120px;">Array Size</th>
-                  <th class="text-end" style="width: 120px;">Potential</th>
+                  <SortableTableHeader
+                      column="content"
+                      label="Content"
+                      :sort-column="oppSortColumn"
+                      :sort-direction="oppSortDirection"
+                      @sort="toggleOppSort"
+                  />
+                  <SortableTableHeader
+                      column="count"
+                      label="Count"
+                      :sort-column="oppSortColumn"
+                      :sort-direction="oppSortDirection"
+                      align="end"
+                      width="100px"
+                      @sort="toggleOppSort"
+                  />
+                  <SortableTableHeader
+                      column="arraySize"
+                      label="Array Size"
+                      :sort-column="oppSortColumn"
+                      :sort-direction="oppSortDirection"
+                      align="end"
+                      width="120px"
+                      @sort="toggleOppSort"
+                  />
+                  <SortableTableHeader
+                      column="savings"
+                      label="Potential"
+                      :sort-column="oppSortColumn"
+                      :sort-direction="oppSortDirection"
+                      align="end"
+                      width="120px"
+                      @sort="toggleOppSort"
+                  />
                   <th style="width: 180px;">% of Max</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in report.opportunities" :key="index">
+                <tr v-for="(entry, index) in sortedOpportunities" :key="index">
                   <td class="text-muted">{{ index + 1 }}</td>
                   <td>
                     <code class="string-content">{{ entry.content }}</code>
@@ -260,8 +320,8 @@
                     <td>
                       <span :class="getFlagValueClass(flag)">{{ flag.value }}</span>
                     </td>
-                    <td><small class="text-muted">{{ flag.origin }}</small></td>
-                    <td><small>{{ flag.description }}</small></td>
+                    <td class="text-muted">{{ flag.origin }}</td>
+                    <td>{{ flag.description }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -432,6 +492,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import StringAnalysisReport, { JvmStringFlag } from '@/services/api/model/StringAnalysisReport';
 import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEntry';
@@ -449,6 +510,14 @@ const analysisExists = ref(false);
 const analysisRunning = ref(false);
 const report = ref<StringAnalysisReport | null>(null);
 const activeTab = ref('overview');
+
+// Sort state for deduplicated table
+const dedupSortColumn = ref('savings');
+const dedupSortDirection = ref<'asc' | 'desc'>('desc');
+
+// Sort state for opportunities table
+const oppSortColumn = ref('savings');
+const oppSortDirection = ref<'asc' | 'desc'>('desc');
 
 const memoryChartRef = ref<HTMLElement | null>(null);
 const arrayChartRef = ref<HTMLElement | null>(null);
@@ -508,6 +577,70 @@ const maxOpportunitySavings = computed(() => {
   if (!report.value || report.value.opportunities.length === 0) return 0;
   return Math.max(...report.value.opportunities.map(e => e.savings));
 });
+
+// Sorted deduplicated entries
+const sortedDeduplicated = computed(() => {
+  if (!report.value) return [];
+  const entries = [...report.value.alreadyDeduplicated];
+  const direction = dedupSortDirection.value === 'asc' ? 1 : -1;
+
+  switch (dedupSortColumn.value) {
+    case 'content':
+      entries.sort((a, b) => direction * a.content.localeCompare(b.content));
+      break;
+    case 'count':
+      entries.sort((a, b) => direction * (a.count - b.count));
+      break;
+    case 'arraySize':
+      entries.sort((a, b) => direction * (a.arraySize - b.arraySize));
+      break;
+    case 'savings':
+      entries.sort((a, b) => direction * (a.savings - b.savings));
+      break;
+  }
+  return entries;
+});
+
+// Sorted opportunities entries
+const sortedOpportunities = computed(() => {
+  if (!report.value) return [];
+  const entries = [...report.value.opportunities];
+  const direction = oppSortDirection.value === 'asc' ? 1 : -1;
+
+  switch (oppSortColumn.value) {
+    case 'content':
+      entries.sort((a, b) => direction * a.content.localeCompare(b.content));
+      break;
+    case 'count':
+      entries.sort((a, b) => direction * (a.count - b.count));
+      break;
+    case 'arraySize':
+      entries.sort((a, b) => direction * (a.arraySize - b.arraySize));
+      break;
+    case 'savings':
+      entries.sort((a, b) => direction * (a.savings - b.savings));
+      break;
+  }
+  return entries;
+});
+
+const toggleDedupSort = (column: string) => {
+  if (dedupSortColumn.value === column) {
+    dedupSortDirection.value = dedupSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    dedupSortColumn.value = column;
+    dedupSortDirection.value = column === 'content' ? 'asc' : 'desc';
+  }
+};
+
+const toggleOppSort = (column: string) => {
+  if (oppSortColumn.value === column) {
+    oppSortDirection.value = oppSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    oppSortColumn.value = column;
+    oppSortDirection.value = column === 'content' ? 'asc' : 'desc';
+  }
+};
 
 const getDeduplicatedPercentage = (entry: StringDeduplicationEntry): number => {
   if (maxDeduplicatedSavings.value === 0) return 0;
@@ -835,7 +968,8 @@ onMounted(() => {
 
 /* About Tab Styles */
 .about-container {
-  max-width: 900px;
+  max-width: 1100px;
+  margin: 0 auto;
   padding: 1.5rem;
 }
 
@@ -1112,5 +1246,20 @@ onMounted(() => {
   border-radius: 3px;
   font-size: 0.9em;
   color: #bf360c;
+}
+
+/* Darker warning colors for opportunities */
+.text-warning {
+  color: #b8860b !important;
+}
+
+.bg-warning {
+  background-color: #daa520 !important;
+}
+
+/* Larger badges in JVM Configuration table */
+.table .badge {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.6rem;
 }
 </style>

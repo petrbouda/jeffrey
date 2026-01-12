@@ -41,14 +41,6 @@
             <option :value="500">500</option>
           </select>
         </div>
-        <div class="col-auto">
-          <label class="form-label mb-0 me-2">Sort by:</label>
-          <select v-model="histogramSortBy" class="form-select form-select-sm d-inline-block select-wide" @change="loadHistogram">
-            <option value="SIZE">Size</option>
-            <option value="COUNT">Instance Count</option>
-            <option value="CLASS_NAME">Class Name</option>
-          </select>
-        </div>
         <div class="col-auto ms-auto">
           <small class="text-muted">Showing {{ histogramData.length }} classes</small>
         </div>
@@ -62,9 +54,31 @@
           <thead>
           <tr>
             <th style="width: 50px;">#</th>
-            <th>Class Name</th>
-            <th class="text-end" style="width: 120px;">Instances</th>
-            <th class="text-end" style="width: 120px;">Total Size</th>
+            <SortableTableHeader
+                column="CLASS_NAME"
+                label="Class Name"
+                :sort-column="histogramSortBy"
+                :sort-direction="'asc'"
+                @sort="handleSort"
+            />
+            <SortableTableHeader
+                column="COUNT"
+                label="Instances"
+                :sort-column="histogramSortBy"
+                :sort-direction="'desc'"
+                align="end"
+                width="120px"
+                @sort="handleSort"
+            />
+            <SortableTableHeader
+                column="SIZE"
+                label="Total Size"
+                :sort-column="histogramSortBy"
+                :sort-direction="'desc'"
+                align="end"
+                width="120px"
+                @sort="handleSort"
+            />
             <th style="width: 200px;">% of Max</th>
           </tr>
           </thead>
@@ -104,6 +118,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
+import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import HeapSummary from '@/services/api/model/HeapSummary';
@@ -182,6 +197,11 @@ const loadHistogram = async () => {
   } catch (err) {
     console.error('Error loading histogram:', err);
   }
+};
+
+const handleSort = (column: string) => {
+  histogramSortBy.value = column;
+  loadHistogram();
 };
 
 
@@ -292,9 +312,6 @@ onMounted(() => {
   width: 80px;
 }
 
-.select-wide {
-  width: 150px;
-}
 
 .progress {
   background-color: #e9ecef;

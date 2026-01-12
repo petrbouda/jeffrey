@@ -22,43 +22,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.profile.ai.prompt.OqlSystemPrompt;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.NoOpOqlAssistantService;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantServiceImpl;
+import pbouda.jeffrey.profile.ai.service.*;
 
-/**
- * Auto-configuration for the AI Assistant module.
- * Configures the appropriate service implementation based on available beans and properties.
- */
-@AutoConfiguration
-@EnableConfigurationProperties(AiAssistantProperties.class)
-public class AiAssistantAutoConfiguration {
+public class AiAssistantConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AiAssistantAutoConfiguration.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AiAssistantConfiguration.class);
 
     /**
      * Create the OQL Assistant Service when AI is enabled and a ChatModel is available.
-     * Spring AI auto-configuration creates the ChatModel bean when an API key is configured.
+     * Spring AI configuration creates the ChatModel bean when an API key is configured.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "jeffrey.ai", name = "enabled", havingValue = "true")
-    @ConditionalOnBean(ChatModel.class)
+    @ConditionalOnProperty(name = "jeffrey.ai.enabled", havingValue = "true")
     public OqlAssistantService oqlAssistantService(
             ChatModel chatModel,
-            AiAssistantProperties properties) {
-        LOG.info("Creating OQL Assistant Service: provider={}", properties.provider());
+            @Value("${jeffrey.ai.enabled:false}") boolean enabled,
+            @Value("${jeffrey.ai.provider:none}") String provider) {
+        LOG.info("Creating OQL Assistant Service: provider={}", provider);
         ChatClient chatClient = ChatClient.builder(chatModel)
                 .defaultSystem(OqlSystemPrompt.SYSTEM_PROMPT)
                 .build();
-        return new OqlAssistantServiceImpl(chatClient, properties);
+        return new OqlAssistantServiceImpl(chatClient, new AiAssistantConfig(enabled, provider));
     }
 
     /**

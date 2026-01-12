@@ -66,7 +66,7 @@
             <i v-else class="bi bi-play-fill me-1"></i>
             Execute
           </button>
-          <button class="btn btn-sm btn-outline-secondary" @click="clearResults" :disabled="!oqlResult && !oqlError">
+          <button class="btn btn-sm btn-outline-secondary" @click="clearResults" :disabled="!oqlResult && !oqlError && !oqlQuery.trim()">
             <i class="bi bi-x-lg me-1"></i>
             Clear
           </button>
@@ -132,12 +132,6 @@
                 class="form-control form-control-sm filter-input"
                 placeholder="Filter..."
             />
-            <select v-model="resultSort" class="form-select form-select-sm sort-select">
-              <option value="retained-desc">Retained &nbsp;↓</option>
-              <option value="retained-asc">Retained &nbsp;↑</option>
-              <option value="size-desc">Size &nbsp;↓</option>
-              <option value="size-asc">Size &nbsp;↑</option>
-            </select>
           </div>
         </div>
         <div class="table-responsive">
@@ -146,8 +140,25 @@
               <tr>
                 <th style="width: 50px;">#</th>
                 <th>Object</th>
-                <th class="text-end" style="width: 100px;">Size</th>
-                <th v-if="hasRetainedSize" class="text-end" style="width: 100px;">Retained</th>
+                <SortableTableHeader
+                    column="size"
+                    label="Size"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    align="end"
+                    width="100px"
+                    @sort="toggleSort"
+                />
+                <SortableTableHeader
+                    v-if="hasRetainedSize"
+                    column="retained"
+                    label="Retained"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    align="end"
+                    width="100px"
+                    @sort="toggleSort"
+                />
               </tr>
             </thead>
             <tbody>
@@ -156,22 +167,11 @@
                 <td class="object-cell">
                   <div class="object-header">
                     <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
-                    <div v-if="entry.objectId" class="action-buttons">
-                      <button
-                          class="btn btn-action"
-                          title="Show Referrers (who references this)"
-                          @click="openTreeModal(entry.objectId!, 'REFERRERS')"
-                      >
-                        <i class="bi bi-box-arrow-in-left"></i>
-                      </button>
-                      <button
-                          class="btn btn-action"
-                          title="Show Reachables (what this references)"
-                          @click="openTreeModal(entry.objectId!, 'REACHABLES')"
-                      >
-                        <i class="bi bi-box-arrow-right"></i>
-                      </button>
-                    </div>
+                    <InstanceActionButtons
+                        :object-id="entry.objectId ?? null"
+                        @show-referrers="openTreeModal($event, 'REFERRERS')"
+                        @show-reachables="openTreeModal($event, 'REACHABLES')"
+                    />
                   </div>
                   <div v-if="entry.value" class="value-text" :title="entry.value">{{ truncateValue(entry.value, 300) }}</div>
                 </td>
@@ -197,6 +197,85 @@
           <i class="bi bi-stars me-2"></i>
           Ask AI Assistant
         </button>
+      </div>
+    </div>
+
+    <!-- AI Assistant Not Configured Panel -->
+    <div v-if="!aiAvailable && !oqlLoading" class="ai-config-panel" :class="{ 'ai-config-minimized': aiPanelMinimized }">
+      <button class="ai-config-toggle" @click="aiPanelMinimized = !aiPanelMinimized">
+        <span>{{ aiPanelMinimized ? 'Show' : 'Hide' }}</span>
+        <i class="bi" :class="aiPanelMinimized ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
+      </button>
+
+      <!-- Minimized View -->
+      <div v-if="aiPanelMinimized" class="ai-config-minimized-content" @click="aiPanelMinimized = false">
+        <div class="ai-config-minimized-icon">
+          <i class="bi bi-stars"></i>
+        </div>
+        <span class="ai-config-minimized-text">AI Assistant available - click to configure</span>
+      </div>
+
+      <!-- Expanded View -->
+      <div v-else class="ai-config-content">
+        <div class="ai-config-icon">
+          <i class="bi bi-stars"></i>
+        </div>
+        <div class="ai-config-text">
+          <h5 class="ai-config-title">AI Assistant Available</h5>
+          <p class="ai-config-description">
+            Unlock the power of AI to help you write OQL queries. Describe what you're looking for in natural language and let AI generate the query for you.
+          </p>
+          <div class="ai-providers-note">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>Supports&nbsp;<strong>Anthropic Claude</strong>&nbsp;and&nbsp;<strong>OpenAI ChatGPT</strong></span>
+          </div>
+        </div>
+        <div class="ai-config-features">
+          <div class="ai-feature">
+            <i class="bi bi-chat-dots"></i>
+            <span>Natural language queries</span>
+          </div>
+          <div class="ai-feature">
+            <i class="bi bi-lightning-charge"></i>
+            <span>Instant query generation</span>
+          </div>
+          <div class="ai-feature">
+            <i class="bi bi-mortarboard"></i>
+            <span>Learn OQL syntax</span>
+          </div>
+        </div>
+
+        <div class="ai-config-setup">
+          <div class="config-section">
+            <div class="config-section-title">
+              <i class="bi bi-file-earmark-code me-2"></i>
+              application.properties
+            </div>
+            <div class="config-code">
+              <code>jeffrey.ai.enabled=<span class="code-value">true</span></code>
+              <code>jeffrey.ai.provider=<span class="code-value">anthropic</span></code>
+              <code>spring.ai.anthropic.chat.options.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code>
+            </div>
+          </div>
+
+          <div class="config-section">
+            <div class="config-section-title">
+              <i class="bi bi-key me-2"></i>
+              secrets.properties
+            </div>
+            <div class="config-code">
+              <code>spring.ai.anthropic.api-key=<span class="code-value">sk-ant-...</span></code>
+            </div>
+            <div class="config-hint-text">
+              Get your API key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="!aiPanelMinimized" class="ai-config-decoration">
+        <div class="decoration-circle circle-1"></div>
+        <div class="decoration-circle circle-2"></div>
+        <div class="decoration-circle circle-3"></div>
       </div>
     </div>
 
@@ -226,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -235,6 +314,8 @@ import ErrorState from '@/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import OqlAssistantPanel from '@/components/oql/OqlAssistantPanel.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
+import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
+import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
@@ -256,9 +337,16 @@ const oqlError = ref<string | null>(null);
 const showExamples = ref(false);
 const includeRetainedSize = ref(true);
 const resultFilter = ref('');
-const resultSort = ref('retained-desc');
+const sortColumn = ref('retained');
+const sortDirection = ref<'asc' | 'desc'>('desc');
 const showAssistant = ref(false);
 const aiAvailable = ref(false);
+const aiPanelMinimized = ref(sessionStorage.getItem('oql-ai-panel-minimized') === 'true');
+
+// Persist minimized state in session storage
+watch(aiPanelMinimized, (value) => {
+  sessionStorage.setItem('oql-ai-panel-minimized', String(value));
+});
 const showTreeModal = ref(false);
 const selectedObjectId = ref<number | null>(null);
 const treeMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
@@ -329,25 +417,24 @@ const filteredResults = computed(() => {
   }
 
   // Apply sorting
-  if (resultSort.value !== 'none') {
-    results.sort((a, b) => {
-      switch (resultSort.value) {
-        case 'size-asc':
-          return (a.size || 0) - (b.size || 0);
-        case 'size-desc':
-          return (b.size || 0) - (a.size || 0);
-        case 'retained-asc':
-          return (a.retainedSize || 0) - (b.retainedSize || 0);
-        case 'retained-desc':
-          return (b.retainedSize || 0) - (a.retainedSize || 0);
-        default:
-          return 0;
-      }
-    });
+  const direction = sortDirection.value === 'asc' ? 1 : -1;
+  if (sortColumn.value === 'size') {
+    results.sort((a, b) => direction * ((a.size || 0) - (b.size || 0)));
+  } else if (sortColumn.value === 'retained') {
+    results.sort((a, b) => direction * ((a.retainedSize || 0) - (b.retainedSize || 0)));
   }
 
   return results;
 });
+
+const toggleSort = (column: string) => {
+  if (sortColumn.value === column) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn.value = column;
+    sortDirection.value = 'desc';
+  }
+};
 
 const useExample = (query: string) => {
   oqlQuery.value = query;
@@ -366,7 +453,8 @@ const executeQuery = async () => {
   oqlError.value = null;
   oqlResult.value = null;
   resultFilter.value = '';
-  resultSort.value = 'retained-desc';
+  sortColumn.value = 'retained';
+  sortDirection.value = 'desc';
 
   try {
     const result = await client.executeQuery(oqlQuery.value, oqlLimit.value, 0, includeRetainedSize.value);
@@ -383,6 +471,7 @@ const executeQuery = async () => {
 };
 
 const clearResults = () => {
+  oqlQuery.value = '';
   oqlResult.value = null;
   oqlError.value = null;
 };
@@ -556,6 +645,12 @@ onMounted(() => {
   transition: background-color 0.2s ease;
 }
 
+.query-input::placeholder {
+  color: #adb5bd;
+  opacity: 0.7;
+  font-style: italic;
+}
+
 .query-input:focus {
   outline: none;
   background-color: #fff;
@@ -621,10 +716,6 @@ onMounted(() => {
   width: 140px;
 }
 
-.sort-select {
-  width: 120px;
-  padding-right: 1.75rem;
-}
 
 .results-count {
   font-size: 0.75rem;
@@ -684,9 +775,10 @@ onMounted(() => {
 
 .class-name {
   font-size: 0.8rem;
-  word-break: break-all;
-  background-color: transparent;
+  font-weight: 500;
   color: #6f42c1;
+  word-break: break-all;
+  line-height: 1.4;
 }
 
 .value-text {
@@ -852,29 +944,286 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.action-buttons {
-  display: inline-flex;
-  gap: 0.125rem;
-  margin-left: 0.25rem;
+/* AI Configuration Panel - Attractive Design */
+.ai-config-panel {
+  position: relative;
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #ede9fe 100%);
+  border: 1px solid #e9d5ff;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-top: 1rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.btn-action {
-  padding: 0.2rem 0.4rem;
+.ai-config-panel.ai-config-minimized {
+  padding: 0.75rem 1rem;
+}
+
+.ai-config-toggle {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #c4b5fd;
+  background: white;
+  color: #7c3aed;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.1);
+}
+
+.ai-config-toggle:hover {
+  background: #f5f3ff;
+  border-color: #a78bfa;
+  color: #6d28d9;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
+}
+
+.ai-config-toggle i {
   font-size: 0.7rem;
-  line-height: 1;
-  border: none;
-  background-color: transparent;
-  color: #6c757d;
-  border-radius: 3px;
-  transition: all 0.15s ease;
 }
 
-.btn-action:hover {
-  background-color: rgba(111, 66, 193, 0.15);
-  color: #6f42c1;
+.ai-config-minimized-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding-right: 2rem;
 }
 
-.btn-action i {
-  font-size: 0.9rem;
+.ai-config-minimized-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ai-config-minimized-icon i {
+  font-size: 1rem;
+  color: white;
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+.ai-config-minimized-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6d28d9;
+}
+
+.ai-config-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ai-config-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+}
+
+.ai-config-icon i {
+  font-size: 1.75rem;
+  color: white;
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+.ai-config-text {
+  max-width: 480px;
+  margin-bottom: 1.25rem;
+}
+
+.ai-config-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #5b21b6;
+  margin-bottom: 0.5rem;
+}
+
+.ai-config-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.ai-providers-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+}
+
+.ai-providers-note strong {
+  color: #047857;
+}
+
+.ai-config-features {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ai-feature {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #7c3aed;
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+  border: 1px solid #e9d5ff;
+}
+
+.ai-feature i {
+  font-size: 1rem;
+}
+
+/* Configuration Setup Section */
+.ai-config-setup {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.config-section {
+  background: white;
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  min-width: 280px;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+}
+
+.config-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7c3aed;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.config-code {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.config-code code {
+  display: block;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 0.75rem;
+  color: #374151;
+  background: #f8f5ff;
+  padding: 0.375rem 0.625rem;
+  border-radius: 4px;
+  border: 1px solid #ede9fe;
+}
+
+.config-code .code-value {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.config-hint-text {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.config-hint-text a {
+  color: #7c3aed;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.config-hint-text a:hover {
+  text-decoration: underline;
+}
+
+/* Decorative Elements */
+.ai-config-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.decoration-circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.15;
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  top: -80px;
+  right: -60px;
+  animation: float 8s ease-in-out infinite;
+}
+
+.circle-2 {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  bottom: -40px;
+  left: -30px;
+  animation: float 6s ease-in-out infinite reverse;
+}
+
+.circle-3 {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #c4b5fd, #a78bfa);
+  top: 50%;
+  left: 15%;
+  animation: float 10s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
 }
 </style>

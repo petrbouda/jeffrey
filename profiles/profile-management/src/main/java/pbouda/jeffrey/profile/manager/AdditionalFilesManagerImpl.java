@@ -23,9 +23,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.profile.manager.additional.AdditionalFileParser;
-import pbouda.jeffrey.profile.manager.additional.PerfCountersAdditionalFileParser;
+import pbouda.jeffrey.profile.manager.additional.AdditionalFileProcessor;
+import pbouda.jeffrey.profile.manager.additional.HeapDumpAdditionalFileProcessor;
+import pbouda.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
+import pbouda.jeffrey.profile.manager.additional.ProcessingResult;
 import pbouda.jeffrey.profile.manager.model.PerfCounter;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
@@ -49,17 +52,14 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public static final String PERF_COUNTERS_KEY = "performance_counters";
     private static final Path HEAP_DUMP_ANALYSIS_FOLDER = Path.of("heap-dump-analysis");
     private static final String STRING_ANALYSIS_FILE = "string-analysis.json";
+    private static final String THREAD_ANALYSIS_FILE = "thread-analysis.json";
 
     private final ProfileCacheRepository cacheRepository;
     private final ProjectRecordingStorage projectRecordingStorage;
     private final Path heapDumpAnalysisPath;
-
-    private final Map<SupportedRecordingFile, AdditionalFileParser> parsers = Map.of(
-            SupportedRecordingFile.PERF_COUNTERS, new PerfCountersAdditionalFileParser()
-    );
+    private final Map<SupportedRecordingFile, AdditionalFileProcessor> processors;
 
     // Cached heap dump path (lazy loaded)
     private Path heapDumpPath;
@@ -74,6 +74,13 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
         this.cacheRepository = cacheRepository;
         this.projectRecordingStorage = projectRecordingStorage;
         this.heapDumpAnalysisPath = jeffreyDirs.profileDirectory(profileId).resolve(HEAP_DUMP_ANALYSIS_FOLDER);
+
+        // Initialize processors map with all supported processors
+        this.processors = Map.of(
+                SupportedRecordingFile.PERF_COUNTERS, new PerfCountersAdditionalFileProcessor(),
+                SupportedRecordingFile.HEAP_DUMP, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, SupportedRecordingFile.HEAP_DUMP),
+                SupportedRecordingFile.HEAP_DUMP_GZ, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, SupportedRecordingFile.HEAP_DUMP_GZ)
+        );
     }
 
 
@@ -82,22 +89,33 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
         List<Path> findAdditionalFiles = projectRecordingStorage.findArtifacts(recordingId);
         for (Path additionalFile : findAdditionalFiles) {
             SupportedRecordingFile fileType = SupportedRecordingFile.of(additionalFile);
-            AdditionalFileParser parser = parsers.get(fileType);
-            if (parser != null) {
-                parser.parse(additionalFile)
-                        .ifPresent(content -> cacheRepository.put(PERF_COUNTERS_KEY, content));
+            AdditionalFileProcessor processor = processors.get(fileType);
+            if (processor != null) {
+                processor.process(additionalFile)
+                        .ifPresent(this::handleResult);
             }
         }
     }
 
+    private void handleResult(ProcessingResult result) {
+        switch (result) {
+            case ProcessingResult.CacheableResult cacheable ->
+                    cacheRepository.put(cacheable.cacheKey(), cacheable.content());
+            case ProcessingResult.FileTransferResult fileTransfer ->
+                    LOG.debug("File transferred: destination={}", fileTransfer.destinationPath());
+            case ProcessingResult.NoOpResult _ ->
+                    LOG.debug("No operation performed");
+        }
+    }
+
     @Override
-    public boolean performanceCountersExists()  {
-        return cacheRepository.contains(PERF_COUNTERS_KEY);
+    public boolean performanceCountersExists() {
+        return cacheRepository.contains(PerfCountersAdditionalFileProcessor.PERF_COUNTERS_CACHE_KEY);
     }
 
     @Override
     public List<PerfCounter> performanceCounters() {
-        return this.cacheRepository.get(PERF_COUNTERS_KEY, PERF_COUNTER_TYPE)
+        return this.cacheRepository.get(PerfCountersAdditionalFileProcessor.PERF_COUNTERS_CACHE_KEY, PERF_COUNTER_TYPE)
                 .orElse(List.of());
     }
 
@@ -193,6 +211,59 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
                 LOG.info("String analysis deleted: path={}", stringAnalysisPath);
             } catch (IOException e) {
                 LOG.error("Failed to delete string analysis: path={}", stringAnalysisPath, e);
+            }
+        }
+    }
+
+    @Override
+    public boolean threadAnalysisExists() {
+        Path threadAnalysisPath = heapDumpAnalysisPath.resolve(THREAD_ANALYSIS_FILE);
+        return Files.exists(threadAnalysisPath);
+    }
+
+    @Override
+    public Optional<ThreadAnalysisReport> getThreadAnalysis() {
+        Path threadAnalysisPath = heapDumpAnalysisPath.resolve(THREAD_ANALYSIS_FILE);
+        if (!Files.exists(threadAnalysisPath)) {
+            return Optional.empty();
+        }
+
+        try {
+            ThreadAnalysisReport report = OBJECT_MAPPER.readValue(
+                    threadAnalysisPath.toFile(), ThreadAnalysisReport.class);
+            return Optional.of(report);
+        } catch (IOException e) {
+            LOG.error("Failed to read thread analysis: path={}", threadAnalysisPath, e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void saveThreadAnalysis(ThreadAnalysisReport report) {
+        try {
+            // Create the directory if it doesn't exist
+            Files.createDirectories(heapDumpAnalysisPath);
+
+            Path threadAnalysisPath = heapDumpAnalysisPath.resolve(THREAD_ANALYSIS_FILE);
+            OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
+                    .writeValue(threadAnalysisPath.toFile(), report);
+
+            LOG.info("Thread analysis saved: path={}", threadAnalysisPath);
+        } catch (IOException e) {
+            LOG.error("Failed to save thread analysis: path={}", heapDumpAnalysisPath, e);
+            throw new RuntimeException("Failed to save thread analysis: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteThreadAnalysis() {
+        Path threadAnalysisPath = heapDumpAnalysisPath.resolve(THREAD_ANALYSIS_FILE);
+        if (Files.exists(threadAnalysisPath)) {
+            try {
+                Files.delete(threadAnalysisPath);
+                LOG.info("Thread analysis deleted: path={}", threadAnalysisPath);
+            } catch (IOException e) {
+                LOG.error("Failed to delete thread analysis: path={}", threadAnalysisPath, e);
             }
         }
     }
