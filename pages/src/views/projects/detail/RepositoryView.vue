@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useNavigation} from '@/composables/useNavigation';
+import {downloadProgressStore} from '@/stores/downloadProgressStore';
 import ProjectRepositoryClient from "@/services/api/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
 import ProjectSettingsClient from "@/services/api/ProjectSettingsClient.ts";
@@ -44,6 +45,8 @@ const repositoryService = new ProjectRepositoryClient(workspaceId.value!, projec
 const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
 const projectClient = new ProjectClient(workspaceId.value!, projectId.value!)
 
+// Download progress tracking for remote workspace downloads (uses global store)
+
 // State for delete session confirmation modal
 const deleteSessionDialog = ref(false);
 const sessionToDelete = ref<RecordingSession | null>(null);
@@ -53,11 +56,6 @@ const deletingSession = ref(false);
 const deleteSelectedFilesDialog = ref(false);
 const sessionIdWithFilesToDelete = ref('');
 const deletingSelectedFiles = ref(false);
-
-// Computed property to check if project is in SANDBOX workspace
-const isSandboxWorkspace = computed(() => {
-  return workspaceInfo.value?.type === WorkspaceType.SANDBOX;
-});
 
 // Computed property to check if project is in REMOTE workspace
 const isRemoteWorkspace = computed(() => {
@@ -434,11 +432,17 @@ const copyAndMerge = async (sessionId: string) => {
       return;
     }
 
-    await repositoryService.copyRecordingSession(session, true);
-    toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
-
-    // Refresh sessions list
-    await fetchRepositoryData();
+    // For remote workspaces, use progress tracking
+    if (isRemoteWorkspace.value) {
+      const fileIds = session.files.map(f => f.id);
+      await downloadProgressStore.startDownload(workspaceId.value!, projectId.value!, sessionId, fileIds, async () => {
+        await fetchRepositoryData();
+      });
+    } else {
+      await repositoryService.copyRecordingSession(session, true);
+      toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
+      await fetchRepositoryData();
+    }
 
   } catch (error: any) {
     console.error("Error merging and copying session:", error);
@@ -461,17 +465,22 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
       return;
     }
 
-    await repositoryService.copySelectedRepositoryFile(session.id, selectedSources, merge);
-    toast.success(
-        merge ? 'Merge & Copy' : 'Copy Selected',
-        `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
-    );
-
-    // Refresh sessions list
-    await fetchRepositoryData();
-
-    // Clear selections after download
-    toggleSelectAllSources(sessionId, false);
+    // For remote workspaces, use progress tracking
+    if (isRemoteWorkspace.value) {
+      const fileIds = selectedSources.map(f => f.id);
+      await downloadProgressStore.startDownload(workspaceId.value!, projectId.value!, sessionId, fileIds, async () => {
+        await fetchRepositoryData();
+        toggleSelectAllSources(sessionId, false);
+      });
+    } else {
+      await repositoryService.copySelectedRepositoryFile(session.id, selectedSources, merge);
+      toast.success(
+          merge ? 'Merge & Copy' : 'Copy Selected',
+          `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
+      );
+      await fetchRepositoryData();
+      toggleSelectAllSources(sessionId, false);
+    }
 
   } catch (error: any) {
     console.error("Error processing selected recordings:", error);
@@ -602,11 +611,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
 </script>
 
 <template>
-  <!-- Repository Disabled State for Sandbox Workspace -->
-  <RepositoryDisabledAlert v-if="isSandboxWorkspace"/>
-
   <PageHeader
-    v-else
     title="Remote Repository"
     description="View and manage recordings stored in the remote repository"
     icon="bi-folder"
@@ -881,6 +886,7 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
       modal-id="deleteSelectedFilesModal"
       @confirm="confirmDeleteSelectedFiles"
   />
+
 </template>
 
 <style scoped>

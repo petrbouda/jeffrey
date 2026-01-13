@@ -273,10 +273,7 @@ const selectSection = () => {
 }
 
 .config-value {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8125rem;
   color: #495057;
-  line-height: 1.4;
 }
 
 .config-row {

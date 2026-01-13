@@ -84,6 +84,14 @@ public class ProjectResource {
         return new ProjectRepositoryResource(projectManager);
     }
 
+    @Path("/download")
+    public ProjectDownloadTaskResource downloadTaskResource() {
+        return new ProjectDownloadTaskResource(
+                projectManager.info().workspaceId(),
+                projectManager.info().id(),
+                projectManager.recordingsDownloadManager());
+    }
+
     @Path("/scheduler")
     public SchedulerResource schedulerResource() {
         return new SchedulerResource(projectManager.schedulerManager());

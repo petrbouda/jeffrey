@@ -1,20 +1,34 @@
 <template>
   <div class="app-container">
     <router-view />
+
+    <!-- Global Download Progress Panel -->
+    <DownloadProgressPanel
+      :is-open="downloadStore.isOpen.value"
+      :is-expanded="downloadStore.isExpanded.value"
+      :downloads="downloadStore.allDownloads.value"
+      :aggregate-progress="downloadStore.aggregateProgress.value"
+      :aggregate-status="downloadStore.aggregateStatus.value"
+      :has-active-downloads="downloadStore.hasActiveDownloads.value"
+      @expand="downloadStore.expand"
+      @minimize="downloadStore.minimize"
+      @close="downloadStore.closePanel"
+      @cancel-download="downloadStore.cancelDownload"
+      @close-download="downloadStore.closeDownload"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import ToastService from './services/ToastService';
+import DownloadProgressPanel from '@/components/DownloadProgressPanel.vue';
+import { downloadProgressStore as downloadStore } from '@/stores/downloadProgressStore';
 
 onMounted(() => {
   // Initialize Bootstrap tooltips
   if (window.bootstrap && window.bootstrap.Tooltip) {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => 
-      new window.bootstrap.Tooltip(tooltipTriggerEl)
-    );
+    [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
   }
 });
 </script>
