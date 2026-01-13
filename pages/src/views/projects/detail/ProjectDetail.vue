@@ -10,48 +10,13 @@
         </div>
 
         <div class="scrollbar" style="height: 100%;">
-          <!-- Workspace Header -->
-          <div class="workspace-context p-2 border"
-               :class="{
-                 'workspace-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
-                 'workspace-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
-                 'workspace-live': workspaceInfo?.type === WorkspaceType.LIVE
-               }"
-
-               v-if="!sidebarCollapsed">
-            <div class="workspace-info">
-              <div class="workspace-title-container">
-                <i v-if="workspaceInfo?.type === WorkspaceType.REMOTE" class="bi bi-display workspace-type-icon" title="Remote Workspace"></i>
-                <i v-else-if="workspaceInfo?.type === WorkspaceType.SANDBOX" class="bi bi-house workspace-type-icon" title="Sandbox Workspace"></i>
-                <i v-else class="bi bi-folder workspace-type-icon" title="Live Workspace"></i>
-                <span class="workspace-name">{{ workspaceInfo?.name || 'Loading...' }}</span>
-                <Badge
-                    v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE"
-                    :value="'UNAVAILABLE'"
-                    variant="red"
-                    size="xs"
-                />
-                <Badge
-                    v-else-if="workspaceInfo?.status === WorkspaceStatus.OFFLINE"
-                    :value="'OFFLINE'"
-                    variant="red"
-                    size="xs"
-                />
-                <Badge
-                    v-else-if="workspaceInfo?.status === WorkspaceStatus.UNKNOWN"
-                    :value="'UNKNOWN'"
-                    variant="yellow"
-                    size="xs"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Project Header -->
-          <div class="p-3 border-bottom">
-            <div v-if="!sidebarCollapsed">
-              <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 260px;">{{ projectInfo?.name || 'Loading...' }}</h5>
-              <p class="text-muted mb-0 fs-7">Project details</p>
+          <!-- Sidebar Header -->
+          <div class="sidebar-header" :class="workspaceTypeClass" v-if="!sidebarCollapsed">
+            <h5 class="project-name">{{ projectInfo?.name || 'Loading...' }}</h5>
+            <div class="header-badges" v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE || workspaceInfo?.status === WorkspaceStatus.OFFLINE || workspaceInfo?.status === WorkspaceStatus.UNKNOWN">
+              <Badge v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE" value="UNAVAILABLE" variant="red" size="xs"/>
+              <Badge v-else-if="workspaceInfo?.status === WorkspaceStatus.OFFLINE" value="OFFLINE" variant="red" size="xs"/>
+              <Badge v-else-if="workspaceInfo?.status === WorkspaceStatus.UNKNOWN" value="UNKNOWN" variant="yellow" size="xs"/>
             </div>
           </div>
 
@@ -199,6 +164,14 @@ const isSandboxWorkspace = computed(() => {
 const isSchedulerDisabled = computed(() => {
   return workspaceInfo.value?.type === WorkspaceType.SANDBOX ||
          workspaceInfo.value?.type === WorkspaceType.REMOTE;
+});
+
+// Computed property for sidebar header styling
+const workspaceTypeClass = computed(() => {
+  const type = workspaceInfo.value?.type;
+  if (type === WorkspaceType.SANDBOX) return 'avatar-sandbox';
+  if (type === WorkspaceType.REMOTE) return 'avatar-remote';
+  return 'avatar-live';
 });
 
 // Create service client - will be initialized when projectId is available
@@ -519,84 +492,42 @@ const toggleSidebar = () => {
   overflow: hidden;
 }
 
-/* Workspace Context Styling */
-.workspace-context {
-  border: 1px solid rgba(94, 100, 255, 0.12) !important;
-  border-radius: 0.375rem;
-  margin: 0.5rem 0.5rem 0 0.5rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* Sidebar Header - Light Tinted with Accent Border */
+.sidebar-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-left: 4px solid;
 
-  /* Live Workspace Styling */
-  &.workspace-live {
-    background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-    border-color: rgba(94, 100, 255, 0.3) !important;
-
-    .workspace-type-icon {
-      color: #5e64ff;
-    }
-
-    .workspace-name {
-      color: #1a237e;
-    }
+  &.avatar-live {
+    background: linear-gradient(135deg, #f5f5ff, #eef0ff);
+    border-left-color: #4f46e5;
   }
 
-  /* Sandbox Workspace Styling */
-  &.workspace-sandbox {
-    background: linear-gradient(135deg, #fff9e6, #fef3cd);
-    border-color: rgba(255, 193, 7, 0.3) !important;
-
-    .workspace-type-icon {
-      color: #856404;
-    }
-
-    .workspace-name {
-      color: #856404;
-    }
+  &.avatar-sandbox {
+    background: linear-gradient(135deg, #fffbf0, #fef7e6);
+    border-left-color: #f59e0b;
   }
 
-  /* Remote Workspace Styling */
-  &.workspace-remote {
-    background: linear-gradient(135deg, #e6fffa, #b2f5ea);
-    border-color: rgba(56, 178, 172, 0.3) !important;
-
-    .workspace-type-icon {
-      color: #38b2ac;
-    }
-
-    .workspace-name {
-      color: #234e52;
-    }
+  &.avatar-remote {
+    background: linear-gradient(135deg, #f0fdfb, #e6faf7);
+    border-left-color: #38b2ac;
   }
-
-  /* Default styling */
-  background: linear-gradient(135deg, #f8f9fb, #ffffff);
 }
 
-.workspace-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.workspace-title-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.workspace-type-icon {
-  font-size: 0.85rem;
-  opacity: 0.8;
-  transition: all 0.2s ease;
-}
-
-.workspace-name {
-  font-size: 0.8rem;
+.project-name {
+  font-size: 0.9375rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: all 0.2s ease;
+  color: #111827;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-badges {
+  display: flex;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
 }
 
 
