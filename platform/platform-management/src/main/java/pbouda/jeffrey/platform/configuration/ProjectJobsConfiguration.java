@@ -134,15 +134,15 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public SessionFinishDetectorProjectJob sessionFinishDetectorProjectJob(
+    public SessionFinishedDetectorProjectJob sessionFinishedDetectorProjectJob(
             Clock clock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
             SessionFinishEventEmitter sessionFinishEventEmitter,
-            @Value("${jeffrey.job.session-finish-detector.period:10s}") Duration jobPeriod,
+            @Value("${jeffrey.job.session-finished-detector.period:10s}") Duration jobPeriod,
             @Value("${jeffrey.project.repository-storage.detection.finished-period:30m}") Duration finishedPeriod) {
 
-        return new SessionFinishDetectorProjectJob(
+        return new SessionFinishedDetectorProjectJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,

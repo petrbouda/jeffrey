@@ -24,5 +24,10 @@
     "id": "default-project-recording-storage-synchronizer",
     "type": "PROJECT_RECORDING_STORAGE_SYNCHRONIZER",
     "params": {}
+  },
+  {
+    "id": "default-session-finished-detector",
+    "type": "SESSION_FINISHED_DETECTOR",
+    "params": {}
   }
 ]

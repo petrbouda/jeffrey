@@ -27,6 +27,7 @@ import FormattingService from '@/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { ImportantMessage, Severity } from '@/services/api/model/ImportantMessage';
 import ProjectMessagesClient from '@/services/api/ProjectMessagesClient';
+import ToastService from '@/services/ToastService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
@@ -75,8 +76,10 @@ async function loadAlerts() {
       const startMillis = now - selectedTimeRange.value * 60 * 1000;
       alerts.value = await client.getAlerts(startMillis, now);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to load alerts:', error);
+    const message = error.response?.data?.message || 'Failed to load alerts';
+    ToastService.error('Alerts', message);
     alerts.value = [];
   } finally {
     isLoading.value = false;

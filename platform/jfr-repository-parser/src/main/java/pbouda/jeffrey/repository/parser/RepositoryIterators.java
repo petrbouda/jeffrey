@@ -49,14 +49,13 @@ public abstract class RepositoryIterators {
             AbsoluteTimeRange timeRange,
             Clock clock) {
 
-        if (sessions.size() > 1) {
-            return parallel(sessions, processorSupplier, timeRange, clock);
-        } else if (sessions.size() == 1) {
-            RecordingSession session = sessions.getFirst();
-            return single(session, processorSupplier.apply(session), timeRange, clock);
-        } else {
+        if (sessions.isEmpty()) {
             throw new IllegalArgumentException("At least one repository path is required");
         }
+        // Always use parallel iterator to handle missing repositories gracefully.
+        // ParallelRepositoryIterator catches RepositoryNotFoundException and returns
+        // an empty result for sessions whose repository directories no longer exist.
+        return parallel(sessions, processorSupplier, timeRange, clock);
     }
 
     /**

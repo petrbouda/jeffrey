@@ -58,7 +58,7 @@ public class SessionFinishEventEmitter {
                 clock.instant(),
                 projectInfo,
                 sessionInfo,
-                WorkspaceEventCreator.SESSION_FINISH_DETECTOR_JOB);
+                WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
 
         workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
     }

@@ -43,8 +43,8 @@ public record JobDescriptorFactory() {
                     WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(params);
             case REPOSITORY_JFR_COMPRESSION ->
                     new RepositoryCompressionProjectJobDescriptor();
-            case SESSION_FINISH_DETECTOR ->
-                    new SessionFinishDetectorProjectJobDescriptor();
+            case SESSION_FINISHED_DETECTOR ->
+                    new SessionFinishedDetectorProjectJobDescriptor();
             case PROJECT_RECORDING_STORAGE_SYNCHRONIZER ->
                     new ProjectRecordingStorageSynchronizerJobDescriptor();
             case ORPHANED_PROJECT_RECORDING_STORAGE_CLEANER ->

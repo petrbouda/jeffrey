@@ -23,6 +23,7 @@ public enum ErrorCode {
     PROJECT_NOT_FOUND,
     RECORDING_SESSION_NOT_FOUND,
     RECORDING_FILE_NOT_FOUND,
+    REPOSITORY_NOT_FOUND,
     UNKNOWN_ERROR_RESPONSE,
     REMOTE_JEFFREY_UNAVAILABLE,
     EMPTY_RECORDING_SESSION,
@@ -45,6 +46,7 @@ public enum ErrorCode {
                || this == PROJECT_NOT_FOUND
                || this == RECORDING_SESSION_NOT_FOUND
                || this == RECORDING_FILE_NOT_FOUND
+               || this == REPOSITORY_NOT_FOUND
                || this == SCHEDULER_JOB_NOT_FOUND;
     }
 }

@@ -155,6 +155,14 @@ const getVariantFromColor = (color: string): string => {
   color: #fd7e14;
 }
 
+.bg-cyan-soft {
+  background-color: rgba(13, 202, 240, 0.15);
+}
+
+.text-cyan {
+  color: #0dcaf0;
+}
+
 /* Button styling */
 .btn-primary {
   background-color: #5e64ff;

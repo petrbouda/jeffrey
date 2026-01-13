@@ -80,7 +80,8 @@ public class JdkRepositoryIterator<PARTIAL, RESULT> implements RepositoryIterato
 
     private void iterate(EventProcessor<PARTIAL> eventProcessor) {
         if (!Files.exists(session.absoluteStreamingPath())) {
-            throw new RuntimeException("Repository does not exist: " + session);
+            throw new RepositoryNotFoundException(
+                    session.id(), session.name(), session.absoluteStreamingPath());
         }
 
         ProcessableEvents processableEvents = eventProcessor.processableEvents();

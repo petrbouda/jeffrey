@@ -52,7 +52,7 @@ const sessionCleanerJobAlreadyExists = ref(false)
 const recordingCleanerJobAlreadyExists = ref(false)
 const copyGeneratorJobAlreadyExists = ref(false)
 const jfrCompressionJobExists = ref(false)
-const sessionFinishDetectorJobExists = ref(false)
+const sessionFinishedDetectorJobExists = ref(false)
 const recordingStorageSynchronizerJobExists = ref(false)
 
 const isLoading = ref(false);
@@ -83,7 +83,7 @@ function checkForExistingJobs(jobs: JobInfo[]) {
   recordingCleanerJobAlreadyExists.value = false;
   copyGeneratorJobAlreadyExists.value = false;
   jfrCompressionJobExists.value = false;
-  sessionFinishDetectorJobExists.value = false;
+  sessionFinishedDetectorJobExists.value = false;
   recordingStorageSynchronizerJobExists.value = false;
 
   // Check for existing jobs by type
@@ -96,8 +96,8 @@ function checkForExistingJobs(jobs: JobInfo[]) {
       copyGeneratorJobAlreadyExists.value = true;
     } else if (job.jobType === JobType.REPOSITORY_JFR_COMPRESSION) {
       jfrCompressionJobExists.value = true;
-    } else if (job.jobType === JobType.SESSION_FINISH_DETECTOR) {
-      sessionFinishDetectorJobExists.value = true;
+    } else if (job.jobType === JobType.SESSION_FINISHED_DETECTOR) {
+      sessionFinishedDetectorJobExists.value = true;
     } else if (job.jobType === JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER) {
       recordingStorageSynchronizerJobExists.value = true;
     }
@@ -170,7 +170,7 @@ const handleCreateJob = async (jobType: string) => {
       periodicRecordingGeneratorModalRef.value?.showModal();
       break;
     case JobType.REPOSITORY_JFR_COMPRESSION:
-    case JobType.SESSION_FINISH_DETECTOR:
+    case JobType.SESSION_FINISHED_DETECTOR:
     case JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER:
       // These jobs don't need configuration, create directly
       await createSimpleJob(jobType);
@@ -183,8 +183,8 @@ const getJobTypeName = (jobType: string): string => {
   switch (jobType) {
     case JobType.REPOSITORY_JFR_COMPRESSION:
       return 'JFR Compression';
-    case JobType.SESSION_FINISH_DETECTOR:
-      return 'Session Finish Detector';
+    case JobType.SESSION_FINISHED_DETECTOR:
+      return 'Session Finished Detector';
     case JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER:
       return 'Recording Storage Synchronizer';
     default:
@@ -243,12 +243,12 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
         iconColor: 'text-orange',
         iconBg: 'bg-orange-soft'
       };
-    case JobType.SESSION_FINISH_DETECTOR:
+    case JobType.SESSION_FINISHED_DETECTOR:
       return {
-        title: 'Session Finish Detector',
+        title: 'Session Finished Detector',
         icon: 'bi-check-circle',
-        iconColor: 'text-green',
-        iconBg: 'bg-green-soft'
+        iconColor: 'text-cyan',
+        iconBg: 'bg-cyan-soft'
       };
     case JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER:
       return {
@@ -340,18 +340,18 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
               />
             </div>
 
-            <!-- Session Finish Detector -->
+            <!-- Session Finished Detector -->
             <div class="col-12 col-lg-6">
               <JobCard
-                  :job-type="JobType.SESSION_FINISH_DETECTOR"
-                  title="Session Finish Detector"
+                  :job-type="JobType.SESSION_FINISHED_DETECTOR"
+                  title="Session Finished Detector"
                   description="Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses detection file or timeout-based detection strategy."
                   icon="bi-check-circle"
-                  icon-color="text-green"
-                  icon-bg="bg-green-soft"
-                  :disabled="sessionFinishDetectorJobExists"
+                  icon-color="text-cyan"
+                  icon-bg="bg-cyan-soft"
+                  :disabled="sessionFinishedDetectorJobExists"
                   :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: sessionFinishDetectorJobExists }
+                  { text: 'Job already exists', color: 'bg-success', condition: sessionFinishedDetectorJobExists }
                 ]"
                   @create-job="handleCreateJob"
               />

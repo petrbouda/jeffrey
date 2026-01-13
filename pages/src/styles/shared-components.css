@@ -286,6 +286,14 @@
   color: #fd7e14;
 }
 
+.bg-cyan-soft {
+  background-color: rgba(13, 202, 240, 0.15);
+}
+
+.text-cyan {
+  color: #0dcaf0;
+}
+
 .bg-danger-soft {
   background-color: rgba(220, 53, 69, 0.15);
 }

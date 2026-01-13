@@ -32,7 +32,7 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         RepositoryCompressionProjectJobDescriptor,
         ProjectRecordingStorageSynchronizerJobDescriptor,
         OrphanedProjectRecordingStorageCleanerJobDescriptor,
-        SessionFinishDetectorProjectJobDescriptor {
+        SessionFinishedDetectorProjectJobDescriptor {
 
     Map<String, String> params();
 

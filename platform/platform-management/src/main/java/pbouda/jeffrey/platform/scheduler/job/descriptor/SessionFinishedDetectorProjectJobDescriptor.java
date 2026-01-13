@@ -23,10 +23,10 @@ import pbouda.jeffrey.shared.common.model.job.JobType;
 import java.util.Map;
 
 /**
- * Job descriptor for the session finish detector job.
+ * Job descriptor for the session finished detector job.
  * This job detects when sessions become FINISHED and emits SESSION_FINISHED events.
  */
-public record SessionFinishDetectorProjectJobDescriptor() implements JobDescriptor<SessionFinishDetectorProjectJobDescriptor> {
+public record SessionFinishedDetectorProjectJobDescriptor() implements JobDescriptor<SessionFinishedDetectorProjectJobDescriptor> {
 
     @Override
     public Map<String, String> params() {
@@ -35,6 +35,6 @@ public record SessionFinishDetectorProjectJobDescriptor() implements JobDescript
 
     @Override
     public JobType type() {
-        return JobType.SESSION_FINISH_DETECTOR;
+        return JobType.SESSION_FINISHED_DETECTOR;
     }
 }

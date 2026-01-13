@@ -29,7 +29,7 @@ import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStr
 import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishDetectorProjectJobDescriptor;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
@@ -54,9 +54,9 @@ import java.util.List;
  * 1. Updates the finished_at timestamp in the database
  * 2. Emits a SESSION_FINISHED workspace event
  */
-public class SessionFinishDetectorProjectJob extends RepositoryProjectJob<SessionFinishDetectorProjectJobDescriptor> {
+public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<SessionFinishedDetectorProjectJobDescriptor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SessionFinishDetectorProjectJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SessionFinishedDetectorProjectJob.class);
 
     private final Duration period;
     private final Duration finishedPeriod;
@@ -65,7 +65,7 @@ public class SessionFinishDetectorProjectJob extends RepositoryProjectJob<Sessio
     private final PlatformRepositories platformRepositories;
     private final SessionFinishEventEmitter eventEmitter;
 
-    public SessionFinishDetectorProjectJob(
+    public SessionFinishedDetectorProjectJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
@@ -89,7 +89,7 @@ public class SessionFinishDetectorProjectJob extends RepositoryProjectJob<Sessio
     protected void executeOnRepository(
             ProjectManager manager,
             RepositoryStorage repositoryStorage,
-            SessionFinishDetectorProjectJobDescriptor jobDescriptor,
+            SessionFinishedDetectorProjectJobDescriptor jobDescriptor,
             JobContext context) {
 
         ProjectInfo projectInfo = manager.info();
@@ -157,6 +157,6 @@ public class SessionFinishDetectorProjectJob extends RepositoryProjectJob<Sessio
 
     @Override
     public JobType jobType() {
-        return JobType.SESSION_FINISH_DETECTOR;
+        return JobType.SESSION_FINISHED_DETECTOR;
     }
 }

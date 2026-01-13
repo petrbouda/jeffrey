@@ -13,8 +13,6 @@
     <groupId>pbouda.jeffrey.incubator</groupId>
     <artifactId>incubator</artifactId>
     <packaging>pom</packaging>
-    <name>Jeffrey - Incubator</name>
-    <description>Experimental modules for Jeffrey</description>
 
     <modules>
         <module>spring-ai-jlama</module>

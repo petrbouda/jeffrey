@@ -7,7 +7,8 @@
       "default-repository-session-cleaner",
       "default-repository-recording-cleaner",
       "default-repository-jfr-compression",
-      "default-project-recording-storage-synchronizer"
+      "default-project-recording-storage-synchronizer",
+      "default-session-finished-detector"
     ]
   },
   {
@@ -23,7 +24,8 @@
       "default-repository-session-cleaner",
       "default-repository-recording-cleaner",
       "default-repository-jfr-compression",
-      "default-project-recording-storage-synchronizer"
+      "default-project-recording-storage-synchronizer",
+      "default-session-finished-detector"
     ]
   }
 ]

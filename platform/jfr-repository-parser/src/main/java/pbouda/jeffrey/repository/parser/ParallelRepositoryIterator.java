@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.repository.parser;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 
@@ -34,6 +36,8 @@ import java.util.function.Function;
  * @param <RESULT>  collected result of all sessions
  */
 public class ParallelRepositoryIterator<PARTIAL, RESULT> implements RepositoryIterator<PARTIAL, RESULT> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ParallelRepositoryIterator.class);
 
     private final List<RecordingSession> sessions;
     private final Function<RecordingSession, RepositoryIterator<PARTIAL, PARTIAL>> singleIteratorFactory;
@@ -82,8 +86,15 @@ public class ParallelRepositoryIterator<PARTIAL, RESULT> implements RepositoryIt
             RecordingSession session,
             Collector<PARTIAL, ?> collector) {
 
-        return CompletableFuture.supplyAsync(
-                () -> singleIteratorFactory.apply(session).partialCollect(collector), Schedulers.sharedVirtual());
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return singleIteratorFactory.apply(session).partialCollect(collector);
+            } catch (RepositoryNotFoundException e) {
+                LOG.warn("Skipping session with missing repository: sessionId={} sessionName={}",
+                        e.getSessionId(), e.getSessionName());
+                return collector.empty().get();
+            }
+        }, Schedulers.sharedVirtual());
     }
 
     private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {

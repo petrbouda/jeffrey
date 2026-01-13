@@ -27,6 +27,7 @@ import FormattingService from '@/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { ImportantMessage, Severity } from '@/services/api/model/ImportantMessage';
 import ProjectMessagesClient from '@/services/api/ProjectMessagesClient';
+import ToastService from '@/services/ToastService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
@@ -78,8 +79,10 @@ async function loadMessages() {
       const startMillis = now - selectedTimeRange.value * 60 * 1000;
       messages.value = await client.getMessages(startMillis, now);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to load messages:', error);
+    const message = error.response?.data?.message || 'Failed to load messages';
+    ToastService.error('Messages', message);
     messages.value = [];
   } finally {
     isLoading.value = false;
