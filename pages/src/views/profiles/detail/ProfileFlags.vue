@@ -91,36 +91,76 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="flag in filteredFlags" :key="flag.name">
-                  <td class="flag-name-cell">
-                    <div class="flag-name-wrapper">
-                      <code class="flag-name">{{ flag.name }}</code>
-                      <p v-if="flag.description" class="flag-description">{{ flag.description }}</p>
-                    </div>
-                  </td>
-                  <td class="flag-value">
-                    <span :class="{ 'boolean-true': flag.type === 'Boolean' && flag.value === 'true', 'boolean-false': flag.type === 'Boolean' && flag.value === 'false' }">
-                      {{ formatFlagValue(flag) }}
-                    </span>
-                  </td>
-                  <td>
-                    <Badge :value="flag.type" :variant="getTypeVariant(flag.type)" size="s" />
-                  </td>
-                  <td>
-                    <Badge :value="flag.origin" :variant="getOriginVariant(flag.origin)" size="s" />
-                  </td>
-                  <td>
-                    <Badge
-                        v-if="flag.hasChanged"
-                        value="Yes"
-                        variant="green"
-                        size="s"
-                        :title="'Previous: ' + flag.previousValues.join(', ')"
-                        class="cursor-help"
-                    />
-                    <Badge v-else value="No" variant="grey" size="s" />
-                  </td>
-                </tr>
+                <template v-for="flag in filteredFlags" :key="flag.name">
+                  <!-- Main Flag Row -->
+                  <tr :class="{ 'expanded-row': isExpanded(flag.name) }">
+                    <td class="flag-name-cell">
+                      <div class="flag-name-wrapper">
+                        <div class="flag-name-row">
+                          <button
+                              v-if="flag.hasChanged"
+                              class="expand-btn"
+                              type="button"
+                              @click="toggleExpand(flag.name)"
+                              :title="isExpanded(flag.name) ? 'Collapse' : 'Show change history'"
+                          >
+                            <i class="bi" :class="isExpanded(flag.name) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                          </button>
+                          <code class="flag-name">{{ flag.name }}</code>
+                        </div>
+                        <p v-if="flag.description"
+                           class="flag-description"
+                           :class="{ 'with-expand-offset': flag.hasChanged }">
+                          {{ flag.description }}
+                        </p>
+                      </div>
+                    </td>
+                    <td class="flag-value">
+                      <span :class="{ 'boolean-true': flag.type === 'Boolean' && flag.value === 'true', 'boolean-false': flag.type === 'Boolean' && flag.value === 'false' }">
+                        {{ formatFlagValue(flag) }}
+                      </span>
+                    </td>
+                    <td>
+                      <Badge :value="flag.type" :variant="getTypeVariant(flag.type)" size="s" />
+                    </td>
+                    <td>
+                      <Badge :value="flag.origin" :variant="getOriginVariant(flag.origin)" size="s" />
+                    </td>
+                    <td>
+                      <Badge
+                          v-if="flag.hasChanged"
+                          value="Yes"
+                          variant="orange"
+                          size="s"
+                      />
+                      <Badge v-else value="No" variant="grey" size="s" />
+                    </td>
+                  </tr>
+
+                  <!-- Change History Detail Row -->
+                  <tr v-if="flag.hasChanged && isExpanded(flag.name)" class="history-row">
+                    <td colspan="5">
+                      <div class="change-history">
+                        <div class="change-history-header">
+                          <i class="bi bi-clock-history me-2"></i>
+                          Change History
+                        </div>
+                        <div class="change-history-list">
+                          <div
+                              v-for="(change, idx) in flag.changeHistory"
+                              :key="idx"
+                              class="change-item"
+                              :class="{ 'current-value': idx === 0 }"
+                          >
+                            <span class="change-timestamp">{{ formatTimestamp(change.timestamp) }}</span>
+                            <span class="change-value">{{ change.value }}</span>
+                            <Badge v-if="idx === 0" value="current" variant="green" size="xs" />
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
 
@@ -208,23 +248,23 @@
 
             <div class="type-list">
               <div class="type-item">
-                <span class="type-badge type-boolean">Boolean</span>
+                <Badge value="Boolean" variant="blue" size="s" />
                 <span>Toggle flags that can be <code>true</code> or <code>false</code></span>
               </div>
               <div class="type-item">
-                <span class="type-badge type-int">Int</span>
+                <Badge value="Int" variant="purple" size="s" />
                 <span>32-bit signed integer values</span>
               </div>
               <div class="type-item">
-                <span class="type-badge type-long">Long</span>
+                <Badge value="Long" variant="purple" size="s" />
                 <span>64-bit signed integer values (often used for memory sizes)</span>
               </div>
               <div class="type-item">
-                <span class="type-badge type-uint">UnsignedInt</span>
+                <Badge value="UnsignedInt" variant="orange" size="s" />
                 <span>32-bit unsigned integer values</span>
               </div>
               <div class="type-item">
-                <span class="type-badge type-string">String</span>
+                <Badge value="String" variant="teal" size="s" />
                 <span>Text values for paths, names, or complex configurations</span>
               </div>
             </div>
@@ -308,8 +348,26 @@ const flagsData = ref<FlagsData | null>(null);
 const searchTerm = ref('');
 const sortColumn = ref('name');
 const sortDirection = ref<'asc' | 'desc'>('asc');
+const expandedFlags = ref<Set<string>>(new Set());
 
 let client: FlagsClient;
+
+// Toggle expanded state for a flag
+const toggleExpand = (flagName: string) => {
+  if (expandedFlags.value.has(flagName)) {
+    expandedFlags.value.delete(flagName);
+  } else {
+    expandedFlags.value.add(flagName);
+  }
+};
+
+const isExpanded = (flagName: string) => expandedFlags.value.has(flagName);
+
+// Format timestamp for display
+const formatTimestamp = (isoTimestamp: string): string => {
+  const date = new Date(isoTimestamp);
+  return FormattingService.formatDateTime(date);
+};
 
 const analysisTabs = [
   { id: 'dashboard', label: 'JVM Flags', icon: 'flag' },
@@ -785,5 +843,115 @@ onMounted(() => {
   margin: 0;
   line-height: 1.4;
   max-width: 380px;
+}
+
+/* Expand Button */
+.flag-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  padding: 0.125rem;
+  color: #6c757d;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.expand-btn:hover {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+}
+
+/* Offset description to align with flag name when expand button is present */
+.flag-description.with-expand-offset {
+  margin-left: calc(20px + 0.5rem);
+}
+
+/* Expanded Row Styling */
+.expanded-row {
+  background-color: rgba(94, 100, 255, 0.04);
+}
+
+.expanded-row td {
+  border-bottom: none;
+}
+
+/* History Row */
+.history-row {
+  background-color: #f8f9fa;
+}
+
+.history-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.history-row:hover {
+  background-color: #f8f9fa !important;
+}
+
+/* Change History Container */
+.change-history {
+  margin: 0.75rem 1rem 0.75rem calc(1rem + 20px + 0.5rem);
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.change-history-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.change-history-header i {
+  color: #6c757d;
+}
+
+.change-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.change-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.change-item.current-value {
+  background-color: rgba(40, 167, 69, 0.08);
+}
+
+.change-timestamp {
+  color: #6c757d;
+  font-family: monospace;
+  font-size: 0.75rem;
+  min-width: 160px;
+}
+
+.change-value {
+  font-weight: 500;
+  color: #343a40;
 }
 </style>

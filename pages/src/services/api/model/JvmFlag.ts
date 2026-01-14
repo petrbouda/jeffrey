@@ -17,6 +17,16 @@
  */
 
 /**
+ * Represents a single flag value change with timestamp.
+ */
+export interface FlagValueChange {
+  /** The flag value at this point in time */
+  value: string;
+  /** When this value was recorded (ISO format) */
+  timestamp: string;
+}
+
+/**
  * Represents a JVM flag with its current value and change history.
  */
 export default interface JvmFlag {
@@ -34,4 +44,6 @@ export default interface JvmFlag {
   hasChanged: boolean;
   /** Optional description of the flag from OpenJDK documentation */
   description?: string;
+  /** Chronological list of value changes (latest first), only populated if hasChanged is true */
+  changeHistory?: FlagValueChange[];
 }

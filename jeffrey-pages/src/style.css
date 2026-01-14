@@ -1,0 +1,342 @@
+/* Custom styles for Jeffrey website */
+
+:root {
+  font-family: 'Roboto', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #213547;
+  background-color: #ffffff;
+}
+
+/* Modern Navbar Styling */
+.navbar {
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3498db;
+  text-decoration: none;
+  letter-spacing: -0.05em;
+  transition: transform 0.3s ease;
+  padding-right: 5px;
+}
+
+.nav-menu {
+  display: flex;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  gap: 25px; /* Increased from 20px to 25px for more spacing */
+}
+
+.nav-item {
+  position: relative;
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
+.nav-link {
+  color: #213547;
+  font-weight: 500;
+  font-size: 1.1rem;
+  text-decoration: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: #3498db;
+  transition: width 0.3s ease, left 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-link:hover {
+  color: #3498db;
+}
+
+.nav-link:hover:before {
+  width: 70%;
+}
+
+.nav-link.active {
+  color: #3498db;
+  background-color: rgba(52, 152, 219, 0.15);
+}
+
+.hamburger {
+  display: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 30px;
+  height: 20px;
+  position: relative;
+  z-index: 1001;
+}
+
+.hamburger-line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: #213547;
+  margin: 6px 0;
+  transition: all 0.3s ease;
+}
+
+/* Mobile responsiveness for navbar */
+@media screen and (max-width: 768px) {
+  .hamburger {
+    display: block;
+  }
+  
+  .nav-menu {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.98);
+    width: 100%;
+    height: 100vh;
+    padding-top: 80px;
+    text-align: center;
+    transition: 0.3s;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    gap: 30px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .nav-menu.active {
+    left: 0;
+  }
+  
+  .nav-item {
+    margin: 20px 0;
+  }
+  
+  .nav-link {
+    font-size: 1.5rem;
+    padding: 15px 20px;
+    display: block;
+  }
+  
+  .hamburger.active .hamburger-line:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+  
+  .hamburger.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+  
+  .hamburger.active .hamburger-line:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+}
+
+/* Section spacing for smooth scrolling - updated for navbar */
+section {
+  scroll-margin-top: 80px; /* Updated to account for fixed navbar */
+}
+
+/* Base layout fixes */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+/* Avatar styling */
+.avatar-container-modern {
+  max-width: 180px; /* Reduced from 200px */
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px; /* Square with rounded corners */
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  border: 5px solid white; /* White border around the avatar */
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px; /* Slightly smaller than container to create padding effect */
+  aspect-ratio: 1/1; /* Ensure it's a perfect square */
+}
+
+/* Wider container override */
+.container-wide {
+  max-width: 1400px !important;
+  width: 95%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Bootstrap Icons */
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css");
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Card styling */
+.card {
+  transition: transform 0.3s ease;
+  border: none;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+/* Modern Section Headers */
+
+.section-header {
+  position: relative;
+  font-weight: 800;
+  display: inline-block;
+  padding-bottom: 0.5rem;
+  padding-top: 0.5rem;
+  text-align: left;
+  font-size: 2.2rem;
+  text-transform: uppercase;
+  border-left: 5px solid #3498db;
+  padding-left: 15px;
+  line-height: 1.1;
+  margin-bottom: 0;
+  z-index: 0;
+}
+
+.section-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 0;
+  width: 0;
+}
+
+.section-header-container {
+  text-align: left;
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.section-header-container .section-header {
+  margin-bottom: 0;
+  z-index: 2;
+  position: relative;
+}
+
+/* Custom styles for markdown content in modals */
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-body h1, 
+.modal-body h2, 
+.modal-body h3, 
+.modal-body h4, 
+.modal-body h5, 
+.modal-body h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.modal-body img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.modal-body pre, 
+.modal-body code {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  font-family: monospace;
+}
+
+.modal-body pre {
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.modal-body blockquote {
+  border-left: 4px solid #dee2e6;
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #6c757d;
+}
+
+.modal-body table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+}
+
+.modal-body table th,
+.modal-body table td {
+  padding: 0.5rem;
+  border: 1px solid #dee2e6;
+}
+
+.modal-body table th {
+  background-color: #f8f9fa;
+}
+
+.modal-body ul, 
+.modal-body ol {
+  padding-left: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Modal content width adjustment */
+.modal-content {
+  width: 80%;
+  margin: 0 auto;
+}

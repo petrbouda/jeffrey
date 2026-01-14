@@ -33,9 +33,6 @@ onMounted(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
   }
-
-  // TODO: Remove this - Mock download for development/testing
-  downloadStore.startMockDownload();
 });
 </script>
 

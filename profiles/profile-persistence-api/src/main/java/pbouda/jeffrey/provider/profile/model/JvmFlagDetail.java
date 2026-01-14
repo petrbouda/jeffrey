@@ -30,6 +30,7 @@ import java.util.List;
  * @param previousValues List of previous values if the flag changed during recording
  * @param hasChanged     Whether the flag value changed during the recording
  * @param description    Optional description of the flag from OpenJDK documentation
+ * @param changeHistory  Chronological list of value changes (latest first), only populated if hasChanged is true
  */
 public record JvmFlagDetail(
         String name,
@@ -38,7 +39,8 @@ public record JvmFlagDetail(
         String origin,
         List<String> previousValues,
         boolean hasChanged,
-        String description
+        String description,
+        List<FlagValueChange> changeHistory
 ) {
     /**
      * Creates a new JvmFlagDetail with the same values but with the given description.
@@ -47,6 +49,6 @@ public record JvmFlagDetail(
      * @return a new JvmFlagDetail with the description
      */
     public JvmFlagDetail withDescription(String description) {
-        return new JvmFlagDetail(name, value, type, origin, previousValues, hasChanged, description);
+        return new JvmFlagDetail(name, value, type, origin, previousValues, hasChanged, description, changeHistory);
     }
 }

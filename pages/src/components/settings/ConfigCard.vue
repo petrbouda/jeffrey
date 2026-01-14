@@ -132,7 +132,7 @@ const handleHeaderClick = () => {
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
   padding: 16px 20px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
@@ -179,6 +179,9 @@ const handleHeaderClick = () => {
   color: #5e64ff;
   font-size: 1.1rem;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .required-card .card-icon {
@@ -197,11 +200,14 @@ const handleHeaderClick = () => {
   font-weight: 600;
   color: #374151;
   font-size: 0.95rem;
+  margin: 0;
+  line-height: 1;
 }
 
 .card-title-stack {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  align-self: center;
   gap: 8px;
 }
 
@@ -209,6 +215,8 @@ const handleHeaderClick = () => {
   font-size: 0.8rem;
   color: #6b7280;
   font-weight: 400;
+  margin: 0;
+  line-height: 1;
 }
 
 .card-header-controls {

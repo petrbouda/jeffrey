@@ -26,6 +26,7 @@ import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.ThreadInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
+import pbouda.jeffrey.provider.profile.model.FlagValueChange;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
 import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
@@ -33,6 +34,8 @@ import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.profile.query.SQLFormatter;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -134,6 +137,13 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                     count(DISTINCT flag_value) as value_count
                 FROM flag_history
                 GROUP BY flag_name
+            ),
+            flag_change_history AS (
+                SELECT
+                    flag_name,
+                    to_json(list({'value': flag_value, 'timestamp': strftime(start_timestamp, '%Y-%m-%dT%H:%M:%S.%gZ')} ORDER BY start_timestamp DESC)) as change_history
+                FROM flag_history
+                GROUP BY flag_name
             )
             SELECT
                 h.event_type,
@@ -141,9 +151,11 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 h.flag_value as current_value,
                 h.origin,
                 v.all_values,
-                v.value_count
+                v.value_count,
+                c.change_history::varchar as change_history
             FROM flag_history h
             JOIN flag_values v ON h.flag_name = v.flag_name
+            JOIN flag_change_history c ON h.flag_name = c.flag_name
             WHERE h.rn = 1
             ORDER BY h.origin, h.flag_name
             """;
@@ -259,6 +271,22 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                         }
                     }
 
+                    // Parse change history JSON array (only for changed flags)
+                    List<FlagValueChange> changeHistory = List.of();
+                    if (hasChanged) {
+                        String changeHistoryJson = rs.getString("change_history");
+                        if (changeHistoryJson != null) {
+                            JsonNode historyArray = Json.readTree(changeHistoryJson);
+                            List<FlagValueChange> changes = new ArrayList<>();
+                            for (JsonNode entry : historyArray) {
+                                String value = entry.get("value").asText();
+                                String timestamp = entry.get("timestamp").asText();
+                                changes.add(new FlagValueChange(value, Instant.parse(timestamp)));
+                            }
+                            changeHistory = changes;
+                        }
+                    }
+
                     return new JvmFlagDetail(
                             rs.getString("flag_name"),
                             currentValue,
@@ -266,7 +294,8 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                             rs.getString("origin"),
                             previousValues,
                             hasChanged,
-                            null  // description is enriched later by FlagsManager
+                            null,  // description is enriched later by FlagsManager
+                            changeHistory
                     );
                 });
     }

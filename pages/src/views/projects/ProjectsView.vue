@@ -60,73 +60,58 @@
           </div>
         </div>
 
-        <!-- Workspace Header (different for scoped vs selection mode) -->
-        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-header mb-4">
-          <!-- Status Header -->
-          <div class="workspace-status-header" :class="getWorkspaceHeaderClass">
-            <div class="workspace-type-info">
+        <!-- Compact Workspace Context Bar -->
+        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar mb-4" :class="getContextBarClass">
+          <div class="context-bar-info">
+            <span class="workspace-type-badge" :class="getTypeBadgeClass">
               <i :class="getWorkspaceHeaderIcon"></i>
-              <span>{{ getWorkspaceHeaderLabel }}</span>
-            </div>
+              {{ getWorkspaceHeaderLabel }}
+            </span>
+            <span class="workspace-name">{{ getSelectedWorkspace()?.name }}</span>
+            <span class="context-divider">•</span>
+            <span class="workspace-meta">{{ getProjectCountText() }}</span>
+            <span class="context-divider">•</span>
+            <span class="workspace-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
           </div>
-
-          <!-- Header Content -->
-          <div class="workspace-header-content">
-            <div class="workspace-header-main">
-              <div class="workspace-header-info">
-                <h4 class="workspace-header-name">{{ getSelectedWorkspace()?.name }}</h4>
-                <div class="workspace-header-details">
-                  <span class="workspace-header-description">{{ getWorkspaceDescription(getSelectedWorkspace()) }}</span>
-                  <span class="workspace-header-divider">•</span>
-                  <span class="workspace-header-projects">{{ getProjectCountText() }}</span>
-                  <span class="workspace-header-divider">•</span>
-                  <span class="workspace-header-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
-                </div>
-              </div>
-              <div class="workspace-header-actions">
-                <!-- Search Bar -->
-                <div class="workspace-search-box">
-                  <div class="workspace-search-input">
-                    <i class="bi bi-search"></i>
-                    <input
-                        type="text"
-                        v-model="searchQuery"
-                        placeholder="Search projects..."
-                        @input="filterProjects"
-                    >
-                  </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <button
-                    class="new-project-header-btn"
-                    @click="createProjectModal?.showModal()"
-                    :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
-                    :title="getCreateProjectTooltip(selectedWorkspace)"
-                >
-                  <i class="bi bi-plus-lg"></i>
-                  New Project
-                </button>
-                <button
-                    class="delete-workspace-btn"
-                    @click="handleDeleteWorkspace()"
-                    :disabled="!canDeleteWorkspace()"
-                    :title="getDeleteTooltip()"
-                >
-                  <i class="bi bi-trash"></i>
-                  Delete
-                </button>
-              </div>
+          <div class="context-bar-actions">
+            <div class="context-search">
+              <i class="bi bi-search"></i>
+              <input
+                  type="text"
+                  v-model="searchQuery"
+                  placeholder="Search..."
+                  @input="filterProjects"
+              >
             </div>
+            <button
+                class="context-btn primary"
+                @click="createProjectModal?.showModal()"
+                :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
+                :title="getCreateProjectTooltip(selectedWorkspace)"
+            >
+              <i class="bi bi-plus-lg"></i>
+              New
+            </button>
+            <button
+                class="context-btn danger"
+                @click="handleDeleteWorkspace()"
+                :disabled="!canDeleteWorkspace()"
+                :title="getDeleteTooltip()"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
           </div>
         </div>
 
         <!-- Empty State -->
-        <div v-else class="workspace-header-empty mb-4">
-          <div class="workspace-header-empty-content">
-            <i class="bi bi-folder"></i>
-            <span>Select a workspace to view projects</span>
-          </div>
+        <div v-else class="workspace-context-empty mb-4">
+          <i class="bi bi-folder"></i>
+          <span>Select a workspace to view projects</span>
+        </div>
+
+        <!-- Delimiter -->
+        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="projects-delimiter">
+          <span class="delimiter-dots">•••</span>
         </div>
 
         <!-- Loading indicator -->
@@ -198,7 +183,6 @@ import LiveWorkspaceModal from '@/components/projects/LiveWorkspaceModal.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
-import Badge from '@/components/Badge.vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ProjectsClient from "@/services/api/ProjectsClient.ts";
@@ -259,11 +243,30 @@ const getWorkspaceHeaderIcon = computed(() => {
 
 const getWorkspaceHeaderLabel = computed(() => {
   const workspace = getSelectedWorkspace();
-  if (!workspace) return 'LIVE WORKSPACE';
+  if (!workspace) return 'LIVE';
 
-  if (workspace.type === WorkspaceType.REMOTE) return 'REMOTE WORKSPACE';
-  if (workspace.type === WorkspaceType.SANDBOX) return 'SANDBOX WORKSPACE';
-  return 'LIVE WORKSPACE';
+  if (workspace.type === WorkspaceType.REMOTE) return 'REMOTE';
+  if (workspace.type === WorkspaceType.SANDBOX) return 'SANDBOX';
+  return 'LIVE';
+});
+
+// Context bar styling computed properties
+const getContextBarClass = computed(() => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return 'context-bar-live';
+
+  if (workspace.type === WorkspaceType.REMOTE) return 'context-bar-remote';
+  if (workspace.type === WorkspaceType.SANDBOX) return 'context-bar-sandbox';
+  return 'context-bar-live';
+});
+
+const getTypeBadgeClass = computed(() => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return 'badge-live';
+
+  if (workspace.type === WorkspaceType.REMOTE) return 'badge-remote';
+  if (workspace.type === WorkspaceType.SANDBOX) return 'badge-sandbox';
+  return 'badge-live';
 });
 
 // Fetch workspaces function
@@ -621,243 +624,209 @@ const handleDeleteWorkspace = async () => {
   }
 }
 
-/* Workspace Header Styling - Matching ProjectCard Option 4 */
-.workspace-header {
-  background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
+/* Compact Workspace Context Bar */
+.workspace-context-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 24px;
-}
-
-/* Status Header - Matching ProjectCard */
-.workspace-status-header {
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: white;
-}
-
-.workspace-type-info {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.workspace-type-info i {
-  font-size: 10px;
-}
-
-
-/* Header Color Classes - Matching ProjectCard */
-.header-remote {
-  background: linear-gradient(135deg, #38b2ac, #319795);
-}
-
-.header-sandbox {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.header-live {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-}
-
-
-/* Header Content */
-.workspace-header-content {
-  padding: 20px 24px;
-}
-
-.workspace-header-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  border-left: 3px solid #5e64ff;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
-.workspace-header-info {
+.context-bar-live {
+  border-left-color: #5e64ff;
+}
+
+.context-bar-remote {
+  border-left-color: #38b2ac;
+}
+
+.context-bar-sandbox {
+  border-left-color: #f59e0b;
+}
+
+.context-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex: 1;
   min-width: 0;
-}
-
-.workspace-header-name {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.02em;
-}
-
-.workspace-header-details {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
-  font-size: 0.9rem;
-  color: #6b7280;
 }
 
-.workspace-header-description {
-  color: #374151;
+.workspace-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.workspace-type-badge i {
+  font-size: 0.7rem;
+}
+
+.badge-live {
+  background: linear-gradient(135deg, #eef0ff, #e0e3ff);
+  color: #4c52ff;
+}
+
+.badge-remote {
+  background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+  color: #234e52;
+}
+
+.badge-sandbox {
+  background: linear-gradient(135deg, #fff9e6, #fef3cd);
+  color: #92400e;
+}
+
+.workspace-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.workspace-meta {
+  font-size: 0.8rem;
+  color: #5e64ff;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.workspace-header-divider {
+.workspace-created {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.context-divider {
   color: #d1d5db;
   font-weight: bold;
 }
 
-.workspace-header-projects {
-  color: #5e64ff;
-  font-weight: 600;
-}
-
-.workspace-header-created {
-  color: #9ca3af;
-  font-weight: 500;
-  font-style: italic;
-}
-
-.workspace-header-actions {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-/* Workspace Search Bar */
-.workspace-search-box {
+.context-bar-actions {
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.workspace-search-input {
-  position: relative;
+.context-search {
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 6px 12px;
-  min-width: 240px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  padding: 6px 10px;
+  width: 160px;
+  transition: all 0.2s ease;
 }
 
-.workspace-search-input:hover {
+.context-search:hover {
   border-color: #d1d5db;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.workspace-search-input:focus-within {
+.context-search:focus-within {
   border-color: #5e64ff;
-  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
+  background: #fff;
 }
 
-.workspace-search-input i {
-  font-size: 0.85rem;
+.context-search i {
+  font-size: 0.8rem;
   color: #9ca3af;
-  margin-right: 8px;
-  transition: color 0.2s ease;
+  margin-right: 6px;
 }
 
-.workspace-search-input:focus-within i {
+.context-search:focus-within i {
   color: #5e64ff;
 }
 
-.workspace-search-input input {
+.context-search input {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #374151;
   width: 100%;
   padding: 0;
 }
 
-.workspace-search-input input::placeholder {
+.context-search input::placeholder {
   color: #9ca3af;
-  font-weight: 400;
 }
 
-.new-project-header-btn {
+.context-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 6px 12px;
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border: 1px solid rgba(94, 100, 255, 0.3);
-  border-radius: 8px;
-  color: #1a237e;
+  border-radius: 6px;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
   white-space: nowrap;
+}
+
+.context-btn.primary {
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  border-color: rgba(94, 100, 255, 0.3);
+  color: #4c52ff;
 
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #5e64ff, #4c52ff);
     color: white;
     border-color: #4c52ff;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(94, 100, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(94, 100, 255, 0.25);
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
 
     &:hover {
       background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-      color: #1a237e;
+      color: #4c52ff;
       transform: none;
       box-shadow: none;
     }
   }
-
-  i {
-    font-size: 0.8rem;
-  }
 }
 
-.delete-workspace-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+.context-btn.danger {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
+  border-color: rgba(239, 68, 68, 0.3);
   color: #dc2626;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
 
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #dc2626, #b91c1c);
     color: white;
     border-color: #b91c1c;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
 
     &:hover {
       background: linear-gradient(135deg, #fef2f2, #fee2e2);
@@ -866,105 +835,85 @@ const handleDeleteWorkspace = async () => {
       box-shadow: none;
     }
   }
-
-  i {
-    font-size: 0.8rem;
-  }
 }
 
-.profiler-settings-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 8px;
-  color: #15803d;
+.context-btn i {
   font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white;
-    border-color: #16a34a;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-
-    &:hover {
-      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-      color: #15803d;
-      transform: none;
-      box-shadow: none;
-    }
-  }
-
-  i {
-    font-size: 0.8rem;
-  }
 }
 
-.workspace-header-empty {
-  background: linear-gradient(135deg, #f9fafb, #ffffff);
-  border: 2px dashed rgba(156, 163, 175, 0.3);
-  border-radius: 12px;
-  padding: 32px 24px;
-  text-align: center;
-}
-
-.workspace-header-empty-content {
+/* Empty state for context bar */
+.workspace-context-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
   color: #9ca3af;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
+}
 
-  i {
-    font-size: 1.5rem;
+.workspace-context-empty i {
+  font-size: 1.1rem;
+}
+
+/* Responsive adjustments for context bar */
+@media (max-width: 768px) {
+  .workspace-context-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .context-bar-info {
+    justify-content: flex-start;
+  }
+
+  .workspace-name {
+    max-width: 150px;
+  }
+
+  .context-bar-actions {
+    justify-content: flex-end;
+  }
+
+  .context-search {
+    width: 120px;
   }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .workspace-header-main {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
+/* Projects Delimiter */
+.projects-delimiter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 20px 0;
+}
 
-  .workspace-header-title {
-    flex-wrap: wrap;
-  }
+.projects-delimiter::before,
+.projects-delimiter::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: #e5e7eb;
+}
 
-  .workspace-header-name {
-    font-size: 1.25rem;
-  }
+.projects-delimiter::before {
+  background: linear-gradient(90deg, transparent, #e5e7eb);
+}
 
-  .workspace-header-details {
-    font-size: 0.85rem;
-  }
+.projects-delimiter::after {
+  background: linear-gradient(90deg, #e5e7eb, transparent);
+}
 
-  .workspace-header-actions {
-    align-self: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .workspace-search-input {
-    min-width: 200px;
-    flex: 1;
-  }
+.delimiter-dots {
+  color: #d1d5db;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
 }
 
 /* Modern Projects Main Card Styling */

@@ -1,63 +1,33 @@
 <template>
-  <div class="project-card" @click="moveToProject(project.id)">
-    <!-- Status Header -->
-    <div class="status-header" :class="getHeaderClass">
-      <div class="project-header-name">
-        <span>{{ Project.displayName(project) }}</span>
-      </div>
-      <div v-if="showCriticalWarning" class="critical-warning" :title="getCriticalWarningTooltip">
+  <div class="project-card-compact" :class="getBorderClass" @click="moveToProject(project.id)">
+    <!-- Project Name Row -->
+    <div class="name-row">
+      <span class="project-name">{{ Project.displayName(project) }}</span>
+      <span v-if="showCriticalWarning" class="warning-icon" :title="getCriticalWarningTooltip">
         <i :class="getCriticalWarningIcon"></i>
-      </div>
+      </span>
     </div>
 
-    <!-- Card Body -->
-    <div class="card-body">
+    <!-- Metrics Row -->
+    <div class="metrics-row">
+      <span>{{ project.profileCount }} profiles</span>
+      <span class="dot">•</span>
+      <span>{{ project.recordingCount || 0 }} recordings</span>
+      <span class="dot">•</span>
+      <span>{{ project.sessionCount || 0 }} sessions</span>
+    </div>
 
-      <!-- Status -->
-      <div v-if="project.status" class="status-row">
-        <div class="metric status-metric" :class="`status-${project.status.toLowerCase()}`">
-          <i class="bi bi-activity"></i>
-          <span class="metric-label">Status:</span>
-          <span class="metric-value">{{ formatStatus(project.status) }}</span>
-        </div>
-      </div>
-
-      <!-- Alert Badge -->
-      <div v-if="project.alertCount > 0" class="alert-section">
-        <Badge
-            :value="`${project.alertCount} Alert${project.alertCount > 1 ? 's' : ''}`"
-            variant="red"
-            size="s"
-            icon="bi bi-exclamation-triangle-fill"
-            :uppercase="false"
-        />
-      </div>
-
-      <!-- Date Row -->
-      <div class="date-row">
-        <div class="metric date">
-          <i class="bi bi-calendar3"></i>
-          <span>{{ formatDate(project.createdAt) }}</span>
-        </div>
-      </div>
-
-      <!-- Counts Row -->
-      <div class="counts-row">
-        <div class="metric">
-          <i class="bi bi-people-fill"></i>
-          <span class="metric-label">Profiles:</span>
-          <span class="metric-value">{{ project.profileCount }}</span>
-        </div>
-        <div class="metric">
-          <i class="bi bi-camera-video-fill"></i>
-          <span class="metric-label">Recordings:</span>
-          <span class="metric-value">{{ project.recordingCount || 0 }}</span>
-        </div>
-        <div class="metric">
-          <i class="bi bi-layers-fill"></i>
-          <span class="metric-label">Sessions:</span>
-          <span class="metric-value">{{ project.sessionCount || 0 }}</span>
-        </div>
+    <!-- Footer Row: Date + Status/Alerts -->
+    <div class="footer-row">
+      <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
+      <div class="badges">
+        <span v-if="project.status" class="status-badge" :class="getStatusClass">
+          {{ formatStatus(project.status) }}
+        </span>
+        <span v-if="project.alertCount > 0" class="alert-badge">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          {{ project.alertCount }}
+        </span>
       </div>
     </div>
   </div>
@@ -67,7 +37,6 @@
 import {computed, defineProps} from 'vue';
 import Project from "@/services/api/model/Project.ts";
 import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import Badge from '@/components/Badge.vue';
 import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
 import {useNavigation} from '@/composables/useNavigation';
 import ProjectsClient from "@/services/api/ProjectsClient.ts";
@@ -106,16 +75,15 @@ const moveToProject = async (projectId: string) => {
   }
 };
 
-// Header styling and content
-const getHeaderClass = computed(() => {
-  if (props.isOrphaned) return 'header-orphaned';
-  if (props.project.workspaceType === WorkspaceType.REMOTE) {
-    return props.project.isVirtual ? 'header-remote-virtual' : 'header-remote-physical';
-  }
-  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'header-sandbox';
-  return 'header-live';
+// Border color class based on workspace type
+const getBorderClass = computed(() => {
+  if (props.isOrphaned) return 'border-orphaned';
+  if (props.project.workspaceType === WorkspaceType.REMOTE) return 'border-remote';
+  if (props.project.workspaceType === WorkspaceType.SANDBOX) return 'border-sandbox';
+  return 'border-live';
 });
 
+// Show warning icon for orphaned or virtual projects
 const showCriticalWarning = computed(() => {
   return props.isOrphaned || (props.project.workspaceType === WorkspaceType.REMOTE && props.project.isVirtual);
 });
@@ -133,16 +101,18 @@ const getCriticalWarningTooltip = computed(() => {
   return '';
 });
 
+// Status badge class
+const getStatusClass = computed(() => {
+  if (!props.project.status) return '';
+  return `status-${props.project.status.toLowerCase()}`;
+});
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  }) + ' ' + date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
   });
 };
 
@@ -160,44 +130,58 @@ const formatStatus = (status: RecordingStatus): string => {
 </script>
 
 <style scoped>
-/* Modern Project Card */
-.project-card {
+/* Compact Project Card */
+.project-card-compact {
   background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1),
-  0 1px 2px rgba(0, 0, 0, 0.06);
+  border-left: 3px solid #5e64ff;
+  padding: 12px 14px;
+  cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  height: 100%;
   display: flex;
   flex-direction: column;
-  cursor: pointer;
+  gap: 6px;
+  height: 100%;
 }
 
-.project-card:hover {
+.project-card-compact:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1),
-  0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: #d1d5db;
 }
 
-/* Status Header */
-.status-header {
-  min-height: 36px;
+/* Border Color Classes */
+.border-live {
+  border-left-color: #5e64ff;
+}
+
+.border-remote {
+  border-left-color: #38b2ac;
+}
+
+.border-sandbox {
+  border-left-color: #f59e0b;
+}
+
+.border-orphaned {
+  border-left-color: #f97316;
+}
+
+/* Name Row */
+.name-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 14px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: white;
+  gap: 8px;
 }
 
-.project-header-name {
-  display: flex;
-  align-items: center;
+/* Project Name */
+.project-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1f2937;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -205,138 +189,98 @@ const formatStatus = (status: RecordingStatus): string => {
   min-width: 0;
 }
 
-.project-header-name span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.critical-warning {
+/* Warning Icon */
+.warning-icon {
   display: flex;
   align-items: center;
   cursor: help;
+  color: #f97316;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
-.critical-warning i {
-  font-size: 12px;
-}
-
-/* Header Color Classes */
-.header-remote-virtual {
-  background: linear-gradient(135deg, #38b2ac, #319795);
-}
-
-.header-remote-physical {
-  background: linear-gradient(135deg, #38b2ac, #319795);
-}
-
-.header-orphaned {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-}
-
-.header-sandbox {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-}
-
-.header-live {
-  background: linear-gradient(135deg, #4f46e5, #3730a3);
-}
-
-/* Card Body */
-.card-body {
-  padding: 16px;
-  flex: 1;
+/* Metrics Row */
+.metrics-row {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Status Row */
-.status-row {
-  display: flex;
-}
-
-/* Status Metric with Color Indicators */
-.status-metric {
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: #f9fafb;
-}
-
-.status-metric.status-active .metric-value {
-  color: #d97706;
-  font-weight: 700;
-}
-
-.status-metric.status-active i {
-  color: #f59e0b;
-}
-
-.status-metric.status-finished .metric-value {
-  color: #059669;
-  font-weight: 700;
-}
-
-.status-metric.status-finished i {
-  color: #10b981;
-}
-
-.status-metric.status-unknown .metric-value {
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
   color: #6b7280;
-  font-weight: 700;
-}
-
-.status-metric.status-unknown i {
-  color: #9ca3af;
-}
-
-/* Alert Section */
-.alert-section {
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
-/* Date Row */
-.date-row {
-  display: flex;
-  align-items: center;
-}
-
-/* Counts Row */
-.counts-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
   flex-wrap: wrap;
 }
 
-.metric {
+.metrics-row .dot {
+  color: #d1d5db;
+  font-weight: bold;
+}
+
+/* Footer Row */
+.footer-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.footer-row .date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
   color: #6b7280;
 }
 
-.metric i {
-  font-size: 12px;
-  color: #9ca3af;
+.footer-row .date i {
+  font-size: 0.7rem;
 }
 
-.metric.date {
-  font-weight: 500;
-  color: #374151;
+.footer-row .badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.metric-label {
-  font-weight: 500;
-  color: #6b7280;
-  margin-left: 2px;
-}
-
-.metric-value {
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #374151;
+  text-transform: uppercase;
 }
 
+.status-badge.status-active {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.status-finished {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-badge.status-unknown {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Alert Badge */
+.alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.alert-badge i {
+  font-size: 0.6rem;
+}
 </style>

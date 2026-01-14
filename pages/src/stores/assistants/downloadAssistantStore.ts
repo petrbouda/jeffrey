@@ -241,105 +241,6 @@ const closePanel = () => {
 };
 
 /**
- * Mock download for development/testing purposes.
- * Simulates an active download with progress animation.
- */
-const startMockDownload = () => {
-    const taskId = `mock-${Date.now()}`;
-    const totalBytes = 150 * 1024 * 1024; // 150 MB
-
-    // Create mock progress
-    const progress: DownloadProgress = {
-        taskId,
-        sessionName: 'profiling-session-2025-01-14',
-        status: DownloadTaskStatus.DOWNLOADING,
-        totalFiles: 3,
-        completedFiles: 1,
-        activeDownloads: [
-            { fileName: 'recording-001.jfr', fileSize: 52428800, downloadedBytes: 26214400 },
-            { fileName: 'recording-002.jfr', fileSize: 47185920, downloadedBytes: 0 }
-        ],
-        completedDownloads: [
-            { fileName: 'heap-dump.hprof', fileSize: 52428800, downloadedBytes: 52428800 }
-        ],
-        totalBytes,
-        downloadedBytes: 78643200, // ~52%
-        percentComplete: 52,
-        errorMessage: null,
-        startedAt: Date.now() - 30000,
-        completedAt: null
-    };
-
-    // Create a mock client stub
-    const mockClient = {
-        unsubscribe: () => {},
-        cancelDownload: async () => {}
-    } as unknown as DownloadTaskClient;
-
-    // Add to downloads
-    downloads.value.set(taskId, {
-        progress,
-        client: mockClient
-    });
-
-    // Show the panel
-    isOpen.value = true;
-    isExpanded.value = true;
-
-    // Simulate progress updates
-    let currentBytes = progress.downloadedBytes;
-    const interval = setInterval(() => {
-        const entry = downloads.value.get(taskId);
-        if (!entry) {
-            clearInterval(interval);
-            return;
-        }
-
-        currentBytes += Math.random() * 2000000; // Add random bytes
-        if (currentBytes >= totalBytes) {
-            currentBytes = totalBytes;
-            entry.progress = {
-                ...entry.progress,
-                status: DownloadTaskStatus.COMPLETED,
-                downloadedBytes: totalBytes,
-                percentComplete: 100,
-                completedFiles: 3,
-                activeDownloads: [],
-                completedDownloads: [
-                    { fileName: 'heap-dump.hprof', fileSize: 52428800, downloadedBytes: 52428800 },
-                    { fileName: 'recording-001.jfr', fileSize: 52428800, downloadedBytes: 52428800 },
-                    { fileName: 'recording-002.jfr', fileSize: 47185920, downloadedBytes: 47185920 }
-                ],
-                completedAt: Date.now()
-            };
-            downloads.value = new Map(downloads.value);
-            clearInterval(interval);
-            return;
-        }
-
-        const percent = Math.round((currentBytes / totalBytes) * 100);
-        const file1Progress = Math.min(currentBytes - 52428800, 52428800);
-        const file2Progress = Math.max(0, currentBytes - 104857600);
-
-        entry.progress = {
-            ...entry.progress,
-            downloadedBytes: currentBytes,
-            percentComplete: percent,
-            activeDownloads: [
-                { fileName: 'recording-001.jfr', fileSize: 52428800, downloadedBytes: Math.max(0, file1Progress) },
-                ...(file1Progress < 52428800 ? [] : [{ fileName: 'recording-002.jfr', fileSize: 47185920, downloadedBytes: file2Progress }])
-            ],
-            completedDownloads: [
-                { fileName: 'heap-dump.hprof', fileSize: 52428800, downloadedBytes: 52428800 },
-                ...(file1Progress >= 52428800 ? [{ fileName: 'recording-001.jfr', fileSize: 52428800, downloadedBytes: 52428800 }] : [])
-            ],
-            completedFiles: file1Progress >= 52428800 ? 2 : 1
-        };
-        downloads.value = new Map(downloads.value);
-    }, 500);
-};
-
-/**
  * Global download assistant store.
  * Use this in components that need to access or control download state.
  */
@@ -361,8 +262,5 @@ export const downloadAssistantStore = {
     closeDownload,
     expand,
     minimize,
-    closePanel,
-
-    // Development/Testing
-    startMockDownload
+    closePanel
 };

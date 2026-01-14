@@ -1,0 +1,43 @@
+Generate a new project (web pages) in Vue.js and Boostrap in the current folder.
+- It should be a product page for the Github project Jeffrey: https://github.com/petrbouda/jeffrey
+- Jeffrey is a project for Profiling applications written in programming language Java, and analysis Performance uses 
+- It's should be minimalistic with modern design front-page and several sections.
+- Design should be modern, software-like, product-like, compact, simple and clean
+
+Front Page:
+    - it should have clean design with and contain a several sections.
+    Header:
+        - small header with buttons for pages: Home, Features, Blog, Contact
+        - Home button should redirect to the front page
+        - Features page contains a list of articles/features in a Jeffrey
+        - Blog page contains a list of general articles
+        - Contact should redirect to linked in page: https://www.linkedin.com/in/petr-bouda/
+    
+    Introduction:
+        - Part of the frontpage with just a little bit of text about Jeffrey and it's description. Something like "Java Profiling and Performance Analysis Tool" and "Advanced JFR analysis tool for identifying and resolving performance bottlenecks in your Java applications quickly and efficiently."
+        - Avatar image of the project images/avatar.jpg in the current
+        - Two buttons
+            - Download Jeffrey: https://github.com/petrbouda/jeffrey/releases/latest/download/jeffrey.jar
+            - GitHub Repository: https://github.com/petrbouda/jeffrey
+    
+    Introduction Cards:
+        - Quick Start with a page in markdown (transform it to html/vue) - introduction/startup.md
+        - Download and Startup - introduction/download_and_startup.md
+        - Next New Features - introduction/new_features.md
+
+    Features:
+        - This section should contain 6 cards:
+            - Flamegraphs - Visualizing Profiles using Flamegraphs and Timeseries - images/capability_flame.png
+            - Differential Flamegraphs - Comparing Profiles using Flamegraphs and Timeseries - images/capability_diff.png
+            - Sub-Second Graph - Startup Tuning/Comparing with Sub-Second Graphs - images/capability_subsecond.png
+            - Auto-Analysis - Automatic Analysis using predefined rules - images/capability_analysis.png
+            - Event Viewer - Searching and Filtering Events in Event Viewer - images/capability_event_viewer.png
+            - Profile Information - Basic Information about the Profile - images/capability_information.png
+        
+    Blog:
+        - This section should list last 6 blog posts, there is currently no blog post available, create one and mock the 10 blog post to have some examples for UI
+
+    Footer:
+        - Some small footer with a project name and some links and copyright
+
+Generate a design for pages like blogs, features, pages in introduction cards. Very simple design with header and text and images to be able to write it conveniently.
