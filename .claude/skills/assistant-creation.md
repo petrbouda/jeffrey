@@ -9,6 +9,19 @@ This skill documents how to create a new assistant component in the Jeffrey code
 | **Global** | App-wide, persists across navigation | Rendered in `App.vue` | DownloadAssistant |
 | **Local** | Single page, context-specific | Rendered in page component | OqlAssistant |
 
+## Consistent Behavior (IMPORTANT)
+
+**All assistants MUST behave identically regardless of type:**
+- Same panel width: `480px`
+- No backdrop: `:show-backdrop="false"` - user can still interact with the page
+- Same header gradient (default from AssistantPanel)
+- Same minimized button styling
+- Same positioning (bottom-right corner)
+
+**The ONLY difference between Global and Local:**
+- **Global**: Persists when navigating between pages
+- **Local**: Disappears when navigating to another page
+
 ## Directory Structure
 
 ```
@@ -61,6 +74,7 @@ Location: `/pages/src/components/assistants/global/{Name}Assistant.vue`
       :progress="progress"
       :badge-text="badgeText"
       :status="status"
+      :order="{number}"
       @click="$emit('expand')"
       title="Click to expand"
   />
@@ -137,6 +151,7 @@ Location: `/pages/src/components/{feature}/{Name}Assistant.vue` or `/pages/src/c
       icon="bi bi-{icon-name}"
       badge-text="..."
       badge-variant="..."
+      :order="{number}"
       @click="$emit('expand')"
       title="Click to open"
   />
@@ -145,17 +160,16 @@ Location: `/pages/src/components/{feature}/{Name}Assistant.vue` or `/pages/src/c
   <AssistantPanel
       :is-open="isOpen"
       :is-expanded="isExpanded"
-      width="560px"
-      :show-backdrop="true"
+      width="480px"
+      :show-backdrop="false"
       @close="$emit('close')"
   >
-    <!-- ... slots ... -->
+    <!-- ... same slots as global assistants ... -->
   </AssistantPanel>
 </template>
 ```
 
 Additional requirements:
-- Set `:show-backdrop="true"` for modal behavior
 - Manage state in parent page component
 - No global store needed
 - Start with `isExpanded = false` so button is visible on page load
@@ -285,21 +299,21 @@ Note: Position is handled by `AssistantMinimizedContainer` - buttons are automat
 ## Styling Guidelines
 
 - **Header gradient**: All assistants use the same default gradient from `AssistantPanel`: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`. Do not override unless absolutely necessary for brand consistency.
-- Global assistants: no backdrop, bottom-right floating button
-- Local assistants: backdrop, same floating button position
+- Both global and local assistants: no backdrop, bottom-right floating button
+- Local assistants only differ in that they disappear when navigating to another page
 - Icons: Use Bootstrap Icons (bi-*)
 - Badge: Short text (1-3 chars or number)
 
 ## Examples
 
 ### DownloadAssistant (Global)
-- Header gradient: Purple (#667eea to #764ba2)
 - Icon: `bi-cloud-download`
 - Shows progress ring with percentage
-- Badge shows download count
+- Badge shows download count or percentage
+- Order: 1
 
 ### OqlAssistant (Local)
-- Header gradient: Violet (#8b5cf6 to #7c3aed)
-- Icon: `bi-stars`
-- Badge shows "AI"
-- Has backdrop for modal behavior
+- Icon: `bi-terminal`
+- Badge shows "OQL"
+- Order: 2
+- Button visible immediately on page load

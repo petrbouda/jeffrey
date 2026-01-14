@@ -33,8 +33,8 @@
   <AssistantPanel
       :is-open="isOpen"
       :is-expanded="isExpanded"
-      width="560px"
-      :show-backdrop="true"
+      width="480px"
+      :show-backdrop="false"
       @close="$emit('close')"
   >
     <template #header-icon>
