@@ -56,6 +56,11 @@ public class ProfileResource {
         return new EventViewerResource(profileManager.eventViewerManager());
     }
 
+    @Path("/flags")
+    public FlagsResource flagsResource() {
+        return new FlagsResource(profileManager.flagsManager());
+    }
+
     @Path("/flamegraph")
     public FlamegraphResource flamegraphResource() {
         return new FlamegraphResource(

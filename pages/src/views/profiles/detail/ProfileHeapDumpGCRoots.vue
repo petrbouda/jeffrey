@@ -543,7 +543,6 @@ onMounted(() => {
 }
 
 .font-monospace {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 }
 
 /* About Tab Styles */

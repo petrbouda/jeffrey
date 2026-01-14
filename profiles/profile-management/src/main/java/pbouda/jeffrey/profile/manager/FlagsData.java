@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.manager.registry;
+package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
-import pbouda.jeffrey.profile.manager.EventViewerManager;
-import pbouda.jeffrey.profile.manager.FlagsManager;
-import pbouda.jeffrey.profile.manager.GuardianManager;
+import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
 
-public record AnalysisFactories(
-        GuardianManager.Factory guardian,
-        AutoAnalysisManager.Factory autoAnalysis,
-        EventViewerManager.Factory eventViewer,
-        FlagsManager.Factory flags) {
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Response data for the JVM Flags dashboard.
+ *
+ * @param flagsByOrigin Map of flags grouped by origin (Default, Ergonomic, Command line, Management)
+ * @param totalFlags    Total number of flags
+ * @param changedFlags  Number of flags whose values changed during the recording
+ */
+public record FlagsData(
+        Map<String, List<JvmFlagDetail>> flagsByOrigin,
+        int totalFlags,
+        int changedFlags
+) {
 }

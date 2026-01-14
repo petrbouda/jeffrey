@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.manager.registry;
+package pbouda.jeffrey.profile.resources;
 
-import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
-import pbouda.jeffrey.profile.manager.EventViewerManager;
+import jakarta.ws.rs.GET;
+import pbouda.jeffrey.profile.manager.FlagsData;
 import pbouda.jeffrey.profile.manager.FlagsManager;
-import pbouda.jeffrey.profile.manager.GuardianManager;
 
-public record AnalysisFactories(
-        GuardianManager.Factory guardian,
-        AutoAnalysisManager.Factory autoAnalysis,
-        EventViewerManager.Factory eventViewer,
-        FlagsManager.Factory flags) {
+/**
+ * REST resource for JVM flags visualization.
+ */
+public class FlagsResource {
+
+    private final FlagsManager flagsManager;
+
+    public FlagsResource(FlagsManager flagsManager) {
+        this.flagsManager = flagsManager;
+    }
+
+    @GET
+    public FlagsData getAllFlags() {
+        return flagsManager.getAllFlags();
+    }
 }

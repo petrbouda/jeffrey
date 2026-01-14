@@ -951,7 +951,6 @@ onMounted(() => {
 }
 
 .font-monospace {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
 }
 
@@ -1117,7 +1116,6 @@ onMounted(() => {
 }
 
 .flag-code {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.85rem;
   color: #0d6efd;
   background: white;

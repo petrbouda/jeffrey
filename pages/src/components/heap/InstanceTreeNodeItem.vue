@@ -334,7 +334,6 @@ watch(() => props.expanded, (newVal) => {
 .field-name {
   color: #495057;
   font-weight: 500;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 }
 
 .class-name {
@@ -346,7 +345,6 @@ watch(() => props.expanded, (newVal) => {
 
 .value-preview {
   color: #6c757d;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.7rem;
   white-space: nowrap;
   overflow: hidden;
@@ -358,7 +356,6 @@ watch(() => props.expanded, (newVal) => {
 .size-info {
   flex-shrink: 0;
   color: #495057;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.75rem;
   font-weight: 600;
   margin-left: auto;

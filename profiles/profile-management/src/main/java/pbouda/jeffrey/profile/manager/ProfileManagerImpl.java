@@ -95,6 +95,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public FlagsManager flagsManager() {
+        return registry.analysis().flags().apply(profileInfo);
+    }
+
+    @Override
     public ThreadManager threadManager() {
         return registry.jvmInsight().thread().apply(profileInfo);
     }

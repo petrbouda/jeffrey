@@ -74,7 +74,7 @@
           <button
               v-if="aiAvailable"
               class="btn btn-sm btn-ai-assistant"
-              @click="showAssistant = true"
+              @click="openAssistant"
           >
             <i class="bi bi-stars me-1"></i>
             AI Assistant
@@ -192,7 +192,7 @@
         <button
             v-if="aiAvailable"
             class="btn btn-ai-assistant-lg mt-4"
-            @click="showAssistant = true"
+            @click="openAssistant"
         >
           <i class="bi bi-stars me-2"></i>
           Ask AI Assistant
@@ -279,14 +279,17 @@
       </div>
     </div>
 
-    <!-- AI Assistant Panel -->
-    <OqlAssistantPanel
+    <!-- AI Assistant -->
+    <OqlAssistant
         v-if="workspaceId && projectId"
         :is-open="showAssistant"
+        :is-expanded="assistantExpanded"
         :workspace-id="workspaceId"
         :project-id="projectId"
         :profile-id="profileId"
-        @close="showAssistant = false"
+        @close="closeAssistant"
+        @expand="openAssistant"
+        @minimize="assistantExpanded = false"
         @apply="applyQueryFromAssistant"
         @run="runQueryFromAssistant"
     />
@@ -312,7 +315,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
-import OqlAssistantPanel from '@/components/oql/OqlAssistantPanel.vue';
+import OqlAssistant from '@/components/oql/OqlAssistant.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
@@ -340,6 +343,7 @@ const resultFilter = ref('');
 const sortColumn = ref('retained');
 const sortDirection = ref<'asc' | 'desc'>('desc');
 const showAssistant = ref(false);
+const assistantExpanded = ref(false);  // Start minimized so button is visible on page load
 const aiAvailable = ref(false);
 const aiPanelMinimized = ref(sessionStorage.getItem('oql-ai-panel-minimized') === 'true');
 
@@ -476,14 +480,24 @@ const clearResults = () => {
   oqlError.value = null;
 };
 
+const openAssistant = () => {
+  showAssistant.value = true;
+  assistantExpanded.value = true;
+};
+
+const closeAssistant = () => {
+  showAssistant.value = false;
+  assistantExpanded.value = false;  // Return to minimized state - button stays visible
+};
+
 const applyQueryFromAssistant = (query: string) => {
   oqlQuery.value = query;
-  showAssistant.value = false;
+  closeAssistant();
 };
 
 const runQueryFromAssistant = async (query: string) => {
   oqlQuery.value = query;
-  showAssistant.value = false;
+  closeAssistant();
   await executeQuery();
 };
 
@@ -782,7 +796,6 @@ onMounted(() => {
 }
 
 .value-text {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.75rem;
   color: #6c757d;
   word-break: break-word;
@@ -791,7 +804,6 @@ onMounted(() => {
 }
 
 .font-monospace {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
 }
 
@@ -1144,7 +1156,6 @@ onMounted(() => {
 
 .config-code code {
   display: block;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.75rem;
   color: #374151;
   background: #f8f5ff;

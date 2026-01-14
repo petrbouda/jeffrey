@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.manager.registry;
+import BaseProfileClient from './BaseProfileClient';
+import FlagsData from './model/FlagsData';
 
-import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
-import pbouda.jeffrey.profile.manager.EventViewerManager;
-import pbouda.jeffrey.profile.manager.FlagsManager;
-import pbouda.jeffrey.profile.manager.GuardianManager;
+/**
+ * API client for JVM flags dashboard functionality.
+ */
+export default class FlagsClient extends BaseProfileClient {
+  constructor(workspaceId: string, projectId: string, profileId: string) {
+    super(workspaceId, projectId, profileId, 'flags');
+  }
 
-public record AnalysisFactories(
-        GuardianManager.Factory guardian,
-        AutoAnalysisManager.Factory autoAnalysis,
-        EventViewerManager.Factory eventViewer,
-        FlagsManager.Factory flags) {
+  /**
+   * Retrieves all JVM flags grouped by origin.
+   * @returns Promise resolving to flags data with grouping and change detection
+   */
+  getAllFlags(): Promise<FlagsData> {
+    return this.get<FlagsData>('');
+  }
 }

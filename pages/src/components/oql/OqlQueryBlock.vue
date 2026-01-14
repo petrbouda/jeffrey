@@ -90,7 +90,6 @@ const copyToClipboard = async () => {
   padding: 1rem;
   background-color: #1e1e1e;
   color: #d4d4d4;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
   line-height: 1.5;
   white-space: pre-wrap;

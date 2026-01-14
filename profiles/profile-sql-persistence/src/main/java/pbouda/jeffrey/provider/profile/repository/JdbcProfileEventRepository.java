@@ -27,6 +27,7 @@ import pbouda.jeffrey.shared.common.model.ThreadInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
+import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -104,6 +105,48 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             "CompactStrings",
             "OptimizeStringConcat"
     );
+
+    private static final Set<String> ALL_FLAG_EVENT_TYPES = Set.of(
+            EventTypeName.BOOLEAN_FLAG,
+            EventTypeName.INT_FLAG,
+            EventTypeName.UNSIGNED_INT_FLAG,
+            EventTypeName.LONG_FLAG,
+            EventTypeName.STRING_FLAG
+    );
+
+    //language=SQL
+    private static final String ALL_FLAGS_QUERY = """
+            WITH flag_history AS (
+                SELECT
+                    event_type,
+                    json_extract_string(fields, '$.name') as flag_name,
+                    json_extract_string(fields, '$.value') as flag_value,
+                    json_extract_string(fields, '$.origin') as origin,
+                    start_timestamp,
+                    ROW_NUMBER() OVER (PARTITION BY json_extract_string(fields, '$.name') ORDER BY start_timestamp DESC) as rn
+                FROM events
+                WHERE event_type IN (:flag_event_types)
+            ),
+            flag_values AS (
+                SELECT
+                    flag_name,
+                    list(DISTINCT flag_value) as all_values,
+                    count(DISTINCT flag_value) as value_count
+                FROM flag_history
+                GROUP BY flag_name
+            )
+            SELECT
+                h.event_type,
+                h.flag_name,
+                h.flag_value as current_value,
+                h.origin,
+                v.all_values,
+                v.value_count
+            FROM flag_history h
+            JOIN flag_values v ON h.flag_name = v.flag_name
+            WHERE h.rn = 1
+            ORDER BY h.origin, h.flag_name
+            """;
 
     private final SQLFormatter sqlFormatter;
     private final DatabaseClient databaseClient;
@@ -183,6 +226,47 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                             rs.getString("flag_value"),
                             flagType,
                             rs.getString("origin")
+                    );
+                });
+    }
+
+    @Override
+    public List<JvmFlagDetail> getAllFlags() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("flag_event_types", ALL_FLAG_EVENT_TYPES);
+
+        return databaseClient.query(
+                StatementLabel.ALL_FLAGS,
+                ALL_FLAGS_QUERY,
+                paramSource,
+                (rs, _) -> {
+                    String eventType = rs.getString("event_type");
+                    String flagType = extractFlagType(eventType);
+                    String currentValue = rs.getString("current_value");
+                    int valueCount = rs.getInt("value_count");
+                    boolean hasChanged = valueCount > 1;
+
+                    // Get all values from DuckDB array and filter out the current one for previous values
+                    List<String> previousValues = List.of();
+                    if (hasChanged) {
+                        java.sql.Array sqlArray = rs.getArray("all_values");
+                        if (sqlArray != null) {
+                            Object[] arrayValues = (Object[]) sqlArray.getArray();
+                            previousValues = java.util.Arrays.stream(arrayValues)
+                                    .map(Object::toString)
+                                    .filter(v -> !v.equals(currentValue))
+                                    .toList();
+                        }
+                    }
+
+                    return new JvmFlagDetail(
+                            rs.getString("flag_name"),
+                            currentValue,
+                            flagType,
+                            rs.getString("origin"),
+                            previousValues,
+                            hasChanged,
+                            null  // description is enriched later by FlagsManager
                     );
                 });
     }

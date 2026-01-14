@@ -1,0 +1,3002 @@
+{
+  "AbortVMOnCompilationFailure": {
+    "category": "Compiler",
+    "description": "Abort VM when method had failed to compile."
+  },
+  "AbortVMOnException": {
+    "category": "Runtime",
+    "description": "Call fatal if this exception is thrown. Example:"
+  },
+  "AbortVMOnExceptionMessage": {
+    "category": "Runtime",
+    "description": "Call fatal if the exception pointed by AbortVMOnException"
+  },
+  "AbortVMOnSafepointTimeout": {
+    "category": "Runtime",
+    "description": "Abort upon failure to reach safepoint (see SafepointTimeout)"
+  },
+  "AbortVMOnSafepointTimeoutDelay": {
+    "category": "Runtime",
+    "description": "Delay in milliseconds for option AbortVMOnSafepointTimeout"
+  },
+  "AbortVMOnVMOperationTimeout": {
+    "category": "Runtime",
+    "description": "Abort upon failure to complete VM operation promptly"
+  },
+  "AbortVMOnVMOperationTimeoutDelay": {
+    "category": "Runtime",
+    "description": "Delay in milliseconds for option AbortVMOnVMOperationTimeout"
+  },
+  "ActiveProcessorCount": {
+    "category": "GC",
+    "description": "Specify the CPU count the VM should use and report as active"
+  },
+  "AdaptiveSizeDecrementScaleFactor": {
+    "category": "GC",
+    "description": "Adaptive size scale down factor for shrinking"
+  },
+  "AdaptiveSizePolicyReadyThreshold": {
+    "category": "GC",
+    "description": "Number of collections before the adaptive sizing is started"
+  },
+  "AdaptiveSizePolicyWeight": {
+    "category": "GC",
+    "description": "Weight given to exponential resizing, between 0 and 100"
+  },
+  "AggressiveHeap": {
+    "category": "GC",
+    "description": "(Deprecated) Optimize heap options for long-running memory"
+  },
+  "AllocateHeapAt": {
+    "category": "Runtime",
+    "description": "Path to the directory where a temporary file will be created"
+  },
+  "AllocateInstancePrefetchLines": {
+    "category": "Runtime",
+    "description": "Number of lines to prefetch ahead of instance allocation"
+  },
+  "AllocatePrefetchDistance": {
+    "category": "Runtime",
+    "description": "Distance to prefetch ahead of allocation pointer."
+  },
+  "AllocatePrefetchInstr": {
+    "category": "Runtime",
+    "description": "Select instruction to prefetch ahead of allocation pointer"
+  },
+  "AllocatePrefetchLines": {
+    "category": "Runtime",
+    "description": "Number of lines to prefetch ahead of array allocation pointer"
+  },
+  "AllocatePrefetchStepSize": {
+    "category": "Runtime",
+    "description": "Step size in bytes of sequential prefetch instructions"
+  },
+  "AllocatePrefetchStyle": {
+    "category": "Runtime",
+    "description": "0 = no prefetch,"
+  },
+  "AllowParallelDefineClass": {
+    "category": "Runtime",
+    "description": "Allow parallel defineClass requests for class loaders"
+  },
+  "AllowRedefinitionToAddDeleteMethods": {
+    "category": "Runtime",
+    "description": "(Deprecated) Allow redefinition to add and delete private"
+  },
+  "AllowUserSignalHandlers": {
+    "category": "Runtime",
+    "description": "Application will install primary signal handlers for the JVM"
+  },
+  "AlwaysActAsServerClassMachine": {
+    "category": "GC",
+    "description": "(Deprecated) Always act like a server-class machine"
+  },
+  "AlwaysAtomicAccesses": {
+    "category": "Runtime",
+    "description": "Accesses to all variables should always be atomic"
+  },
+  "AlwaysCompileLoopMethods": {
+    "category": "Runtime",
+    "description": "When using recompilation, never interpret methods"
+  },
+  "AlwaysPreTouch": {
+    "category": "GC",
+    "description": "Force all freshly committed pages to be pre-touched"
+  },
+  "AlwaysPreTouchStacks": {
+    "category": "GC",
+    "description": "Force java thread stacks to be fully pre-touched"
+  },
+  "AlwaysRecordEvolDependencies": {
+    "category": "Runtime",
+    "description": "Unconditionally record nmethod dependencies on class"
+  },
+  "AlwaysRestoreFPU": {
+    "category": "Runtime",
+    "description": "Restore the FPU control word after every JNI call (expensive)"
+  },
+  "AlwaysSafeConstructors": {
+    "category": "Runtime",
+    "description": "Force safe construction, as if all fields are final."
+  },
+  "AlwaysTenure": {
+    "category": "GC",
+    "description": "Always tenure objects in eden (ParallelGC only)"
+  },
+  "AsyncDeflationInterval": {
+    "category": "Runtime",
+    "description": "Async deflate idle monitors every so many milliseconds when"
+  },
+  "AsyncLogBufferSize": {
+    "category": "Runtime",
+    "description": "Memory budget (in bytes) for the buffer of Asynchronous"
+  },
+  "AvgMonitorsPerThreadEstimate": {
+    "category": "Runtime",
+    "description": "Used to estimate a variable ceiling based on number of threads"
+  },
+  "BCEATraceLevel": {
+    "category": "Compiler",
+    "description": "How much tracing to do of bytecode escape analysis estimates"
+  },
+  "BackgroundCompilation": {
+    "category": "Runtime",
+    "description": "A thread requesting compilation is not blocked during"
+  },
+  "BciProfileWidth": {
+    "category": "Runtime",
+    "description": "Number of return bci's to record in ret profile"
+  },
+  "BinarySearchThreshold": {
+    "category": "Runtime",
+    "description": "Minimal number of elements in a sorted collection to prefer"
+  },
+  "BinarySwitchThreshold": {
+    "category": "Runtime",
+    "description": "Minimal number of lookupswitch entries for rewriting to binary"
+  },
+  "BytecodeVerificationLocal": {
+    "category": "Runtime",
+    "description": "Enable the Java bytecode verifier for local classes"
+  },
+  "BytecodeVerificationRemote": {
+    "category": "Runtime",
+    "description": "Enable the Java bytecode verifier for remote classes"
+  },
+  "CIBreakAt": {
+    "category": "Compiler",
+    "description": "The id of compilation to break at"
+  },
+  "CIBreakAtOSR": {
+    "category": "Compiler",
+    "description": "The id of osr compilation to break at"
+  },
+  "CICompileNatives": {
+    "category": "Compiler",
+    "description": "compile native methods if supported by the compiler"
+  },
+  "CICompileOSR": {
+    "category": "Compiler",
+    "description": "compile on stack replacement methods if supported by the"
+  },
+  "CICompilerCount": {
+    "category": "Runtime",
+    "description": "Number of compiler threads to run"
+  },
+  "CICompilerCountPerCPU": {
+    "category": "Compiler",
+    "description": "1 compiler thread for log(N CPUs)"
+  },
+  "CICountNative": {
+    "category": "Compiler",
+    "description": "use a separate counter when assigning ids to native"
+  },
+  "CICountOSR": {
+    "category": "Compiler",
+    "description": "use a separate counter when assigning ids to osr compilations"
+  },
+  "CICrashAt": {
+    "category": "Compiler",
+    "description": "id of compilation to trigger assert in compiler thread for"
+  },
+  "CIObjectFactoryVerify": {
+    "category": "Compiler",
+    "description": "enable potentially expensive verification in ciObjectFactory"
+  },
+  "CIPrintCompileQueue": {
+    "category": "Compiler",
+    "description": "display the contents of the compile queue whenever a"
+  },
+  "CIPrintCompilerName": {
+    "category": "Compiler",
+    "description": "when CIPrint is active, print the name of the active compiler"
+  },
+  "CIPrintMethodCodes": {
+    "category": "Compiler",
+    "description": "print method bytecodes of the compiled code"
+  },
+  "CIPrintRequests": {
+    "category": "Compiler",
+    "description": "display every request for compilation"
+  },
+  "CIPrintTypeFlow": {
+    "category": "Compiler",
+    "description": "print the results of ciTypeFlow analysis"
+  },
+  "CIStart": {
+    "category": "Compiler",
+    "description": "The id of the first compilation to permit"
+  },
+  "CIStartOSR": {
+    "category": "Compiler",
+    "description": "The id of the first osr compilation to permit"
+  },
+  "CIStop": {
+    "category": "Compiler",
+    "description": "The id of the last compilation to permit"
+  },
+  "CIStopOSR": {
+    "category": "Compiler",
+    "description": "The id of the last osr compilation to permit"
+  },
+  "CITime": {
+    "category": "Compiler",
+    "description": "collect timing information for compilation"
+  },
+  "CITimeEach": {
+    "category": "Compiler",
+    "description": "display timing information after each successful compilation"
+  },
+  "CITimeVerbose": {
+    "category": "Compiler",
+    "description": "be more verbose in compilation timings"
+  },
+  "CITraceTypeFlow": {
+    "category": "Compiler",
+    "description": "detailed per-bytecode tracing of ciTypeFlow analysis"
+  },
+  "CaptureBailoutInformation": {
+    "category": "Compiler",
+    "description": "If compilation is stopped with an error, capture diagnostic"
+  },
+  "CheckCompressedOops": {
+    "category": "Runtime",
+    "description": "Generate checks in encoding/decoding code in debug VM"
+  },
+  "CheckIntrinsics": {
+    "category": "Runtime",
+    "description": "When a class C is loaded, check that"
+  },
+  "CheckJNICalls": {
+    "category": "Runtime",
+    "description": "Verify all arguments to JNI calls"
+  },
+  "CheckUnhandledOops": {
+    "category": "Runtime",
+    "description": "Check for unhandled oops in VM code"
+  },
+  "ClassUnloading": {
+    "category": "Runtime",
+    "description": "Do unloading of classes"
+  },
+  "ClassUnloadingWithConcurrentMark": {
+    "category": "Runtime",
+    "description": "Do unloading of classes with a concurrent marking cycle"
+  },
+  "ClipInlining": {
+    "category": "Runtime",
+    "description": "Clip inlining if aggregate method exceeds DesiredMethodLimit"
+  },
+  "CodeCacheExpansionSize": {
+    "category": "Runtime",
+    "description": "Code cache expansion size (in bytes)"
+  },
+  "CodeCacheMinBlockLength": {
+    "category": "Runtime",
+    "description": "Minimum number of segments in a code cache block"
+  },
+  "CodeCacheMinimumUseSpace": {
+    "category": "Runtime",
+    "description": "Minimum code cache size (in bytes) required to start VM."
+  },
+  "CodeCacheSegmentSize": {
+    "category": "Runtime",
+    "description": "Code cache segment size (in bytes) - smallest unit of"
+  },
+  "CodeEntryAlignment": {
+    "category": "Runtime",
+    "description": "Code entry alignment for generated code (in bytes)"
+  },
+  "CollectIndexSetStatistics": {
+    "category": "Runtime",
+    "description": "Collect information about IndexSets"
+  },
+  "CompactStrings": {
+    "category": "Runtime",
+    "description": "Enable Strings to use single byte chars in backing store"
+  },
+  "CompilationMode": {
+    "category": "Compiler",
+    "description": "default"
+  },
+  "CompileCommandFile": {
+    "category": "Compiler",
+    "description": "Read compiler commands from this file [.hotspot_compiler]"
+  },
+  "CompileThreshold": {
+    "category": "Runtime",
+    "description": "number of interpreted method invocations before (re-)compiling"
+  },
+  "CompileThresholdScaling": {
+    "category": "Compiler",
+    "description": "Factor to control when first compilation happens"
+  },
+  "CompilerDirectivesFile": {
+    "category": "Compiler",
+    "description": "Read compiler directives from this file"
+  },
+  "CompilerDirectivesIgnoreCompileCommands": {
+    "category": "Compiler",
+    "description": "Disable backwards compatibility for compile commands."
+  },
+  "CompilerDirectivesLimit": {
+    "category": "Compiler",
+    "description": "Limit on number of compiler directives."
+  },
+  "CompilerDirectivesPrint": {
+    "category": "Compiler",
+    "description": "Print compiler directives on installation."
+  },
+  "CompilerThreadPriority": {
+    "category": "Runtime",
+    "description": "The native priority at which compiler threads should run"
+  },
+  "CompilerThreadStackSize": {
+    "category": "Runtime",
+    "description": "Compiler Thread Stack Size (in Kbytes)"
+  },
+  "CompressedClassSpaceBaseAddress": {
+    "category": "Runtime",
+    "description": "Force the class space to be allocated at this address or"
+  },
+  "CompressedClassSpaceSize": {
+    "category": "Runtime",
+    "description": "Maximum size of class area in Metaspace when compressed"
+  },
+  "ConcGCThreads": {
+    "category": "GC",
+    "description": "Number of threads concurrent gc will use"
+  },
+  "ConcGCYieldTimeout": {
+    "category": "GC",
+    "description": "If non-zero, assert that GC threads yield within this"
+  },
+  "ContendedPaddingWidth": {
+    "category": "Runtime",
+    "description": "How many bytes to pad the fields/classes marked @Contended with"
+  },
+  "CountBytecodes": {
+    "category": "Runtime",
+    "description": "Count number of bytecodes executed"
+  },
+  "CountCompiledCalls": {
+    "category": "Runtime",
+    "description": "Count method invocations"
+  },
+  "CrashGCForDumpingJavaThread": {
+    "category": "Runtime",
+    "description": "Manually make GC thread crash then dump java stack trace;"
+  },
+  "CrashOnOutOfMemoryError": {
+    "category": "Runtime",
+    "description": "JVM aborts, producing an error log and core/mini dump, on the"
+  },
+  "CreateCoredumpOnCrash": {
+    "category": "Runtime",
+    "description": "Create core/mini dump on VM fatal error"
+  },
+  "DTraceAllocProbes": {
+    "category": "Runtime",
+    "description": "Enable dtrace tool probes for object allocation"
+  },
+  "DTraceMethodProbes": {
+    "category": "Runtime",
+    "description": "Enable dtrace tool probes for method-entry and method-exit"
+  },
+  "DTraceMonitorProbes": {
+    "category": "Runtime",
+    "description": "Enable dtrace tool probes for monitor events"
+  },
+  "DebugDeoptimization": {
+    "category": "Runtime",
+    "description": "Tracing various information while debugging deoptimization"
+  },
+  "DebugNonSafepoints": {
+    "category": "Runtime",
+    "description": "Generate extra debugging information for non-safepoints in"
+  },
+  "DebugVtables": {
+    "category": "Runtime",
+    "description": "add debugging code to vtable dispatch"
+  },
+  "DelayCompilerStubsGeneration": {
+    "category": "Runtime",
+    "description": "Use Compiler thread for compiler's stubs generation"
+  },
+  "DeoptimizeALot": {
+    "category": "Runtime",
+    "description": "Deoptimize at every exit from the runtime system"
+  },
+  "DeoptimizeALotInterval": {
+    "category": "Runtime",
+    "description": "Number of exits until DeoptimizeALot kicks in"
+  },
+  "DeoptimizeNMethodBarriersALot": {
+    "category": "Runtime",
+    "description": "Make nmethod barriers deoptimise a lot."
+  },
+  "DeoptimizeObjectsALot": {
+    "category": "Runtime",
+    "description": "For testing purposes concurrent threads revert optimizations"
+  },
+  "DeoptimizeObjectsALotInterval": {
+    "category": "Runtime",
+    "description": "Interval for DeoptimizeObjectsALot."
+  },
+  "DeoptimizeObjectsALotThreadCountAll": {
+    "category": "Runtime",
+    "description": "The number of threads that revert optimizations based on"
+  },
+  "DeoptimizeObjectsALotThreadCountSingle": {
+    "category": "Runtime",
+    "description": "The number of threads that revert optimizations based on"
+  },
+  "DeoptimizeOnAllocationException": {
+    "category": "Runtime",
+    "description": "Deoptimize on exception during allocation instead of using the"
+  },
+  "DeoptimizeRandom": {
+    "category": "Runtime",
+    "description": "Deoptimize random frames on random exit from the runtime system"
+  },
+  "DesiredMethodLimit": {
+    "category": "Compiler",
+    "description": "The desired maximum method size (in bytecodes) after inlining"
+  },
+  "DiagnoseSyncOnValueBasedClasses": {
+    "category": "Runtime",
+    "description": "Detect and take action upon identifying synchronization on"
+  },
+  "DisableAttachMechanism": {
+    "category": "Runtime",
+    "description": "Disable mechanism that allows tools to attach to this VM"
+  },
+  "DisableExplicitGC": {
+    "category": "GC",
+    "description": "Ignore calls to System.gc()"
+  },
+  "DisablePrimordialThreadGuardPages": {
+    "category": "Runtime",
+    "description": "Disable the use of stack guard pages if the JVM is loaded"
+  },
+  "DisplayVMOutput": {
+    "category": "Runtime",
+    "description": "Display all VM output on the tty, independently of LogVMOutput"
+  },
+  "DisplayVMOutputToStderr": {
+    "category": "Runtime",
+    "description": "If DisplayVMOutput is true, display all VM output to stderr"
+  },
+  "DisplayVMOutputToStdout": {
+    "category": "Runtime",
+    "description": "If DisplayVMOutput is true, display all VM output to stdout"
+  },
+  "DoJVMTIVirtualThreadTransitions": {
+    "category": "Runtime",
+    "description": "Do JVMTI virtual thread mount/unmount transitions"
+  },
+  "DontCompileHugeMethods": {
+    "category": "Compiler",
+    "description": "Do not compile methods > HugeMethodLimit"
+  },
+  "DumpReplayDataOnError": {
+    "category": "Compiler",
+    "description": "Record replay data for crashing compiler threads"
+  },
+  "EagerXrunInit": {
+    "category": "Runtime",
+    "description": "Eagerly initialize -Xrun libraries; allows startup profiling,"
+  },
+  "EnableContended": {
+    "category": "Runtime",
+    "description": "Enable @Contended annotation support"
+  },
+  "EnableDynamicAgentLoading": {
+    "category": "Runtime",
+    "description": "Allow tools to load agents with the attach mechanism"
+  },
+  "EnableJVMTIStackDepthAsserts": {
+    "category": "Runtime",
+    "description": "Enable JVMTI asserts related to stack depth checks"
+  },
+  "EnableThreadSMRStatistics": {
+    "category": "Runtime",
+    "description": "Enable Thread SMR Statistics"
+  },
+  "ErgoHeapSizeLimit": {
+    "category": "GC",
+    "description": "Maximum ergonomically set heap size (in bytes); zero means use"
+  },
+  "ErrorFile": {
+    "category": "Runtime",
+    "description": "If an error occurs, save the error data to this file"
+  },
+  "ErrorFileToStderr": {
+    "category": "Runtime",
+    "description": "If true, error data is printed to stderr instead of a file"
+  },
+  "ErrorFileToStdout": {
+    "category": "Runtime",
+    "description": "If true, error data is printed to stdout instead of a file"
+  },
+  "ErrorHandlerTest": {
+    "category": "Runtime",
+    "description": "If > 0, provokes an error after VM initialization; the value"
+  },
+  "ErrorLogPrintCodeLimit": {
+    "category": "Runtime",
+    "description": "max number of compiled code units to print in error log"
+  },
+  "ErrorLogSecondaryErrorDetails": {
+    "category": "Runtime",
+    "description": "If enabled, show details on secondary crashes in the error log"
+  },
+  "ErrorLogTimeout": {
+    "category": "Runtime",
+    "description": "Timeout, in seconds, to limit the time spent on writing an"
+  },
+  "EstimateArgEscape": {
+    "category": "Compiler",
+    "description": "Analyze bytecodes to estimate escape state of arguments"
+  },
+  "ExecutingUnitTests": {
+    "category": "Runtime",
+    "description": "Whether the JVM is running unit tests or not"
+  },
+  "ExitOnFullCodeCache": {
+    "category": "Runtime",
+    "description": "Exit the VM if we fill the code cache"
+  },
+  "ExitOnOutOfMemoryError": {
+    "category": "Runtime",
+    "description": "JVM exits on the first occurrence of an out-of-memory error"
+  },
+  "ExplicitGCInvokesConcurrent": {
+    "category": "GC",
+    "description": "A System.gc() request invokes a concurrent collection;"
+  },
+  "ExtensiveErrorReports": {
+    "category": "Runtime",
+    "description": "Error reports are more extensive."
+  },
+  "FastAllocateSizeLimit": {
+    "category": "Runtime",
+    "description": "Inline allocations larger than this in doublewords must go slow"
+  },
+  "FastLockingSpins": {
+    "category": "Runtime",
+    "description": "Specifies the number of times fast locking will attempt to"
+  },
+  "FlightRecorder": {
+    "category": "Runtime",
+    "description": "(Deprecated) Enable Flight Recorder"
+  },
+  "FlightRecorderOptions": {
+    "category": "Runtime",
+    "description": "Flight Recorder options"
+  },
+  "FoldStableValues": {
+    "category": "Runtime",
+    "description": "Optimize loads from stable fields (marked w/ @Stable)"
+  },
+  "ForceTimeHighResolution": {
+    "category": "Runtime",
+    "description": "Using high time resolution (for Win32 only)"
+  },
+  "ForceUnreachable": {
+    "category": "Runtime",
+    "description": "Make all non code cache addresses to be unreachable by"
+  },
+  "FullGCALot": {
+    "category": "GC",
+    "description": "Force full gc at every Nth exit from the runtime system"
+  },
+  "FullGCALotDummies": {
+    "category": "GC",
+    "description": "Dummy object allocated with +FullGCALot, forcing all objects"
+  },
+  "FullGCALotInterval": {
+    "category": "GC",
+    "description": "Interval between which full gc will occur with +FullGCALot"
+  },
+  "FullGCALotStart": {
+    "category": "GC",
+    "description": "For which invocation to start FullGCAlot"
+  },
+  "FullGCHeapDumpLimit": {
+    "category": "Runtime",
+    "description": "Limit the number of heap dumps triggered by"
+  },
+  "G1AdaptiveIHOPNumInitialSamples": {
+    "category": "GC - G1",
+    "description": "How many completed time periods from concurrent start to first"
+  },
+  "G1CPUUsageDeviationPercent": {
+    "category": "GC - G1",
+    "description": "The acceptable deviation (in percent) from the target GC CPU"
+  },
+  "G1CPUUsageExpandThreshold": {
+    "category": "GC - G1",
+    "description": "If the GC CPU usage deviation counter exceeds this threshold,"
+  },
+  "G1CPUUsageShrinkThreshold": {
+    "category": "GC - G1",
+    "description": "If the GC CPU usage deviation counter drops below the negative"
+  },
+  "G1ConcMarkStepDurationMillis": {
+    "category": "GC - G1",
+    "description": "Target duration of individual concurrent marking steps"
+  },
+  "G1ConcRefinementThreads": {
+    "category": "GC - G1",
+    "description": "The number of parallel remembered set update threads."
+  },
+  "G1ConfidencePercent": {
+    "category": "GC - G1",
+    "description": "Confidence level for MMU/pause predictions. A higher value"
+  },
+  "G1EagerReclaimRemSetThreshold": {
+    "category": "GC - G1",
+    "description": "Maximum number of remembered set entries a humongous region"
+  },
+  "G1ExpandByPercentOfAvailable": {
+    "category": "GC - G1",
+    "description": "When expanding, % of uncommitted space to expand the heap by in"
+  },
+  "G1ForceOptionalEvacuation": {
+    "category": "GC - G1",
+    "description": "Force optional evacuation for all GCs where there are old gen"
+  },
+  "G1GCAllocationFailureALot": {
+    "category": "GC - G1",
+    "description": "Force execution of evacuation failure handling by inducing"
+  },
+  "G1GCAllocationFailureALotCSetPercent": {
+    "category": "GC - G1",
+    "description": "The percentage of regions in the collection set starting"
+  },
+  "G1GCAllocationFailureALotCount": {
+    "category": "GC - G1",
+    "description": "Number of successful evacuations between induced allocation"
+  },
+  "G1GCAllocationFailureALotDuringConcMark": {
+    "category": "GC - G1",
+    "description": "Trigger evacuation failure handling in collection pauses where"
+  },
+  "G1GCAllocationFailureALotDuringConcurrentStart": {
+    "category": "GC - G1",
+    "description": "Trigger evacuation failure handling during concurrent start"
+  },
+  "G1GCAllocationFailureALotDuringMixedGC": {
+    "category": "GC - G1",
+    "description": "Force use of evacuation failure handling during mixed"
+  },
+  "G1GCAllocationFailureALotDuringYoungGC": {
+    "category": "GC - G1",
+    "description": "Trigger evacuation failure handling during young collection"
+  },
+  "G1GCAllocationFailureALotInterval": {
+    "category": "GC - G1",
+    "description": "Total collections between forced triggering of evacuation"
+  },
+  "G1HeapRegionSize": {
+    "category": "GC - G1",
+    "description": "Size of the G1 regions."
+  },
+  "G1HeapWastePercent": {
+    "category": "GC - G1",
+    "description": "Amount of space, expressed as a percentage of the heap size,"
+  },
+  "G1LastPLABAverageOccupancy": {
+    "category": "GC - G1",
+    "description": "The expected average occupancy of the last PLAB in"
+  },
+  "G1MaxNewSizePercent": {
+    "category": "GC - G1",
+    "description": "Percentage (0-100) of the heap size to use as default"
+  },
+  "G1MaxVerifyFailures": {
+    "category": "GC - G1",
+    "description": "The maximum number of liveness and remembered set verification"
+  },
+  "G1MixedGCCountTarget": {
+    "category": "GC - G1",
+    "description": "The target number of mixed GCs after a marking cycle."
+  },
+  "G1MixedGCLiveThresholdPercent": {
+    "category": "GC - G1",
+    "description": "Threshold for regions to be considered for inclusion in the"
+  },
+  "G1NewSizePercent": {
+    "category": "GC - G1",
+    "description": "Percentage (0-100) of the heap size to use as default"
+  },
+  "G1NumCardsCostSampleThreshold": {
+    "category": "GC - G1",
+    "description": "Threshold for the number of cards when reporting remembered set"
+  },
+  "G1NumCodeRootsCostSampleThreshold": {
+    "category": "GC - G1",
+    "description": "Threshold for the number of code roots when reporting code root"
+  },
+  "G1NumCollectionsKeepPinned": {
+    "category": "GC - G1",
+    "description": "After how many GCs a region has been found pinned G1 should"
+  },
+  "G1OldCSetGroupSize": {
+    "category": "GC - G1",
+    "description": "The maximum number of old CSet regions in a collection group."
+  },
+  "G1OldCSetRegionThresholdPercent": {
+    "category": "GC - G1",
+    "description": "An upper bound for the number of old CSet regions expressed"
+  },
+  "G1PerThreadPendingCardThreshold": {
+    "category": "GC - G1",
+    "description": "Number of pending cards allowed on the card table per GC"
+  },
+  "G1PeriodicGCInterval": {
+    "category": "GC - G1",
+    "description": "Number of milliseconds after a previous GC to wait before"
+  },
+  "G1PeriodicGCInvokesConcurrent": {
+    "category": "GC - G1",
+    "description": "Determines the kind of periodic GC. Set to true to have G1"
+  },
+  "G1PeriodicGCSystemLoadThreshold": {
+    "category": "GC - G1",
+    "description": "Maximum recent system wide load as returned by the 1m value"
+  },
+  "G1RSetUpdatingPauseTimePercent": {
+    "category": "GC - G1",
+    "description": "A target percentage of time that is allowed to be spend on"
+  },
+  "G1RebuildRemSetChunkSize": {
+    "category": "GC - G1",
+    "description": "Chunk size used for rebuilding the remembered set."
+  },
+  "G1RefProcDrainInterval": {
+    "category": "GC - G1",
+    "description": "The number of discovered reference objects to process before"
+  },
+  "G1RemSetArrayOfCardsEntries": {
+    "category": "GC - G1",
+    "description": "Maximum number of entries per Array of Cards card set"
+  },
+  "G1RemSetArrayOfCardsEntriesBase": {
+    "category": "GC - G1",
+    "description": "Maximum number of entries per region in the Array of Cards"
+  },
+  "G1RemSetCoarsenHowlBitmapToHowlFullPercent": {
+    "category": "GC - G1",
+    "description": "Percentage at which to coarsen a Howl bitmap to Howl full card"
+  },
+  "G1RemSetCoarsenHowlToFullPercent": {
+    "category": "GC - G1",
+    "description": "Percentage at which to coarsen a Howl card set to Full card"
+  },
+  "G1RemSetFreeMemoryKeepExcessRatio": {
+    "category": "GC - G1",
+    "description": "The percentage of free card set memory that G1 should keep as"
+  },
+  "G1RemSetFreeMemoryRescheduleDelayMillis": {
+    "category": "GC - G1",
+    "description": "Time after which the card set free memory task reschedules"
+  },
+  "G1RemSetFreeMemoryStepDurationMillis": {
+    "category": "GC - G1",
+    "description": "The amount of time that the free memory task should spend"
+  },
+  "G1RemSetHowlMaxNumBuckets": {
+    "category": "GC - G1",
+    "description": "Maximum number of buckets per Howl card set container. The"
+  },
+  "G1RemSetHowlNumBuckets": {
+    "category": "GC - G1",
+    "description": "Number of buckets per Howl card set container. Must be a power"
+  },
+  "G1ReservePercent": {
+    "category": "GC - G1",
+    "description": "It determines the minimum reserve we should have in the heap"
+  },
+  "G1RestoreRetainedRegionChunksPerWorker": {
+    "category": "GC - G1",
+    "description": "The number of chunks assigned per worker thread for"
+  },
+  "G1RetainRegionLiveThresholdPercent": {
+    "category": "GC - G1",
+    "description": "Threshold for evacuation failed regions to be considered for"
+  },
+  "G1SATBBufferEnqueueingThresholdPercent": {
+    "category": "GC - G1",
+    "description": "Before enqueueing them, each mutator thread tries to do some"
+  },
+  "G1SATBBufferSize": {
+    "category": "GC - G1",
+    "description": "Number of entries in an SATB log buffer."
+  },
+  "G1SATBProcessCompletedThreshold": {
+    "category": "GC - G1",
+    "description": "Number of completed buffers that triggers log processing."
+  },
+  "G1ShrinkByPercentOfAvailable": {
+    "category": "GC - G1",
+    "description": "When shrinking, maximum % of free space to free for a single"
+  },
+  "G1SummarizeRSetStatsPeriod": {
+    "category": "GC - G1",
+    "description": "The period (in number of GCs) at which we will generate"
+  },
+  "G1UseAdaptiveIHOP": {
+    "category": "GC - G1",
+    "description": "Adaptively adjust the initiating heap occupancy from the"
+  },
+  "G1UseConcRefinement": {
+    "category": "GC - G1",
+    "description": "Control whether concurrent refinement is performed."
+  },
+  "G1UseReferencePrecleaning": {
+    "category": "GC - G1",
+    "description": "Concurrently preclean java.lang.ref.references instances"
+  },
+  "G1VerifyBitmaps": {
+    "category": "GC - G1",
+    "description": "Verifies the consistency of the marking bitmaps"
+  },
+  "G1VerifyHeapRegionCodeRoots": {
+    "category": "GC - G1",
+    "description": "Verify the code root lists attached to each heap region."
+  },
+  "GCALotAtAllSafepoints": {
+    "category": "GC",
+    "description": "Enforce ScavengeALot/GCALot at all potential safepoints"
+  },
+  "GCCardSizeInBytes": {
+    "category": "GC",
+    "description": "Card table entry size (in bytes) for card based collectors"
+  },
+  "GCDrainStackTargetSize": {
+    "category": "GC",
+    "description": "Number of entries we will try to leave on the stack"
+  },
+  "GCHeapFreeLimit": {
+    "category": "GC",
+    "description": "Minimum percentage of free space after a full GC before an"
+  },
+  "GCOverheadLimitThreshold": {
+    "category": "GC",
+    "description": "Number of consecutive collections before gc time limit fires"
+  },
+  "GCPauseIntervalMillis": {
+    "category": "GC",
+    "description": "Time slice for MMU specification"
+  },
+  "GCTimeLimit": {
+    "category": "GC",
+    "description": "Limit of the proportion of time spent in GC before"
+  },
+  "GCTimeRatio": {
+    "category": "GC",
+    "description": "Adaptive size policy application time to GC time ratio"
+  },
+  "GuaranteedAsyncDeflationInterval": {
+    "category": "Runtime",
+    "description": "Async deflate idle monitors every so many milliseconds even"
+  },
+  "GuaranteedSafepointInterval": {
+    "category": "Runtime",
+    "description": "Guarantee a safepoint (at least) every so many milliseconds"
+  },
+  "HandshakeALot": {
+    "category": "Runtime",
+    "description": "Generate a lot of handshakes. This works with"
+  },
+  "HandshakeTimeout": {
+    "category": "Runtime",
+    "description": "If nonzero set a timeout in milliseconds for handshakes"
+  },
+  "HeapBaseMinAddress": {
+    "category": "GC",
+    "description": "OS specific low limit for heap base address"
+  },
+  "HeapDumpAfterFullGC": {
+    "category": "Runtime",
+    "description": "Dump heap to file after any major stop-the-world GC"
+  },
+  "HeapDumpBeforeFullGC": {
+    "category": "Runtime",
+    "description": "Dump heap to file before any major stop-the-world GC"
+  },
+  "HeapDumpGzipLevel": {
+    "category": "Runtime",
+    "description": "When HeapDumpOnOutOfMemoryError, HeapDumpBeforeFullGC"
+  },
+  "HeapDumpOnOutOfMemoryError": {
+    "category": "Runtime",
+    "description": "Dump heap to file when java.lang.OutOfMemoryError is thrown"
+  },
+  "HeapDumpPath": {
+    "category": "Runtime",
+    "description": "When HeapDumpOnOutOfMemoryError, HeapDumpBeforeFullGC"
+  },
+  "HeapSearchSteps": {
+    "category": "Runtime",
+    "description": "Heap allocation steps through preferred address regions to find"
+  },
+  "HeapSizePerGCThread": {
+    "category": "GC",
+    "description": "Size of heap (bytes) per GC thread used in calculating the"
+  },
+  "HugeMethodLimit": {
+    "category": "Compiler",
+    "description": "Don't compile methods larger than this if"
+  },
+  "ICMissHistogram": {
+    "category": "Runtime",
+    "description": "Produce histogram of IC misses"
+  },
+  "IgnoreEmptyClassPaths": {
+    "category": "Runtime",
+    "description": "Ignore empty path elements in -classpath"
+  },
+  "IgnoreUnrecognizedVMOptions": {
+    "category": "Runtime",
+    "description": "Ignore unrecognized VM options"
+  },
+  "ImplicitNullChecks": {
+    "category": "Runtime",
+    "description": "Generate code for implicit null checks"
+  },
+  "IncreaseFirstTierCompileThresholdAt": {
+    "category": "Compiler",
+    "description": "Increase the compile threshold for C1 compilation if the code"
+  },
+  "InitArrayShortSize": {
+    "category": "Runtime",
+    "description": "Threshold small size (in bytes) for clearing arrays."
+  },
+  "InitialCodeCacheSize": {
+    "category": "Runtime",
+    "description": "Initial code cache size (in bytes)"
+  },
+  "InitialHeapSize": {
+    "category": "GC",
+    "description": "Initial heap size (in bytes); zero means use ergonomics"
+  },
+  "InitialRAMPercentage": {
+    "category": "GC",
+    "description": "Percentage of real memory used for initial heap size"
+  },
+  "InitialSurvivorRatio": {
+    "category": "GC",
+    "description": "Initial ratio of young generation/survivor space size"
+  },
+  "InitialTenuringThreshold": {
+    "category": "GC",
+    "description": "Initial value for tenuring threshold"
+  },
+  "InitiatingHeapOccupancyPercent": {
+    "category": "GC",
+    "description": "The percent occupancy (IHOP) of the current old generation"
+  },
+  "InjectCompilerCreationFailure": {
+    "category": "Runtime",
+    "description": "Inject thread creation failures for"
+  },
+  "InjectGCWorkerCreationFailure": {
+    "category": "GC",
+    "description": "Inject thread creation failures for"
+  },
+  "Inline": {
+    "category": "Runtime",
+    "description": "Enable inlining"
+  },
+  "InlineArrayCopy": {
+    "category": "Runtime",
+    "description": "Inline arraycopy native that is known to be part of"
+  },
+  "InlineClassNatives": {
+    "category": "Runtime",
+    "description": "Inline Class.isInstance, etc"
+  },
+  "InlineDataFile": {
+    "category": "Compiler",
+    "description": "File containing inlining replay information"
+  },
+  "InlineFrequencyRatio": {
+    "category": "Runtime",
+    "description": "Ratio of call site execution to caller method invocation"
+  },
+  "InlineIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics in Interpreter that can be statically resolved"
+  },
+  "InlineMathNatives": {
+    "category": "Runtime",
+    "description": "Inline SinD, CosD, etc."
+  },
+  "InlineNatives": {
+    "category": "Runtime",
+    "description": "Inline natives that are known to be part of base library DLL"
+  },
+  "InlineObjectHash": {
+    "category": "Runtime",
+    "description": "Inline Object::hashCode() native that is known to be part"
+  },
+  "InlineThreadNatives": {
+    "category": "Runtime",
+    "description": "Inline Thread.currentThread, etc"
+  },
+  "InlineThrowCount": {
+    "category": "Runtime",
+    "description": "Force inlining of interpreted methods that throw this often"
+  },
+  "InlineThrowMaxSize": {
+    "category": "Runtime",
+    "description": "Force inlining of throwing methods smaller than this"
+  },
+  "InlineUnsafeOps": {
+    "category": "Runtime",
+    "description": "Inline memory ops (native methods) from Unsafe"
+  },
+  "InterceptOSException": {
+    "category": "Runtime",
+    "description": "Start debugger when an implicit OS (e.g. null pointer)"
+  },
+  "InterpreterProfilePercentage": {
+    "category": "Compiler",
+    "description": "NON_TIERED number of method invocations/branches (expressed as"
+  },
+  "JVMInvokeMethodSlack": {
+    "category": "Runtime",
+    "description": "Stack space (bytes) required for JVM_InvokeMethod to complete"
+  },
+  "JavaMonitorsInStackTrace": {
+    "category": "Runtime",
+    "description": "Print information about Java monitor locks when the stacks are"
+  },
+  "JavaPriority10_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority1_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority2_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority3_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority4_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority5_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority6_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority7_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority8_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "JavaPriority9_To_OSPriority": {
+    "category": "Runtime",
+    "description": "Map Java priorities to OS priorities"
+  },
+  "LargePageHeapSizeThreshold": {
+    "category": "Runtime",
+    "description": "Use large pages if maximum heap is at least this big"
+  },
+  "LargePageSizeInBytes": {
+    "category": "Runtime",
+    "description": "Maximum large page size used (0 will use the default large"
+  },
+  "LargePagesIndividualAllocationInjectError": {
+    "category": "Runtime",
+    "description": "Fail large pages individual allocation"
+  },
+  "LoadLineNumberTables": {
+    "category": "Runtime",
+    "description": "Tell whether the class file parser loads line number tables"
+  },
+  "LoadLocalVariableTables": {
+    "category": "Runtime",
+    "description": "Tell whether the class file parser loads local variable tables"
+  },
+  "LoadLocalVariableTypeTables": {
+    "category": "Runtime",
+    "description": "Tell whether the class file parser loads local variable type"
+  },
+  "LogClassLoadingCauseFor": {
+    "category": "Runtime",
+    "description": "Apply -Xlog:class+load+cause* to classes whose fully"
+  },
+  "LogCompilation": {
+    "category": "Runtime",
+    "description": "Log compilation activity in detail to LogFile"
+  },
+  "LogEvents": {
+    "category": "Runtime",
+    "description": "Enable the various ring buffer event logs"
+  },
+  "LogEventsBufferEntries": {
+    "category": "Runtime",
+    "description": "Number of ring buffer event logs"
+  },
+  "LogFile": {
+    "category": "Runtime",
+    "description": "If LogVMOutput or LogCompilation is on, save VM output to"
+  },
+  "LogVMOutput": {
+    "category": "Runtime",
+    "description": "Save VM output to LogFile"
+  },
+  "LoomDeoptAfterThaw": {
+    "category": "Runtime",
+    "description": "Deopt stack after thaw"
+  },
+  "LoomVerifyAfterThaw": {
+    "category": "Runtime",
+    "description": "Verify stack after thaw"
+  },
+  "MallocCatchPtr": {
+    "category": "Runtime",
+    "description": "Hit breakpoint when mallocing/freeing this pointer"
+  },
+  "MallocLimit": {
+    "category": "Runtime",
+    "description": "Limit malloc allocation size from VM. Reaching a limit will"
+  },
+  "ManagementServer": {
+    "category": "Runtime",
+    "description": "Create JMX Management Server"
+  },
+  "MarkStackSize": {
+    "category": "GC",
+    "description": "Size of marking stack in bytes."
+  },
+  "MarkStackSizeMax": {
+    "category": "GC",
+    "description": "Maximum size of marking stack in bytes."
+  },
+  "MarkSweepAlwaysCompactCount": {
+    "category": "GC",
+    "description": "How often should we fully compact the heap (ignoring the dead"
+  },
+  "MarkSweepDeadRatio": {
+    "category": "GC",
+    "description": "Percentage (0-100) of the old gen allowed as dead wood."
+  },
+  "MaxBCEAEstimateLevel": {
+    "category": "Compiler",
+    "description": "Maximum number of nested calls that are analyzed by BC EA"
+  },
+  "MaxBCEAEstimateSize": {
+    "category": "Compiler",
+    "description": "Maximum bytecode size of a method to be analyzed by BC EA"
+  },
+  "MaxDirectMemorySize": {
+    "category": "Runtime",
+    "description": "Maximum total size of NIO direct-buffer allocations."
+  },
+  "MaxElementPrintSize": {
+    "category": "Runtime",
+    "description": "maximum number of elements to print"
+  },
+  "MaxFDLimit": {
+    "category": "Runtime",
+    "description": "Bump the number of file descriptors to maximum (Unix only)"
+  },
+  "MaxForceInlineLevel": {
+    "category": "Runtime",
+    "description": "maximum number of nested calls that are forced for inlining"
+  },
+  "MaxGCPauseMillis": {
+    "category": "GC",
+    "description": "Adaptive size policy maximum GC pause time goal in millisecond,"
+  },
+  "MaxHeapFreeRatio": {
+    "category": "Runtime",
+    "description": "The maximum percentage of heap free after GC to avoid shrinking."
+  },
+  "MaxHeapSize": {
+    "category": "GC",
+    "description": "Maximum heap size (in bytes)"
+  },
+  "MaxJNILocalCapacity": {
+    "category": "Runtime",
+    "description": "Maximum allowable local JNI handle capacity to"
+  },
+  "MaxJavaStackTraceDepth": {
+    "category": "Runtime",
+    "description": "The maximum number of lines in the stack trace for Java"
+  },
+  "MaxMetaspaceExpansion": {
+    "category": "Runtime",
+    "description": "The maximum expansion of Metaspace without full GC (in bytes)"
+  },
+  "MaxMetaspaceFreeRatio": {
+    "category": "Runtime",
+    "description": "The maximum percentage of Metaspace free after GC to avoid"
+  },
+  "MaxMetaspaceSize": {
+    "category": "Runtime",
+    "description": "Maximum size of Metaspaces (in bytes)"
+  },
+  "MaxNewSize": {
+    "category": "GC",
+    "description": "Maximum new generation size (in bytes), max_uintx means set"
+  },
+  "MaxRAM": {
+    "category": "GC",
+    "description": "(Deprecated) Real memory size (in bytes) used to set maximum"
+  },
+  "MaxRAMPercentage": {
+    "category": "GC",
+    "description": "Maximum percentage of real memory used for maximum heap size"
+  },
+  "MaxStringPrintSize": {
+    "category": "Runtime",
+    "description": "maximum number of characters to print for a java.lang.String"
+  },
+  "MaxSubklassPrintSize": {
+    "category": "Runtime",
+    "description": "maximum number of subklasses to print when printing klass"
+  },
+  "MaxTenuringThreshold": {
+    "category": "GC",
+    "description": "Maximum value for tenuring threshold"
+  },
+  "MaxVirtMemFraction": {
+    "category": "GC",
+    "description": "Maximum fraction (1/n) of virtual memory used for ergonomically"
+  },
+  "MetaspaceSize": {
+    "category": "Runtime",
+    "description": "Initial threshold (in bytes) at which a garbage collection"
+  },
+  "MethodFlushing": {
+    "category": "Runtime",
+    "description": "Reclamation of compiled methods"
+  },
+  "MethodHistogramCutoff": {
+    "category": "Runtime",
+    "description": "The cutoff value for method invocation histogram (+CountCalls)"
+  },
+  "MinHeapDeltaBytes": {
+    "category": "Runtime",
+    "description": "The minimum change in heap space due to GC (in bytes)"
+  },
+  "MinHeapFreeRatio": {
+    "category": "Runtime",
+    "description": "The minimum percentage of heap free after GC to avoid expansion."
+  },
+  "MinHeapSize": {
+    "category": "GC",
+    "description": "Minimum heap size (in bytes); zero means use ergonomics"
+  },
+  "MinInlineFrequencyRatio": {
+    "category": "Runtime",
+    "description": "Minimum ratio of call site execution to caller method"
+  },
+  "MinMetaspaceExpansion": {
+    "category": "Runtime",
+    "description": "The minimum expansion of Metaspace (in bytes)"
+  },
+  "MinMetaspaceFreeRatio": {
+    "category": "Runtime",
+    "description": "The minimum percentage of Metaspace free after GC to avoid"
+  },
+  "MinOopMapAllocation": {
+    "category": "Runtime",
+    "description": "Minimum number of OopMap entries in an OopMapSet"
+  },
+  "MinPassesBeforeFlush": {
+    "category": "Runtime",
+    "description": "Minimum number of sweeper passes before an nmethod"
+  },
+  "MinRAMPercentage": {
+    "category": "GC",
+    "description": "Minimum percentage of real memory used for maximum heap"
+  },
+  "MinSurvivorRatio": {
+    "category": "GC",
+    "description": "Minimum ratio of young generation/survivor space size"
+  },
+  "MonitorDeflationMax": {
+    "category": "Runtime",
+    "description": "The maximum number of monitors to deflate, unlink and delete"
+  },
+  "MonitorUnlinkBatch": {
+    "category": "Runtime",
+    "description": "The maximum number of monitors to unlink in one batch."
+  },
+  "MonitorUsedDeflationThreshold": {
+    "category": "Runtime",
+    "description": "Percentage of used monitors before triggering deflation (0 is"
+  },
+  "NMethodRelocation": {
+    "category": "Runtime",
+    "description": "Enables use of experimental function nmethod::relocate()"
+  },
+  "NUMAChunkResizeWeight": {
+    "category": "Runtime",
+    "description": "Percentage (0-100) used to weight the current sample when"
+  },
+  "NUMAInterleaveGranularity": {
+    "category": "Runtime",
+    "description": "Granularity to use for NUMA interleaving on Windows OS"
+  },
+  "NUMASpaceResizeRate": {
+    "category": "Runtime",
+    "description": "Do not reallocate more than this amount per collection"
+  },
+  "NUMAStats": {
+    "category": "Runtime",
+    "description": "Print NUMA stats in detailed heap information"
+  },
+  "NativeMemoryTracking": {
+    "category": "Runtime",
+    "description": "summary"
+  },
+  "NeverActAsServerClassMachine": {
+    "category": "GC",
+    "description": "(Deprecated) Never act like a server-class machine"
+  },
+  "NeverTenure": {
+    "category": "GC",
+    "description": "Never tenure objects in eden, may tenure on overflow"
+  },
+  "NewCodeParameter": {
+    "category": "Runtime",
+    "description": "Testing Only: Create a dedicated integer parameter before"
+  },
+  "NewRatio": {
+    "category": "GC",
+    "description": "Ratio of old/new generation sizes"
+  },
+  "NewSize": {
+    "category": "GC",
+    "description": "Initial new generation size (in bytes)"
+  },
+  "NewSizeThreadIncrease": {
+    "category": "GC",
+    "description": "Additional size added to desired new generation size per"
+  },
+  "NmethodSweepActivity": {
+    "category": "Runtime",
+    "description": "Removes cold nmethods from code cache if > 0. Higher values"
+  },
+  "NoAsyncDeflationProgressMax": {
+    "category": "Runtime",
+    "description": "Max number of no progress async deflation attempts to tolerate"
+  },
+  "NonNMethodCodeHeapSize": {
+    "category": "Runtime",
+    "description": "Size of code heap with non-nmethods (in bytes)"
+  },
+  "NonProfiledCodeHeapSize": {
+    "category": "Runtime",
+    "description": "Size of code heap with non-profiled methods (in bytes)"
+  },
+  "OSROnlyBCI": {
+    "category": "Compiler",
+    "description": "OSR only at this bci. Negative values mean exclude that bci"
+  },
+  "ObjArrayMarkingStride": {
+    "category": "GC",
+    "description": "Number of object array elements to push onto the marking stack"
+  },
+  "ObjectAlignmentInBytes": {
+    "category": "Runtime",
+    "description": "Default object alignment in bytes, 8 is minimum"
+  },
+  "ObjectCountCutOffPercent": {
+    "category": "Runtime",
+    "description": "The percentage of the used heap that the instances of a class"
+  },
+  "OmitStackTraceInFastThrow": {
+    "category": "Runtime",
+    "description": "Omit backtraces for some 'hot' exceptions in optimized code"
+  },
+  "OnStackReplacePercentage": {
+    "category": "Compiler",
+    "description": "NON_TIERED number of method invocations/branches (expressed as"
+  },
+  "OptoLoopAlignment": {
+    "category": "Runtime",
+    "description": "Align inner loops to zero relative to this modulus"
+  },
+  "PLABWeight": {
+    "category": "GC",
+    "description": "Percentage (0-100) used to weight the current sample when"
+  },
+  "ParGCArrayScanChunk": {
+    "category": "GC",
+    "description": "Scan a subset of object array and push remainder, if array is"
+  },
+  "ParallelGCBufferWastePct": {
+    "category": "GC",
+    "description": "Wasted fraction of parallel allocation buffer"
+  },
+  "ParallelGCThreads": {
+    "category": "GC",
+    "description": "Number of parallel threads parallel gc will use"
+  },
+  "ParallelRefProcBalancingEnabled": {
+    "category": "GC",
+    "description": "(Deprecated) Enable balancing of reference processing queues"
+  },
+  "ParallelRefProcEnabled": {
+    "category": "GC",
+    "description": "(Deprecated) Enable parallel reference processing"
+  },
+  "PauseAtExit": {
+    "category": "Runtime",
+    "description": "Pause and wait for keypress on exit if a debugger is attached"
+  },
+  "PauseAtStartup": {
+    "category": "Runtime",
+    "description": "Causes the VM to pause at startup time and wait for the pause"
+  },
+  "PauseAtStartupFile": {
+    "category": "Runtime",
+    "description": "The file to create and for whose removal to await when pausing"
+  },
+  "PerBytecodeRecompilationCutoff": {
+    "category": "Runtime",
+    "description": "Per-BCI limit on repeated recompilation (-1=>'Inf')"
+  },
+  "PerBytecodeTrapLimit": {
+    "category": "Runtime",
+    "description": "Limit on traps (of one kind) at a particular BCI"
+  },
+  "PerMethodRecompilationCutoff": {
+    "category": "Runtime",
+    "description": "After recompiling N times, stay in the interpreter (-1=>'Inf')"
+  },
+  "PerMethodSpecTrapLimit": {
+    "category": "Runtime",
+    "description": "Limit on speculative traps (of one kind) in a method"
+  },
+  "PerMethodTrapLimit": {
+    "category": "Runtime",
+    "description": "Limit on traps (of one kind) in a method (includes inlines)"
+  },
+  "PerfAllowAtExitRegistration": {
+    "category": "Runtime",
+    "description": "Allow registration of atexit() methods"
+  },
+  "PerfBypassFileSystemCheck": {
+    "category": "Runtime",
+    "description": "Bypass Win32 file system criteria checks (Windows Only)"
+  },
+  "PerfDataMemorySize": {
+    "category": "Runtime",
+    "description": "Size of performance data memory region. Will be rounded"
+  },
+  "PerfDataSaveFile": {
+    "category": "Runtime",
+    "description": "Save PerfData memory to the specified absolute pathname."
+  },
+  "PerfDataSaveToFile": {
+    "category": "Runtime",
+    "description": "Save PerfData memory to hsperfdata_<pid> file on exit"
+  },
+  "PerfDisableSharedMem": {
+    "category": "Runtime",
+    "description": "Store performance data in standard memory"
+  },
+  "PerfMaxStringConstLength": {
+    "category": "Runtime",
+    "description": "Maximum PerfStringConstant string length before truncation"
+  },
+  "PreTouchParallelChunkSize": {
+    "category": "GC",
+    "description": "Per-thread chunk size for parallel memory pre-touch."
+  },
+  "PreallocatedOutOfMemoryErrorCount": {
+    "category": "Runtime",
+    "description": "Number of OutOfMemoryErrors preallocated with backtrace"
+  },
+  "PreferInterpreterNativeStubs": {
+    "category": "Runtime",
+    "description": "Use always interpreter stubs for native methods invoked via"
+  },
+  "PrefetchCopyIntervalInBytes": {
+    "category": "GC",
+    "description": "How far ahead to prefetch destination area (<= 0 means off)"
+  },
+  "PrefetchScanIntervalInBytes": {
+    "category": "GC",
+    "description": "How far ahead to prefetch scan area (<= 0 means off)"
+  },
+  "PreserveFramePointer": {
+    "category": "Runtime",
+    "description": "Use the FP register for holding the frame pointer"
+  },
+  "PrintAdapterHandlers": {
+    "category": "Runtime",
+    "description": "Print code generated for i2c/c2i adapters"
+  },
+  "PrintAssembly": {
+    "category": "Runtime",
+    "description": "Print assembly code (using external disassembler.so)"
+  },
+  "PrintAssemblyOptions": {
+    "category": "Runtime",
+    "description": "Print options string passed to disassembler.so"
+  },
+  "PrintBytecodeHistogram": {
+    "category": "Runtime",
+    "description": "Print histogram of the executed bytecodes"
+  },
+  "PrintBytecodePairHistogram": {
+    "category": "Runtime",
+    "description": "Print histogram of the executed bytecode pairs"
+  },
+  "PrintClassHistogram": {
+    "category": "Runtime",
+    "description": "Print a histogram of class instances"
+  },
+  "PrintClassLoaderDataGraphAtExit": {
+    "category": "Runtime",
+    "description": "Print the class loader data graph at exit"
+  },
+  "PrintCodeCache": {
+    "category": "Runtime",
+    "description": "Print the code cache memory usage when exiting"
+  },
+  "PrintCodeCache2": {
+    "category": "Runtime",
+    "description": "Print detailed usage information on the code cache when exiting"
+  },
+  "PrintCodeCacheExtension": {
+    "category": "Runtime",
+    "description": "Print extension of code cache"
+  },
+  "PrintCodeCacheOnCompilation": {
+    "category": "Runtime",
+    "description": "Print the code cache memory usage each time a method is"
+  },
+  "PrintCodeHeapAnalytics": {
+    "category": "Runtime",
+    "description": "Print code heap usage statistics on exit and on full condition"
+  },
+  "PrintCommandLineFlags": {
+    "category": "Runtime",
+    "description": "Print flags specified on command line or set by ergonomics"
+  },
+  "PrintCompilation": {
+    "category": "Runtime",
+    "description": "Print compilations"
+  },
+  "PrintCompilation2": {
+    "category": "Runtime",
+    "description": "Print additional statistics per compilation"
+  },
+  "PrintCompilerMemoryStatisticsAtExit": {
+    "category": "Runtime",
+    "description": "Print compiler memory statistics upon VM exit."
+  },
+  "PrintConcurrentLocks": {
+    "category": "Runtime",
+    "description": "Print java.util.concurrent locks in thread dump"
+  },
+  "PrintDebugInfo": {
+    "category": "Runtime",
+    "description": "Print debug information for all nmethods when generated"
+  },
+  "PrintDeoptimizationDetails": {
+    "category": "Runtime",
+    "description": "Print more information about deoptimization"
+  },
+  "PrintDependencies": {
+    "category": "Runtime",
+    "description": "Print dependency information for all nmethods when generated"
+  },
+  "PrintExceptionHandlers": {
+    "category": "Runtime",
+    "description": "Print exception handler tables for all nmethods when generated"
+  },
+  "PrintExtendedThreadInfo": {
+    "category": "Runtime",
+    "description": "Print more information in thread dump"
+  },
+  "PrintFieldLayout": {
+    "category": "Runtime",
+    "description": "Print field layout for each class"
+  },
+  "PrintFlagsFinal": {
+    "category": "Runtime",
+    "description": "Print all VM flags after argument and ergonomic processing"
+  },
+  "PrintFlagsInitial": {
+    "category": "Runtime",
+    "description": "Print all VM flags before argument processing and exit VM"
+  },
+  "PrintFlagsRanges": {
+    "category": "Runtime",
+    "description": "Print VM flags and their ranges"
+  },
+  "PrintFlagsWithComments": {
+    "category": "Runtime",
+    "description": "Print all VM flags with default values and descriptions and"
+  },
+  "PrintGC": {
+    "category": "GC",
+    "description": "Print message at garbage collection."
+  },
+  "PrintGCDetails": {
+    "category": "GC",
+    "description": "Print more details at garbage collection."
+  },
+  "PrintHeapAtSIGBREAK": {
+    "category": "Runtime",
+    "description": "Print heap layout in response to SIGBREAK"
+  },
+  "PrintInlining": {
+    "category": "Runtime",
+    "description": "Print inlining optimizations"
+  },
+  "PrintInterpreter": {
+    "category": "Runtime",
+    "description": "Print the generated interpreter code"
+  },
+  "PrintMetaspaceStatisticsAtExit": {
+    "category": "Runtime",
+    "description": "Print metaspace statistics upon VM exit."
+  },
+  "PrintMethodData": {
+    "category": "Runtime",
+    "description": "Print the results of +ProfileInterpreter at end of run"
+  },
+  "PrintMethodHandleStubs": {
+    "category": "Runtime",
+    "description": "Print generated stub code for method handles"
+  },
+  "PrintMiscellaneous": {
+    "category": "Runtime",
+    "description": "Print uncategorized debugging information (requires +Verbose)"
+  },
+  "PrintNMTStatistics": {
+    "category": "Runtime",
+    "description": "Print native memory tracking summary data if it is on"
+  },
+  "PrintNMethodStatistics": {
+    "category": "Runtime",
+    "description": "Print a summary statistic for the generated nmethods"
+  },
+  "PrintNMethods": {
+    "category": "Runtime",
+    "description": "Print assembly code for nmethods when generated"
+  },
+  "PrintNativeNMethods": {
+    "category": "Runtime",
+    "description": "Print assembly code for native nmethods when generated"
+  },
+  "PrintRelocations": {
+    "category": "Runtime",
+    "description": "Print relocation information for all nmethods when generated"
+  },
+  "PrintRewrites": {
+    "category": "Runtime",
+    "description": "Print methods that are being rewritten"
+  },
+  "PrintSignatureHandlers": {
+    "category": "Runtime",
+    "description": "Print code generated for native method signature handlers"
+  },
+  "PrintStringTableStatistics": {
+    "category": "Runtime",
+    "description": "print statistics about the StringTable and SymbolTable"
+  },
+  "PrintStubCode": {
+    "category": "Runtime",
+    "description": "Print generated stub code"
+  },
+  "PrintSymbolTableSizeHistogram": {
+    "category": "Runtime",
+    "description": "print histogram of the symbol table"
+  },
+  "PrintSystemDictionaryAtExit": {
+    "category": "Runtime",
+    "description": "Print the system dictionary at exit"
+  },
+  "PrintTieredEvents": {
+    "category": "Compiler",
+    "description": "Print tiered events notifications"
+  },
+  "PrintVMInfoAtExit": {
+    "category": "Runtime",
+    "description": "Executes the VM.info diagnostic command at exit"
+  },
+  "PrintVMOptions": {
+    "category": "Runtime",
+    "description": "Print flags that appeared on the command line"
+  },
+  "PrintWarnings": {
+    "category": "Runtime",
+    "description": "Print JVM warnings to output stream"
+  },
+  "ProfileExceptionHandlers": {
+    "category": "Runtime",
+    "description": "Profile exception handlers"
+  },
+  "ProfileInterpreter": {
+    "category": "Runtime",
+    "description": "Profile at the bytecode level during interpretation"
+  },
+  "ProfileMaturityPercentage": {
+    "category": "Runtime",
+    "description": "number of method invocations/branches (expressed as % of"
+  },
+  "ProfileTraps": {
+    "category": "Runtime",
+    "description": "Profile deoptimization traps at the bytecode level"
+  },
+  "ProfiledCodeHeapSize": {
+    "category": "Runtime",
+    "description": "Size of code heap with profiled methods (in bytes)"
+  },
+  "PromotedPadding": {
+    "category": "GC",
+    "description": "How much buffer to keep for promotion failure"
+  },
+  "PromotionFailureALot": {
+    "category": "GC",
+    "description": "Use promotion failure handling on every youngest generation"
+  },
+  "PromotionFailureALotCount": {
+    "category": "GC",
+    "description": "Number of promotion failures occurring at PLAB promotion"
+  },
+  "PromotionFailureALotInterval": {
+    "category": "GC",
+    "description": "Total collections between promotion failures a lot"
+  },
+  "QueuedAllocationWarningCount": {
+    "category": "GC",
+    "description": "Number of times an allocation that queues behind a GC"
+  },
+  "RandomizeClassSpaceLocation": {
+    "category": "Runtime",
+    "description": "Randomize location of class space."
+  },
+  "RangeCheckElimination": {
+    "category": "Runtime",
+    "description": "Eliminate range checks"
+  },
+  "ReduceNumberOfCompilerThreads": {
+    "category": "Runtime",
+    "description": "Reduce the number of parallel compiler threads when they"
+  },
+  "ReduceSignalUsage": {
+    "category": "Runtime",
+    "description": "Reduce the use of OS signals in Java and/or the VM"
+  },
+  "ReferencesPerThread": {
+    "category": "GC",
+    "description": "Ergonomically start one thread for this amount of"
+  },
+  "RegisterReferences": {
+    "category": "Runtime",
+    "description": "Tell whether the VM should register soft/weak/final/phantom"
+  },
+  "RelaxAccessControlCheck": {
+    "category": "Runtime",
+    "description": "Relax the access control checks in the verifier"
+  },
+  "RepeatCompilation": {
+    "category": "Runtime",
+    "description": "Repeat compilation without installing code (number of times)"
+  },
+  "ReplayCompiles": {
+    "category": "Compiler",
+    "description": "Enable replay of compilations from ReplayDataFile"
+  },
+  "ReplayDataFile": {
+    "category": "Compiler",
+    "description": "File containing compilation replay information"
+  },
+  "ReplayIgnoreInitErrors": {
+    "category": "Compiler",
+    "description": "Ignore exceptions thrown during initialization for replay"
+  },
+  "ReplayReduce": {
+    "category": "Compiler",
+    "description": "Enable features to facilitate replay file reduction"
+  },
+  "ReplaySuppressInitializers": {
+    "category": "Compiler",
+    "description": "Control handling of class initialization during replay:"
+  },
+  "ReservedCodeCacheSize": {
+    "category": "Runtime",
+    "description": "Reserved code cache size (in bytes) - maximum code cache size"
+  },
+  "ResizePLAB": {
+    "category": "GC",
+    "description": "Dynamically resize (survivor space) promotion LAB's"
+  },
+  "RestoreMXCSROnJNICalls": {
+    "category": "Runtime",
+    "description": "Restore MXCSR when returning from JNI calls"
+  },
+  "RestrictContended": {
+    "category": "Runtime",
+    "description": "Restrict @Contended to trusted classes"
+  },
+  "RestrictReservedStack": {
+    "category": "Runtime",
+    "description": "Restrict @ReservedStackAccess to trusted classes"
+  },
+  "RewriteBytecodes": {
+    "category": "Runtime",
+    "description": "Allow rewriting of bytecodes (bytecodes are not immutable)"
+  },
+  "RewriteFrequentPairs": {
+    "category": "Runtime",
+    "description": "Rewrite frequently used bytecode pairs into a single bytecode"
+  },
+  "SafepointALot": {
+    "category": "Runtime",
+    "description": "Generate a lot of safepoints. This works with"
+  },
+  "SafepointTimeout": {
+    "category": "Runtime",
+    "description": "Time out and warn or fail after SafepointTimeoutDelay"
+  },
+  "SafepointTimeoutDelay": {
+    "category": "Runtime",
+    "description": "Delay in milliseconds for option SafepointTimeout;"
+  },
+  "ScavengeALot": {
+    "category": "GC",
+    "description": "Force scavenge at every Nth exit from the runtime system"
+  },
+  "ScavengeALotInterval": {
+    "category": "GC",
+    "description": "Interval between which scavenge will occur with +ScavengeALot"
+  },
+  "ScavengeRootsInCode": {
+    "category": "Runtime",
+    "description": "0: do not allow scavengable oops in the code cache;"
+  },
+  "SegmentedCodeCache": {
+    "category": "Runtime",
+    "description": "Use a segmented code cache"
+  },
+  "SelfDestructTimer": {
+    "category": "Runtime",
+    "description": "Will cause VM to terminate after a given time"
+  },
+  "SerializeVMOutput": {
+    "category": "Runtime",
+    "description": "Use a mutex to serialize output to tty and LogFile"
+  },
+  "ServiceThreadCleanupInterval": {
+    "category": "Runtime",
+    "description": "Wake the ServiceThread to do periodic cleanup checks every so"
+  },
+  "ShowCarrierFrames": {
+    "category": "Runtime",
+    "description": "show virtual threads' carrier frames in exceptions"
+  },
+  "ShowCodeDetailsInExceptionMessages": {
+    "category": "Runtime",
+    "description": "Show exception messages from RuntimeExceptions that contain"
+  },
+  "ShowHiddenFrames": {
+    "category": "Runtime",
+    "description": "show method handle implementation frames (usually hidden)"
+  },
+  "ShowMessageBoxOnError": {
+    "category": "Runtime",
+    "description": "Keep process alive on VM fatal error"
+  },
+  "ShowRegistersOnAssert": {
+    "category": "Runtime",
+    "description": "On internal errors, include registers in error report."
+  },
+  "SimulateFullAddressSpace": {
+    "category": "Runtime",
+    "description": "Simulates a very populated, fragmented address space; no"
+  },
+  "SkipTier2IfPossible": {
+    "category": "Compiler",
+    "description": "Compile at tier 4 instead of tier 2 in training replay"
+  },
+  "SoftMaxHeapSize": {
+    "category": "GC",
+    "description": "Soft limit for maximum heap size (in bytes)"
+  },
+  "SoftRefLRUPolicyMSPerMB": {
+    "category": "Runtime",
+    "description": "Number of milliseconds per MB of free space in the heap"
+  },
+  "SpecTrapLimitExtraEntries": {
+    "category": "Runtime",
+    "description": "Extra method data trap entries for speculation"
+  },
+  "StackPrintLimit": {
+    "category": "Runtime",
+    "description": "number of stack frames to print in VM-level stack dump"
+  },
+  "StackRedPages": {
+    "category": "Runtime",
+    "description": "Number of red zone (unrecoverable overflows) pages of size"
+  },
+  "StackReservedPages": {
+    "category": "Runtime",
+    "description": "Number of reserved zone (reserved to annotated methods) pages"
+  },
+  "StackShadowPages": {
+    "category": "Runtime",
+    "description": "Number of shadow zone (for overflow checking) pages of size"
+  },
+  "StackTraceInThrowable": {
+    "category": "Runtime",
+    "description": "Collect backtrace in throwable when exception happens"
+  },
+  "StackYellowPages": {
+    "category": "Runtime",
+    "description": "Number of yellow zone (recoverable overflows) pages of size"
+  },
+  "StartAggressiveSweepingAt": {
+    "category": "Runtime",
+    "description": "Start aggressive sweeping if less than X[%] of the total code cache is free."
+  },
+  "StartAttachListener": {
+    "category": "Runtime",
+    "description": "Always start Attach Listener at VM startup"
+  },
+  "StartFlightRecording": {
+    "category": "Runtime",
+    "description": "Start flight recording with options"
+  },
+  "StopInterpreterAt": {
+    "category": "Runtime",
+    "description": "Stop interpreter execution at specified bytecode number"
+  },
+  "StressCodeBuffers": {
+    "category": "Runtime",
+    "description": "Exercise code buffer expansion and other rare state changes"
+  },
+  "StressCompiledExceptionHandlers": {
+    "category": "Runtime",
+    "description": "Exercise compiled exception handlers"
+  },
+  "StressLdcRewrite": {
+    "category": "Runtime",
+    "description": "Force ldc -> ldc_w rewrite during RedefineClasses."
+  },
+  "StressRewriter": {
+    "category": "Runtime",
+    "description": "Stress linktime bytecode rewriting"
+  },
+  "StressSecondarySupers": {
+    "category": "Runtime",
+    "description": "Use a terrible hash function in order to generate many collisions."
+  },
+  "StringDeduplicationAgeThreshold": {
+    "category": "Runtime",
+    "description": "A string must reach this age (or be promoted to an old region)"
+  },
+  "StringDeduplicationCleanupDeadMinimum": {
+    "category": "Runtime",
+    "description": "Minimum number of dead table entries for cleaning the table"
+  },
+  "StringDeduplicationCleanupDeadPercent": {
+    "category": "Runtime",
+    "description": "Minimum percentage of dead table entries for cleaning the table"
+  },
+  "StringDeduplicationGrowTableLoad": {
+    "category": "Runtime",
+    "description": "Entries per bucket above which the table should be expanded"
+  },
+  "StringDeduplicationHashSeed": {
+    "category": "Runtime",
+    "description": "Seed for the table hashing function; 0 requests computed seed"
+  },
+  "StringDeduplicationInitialTableSize": {
+    "category": "Runtime",
+    "description": "Approximate initial number of buckets in the table"
+  },
+  "StringDeduplicationResizeALot": {
+    "category": "Runtime",
+    "description": "Force more frequent table resizing"
+  },
+  "StringDeduplicationShrinkTableLoad": {
+    "category": "Runtime",
+    "description": "Entries per bucket below which the table should be shrunk"
+  },
+  "StringDeduplicationTargetTableLoad": {
+    "category": "Runtime",
+    "description": "Desired entries per bucket when resizing the table"
+  },
+  "StringTableSize": {
+    "category": "Runtime",
+    "description": "Number of buckets in the interned String table"
+  },
+  "SuppressFatalErrorMessage": {
+    "category": "Runtime",
+    "description": "Report NO fatal error message (avoid deadlock)"
+  },
+  "SurvivorRatio": {
+    "category": "GC",
+    "description": "Ratio of eden/survivor space size"
+  },
+  "SweeperThreshold": {
+    "category": "Runtime",
+    "description": "Threshold when a code cache unloading GC is invoked."
+  },
+  "SymbolTableSize": {
+    "category": "Runtime",
+    "description": "Number of buckets in the JVM internal Symbol table"
+  },
+  "TargetPLABWastePct": {
+    "category": "GC",
+    "description": "Target wasted space in last buffer as percent of overall"
+  },
+  "TargetSurvivorRatio": {
+    "category": "GC",
+    "description": "Desired percentage of survivor space used after scavenge"
+  },
+  "TestCrashInErrorHandler": {
+    "category": "Runtime",
+    "description": "If > 0, provokes an error inside VM error handler (a secondary"
+  },
+  "TestSafeFetchInErrorHandler": {
+    "category": "Runtime",
+    "description": "If true, tests SafeFetch inside error handler."
+  },
+  "TestUnresponsiveErrorHandler": {
+    "category": "Runtime",
+    "description": "If true, simulates an unresponsive error handler."
+  },
+  "TestingAsyncLoggingDeathTest": {
+    "category": "Runtime",
+    "description": "Recursive logging death test"
+  },
+  "TestingAsyncLoggingDeathTestNoCrash": {
+    "category": "Runtime",
+    "description": "Recursive logging death test (no crash)"
+  },
+  "ThreadPriorityPolicy": {
+    "category": "Runtime",
+    "description": "0 : Normal."
+  },
+  "ThreadPriorityVerbose": {
+    "category": "Runtime",
+    "description": "Print priority changes"
+  },
+  "ThreadStackSize": {
+    "category": "Runtime",
+    "description": "Thread Stack Size (in Kbytes)"
+  },
+  "ThresholdTolerance": {
+    "category": "GC",
+    "description": "Allowed collection cost difference between generations"
+  },
+  "Tier0BackedgeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "Interpreter (tier 0) invocation notification frequency"
+  },
+  "Tier0Delay": {
+    "category": "Compiler",
+    "description": "If C2 queue size grows over this amount per compiler thread"
+  },
+  "Tier0InvokeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "Interpreter (tier 0) invocation notification frequency"
+  },
+  "Tier0ProfilingStartPercentage": {
+    "category": "Compiler",
+    "description": "Start profiling in interpreter if the counters exceed the"
+  },
+  "Tier23InlineeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "Inlinee invocation (tiers 2 and 3) notification frequency"
+  },
+  "Tier2BackEdgeThreshold": {
+    "category": "Compiler",
+    "description": "Back edge threshold at which tier 2 compilation is invoked"
+  },
+  "Tier2BackedgeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "C1 without MDO (tier 2) invocation notification frequency"
+  },
+  "Tier2CompileThreshold": {
+    "category": "Compiler",
+    "description": "threshold at which tier 2 compilation is invoked"
+  },
+  "Tier2InvokeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "C1 without MDO (tier 2) invocation notification frequency"
+  },
+  "Tier3BackEdgeThreshold": {
+    "category": "Compiler",
+    "description": "Back edge threshold at which tier 3 OSR compilation is invoked"
+  },
+  "Tier3BackedgeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "C1 with MDO profiling (tier 3) invocation notification"
+  },
+  "Tier3CompileThreshold": {
+    "category": "Compiler",
+    "description": "Threshold at which tier 3 compilation is invoked (invocation"
+  },
+  "Tier3DelayOff": {
+    "category": "Compiler",
+    "description": "If C2 queue size is less than this amount per compiler thread"
+  },
+  "Tier3DelayOn": {
+    "category": "Compiler",
+    "description": "If C2 queue size grows over this amount per compiler thread"
+  },
+  "Tier3InvocationThreshold": {
+    "category": "Compiler",
+    "description": "Compile if number of method invocations crosses this"
+  },
+  "Tier3InvokeNotifyFreqLog": {
+    "category": "Compiler",
+    "description": "C1 with MDO profiling (tier 3) invocation notification"
+  },
+  "Tier3LoadFeedback": {
+    "category": "Compiler",
+    "description": "Tier 3 thresholds will increase twofold when C1 queue size"
+  },
+  "Tier3MinInvocationThreshold": {
+    "category": "Compiler",
+    "description": "Minimum invocation to compile at tier 3"
+  },
+  "Tier4BackEdgeThreshold": {
+    "category": "Compiler",
+    "description": "Back edge threshold at which tier 4 OSR compilation is invoked"
+  },
+  "Tier4CompileThreshold": {
+    "category": "Compiler",
+    "description": "Threshold at which tier 4 compilation is invoked (invocation"
+  },
+  "Tier4InvocationThreshold": {
+    "category": "Compiler",
+    "description": "Compile if number of method invocations crosses this"
+  },
+  "Tier4LoadFeedback": {
+    "category": "Compiler",
+    "description": "Tier 4 thresholds will increase twofold when C2 queue size"
+  },
+  "Tier4MinInvocationThreshold": {
+    "category": "Compiler",
+    "description": "Minimum invocation to compile at tier 4"
+  },
+  "TieredCompilation": {
+    "category": "Runtime",
+    "description": "Enable tiered compilation"
+  },
+  "TieredCompileTaskTimeout": {
+    "category": "Compiler",
+    "description": "Kill compile task if method was not used within"
+  },
+  "TieredOldPercentage": {
+    "category": "Compiler",
+    "description": "Percentage over tier 3 thresholds after which a method is"
+  },
+  "TieredRateUpdateMaxTime": {
+    "category": "Compiler",
+    "description": "Maximum rate sampling interval (in milliseconds)"
+  },
+  "TieredRateUpdateMinTime": {
+    "category": "Compiler",
+    "description": "Minimum rate sampling interval (in milliseconds)"
+  },
+  "TieredStopAtLevel": {
+    "category": "Compiler",
+    "description": "Stop at given compilation level"
+  },
+  "TimeOopMap": {
+    "category": "Runtime",
+    "description": "Time calls to GenerateOopMap::compute_map() in sum"
+  },
+  "TimeOopMap2": {
+    "category": "Runtime",
+    "description": "Time calls to GenerateOopMap::compute_map() individually"
+  },
+  "TraceBytecodes": {
+    "category": "Runtime",
+    "description": "Trace bytecode execution"
+  },
+  "TraceBytecodesAt": {
+    "category": "Runtime",
+    "description": "Trace bytecodes starting with specified bytecode number"
+  },
+  "TraceBytecodesStopAt": {
+    "category": "Runtime",
+    "description": "Stop bytecode tracing at the specified bytecode number"
+  },
+  "TraceBytecodesTruncated": {
+    "category": "Runtime",
+    "description": "Truncate non control-flow bytecode when tracing bytecode"
+  },
+  "TraceCallFixup": {
+    "category": "Runtime",
+    "description": "Trace all call fixups"
+  },
+  "TraceCodeBlobStacks": {
+    "category": "Runtime",
+    "description": "Trace stack-walk of codeblobs"
+  },
+  "TraceCompilerThreads": {
+    "category": "Runtime",
+    "description": "Trace creation and removal of compiler threads"
+  },
+  "TraceDeoptimization": {
+    "category": "Runtime",
+    "description": "Trace deoptimization"
+  },
+  "TraceDerivedPointers": {
+    "category": "Runtime",
+    "description": "Trace traversal of derived pointers on stack"
+  },
+  "TraceDwarfLevel": {
+    "category": "Runtime",
+    "description": "Debug levels for the dwarf parser"
+  },
+  "TraceFinalizerRegistration": {
+    "category": "Runtime",
+    "description": "Trace registration of final references"
+  },
+  "TraceFrequencyInlining": {
+    "category": "Runtime",
+    "description": "Trace frequency based inlining"
+  },
+  "TraceJVMTI": {
+    "category": "Runtime",
+    "description": "Trace flags for JVMTI functions and events"
+  },
+  "TraceJavaAssertions": {
+    "category": "Runtime",
+    "description": "Trace java language assertions"
+  },
+  "TraceLivenessGen": {
+    "category": "Runtime",
+    "description": "Trace the generation of liveness analysis information"
+  },
+  "TraceLivenessQuery": {
+    "category": "Runtime",
+    "description": "Trace queries of liveness analysis information"
+  },
+  "TraceMemoryWriteback": {
+    "category": "Runtime",
+    "description": "Trace memory writeback operations"
+  },
+  "TraceMethodReplacement": {
+    "category": "Runtime",
+    "description": "Print when methods are replaced do to recompilation"
+  },
+  "TraceNewOopMapGeneration": {
+    "category": "Runtime",
+    "description": "Trace OopMapGeneration"
+  },
+  "TraceNewOopMapGenerationDetailed": {
+    "category": "Runtime",
+    "description": "Trace OopMapGeneration: print detailed cell states"
+  },
+  "TraceOnStackReplacement": {
+    "category": "Runtime",
+    "description": "Trace on stack replacement"
+  },
+  "TraceOopMapRewrites": {
+    "category": "Runtime",
+    "description": "Trace rewriting of methods during oop map generation"
+  },
+  "TracePcPatching": {
+    "category": "Runtime",
+    "description": "Trace usage of frame::patch_pc"
+  },
+  "TraceRelocator": {
+    "category": "Runtime",
+    "description": "Trace the bytecode relocator"
+  },
+  "TrapBasedNullChecks": {
+    "category": "Runtime",
+    "description": "Generate code for null checks that uses a cmp and trap"
+  },
+  "TrimNativeHeapInterval": {
+    "category": "Runtime",
+    "description": "Interval, in ms, at which the JVM will trim the native heap if"
+  },
+  "TrustFinalNonStaticFields": {
+    "category": "Runtime",
+    "description": "trust final non-static declarations for constant folding"
+  },
+  "TypeProfileArgsLimit": {
+    "category": "Runtime",
+    "description": "max number of call arguments to consider for type profiling"
+  },
+  "TypeProfileCasts": {
+    "category": "Runtime",
+    "description": "treat casts like calls for purposes of type profiling"
+  },
+  "TypeProfileLevel": {
+    "category": "Runtime",
+    "description": "=XYZ, with Z: Type profiling of arguments at call;"
+  },
+  "TypeProfileParmsLimit": {
+    "category": "Runtime",
+    "description": "max number of incoming parameters to consider for type profiling"
+  },
+  "TypeProfileWidth": {
+    "category": "Runtime",
+    "description": "Number of receiver types to record in call/cast profile"
+  },
+  "UncommonNullCast": {
+    "category": "Runtime",
+    "description": "track occurrences of null in casts; adjust compiler tactics"
+  },
+  "UnguardOnExecutionViolation": {
+    "category": "Runtime",
+    "description": "Unguard page and retry on no-execute fault (Win32 only)"
+  },
+  "UnlockDiagnosticVMOptions": {
+    "category": "Runtime",
+    "description": "Enable normal processing of flags relating to field diagnostics"
+  },
+  "UnlockExperimentalVMOptions": {
+    "category": "Runtime",
+    "description": "Enable normal processing of flags relating to experimental"
+  },
+  "UseAES": {
+    "category": "Runtime",
+    "description": "Control whether AES instructions are used when available"
+  },
+  "UseAESCTRIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for the paralleled version of AES/CTR crypto"
+  },
+  "UseAESIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for AES versions of crypto"
+  },
+  "UseAdaptiveNUMAChunkSizing": {
+    "category": "Runtime",
+    "description": "Enable adaptive chunk sizing for NUMA"
+  },
+  "UseAdaptiveSizePolicy": {
+    "category": "GC",
+    "description": "Use adaptive generation sizing policies"
+  },
+  "UseAdler32Intrinsics": {
+    "category": "Runtime",
+    "description": "use intrinsics for java.util.zip.Adler32"
+  },
+  "UseBASE64Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for java.util.Base64"
+  },
+  "UseBootstrapCallInfo": {
+    "category": "Runtime",
+    "description": "0: when resolving InDy or ConDy, force all BSM arguments to be"
+  },
+  "UseCHA": {
+    "category": "Runtime",
+    "description": "Enable CHA"
+  },
+  "UseCRC32CIntrinsics": {
+    "category": "Runtime",
+    "description": "use intrinsics for java.util.zip.CRC32C"
+  },
+  "UseCRC32Intrinsics": {
+    "category": "Runtime",
+    "description": "use intrinsics for java.util.zip.CRC32"
+  },
+  "UseChaCha20Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for the vectorized version of ChaCha20"
+  },
+  "UseCodeCacheFlushing": {
+    "category": "Runtime",
+    "description": "Remove cold/old nmethods from the code cache"
+  },
+  "UseCompactObjectHeaders": {
+    "category": "Runtime",
+    "description": "Use compact 64-bit object headers in 64-bit VM"
+  },
+  "UseCompiler": {
+    "category": "Runtime",
+    "description": "Use Just-In-Time compilation"
+  },
+  "UseCompressedClassPointers": {
+    "category": "Runtime",
+    "description": "(Deprecated) Use 32-bit class pointers."
+  },
+  "UseCompressedOops": {
+    "category": "Runtime",
+    "description": "Use 32-bit object references in 64-bit VM."
+  },
+  "UseCondCardMark": {
+    "category": "GC",
+    "description": "Check for already marked card before updating card table"
+  },
+  "UseContinuationFastPath": {
+    "category": "Runtime",
+    "description": "Use fast-path frame walking in continuations"
+  },
+  "UseCopySignIntrinsic": {
+    "category": "Runtime",
+    "description": "Enables intrinsification of Math.copySign"
+  },
+  "UseCriticalCompilerThreadPriority": {
+    "category": "Runtime",
+    "description": "Compiler thread(s) run at critical scheduling priority"
+  },
+  "UseCriticalJavaThreadPriority": {
+    "category": "Runtime",
+    "description": "Java thread priority 10 maps to critical scheduling priority"
+  },
+  "UseDebuggerErgo": {
+    "category": "Runtime",
+    "description": "Debugging Only: Adjust the VM to be more debugger-friendly."
+  },
+  "UseDebuggerErgo1": {
+    "category": "Runtime",
+    "description": "Debugging Only: Enable workarounds for debugger induced"
+  },
+  "UseDebuggerErgo2": {
+    "category": "Runtime",
+    "description": "Debugging Only: Limit the number of spawned JVM threads"
+  },
+  "UseDilithiumIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for the vectorized version of Dilithium"
+  },
+  "UseDynamicNumberOfCompilerThreads": {
+    "category": "Runtime",
+    "description": "Dynamically choose the number of parallel compiler threads"
+  },
+  "UseDynamicNumberOfGCThreads": {
+    "category": "GC",
+    "description": "Dynamically choose the number of threads up to a maximum of"
+  },
+  "UseEpsilonGC": {
+    "category": "GC",
+    "description": "Use the Epsilon (no-op) garbage collector"
+  },
+  "UseFMA": {
+    "category": "Runtime",
+    "description": "Control whether FMA instructions are used when available"
+  },
+  "UseFastJNIAccessors": {
+    "category": "Runtime",
+    "description": "Use optimized versions of Get<Primitive>Field"
+  },
+  "UseFastSignatureHandlers": {
+    "category": "Runtime",
+    "description": "Use fast signature handlers for native calls"
+  },
+  "UseFastUnorderedTimeStamps": {
+    "category": "Runtime",
+    "description": "Use platform unstable time where supported for timestamps only"
+  },
+  "UseG1GC": {
+    "category": "GC",
+    "description": "Use the Garbage-First garbage collector"
+  },
+  "UseGCOverheadLimit": {
+    "category": "GC",
+    "description": "Use policy to limit of proportion of time spent in GC"
+  },
+  "UseGHASHIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for GHASH versions of crypto"
+  },
+  "UseInlineCaches": {
+    "category": "Runtime",
+    "description": "Use Inline Caches for virtual calls"
+  },
+  "UseIntPolyIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for sun.security.util.math.intpoly.MontgomeryIntegerPolynomialP256"
+  },
+  "UseInterpreter": {
+    "category": "Runtime",
+    "description": "Use interpreter for non-compiled methods"
+  },
+  "UseKyberIntrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for the vectorized version of Kyber"
+  },
+  "UseLargePages": {
+    "category": "Runtime",
+    "description": "Use large page memory"
+  },
+  "UseLargePagesIndividualAllocation": {
+    "category": "Runtime",
+    "description": "Allocate large pages individually for better affinity"
+  },
+  "UseLoopCounter": {
+    "category": "Runtime",
+    "description": "Increment invocation counter on backward branch"
+  },
+  "UseMD5Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for MD5 crypto hash function"
+  },
+  "UseNUMA": {
+    "category": "Runtime",
+    "description": "Use NUMA if available"
+  },
+  "UseNUMAInterleaving": {
+    "category": "Runtime",
+    "description": "Interleave memory across NUMA nodes if available"
+  },
+  "UseNewCode": {
+    "category": "Runtime",
+    "description": "Testing Only: Use the new version while testing"
+  },
+  "UseNewCode2": {
+    "category": "Runtime",
+    "description": "Testing Only: Use the new version while testing"
+  },
+  "UseNewCode3": {
+    "category": "Runtime",
+    "description": "Testing Only: Use the new version while testing"
+  },
+  "UseObjectMonitorTable": {
+    "category": "Runtime",
+    "description": "Use a table to record inflated monitors rather than the first"
+  },
+  "UseOnStackReplacement": {
+    "category": "Runtime",
+    "description": "Use on stack replacement, calls runtime if invoc. counter"
+  },
+  "UseParallelGC": {
+    "category": "GC",
+    "description": "Use the Parallel garbage collector."
+  },
+  "UsePerfData": {
+    "category": "Runtime",
+    "description": "Flag to disable jvmstat instrumentation for performance testing"
+  },
+  "UsePoly1305Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for sun.security.util.math.intpoly"
+  },
+  "UsePopCountInstruction": {
+    "category": "Runtime",
+    "description": "Use population count instruction"
+  },
+  "UseSHA": {
+    "category": "Runtime",
+    "description": "Control whether SHA instructions are used when available"
+  },
+  "UseSHA1Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for SHA-1 crypto hash function."
+  },
+  "UseSHA256Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for SHA-224 and SHA-256 crypto hash functions."
+  },
+  "UseSHA3Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for SHA3 crypto hash function."
+  },
+  "UseSHA512Intrinsics": {
+    "category": "Runtime",
+    "description": "Use intrinsics for SHA-384 and SHA-512 crypto hash functions."
+  },
+  "UseSecondarySupersCache": {
+    "category": "Runtime",
+    "description": "Use secondary supers cache during subtype checks."
+  },
+  "UseSecondarySupersTable": {
+    "category": "Runtime",
+    "description": "Use hash table to lookup secondary supers."
+  },
+  "UseSerialGC": {
+    "category": "GC",
+    "description": "Use the Serial garbage collector"
+  },
+  "UseShenandoahGC": {
+    "category": "GC",
+    "description": "Use the Shenandoah garbage collector"
+  },
+  "UseSignalChaining": {
+    "category": "Runtime",
+    "description": "Use signal-chaining to invoke signal handlers installed"
+  },
+  "UseSignumIntrinsic": {
+    "category": "Runtime",
+    "description": "Enables intrinsification of Math.signum"
+  },
+  "UseStringDeduplication": {
+    "category": "Runtime",
+    "description": "Use string deduplication"
+  },
+  "UseSwitchProfiling": {
+    "category": "Runtime",
+    "description": "leverage profiling for table/lookup switch"
+  },
+  "UseSystemMemoryBarrier": {
+    "category": "Runtime",
+    "description": "Try to enable system memory barrier if supported by OS"
+  },
+  "UseThreadPriorities": {
+    "category": "Runtime",
+    "description": "Use native thread priorities"
+  },
+  "UseThreadsLockThrottleLock": {
+    "category": "Runtime",
+    "description": "Use an extra lock during Thread start and exit to alleviate"
+  },
+  "UseTypeProfile": {
+    "category": "Runtime",
+    "description": "Check interpreter profile for historically monomorphic calls"
+  },
+  "UseUnalignedAccesses": {
+    "category": "Runtime",
+    "description": "Use unaligned memory accesses in Unsafe"
+  },
+  "UseVectorizedHashCodeIntrinsic": {
+    "category": "Runtime",
+    "description": "Enables intrinsification of ArraysSupport.vectorizedHashCode()"
+  },
+  "UseVectorizedMismatchIntrinsic": {
+    "category": "Runtime",
+    "description": "Enables intrinsification of ArraysSupport.vectorizedMismatch()"
+  },
+  "UseXMMForArrayCopy": {
+    "category": "Runtime",
+    "description": "Use SSE2 MOVQ instruction for Arraycopy"
+  },
+  "UseZGC": {
+    "category": "GC",
+    "description": "Use the Z garbage collector"
+  },
+  "UserThreadWaitAttemptsAtExit": {
+    "category": "Runtime",
+    "description": "The number of times to wait for user threads to stop executing"
+  },
+  "VMContinuations": {
+    "category": "Runtime",
+    "description": "Enable VM continuations support"
+  },
+  "VMThreadPriority": {
+    "category": "Runtime",
+    "description": "The native priority at which the VM thread should run"
+  },
+  "VMThreadStackSize": {
+    "category": "Runtime",
+    "description": "Non-Java Thread Stack Size (in Kbytes)"
+  },
+  "Verbose": {
+    "category": "Runtime",
+    "description": "Print additional debugging information from other modes"
+  },
+  "VerifyActivationFrameSize": {
+    "category": "Runtime",
+    "description": "Verify that activation frame didn't become smaller than its"
+  },
+  "VerifyAdapterSharing": {
+    "category": "Runtime",
+    "description": "Verify that the code for shared adapters is the equivalent"
+  },
+  "VerifyAfterGC": {
+    "category": "GC",
+    "description": "Verify memory system after GC"
+  },
+  "VerifyArchivedFields": {
+    "category": "GC",
+    "description": "Verify memory when archived oop fields are loaded from CDS;"
+  },
+  "VerifyBeforeExit": {
+    "category": "GC",
+    "description": "Verify system before exiting"
+  },
+  "VerifyBeforeGC": {
+    "category": "GC",
+    "description": "Verify memory system before GC"
+  },
+  "VerifyBeforeIteration": {
+    "category": "Runtime",
+    "description": "Verify memory system before JVMTI iteration"
+  },
+  "VerifyCodeCache": {
+    "category": "Runtime",
+    "description": "Verify code cache on memory allocation/deallocation"
+  },
+  "VerifyContinuations": {
+    "category": "Runtime",
+    "description": "Verify continuation consistency"
+  },
+  "VerifyCrossModifyFence": {
+    "category": "Runtime",
+    "description": "Mark all threads after a safepoint, and clear on a modify"
+  },
+  "VerifyDataPointer": {
+    "category": "Runtime",
+    "description": "Verify the method data pointer during interpreter profiling"
+  },
+  "VerifyDependencies": {
+    "category": "Runtime",
+    "description": "Exercise and verify the compilation dependency mechanism"
+  },
+  "VerifyDuringGC": {
+    "category": "GC",
+    "description": "Verify memory system during GC (between phases)"
+  },
+  "VerifyDuringStartup": {
+    "category": "GC",
+    "description": "Verify memory system before executing any Java code"
+  },
+  "VerifyGCStartAt": {
+    "category": "GC",
+    "description": "GC invoke count where +VerifyBefore/AfterGC kicks in"
+  },
+  "VerifyInlineCaches": {
+    "category": "Runtime",
+    "description": "Verify Inline Caches"
+  },
+  "VerifyJNIFields": {
+    "category": "Runtime",
+    "description": "Verify jfieldIDs for instance fields"
+  },
+  "VerifyLastFrame": {
+    "category": "Runtime",
+    "description": "Verify oops on last frame on entry to VM"
+  },
+  "VerifyMetaspaceInterval": {
+    "category": "Runtime",
+    "description": "Run periodic metaspace verifications (0 - none,"
+  },
+  "VerifyMethodHandles": {
+    "category": "Runtime",
+    "description": "perform extra checks when constructing method handles"
+  },
+  "VerifyOops": {
+    "category": "Runtime",
+    "description": "Do plausibility checks for oops"
+  },
+  "VerifySecondarySupers": {
+    "category": "Runtime",
+    "description": "Check that linear and hashed secondary lookups return the same result."
+  },
+  "VerifyStack": {
+    "category": "Runtime",
+    "description": "Verify stack of each thread when it is entering a runtime call"
+  },
+  "VerifyStackAtCalls": {
+    "category": "Runtime",
+    "description": "Verify that the stack pointer is unchanged after calls"
+  },
+  "VerifyStringTableAtExit": {
+    "category": "Runtime",
+    "description": "verify StringTable contents at exit"
+  },
+  "WalkStackALot": {
+    "category": "Runtime",
+    "description": "Trace stack (no print) at every exit from the runtime system"
+  },
+  "WhiteBoxAPI": {
+    "category": "Runtime",
+    "description": "Enable internal testing APIs"
+  },
+  "WizardMode": {
+    "category": "Runtime",
+    "description": "Print much more debugging information"
+  },
+  "WorkStealingHardSpins": {
+    "category": "GC",
+    "description": "Number of iterations in a spin loop between checks on"
+  },
+  "WorkStealingSleepMillis": {
+    "category": "GC",
+    "description": "Sleep time when sleep is used for yields"
+  },
+  "WorkStealingSpinToYieldRatio": {
+    "category": "GC",
+    "description": "Ratio of hard spins to calls to yield"
+  },
+  "WorkStealingYieldsBeforeSleep": {
+    "category": "GC",
+    "description": "Number of yields before a sleep is done during work stealing"
+  },
+  "YoungGenerationSizeIncrement": {
+    "category": "GC",
+    "description": "Adaptive size percentage change in young generation"
+  },
+  "YoungGenerationSizeSupplement": {
+    "category": "GC",
+    "description": "Supplement to YoungGenerationSizeIncrement used at startup"
+  },
+  "YoungGenerationSizeSupplementDecay": {
+    "category": "GC",
+    "description": "Decay factor to YoungGenerationSizeSupplement"
+  },
+  "ZAllocationSpikeTolerance": {
+    "category": "GC - ZGC",
+    "description": "Allocation spike tolerance factor"
+  },
+  "ZBufferStoreBarriers": {
+    "category": "GC - ZGC",
+    "description": "Buffer store barriers"
+  },
+  "ZCollectionInterval": {
+    "category": "GC - ZGC",
+    "description": "Force GC at a fixed time interval (in seconds)."
+  },
+  "ZCollectionIntervalMajor": {
+    "category": "GC - ZGC",
+    "description": "Force GC at a fixed time interval (in seconds)"
+  },
+  "ZCollectionIntervalMinor": {
+    "category": "GC - ZGC",
+    "description": "Force Minor GC at a fixed time interval (in seconds)"
+  },
+  "ZCollectionIntervalOnly": {
+    "category": "GC - ZGC",
+    "description": "Only use timers for GC heuristics"
+  },
+  "ZFailLargerCommits": {
+    "category": "GC - ZGC",
+    "description": "Commits larger than ZFailLargerCommits will be truncated,"
+  },
+  "ZFakeNUMA": {
+    "category": "GC - ZGC",
+    "description": "ZFakeNUMA is used to test the internal NUMA memory support"
+  },
+  "ZForceDiscontiguousHeapReservations": {
+    "category": "GC - ZGC",
+    "description": "The gc will attempt to split the heap reservation into this"
+  },
+  "ZFragmentationLimit": {
+    "category": "GC - ZGC",
+    "description": "Maximum allowed heap fragmentation"
+  },
+  "ZIndexDistributorStrategy": {
+    "category": "GC - ZGC",
+    "description": "Strategy used to distribute indices to parallel workers"
+  },
+  "ZOldGCThreads": {
+    "category": "GC - ZGC",
+    "description": "Number of GC threads for the old generation"
+  },
+  "ZProactive": {
+    "category": "GC - ZGC",
+    "description": "Enable proactive GC cycles"
+  },
+  "ZStatisticsInterval": {
+    "category": "GC - ZGC",
+    "description": "Time between statistics print outs (in seconds)"
+  },
+  "ZStressFastMediumPageAllocation": {
+    "category": "GC - ZGC",
+    "description": "Always use the minimum medium page size for fast medium page"
+  },
+  "ZStressRelocateInPlace": {
+    "category": "GC - ZGC",
+    "description": "Always relocate pages in-place"
+  },
+  "ZTenuringThreshold": {
+    "category": "GC - ZGC",
+    "description": "Young generation tenuring threshold, -1 for dynamic computation"
+  },
+  "ZUncommit": {
+    "category": "GC - ZGC",
+    "description": "Uncommit unused memory"
+  },
+  "ZUncommitDelay": {
+    "category": "GC - ZGC",
+    "description": "Uncommit memory if it has been unused for the specified"
+  },
+  "ZUseMediumPageSizeRange": {
+    "category": "GC - ZGC",
+    "description": "Allow multiple medium page sizes"
+  },
+  "ZVerifyForwarding": {
+    "category": "GC - ZGC",
+    "description": "Verify forwarding tables"
+  },
+  "ZVerifyMarking": {
+    "category": "GC - ZGC",
+    "description": "Verify marking stacks"
+  },
+  "ZVerifyObjects": {
+    "category": "GC - ZGC",
+    "description": "Verify objects"
+  },
+  "ZVerifyOops": {
+    "category": "GC - ZGC",
+    "description": "Verify accessed oops"
+  },
+  "ZVerifyRemembered": {
+    "category": "GC - ZGC",
+    "description": "Verify remembered sets"
+  },
+  "ZVerifyRoots": {
+    "category": "GC - ZGC",
+    "description": "Verify roots"
+  },
+  "ZYoungCompactionLimit": {
+    "category": "GC - ZGC",
+    "description": "Maximum allowed garbage in young pages"
+  },
+  "ZYoungGCThreads": {
+    "category": "GC - ZGC",
+    "description": "Number of GC threads for the young generation"
+  },
+  "ZapCHeap": {
+    "category": "Runtime",
+    "description": "Zap allocated/freed C heap space"
+  },
+  "ZapFillerObjects": {
+    "category": "Runtime",
+    "description": "Zap filler objects"
+  },
+  "ZapResourceArea": {
+    "category": "Runtime",
+    "description": "Zap freed resource/arena space"
+  },
+  "ZapStackSegments": {
+    "category": "Runtime",
+    "description": "Zap allocated/freed stack segments"
+  },
+  "ZapTLAB": {
+    "category": "Runtime",
+    "description": "Zap allocated TLABs"
+  },
+  "ZapUnusedHeapArea": {
+    "category": "Runtime",
+    "description": "Zap unused heap space"
+  },
+  "ZapVMHandleArea": {
+    "category": "Runtime",
+    "description": "Zap freed VM handle space"
+  },
+  "ZombieALot": {
+    "category": "Runtime",
+    "description": "Create non-entrant nmethods at exit from the runtime system"
+  },
+  "ZombieALotInterval": {
+    "category": "Runtime",
+    "description": "Number of exits until ZombieALot kicks in"
+  },
+  "hashCode": {
+    "category": "Runtime",
+    "description": "(Unstable) select hashCode generation algorithm"
+  }
+}

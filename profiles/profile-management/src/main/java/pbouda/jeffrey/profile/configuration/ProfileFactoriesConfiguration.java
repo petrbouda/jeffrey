@@ -94,12 +94,14 @@ public class ProfileFactoriesConfiguration {
     public AnalysisFactories analysisFactories(
             GuardianManager.Factory guardianFactory,
             AutoAnalysisManager.Factory autoAnalysisFactory,
-            EventViewerManager.Factory eventViewerFactory) {
+            EventViewerManager.Factory eventViewerFactory,
+            FlagsManager.Factory flagsFactory) {
 
         return new AnalysisFactories(
                 guardianFactory,
                 autoAnalysisFactory,
-                eventViewerFactory);
+                eventViewerFactory,
+                flagsFactory);
     }
 
     @Bean
@@ -284,6 +286,21 @@ public class ProfileFactoriesConfiguration {
             return new EventViewerManagerImpl(
                     profileRepositories.newEventRepository(profileDb),
                     profileRepositories.newEventTypeRepository(profileDb));
+        };
+    }
+
+    @Bean
+    public JvmFlagDescriptionProvider jvmFlagDescriptionProvider() {
+        return new JvmFlagDescriptionProvider();
+    }
+
+    @Bean
+    public FlagsManager.Factory flagsManager(JvmFlagDescriptionProvider descriptionProvider) {
+        return profileInfo -> {
+            DataSource profileDb = profileDatabaseProvider.open(profileInfo.id());
+            return new FlagsManagerImpl(
+                    profileRepositories.newEventRepository(profileDb),
+                    descriptionProvider);
         };
     }
 

@@ -124,7 +124,6 @@ const formattedContent = computed(() => {
   background-color: #f1f3f5;
   padding: 0.125rem 0.375rem;
   border-radius: 3px;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
   color: #6f42c1;
 }

@@ -148,6 +148,14 @@
                     <i class="bi bi-collection"></i>
                     <span>Event Viewer</span>
                   </router-link>
+                  <router-link
+                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/flags`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-flag"></i>
+                    <span>JVM Flags</span>
+                  </router-link>
                 </div>
               </div>
 

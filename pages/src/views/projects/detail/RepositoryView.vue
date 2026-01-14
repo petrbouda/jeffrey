@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useNavigation} from '@/composables/useNavigation';
-import {downloadProgressStore} from '@/stores/downloadProgressStore';
+import {downloadAssistantStore} from '@/stores/assistants';
 import ProjectRepositoryClient from "@/services/api/ProjectRepositoryClient.ts";
 import Utils from "@/services/Utils";
 import ProjectSettingsClient from "@/services/api/ProjectSettingsClient.ts";
@@ -435,7 +435,7 @@ const copyAndMerge = async (sessionId: string) => {
     // For remote workspaces, use progress tracking
     if (isRemoteWorkspace.value) {
       const fileIds = session.files.map(f => f.id);
-      await downloadProgressStore.startDownload(workspaceId.value!, projectId.value!, sessionId, fileIds, async () => {
+      await downloadAssistantStore.startDownload(workspaceId.value!, projectId.value!, sessionId, fileIds, async () => {
         await fetchRepositoryData();
       });
     } else {
@@ -468,7 +468,7 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
     // For remote workspaces, use progress tracking
     if (isRemoteWorkspace.value) {
       const fileIds = selectedSources.map(f => f.id);
-      await downloadProgressStore.startDownload(workspaceId.value!, projectId.value!, sessionId, fileIds, async () => {
+      await downloadAssistantStore.startDownload(workspaceId.value!, projectId.value!, sessionId, fileIds, async () => {
         await fetchRepositoryData();
         toggleSelectAllSources(sessionId, false);
       });

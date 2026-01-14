@@ -24,6 +24,7 @@ import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.model.AllocatingThread;
 
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
+import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,4 +47,13 @@ public interface ProfileEventRepository {
      * @return list of JVM flags related to string handling
      */
     List<JvmFlag> getStringRelatedFlags();
+
+    /**
+     * Retrieves all JVM flags from JFR flag events with full details.
+     * Queries all flag event types (BooleanFlag, IntFlag, UnsignedIntFlag, LongFlag, StringFlag)
+     * and includes change detection to show if flag values changed during the recording.
+     *
+     * @return list of all JVM flags with their latest values and change indicators
+     */
+    List<JvmFlagDetail> getAllFlags();
 }

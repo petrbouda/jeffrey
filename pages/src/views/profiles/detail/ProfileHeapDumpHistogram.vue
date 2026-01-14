@@ -322,7 +322,6 @@ onMounted(() => {
 }
 
 .font-monospace {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
 }
 </style>

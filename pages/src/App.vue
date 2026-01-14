@@ -2,8 +2,11 @@
   <div class="app-container">
     <router-view />
 
-    <!-- Global Download Progress Panel -->
-    <DownloadProgressPanel
+    <!-- Container for minimized assistant buttons (rendered in a row) -->
+    <AssistantMinimizedContainer />
+
+    <!-- Global Download Assistant -->
+    <DownloadAssistant
       :is-open="downloadStore.isOpen.value"
       :is-expanded="downloadStore.isExpanded.value"
       :downloads="downloadStore.allDownloads.value"
@@ -21,8 +24,8 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import DownloadProgressPanel from '@/components/DownloadProgressPanel.vue';
-import { downloadProgressStore as downloadStore } from '@/stores/downloadProgressStore';
+import { DownloadAssistant, AssistantMinimizedContainer } from '@/components/assistants';
+import { downloadAssistantStore as downloadStore } from '@/stores/assistants';
 
 onMounted(() => {
   // Initialize Bootstrap tooltips
@@ -30,6 +33,9 @@ onMounted(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
   }
+
+  // TODO: Remove this - Mock download for development/testing
+  downloadStore.startMockDownload();
 });
 </script>
 

@@ -241,7 +241,6 @@ const copyParameters = async () => {
   padding: 1rem;
   background: #2d3748;
   color: #e2e8f0;
-  font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 0.85rem;
   line-height: 1.4;
   white-space: pre-wrap;

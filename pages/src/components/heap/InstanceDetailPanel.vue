@@ -391,7 +391,6 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .info-row .value.monospace {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
 }
 
 .value-section {
@@ -488,7 +487,6 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .field-name-cell {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-weight: 500;
   color: #495057;
 }
@@ -504,12 +502,10 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .primitive-value {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   color: #212529;
 }
 
 .reference-link {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   color: #0d6efd;
   text-decoration: none;
 }

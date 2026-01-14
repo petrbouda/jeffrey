@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.manager.registry;
+package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
-import pbouda.jeffrey.profile.manager.EventViewerManager;
-import pbouda.jeffrey.profile.manager.FlagsManager;
-import pbouda.jeffrey.profile.manager.GuardianManager;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
-public record AnalysisFactories(
-        GuardianManager.Factory guardian,
-        AutoAnalysisManager.Factory autoAnalysis,
-        EventViewerManager.Factory eventViewer,
-        FlagsManager.Factory flags) {
+import java.util.function.Function;
+
+/**
+ * Manager for JVM flags visualization and analysis.
+ * Provides access to all JVM flags captured in JFR recordings.
+ */
+public interface FlagsManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, FlagsManager> {
+    }
+
+    /**
+     * Returns all JVM flags grouped by their origin.
+     *
+     * @return flags data with grouping by origin and change detection
+     */
+    FlagsData getAllFlags();
 }

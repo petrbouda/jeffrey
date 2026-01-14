@@ -46,6 +46,8 @@ public interface ProfileManager {
 
     EventViewerManager eventViewerManager();
 
+    FlagsManager flagsManager();
+
     ThreadManager threadManager();
 
     JITCompilationManager jitCompilationManager();

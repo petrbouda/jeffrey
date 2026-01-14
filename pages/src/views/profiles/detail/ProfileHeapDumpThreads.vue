@@ -439,7 +439,6 @@ onMounted(() => {
 }
 
 .retained-size {
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
   font-size: 0.8rem;
 }
 
