@@ -1,12 +1,32 @@
-<script setup>
-const props = defineProps({
-  title: String,
-  content: String,
-  file: String,
-  icon: String,
-  colorClass: String,
-  route: String // New property for route path
-});
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
+interface Props {
+  title: string;
+  content: string;
+  file: string;
+  icon: string;
+  colorClass: string;
+  route: string;
+}
+
+defineProps<Props>();
 </script>
 
 <template>
@@ -92,7 +112,6 @@ const props = defineProps({
   background-color: rgba(52, 152, 219, 0.2);
 }
 
-/* Softer pastel colors for card accents and icons */
 .bg-primary-gradient {
   background: rgba(78, 115, 223, 0.8);
 }

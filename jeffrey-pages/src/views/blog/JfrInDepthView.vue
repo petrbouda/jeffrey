@@ -1,5 +1,22 @@
-<script setup>
-// JFR in Depth blog post page
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
 </script>
 
 <template>
@@ -20,7 +37,7 @@
             <i class="bi bi-arrow-left me-2"></i>Back to Blog
           </router-link>
         </div>
-        
+
         <div class="page-content bg-white rounded-3 shadow-sm p-5">
           <div class="blog-content">
             <div class="lead mb-4">
@@ -32,7 +49,7 @@
               <h2>Presentation Materials</h2>
               <div class="resource-item">
                 <i class="bi bi-file-earmark-ppt me-2"></i>
-                <strong>PowerPoint Presentation:</strong> 
+                <strong>PowerPoint Presentation:</strong>
                 <a href="/assets/FOSDEM_Jan_31_A10m5Q9.pptx" target="_blank" class="ms-2">
                   Robert Toyonaga - An In-Depth Look at JFR in GraalVM Native Image
                 </a>
@@ -42,9 +59,9 @@
             <div class="content-section mt-4">
               <h2>About this Presentation</h2>
               <p>
-                This presentation by Robert Toyonaga provides a comprehensive deep dive into Java Flight Recorder (JFR) 
-                functionality within GraalVM Native Image environments. Originally presented at the FOSDEM conference, 
-                this talk explores the intricacies of profiling native images and the unique challenges and opportunities 
+                This presentation by Robert Toyonaga provides a comprehensive deep dive into Java Flight Recorder (JFR)
+                functionality within GraalVM Native Image environments. Originally presented at the FOSDEM conference,
+                this talk explores the intricacies of profiling native images and the unique challenges and opportunities
                 that JFR presents in this context.
               </p>
 
@@ -59,17 +76,17 @@
 
               <h3>Why This Matters</h3>
               <p>
-                As GraalVM Native Image adoption continues to grow, especially in cloud-native and microservices 
-                environments, understanding how to effectively profile and monitor these applications becomes crucial. 
-                JFR provides low-overhead profiling capabilities that are essential for production environments, 
+                As GraalVM Native Image adoption continues to grow, especially in cloud-native and microservices
+                environments, understanding how to effectively profile and monitor these applications becomes crucial.
+                JFR provides low-overhead profiling capabilities that are essential for production environments,
                 and this presentation offers insights into leveraging these capabilities in native image contexts.
               </p>
 
               <div class="conference-info mt-4 p-3 bg-light rounded">
                 <h4>About FOSDEM</h4>
                 <p class="mb-0">
-                  FOSDEM is one of the largest gatherings of free and open-source software developers, 
-                  bringing together thousands of developers from around the world. This presentation was 
+                  FOSDEM is one of the largest gatherings of free and open-source software developers,
+                  bringing together thousands of developers from around the world. This presentation was
                   part of the Java DevRoom track, focusing on cutting-edge developments in the Java ecosystem.
                 </p>
               </div>

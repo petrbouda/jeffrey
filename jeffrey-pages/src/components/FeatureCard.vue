@@ -1,22 +1,45 @@
-<script setup>
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
 import { ref } from 'vue';
 
-// FeatureCard component for Jeffrey website
-const props = defineProps({
-  title: String,
-  description: String,
-  icon: String, // New icon prop
-  colorClass: String,
-  screenshots: Array,
-  primaryScreenshot: String
-});
+interface Props {
+  title: string;
+  description: string;
+  icon: string;
+  colorClass?: string;
+  screenshots: string[];
+  primaryScreenshot: string;
+}
 
-// Modal functionality for image preview
-const selectedImage = ref(null);
+interface SelectedImage {
+  src: string;
+  alt: string;
+}
+
+const props = defineProps<Props>();
+
+const selectedImage = ref<SelectedImage | null>(null);
 const showModal = ref(false);
 const currentImageIndex = ref(0);
 
-const openImageModal = (imageSrc, imageAlt) => {
+const openImageModal = (imageSrc: string, imageAlt: string) => {
   selectedImage.value = { src: imageSrc, alt: imageAlt };
   showModal.value = true;
   currentImageIndex.value = 0;
@@ -61,12 +84,12 @@ const closeImageModal = () => {
         </div>
       </div>
     </div>
-    
+
     <!-- Modal overlay icon -->
     <div class="card-overlay">
       <i class="bi bi-zoom-in"></i>
     </div>
-    
+
     <!-- Tooltip -->
     <div class="tooltip-container" v-if="primaryScreenshot">
       <img :src="primaryScreenshot" alt="Feature Preview" class="tooltip-image">
@@ -75,30 +98,32 @@ const closeImageModal = () => {
   </div>
 
   <!-- Image Modal -->
-  <div v-if="showModal" class="image-modal" @click="closeImageModal">
-    <div class="modal-backdrop" @click="closeImageModal"></div>
-    <div class="modal-content-image" @click.stop>
-      <button class="modal-close" @click="closeImageModal">
-        <i class="bi bi-x-lg"></i>
-      </button>
-      
-      <!-- Navigation buttons for multiple screenshots -->
-      <button v-if="screenshots && screenshots.length > 1" class="modal-nav modal-nav-prev" @click="prevImage">
-        <i class="bi bi-chevron-left"></i>
-      </button>
-      <button v-if="screenshots && screenshots.length > 1" class="modal-nav modal-nav-next" @click="nextImage">
-        <i class="bi bi-chevron-right"></i>
-      </button>
-      
-      <img v-if="selectedImage" :src="selectedImage.src" :alt="selectedImage.alt" class="modal-image">
-      <div class="modal-footer">
-        <p v-if="selectedImage" class="modal-caption">{{ selectedImage.alt }}</p>
-        <div v-if="screenshots && screenshots.length > 1" class="modal-counter">
-          {{ currentImageIndex + 1 }} / {{ screenshots.length }}
+  <Teleport to="body">
+    <div v-if="showModal" class="image-modal" @click="closeImageModal">
+      <div class="modal-backdrop" @click="closeImageModal"></div>
+      <div class="modal-content-image" @click.stop>
+        <button class="modal-close" @click="closeImageModal">
+          <i class="bi bi-x-lg"></i>
+        </button>
+
+        <!-- Navigation buttons for multiple screenshots -->
+        <button v-if="screenshots && screenshots.length > 1" class="modal-nav modal-nav-prev" @click="prevImage">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button v-if="screenshots && screenshots.length > 1" class="modal-nav modal-nav-next" @click="nextImage">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+
+        <img v-if="selectedImage" :src="selectedImage.src" :alt="selectedImage.alt" class="modal-image">
+        <div class="modal-footer">
+          <p v-if="selectedImage" class="modal-caption">{{ selectedImage.alt }}</p>
+          <div v-if="screenshots && screenshots.length > 1" class="modal-counter">
+            {{ currentImageIndex + 1 }} / {{ screenshots.length }}
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -383,54 +408,43 @@ const closeImageModal = () => {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes scaleIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .tooltip-container {
     min-width: 280px;
     max-width: 320px;
   }
-  
+
   .feature-icon {
     font-size: 1.3rem;
   }
-  
+
   .feature-icon-container {
     height: 45px;
     width: 45px;
   }
-  
+
   .feature-content {
     gap: 0.75rem;
   }
-  
+
   .image-modal {
     padding: 1rem;
   }
-  
+
   .modal-content-image {
     max-width: 95vw;
     max-height: 95vh;
   }
-  
+
   .modal-close {
     top: 10px;
     right: 10px;
@@ -438,36 +452,22 @@ const closeImageModal = () => {
     height: 35px;
     font-size: 1rem;
   }
-  
+
   .modal-nav {
     width: 40px;
     height: 40px;
     font-size: 1.2rem;
   }
-  
-  .modal-nav-prev {
-    left: 10px;
-  }
-  
-  .modal-nav-next {
-    right: 10px;
-  }
-  
+
+  .modal-nav-prev { left: 10px; }
+  .modal-nav-next { right: 10px; }
+
   .modal-footer {
     padding: 0.75rem;
     flex-direction: column;
     gap: 0.5rem;
   }
-  
-  .modal-counter {
-    margin-left: 0;
-  }
-}
 
-@media (max-width: 480px) {
-  .tooltip-container {
-    min-width: 260px;
-    max-width: 300px;
-  }
+  .modal-counter { margin-left: 0; }
 }
 </style>

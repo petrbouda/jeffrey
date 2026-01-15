@@ -1,8 +1,26 @@
-<script setup>
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
 import { ref } from 'vue';
 
-// Navigation state
 const isMenuOpen = ref(false);
+
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
   document.body.style.overflow = isMenuOpen.value ? 'hidden' : '';
@@ -14,15 +32,6 @@ const closeMenu = () => {
     document.body.style.overflow = '';
   }
 };
-
-// Scroll to section (for home page)
-const scrollToSection = (sectionId) => {
-  closeMenu();
-  const element = document.getElementById(sectionId);
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' });
-  }
-};
 </script>
 
 <template>
@@ -31,7 +40,7 @@ const scrollToSection = (sectionId) => {
     <nav class="navbar">
       <div class="navbar-container">
         <router-link to="/" class="navbar-brand">Jeffrey</router-link>
-        
+
         <ul class="nav-menu" :class="{ 'active': isMenuOpen }">
           <li class="nav-item">
             <router-link to="/launch-it" class="nav-link" @click="closeMenu">Launch It!</router-link>
@@ -49,7 +58,7 @@ const scrollToSection = (sectionId) => {
             <a href="https://www.linkedin.com/in/petr-bouda/" class="nav-link" target="_blank">Contact</a>
           </li>
         </ul>
-        
+
         <button class="hamburger" :class="{ 'active': isMenuOpen }" @click="toggleMenu">
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
@@ -57,7 +66,7 @@ const scrollToSection = (sectionId) => {
         </button>
       </div>
     </nav>
-    
+
     <!-- Router View -->
     <router-view />
 
@@ -109,7 +118,6 @@ const scrollToSection = (sectionId) => {
 .nav-link:hover {
   color: #3498db;
 }
-
 
 /* Navbar styles - Modern */
 .navbar-container {

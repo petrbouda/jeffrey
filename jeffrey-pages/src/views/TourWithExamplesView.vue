@@ -1,4 +1,22 @@
-<script setup>
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
 </script>
 
 <template>
@@ -16,10 +34,10 @@
             <i class="bi bi-arrow-left me-2"></i>Back to Launch It
           </router-link>
         </div>
-        
+
         <div class="page-content bg-white rounded-3 p-0">
           <div class="content-section">
-            
+
             <div class="intro-text">
               <p>The <code>jeffrey-examples</code> Docker image contains pre-generated recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
             </div>
@@ -47,7 +65,7 @@
                   <li><code>dom</code> - HTTP/JSON through DOM (JsonNode) then to Java Objects, creates garbage intentionally</li>
                 </ul>
               </div>
-              
+
               <div class="concept-card">
                 <div class="concept-icon">
                   <i class="bi bi-diagram-3"></i>
@@ -68,7 +86,7 @@
                 <h3>Create Your First Profile</h3>
                 <p>Select the <code>Examples</code> project and navigate to the <code>Recordings</code> section. Choose any recording from the folder <code>Persons</code> and start the initialization of a new profile.
                   Switch to the <code>Profiles</code> section and wait for the initialization to be finished.</p>
-                  
+
                 <div class="info-note">
                   <i class="bi bi-info-circle"></i>
                   <span>It can take a while based on the size of the selected recording. Currently, SQLite database is used under the hood, therefore, there are limited possibilities to enhance parallelism while inserting data. It's going to be improved in the future.</span>
@@ -78,7 +96,7 @@
 
           </div>
         </div>
-        
+
         <div class="categories-section">
           <div class="categories-grid">
             <div class="category-card">
@@ -100,7 +118,7 @@
                 <div class="example-item">jeffrey-persons-dom-serde-cpu.jfr</div>
               </div>
             </div>
-            
+
             <div class="category-card">
               <div class="category-icon timer">
                 <i class="bi bi-stopwatch"></i>
@@ -119,7 +137,7 @@
                 <div class="example-item">jeffrey-persons-dom-serde-ctimer.jfr</div>
               </div>
             </div>
-            
+
             <div class="category-card">
               <div class="category-icon jdk">
                 <i class="bi bi-gear"></i>
@@ -137,7 +155,7 @@
                 <div class="example-item">jeffrey-persons-dom-serde-jdk.jfr</div>
               </div>
             </div>
-            
+
             <div class="category-card">
               <div class="category-icon custom">
                 <i class="bi bi-lightning"></i>
@@ -160,7 +178,7 @@
                 <div class="example-item">jeffrey-persons-custom-events.jfr</div>
               </div>
             </div>
-            
+
             <div class="category-card">
               <div class="category-icon tracing">
                 <i class="bi bi-diagram-2"></i>
@@ -177,7 +195,7 @@
                 <div class="example-item">jeffrey-persons-dom-serde-method-tracing.jfr</div>
               </div>
             </div>
-            
+
             <div class="category-card">
               <div class="category-icon memory">
                 <i class="bi bi-memory"></i>
@@ -574,16 +592,16 @@ pre code {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .concepts-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .categories-grid {
     grid-template-columns: 1fr;
   }
-  
-  
+
+
   .content-section {
     padding: 1rem;
   }

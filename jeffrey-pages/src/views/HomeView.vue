@@ -1,13 +1,56 @@
-<script setup>
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import IntroductionCard from '../components/IntroductionCard.vue';
-import FeatureCard from '../components/HelloWorld.vue';
-import BlogCard from '../components/BlogCard.vue';
+import IntroductionCard from '@/components/IntroductionCard.vue';
+import FeatureCard from '@/components/FeatureCard.vue';
+import BlogCard from '@/components/BlogCard.vue';
+
+interface IntroCard {
+  title: string;
+  content: string;
+  file: string;
+  icon: string;
+  colorClass: string;
+  route: string;
+}
+
+interface Feature {
+  title: string;
+  description: string;
+  icon: string;
+  screenshots: string[];
+  primaryScreenshot: string;
+}
+
+interface BlogPost {
+  title: string;
+  date: string;
+  summary: string;
+  image: string;
+  slug: string;
+  colorClass: string;
+}
 
 const route = useRoute();
 
-// Scroll to features section if route is /features
 onMounted(() => {
   if (route.path === '/features') {
     setTimeout(() => {
@@ -19,8 +62,11 @@ onMounted(() => {
   }
 });
 
-// Define the introduction cards data
-const introCards = ref([
+const copyToClipboard = (text: string): void => {
+  navigator.clipboard.writeText(text);
+};
+
+const introCards = ref<IntroCard[]>([
   {
     title: 'Launch It!',
     content: 'Get started with Jeffrey and learn the basics of Java profiling with JFR recordings.',
@@ -47,8 +93,7 @@ const introCards = ref([
   }
 ]);
 
-// Define the features data
-const features = ref([
+const features = ref<Feature[]>([
   {
     title: 'Flamegraphs',
     description: 'Interactive flamegraphs for CPU profiling with execution, wall-clock, and allocation samples',
@@ -190,8 +235,7 @@ const features = ref([
   }
 ]);
 
-// Define the custom features data
-const customFeatures = ref([
+const customFeatures = ref<Feature[]>([
   {
     title: 'HTTP Communication',
     description: 'Information about HTTP communication, including request and response details and timings',
@@ -227,8 +271,7 @@ const customFeatures = ref([
   }
 ]);
 
-// Blog posts data - only posts with real pages
-const blogPosts = ref([
+const blogPosts = ref<BlogPost[]>([
   {
     title: 'Mandatory Literature',
     date: 'June 15, 2025',
@@ -248,14 +291,13 @@ const blogPosts = ref([
   {
     title: '0.4 Release Announcement',
     date: 'June 13, 2025',
-    summary: 'Let\'s Get Started with Jeffrey 0.4 release',
+    summary: "Let's Get Started with Jeffrey 0.4 release",
     image: '/images/capability_analysis.png',
     slug: 'jeffrey-04-announcement',
     colorClass: 'bg-blog-announcement-gradient'
   }
 ]);
 
-// Show only the latest 6 blog posts on home page
 const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
 </script>
 
@@ -314,7 +356,7 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
             </div>
             <div class="command-container">
               <code class="command-text">docker run -it --network host petrbouda/jeffrey-examples</code>
-              <button class="btn btn-outline-primary btn-sm copy-btn" onclick="navigator.clipboard.writeText('docker run -it --network host petrbouda/jeffrey-examples')">
+              <button class="btn btn-outline-primary btn-sm copy-btn" @click="copyToClipboard('docker run -it --network host petrbouda/jeffrey-examples')">
                 <i class="bi bi-clipboard"></i>
               </button>
             </div>
@@ -326,14 +368,14 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
         </div>
       </div>
     </section>
-    
+
     <!-- Features Section -->
     <section id="features" class="py-5">
       <div class="container-wide">
         <div class="section-header-container" data-text="FEATURES">
           <h2 class="section-header">Features</h2>
         </div>
-        
+
         <!-- Main Features Delimiter -->
         <div class="custom-features-delimiter my-4">
           <div class="delimiter-line"></div>
@@ -342,19 +384,19 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
           </div>
           <div class="delimiter-line"></div>
         </div>
-        
+
         <div class="row">
           <div v-for="(feature, index) in features" :key="index" class="col-md-4 mb-4">
-            <FeatureCard 
-              :title="feature.title" 
-              :description="feature.description" 
+            <FeatureCard
+              :title="feature.title"
+              :description="feature.description"
               :icon="feature.icon"
               :screenshots="feature.screenshots"
               :primaryScreenshot="feature.primaryScreenshot"
             />
           </div>
         </div>
-        
+
         <!-- Custom Features Delimiter -->
         <div class="custom-features-delimiter my-3">
           <div class="delimiter-line"></div>
@@ -363,13 +405,13 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
           </div>
           <div class="delimiter-line"></div>
         </div>
-        
+
         <!-- Custom Features -->
         <div class="row" v-if="customFeatures.length > 0">
           <div v-for="(feature, index) in customFeatures" :key="'custom-' + index" class="col-md-4 mb-4">
-            <FeatureCard 
-              :title="feature.title" 
-              :description="feature.description" 
+            <FeatureCard
+              :title="feature.title"
+              :description="feature.description"
               :icon="feature.icon"
               :screenshots="feature.screenshots"
               :primaryScreenshot="feature.primaryScreenshot"
@@ -378,7 +420,7 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
         </div>
       </div>
     </section>
-    
+
     <!-- Blog Section -->
     <section id="blog" class="py-5 bg-light">
       <div class="container-wide">
@@ -392,10 +434,10 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
         </div>
         <div class="row">
           <div v-for="(post, index) in latestBlogPosts" :key="index" class="col-md-4 mb-4">
-            <BlogCard 
-              :title="post.title" 
-              :date="post.date" 
-              :summary="post.summary" 
+            <BlogCard
+              :title="post.title"
+              :date="post.date"
+              :summary="post.summary"
               :slug="post.slug"
               :image="post.image"
             />
@@ -459,27 +501,24 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
   font-weight: 500;
 }
 
-/* Smooth scrolling for the entire page */
 html {
   scroll-behavior: smooth;
 }
 
-/* Add scroll padding to account for any fixed headers */
 section {
   scroll-margin-top: 80px;
 }
 
-/* Optional: Add a subtle highlight when section is targeted */
 section:target {
   animation: sectionHighlight 2s ease-in-out;
 }
 
 @keyframes sectionHighlight {
-  0% { 
-    background-color: rgba(102, 126, 234, 0.1); 
+  0% {
+    background-color: rgba(102, 126, 234, 0.1);
   }
-  100% { 
-    background-color: transparent; 
+  100% {
+    background-color: transparent;
   }
 }
 
@@ -519,12 +558,6 @@ section:target {
 .quick-start-header i {
   color: #007bff;
   font-size: 1.2rem;
-}
-
-.quick-start-description {
-  color: #6c757d;
-  margin-bottom: 1.5rem;
-  font-size: 1.1rem;
 }
 
 .command-container {

@@ -1,22 +1,39 @@
-<script setup>
-// BlogCard component for Jeffrey website
-const props = defineProps({
-  title: String,
-  date: String,
-  summary: String,
-  slug: String,
-  image: String // Added image prop for the thumbnails
-});
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
 
-// Map slug to route path for specific blog posts that have dedicated pages
-const getRouteForSlug = (slug) => {
-  const routeMap = {
+<script setup lang="ts">
+interface Props {
+  title: string;
+  date: string;
+  summary: string;
+  slug: string;
+  image?: string;
+}
+
+defineProps<Props>();
+
+const getRouteForSlug = (slug: string): string => {
+  const routeMap: Record<string, string> = {
     'java-profiling-literature': '/blog/java-profiling-literature',
     'jfr-in-depth': '/blog/jfr-in-depth',
     'jeffrey-04-announcement': '/blog/jeffrey-04-announcement'
   };
-  
-  return routeMap[slug] || '/blog'; // Default to blog page if no specific route
+  return routeMap[slug] || '/blog';
 };
 </script>
 
@@ -132,18 +149,5 @@ const getRouteForSlug = (slug) => {
   color: #6b7280;
   font-size: 0.85rem;
   font-weight: 500;
-}
-
-/* Create card variants with different accent colors */
-.blog-card:nth-child(3n+1) .card-accent {
-  background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
-}
-
-.blog-card:nth-child(3n+2) .card-accent {
-  background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
-}
-
-.blog-card:nth-child(3n+3) .card-accent {
-  background: linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%);
 }
 </style>

@@ -1,3 +1,21 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 /* Custom styles for Jeffrey website */
 
 :root {
@@ -45,7 +63,7 @@
   list-style-type: none;
   margin: 0;
   padding: 0;
-  gap: 25px; /* Increased from 20px to 25px for more spacing */
+  gap: 25px;
 }
 
 .nav-item {
@@ -117,7 +135,7 @@
   .hamburger {
     display: block;
   }
-  
+
   .nav-menu {
     position: fixed;
     left: -100%;
@@ -135,29 +153,29 @@
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
   }
-  
+
   .nav-menu.active {
     left: 0;
   }
-  
+
   .nav-item {
     margin: 20px 0;
   }
-  
+
   .nav-link {
     font-size: 1.5rem;
     padding: 15px 20px;
     display: block;
   }
-  
+
   .hamburger.active .hamburger-line:nth-child(1) {
     transform: rotate(45deg) translate(5px, 5px);
   }
-  
+
   .hamburger.active .hamburger-line:nth-child(2) {
     opacity: 0;
   }
-  
+
   .hamburger.active .hamburger-line:nth-child(3) {
     transform: rotate(-45deg) translate(5px, -5px);
   }
@@ -165,7 +183,7 @@
 
 /* Section spacing for smooth scrolling - updated for navbar */
 section {
-  scroll-margin-top: 80px; /* Updated to account for fixed navbar */
+  scroll-margin-top: 80px;
 }
 
 /* Base layout fixes */
@@ -185,13 +203,13 @@ body {
 
 /* Avatar styling */
 .avatar-container-modern {
-  max-width: 180px; /* Reduced from 200px */
+  max-width: 180px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
-  border-radius: 16px; /* Square with rounded corners */
+  border-radius: 16px;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-  border: 5px solid white; /* White border around the avatar */
+  border: 5px solid white;
 }
 
 .avatar-image {
@@ -199,8 +217,8 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 12px; /* Slightly smaller than container to create padding effect */
-  aspect-ratio: 1/1; /* Ensure it's a perfect square */
+  border-radius: 12px;
+  aspect-ratio: 1/1;
 }
 
 /* Wider container override */
@@ -227,7 +245,6 @@ html {
 }
 
 /* Modern Section Headers */
-
 .section-header {
   position: relative;
   font-weight: 800;
@@ -274,11 +291,11 @@ html {
   overflow-y: auto;
 }
 
-.modal-body h1, 
-.modal-body h2, 
-.modal-body h3, 
-.modal-body h4, 
-.modal-body h5, 
+.modal-body h1,
+.modal-body h2,
+.modal-body h3,
+.modal-body h4,
+.modal-body h5,
 .modal-body h6 {
   margin-top: 1.5rem;
   margin-bottom: 1rem;
@@ -292,7 +309,7 @@ html {
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.modal-body pre, 
+.modal-body pre,
 .modal-body code {
   background-color: #f8f9fa;
   border-radius: 4px;
@@ -329,7 +346,7 @@ html {
   background-color: #f8f9fa;
 }
 
-.modal-body ul, 
+.modal-body ul,
 .modal-body ol {
   padding-left: 2rem;
   margin-bottom: 1rem;

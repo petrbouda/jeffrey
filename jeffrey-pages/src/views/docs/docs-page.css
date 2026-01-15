@@ -1,0 +1,240 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+.docs-article {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.docs-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb-item {
+  color: #6c757d;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-item:hover {
+  color: #5e64ff;
+}
+
+.breadcrumb-item.active {
+  color: #495057;
+  font-weight: 500;
+}
+
+.breadcrumb-separator {
+  color: #ced4da;
+  font-size: 0.7rem;
+}
+
+.docs-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.header-icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.docs-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #343a40;
+  margin: 0;
+}
+
+.docs-section-badge {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.docs-content {
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.docs-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #343a40;
+  margin: 2.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #5e64ff;
+}
+
+.docs-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #343a40;
+  margin: 2rem 0 0.75rem 0;
+}
+
+.docs-content p {
+  margin-bottom: 1rem;
+  color: #495057;
+}
+
+.docs-content a {
+  color: #5e64ff;
+  text-decoration: none;
+}
+
+.docs-content a:hover {
+  text-decoration: underline;
+}
+
+.docs-content ul,
+.docs-content ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.docs-content li {
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.docs-content table {
+  width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+}
+
+.docs-content th,
+.docs-content td {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e9ecef;
+  text-align: left;
+}
+
+.docs-content th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.docs-content tr:hover {
+  background: #f8f9fa;
+}
+
+.docs-nav-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  flex: 1;
+  max-width: 45%;
+}
+
+.nav-link:hover {
+  background: linear-gradient(135deg, rgba(94,100,255,0.1) 0%, rgba(124,58,237,0.1) 100%);
+}
+
+.nav-link.prev:hover {
+  transform: translateX(-4px);
+}
+
+.nav-link.next {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.nav-link.next:hover {
+  transform: translateX(4px);
+}
+
+.nav-link i {
+  font-size: 1.25rem;
+  color: #5e64ff;
+}
+
+.nav-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+}
+
+.nav-title {
+  font-weight: 600;
+  color: #343a40;
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .docs-article {
+    padding: 1.5rem;
+  }
+
+  .docs-title {
+    font-size: 1.5rem;
+  }
+
+  .nav-link {
+    max-width: 100%;
+  }
+
+  .docs-nav-footer {
+    flex-direction: column;
+  }
+}

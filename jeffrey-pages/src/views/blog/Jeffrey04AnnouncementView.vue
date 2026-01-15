@@ -1,16 +1,38 @@
-<script setup>
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<script setup lang="ts">
 import { ref } from 'vue';
 
-// Jeffrey 0.4 Release Announcement blog post page
-const selectedImage = ref(null);
+interface SelectedImage {
+  src: string;
+  alt: string;
+}
+
+const selectedImage = ref<SelectedImage | null>(null);
 const showModal = ref(false);
 
-const openImageModal = (imageSrc, imageAlt) => {
+const openImageModal = (imageSrc: string, imageAlt: string): void => {
   selectedImage.value = { src: imageSrc, alt: imageAlt };
   showModal.value = true;
 };
 
-const closeImageModal = () => {
+const closeImageModal = (): void => {
   showModal.value = false;
   selectedImage.value = null;
 };
@@ -34,7 +56,7 @@ const closeImageModal = () => {
             <i class="bi bi-arrow-left me-2"></i>Back to Blog
           </router-link>
         </div>
-        
+
         <div class="page-content bg-white rounded-3 shadow-sm p-5">
           <div class="blog-content">
             <div class="lead mb-4">
@@ -42,9 +64,9 @@ const closeImageModal = () => {
             </div>
 
             <h2>Let's Get Started with Jeffrey App</h2>
-            
+
             <p>
-              Today, I'm happy to announce the <strong>0.4</strong> release of Jeffrey App - 
+              Today, I'm happy to announce the <strong>0.4</strong> release of Jeffrey App -
               <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/jeffrey.jar" target="_blank">Jeffrey App</a>.
               There is a new cool feature, let's have a look at it!
             </p>
@@ -116,7 +138,7 @@ const closeImageModal = () => {
             <div class="feature-highlight">
               <h5>New Option: Only Allocations with Unsafe</h5>
               <p>
-                There is a new option: <strong>Only Allocations with Unsafe</strong>, it takes into account only samples 
+                There is a new option: <strong>Only Allocations with Unsafe</strong>, it takes into account only samples
                 that are allocated using <strong>Unsafe</strong>.
               </p>
             </div>
@@ -125,11 +147,11 @@ const closeImageModal = () => {
               <h3>Download Jeffrey 0.4</h3>
               <p>Ready to try the new features? Download Jeffrey 0.4 now:</p>
               <div class="download-buttons">
-                <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/jeffrey.jar" 
+                <a href="https://github.com/petrbouda/jeffrey/releases/download/0.4/jeffrey.jar"
                    class="btn btn-primary btn-lg me-3" target="_blank">
                   <i class="bi bi-download me-2"></i>Download Jeffrey 0.4
                 </a>
-                <a href="https://github.com/petrbouda/jeffrey" 
+                <a href="https://github.com/petrbouda/jeffrey"
                    class="btn btn-outline-primary btn-lg" target="_blank">
                   <i class="bi bi-github me-2"></i>View on GitHub
                 </a>
@@ -142,16 +164,18 @@ const closeImageModal = () => {
   </div>
 
   <!-- Image Modal -->
-  <div v-if="showModal" class="image-modal" @click="closeImageModal">
-    <div class="modal-backdrop" @click="closeImageModal"></div>
-    <div class="modal-content-image" @click.stop>
-      <button class="modal-close" @click="closeImageModal">
-        <i class="bi bi-x-lg"></i>
-      </button>
-      <img v-if="selectedImage" :src="selectedImage.src" :alt="selectedImage.alt" class="modal-image">
-      <p v-if="selectedImage" class="modal-caption">{{ selectedImage.alt }}</p>
+  <Teleport to="body">
+    <div v-if="showModal" class="image-modal" @click="closeImageModal">
+      <div class="modal-backdrop" @click="closeImageModal"></div>
+      <div class="modal-content-image" @click.stop>
+        <button class="modal-close" @click="closeImageModal">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <img v-if="selectedImage" :src="selectedImage.src" :alt="selectedImage.alt" class="modal-image">
+        <p v-if="selectedImage" class="modal-caption">{{ selectedImage.alt }}</p>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -487,12 +511,12 @@ const closeImageModal = () => {
   .image-modal {
     padding: 1rem;
   }
-  
+
   .modal-content-image {
     max-width: 95vw;
     max-height: 95vh;
   }
-  
+
   .modal-close {
     top: 10px;
     right: 10px;
