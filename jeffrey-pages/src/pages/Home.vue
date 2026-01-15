@@ -30,6 +30,14 @@ const introCards = ref([
     route: '/launch-it'
   },
   {
+    title: 'Documentation',
+    content: 'Comprehensive guides covering concepts, features, and best practices for performance analysis.',
+    file: 'documentation.md',
+    icon: 'bi-book',
+    colorClass: 'bg-docs-gradient',
+    route: '/docs'
+  },
+  {
     title: 'Upcoming Features',
     content: 'Check out the roadmap showing completed and planned features for upcoming Jeffrey versions.',
     file: 'new_features.md',

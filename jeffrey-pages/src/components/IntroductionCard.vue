@@ -104,4 +104,8 @@ const props = defineProps({
 .bg-info-gradient {
   background: rgba(54, 162, 235, 0.8);
 }
+
+.bg-docs-gradient {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+}
 </style>

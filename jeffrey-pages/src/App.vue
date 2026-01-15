@@ -37,6 +37,9 @@ const scrollToSection = (sectionId) => {
             <router-link to="/launch-it" class="nav-link" @click="closeMenu">Launch It!</router-link>
           </li>
           <li class="nav-item">
+            <router-link to="/docs" class="nav-link" @click="closeMenu">Documentation</router-link>
+          </li>
+          <li class="nav-item">
             <router-link to="/new-features" class="nav-link" @click="closeMenu">New Features</router-link>
           </li>
           <li class="nav-item">

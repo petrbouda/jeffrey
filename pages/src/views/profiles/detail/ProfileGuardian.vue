@@ -1,6 +1,6 @@
 <!--
   - Jeffrey
-  - Copyright (C) 2024 Petr Bouda
+  - Copyright (C) 2025 Petr Bouda
   -
   - This program is free software: you can redistribute it and/or modify
   - it under the terms of the GNU Affero General Public License as published by
@@ -16,100 +16,493 @@
   - along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
+<template>
+  <LoadingState v-if="loading" message="Loading guardian analysis..." />
+
+  <div v-else>
+    <PageHeader
+      title="Guardian Analysis"
+      description="Automated analysis and recommendations for your profile based on traversing Flamegraphs"
+      icon="bi-shield-check"
+    >
+      <!-- Summary Card with Chart and Prerequisites -->
+      <div class="summary-card mb-4" v-if="analysisRulesFlat.length > 0 || prerequisites.length > 0">
+        <div class="summary-card-body">
+          <div class="row align-items-stretch">
+            <!-- Donut Chart -->
+            <div class="col-lg-4 col-md-5">
+              <div class="chart-section">
+                <h6 class="section-title"><i class="bi bi-pie-chart me-2"></i>Results Overview</h6>
+                <apexchart
+                  v-if="analysisRulesFlat.length > 0"
+                  type="donut"
+                  :options="chartOptions"
+                  :series="chartSeries"
+                  height="200"
+                />
+                <div v-else class="no-analysis-data">
+                  <i class="bi bi-slash-circle"></i>
+                  <span>No analysis data</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Analysis Results Legend -->
+            <div class="col-lg-4 col-md-4">
+              <div class="legend-section">
+                <h6 class="section-title">Analysis Results</h6>
+                <div class="severity-legend">
+                  <div class="legend-item" v-if="severityCounts.ok > 0">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <span class="legend-label">Passed</span>
+                    <span class="legend-value">{{ severityCounts.ok }}</span>
+                  </div>
+                  <div class="legend-item" v-if="severityCounts.warning > 0">
+                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                    <span class="legend-label">Warnings</span>
+                    <span class="legend-value">{{ severityCounts.warning }}</span>
+                  </div>
+                  <div class="legend-item" v-if="severityCounts.info > 0">
+                    <i class="bi bi-info-circle-fill text-primary"></i>
+                    <span class="legend-label">Information</span>
+                    <span class="legend-value">{{ severityCounts.info }}</span>
+                  </div>
+                  <div class="legend-item" v-if="severityCounts.na > 0">
+                    <i class="bi bi-slash-circle-fill text-secondary"></i>
+                    <span class="legend-label">Skipped</span>
+                    <span class="legend-value">{{ severityCounts.na }}</span>
+                  </div>
+                  <div v-if="analysisRulesFlat.length === 0" class="no-results-msg">
+                    No analysis rules executed
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Data Quality / Prerequisites -->
+            <div class="col-lg-4 col-md-3">
+              <div class="prerequisites-section">
+                <h6 class="section-title">Data Quality</h6>
+                <div class="prerequisites-list">
+                  <div
+                    v-for="prereq in prerequisites"
+                    :key="prereq.rule"
+                    class="prereq-item"
+                    :class="prereq.severity === 'OK' ? 'prereq-ok' : 'prereq-warning'"
+                  >
+                    <div class="prereq-header">
+                      <i
+                        class="bi"
+                        :class="prereq.severity === 'OK' ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-warning'"
+                      ></i>
+                      <span class="prereq-name">{{ prereq.rule }}</span>
+                    </div>
+                    <div class="prereq-value" v-if="prereq.score">
+                      {{ prereq.score }}
+                    </div>
+                  </div>
+                  <div v-if="prerequisites.length === 0" class="no-prereq-msg">
+                    No prerequisites data
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-3" v-if="analysisRulesFlat.length > 0">
+        <div class="filter-group">
+          <select v-model="categoryFilter" class="form-select form-select-sm">
+            <option value="">All Categories</option>
+            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+          <select v-model="severityFilter" class="form-select form-select-sm">
+            <option value="">All Severities</option>
+            <option value="WARNING">Warnings</option>
+            <option value="INFO">Information</option>
+            <option value="OK">Passed</option>
+          </select>
+        </div>
+        <div class="search-group">
+          <i class="bi bi-search"></i>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Search rules..."
+          />
+        </div>
+      </div>
+
+      <!-- Unified Rules Table -->
+      <div class="rules-table-container" v-if="filteredAndSortedRules.length > 0">
+        <div class="rules-table">
+          <!-- Table Header -->
+          <div class="table-header">
+            <div class="col-status">Status</div>
+            <div class="col-category">Category</div>
+            <div class="col-rule">Rule</div>
+            <div class="col-score">Score</div>
+            <div class="col-actions">Actions</div>
+          </div>
+
+          <!-- Table Rows -->
+          <div
+            v-for="rule in filteredAndSortedRules"
+            :key="rule.id"
+            class="table-row-wrapper"
+          >
+            <div
+              class="table-row"
+              :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
+              @click="toggleRow(rule.id)"
+            >
+              <div class="col-status">
+                <i
+                  class="bi"
+                  :class="[`bi-${getSeverityIcon(rule.severity)}`, getSeverityTextClass(rule.severity)]"
+                ></i>
+              </div>
+              <div class="col-category">
+                <span class="category-badge">{{ rule.category }}</span>
+              </div>
+              <div class="col-rule">{{ rule.rule }}</div>
+              <div class="col-score">
+                <div class="score-wrapper" v-if="rule.score">
+                  <span class="score-text">{{ rule.score }}</span>
+                  <div v-if="isPercentageScore(rule.score)" class="mini-progress">
+                    <div
+                      class="mini-progress-bar"
+                      :style="{ width: rule.score, backgroundColor: getSeverityColor(rule.severity) }"
+                    ></div>
+                  </div>
+                </div>
+                <span v-else class="no-score">-</span>
+              </div>
+              <div class="col-actions">
+                <button
+                  v-if="rule.visualization"
+                  class="flame-btn"
+                  @click.stop="openFlamegraph(rule)"
+                  title="View Flamegraph"
+                >
+                  <i class="bi bi-fire"></i>
+                </button>
+                <i
+                  class="bi expand-icon"
+                  :class="expandedRows.has(rule.id) ? 'bi-chevron-up' : 'bi-chevron-down'"
+                ></i>
+              </div>
+            </div>
+
+            <!-- Expandable Row Details -->
+            <transition name="expand">
+              <div v-if="expandedRows.has(rule.id)" class="row-details">
+                <div class="details-grid">
+                  <div v-if="rule.summary" class="detail-item">
+                    <span class="detail-label">Summary</span>
+                    <p class="detail-text" v-html="rule.summary"></p>
+                  </div>
+                  <div v-if="rule.explanation" class="detail-item">
+                    <span class="detail-label">Explanation</span>
+                    <p class="detail-text" v-html="rule.explanation"></p>
+                  </div>
+                  <div v-if="rule.solution" class="detail-item">
+                    <span class="detail-label">Solution</span>
+                    <p class="detail-text" v-html="rule.solution"></p>
+                  </div>
+                </div>
+              </div>
+            </transition>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results After Filter -->
+      <div v-else-if="analysisRulesFlat.length > 0" class="empty-state">
+        <i class="bi bi-funnel"></i>
+        <h6>No Matching Rules</h6>
+        <p>Try adjusting your filters or search query.</p>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="guards.length === 0 && !loading" class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h6>No Analysis Results</h6>
+        <p>No guardian rules were executed for this profile.</p>
+      </div>
+
+      <!-- Flamegraph Modal -->
+      <div
+        class="modal fade"
+        id="flamegraphModal"
+        tabindex="-1"
+        aria-labelledby="flamegraphModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="btn-close" @click="closeFlamegraphModal" aria-label="Close" />
+            </div>
+            <div
+              id="scrollable-wrapper"
+              class="modal-body pr-2 pl-2"
+              v-if="showFlamegraphDialog && activeVisualization"
+            >
+              <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+              <TimeSeriesChart
+                :graph-updater="graphUpdater"
+                :primary-axis-type="
+                  TimeseriesEventAxeFormatter.resolveAxisFormatter(
+                    activeVisualization.useWeight,
+                    activeVisualization.eventType
+                  )
+                "
+                :visible-minutes="60"
+                :zoom-enabled="true"
+                time-unit="seconds"
+              />
+              <FlamegraphComponent
+                :with-timeseries="true"
+                :use-weight="activeVisualization.useWeight"
+                :use-guardian="activeVisualization"
+                scrollableWrapperClass="scrollable-wrapper"
+                :flamegraph-tooltip="flamegraphTooltip"
+                :graph-updater="graphUpdater"
+                @loaded="scrollToTop"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </PageHeader>
+  </div>
+</template>
+
 <script setup lang="ts">
-import type { PropType } from 'vue'; // Props definition
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import GuardianClient from '@/services/api/GuardianClient';
-import Utils from '@/services/Utils';
+import GuardResponse from '@/services/api/model/GuardResponse';
+import GuardAnalysisResult from '@/services/api/model/GuardAnalysisResult';
+import GuardVisualization from '@/services/api/model/GuardVisualization';
+import GuardianFlamegraphClient from '@/services/api/GuardianFlamegraphClient';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
-import CardCarousel from '@/components/CardCarousel.vue';
-import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
-import GuardianFlamegraphClient from '@/services/api/GuardianFlamegraphClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
-import GuardAnalysisResult from '@/services/api/model/GuardAnalysisResult';
-import GuardResponse from '@/services/api/model/GuardResponse';
-import GuardVisualization from '@/services/api/model/GuardVisualization';
-import * as bootstrap from 'bootstrap';
+import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
+import LoadingState from '@/components/LoadingState.vue';
+import * as bootstrap from 'bootstrap';
 
-// Props definition
-const props = defineProps({
-  profile: {
-    type: Object,
-    required: true
-  },
-  secondaryProfile: {
-    type: Object,
-    default: null
-  },
-  disabledFeatures: {
-    type: Array as PropType<string[]>,
-    default: () => []
-  }
-});
+// Constants
+const PREREQUISITES_CATEGORY = 'Prerequisites';
+
+// Types
+interface FlatRule extends GuardAnalysisResult {
+  id: string;
+  category: string;
+}
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
 
-let guards = ref<GuardResponse[]>([]);
+// Data
+const guards = ref<GuardResponse[]>([]);
+const loading = ref(true);
 
+// Filter State
+const categoryFilter = ref('');
+const severityFilter = ref('');
+const searchQuery = ref('');
+
+// UI State
+const expandedRows = ref<Set<string>>(new Set());
+
+// Flamegraph State
 const showFlamegraphDialog = ref(false);
-let activeGuardVisualization: GuardVisualization;
-
-// For info modal
-const activeGuardInfo = ref<GuardAnalysisResult | null>(null);
-let infoModalInstance: bootstrap.Modal | null = null;
-
-// For category modal
-const activeCategoryCards = ref<GuardAnalysisResult[]>([]);
-const activeCategoryName = ref<string>('');
-let categoryModalInstance: bootstrap.Modal | null = null;
-
+const activeVisualization = ref<GuardVisualization | null>(null);
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 let modalInstance: bootstrap.Modal | null = null;
 
-// Track window resize for responsive navigation
-const handleResize = () => {
-  // Force component update to recompute navigation visibility
-  guards.value = [...guards.value];
+// Severity priority for sorting (warnings first)
+const severityOrder: Record<string, number> = {
+  WARNING: 0,
+  INFO: 1,
+  OK: 2,
+  NA: 3,
+  IGNORE: 4
 };
 
-onMounted(() => {
-  GuardianClient.list(workspaceId.value!, projectId.value!, route.params.profileId as string).then(
-    data => (guards.value = data)
+// Computed: Extract prerequisites (data quality checks)
+const prerequisites = computed(() => {
+  const prereqCategory = guards.value.find(g => g.category === PREREQUISITES_CATEGORY);
+  return prereqCategory?.results || [];
+});
+
+// Computed: All rules EXCLUDING prerequisites
+const allRulesFlat = computed<FlatRule[]>(() =>
+  guards.value
+    .filter(g => g.category !== PREREQUISITES_CATEGORY)
+    .flatMap((g, gIdx) =>
+      g.results.map((r, rIdx) => ({
+        ...r,
+        category: g.category,
+        id: `${gIdx}-${rIdx}-${r.rule}`
+      }))
+    )
+);
+
+// Alias for template readability
+const analysisRulesFlat = allRulesFlat;
+
+// Computed: Unique categories for filter dropdown (excluding Prerequisites)
+const categories = computed(() =>
+  [...new Set(guards.value
+    .filter(g => g.category !== PREREQUISITES_CATEGORY)
+    .map(g => g.category)
+  )].sort()
+);
+
+// Computed: Filtered and sorted rules
+const filteredAndSortedRules = computed(() => {
+  let rules = [...allRulesFlat.value];
+
+  // Apply category filter
+  if (categoryFilter.value) {
+    rules = rules.filter(r => r.category === categoryFilter.value);
+  }
+
+  // Apply severity filter
+  if (severityFilter.value) {
+    rules = rules.filter(r => r.severity === severityFilter.value);
+  }
+
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    rules = rules.filter(r =>
+      r.rule.toLowerCase().includes(query) ||
+      r.category.toLowerCase().includes(query) ||
+      r.summary?.toLowerCase().includes(query)
+    );
+  }
+
+  // Sort by severity (warnings first)
+  return rules.sort((a, b) =>
+    (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
   );
+});
 
-  // Add window resize listener for responsive navigation
-  window.addEventListener('resize', handleResize);
+// Computed: Severity counts (excluding prerequisites)
+const severityCounts = computed(() => ({
+  ok: allRulesFlat.value.filter(r => r.severity === 'OK').length,
+  warning: allRulesFlat.value.filter(r => r.severity === 'WARNING').length,
+  info: allRulesFlat.value.filter(r => r.severity === 'INFO').length,
+  na: allRulesFlat.value.filter(r => r.severity === 'NA' || r.severity === 'IGNORE').length
+}));
 
-  // Initialize the Bootstrap modal after the DOM is ready
+// Computed: Chart options
+const chartOptions = computed(() => ({
+  chart: {
+    type: 'donut' as const,
+    fontFamily: 'inherit'
+  },
+  labels: ['Passed', 'Warnings', 'Info', 'N/A'],
+  colors: ['#28a745', '#dc3545', '#0d6efd', '#6c757d'],
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '65%',
+        labels: {
+          show: true,
+          name: {
+            show: true,
+            fontSize: '12px',
+            fontWeight: 600
+          },
+          value: {
+            show: true,
+            fontSize: '18px',
+            fontWeight: 700
+          },
+          total: {
+            show: true,
+            label: 'Passed',
+            fontSize: '11px',
+            fontWeight: 500,
+            color: '#6c757d',
+            formatter: () => `${severityCounts.value.ok}/${allRulesFlat.value.length}`
+          }
+        }
+      }
+    }
+  },
+  dataLabels: {
+    enabled: false
+  },
+  legend: {
+    show: false
+  },
+  stroke: {
+    width: 2,
+    colors: ['#fff']
+  },
+  tooltip: {
+    enabled: true,
+    y: {
+      formatter: (val: number) => `${val} rules`
+    }
+  }
+}));
+
+// Computed: Chart series
+const chartSeries = computed(() => [
+  severityCounts.value.ok,
+  severityCounts.value.warning,
+  severityCounts.value.info,
+  severityCounts.value.na
+]);
+
+// Lifecycle
+onMounted(() => {
+  GuardianClient.list(workspaceId.value!, projectId.value!, route.params.profileId as string)
+    .then((data: GuardResponse[]) => {
+      guards.value = data;
+      loading.value = false;
+    })
+    .catch(() => {
+      loading.value = false;
+    });
+
+  // Initialize flamegraph modal
   nextTick(() => {
     const modalEl = document.getElementById('flamegraphModal');
     if (modalEl) {
-      // We'll manually create and dispose of the modal
-      // for better control over the behavior
       modalEl.addEventListener('hidden.bs.modal', () => {
         showFlamegraphDialog.value = false;
       });
-
-      // Add event listener to close button that might not work with data-bs-dismiss
-      const closeButton = modalEl.querySelector('.btn-close');
-      if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
-      }
     }
   });
 });
 
-// Watch for changes to showFlamegraphDialog to control modal visibility
+onUnmounted(() => {
+  if (modalInstance) {
+    modalInstance.dispose();
+    modalInstance = null;
+  }
+});
+
+// Watch for flamegraph modal visibility
 watch(showFlamegraphDialog, isVisible => {
   if (isVisible) {
     if (!modalInstance) {
@@ -118,7 +511,6 @@ watch(showFlamegraphDialog, isVisible => {
         modalInstance = new bootstrap.Modal(modalEl);
       }
     }
-
     if (modalInstance) {
       modalInstance.show();
     }
@@ -129,143 +521,91 @@ watch(showFlamegraphDialog, isVisible => {
   }
 });
 
-// Function to close the modal
-const closeModal = () => {
-  if (modalInstance) {
-    modalInstance.hide();
-  }
-  showFlamegraphDialog.value = false;
-};
-
-// Clean up event listeners and modal when component is unmounted
-onUnmounted(() => {
-  if (modalInstance) {
-    modalInstance.dispose();
-    modalInstance = null;
-  }
-
-  if (infoModalInstance) {
-    infoModalInstance.dispose();
-    infoModalInstance = null;
-  }
-
-  if (categoryModalInstance) {
-    categoryModalInstance.dispose();
-    categoryModalInstance = null;
-  }
-
-  // Remove resize event listener
-  window.removeEventListener('resize', handleResize);
-
-  // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {});
-});
-
-function mapSeverity(severity: string) {
-  if (severity === 'INFO') {
-    return 'Information';
-  } else if (severity === 'WARNING') {
-    return 'Warning';
-  } else if (severity === 'NA') {
-    return 'Not Applicable';
-  } else if (severity === 'IGNORE') {
-    return 'Ignored';
-  } else if (severity === 'OK') {
-    return 'OK';
+// Helper Functions
+function toggleRow(ruleId: string) {
+  if (expandedRows.value.has(ruleId)) {
+    expandedRows.value.delete(ruleId);
   } else {
-    return severity;
+    expandedRows.value.add(ruleId);
+  }
+  // Trigger reactivity
+  expandedRows.value = new Set(expandedRows.value);
+}
+
+function isPercentageScore(score: string | null): boolean {
+  return score != null && typeof score === 'string' && score.includes('%');
+}
+
+function getSeverityIcon(severity: string): string {
+  switch (severity) {
+    case 'OK': return 'check-circle-fill';
+    case 'WARNING': return 'exclamation-triangle-fill';
+    case 'INFO': return 'info-circle-fill';
+    case 'NA': return 'slash-circle-fill';
+    case 'IGNORE': return 'eye-slash-fill';
+    default: return 'question-circle-fill';
   }
 }
 
-const click_flamegraph = (guard: GuardAnalysisResult) => {
-  if (Utils.isNotNull(guard.visualization)) {
-    // First close the category modal if it's open
-    if (categoryModalInstance) {
-      categoryModalInstance.hide();
-    }
+function getSeverityTextClass(severity: string): string {
+  switch (severity) {
+    case 'OK': return 'text-success';
+    case 'WARNING': return 'text-danger';
+    case 'INFO': return 'text-primary';
+    case 'NA':
+    case 'IGNORE': return 'text-secondary';
+    default: return 'text-muted';
+  }
+}
 
-    activeGuardVisualization = guard.visualization;
-    let flamegraphClient = new GuardianFlamegraphClient(
+function getSeverityColor(severity: string): string {
+  switch (severity) {
+    case 'OK': return '#198754';
+    case 'WARNING': return '#dc3545';
+    case 'INFO': return '#0d6efd';
+    case 'NA':
+    case 'IGNORE': return '#6c757d';
+    default: return '#6c757d';
+  }
+}
+
+// Flamegraph Functions
+function openFlamegraph(rule: FlatRule) {
+  if (rule.visualization) {
+    activeVisualization.value = rule.visualization;
+
+    const flamegraphClient = new GuardianFlamegraphClient(
       route.params.workspaceId as string,
       route.params.projectId as string,
-      guard.visualization.primaryProfileId,
-      guard.visualization.eventType,
-      guard.visualization.useWeight,
-      guard.visualization.markers
+      rule.visualization.primaryProfileId,
+      rule.visualization.eventType,
+      rule.visualization.useWeight,
+      rule.visualization.markers
     );
 
     graphUpdater = new FullGraphUpdater(flamegraphClient, false);
     graphUpdater.setTimeseriesSearchEnabled(false);
     flamegraphTooltip = FlamegraphTooltipFactory.create(
-      guard.visualization.eventType,
-      guard.visualization.useWeight,
+      rule.visualization.eventType,
+      rule.visualization.useWeight,
       false
     );
 
-    // Delayed the initialization of the graphUpdater to ensure that the modal is fully rendered
+    // Delayed initialization to ensure modal is rendered
     setTimeout(() => {
       graphUpdater.initialize();
     }, 200);
 
-    // Then set the flag to show the dialog
-    // The watcher will take care of showing the modal
     showFlamegraphDialog.value = true;
   }
-};
+}
 
-// Function to show information modal
-const showInfoModal = (guard: GuardAnalysisResult) => {
-  // First close the category modal if it's open
-  if (categoryModalInstance) {
-    categoryModalInstance.hide();
+function closeFlamegraphModal() {
+  if (modalInstance) {
+    modalInstance.hide();
   }
-
-  // Set the active guard info
-  activeGuardInfo.value = guard;
-
-  // Initialize modal if needed
-  nextTick(() => {
-    const modalEl = document.getElementById('infoModal');
-    if (modalEl) {
-      if (!infoModalInstance) {
-        infoModalInstance = new bootstrap.Modal(modalEl);
-      }
-      infoModalInstance.show();
-    }
-  });
-};
-
-// Function to close information modal
-const closeInfoModal = () => {
-  if (infoModalInstance) {
-    infoModalInstance.hide();
-  }
-};
-
-// Function to show all cards in a category
-const showAllCards = (category: string, cards: GuardAnalysisResult[]) => {
-  // Set the active category data
-  activeCategoryName.value = category;
-  activeCategoryCards.value = [...cards];
-
-  // Initialize modal if needed
-  nextTick(() => {
-    const modalEl = document.getElementById('categoryModal');
-    if (modalEl) {
-      if (!categoryModalInstance) {
-        categoryModalInstance = new bootstrap.Modal(modalEl);
-      }
-      categoryModalInstance.show();
-    }
-  });
-};
-
-// Function to close category modal
-const closeCategoryModal = () => {
-  if (categoryModalInstance) {
-    categoryModalInstance.hide();
-  }
-};
+  showFlamegraphDialog.value = false;
+}
 
 function scrollToTop() {
   const wrapper = document.querySelector('.scrollable-wrapper');
@@ -273,746 +613,355 @@ function scrollToTop() {
     wrapper.scrollTop = 0;
   }
 }
-
-function getBadgeClass(guard: GuardAnalysisResult) {
-  if (guard.severity === 'OK') {
-    return 'bg-success';
-  } else if (guard.severity === 'WARNING') {
-    return 'bg-danger';
-  } else if (guard.severity === 'INFO') {
-    return 'bg-primary';
-  } else if (guard.severity === 'NA') {
-    return 'bg-secondary';
-  } else if (guard.severity === 'IGNORE') {
-    return 'bg-secondary';
-  } else {
-    return 'bg-light text-dark';
-  }
-}
-
-// Function to open flamegraph from info modal
-const openFlamegraphFromInfo = () => {
-  // First close the info modal
-  closeInfoModal();
-
-  // Then if we have active guard info with visualization, open flamegraph
-  if (activeGuardInfo.value && Utils.isNotNull(activeGuardInfo.value.visualization)) {
-    click_flamegraph(activeGuardInfo.value);
-  }
-};
-
-// Removed mouse_over function - no longer needed for tooltips
-
-// Removed generate_and_place_tooltip function - no longer needed for tooltips
-
-// Removed divider function - no longer needed
-
-// Removed generateTooltip function - no longer needed
-
-function select_icon(guard: GuardAnalysisResult) {
-  if (guard.severity === 'OK') {
-    return 'check-circle-fill';
-  } else if (guard.severity === 'WARNING') {
-    return 'exclamation-triangle-fill';
-  } else if (guard.severity === 'INFO') {
-    return 'info-circle-fill';
-  } else if (guard.severity === 'NA') {
-    return 'slash-circle-fill';
-  } else if (guard.severity === 'IGNORE') {
-    return 'eye-slash-fill';
-  }
-}
-
-function select_color(guard: GuardAnalysisResult, type: string) {
-  // For Bootstrap, we'll convert to their color system
-  // type can be "text" or "bg"
-  if (guard.severity === 'OK') {
-    return type === 'text' ? 'text-success' : 'bg-success-subtle';
-  } else if (guard.severity === 'WARNING') {
-    return type === 'text' ? 'text-danger' : 'bg-danger-subtle';
-  } else if (guard.severity === 'INFO') {
-    return type === 'text' ? 'text-primary' : 'bg-primary-subtle';
-  } else if (guard.severity === 'NA' || guard.severity === 'IGNORE') {
-    return type === 'text' ? 'text-secondary' : 'bg-secondary-subtle';
-  }
-}
-
-function getSeverityColor(guard: GuardAnalysisResult) {
-  // Return a darker color based on severity
-  if (guard.severity === 'OK') {
-    return '#198754'; // Darker green
-  } else if (guard.severity === 'WARNING') {
-    return '#dc3545'; // Darker red
-  } else if (guard.severity === 'INFO') {
-    return '#0d6efd'; // Darker blue
-  } else if (guard.severity === 'NA' || guard.severity === 'IGNORE') {
-    return '#6c757d'; // Darker gray
-  } else {
-    return '#6c757d'; // Default darker gray
-  }
-}
-
-function getLightSeverityColor(guard: GuardAnalysisResult) {
-  // Return a lighter color based on severity for backgrounds
-  if (guard.severity === 'OK') {
-    return '#d1e7dd'; // Light green
-  } else if (guard.severity === 'WARNING') {
-    return '#f8d7da'; // Light red
-  } else if (guard.severity === 'INFO') {
-    return '#cfe2ff'; // Light blue
-  } else if (guard.severity === 'NA' || guard.severity === 'IGNORE') {
-    return '#e9ecef'; // Light gray
-  } else {
-    return '#ffffff'; // Default white
-  }
-}
-
-// Determine if navigation is needed based on window width and number of items
-function needsNavigation(itemCount: number): boolean {
-  // Get current window width
-  const width = window.innerWidth;
-
-  // Determine how many items can be shown based on window width
-  // This should match the logic in CardCarousel.vue
-  let visibleItems = 4; // Default for large screens
-
-  if (width < 700) {
-    visibleItems = 1;
-  } else if (width < 1200) {
-    visibleItems = 2;
-  } else if (width < 1600) {
-    visibleItems = 3;
-  }
-
-  // Only show navigation if there are more items than can be displayed
-  return itemCount > visibleItems;
-}
-
-// Removed unnecessary function
-
-// Removed removeTooltip function - no longer needed
 </script>
 
-<template>
-  <PageHeader
-    title="Guardian Analysis"
-    description="Automated analysis and recommendations for your profile based on traversing Flamegraphs"
-    icon="bi-shield-check"
-  >
-    <div id="autoAnalysisCard">
-      <div v-for="guardWithCategory in guards" class="guardian-category mb-4">
-        <!-- Modern category header with navigation only when needed -->
-        <div
-          class="category-header"
-          :class="{ 'with-navigation': guardWithCategory.results.length > 0 }"
-        >
-          <div class="category-title-container">
-            <h5 class="category-title">{{ guardWithCategory.category }}</h5>
-            <!-- Show count badge next to category title -->
-            <span class="cards-count-badge"
-              >{{ guardWithCategory.results.length }}
-              {{ guardWithCategory.results.length === 1 ? 'card' : 'cards' }}</span
-            >
-          </div>
-          <div class="category-navigation">
-            <!-- View All button -->
-            <button
-              v-if="guardWithCategory.results.length > 3"
-              class="view-all-btn"
-              @click="showAllCards(guardWithCategory.category, guardWithCategory.results)"
-            >
-              <span>View All</span>
-              <i class="bi bi-arrow-right-short"></i>
-            </button>
-
-            <!-- Show navigation for all categories with carousel -->
-            <div v-if="needsNavigation(guardWithCategory.results.length)" class="nav-buttons">
-              <button class="nav-btn prev-btn" :id="`prev-${guardWithCategory.category}`">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <button class="nav-btn next-btn" :id="`next-${guardWithCategory.category}`">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Use carousel for all categories regardless of card count -->
-        <div class="carousel-container">
-          <CardCarousel
-            :items="guardWithCategory.results"
-            :autoplay="false"
-            :max-items="4"
-            :prev-button-id="`prev-${guardWithCategory.category}`"
-            :next-button-id="`next-${guardWithCategory.category}`"
-          >
-            <template #item="{ item: guard }">
-              <div
-                class="guardian-card"
-                :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
-                :style="{ backgroundColor: getLightSeverityColor(guard) }"
-              >
-                <!-- Status indicator -->
-                <div class="guardian-card-status">
-                  <i
-                    class="bi"
-                    :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"
-                  ></i>
-                </div>
-
-                <!-- Card content -->
-                <div class="guardian-card-content">
-                  <h6 class="guardian-card-title">{{ guard.rule }}</h6>
-                </div>
-
-                <!-- Footer with score and actions -->
-                <div class="guardian-card-footer">
-                  <!-- Score section with visualization -->
-                  <div v-if="guard.score != null" class="guardian-card-score">
-                    <div
-                      v-if="typeof guard.score === 'string' && guard.score.includes('%')"
-                      class="score-visualizer"
-                    >
-                      <div class="score-header">
-                        <span class="score-label">Score</span>
-                        <span class="score-value">{{ guard.score }}</span>
-                      </div>
-                      <div class="progress">
-                        <div
-                          class="progress-bar"
-                          :style="{ width: guard.score, backgroundColor: getSeverityColor(guard) }"
-                        ></div>
-                      </div>
-                    </div>
-                    <div v-else class="score-text"><span>Score:</span> {{ guard.score }}</div>
-                  </div>
-                  <div v-else class="guardian-card-score-placeholder"></div>
-
-                  <!-- Action buttons -->
-                  <div class="guardian-card-actions">
-                    <button
-                      v-if="Utils.isNotNull(guard.visualization)"
-                      class="flame-btn"
-                      @click.stop="click_flamegraph(guard)"
-                    >
-                      <i class="bi bi-fire"></i>
-                    </button>
-                    <button
-                      v-if="guard.severity !== 'NA'"
-                      class="info-btn"
-                      @click.stop="showInfoModal(guard)"
-                    >
-                      <i class="bi bi-info-circle"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </CardCarousel>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tooltip element removed -->
-
-    <!-- Modal for flamegraph visualization -->
-    <div
-      class="modal fade"
-      id="flamegraphModal"
-      tabindex="-1"
-      aria-labelledby="flamegraphModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="btn-close" @click="closeModal" aria-label="Close" />
-          </div>
-          <div
-            id="scrollable-wrapper"
-            class="modal-body pr-2 pl-2"
-            v-if="showFlamegraphDialog && activeGuardVisualization"
-          >
-            <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-            <TimeSeriesChart
-              :graph-updater="graphUpdater"
-              :primary-axis-type="
-                TimeseriesEventAxeFormatter.resolveAxisFormatter(
-                  activeGuardVisualization.useWeight,
-                  activeGuardVisualization.eventType
-                )
-              "
-              :visible-minutes="60"
-              :zoom-enabled="true"
-              time-unit="seconds"
-            />
-            <FlamegraphComponent
-              :with-timeseries="true"
-              :use-weight="activeGuardVisualization.useWeight"
-              :use-guardian="activeGuardVisualization"
-              scrollableWrapperClass="scrollable-wrapper"
-              :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"
-              @loaded="scrollToTop"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Information Modal -->
-    <div
-      class="modal fade"
-      id="infoModal"
-      tabindex="-1"
-      aria-labelledby="infoModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="infoModalLabel" v-if="activeGuardInfo">
-              {{ activeGuardInfo.rule }}
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="closeInfoModal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body" v-if="activeGuardInfo">
-            <!-- Severity section -->
-            <div v-if="activeGuardInfo.severity" class="mb-3">
-              <h6 class="text-muted text-uppercase small fw-bold">Severity</h6>
-              <span class="badge" :class="getBadgeClass(activeGuardInfo)">{{
-                mapSeverity(activeGuardInfo.severity)
-              }}</span>
-            </div>
-
-            <!-- Score section -->
-            <div v-if="activeGuardInfo.score != null" class="mb-3">
-              <h6 class="text-muted text-uppercase small fw-bold">Score</h6>
-              <p>{{ activeGuardInfo.score }}</p>
-            </div>
-
-            <!-- Summary section -->
-            <div v-if="activeGuardInfo.summary" class="mb-3">
-              <h6 class="text-muted text-uppercase small fw-bold">Summary</h6>
-              <p v-html="activeGuardInfo.summary"></p>
-            </div>
-
-            <!-- Explanation section -->
-            <div v-if="activeGuardInfo.explanation" class="mb-3">
-              <h6 class="text-muted text-uppercase small fw-bold">Explanation</h6>
-              <p v-html="activeGuardInfo.explanation"></p>
-            </div>
-
-            <!-- Solution section -->
-            <div v-if="activeGuardInfo.solution" class="mb-3">
-              <h6 class="text-muted text-uppercase small fw-bold">Solution</h6>
-              <p v-html="activeGuardInfo.solution"></p>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeInfoModal">Close</button>
-            <button
-              v-if="Utils.isNotNull(activeGuardInfo?.visualization)"
-              type="button"
-              class="btn btn-primary"
-              @click="openFlamegraphFromInfo"
-            >
-              <i class="bi bi-fire me-1"></i> View Flamegraph
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Category Cards Modal -->
-    <div
-      class="modal fade"
-      id="categoryModal"
-      tabindex="-1"
-      aria-labelledby="categoryModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="categoryModalLabel">
-              {{ activeCategoryName }}
-              <span class="cards-count-badge ms-2"
-                >{{ activeCategoryCards.length }}
-                {{ activeCategoryCards.length === 1 ? 'card' : 'cards' }}</span
-              >
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="closeCategoryModal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <div class="category-modal-grid">
-              <div
-                v-for="(guard, index) in activeCategoryCards"
-                :key="index"
-                class="guardian-card"
-                :class="[`severity-${guard.severity?.toLowerCase() || 'default'}`]"
-                :style="{ backgroundColor: getLightSeverityColor(guard) }"
-              >
-                <!-- Status indicator -->
-                <div class="guardian-card-status">
-                  <i
-                    class="bi"
-                    :class="[`bi-${select_icon(guard)}`, select_color(guard, 'text')]"
-                  ></i>
-                </div>
-
-                <!-- Card content -->
-                <div class="guardian-card-content">
-                  <h6 class="guardian-card-title">{{ guard.rule }}</h6>
-                </div>
-
-                <!-- Footer with score and actions -->
-                <div class="guardian-card-footer">
-                  <!-- Score section with visualization -->
-                  <div v-if="guard.score != null" class="guardian-card-score">
-                    <div
-                      v-if="typeof guard.score === 'string' && guard.score.includes('%')"
-                      class="score-visualizer"
-                    >
-                      <div class="score-header">
-                        <span class="score-label">Score</span>
-                        <span class="score-value">{{ guard.score }}</span>
-                      </div>
-                      <div class="progress">
-                        <div
-                          class="progress-bar"
-                          :style="{ width: guard.score, backgroundColor: getSeverityColor(guard) }"
-                        ></div>
-                      </div>
-                    </div>
-                    <div v-else class="score-text"><span>Score:</span> {{ guard.score }}</div>
-                  </div>
-                  <div v-else class="guardian-card-score-placeholder"></div>
-
-                  <!-- Action buttons -->
-                  <div class="guardian-card-actions">
-                    <button
-                      v-if="Utils.isNotNull(guard.visualization)"
-                      class="flame-btn"
-                      @click.stop="click_flamegraph(guard)"
-                    >
-                      <i class="bi bi-fire"></i>
-                    </button>
-                    <button
-                      v-if="guard.severity !== 'NA'"
-                      class="info-btn"
-                      @click.stop="showInfoModal(guard)"
-                    >
-                      <i class="bi bi-info-circle"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeCategoryModal">
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </PageHeader>
-</template>
-
 <style scoped>
-/* Page title */
-.guardian-title {
-  font-size: 1.75rem;
+/* Summary Card */
+.summary-card {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.summary-card-body {
+  padding: 1.25rem;
+}
+
+.section-title {
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #343a40;
-  margin-bottom: 0.5rem;
+  color: #4b5563;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Chart Section */
+.chart-section {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.no-analysis-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #9ca3af;
+  gap: 0.5rem;
+}
+
+.no-analysis-data i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* Legend Section */
+.legend-section {
+  height: 100%;
+  border-left: 1px solid #f0f0f0;
+  padding-left: 1.25rem;
+}
+
+.severity-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.legend-item {
   display: flex;
   align-items: center;
+  gap: 0.6rem;
 }
 
-@media (max-width: 768px) {
-  .guardian-title {
-    font-size: 1.5rem;
-  }
+.legend-item i {
+  font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
-/* Guardian container */
-/* Removed guardian-container styling */
-
-/* Category styling */
-.guardian-category {
-  margin-bottom: 1.75rem;
+.legend-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+  flex: 1;
 }
 
-.category-header {
-  margin-bottom: 0.75rem;
-  position: relative;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 0.35rem;
+.legend-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f2937;
+  background: #f3f4f6;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+.no-results-msg {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Prerequisites Section */
+.prerequisites-section {
+  height: 100%;
+  border-left: 1px solid #f0f0f0;
+  padding-left: 1.25rem;
+}
+
+.prerequisites-list {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.category-title-container {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
-.category-title {
-  font-weight: 600;
-  margin: 0;
-  color: #111827;
-  font-size: 1.1rem;
-  letter-spacing: -0.01em;
+.prereq-item {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+  border-left: 3px solid;
 }
 
-.category-navigation {
+.prereq-item.prereq-ok {
+  border-left-color: #28a745;
+  background: linear-gradient(135deg, #f0fdf4, #f9fafb);
+}
+
+.prereq-item.prereq-warning {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #f9fafb);
+}
+
+.prereq-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.cards-count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 8px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  line-height: 1;
-  color: #5e64ff;
-  white-space: nowrap;
-  background-color: rgba(94, 100, 255, 0.12);
-  border-radius: 11px;
-  position: relative;
-  top: -1px;
+.prereq-header i {
+  font-size: 0.85rem;
 }
 
-.nav-buttons {
-  display: flex;
-  gap: 0.2rem;
-}
-
-.nav-btn {
-  height: 28px;
-  width: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid #e5e7eb;
-  color: #5e64ff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-  padding: 0;
-}
-
-.nav-btn:hover {
-  background-color: #5e64ff;
-  color: white;
-  border-color: #5e64ff;
-}
-
-.nav-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.3);
-}
-
-/* View All button */
-.view-all-btn {
-  display: flex;
-  align-items: center;
+.prereq-name {
   font-size: 0.8rem;
-  font-weight: 500;
-  color: #5e64ff;
-  background: transparent;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 0.2rem 0.6rem;
-  height: 28px;
-  gap: 0.2rem;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.view-all-btn:hover {
-  background-color: #5e64ff;
-  color: white;
-  border-color: #5e64ff;
-}
-
-.view-all-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.3);
-}
-
-.view-all-btn i {
-  font-size: 1rem;
-}
-
-/* Card grid for single card categories */
-.guardian-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-/* Carousel container */
-.carousel-container {
-  width: 100%;
-  overflow: hidden;
-}
-
-/* Card styling */
-.guardian-card {
-  position: relative;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease-in-out;
-  padding: 0.65rem;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 5.5rem;
-  border-left: 3px solid;
-  width: 100%;
-}
-
-.guardian-card.severity-ok {
-  border-left-color: #28a745;
-}
-
-.guardian-card.severity-warning {
-  border-left-color: #dc3545;
-}
-
-.guardian-card.severity-info {
-  border-left-color: #0d6efd;
-}
-
-.guardian-card.severity-na,
-.guardian-card.severity-ignore {
-  border-left-color: #6c757d;
-}
-
-/* Status indicator */
-.guardian-card-status {
-  position: absolute;
-  top: 0.55rem;
-  right: 0.55rem;
-  font-size: 0.9rem;
-}
-
-/* Card content */
-.guardian-card-content {
-  flex-grow: 1;
-  padding-right: 1.25rem;
-  padding-bottom: 0.1rem;
-  margin-bottom: 0;
-}
-
-.guardian-card-title {
-  font-size: 0.82rem;
   font-weight: 600;
-  margin-bottom: 0.3rem;
-  padding-right: 0.75rem;
-  line-height: 1.25;
+  color: #374151;
 }
 
-/* Removed different styling for carousel cards */
-
-/* Card footer with score and actions */
-.guardian-card-footer {
-  margin-top: auto;
-  width: 100%;
-}
-
-/* Score visualizer */
-.guardian-card-score {
-  margin-bottom: 0.4rem;
-  margin-top: 0;
+.prereq-value {
   font-size: 0.75rem;
-  width: 100%;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  padding-left: 1.35rem;
 }
 
-.guardian-card-score-placeholder {
-  height: 0.2rem;
+.no-prereq-msg {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
 }
 
-/* Removed different styling for carousel card scores */
-
-.score-header {
+/* Filter Bar */
+.filter-bar {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.2rem;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-.score-label {
-  font-weight: 500;
-  opacity: 0.7;
+.filter-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.score-value {
-  font-weight: 600;
+.filter-group .form-select {
+  width: auto;
+  min-width: 140px;
+  font-size: 0.8rem;
 }
 
-.progress {
-  height: 5px;
-  background-color: rgba(0, 0, 0, 0.04);
-  border-radius: 2px;
+.search-group {
+  position: relative;
+  flex: 1;
+  max-width: 280px;
+}
+
+.search-group i {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.search-group .form-control {
+  padding-left: 2rem;
+  font-size: 0.8rem;
+}
+
+/* Rules Table */
+.rules-table-container {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  width: 100%;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-/* Removed different progress bar height */
+.rules-table {
+  width: 100%;
+}
 
-.progress-bar {
-  border-radius: 2px;
-  transition: width 0.5s ease;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+/* Table Header */
+.table-header {
+  display: grid;
+  grid-template-columns: 60px 150px 1fr 120px 80px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+
+/* Header columns should inherit header font styles */
+.table-header > div {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* Table Row */
+.table-row {
+  display: grid;
+  grid-template-columns: 60px 150px 1fr 120px 80px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease;
+}
+
+.table-row:hover {
+  background-color: #f9fafb;
+}
+
+.table-row.severity-warning {
+  border-left: 3px solid #dc3545;
+}
+
+.table-row.severity-info {
+  border-left: 3px solid #0d6efd;
+}
+
+.table-row.severity-ok {
+  border-left: 3px solid #28a745;
+}
+
+.table-row.severity-na,
+.table-row.severity-ignore {
+  border-left: 3px solid #6c757d;
+}
+
+/* Column Styles */
+.col-status {
+  display: flex;
+  justify-content: center;
+}
+
+.col-status i {
+  font-size: 1rem;
+}
+
+.col-category {
+  display: flex;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.category-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #4b5563;
+  background: #e5e7eb;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.col-rule {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-score {
+  display: flex;
+  justify-content: center;
+}
+
+.score-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
 }
 
 .score-text {
-  opacity: 0.8;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
 }
 
-.score-text span {
-  font-weight: 500;
+.no-score {
+  color: #9ca3af;
+  font-size: 0.75rem;
 }
 
-/* Action buttons */
-.guardian-card-actions {
+.mini-progress {
+  width: 100%;
+  max-width: 80px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mini-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.col-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
+  gap: 0.5rem;
 }
 
-/* Removed different margin for carousel card actions */
-
-.flame-btn,
-.info-btn {
+.flame-btn {
   width: 1.6rem;
   height: 1.6rem;
   border-radius: 4px;
@@ -1020,67 +969,170 @@ function needsNavigation(itemCount: number): boolean {
   align-items: center;
   justify-content: center;
   border: none;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   transition: all 0.15s ease-in-out;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: #fff3e0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 0;
-}
-
-/* Ensuring consistent button size between single and multiple cards */
-.flame-btn,
-.info-btn {
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.carousel-container .flame-btn,
-.carousel-container .info-btn {
-  width: 1.6rem;
-  font-size: 0.75rem;
-  border-radius: 4px;
-}
-
-.flame-btn {
-  color: #dc3545;
+  color: #fd7e14;
 }
 
 .flame-btn:hover {
-  background-color: #dc3545;
+  background-color: #fd7e14;
   color: white;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+  box-shadow: 0 2px 8px rgba(253, 126, 20, 0.25);
 }
 
-.info-btn {
-  color: #0d6efd;
+.expand-icon {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
 }
 
-.info-btn:hover {
-  background-color: #0d6efd;
-  color: white;
-  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.25);
+/* Row Details */
+.row-details {
+  background: #f9fafb;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .guardian-card {
-    min-height: 6rem;
-    width: 100%;
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+
+.detail-text {
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h6 {
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+}
+
+/* Transitions */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.expand-enter-to,
+.expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 50px 120px 1fr 100px 70px;
+  }
+
+  .legend-section,
+  .prerequisites-section {
+    border-left: none;
+    border-top: 1px solid #f0f0f0;
+    padding-left: 0;
+    padding-top: 1rem;
+    margin-top: 1rem;
   }
 }
 
-/* Card in carousel */
-/* Ensuring consistent card height between single and multiple cards */
-.guardian-card {
-  min-height: 5.5rem;
-}
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-/* Category modal grid */
-.category-modal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
+  .filter-group {
+    flex-wrap: wrap;
+  }
+
+  .search-group {
+    max-width: none;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .col-status {
+    order: 1;
+    width: auto;
+  }
+
+  .col-rule {
+    order: 2;
+    flex: 1;
+    white-space: normal;
+  }
+
+  .col-actions {
+    order: 3;
+    width: auto;
+  }
+
+  .col-category {
+    order: 4;
+    width: auto;
+  }
+
+  .col-score {
+    order: 5;
+    width: auto;
+    justify-content: flex-start;
+  }
 }
 </style>

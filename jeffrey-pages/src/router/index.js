@@ -7,6 +7,8 @@ import Blog from '../pages/Blog.vue'
 import JavaProfilingLiterature from '../pages/blog/JavaProfilingLiterature.vue'
 import JfrInDepth from '../pages/blog/JfrInDepth.vue'
 import Jeffrey04Announcement from '../pages/blog/Jeffrey04Announcement.vue'
+import DocsLayout from '../pages/docs/DocsLayout.vue'
+import DocsPage from '../pages/docs/DocsPage.vue'
 
 const routes = [
   {
@@ -53,6 +55,22 @@ const routes = [
     path: '/blog/jeffrey-04-announcement',
     name: 'Jeffrey04Announcement',
     component: Jeffrey04Announcement
+  },
+  {
+    path: '/docs',
+    component: DocsLayout,
+    children: [
+      {
+        path: '',
+        redirect: '/docs/getting-started/introduction'
+      },
+      {
+        path: ':category/:page',
+        name: 'DocsPage',
+        component: DocsPage,
+        props: true
+      }
+    ]
   }
 ]
 

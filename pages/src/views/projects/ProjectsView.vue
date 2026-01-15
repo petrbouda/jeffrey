@@ -109,11 +109,6 @@
           <span>Select a workspace to view projects</span>
         </div>
 
-        <!-- Delimiter -->
-        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="projects-delimiter">
-          <span class="delimiter-dots">•••</span>
-        </div>
-
         <!-- Loading indicator -->
         <div v-if="loading" class="text-center py-4">
           <div class="spinner-border text-primary" role="status">
@@ -883,37 +878,6 @@ const handleDeleteWorkspace = async () => {
   .context-search {
     width: 120px;
   }
-}
-
-/* Projects Delimiter */
-.projects-delimiter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 0 0 20px 0;
-}
-
-.projects-delimiter::before,
-.projects-delimiter::after {
-  content: '';
-  height: 1px;
-  flex: 1;
-  background: #e5e7eb;
-}
-
-.projects-delimiter::before {
-  background: linear-gradient(90deg, transparent, #e5e7eb);
-}
-
-.projects-delimiter::after {
-  background: linear-gradient(90deg, #e5e7eb, transparent);
-}
-
-.delimiter-dots {
-  color: #d1d5db;
-  font-size: 0.7rem;
-  letter-spacing: 2px;
 }
 
 /* Modern Projects Main Card Styling */
