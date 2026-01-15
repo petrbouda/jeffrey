@@ -19,6 +19,8 @@
 export interface DocPage {
   title: string;
   path: string;
+  anchor?: string;  // Optional anchor for linking to sections within a page
+  children?: DocPage[];  // Optional nested children for collapsible sub-items
 }
 
 export interface DocSection {

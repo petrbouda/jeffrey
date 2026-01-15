@@ -37,7 +37,19 @@ export const docsNavigation: DocSection[] = [
     icon: 'bi-lightbulb',
     children: [
       { title: 'Workspaces', path: 'workspaces' },
-      { title: 'Projects', path: 'projects' },
+      {
+        title: 'Projects',
+        path: 'projects',
+        children: [
+          { title: 'Overview', path: 'projects' },
+          { title: 'Profiles', path: 'projects/profiles' },
+          { title: 'Recordings', path: 'projects/recordings' },
+          { title: 'Repository', path: 'projects/repository' },
+          { title: 'Profiler Settings', path: 'projects/profiler-settings' },
+          { title: 'Scheduler', path: 'projects/scheduler' },
+          { title: 'Alerts & Messages', path: 'projects/alerts-messages' }
+        ]
+      },
       { title: 'Profiles', path: 'profiles' },
       { title: 'JFR Events', path: 'jfr-events' }
     ]
@@ -61,6 +73,14 @@ export const docsNavigation: DocSection[] = [
       { title: 'CPU Performance', path: 'cpu-performance' },
       { title: 'Memory Analysis', path: 'memory-analysis' },
       { title: 'Thread Analysis', path: 'thread-analysis' }
+    ]
+  },
+  {
+    title: 'CLI',
+    path: 'cli',
+    icon: 'bi-terminal',
+    children: [
+      { title: 'Overview', path: 'overview' }
     ]
   }
 ];

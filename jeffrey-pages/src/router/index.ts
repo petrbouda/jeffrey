@@ -100,6 +100,36 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/concepts/ProjectsPage.vue')
       },
       {
+        path: 'concepts/projects/profiles',
+        name: 'DocsProjectsProfiles',
+        component: () => import('@/views/docs/concepts/projects/ProfilesFeaturePage.vue')
+      },
+      {
+        path: 'concepts/projects/recordings',
+        name: 'DocsProjectsRecordings',
+        component: () => import('@/views/docs/concepts/projects/RecordingsFeaturePage.vue')
+      },
+      {
+        path: 'concepts/projects/repository',
+        name: 'DocsProjectsRepository',
+        component: () => import('@/views/docs/concepts/projects/RepositoryFeaturePage.vue')
+      },
+      {
+        path: 'concepts/projects/profiler-settings',
+        name: 'DocsProjectsProfilerSettings',
+        component: () => import('@/views/docs/concepts/projects/ProfilerSettingsPage.vue')
+      },
+      {
+        path: 'concepts/projects/scheduler',
+        name: 'DocsProjectsScheduler',
+        component: () => import('@/views/docs/concepts/projects/SchedulerFeaturePage.vue')
+      },
+      {
+        path: 'concepts/projects/alerts-messages',
+        name: 'DocsProjectsAlertsMessages',
+        component: () => import('@/views/docs/concepts/projects/AlertsMessagesPage.vue')
+      },
+      {
         path: 'concepts/profiles',
         name: 'DocsProfiles',
         component: () => import('@/views/docs/concepts/ProfilesPage.vue')
@@ -145,6 +175,12 @@ const routes: RouteRecordRaw[] = [
         path: 'guides/thread-analysis',
         name: 'DocsThreadAnalysis',
         component: () => import('@/views/docs/guides/ThreadAnalysisPage.vue')
+      },
+      // CLI
+      {
+        path: 'cli/overview',
+        name: 'DocsCliOverview',
+        component: () => import('@/views/docs/cli/CliOverviewPage.vue')
       }
     ]
   }

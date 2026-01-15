@@ -20,6 +20,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { docsNavigation } from '@/composables/useDocsNavigation';
+import type { DocPage } from '@/types/docs';
 
 const emit = defineEmits<{
   (e: 'open-search'): void;
@@ -34,16 +35,26 @@ const currentCategory = computed(() => {
 });
 const currentPage = computed(() => {
   const parts = route.path.split('/');
-  return parts[3] || '';
+  // Handle nested paths like projects/profiles
+  return parts.slice(3).join('/') || '';
 });
 
 // Track expanded sections
 const expandedSections = ref<Set<string>>(new Set());
+// Track expanded page items (pages with children)
+const expandedPageItems = ref<Set<string>>(new Set());
 
-// Auto-expand current category on load and when navigating
-watch(currentCategory, (newCategory) => {
+// Auto-expand current category and page items on load and when navigating
+watch([currentCategory, currentPage], ([newCategory, newPage]) => {
   if (newCategory) {
     expandedSections.value.add(newCategory);
+  }
+  // Auto-expand page items that have children and are active
+  // Handle nested paths like projects/profiles -> expand projects
+  if (newPage) {
+    const parentPage = newPage.split('/')[0];
+    const pageKey = `${newCategory}/${parentPage}`;
+    expandedPageItems.value.add(pageKey);
   }
 }, { immediate: true });
 
@@ -65,6 +76,27 @@ const toggleSection = (sectionPath: string): void => {
   } else {
     expandedSections.value.add(sectionPath);
   }
+};
+
+const isPageItemExpanded = (category: string, page: string): boolean => {
+  return expandedPageItems.value.has(`${category}/${page}`);
+};
+
+const togglePageItem = (category: string, page: string): void => {
+  const key = `${category}/${page}`;
+  if (expandedPageItems.value.has(key)) {
+    expandedPageItems.value.delete(key);
+  } else {
+    expandedPageItems.value.add(key);
+  }
+};
+
+const hasChildren = (page: DocPage): boolean => {
+  return !!(page.children && page.children.length > 0);
+};
+
+const getPageLink = (category: string, page: DocPage): string => {
+  return `/docs/${category}/${page.path}`;
 };
 </script>
 
@@ -98,16 +130,42 @@ const toggleSection = (sectionPath: string): void => {
         </div>
 
         <div class="nav-section-items">
-          <router-link
-            v-for="page in section.children"
-            :key="page.path"
-            :to="`/docs/${section.path}/${page.path}`"
-            class="nav-item"
-            :class="{ 'active': isActiveLink(section.path, page.path) }"
-          >
-            <span class="nav-item-indicator"></span>
-            {{ page.title }}
-          </router-link>
+          <template v-for="page in section.children" :key="page.path">
+            <!-- Page with children (collapsible) -->
+            <div v-if="hasChildren(page)" class="nav-item-group" :class="{ 'expanded': isPageItemExpanded(section.path, page.path) }">
+              <div
+                class="nav-item nav-item-parent"
+                :class="{ 'active': currentPage === page.path || currentPage.startsWith(page.path + '/') }"
+                @click="togglePageItem(section.path, page.path)"
+              >
+                <span class="nav-item-indicator"></span>
+                {{ page.title }}
+                <i class="bi bi-chevron-down nav-item-chevron"></i>
+              </div>
+              <div class="nav-item-children">
+                <router-link
+                  v-for="child in page.children"
+                  :key="child.path"
+                  :to="getPageLink(section.path, child)"
+                  class="nav-item nav-item-child"
+                  :class="{ 'active': isActiveLink(section.path, child.path) }"
+                >
+                  <span class="nav-item-indicator"></span>
+                  {{ child.title }}
+                </router-link>
+              </div>
+            </div>
+            <!-- Regular page link -->
+            <router-link
+              v-else
+              :to="getPageLink(section.path, page)"
+              class="nav-item"
+              :class="{ 'active': isActiveLink(section.path, page.path) }"
+            >
+              <span class="nav-item-indicator"></span>
+              {{ page.title }}
+            </router-link>
+          </template>
         </div>
       </div>
     </nav>
@@ -317,5 +375,58 @@ const toggleSection = (sectionPath: string): void => {
 
 .nav-item.active .nav-item-indicator {
   height: 60%;
+}
+
+/* ============================
+   Nested Page Items (Collapsible)
+   ============================ */
+.nav-item-group {
+  /* Container for parent + children */
+}
+
+.nav-item-parent {
+  cursor: pointer;
+  justify-content: flex-start;
+}
+
+.nav-item-parent .nav-item-chevron {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.nav-item-group.expanded .nav-item-parent .nav-item-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-item-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, margin-top 0.25s ease;
+  margin-top: 0;
+}
+
+.nav-item-group.expanded .nav-item-children {
+  max-height: 500px;
+  margin-top: 0.25rem;
+}
+
+.nav-item-child {
+  padding-left: 2.5rem !important;
+  font-size: 0.8rem !important;
+  color: var(--color-text-muted) !important;
+}
+
+.nav-item-child:hover {
+  color: var(--color-primary) !important;
+}
+
+.nav-item-child.active {
+  color: var(--color-primary) !important;
+  font-weight: 500 !important;
 }
 </style>
