@@ -137,6 +137,21 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/concepts/projects/RepositoryFeaturePage.vue')
       },
       {
+        path: 'concepts/recording-sessions/overview',
+        name: 'DocsRecordingSessionsOverview',
+        component: () => import('@/views/docs/concepts/recording-sessions/RecordingSessionsOverviewPage.vue')
+      },
+      {
+        path: 'concepts/recording-sessions/configuration',
+        name: 'DocsRecordingSessionsConfiguration',
+        component: () => import('@/views/docs/concepts/recording-sessions/RecordingSessionsConfigurationPage.vue')
+      },
+      {
+        path: 'concepts/recording-sessions/lifecycle',
+        name: 'DocsRecordingSessionsLifecycle',
+        component: () => import('@/views/docs/concepts/recording-sessions/RecordingSessionsLifecyclePage.vue')
+      },
+      {
         path: 'concepts/projects/profiler-settings',
         name: 'DocsProjectsProfilerSettings',
         component: () => import('@/views/docs/concepts/projects/ProfilerSettingsPage.vue')
@@ -189,6 +204,47 @@ const routes: RouteRecordRaw[] = [
         path: 'cli/overview',
         name: 'DocsCliOverview',
         component: () => import('@/views/docs/cli/CliOverviewPage.vue')
+      },
+      {
+        path: 'cli/configuration',
+        name: 'DocsCliConfiguration',
+        component: () => import('@/views/docs/cli/CliConfigurationPage.vue')
+      },
+      {
+        path: 'cli/directory-structure',
+        name: 'DocsCliDirectoryStructure',
+        component: () => import('@/views/docs/cli/CliDirectoryStructurePage.vue')
+      },
+      // Deployments
+      {
+        path: 'deployments/overview',
+        name: 'DocsDeploymentsOverview',
+        component: () => import('@/views/docs/deployments/DeploymentsOverviewPage.vue')
+      },
+      {
+        path: 'deployments/simple-jar',
+        name: 'DocsDeploymentsSimpleJar',
+        component: () => import('@/views/docs/deployments/DeploymentsSimpleJarPage.vue')
+      },
+      {
+        path: 'deployments/simple-container',
+        name: 'DocsDeploymentsSimpleContainer',
+        component: () => import('@/views/docs/deployments/DeploymentsSimpleContainerPage.vue')
+      },
+      {
+        path: 'deployments/container-examples',
+        name: 'DocsDeploymentsContainerExamples',
+        component: () => import('@/views/docs/deployments/DeploymentsContainerExamplesPage.vue')
+      },
+      {
+        path: 'deployments/live-recording',
+        name: 'DocsDeploymentsLiveRecording',
+        component: () => import('@/views/docs/deployments/DeploymentsLiveRecordingPage.vue')
+      },
+      {
+        path: 'deployments/kubernetes',
+        name: 'DocsDeploymentsKubernetes',
+        component: () => import('@/views/docs/deployments/DeploymentsKubernetesPage.vue')
       }
     ]
   }

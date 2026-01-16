@@ -27,7 +27,6 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-is-repository', text: 'What is Repository?', level: 2 },
-  { id: 'recording-sessions', text: 'Recording Sessions', level: 2 },
   { id: 'merge-and-copy', text: 'Merge and Copy', level: 2 },
   { id: 'live-vs-remote', text: 'Live vs Remote Repository', level: 2 },
   { id: 'workspace-availability', text: 'Workspace Availability', level: 2 }
@@ -78,60 +77,16 @@ onMounted(() => {
 
         <p>Think of Repository as a "staging area" where recordings accumulate before you choose which ones to analyze.</p>
 
-        <h2 id="recording-sessions">Recording Sessions</h2>
-        <p>A recording session represents a profiling period from a running application. Sessions are created by the Jeffrey profiler agent and contain:</p>
-
-        <h3>Session Contents</h3>
-        <p>Each session can contain multiple file types:</p>
-
-        <div class="session-contents-grid">
-          <div class="session-content-card jfr">
-            <div class="card-header">
-              <i class="bi bi-file-earmark-binary"></i>
-              <h4>JFR Files</h4>
-            </div>
-            <div class="card-body">
-              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files from continuous profiling.</p>
-            </div>
+        <router-link to="/docs/concepts/recording-sessions/overview" class="session-link-card">
+          <div class="session-link-icon">
+            <i class="bi bi-collection-play"></i>
           </div>
-          <div class="session-content-card heap">
-            <div class="card-header">
-              <i class="bi bi-memory"></i>
-              <h4>Heap Dump</h4>
-            </div>
-            <div class="card-body">
-              <p>Memory snapshot captured on OutOfMemoryError or JVM crash. Compressed with gzip.</p>
-            </div>
+          <div class="session-link-content">
+            <h4>Recording Sessions</h4>
+            <p>Learn about session contents (JFR files, heap dumps, logs), lifecycle states, and how sessions are created by Async-Profiler.</p>
           </div>
-          <div class="session-content-card logs">
-            <div class="card-header">
-              <i class="bi bi-file-text"></i>
-              <h4>JVM Logs</h4>
-            </div>
-            <div class="card-body">
-              <p>Structured JVM diagnostic logs including GC events and JIT compilation activity.</p>
-            </div>
-          </div>
-          <div class="session-content-card perf">
-            <div class="card-header">
-              <i class="bi bi-speedometer2"></i>
-              <h4>Perf Counters</h4>
-            </div>
-            <div class="card-body">
-              <p>JVM performance data with low-level metrics about JVM internals.</p>
-            </div>
-          </div>
-        </div>
-
-        <h3>Session Information</h3>
-        <p>For each session, you can see:</p>
-        <ul>
-          <li><strong>Session ID</strong> - Unique identifier</li>
-          <li><strong>Start time</strong> - When profiling began</li>
-          <li><strong>Duration</strong> - How long the session ran</li>
-          <li><strong>Status</strong> - Active or completed</li>
-          <li><strong>Chunk count</strong> - Number of recording files</li>
-        </ul>
+          <i class="bi bi-arrow-right session-link-arrow"></i>
+        </router-link>
 
         <h2 id="merge-and-copy">Merge and Copy</h2>
         <p>When you find an interesting session in Repository, use <strong>"Merge and Copy"</strong> to:</p>
@@ -260,76 +215,70 @@ onMounted(() => {
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* Session Contents Grid */
-.session-contents-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.session-content-card {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.session-content-card .card-header {
+/* Session Link Card */
+.session-link-card {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #5e64ff;
+  border-radius: 8px;
+  text-decoration: none !important;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.session-link-card:hover {
+  background: linear-gradient(135deg, rgba(94,100,255,0.08) 0%, rgba(124,58,237,0.08) 100%);
+  border-color: #5e64ff;
+  transform: translateX(4px);
+  text-decoration: none !important;
+}
+
+.session-link-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  border-radius: 10px;
+}
+
+.session-link-icon i {
+  font-size: 1.25rem;
   color: #fff;
 }
 
-.session-content-card .card-header i {
-  font-size: 1rem;
+.session-link-content {
+  flex: 1;
 }
 
-.session-content-card .card-header h4 {
+.session-link-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.session-link-content p {
   margin: 0;
   font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.session-content-card .card-body {
-  padding: 0.75rem;
-  background: #fff;
-}
-
-.session-content-card .card-body p {
-  margin: 0;
-  font-size: 0.8rem;
   color: #5e6e82;
   line-height: 1.4;
 }
 
-/* Session content card themes - subtle colors */
-.session-content-card .card-header {
-  background: #f8fafc;
-  color: #495057;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.session-content-card.jfr .card-header i {
+.session-link-arrow {
+  font-size: 1.25rem;
   color: #5e64ff;
+  transition: transform 0.2s ease;
 }
 
-.session-content-card.heap .card-header i {
-  color: #ef4444;
-}
-
-.session-content-card.logs .card-header i {
-  color: #10b981;
-}
-
-.session-content-card.perf .card-header i {
-  color: #f59e0b;
-}
-
-@media (max-width: 768px) {
-  .session-contents-grid {
-    grid-template-columns: 1fr;
-  }
+.session-link-card:hover .session-link-arrow {
+  transform: translateX(4px);
 }
 </style>

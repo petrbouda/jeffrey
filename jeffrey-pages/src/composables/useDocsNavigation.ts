@@ -67,6 +67,15 @@ export const docsNavigation: DocSection[] = [
           { title: 'Scheduler', path: 'projects/scheduler' },
           { title: 'Alerts & Messages', path: 'projects/alerts-messages' }
         ]
+      },
+{
+        title: 'Recording Sessions',
+        path: 'recording-sessions',
+        children: [
+          { title: 'Overview', path: 'recording-sessions/overview' },
+          { title: 'Configuration', path: 'recording-sessions/configuration' },
+          { title: 'Lifecycle', path: 'recording-sessions/lifecycle' }
+        ]
       }
     ]
   },
@@ -83,7 +92,22 @@ export const docsNavigation: DocSection[] = [
     path: 'cli',
     icon: 'bi-terminal',
     children: [
-      { title: 'Overview', path: 'overview' }
+      { title: 'Overview', path: 'overview' },
+      { title: 'Configuration', path: 'configuration' },
+      { title: 'Directory Structure', path: 'directory-structure' }
+    ]
+  },
+  {
+    title: 'Deployments',
+    path: 'deployments',
+    icon: 'bi-cloud-upload',
+    children: [
+      { title: 'Overview', path: 'overview' },
+      { title: 'Simple JAR Execution', path: 'simple-jar' },
+      { title: 'Simple as a Container', path: 'simple-container' },
+      { title: 'Container with Examples', path: 'container-examples' },
+      { title: 'Live with Recording Collection', path: 'live-recording' },
+      { title: 'Kubernetes', path: 'kubernetes' }
     ]
   },
   {

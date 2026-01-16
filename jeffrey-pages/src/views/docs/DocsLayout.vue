@@ -114,7 +114,7 @@ onUnmounted(() => {
           <router-view />
         </div>
         <!-- Sticky right TOC -->
-        <aside class="docs-toc" v-if="headings.length > 0">
+        <aside class="docs-toc">
           <DocsOnThisPage :headings="headings" />
         </aside>
       </div>

@@ -30,9 +30,6 @@ const headings = [
   { id: 'what-is-jeffrey-cli', text: 'What is Jeffrey CLI?', level: 2 },
   { id: 'recording-sessions', text: 'Recording Sessions', level: 2 },
   { id: 'installation', text: 'Installation', level: 2 },
-  { id: 'configuration', text: 'Configuration', level: 2 },
-  { id: 'features', text: 'Features', level: 2 },
-  { id: 'profiler-options', text: 'Profiler Options', level: 2 },
   { id: 'integration', text: 'Integration with Jeffrey', level: 2 }
 ];
 
@@ -40,38 +37,29 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const minimalConfig = `jeffrey-home = "/opt/jeffrey"
-workspace-id = "production"
-project-name = "my-service"`;
-
-const fullConfig = `jeffrey-home = "/opt/jeffrey"
-profiler-path = "/opt/async-profiler/libasyncProfiler.so"
-workspace-id = "production"
-project-name = "my-service"
-project-label = "My Service"
-repository-type = "ASYNC_PROFILER"
-
-perf-counters { enabled = true }
-heap-dump { enabled = true; type = "crash" }
-jvm-logging { enabled = true }
-messaging { enabled = true; max-age = "24h" }`;
-
 const usageExample = `# Initialize profiling session
 java -jar jeffrey-cli.jar init /path/to/config.conf > /tmp/jeffrey.env
 
 # Source environment variables
 source /tmp/jeffrey.env
 
-# Start application with profiling
+# Start application with profiling (using JEFFREY_PROFILER_CONFIG)
 java $JEFFREY_PROFILER_CONFIG -jar my-app.jar`;
+
+const usageWithJdkOptions = `# With jdk-java-options enabled in config, JDK_JAVA_OPTIONS is set automatically
+java -jar jeffrey-cli.jar init /path/to/config.conf > /tmp/jeffrey.env
+source /tmp/jeffrey.env
+
+# JDK_JAVA_OPTIONS is picked up automatically by the JVM
+java -jar my-app.jar`;
 
 const dockerEntrypoint = `#!/bin/bash
 # Generate profiling environment
 java -jar /jeffrey-libs/jeffrey-cli.jar init /app/jeffrey.conf > /tmp/jeffrey.env
 source /tmp/jeffrey.env
 
-# Start application with profiling enabled
-exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
+# Start application (JDK_JAVA_OPTIONS picked up automatically)
+exec java -jar /app/my-app.jar`;
 </script>
 
 <template>
@@ -96,21 +84,49 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
       </header>
 
       <div class="docs-content">
-        <p>Jeffrey CLI is a command-line tool that <strong>initializes profiling sessions</strong> for Java applications, especially in containerized environments.</p>
+        <p>Jeffrey CLI is a command-line tool that <strong>configures JVM processes</strong> for profiling, especially in containerized environments.</p>
 
         <h2 id="what-is-jeffrey-cli">What is Jeffrey CLI?</h2>
-        <p>Jeffrey CLI (<code>jeffrey-cli.jar</code>) is an initialization tool that sets up everything needed to profile your Java application:</p>
+        <p>Jeffrey CLI (<code>jeffrey-cli.jar</code>) reads a HOCON configuration file and generates environment variables containing JVM flags. These environment variables are then used by your target JVM process.</p>
+
+        <div class="how-it-works">
+          <div class="flow-step">
+            <div class="flow-icon"><i class="bi bi-file-earmark-code"></i></div>
+            <div class="flow-content">
+              <strong>HOCON Config</strong>
+              <p>Define features and settings</p>
+            </div>
+          </div>
+          <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+          <div class="flow-step">
+            <div class="flow-icon"><i class="bi bi-terminal"></i></div>
+            <div class="flow-content">
+              <strong>Jeffrey CLI</strong>
+              <p>Generates JVM flags</p>
+            </div>
+          </div>
+          <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
+          <div class="flow-step">
+            <div class="flow-icon"><i class="bi bi-filetype-java"></i></div>
+            <div class="flow-content">
+              <strong>Environment Variable</strong>
+              <p>Used by target JVM</p>
+            </div>
+          </div>
+        </div>
+
+        <p>The CLI performs these tasks:</p>
         <ul>
           <li>Creates workspace/project/session directory structure</li>
-          <li>Configures async-profiler or JDK Flight Recorder</li>
-          <li>Generates environment variables for application startup</li>
-          <li>Enables additional features like heap dumps and JVM logging</li>
+          <li>Generates JVM flags for async-profiler and enabled features</li>
+          <li>Outputs environment variables (<code>JEFFREY_PROFILER_CONFIG</code> or <code>JDK_JAVA_OPTIONS</code>)</li>
+          <li>Stores session metadata for Jeffrey to detect</li>
         </ul>
 
         <h3>When to Use Jeffrey CLI</h3>
         <p>Use Jeffrey CLI when you want to:</p>
         <ul>
-          <li><strong>Containerized environments</strong> - Profile Java apps in Docker/Kubernetes</li>
+          <li><strong>Containerized environments</strong> - Configure JVM profiling in Docker/Kubernetes</li>
           <li><strong>CI/CD pipelines</strong> - Automated profiling during builds and tests</li>
           <li><strong>Production monitoring</strong> - Continuous profiling with minimal overhead</li>
           <li><strong>Multi-instance deployments</strong> - Each instance creates its own session</li>
@@ -189,10 +205,22 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
         </ol>
 
         <h3>Basic Usage</h3>
+        <p>Using <code>JEFFREY_PROFILER_CONFIG</code> environment variable:</p>
         <DocsCodeBlock
           language="bash"
           :code="usageExample"
         />
+
+        <h3>Using JDK_JAVA_OPTIONS</h3>
+        <p>When <code>jdk-java-options</code> is enabled in your config, the JVM flags are set via <code>JDK_JAVA_OPTIONS</code> which is automatically picked up by the JVM:</p>
+        <DocsCodeBlock
+          language="bash"
+          :code="usageWithJdkOptions"
+        />
+
+        <DocsCallout type="tip">
+          <strong>JDK_JAVA_OPTIONS recommended:</strong> Using <code>jdk-java-options { enabled = true }</code> is the simplest approach for containers - the JVM automatically reads this environment variable without any command-line changes.
+        </DocsCallout>
 
         <h3>Docker Entrypoint Example</h3>
         <DocsCodeBlock
@@ -200,135 +228,16 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
           :code="dockerEntrypoint"
         />
 
-        <h2 id="configuration">Configuration</h2>
-        <p>Jeffrey CLI uses <strong>HOCON</strong> (Human-Optimized Config Object Notation) for configuration. HOCON is a superset of JSON with more readable syntax.</p>
-
-        <h3>Minimal Configuration</h3>
-        <DocsCodeBlock
-          language="hocon"
-          :code="minimalConfig"
-        />
-
-        <h3>Full Configuration</h3>
-        <DocsCodeBlock
-          language="hocon"
-          :code="fullConfig"
-        />
-
-        <h3>Configuration Options</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Option</th>
-              <th>Required</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>jeffrey-home</code></td>
-              <td>Yes</td>
-              <td>Base directory for Jeffrey data</td>
-            </tr>
-            <tr>
-              <td><code>workspace-id</code></td>
-              <td>Yes</td>
-              <td>Workspace identifier (e.g., "production", "staging")</td>
-            </tr>
-            <tr>
-              <td><code>project-name</code></td>
-              <td>Yes</td>
-              <td>Project name for organizing recordings</td>
-            </tr>
-            <tr>
-              <td><code>profiler-path</code></td>
-              <td>No</td>
-              <td>Path to libasyncProfiler.so</td>
-            </tr>
-            <tr>
-              <td><code>project-label</code></td>
-              <td>No</td>
-              <td>Human-readable project label</td>
-            </tr>
-            <tr>
-              <td><code>repository-type</code></td>
-              <td>No</td>
-              <td>ASYNC_PROFILER (default) or JDK</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <DocsCallout type="tip">
-          <strong>Environment variables:</strong> HOCON supports environment variable substitution. Use <code>${VAR}</code> for required variables or <code>${?VAR}</code> for optional ones.
-        </DocsCallout>
-
-        <h2 id="features">Features</h2>
-        <p>Jeffrey CLI can enable additional features that capture more diagnostic data alongside JFR recordings:</p>
-
-        <div class="features-grid">
-          <div class="feature-card perf">
-            <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
-            <h4>Perf Counters</h4>
-            <p>Captures JVM performance data via <code>-XX:+UsePerfData</code>. Provides low-level metrics about JVM internals.</p>
-            <code>perf-counters { enabled = true }</code>
+        <router-link to="/docs/cli/configuration" class="config-link-card">
+          <div class="config-link-icon">
+            <i class="bi bi-gear"></i>
           </div>
-          <div class="feature-card heap">
-            <div class="feature-icon"><i class="bi bi-memory"></i></div>
-            <h4>Heap Dump</h4>
-            <p>Automatic heap dumps on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
-            <code>heap-dump { enabled = true; type = "crash" }</code>
+          <div class="config-link-content">
+            <h4>Configuration</h4>
+            <p>Learn about HOCON configuration files, available options, features (heap dumps, JVM logging, messaging), and profiler backends.</p>
           </div>
-          <div class="feature-card logging">
-            <div class="feature-icon"><i class="bi bi-file-text"></i></div>
-            <h4>JVM Logging</h4>
-            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity.</p>
-            <code>jvm-logging { enabled = true }</code>
-          </div>
-          <div class="feature-card messaging">
-            <div class="feature-icon"><i class="bi bi-broadcast"></i></div>
-            <h4>Messaging</h4>
-            <p>Real-time JFR event streaming for live monitoring. Events are stored in a streaming repository.</p>
-            <code>messaging { enabled = true; max-age = "24h" }</code>
-          </div>
-        </div>
-
-        <h2 id="profiler-options">Profiler Options</h2>
-        <p>Jeffrey CLI supports two profiler backends:</p>
-
-        <div class="profiler-comparison">
-          <div class="profiler-card async">
-            <div class="profiler-header">
-              <h4>async-profiler</h4>
-              <span class="badge default">Default</span>
-            </div>
-            <div class="profiler-body">
-              <p>Low-overhead sampling profiler with excellent accuracy:</p>
-              <ul>
-                <li>CPU profiling with hardware counters</li>
-                <li>Allocation profiling</li>
-                <li>Lock contention analysis</li>
-                <li>Wall-clock profiling</li>
-              </ul>
-              <p><strong>Requires:</strong> <code>libasyncProfiler.so</code> native library</p>
-            </div>
-          </div>
-          <div class="profiler-card jdk">
-            <div class="profiler-header">
-              <h4>JDK Flight Recorder</h4>
-              <span class="badge">Built-in</span>
-            </div>
-            <div class="profiler-body">
-              <p>JVM's built-in profiler with comprehensive event coverage:</p>
-              <ul>
-                <li>No native library required</li>
-                <li>Broader event types (GC, I/O, exceptions)</li>
-                <li>Always available in JDK 11+</li>
-                <li>Lower CPU profiling accuracy</li>
-              </ul>
-              <p><strong>Use with:</strong> <code>repository-type = "JDK"</code></p>
-            </div>
-          </div>
-        </div>
+          <i class="bi bi-arrow-right config-link-arrow"></i>
+        </router-link>
 
         <h2 id="integration">Integration with Jeffrey</h2>
         <p>Sessions created by Jeffrey CLI appear in Jeffrey's <strong>Repository</strong> feature within Live and Remote workspaces.</p>
@@ -372,18 +281,6 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
           </div>
         </div>
 
-        <DocsCallout type="info">
-          <strong>Selective file merging:</strong> Since JFR files are created in chunks (e.g., every 15 minutes), you can select specific files to analyze particular time periods:
-          <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">
-            <li><strong>Startup analysis</strong> - Select first few files to analyze application startup</li>
-            <li><strong>Peak hours</strong> - Select files from high-traffic periods</li>
-            <li><strong>Comparison</strong> - Create separate recordings from different time periods to compare profiles</li>
-          </ul>
-        </DocsCallout>
-
-        <DocsCallout type="tip">
-          <strong>Remote analysis recommended:</strong> For servers with limited resources, use a Remote workspace to download recordings and analyze them on your local machine. This offloads CPU-intensive profile initialization from the server.
-        </DocsCallout>
       </div>
 
       <nav class="docs-nav-footer">
@@ -417,134 +314,140 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* Features Grid */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.feature-card {
-  padding: 1.25rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-}
-
-.feature-card .feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+/* How It Works Flow */
+.how-it-works {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  color: #fff;
-  margin-bottom: 0.75rem;
-}
-
-.feature-card h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.feature-card p {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-}
-
-.feature-card code {
-  display: block;
-  font-size: 0.75rem;
-  background: #f8fafc;
-  padding: 0.5rem;
-  border-radius: 4px;
-  color: #6c757d;
-}
-
-/* Feature card themes */
-.feature-card.perf .feature-icon {
-  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
-}
-
-.feature-card.heap .feature-icon {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-.feature-card.logging .feature-icon {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.feature-card.messaging .feature-icon {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-/* Profiler Comparison */
-.profiler-comparison {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.75rem;
   margin: 1.5rem 0;
-}
-
-.profiler-card {
+  padding: 1.25rem;
+  background: #f8fafc;
   border-radius: 8px;
-  overflow: hidden;
   border: 1px solid #e2e8f0;
 }
 
-.profiler-header {
+.flow-step {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
-.profiler-header h4 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #343a40;
+.flow-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  border-radius: 8px;
 }
 
-.profiler-header .badge {
-  font-size: 0.7rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  background: #e2e8f0;
-  color: #495057;
-}
-
-.profiler-header .badge.default {
-  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
+.flow-icon i {
+  font-size: 1.1rem;
   color: #fff;
 }
 
-.profiler-body {
-  padding: 1rem;
-}
-
-.profiler-body p {
-  margin: 0 0 0.75rem 0;
+.flow-content strong {
+  display: block;
   font-size: 0.85rem;
-  color: #495057;
+  color: #343a40;
+  margin-bottom: 0.15rem;
 }
 
-.profiler-body ul {
-  margin: 0 0 0.75rem 0;
-  padding-left: 1.25rem;
+.flow-content p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.flow-arrow {
+  color: #9ca3af;
+  font-size: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .how-it-works {
+    flex-direction: column;
+  }
+
+  .flow-arrow {
+    transform: rotate(90deg);
+  }
+}
+
+/* Config Link Card */
+.config-link-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #5e64ff;
+  border-radius: 8px;
+  text-decoration: none !important;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.config-link-card:hover {
+  background: linear-gradient(135deg, rgba(94,100,255,0.08) 0%, rgba(124,58,237,0.08) 100%);
+  border-color: #5e64ff;
+  transform: translateX(4px);
+  text-decoration: none !important;
+}
+
+.config-link-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  border-radius: 10px;
+}
+
+.config-link-icon i {
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.config-link-content {
+  flex: 1;
+}
+
+.config-link-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #343a40;
+  text-decoration: none !important;
+}
+
+.config-link-content p {
+  margin: 0;
   font-size: 0.85rem;
-}
-
-.profiler-body li {
-  margin-bottom: 0.25rem;
   color: #5e6e82;
+  line-height: 1.4;
+  text-decoration: none !important;
+}
+
+.config-link-arrow {
+  font-size: 1.25rem;
+  color: #5e64ff;
+  transition: transform 0.2s ease;
+}
+
+.config-link-card:hover .config-link-arrow {
+  transform: translateX(4px);
 }
 
 /* Workflow Steps */
@@ -681,11 +584,6 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
 }
 
 @media (max-width: 768px) {
-  .features-grid,
-  .profiler-comparison {
-    grid-template-columns: 1fr;
-  }
-
   .session-contents-grid {
     grid-template-columns: 1fr;
   }
