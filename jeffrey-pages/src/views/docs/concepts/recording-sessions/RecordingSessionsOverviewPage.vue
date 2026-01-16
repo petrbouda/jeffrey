@@ -74,6 +74,11 @@ onMounted(() => {
           <li><strong>Metadata</strong> - Session timing, status, and file counts</li>
         </ul>
 
+        <figure class="docs-figure">
+          <img src="/images/docs/recording-sessions/recording-sessions-list.png" alt="Multiple recording sessions in Repository view" />
+          <figcaption>Repository view showing multiple recording sessions with statistics</figcaption>
+        </figure>
+
         <DocsCallout type="info">
           <strong>Chunked recordings:</strong> Async-Profiler creates JFR files in chunks (e.g., every 15 minutes) to prevent data loss and enable rolling analysis. This means a single session typically contains multiple JFR files that can be selectively merged for analysis.
         </DocsCallout>
@@ -129,6 +134,11 @@ onMounted(() => {
           <li><strong>Status</strong> - Active (still recording) or Finished</li>
           <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
         </ul>
+
+        <figure class="docs-figure">
+          <img src="/images/docs/recording-sessions/recording-session-files.png" alt="Single recording session with files" />
+          <figcaption>Expanded recording session showing JFR files, JVM logs, and other artifacts</figcaption>
+        </figure>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
         <p>Recording Sessions are visible through the Repository feature:</p>

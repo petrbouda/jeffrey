@@ -128,16 +128,16 @@ java -jar my-application.jar`;
           ▼                           ▼
 ┌─────────────────────────────────────────────────┐
 │              Shared Storage (NFS/PVC)           │
-│  /recordings/workspace/project/session/*.jfr   │
+│  /recordings/workspace/project/session/*.jfr    │
 └─────────────────────────────────────────────────┘
                       ▲
                       │ monitors & imports
                       │
 ┌─────────────────────┴───────────────────────────┐
-│                   Jeffrey                        │
-│  - Live Workspace configured                     │
-│  - Scheduler polls for new sessions              │
-│  - Auto-creates profiles from recordings         │
+│                   Jeffrey                       │
+│  - Live Workspace configured                    │
+│  - Scheduler polls for new sessions             │
+│  - Auto-creates profiles from recordings        │
 └─────────────────────────────────────────────────┘</code></pre>
         </div>
 

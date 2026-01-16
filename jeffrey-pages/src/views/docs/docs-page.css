@@ -149,6 +149,28 @@
   background: #f8f9fa;
 }
 
+/* Figure and Image Styles */
+.docs-figure {
+  margin: 1.5rem 0;
+  padding: 0;
+}
+
+.docs-figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.docs-figure figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-align: center;
+  font-style: italic;
+}
+
 .docs-nav-footer {
   display: flex;
   justify-content: space-between;
