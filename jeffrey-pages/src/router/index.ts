@@ -70,7 +70,29 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        redirect: '/docs/getting-started/introduction'
+        redirect: '/docs/goals/overview'
+      },
+      // Goals
+      {
+        path: 'goals/overview',
+        name: 'DocsGoalsOverview',
+        component: () => import('@/views/docs/goals/GoalsOverviewPage.vue')
+      },
+      // Architecture
+      {
+        path: 'architecture/overview',
+        name: 'DocsArchitectureOverview',
+        component: () => import('@/views/docs/architecture/ArchitectureOverviewPage.vue')
+      },
+      {
+        path: 'architecture/public-api',
+        name: 'DocsPublicApi',
+        component: () => import('@/views/docs/architecture/PublicApiPage.vue')
+      },
+      {
+        path: 'architecture/storage',
+        name: 'DocsStorage',
+        component: () => import('@/views/docs/architecture/StoragePage.vue')
       },
       // Getting Started
       {
@@ -129,15 +151,17 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProjectsAlertsMessages',
         component: () => import('@/views/docs/concepts/projects/AlertsMessagesPage.vue')
       },
+      // Profiles
       {
-        path: 'concepts/profiles',
+        path: 'profiles/overview',
         name: 'DocsProfiles',
-        component: () => import('@/views/docs/concepts/ProfilesPage.vue')
+        component: () => import('@/views/docs/profiles/ProfilesOverviewPage.vue')
       },
+      // Jeffrey JFR Events
       {
-        path: 'concepts/jfr-events',
-        name: 'DocsJfrEvents',
-        component: () => import('@/views/docs/concepts/JfrEventsPage.vue')
+        path: 'jeffrey-jfr-events/overview',
+        name: 'DocsJeffreyJfrEvents',
+        component: () => import('@/views/docs/jeffrey-jfr-events/JeffreyJfrEventsPage.vue')
       },
       // Features
       {
@@ -159,22 +183,6 @@ const routes: RouteRecordRaw[] = [
         path: 'features/auto-analysis',
         name: 'DocsAutoAnalysis',
         component: () => import('@/views/docs/features/AutoAnalysisPage.vue')
-      },
-      // Guides
-      {
-        path: 'guides/cpu-performance',
-        name: 'DocsCpuPerformance',
-        component: () => import('@/views/docs/guides/CpuPerformancePage.vue')
-      },
-      {
-        path: 'guides/memory-analysis',
-        name: 'DocsMemoryAnalysis',
-        component: () => import('@/views/docs/guides/MemoryAnalysisPage.vue')
-      },
-      {
-        path: 'guides/thread-analysis',
-        name: 'DocsThreadAnalysis',
-        component: () => import('@/views/docs/guides/ThreadAnalysisPage.vue')
       },
       // CLI
       {

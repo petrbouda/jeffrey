@@ -55,7 +55,6 @@ onMounted(() => {
         </div>
         <div class="header-content">
           <h1 class="docs-title">Projects</h1>
-          <p class="docs-section-badge">Concepts</p>
         </div>
       </header>
 

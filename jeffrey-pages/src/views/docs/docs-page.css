@@ -80,12 +80,6 @@
   margin: 0;
 }
 
-.docs-section-badge {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
 .docs-content {
   line-height: 1.7;
   font-size: 1rem;

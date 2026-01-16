@@ -27,8 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-is-scheduler', text: 'What is Scheduler?', level: 2 },
-  { id: 'job-types', text: 'Job Types', level: 2 },
-  { id: 'job-management', text: 'Job Management', level: 2 },
+  { id: 'available-jobs', text: 'Available Jobs', level: 2 },
   { id: 'workspace-availability', text: 'Workspace Availability', level: 2 }
 ];
 
@@ -57,7 +56,6 @@ onMounted(() => {
         </div>
         <div class="header-content">
           <h1 class="docs-title">Scheduler</h1>
-          <p class="docs-section-badge">Projects</p>
         </div>
       </header>
 
@@ -69,125 +67,73 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="what-is-scheduler">What is Scheduler?</h2>
-        <p>In a Live workspace running on a server, various background tasks need to run automatically:</p>
-        <ul>
-          <li>Detecting new recording sessions from applications</li>
-          <li>Cleaning up old recordings to free disk space</li>
-          <li>Synchronizing profiler settings to agents</li>
-          <li>Database maintenance and optimization</li>
-        </ul>
+        <p>In a Live workspace running on a server, various background tasks need to run automatically to manage repository data, compress recordings, and detect session completions. The Scheduler manages these jobs, running them on configurable schedules to keep your profiling infrastructure healthy.</p>
 
-        <p>The Scheduler manages these jobs, running them on configurable schedules to keep your profiling infrastructure healthy.</p>
+        <h2 id="available-jobs">Available Jobs</h2>
 
-        <h2 id="job-types">Job Types</h2>
-        <p>The scheduler executes several categories of jobs:</p>
-
-        <h3>Detection Jobs</h3>
-        <p>Automatically discover new data:</p>
-        <ul>
-          <li><strong>Session Detection</strong> - Find new recording sessions in the repository</li>
-          <li><strong>Recording Detection</strong> - Discover new JFR files</li>
-          <li><strong>Artifact Detection</strong> - Find associated logs, heap dumps, etc.</li>
-        </ul>
-
-        <h3>Cleanup Jobs</h3>
-        <p>Manage disk space and remove old data:</p>
-        <ul>
-          <li><strong>Recording Cleanup</strong> - Remove old recordings based on retention policy</li>
-          <li><strong>Session Cleanup</strong> - Clean up completed sessions</li>
-          <li><strong>Temporary File Cleanup</strong> - Remove temporary processing files</li>
-        </ul>
-
-        <h3>Sync Jobs</h3>
-        <p>Keep configuration synchronized:</p>
-        <ul>
-          <li><strong>Profiler Settings Sync</strong> - Push settings to connected agents</li>
-          <li><strong>Workspace Status Sync</strong> - Update workspace availability status</li>
-        </ul>
-
-        <h3>Maintenance Jobs</h3>
-        <p>Keep the system healthy:</p>
-        <ul>
-          <li><strong>Database Optimization</strong> - Vacuum and optimize storage</li>
-          <li><strong>Index Maintenance</strong> - Update database indexes</li>
-        </ul>
-
-        <h2 id="job-management">Job Management</h2>
-        <p>In the Scheduler view, you can manage background jobs:</p>
-
-        <h3>Job Information</h3>
-        <p>For each job, you can see:</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Job name</td>
-              <td>Descriptive name of the job</td>
-            </tr>
-            <tr>
-              <td>Schedule</td>
-              <td>CRON expression for when it runs</td>
-            </tr>
-            <tr>
-              <td>Last run</td>
-              <td>When it last executed</td>
-            </tr>
-            <tr>
-              <td>Next run</td>
-              <td>When it will run next</td>
-            </tr>
-            <tr>
-              <td>Status</td>
-              <td>Success, failed, or running</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h3>Actions</h3>
-        <ul>
-          <li><strong>Run Now</strong> - Manually trigger a job immediately</li>
-          <li><strong>View History</strong> - See past execution results</li>
-          <li><strong>Edit Schedule</strong> - Change when the job runs</li>
-          <li><strong>Enable/Disable</strong> - Turn jobs on or off</li>
-        </ul>
-
-        <DocsCallout type="tip">
-          <strong>Manual triggers:</strong> Use "Run Now" when you want immediate results without waiting for the next scheduled run. This is useful after uploading new recordings or changing settings.
+        <DocsCallout type="danger">
+          <strong>Advanced Users Only!</strong> Jobs are created automatically with sensible defaults when a new project is set up. You can remove, add, or pause jobs from this page, but be aware that incorrect changes may disrupt recording collection or system behavior. If you need to customize the defaults, you can override them in the properties file at Jeffrey startup — these settings will then apply to all newly created projects.
         </DocsCallout>
 
-        <h3>CRON Schedules</h3>
-        <p>Jobs use CRON expressions to define their schedules. Common patterns:</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Expression</th>
-              <th>Meaning</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>0 * * * *</code></td>
-              <td>Every hour</td>
-            </tr>
-            <tr>
-              <td><code>*/5 * * * *</code></td>
-              <td>Every 5 minutes</td>
-            </tr>
-            <tr>
-              <td><code>0 0 * * *</code></td>
-              <td>Daily at midnight</td>
-            </tr>
-            <tr>
-              <td><code>0 0 * * 0</code></td>
-              <td>Weekly on Sunday</td>
-            </tr>
-          </tbody>
-        </table>
+        <p>The following jobs can be configured for each project:</p>
+
+        <div class="job-cards">
+          <div class="job-card">
+            <div class="job-icon teal"><i class="bi bi-trash"></i></div>
+            <div class="job-content">
+              <h4>Repository Session Cleaner</h4>
+              <p>Removes Repository Sessions older than the configured duration. When a session is removed, all associated recordings and artifacts (HeapDump, PerfCounters, etc.) are deleted as well.</p>
+            </div>
+          </div>
+
+          <div class="job-card">
+            <div class="job-icon teal"><i class="bi bi-trash"></i></div>
+            <div class="job-content">
+              <h4>Repository Recording Cleaner</h4>
+              <p>Removes recordings only in the active (latest) Repository Session. Ensures that rolling recordings in the latest session are limited without affecting older sessions.</p>
+            </div>
+          </div>
+
+          <div class="job-card">
+            <div class="job-icon orange"><i class="bi bi-file-zip"></i></div>
+            <div class="job-content">
+              <h4>JFR Compression</h4>
+              <p>Compresses finished JFR recording files using LZ4 compression to save storage space. Automatically processes active and latest finished sessions.</p>
+            </div>
+          </div>
+
+          <div class="job-card">
+            <div class="job-icon purple"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="job-content">
+              <h4>Recording Storage Synchronizer</h4>
+              <p>Synchronizes recording storage with the database by removing orphaned recordings that no longer exist in the database.</p>
+            </div>
+          </div>
+
+          <div class="job-card">
+            <div class="job-icon cyan"><i class="bi bi-check-circle"></i></div>
+            <div class="job-content">
+              <h4>Session Finished Detector</h4>
+              <p>Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses detection file or timeout-based detection strategy.</p>
+            </div>
+          </div>
+
+          <div class="job-card coming-soon">
+            <div class="job-icon blue"><i class="bi bi-clock-history"></i></div>
+            <div class="job-content">
+              <h4>Download Recording Generator <span class="badge">Coming Soon</span></h4>
+              <p>Creates a new recording from the repository by merging the last configured number of recordings and placing them in the Recordings section.</p>
+            </div>
+          </div>
+
+          <div class="job-card coming-soon">
+            <div class="job-icon blue"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="job-content">
+              <h4>Periodic Recording Generator <span class="badge">Coming Soon</span></h4>
+              <p>Creates recordings from the repository based on specified periods (e.g., every 15 minutes). Generated recordings are available in the Recordings section.</p>
+            </div>
+          </div>
+        </div>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
         <p>Scheduler availability depends on workspace type:</p>
@@ -254,4 +200,83 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+
+/* Job Cards */
+.job-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .job-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.job-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.job-card.coming-soon {
+  opacity: 0.7;
+}
+
+.job-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.job-icon i {
+  font-size: 1.25rem;
+  color: white;
+}
+
+.job-icon.teal { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+.job-icon.orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+.job-icon.purple { background: linear-gradient(135deg, #a855f7, #9333ea); }
+.job-icon.cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+.job-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+.job-content {
+  flex: 1;
+}
+
+.job-content h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.job-content h4 .badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.job-content p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #5e6e82;
+  line-height: 1.5;
+}
 </style>

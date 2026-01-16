@@ -98,6 +98,14 @@ const hasChildren = (page: DocPage): boolean => {
 const getPageLink = (category: string, page: DocPage): string => {
   return `/docs/${category}/${page.path}`;
 };
+
+const isSinglePageSection = (section: typeof docsNavigation[0]): boolean => {
+  return section.children.length === 1;
+};
+
+const getSinglePageLink = (section: typeof docsNavigation[0]): string => {
+  return `/docs/${section.path}/${section.children[0].path}`;
+};
 </script>
 
 <template>
@@ -111,63 +119,76 @@ const getPageLink = (category: string, page: DocPage): string => {
 
     <!-- Navigation with collapsible sections -->
     <nav class="sidebar-nav">
-      <div
-        v-for="section in docsNavigation"
-        :key="section.path"
-        class="nav-section"
-        :class="{
-          'active-section': isActiveSection(section.path),
-          'expanded': isExpanded(section.path)
-        }"
-      >
-        <div
-          class="nav-section-header"
-          @click="toggleSection(section.path)"
+      <template v-for="section in docsNavigation" :key="section.path">
+        <!-- Single-page section: direct link -->
+        <router-link
+          v-if="isSinglePageSection(section)"
+          :to="getSinglePageLink(section)"
+          class="nav-section-direct"
+          :class="{ 'active-section': isActiveSection(section.path) }"
         >
           <i class="bi section-icon" :class="section.icon"></i>
           <span class="section-title">{{ section.title }}</span>
-          <i class="bi bi-chevron-down chevron-icon"></i>
-        </div>
+        </router-link>
 
-        <div class="nav-section-items">
-          <template v-for="page in section.children" :key="page.path">
-            <!-- Page with children (collapsible) -->
-            <div v-if="hasChildren(page)" class="nav-item-group" :class="{ 'expanded': isPageItemExpanded(section.path, page.path) }">
-              <div
-                class="nav-item nav-item-parent"
-                :class="{ 'active': currentPage === page.path || currentPage.startsWith(page.path + '/') }"
-                @click="togglePageItem(section.path, page.path)"
+        <!-- Multi-page section: collapsible -->
+        <div
+          v-else
+          class="nav-section"
+          :class="{
+            'active-section': isActiveSection(section.path),
+            'expanded': isExpanded(section.path)
+          }"
+        >
+          <div
+            class="nav-section-header"
+            @click="toggleSection(section.path)"
+          >
+            <i class="bi section-icon" :class="section.icon"></i>
+            <span class="section-title">{{ section.title }}</span>
+            <i class="bi bi-chevron-down chevron-icon"></i>
+          </div>
+
+          <div class="nav-section-items">
+            <template v-for="page in section.children" :key="page.path">
+              <!-- Page with children (collapsible) -->
+              <div v-if="hasChildren(page)" class="nav-item-group" :class="{ 'expanded': isPageItemExpanded(section.path, page.path) }">
+                <div
+                  class="nav-item nav-item-parent"
+                  :class="{ 'active': currentPage === page.path || currentPage.startsWith(page.path + '/') }"
+                  @click="togglePageItem(section.path, page.path)"
+                >
+                  <span class="nav-item-indicator"></span>
+                  {{ page.title }}
+                  <i class="bi bi-chevron-down nav-item-chevron"></i>
+                </div>
+                <div class="nav-item-children">
+                  <router-link
+                    v-for="child in page.children"
+                    :key="child.path"
+                    :to="getPageLink(section.path, child)"
+                    class="nav-item nav-item-child"
+                    :class="{ 'active': isActiveLink(section.path, child.path) }"
+                  >
+                    <span class="nav-item-indicator"></span>
+                    {{ child.title }}
+                  </router-link>
+                </div>
+              </div>
+              <!-- Regular page link -->
+              <router-link
+                v-else
+                :to="getPageLink(section.path, page)"
+                class="nav-item"
+                :class="{ 'active': isActiveLink(section.path, page.path) }"
               >
                 <span class="nav-item-indicator"></span>
                 {{ page.title }}
-                <i class="bi bi-chevron-down nav-item-chevron"></i>
-              </div>
-              <div class="nav-item-children">
-                <router-link
-                  v-for="child in page.children"
-                  :key="child.path"
-                  :to="getPageLink(section.path, child)"
-                  class="nav-item nav-item-child"
-                  :class="{ 'active': isActiveLink(section.path, child.path) }"
-                >
-                  <span class="nav-item-indicator"></span>
-                  {{ child.title }}
-                </router-link>
-              </div>
-            </div>
-            <!-- Regular page link -->
-            <router-link
-              v-else
-              :to="getPageLink(section.path, page)"
-              class="nav-item"
-              :class="{ 'active': isActiveLink(section.path, page.path) }"
-            >
-              <span class="nav-item-indicator"></span>
-              {{ page.title }}
-            </router-link>
-          </template>
+              </router-link>
+            </template>
+          </div>
         </div>
-      </div>
+      </template>
     </nav>
   </div>
 </template>
@@ -305,6 +326,50 @@ const getPageLink = (category: string, page: DocPage): string => {
 
 .nav-section.active-section .nav-section-header .section-icon,
 .nav-section.active-section .nav-section-header .chevron-icon {
+  color: var(--color-primary);
+}
+
+/* ============================
+   Direct Link Section (single-page)
+   ============================ */
+.nav-section-direct {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  border-radius: 6px;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.nav-section-direct:hover {
+  background-color: var(--color-hover-bg);
+  color: var(--color-primary);
+}
+
+.nav-section-direct:hover .section-icon {
+  color: var(--color-primary);
+}
+
+.nav-section-direct .section-icon {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.nav-section-direct.active-section {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.nav-section-direct.active-section .section-icon {
   color: var(--color-primary);
 }
 

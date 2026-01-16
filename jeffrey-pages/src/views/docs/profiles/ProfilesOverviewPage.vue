@@ -45,18 +45,17 @@ onMounted(() => {
           <i class="bi bi-book me-1"></i>Docs
         </router-link>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Concepts</span>
+        <span class="breadcrumb-item">Profiles</span>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Profiles</span>
+        <span class="breadcrumb-item active">Overview</span>
       </nav>
 
       <header class="docs-header">
         <div class="header-icon">
-          <i class="bi bi-person-lines-fill"></i>
+          <i class="bi bi-speedometer2"></i>
         </div>
         <div class="header-content">
           <h1 class="docs-title">Profiles</h1>
-          <p class="docs-section-badge">Concepts</p>
         </div>
       </header>
 

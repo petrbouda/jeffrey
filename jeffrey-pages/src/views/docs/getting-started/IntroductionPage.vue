@@ -28,9 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-is-jeffrey', text: 'What is Jeffrey?', level: 2 },
   { id: 'key-features', text: 'Key Features', level: 2 },
-  { id: 'why-jeffrey', text: 'Why Jeffrey?', level: 2 },
-  { id: 'getting-started', text: 'Getting Started', level: 2 },
-  { id: 'system-requirements', text: 'System Requirements', level: 2 }
+  { id: 'why-jeffrey', text: 'Why Jeffrey?', level: 2 }
 ];
 
 onMounted(() => {
@@ -58,7 +56,6 @@ onMounted(() => {
         </div>
         <div class="header-content">
           <h1 class="docs-title">Introduction to Jeffrey</h1>
-          <p class="docs-section-badge">Getting Started</p>
         </div>
       </header>
 
@@ -126,37 +123,6 @@ onMounted(() => {
           <li><strong>Enabling comparison</strong> - Easily compare before/after performance with differential analysis</li>
           <li><strong>Supporting modern workflows</strong> - Web-based interface, Docker-ready, no complex installation</li>
         </ol>
-
-        <h2 id="getting-started">Getting Started</h2>
-        <p>Ready to dive in? Check out the following guides:</p>
-        <ul>
-          <li><router-link to="/docs/getting-started/installation">Installation</router-link> - Get Jeffrey up and running</li>
-          <li><router-link to="/docs/getting-started/quick-start">Quick Start</router-link> - Analyze your first JFR recording</li>
-        </ul>
-
-        <h2 id="system-requirements">System Requirements</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Requirement</th>
-              <th>Minimum</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Java</td>
-              <td>25 or higher</td>
-            </tr>
-            <tr>
-              <td>Memory</td>
-              <td>2GB RAM</td>
-            </tr>
-            <tr>
-              <td>Browser</td>
-              <td>Chrome, Firefox, Safari, Edge</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <!-- Navigation -->

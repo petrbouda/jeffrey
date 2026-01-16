@@ -53,7 +53,6 @@ onMounted(() => {
         </div>
         <div class="header-content">
           <h1 class="docs-title">Guardian Analysis</h1>
-          <p class="docs-section-badge">Features</p>
         </div>
       </header>
 

@@ -27,9 +27,8 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-are-alerts-messages', text: 'What are Alerts & Messages?', level: 2 },
+  { id: 'severity-levels', text: 'Severity Levels', level: 2 },
   { id: 'alerts-vs-messages', text: 'Alerts vs Messages', level: 2 },
-  { id: 'message-sources', text: 'Message Sources', level: 2 },
-  { id: 'use-cases', text: 'Use Cases', level: 2 },
   { id: 'workspace-availability', text: 'Workspace Availability', level: 2 }
 ];
 
@@ -58,7 +57,6 @@ onMounted(() => {
         </div>
         <div class="header-content">
           <h1 class="docs-title">Alerts & Messages</h1>
-          <p class="docs-section-badge">Projects</p>
         </div>
       </header>
 
@@ -70,14 +68,54 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="what-are-alerts-messages">What are Alerts & Messages?</h2>
-        <p>JFR recordings can contain <code>ImportantMessage</code> events - special events that indicate something noteworthy happened in your application. Jeffrey extracts these events and displays them in two views:</p>
+        <p><code>ImportantMessage</code> is a custom JFR event type (<code>jdk.ImportantMessage</code>) from the <router-link to="/docs/jeffrey-jfr-events/overview">Jeffrey JFR Events</router-link> library. It allows you to emit messages from critical parts of your application - whether to signal important milestones (e.g., "Report generated", "Batch job completed") or alert about critical situations (e.g., "Connection pool exhausted", "Rate limit exceeded").</p>
+
+        <DocsCallout type="info">
+          <strong>Real-time processing:</strong> Unlike regular JFR events that are collected via chunked recordings with Async-Profiler, ImportantMessages use the <strong>JFR Repository</strong> mechanism and are immediately consumed by the project as they're emitted. To enable this, configure your application using <router-link to="/docs/cli/overview">Jeffrey CLI</router-link> when setting up recording collection.
+        </DocsCallout>
+
+        <p>Jeffrey displays these events in two dedicated views:</p>
         <ul>
-          <li><strong>Alerts</strong> - High priority messages requiring immediate attention</li>
-          <li><strong>Messages</strong> - All important messages for context and history</li>
+          <li><strong>Alerts</strong> - High priority messages marked as alerts, requiring immediate attention</li>
+          <li><strong>Messages</strong> - Complete list of all important messages for full context</li>
         </ul>
 
+        <h2 id="severity-levels">Severity Levels</h2>
+        <p>Each message is assigned a severity level that determines its visual prominence and filtering:</p>
+
+        <div class="severity-cards">
+          <div class="severity-card critical">
+            <div class="severity-indicator"></div>
+            <div class="severity-content">
+              <h4>Critical</h4>
+              <p>Immediate attention required - system failures, data loss risks, security breaches</p>
+            </div>
+          </div>
+          <div class="severity-card high">
+            <div class="severity-indicator"></div>
+            <div class="severity-content">
+              <h4>High</h4>
+              <p>Important issues that need prompt action - resource exhaustion, performance degradation</p>
+            </div>
+          </div>
+          <div class="severity-card medium">
+            <div class="severity-indicator"></div>
+            <div class="severity-content">
+              <h4>Medium</h4>
+              <p>Noteworthy conditions to monitor - elevated metrics, unusual patterns</p>
+            </div>
+          </div>
+          <div class="severity-card low">
+            <div class="severity-indicator"></div>
+            <div class="severity-content">
+              <h4>Low</h4>
+              <p>Informational messages - status updates, configuration changes, normal events</p>
+            </div>
+          </div>
+        </div>
+
         <h2 id="alerts-vs-messages">Alerts vs Messages</h2>
-        <p>While both come from the same source (ImportantMessage JFR events), they serve different purposes:</p>
+        <p>While both views display ImportantMessage events, they serve different purposes:</p>
 
         <table>
           <thead>
@@ -89,9 +127,9 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr>
-              <td><strong>Priority filter</strong></td>
-              <td>High priority only</td>
-              <td>All priorities</td>
+              <td><strong>Filter</strong></td>
+              <td>Only messages marked as alerts</td>
+              <td>All messages (with optional alert filter)</td>
             </tr>
             <tr>
               <td><strong>Purpose</strong></td>
@@ -99,76 +137,14 @@ onMounted(() => {
               <td>Complete history for context</td>
             </tr>
             <tr>
-              <td><strong>UI display</strong></td>
+              <td><strong>UI Indicator</strong></td>
               <td>Badge count in sidebar</td>
-              <td>Full list view</td>
-            </tr>
-            <tr>
-              <td><strong>Typical count</strong></td>
-              <td>Few (only critical)</td>
-              <td>Many (all events)</td>
+              <td>Full list with time series chart</td>
             </tr>
           </tbody>
         </table>
 
-        <h3>Alert Badge</h3>
-        <p>When high-priority alerts exist, a badge appears on the Alerts menu item showing the count. This gives you immediate visibility into critical issues without having to open the view.</p>
-
-        <h2 id="message-sources">Message Sources</h2>
-        <p>Important messages can come from various sources:</p>
-
-        <h3>JVM Events</h3>
-        <p>The JVM automatically generates important messages for:</p>
-        <ul>
-          <li><strong>Memory warnings</strong> - Heap usage approaching limits</li>
-          <li><strong>GC issues</strong> - Long garbage collection pauses</li>
-          <li><strong>Thread problems</strong> - Deadlocks or excessive thread counts</li>
-          <li><strong>Class loading issues</strong> - Failed class loading or verification</li>
-        </ul>
-
-        <h3>Application Events</h3>
-        <p>Your application code can emit custom important messages using JFR APIs:</p>
-        <ul>
-          <li><strong>Business alerts</strong> - Critical business logic conditions</li>
-          <li><strong>Performance warnings</strong> - Slow operation detection</li>
-          <li><strong>Error notifications</strong> - Unexpected errors or exceptions</li>
-          <li><strong>System state changes</strong> - Circuit breaker trips, failovers, etc.</li>
-        </ul>
-
-        <h3>Jeffrey Agent Events</h3>
-        <p>The Jeffrey profiler agent can generate messages for:</p>
-        <ul>
-          <li><strong>Profiling status</strong> - Recording started/stopped</li>
-          <li><strong>Configuration changes</strong> - Settings synchronized</li>
-          <li><strong>Resource warnings</strong> - Disk space, memory limits</li>
-        </ul>
-
-        <h2 id="use-cases">Use Cases</h2>
-        <p>Alerts and Messages help with various monitoring scenarios:</p>
-
-        <h3>Incident Response</h3>
-        <p>When investigating an issue:</p>
-        <ol>
-          <li>Check Alerts for high-priority events around the incident time</li>
-          <li>Review Messages for complete context</li>
-          <li>Correlate with profiles to understand root cause</li>
-        </ol>
-
-        <h3>Continuous Monitoring</h3>
-        <p>For ongoing health monitoring:</p>
-        <ul>
-          <li>Monitor alert badge for new critical issues</li>
-          <li>Review Messages periodically for patterns</li>
-          <li>Use alerts to trigger investigation of specific profiles</li>
-        </ul>
-
-        <h3>Post-Mortem Analysis</h3>
-        <p>After an incident:</p>
-        <ul>
-          <li>Review all messages in the timeframe</li>
-          <li>Identify warning signs that preceded the issue</li>
-          <li>Understand the sequence of events</li>
-        </ul>
+        <p>Both views support filtering by severity, session, and search. The Alerts view shows a severity summary bar with counts for each level, while the Messages view includes a time series chart showing message distribution over time.</p>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
         <p>Alerts and Messages availability depends on workspace type:</p>
@@ -235,4 +211,67 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+
+/* Severity Cards */
+.severity-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .severity-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.severity-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.severity-indicator {
+  width: 6px;
+  min-width: 6px;
+  border-radius: 3px;
+}
+
+.severity-card.critical .severity-indicator {
+  background-color: #dc3545;
+}
+
+.severity-card.high .severity-indicator {
+  background-color: #fd7e14;
+}
+
+.severity-card.medium .severity-indicator {
+  background-color: #eab308;
+}
+
+.severity-card.low .severity-indicator {
+  background-color: #0891b2;
+}
+
+.severity-content {
+  flex: 1;
+}
+
+.severity-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.severity-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5e6e82;
+  line-height: 1.4;
+}
 </style>

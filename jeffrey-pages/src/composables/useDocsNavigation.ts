@@ -22,6 +22,14 @@ import type { DocSection, AdjacentPages, DocPageWithCategory, CurrentPageInfo } 
 
 export const docsNavigation: DocSection[] = [
   {
+    title: 'Goals',
+    path: 'goals',
+    icon: 'bi-bullseye',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
     title: 'Getting Started',
     path: 'getting-started',
     icon: 'bi-rocket-takeoff',
@@ -32,9 +40,19 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
-    title: 'Concepts',
+    title: 'Architecture',
+    path: 'architecture',
+    icon: 'bi-diagram-3',
+    children: [
+      { title: 'Overview', path: 'overview' },
+      { title: 'Public API', path: 'public-api' },
+      { title: 'Storage', path: 'storage' }
+    ]
+  },
+  {
+    title: 'Platform',
     path: 'concepts',
-    icon: 'bi-lightbulb',
+    icon: 'bi-layers',
     children: [
       { title: 'Workspaces', path: 'workspaces' },
       {
@@ -49,13 +67,35 @@ export const docsNavigation: DocSection[] = [
           { title: 'Scheduler', path: 'projects/scheduler' },
           { title: 'Alerts & Messages', path: 'projects/alerts-messages' }
         ]
-      },
-      { title: 'Profiles', path: 'profiles' },
-      { title: 'JFR Events', path: 'jfr-events' }
+      }
     ]
   },
   {
-    title: 'Features',
+    title: 'Profiles',
+    path: 'profiles',
+    icon: 'bi-speedometer2',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
+    title: 'Jeffrey CLI',
+    path: 'cli',
+    icon: 'bi-terminal',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
+    title: 'Jeffrey JFR Events',
+    path: 'jeffrey-jfr-events',
+    icon: 'bi-broadcast',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
+    title: 'Highlighted Features',
     path: 'features',
     icon: 'bi-stars',
     children: [
@@ -63,24 +103,6 @@ export const docsNavigation: DocSection[] = [
       { title: 'Timeseries', path: 'timeseries' },
       { title: 'Guardian', path: 'guardian' },
       { title: 'Auto Analysis', path: 'auto-analysis' }
-    ]
-  },
-  {
-    title: 'Guides',
-    path: 'guides',
-    icon: 'bi-book',
-    children: [
-      { title: 'CPU Performance', path: 'cpu-performance' },
-      { title: 'Memory Analysis', path: 'memory-analysis' },
-      { title: 'Thread Analysis', path: 'thread-analysis' }
-    ]
-  },
-  {
-    title: 'CLI',
-    path: 'cli',
-    icon: 'bi-terminal',
-    children: [
-      { title: 'Overview', path: 'overview' }
     ]
   }
 ];

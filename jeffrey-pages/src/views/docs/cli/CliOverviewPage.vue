@@ -92,7 +92,6 @@ exec java $JEFFREY_PROFILER_CONFIG -jar /app/my-app.jar`;
         </div>
         <div class="header-content">
           <h1 class="docs-title">Jeffrey CLI</h1>
-          <p class="docs-section-badge">CLI</p>
         </div>
       </header>
 
