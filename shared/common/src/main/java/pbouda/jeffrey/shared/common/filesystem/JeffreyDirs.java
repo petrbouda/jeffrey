@@ -75,6 +75,10 @@ public class JeffreyDirs {
         return profiles().resolve(profileId);
     }
 
+    public Path homeDir() {
+        return homeDir;
+    }
+
     public Path temp() {
         return tempDir;
     }

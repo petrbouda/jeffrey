@@ -39,18 +39,18 @@ onMounted(() => {
 
 const quickStart = `docker run -d \\
   --name jeffrey \\
-  -p 8585:8585 \\
+  -p 8080:8080 \\
   petrbouda/jeffrey:latest`;
 
 const withVolume = `docker run -d \\
   --name jeffrey \\
-  -p 8585:8585 \\
+  -p 8080:8080 \\
   -v jeffrey-data:/data/jeffrey \\
   petrbouda/jeffrey:latest`;
 
 const withBindMount = `docker run -d \\
   --name jeffrey \\
-  -p 8585:8585 \\
+  -p 8080:8080 \\
   -v /path/on/host:/data/jeffrey \\
   petrbouda/jeffrey:latest`;
 
@@ -59,7 +59,7 @@ const dockerCompose = `services:
     image: petrbouda/jeffrey:latest
     container_name: jeffrey
     ports:
-      - "8585:8585"
+      - "8080:8080"
     volumes:
       - jeffrey-data:/data/jeffrey
     environment:
@@ -71,7 +71,7 @@ volumes:
 
 const withEnvVars = `docker run -d \\
   --name jeffrey \\
-  -p 8585:8585 \\
+  -p 8080:8080 \\
   -v jeffrey-data:/data/jeffrey \\
   -e JAVA_OPTS="-Xmx2g -Xms2g" \\
   petrbouda/jeffrey:latest`;
@@ -108,7 +108,7 @@ const withEnvVars = `docker run -d \\
           :code="quickStart"
         />
 
-        <p>Jeffrey is now running at <a href="http://localhost:8585" target="_blank">http://localhost:8585</a>.</p>
+        <p>Jeffrey is now running at <a href="http://localhost:8080" target="_blank">http://localhost:8080</a>.</p>
 
         <DocsCallout type="warning">
           <strong>Data persistence:</strong> Without a volume, all data is lost when the container stops. See the next section for persistent storage.
@@ -166,7 +166,7 @@ const withEnvVars = `docker run -d \\
             </tr>
             <tr>
               <td><code>SERVER_PORT</code></td>
-              <td>HTTP server port (default: 8585)</td>
+              <td>HTTP server port (default: 8080)</td>
             </tr>
             <tr>
               <td><code>JEFFREY_HOME_DIR</code></td>

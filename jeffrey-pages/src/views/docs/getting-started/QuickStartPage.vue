@@ -74,7 +74,7 @@ onMounted(() => {
           code="docker run -it --network host petrbouda/jeffrey"
         />
 
-        <p>Then open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser.</p>
+        <p>Then open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.</p>
 
         <h2 id="create-workspace">Create a Sandbox Workspace</h2>
         <p>The Sandbox Workspace is designed for local experimentation and investigation. To create one:</p>

@@ -21,7 +21,7 @@ export default class GlobalVars {
         // In production, frontend is served by backend on same port, use relative URL
         // In development (Vite dev server), frontend runs on different port, use absolute URL
         if (import.meta.env.DEV) {
-            return 'http://localhost:8585/api/internal';
+            return 'http://localhost:8080/api/internal';
         } else {
             return '/api/internal';
         }

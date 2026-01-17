@@ -396,7 +396,7 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
             </div>
             <div class="quick-start-footer">
               <i class="bi bi-info-circle me-1"></i>
-              <span>Then open <a href="http://localhost:8585" target="_blank" class="localhost-link">http://localhost:8585</a> in your browser</span>
+              <span>Then open <a href="http://localhost:8080" target="_blank" class="localhost-link">http://localhost:8080</a> in your browser</span>
             </div>
           </div>
         </div>

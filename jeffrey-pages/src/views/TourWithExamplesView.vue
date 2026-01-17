@@ -48,7 +48,7 @@
                 <h3>Quick Start</h3>
                 <p>Launch the Docker container with the following command:</p>
                 <pre><code>docker run -it --network host petrbouda/jeffrey-examples</code></pre>
-                <p>After starting the container, open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser to access the Jeffrey UI.</p>
+                <p>After starting the container, open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser to access the Jeffrey UI.</p>
               </div>
             </div>
 

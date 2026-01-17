@@ -63,7 +63,7 @@
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
+                      <p>Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser
                       </p>
                     </div>
                   </div>
@@ -93,7 +93,7 @@
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
+                      <p>Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser
                       </p>
                     </div>
                   </div>
@@ -118,7 +118,7 @@
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
+                      <p>Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser
                       </p>
                     </div>
                   </div>

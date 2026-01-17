@@ -90,10 +90,10 @@ const fullConfig = `java -jar jeffrey.jar \\
           :code="basicRun"
         />
 
-        <p>Jeffrey will start on port <code>8585</code> and create a <code>jeffrey-data</code> directory in the current working directory.</p>
+        <p>Jeffrey will start on port <code>8080</code> and create a <code>jeffrey-data</code> directory in the current working directory.</p>
 
         <DocsCallout type="tip">
-          <strong>Access Jeffrey:</strong> Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser after starting.
+          <strong>Access Jeffrey:</strong> Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser after starting.
         </DocsCallout>
 
         <h3>Custom Port</h3>
@@ -128,7 +128,7 @@ const fullConfig = `java -jar jeffrey.jar \\
           <tbody>
             <tr>
               <td><code>--server.port</code></td>
-              <td>8585</td>
+              <td>8080</td>
               <td>HTTP server port</td>
             </tr>
             <tr>

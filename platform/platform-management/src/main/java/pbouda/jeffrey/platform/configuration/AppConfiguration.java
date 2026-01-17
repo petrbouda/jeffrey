@@ -29,7 +29,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
-import pbouda.jeffrey.platform.configuration.properties.PersistenceConfigProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.ProfilesManagerImpl;
@@ -60,7 +59,6 @@ import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
-import pbouda.jeffrey.shared.common.Config;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
@@ -79,7 +77,6 @@ import static pbouda.jeffrey.platform.configuration.GlobalJobsConfiguration.PROJ
 @Configuration
 @Import({ProfilesConfiguration.class, JobsConfiguration.class})
 @EnableConfigurationProperties({
-        PersistenceConfigProperties.class,
         ProjectProperties.class,
 })
 public class AppConfiguration {
@@ -101,13 +98,17 @@ public class AppConfiguration {
     @Bean
     // Inject JeffreyDirs to ensure that the JeffreyHome is initialized before opening the database
     public PlatformPersistenceProvider platformPersistenceProvider(
-            JeffreyDirs ignored,
-            PersistenceConfigProperties properties,
+            JeffreyDirs jeffreyDirs,
+            @Value("${jeffrey.persistence.database.url:}") String databaseUrl,
             Clock clock) {
 
-        String databaseUrl = properties.getDatabase().get("url");
+        // Use default database URL if not configured
+        String resolvedUrl = databaseUrl.isEmpty()
+                ? "jdbc:duckdb:" + jeffreyDirs.homeDir().resolve("jeffrey-data.db")
+                : databaseUrl;
+
         DuckDBPlatformPersistenceProvider provider = new DuckDBPlatformPersistenceProvider();
-        provider.initialize(databaseUrl, clock);
+        provider.initialize(resolvedUrl, clock);
         return provider;
     }
 
@@ -128,8 +129,8 @@ public class AppConfiguration {
 
     @Bean
     public JeffreyDirs jeffreyDir(
-            @Value("${jeffrey.home.dir}") String homeDir,
-            @Value("${jeffrey.temp.dir}") String tempDir) {
+            @Value("${jeffrey.home.dir:${user.home}/.jeffrey}") String homeDir,
+            @Value("${jeffrey.temp.dir:${jeffrey.home.dir}/temp}") String tempDir) {
         Path homeDirPath = Path.of(homeDir);
         Path tempDirPath = Path.of(tempDir);
         LOG.info("Using Jeffrey directory: HOME={} TEMP={}", homeDirPath, tempDirPath);
@@ -159,11 +160,13 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingStorage projectRecordingStorage(ProjectProperties projectProperties) {
-        Path recordingsPath = Config.parsePath(
-                projectProperties.getRecordingStorage(),
-                "path",
-                Path.of(System.getProperty("java.io.tmpdir"), "jeffrey-recordings"));
+    public RecordingStorage projectRecordingStorage(
+            JeffreyDirs jeffreyDirs,
+            @Value("${jeffrey.project.recording-storage.path:}") String recordingStoragePath) {
+
+        Path recordingsPath = recordingStoragePath.isEmpty()
+                ? jeffreyDirs.homeDir().resolve("recordings")
+                : Path.of(recordingStoragePath);
 
         if (Files.exists(recordingsPath) && !Files.isDirectory(recordingsPath)) {
             throw new IllegalArgumentException("Recordings path must be a directory");
@@ -250,7 +253,7 @@ public class AppConfiguration {
 
     @Bean
     public ProjectTemplatesLoader projectTemplatesLoader(
-            @Value("${jeffrey.default-project-templates}") String projectTemplatesPath) {
+            @Value("${jeffrey.default-project-templates:classpath:project-templates/default-project-templates.json}") String projectTemplatesPath) {
         return new ProjectTemplatesLoader(projectTemplatesPath);
     }
 
@@ -261,7 +264,7 @@ public class AppConfiguration {
 
     @Bean
     public JobDefinitionLoader jobDefinitionLoader(
-            @Value("${jeffrey.default-job-definitions}") String jobDefinitionsPath) {
+            @Value("${jeffrey.default-job-definitions:classpath:job-definitions/default-job-definitions.json}") String jobDefinitionsPath) {
         return new JobDefinitionLoader(jobDefinitionsPath);
     }
 
@@ -280,10 +283,10 @@ public class AppConfiguration {
 
 
     @Bean
-    @ConditionalOnProperty(value = "jeffrey.copy-libs.enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(value = "jeffrey.copy-libs.enabled", havingValue = "true", matchIfMissing = false)
     public CopyLibsInitializer copyLibsInitializer(
-            @Value("${jeffrey.copy-libs.source}") String source,
-            @Value("${jeffrey.copy-libs.target}") String target) {
+            @Value("${jeffrey.copy-libs.source:/jeffrey-libs}") String source,
+            @Value("${jeffrey.copy-libs.target:${jeffrey.home.dir}/libs}") String target) {
 
         return new CopyLibsInitializer(Path.of(source), Path.of(target));
     }

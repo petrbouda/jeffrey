@@ -221,6 +221,21 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsConfigurationOverview',
         component: () => import('@/views/docs/configuration/ConfigurationOverviewPage.vue')
       },
+      {
+        path: 'configuration/application-properties',
+        name: 'DocsConfigurationApplicationProperties',
+        component: () => import('@/views/docs/configuration/ApplicationPropertiesPage.vue')
+      },
+      {
+        path: 'configuration/advanced-properties',
+        name: 'DocsConfigurationAdvancedProperties',
+        component: () => import('@/views/docs/configuration/AdvancedPropertiesPage.vue')
+      },
+      {
+        path: 'configuration/secrets',
+        name: 'DocsConfigurationSecrets',
+        component: () => import('@/views/docs/configuration/SecretsPropertiesPage.vue')
+      },
       // Deployments
       {
         path: 'deployments/overview',

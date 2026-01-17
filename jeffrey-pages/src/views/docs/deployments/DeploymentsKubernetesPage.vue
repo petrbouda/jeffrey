@@ -72,7 +72,7 @@ spec:
               --spring.config.location=file:/mnt/config/application.properties
           ports:
             - name: http
-              containerPort: 8585
+              containerPort: 8080
               protocol: TCP
           env:
             - name: ENV_NAME
@@ -92,13 +92,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8585
+              port: 8080
             initialDelaySeconds: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8585
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
       restartPolicy: Always
@@ -113,7 +113,7 @@ metadata:
   namespace: profiling
 data:
   application.properties: |
-    server.port=8585
+    server.port=8080
     spring.main.banner-mode=off
 
     logging.level.pbouda.jeffrey=INFO
@@ -181,8 +181,8 @@ spec:
     app: jeffrey
   ports:
     - name: http
-      port: 8585
-      targetPort: 8585
+      port: 8080
+      targetPort: 8080
   type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
@@ -210,7 +210,7 @@ spec:
               service:
                 name: jeffrey-service
                 port:
-                  number: 8585`;
+                  number: 8080`;
 </script>
 
 <template>

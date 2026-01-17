@@ -95,7 +95,7 @@ onMounted(() => {
 
         <DocsCodeBlock
           language="text"
-          code="http://localhost:8585"
+          code="http://localhost:8080"
         />
 
         <DocsCallout type="tip">

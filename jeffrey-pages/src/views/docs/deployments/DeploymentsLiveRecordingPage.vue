@@ -40,7 +40,7 @@ onMounted(() => {
 
 const jeffreyConfig = `# application.properties for Jeffrey
 
-server.port=8585
+server.port=8080
 jeffrey.home.dir=/data/jeffrey
 
 # Enable scheduler for automatic recording collection

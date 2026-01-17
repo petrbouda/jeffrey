@@ -80,11 +80,11 @@ const closeImageModal = (): void => {
             <p>or you can spin up docker container with the following command, and check predefined examples.</p>
 
             <div class="code-block">
-              <pre><code>docker run -it -p 8585:8585 petrbouda/jeffrey-examples:0.4</code></pre>
+              <pre><code>docker run -it -p 8080:8080 petrbouda/jeffrey-examples:0.4</code></pre>
             </div>
 
             <p>
-              Open the browser: <a href="http://localhost:8585" target="_blank">http://localhost:8585</a>
+              Open the browser: <a href="http://localhost:8080" target="_blank">http://localhost:8080</a>
             </p>
 
             <h3>New Features</h3>

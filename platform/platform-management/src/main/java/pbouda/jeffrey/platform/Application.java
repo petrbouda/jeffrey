@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.platform;
 
+import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.tomcat.TomcatConnectorCustomizer;
@@ -37,14 +38,20 @@ public class Application implements WebMvcConfigurer {
 
     static void main(String[] args) {
         if (args.length == 0) {
-            SpringApplication.run(Application.class, args);
+            runApplication(args);
         } else {
             switch (args[0]) {
                 case "--version" -> JeffreyVersion.print();
                 case "upload-recordings" -> CommandLineRecordingUploader.uploadRecordings(args);
-                default -> SpringApplication.run(Application.class, args);
+                default -> runApplication(args);
             }
         }
+    }
+
+    private static void runApplication(String[] args) {
+        SpringApplication app = new SpringApplication(Application.class);
+        app.setBannerMode(Banner.Mode.OFF);
+        app.run(args);
     }
 
     // For DEV purposes

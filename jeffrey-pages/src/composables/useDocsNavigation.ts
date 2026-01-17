@@ -102,7 +102,10 @@ export const docsNavigation: DocSection[] = [
     path: 'configuration',
     icon: 'bi-gear',
     children: [
-      { title: 'Overview', path: 'overview' }
+      { title: 'Overview', path: 'overview' },
+      { title: 'Application Properties', path: 'application-properties' },
+      { title: 'Advanced Properties', path: 'advanced-properties' },
+      { title: 'Secrets', path: 'secrets' }
     ]
   },
   {
