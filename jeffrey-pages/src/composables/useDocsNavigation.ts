@@ -109,22 +109,36 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
-    title: 'Deployments',
+    title: 'Local Deployments',
     path: 'deployments',
     icon: 'bi-cloud-upload',
     children: [
       { title: 'Overview', path: 'overview' },
       { title: 'Simple JAR Execution', path: 'simple-jar' },
       { title: 'Simple as a Container', path: 'simple-container' },
-      { title: 'Container with Examples', path: 'container-examples' },
-      { title: 'Live with Recording Collection', path: 'live-recording' },
-      { title: 'Kubernetes', path: 'kubernetes' }
+      { title: 'Container with Examples', path: 'container-examples' }
+    ]
+  },
+  {
+    title: 'Live Recording',
+    path: 'live-recording',
+    icon: 'bi-broadcast-pin',
+    children: [
+      { title: 'Overview', path: 'overview' },
+      {
+        title: 'Kubernetes',
+        path: 'kubernetes',
+        children: [
+          { title: 'Jeffrey Deployment', path: 'jeffrey-deployment' },
+          { title: 'Service Deployment', path: 'service-deployment' }
+        ]
+      }
     ]
   },
   {
     title: 'Jeffrey JFR Events',
     path: 'jeffrey-jfr-events',
-    icon: 'bi-broadcast',
+    icon: 'bi-activity',
     children: [
       { title: 'Overview', path: 'overview' }
     ]

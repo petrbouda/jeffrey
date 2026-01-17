@@ -113,42 +113,19 @@ metadata:
   namespace: profiling
 data:
   application.properties: |
-    server.port=8080
-    spring.main.banner-mode=off
-
-    logging.level.pbouda.jeffrey=INFO
-
-    # CORS mode: DEV (all origins) or PROD (restricted)
-    jeffrey.cors.mode=DEV
-
     # Jeffrey home directory
     jeffrey.home.dir=/data/jeffrey
-    jeffrey.temp.dir=\${jeffrey.home.dir}/temp
 
-    # Job scheduler
-    jeffrey.job.scheduler.enabled=true
-    jeffrey.job.default.period=1m
-
-    # Profile initialization
-    jeffrey.profile.data-initializer.enabled=true
-    jeffrey.profile.data-initializer.blocking=true
-
-    # Recording storage
-    jeffrey.project.recording-storage.path=\${jeffrey.home.dir}/recordings
-
-    # Global profiler settings
-    jeffrey.profiler.global-settings.create-if-not-exists=true
-    jeffrey.profiler.global-settings.command=-agentpath:<<JEFFREY_PROFILER_PATH>>=start,alloc,lock,event=ctimer,loop=15m,chunksize=5m,file=<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr
-
-    # Database
-    jeffrey.persistence.database.url=jdbc:duckdb:\${jeffrey.home.dir}/jeffrey-data.db
-    jeffrey.persistence.database.pool-size=25
+    # AI Assistant (Anthropic Claude)
+    jeffrey.ai.enabled=true
+    jeffrey.ai.provider=anthropic
+    spring.ai.anthropic.api-key=<token>
 
   jeffrey-init.conf: |
     # Jeffrey CLI configuration for self-monitoring
 
     jeffrey-home = "/data/jeffrey"
-    profiler-path = "/jeffrey-libs/libasyncProfiler.so"
+    profiler-path = "/data/jeffrey/libs/libasyncProfiler.so"
 
     workspace-id = "uat"
     project-name = "jeffrey-"\${ENV_NAME}
@@ -156,6 +133,12 @@ data:
 
     perf-counters { enabled = true }
     heap-dump { enabled = true, type = "crash" }
+
+    messaging {
+      enabled = true
+      max-age = "24h"  # How long to keep messages (e.g., 12h, 1d, 30m)
+    }
+
     jvm-logging {
       enabled = true
       command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
@@ -220,17 +203,17 @@ spec:
           <i class="bi bi-book me-1"></i>Docs
         </router-link>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Deployments</span>
+        <span class="breadcrumb-item">Live Recording</span>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Kubernetes</span>
+        <span class="breadcrumb-item active">Jeffrey Deployment</span>
       </nav>
 
       <header class="docs-header">
         <div class="header-icon">
-          <i class="bi bi-diagram-3"></i>
+          <i class="bi bi-box-seam"></i>
         </div>
         <div class="header-content">
-          <h1 class="docs-title">Kubernetes Deployment</h1>
+          <h1 class="docs-title">Jeffrey Deployment</h1>
         </div>
       </header>
 

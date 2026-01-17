@@ -25,8 +25,7 @@ const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'deployment-options', text: 'Deployment Options', level: 2 },
-  { id: 'choosing-deployment', text: 'Choosing a Deployment', level: 2 }
+  { id: 'deployment-options', text: 'Deployment Options', level: 2 }
 ];
 
 onMounted(() => {
@@ -41,7 +40,7 @@ onMounted(() => {
           <i class="bi bi-book me-1"></i>Docs
         </router-link>
         <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Deployments</span>
+        <span class="breadcrumb-item">Local Deployments</span>
         <span class="breadcrumb-separator">/</span>
         <span class="breadcrumb-item active">Overview</span>
       </nav>
@@ -51,12 +50,12 @@ onMounted(() => {
           <i class="bi bi-cloud-upload"></i>
         </div>
         <div class="header-content">
-          <h1 class="docs-title">Deployments Overview</h1>
+          <h1 class="docs-title">Local Deployments Overview</h1>
         </div>
       </header>
 
       <div class="docs-content">
-        <p>Jeffrey can be deployed in various environments, from local development to production Kubernetes clusters. Choose the deployment option that best fits your use case.</p>
+        <p>Jeffrey can be deployed locally in various ways. Choose the deployment option that best fits your use case.</p>
 
         <h2 id="deployment-options">Deployment Options</h2>
 
@@ -84,55 +83,7 @@ onMounted(() => {
             <h4>Container with Examples</h4>
             <p>Pre-loaded with sample profiles for exploring Jeffrey's features.</p>
           </router-link>
-
-          <router-link to="/docs/deployments/live-recording" class="option-card">
-            <div class="option-icon live">
-              <i class="bi bi-broadcast-pin"></i>
-            </div>
-            <h4>Live with Recording Collection</h4>
-            <p>Continuous profiling setup that collects recordings from target applications.</p>
-          </router-link>
-
-          <router-link to="/docs/deployments/kubernetes" class="option-card">
-            <div class="option-icon kubernetes">
-              <i class="bi bi-diagram-3"></i>
-            </div>
-            <h4>Kubernetes</h4>
-            <p>Production-grade deployment with ConfigMaps, PVCs, and Ingress.</p>
-          </router-link>
         </div>
-
-        <h2 id="choosing-deployment">Choosing a Deployment</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Use Case</th>
-              <th>Recommended Deployment</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Quick local testing</td>
-              <td><router-link to="/docs/deployments/simple-jar">Simple JAR Execution</router-link></td>
-            </tr>
-            <tr>
-              <td>Local development with Docker</td>
-              <td><router-link to="/docs/deployments/simple-container">Simple as a Container</router-link></td>
-            </tr>
-            <tr>
-              <td>Learning and exploring features</td>
-              <td><router-link to="/docs/deployments/container-examples">Container with Examples</router-link></td>
-            </tr>
-            <tr>
-              <td>Staging/Production with continuous profiling</td>
-              <td><router-link to="/docs/deployments/live-recording">Live with Recording Collection</router-link></td>
-            </tr>
-            <tr>
-              <td>Production Kubernetes cluster</td>
-              <td><router-link to="/docs/deployments/kubernetes">Kubernetes</router-link></td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <nav class="docs-nav-footer">
@@ -179,7 +130,7 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #fff;
-  text-decoration: none;
+  text-decoration: none !important;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -210,14 +161,6 @@ onMounted(() => {
 
 .option-icon.examples {
   background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-}
-
-.option-icon.live {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.option-icon.kubernetes {
-  background: linear-gradient(135deg, #326ce5 0%, #2456b8 100%);
 }
 
 .option-card h4 {

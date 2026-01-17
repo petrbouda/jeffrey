@@ -262,10 +262,21 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsDeploymentsLiveRecording',
         component: () => import('@/views/docs/deployments/DeploymentsLiveRecordingPage.vue')
       },
+      // Live Recording
       {
-        path: 'deployments/kubernetes',
-        name: 'DocsDeploymentsKubernetes',
-        component: () => import('@/views/docs/deployments/DeploymentsKubernetesPage.vue')
+        path: 'live-recording/overview',
+        name: 'DocsLiveRecordingOverview',
+        component: () => import('@/views/docs/live-recording/LiveRecordingOverviewPage.vue')
+      },
+      {
+        path: 'live-recording/jeffrey-deployment',
+        name: 'DocsLiveRecordingJeffreyDeployment',
+        component: () => import('@/views/docs/live-recording/JeffreyDeploymentPage.vue')
+      },
+      {
+        path: 'live-recording/service-deployment',
+        name: 'DocsLiveRecordingServiceDeployment',
+        component: () => import('@/views/docs/live-recording/ServiceDeploymentPage.vue')
       }
     ]
   }
