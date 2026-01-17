@@ -78,12 +78,15 @@ public class JerseyConfig extends ResourceConfig {
         @Override
         public void filter(ContainerRequestContext request, ContainerResponseContext response) {
             String path = request.getUriInfo().getPath();
-            if (path.startsWith("api/")) {
+            // Only allow CORS for public API endpoints (for Jeffrey-to-Jeffrey communication)
+            // Internal API has no CORS headers - browser enforces same-origin policy
+            if (path.startsWith("public/")) {
                 response.getHeaders().add("Access-Control-Allow-Origin", "*");
                 response.getHeaders().add("Access-Control-Allow-Headers", "*");
                 response.getHeaders().add("Access-Control-Allow-Credentials", "true");
                 response.getHeaders().add("Access-Control-Allow-Methods",
-                        "GET, OPTIONS, HEAD");
+                        "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+                response.getHeaders().add("Access-Control-Expose-Headers", "Content-Disposition");
             }
         }
     }

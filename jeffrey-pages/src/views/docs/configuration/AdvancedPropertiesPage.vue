@@ -94,8 +94,10 @@ onMounted(() => {
             <td><code>jeffrey.cors.mode</code></td>
             <td><code>PROD</code></td>
             <td>
-              CORS mode. <code>DEV</code>: all endpoints available for all origins.
-              <code>PROD</code>: only /api/** endpoints available for all origins.
+              CORS mode. <code>DEV</code>: all endpoints (internal + public) allow cross-origin requests
+              with all HTTP methods (for local development with separate frontend).
+              <code>PROD</code>: only <code>/api/public/*</code> endpoints allow cross-origin requests
+              (for Jeffrey-to-Jeffrey communication over network).
             </td>
           </tr>
         </tbody>

@@ -169,6 +169,16 @@
       :selected-workspace="selectedWorkspace"
       @project-created="handleProjectCreated"
   />
+
+  <ConfirmationDialog
+      v-model:show="showDeleteWorkspaceModal"
+      title="Delete Workspace"
+      :message="deleteWorkspaceMessage"
+      :sub-message="deleteWorkspaceSubMessage"
+      confirm-label="Delete"
+      confirm-button-class="btn-danger"
+      @confirm="confirmDeleteWorkspace"
+  />
 </template>
 
 <script setup lang="ts">
@@ -178,6 +188,7 @@ import LiveWorkspaceModal from '@/components/projects/LiveWorkspaceModal.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ProjectsClient from "@/services/api/ProjectsClient.ts";
@@ -211,6 +222,11 @@ const loading = ref(true);
 const liveWorkspaceModal = ref<InstanceType<typeof LiveWorkspaceModal>>();
 const remoteWorkspaceModal = ref<InstanceType<typeof RemoteWorkspaceModal>>();
 const createProjectModal = ref<InstanceType<typeof CreateProjectModal>>();
+
+// Delete workspace modal state
+const showDeleteWorkspaceModal = ref(false);
+const deleteWorkspaceMessage = ref('');
+const deleteWorkspaceSubMessage = ref('');
 
 const getSelectedWorkspaceType = (): WorkspaceType | undefined => {
   const workspace = workspaces.value.find(w => w.id === selectedWorkspace.value);
@@ -512,26 +528,31 @@ const getDeleteTooltip = (): string => {
   return 'Delete live workspace';
 };
 
-// Handle workspace deletion
-const handleDeleteWorkspace = async () => {
+// Handle workspace deletion - show confirmation modal
+const handleDeleteWorkspace = () => {
   const workspace = getSelectedWorkspace();
   if (!workspace) return;
 
   const projectCount = projects.value.length;
-  let confirmMessage = '';
 
   if (workspace.type === WorkspaceType.SANDBOX) {
-    confirmMessage = `Delete sandbox workspace "${workspace.name}"?\n\nThis will permanently delete ${projectCount > 0 ? `${projectCount} project${projectCount > 1 ? 's' : ''}` : 'the workspace'} and cannot be undone.`;
+    deleteWorkspaceMessage.value = `Delete sandbox workspace "${workspace.name}"?`;
+    deleteWorkspaceSubMessage.value = `This will permanently delete ${projectCount > 0 ? `${projectCount} project${projectCount > 1 ? 's' : ''}` : 'the workspace'} and cannot be undone.`;
   } else if (workspace.type === WorkspaceType.REMOTE) {
-    confirmMessage = `Remove remote workspace "${workspace.name}"?\n\nThis will remove the local copy but won't affect the remote source.`;
+    deleteWorkspaceMessage.value = `Remove remote workspace "${workspace.name}"?`;
+    deleteWorkspaceSubMessage.value = `This will remove the local reference but won't affect the remote source.`;
   } else {
-    confirmMessage = `Delete
-    server workspace "${workspace.name}"?\n\nThis will permanently remove the workspace from the server.`;
+    deleteWorkspaceMessage.value = `Delete workspace "${workspace.name}"?`;
+    deleteWorkspaceSubMessage.value = `This will permanently remove the workspace from the server.`;
   }
 
-  if (!confirm(confirmMessage)) {
-    return;
-  }
+  showDeleteWorkspaceModal.value = true;
+};
+
+// Confirm workspace deletion
+const confirmDeleteWorkspace = async () => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return;
 
   try {
     await WorkspaceClient.delete(workspace.id);
