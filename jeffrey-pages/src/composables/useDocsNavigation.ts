@@ -98,6 +98,14 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
+    title: 'Configuration',
+    path: 'configuration',
+    icon: 'bi-gear',
+    children: [
+      { title: 'Overview', path: 'overview' }
+    ]
+  },
+  {
     title: 'Deployments',
     path: 'deployments',
     icon: 'bi-cloud-upload',

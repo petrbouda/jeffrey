@@ -302,27 +302,61 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
 </script>
 
 <template>
-  <!-- Introduction -->
-  <section class="bg-gradient-header text-white py-10">
-    <div class="container-wide">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <!-- Animated background grid -->
+    <div class="hero-grid"></div>
+
+    <!-- Floating code particles -->
+    <div class="floating-particles">
+      <span class="particle" style="--delay: 0s; --x: 10%; --y: 20%;">JFR</span>
+      <span class="particle" style="--delay: 2s; --x: 85%; --y: 15%;">CPU</span>
+      <span class="particle" style="--delay: 4s; --x: 75%; --y: 70%;">GC</span>
+      <span class="particle" style="--delay: 1s; --x: 15%; --y: 75%;">Heap</span>
+      <span class="particle" style="--delay: 3s; --x: 50%; --y: 10%;">Threads</span>
+      <span class="particle" style="--delay: 5s; --x: 90%; --y: 50%;">Profiler</span>
+    </div>
+
+    <div class="container-wide hero-content">
       <div class="row align-items-center">
-        <div class="col-md-2 text-center text-md-end pe-md-0">
-          <div class="avatar-container-modern">
-            <img src="/images/avatar.jpg" alt="Jeffrey Logo" class="avatar-image">
-          </div>
-        </div>
-        <div class="col-md-9 ps-md-4">
-          <div class="header-content">
-            <h1 class="display-4 fw-bold">Java Application Analyzer</h1>
-            <p class="lead mb-4">Advanced JFR analysis tool for identifying and resolving performance bottlenecks.</p>
-            <div class="mt-4">
-              <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/jeffrey.jar" class="btn btn-light btn-lg me-2">
-                <i class="bi bi-download me-2"></i>Download Jeffrey
+        <div class="col-lg-7">
+          <div class="hero-text">
+            <div class="hero-badge">
+              <i class="bi bi-lightning-charge-fill"></i>
+              <span>JFR Analysis Tool</span>
+            </div>
+            <h1 class="hero-title">
+              <span class="title-line">Java Application</span>
+              <span class="title-highlight">Analyzer</span>
+            </h1>
+            <p class="hero-description">
+              Identify performance bottlenecks with interactive flamegraphs,
+              memory analysis, and deep JFR event inspection.
+            </p>
+            <div class="hero-actions">
+              <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/jeffrey.jar" class="btn-hero-primary">
+                <i class="bi bi-download"></i>
+                <span>Download JAR</span>
               </a>
-              <a href="https://github.com/petrbouda/jeffrey" class="btn btn-outline-light btn-lg" target="_blank">
-                <i class="bi bi-github me-2"></i>GitHub Repository
+              <a href="https://github.com/petrbouda/jeffrey" class="btn-hero-secondary" target="_blank">
+                <i class="bi bi-github"></i>
+                <span>GitHub</span>
               </a>
             </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="hero-visual">
+            <div class="avatar-glow"></div>
+            <div class="avatar-ring avatar-ring-1"></div>
+            <div class="avatar-ring avatar-ring-2"></div>
+            <div class="avatar-ring avatar-ring-3"></div>
+            <img src="/images/avatar.jpg" alt="Jeffrey Logo" class="hero-avatar">
+            <div class="floating-icon icon-1"><i class="bi bi-fire"></i></div>
+            <div class="floating-icon icon-2"><i class="bi bi-cpu"></i></div>
+            <div class="floating-icon icon-3"><i class="bi bi-memory"></i></div>
+            <div class="floating-icon icon-4"><i class="bi bi-graph-up"></i></div>
+            <div class="floating-icon icon-5"><i class="bi bi-speedometer2"></i></div>
           </div>
         </div>
       </div>
@@ -449,27 +483,376 @@ const latestBlogPosts = computed(() => blogPosts.value.slice(0, 6));
 </template>
 
 <style scoped>
-.bg-gradient-header {
-  background: linear-gradient(135deg, #343a40 0%, #495057 100%);
-  padding: 60px 0;
+/* ============================
+   Hero Section
+   ============================ */
+.hero-section {
   position: relative;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+  padding: 50px 0;
   overflow: hidden;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
 }
 
-.bg-gradient-header::before {
-  content: '';
+/* Animated grid background */
+.hero-grid {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: inherit;
-  z-index: -1;
-  filter: blur(30px);
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(94, 100, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 100, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
 }
 
-.header-content {
-  text-align: left;
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}
+
+/* Floating particles */
+.floating-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(94, 100, 255, 0.4);
+  animation: float 8s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.4; }
+  50% { transform: translateY(-20px) rotate(5deg); opacity: 0.7; }
+}
+
+/* Hero content */
+.hero-content {
+  position: relative;
+  z-index: 10;
+}
+
+.hero-text {
+  color: #fff;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(94, 100, 255, 0.15);
+  border: 1px solid rgba(94, 100, 255, 0.3);
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #a5a8ff;
+  margin-bottom: 1.5rem;
+}
+
+.hero-badge i {
+  color: #5e64ff;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+
+.title-line {
+  display: block;
+  color: #fff;
+}
+
+.title-highlight {
+  display: block;
+  background: linear-gradient(135deg, #5e64ff 0%, #a855f7 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-description {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 500px;
+  margin-bottom: 2rem;
+}
+
+/* Hero buttons */
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(94, 100, 255, 0.4);
+}
+
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(94, 100, 255, 0.5);
+  color: #fff;
+}
+
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-hero-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* Hero visual (avatar with effects) */
+.hero-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 460px;
+  width: 460px;
+  margin: 0 auto;
+}
+
+.avatar-glow {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(94, 100, 255, 0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(50px);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 0.9; }
+}
+
+.avatar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(94, 100, 255, 0.25);
+}
+
+.avatar-ring-1 {
+  width: 310px;
+  height: 310px;
+  animation: rotateRing 30s linear infinite;
+}
+
+.avatar-ring-2 {
+  width: 380px;
+  height: 380px;
+  border-style: dashed;
+  animation: rotateRing 25s linear infinite reverse;
+}
+
+.avatar-ring-3 {
+  width: 440px;
+  height: 440px;
+  animation: rotateRing 35s linear infinite;
+}
+
+@keyframes rotateRing {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.hero-avatar {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid rgba(94, 100, 255, 0.5);
+  box-shadow: 0 0 70px rgba(94, 100, 255, 0.4);
+  position: relative;
+  z-index: 5;
+}
+
+/* Floating icons around avatar */
+.floating-icon {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 20px rgba(94, 100, 255, 0.5);
+  z-index: 10;
+}
+
+.icon-1 {
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: floatUp 3s ease-in-out infinite;
+}
+
+.icon-2 {
+  top: 25%;
+  right: 0;
+  animation: floatRight 3.5s ease-in-out infinite;
+}
+
+.icon-3 {
+  bottom: 15%;
+  right: 10%;
+  animation: floatDiagonal 4s ease-in-out infinite;
+}
+
+.icon-4 {
+  bottom: 15%;
+  left: 10%;
+  animation: floatDiagonal 3.8s ease-in-out infinite reverse;
+}
+
+.icon-5 {
+  top: 25%;
+  left: 0;
+  animation: floatLeft 3.2s ease-in-out infinite;
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-12px); }
+}
+
+@keyframes floatRight {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(8px) translateY(-8px); }
+}
+
+@keyframes floatLeft {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(-8px) translateY(-8px); }
+}
+
+@keyframes floatDiagonal {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.05); }
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .hero-section {
+    padding: 40px 0;
+    min-height: auto;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-visual {
+    margin-top: 2rem;
+    height: 300px;
+    width: 300px;
+  }
+
+  .hero-avatar {
+    width: 160px;
+    height: 160px;
+  }
+
+  .avatar-glow {
+    width: 190px;
+    height: 190px;
+  }
+
+  .avatar-ring-1 { width: 200px; height: 200px; }
+  .avatar-ring-2 { width: 245px; height: 245px; }
+  .avatar-ring-3 { width: 285px; height: 285px; }
+
+  .floating-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .btn-hero-primary,
+  .btn-hero-secondary {
+    justify-content: center;
+  }
+
+  .hero-visual {
+    height: 240px;
+    width: 240px;
+  }
+
+  .hero-avatar {
+    width: 110px;
+    height: 110px;
+  }
+
+  .avatar-glow {
+    width: 130px;
+    height: 130px;
+  }
+
+  .avatar-ring-1 { width: 145px; height: 145px; }
+  .avatar-ring-2 { width: 185px; height: 185px; }
+  .avatar-ring-3 { width: 225px; height: 225px; }
+
+  .floating-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
 }
 
 .section-header {

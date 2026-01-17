@@ -215,6 +215,12 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsCliDirectoryStructure',
         component: () => import('@/views/docs/cli/CliDirectoryStructurePage.vue')
       },
+      // Configuration
+      {
+        path: 'configuration/overview',
+        name: 'DocsConfigurationOverview',
+        component: () => import('@/views/docs/configuration/ConfigurationOverviewPage.vue')
+      },
       // Deployments
       {
         path: 'deployments/overview',
