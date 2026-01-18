@@ -18,10 +18,10 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsFeatureCard from '@/components/docs/DocsFeatureCard.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
-
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -38,24 +38,10 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Goals</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Overview</span>
-      </nav>
-
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-bullseye"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Goals</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Goals"
+        icon="bi bi-bullseye"
+      />
 
       <div class="docs-content">
         <p>Jeffrey is built with clear objectives that guide every feature and design decision.</p>
@@ -63,31 +49,31 @@ onMounted(() => {
         <h2 id="core-objectives">Core Objectives</h2>
         <p>Jeffrey addresses three distinct profiling workflows through dedicated workspace types:</p>
 
-        <div class="objectives-grid">
-          <div class="objective-card sandbox">
-            <div class="card-header">
+        <div class="docs-grid docs-grid-stack">
+          <div class="docs-card docs-card-horizontal">
+            <div class="docs-icon docs-icon-md docs-icon-orange">
               <i class="bi bi-house"></i>
             </div>
-            <div class="card-body">
-              <h4>Quick Local Analysis <span class="workspace-badge">Sandbox</span></h4>
+            <div class="docs-card-content">
+              <h4 class="docs-title-with-badge">Quick Local Analysis <span class="docs-badge docs-badge-default">Sandbox</span></h4>
               <p>Quickly analyze locally available JFR recordings and organize them into projects. Upload a file and start investigating within seconds.</p>
             </div>
           </div>
-          <div class="objective-card live">
-            <div class="card-header">
+          <div class="docs-card docs-card-horizontal">
+            <div class="docs-icon docs-icon-md docs-icon-purple">
               <i class="bi bi-cloud"></i>
             </div>
-            <div class="card-body">
-              <h4>Recording Collection Infrastructure <span class="workspace-badge">Live</span></h4>
+            <div class="docs-card-content">
+              <h4 class="docs-title-with-badge">Recording Collection Infrastructure <span class="docs-badge docs-badge-default">Live</span></h4>
               <p>Conveniently collect JFR recordings and artifacts from running applications, especially in containerized cloud environments like Kubernetes.</p>
             </div>
           </div>
-          <div class="objective-card remote">
-            <div class="card-header">
+          <div class="docs-card docs-card-horizontal">
+            <div class="docs-icon docs-icon-md docs-icon-green">
               <i class="bi bi-pc-display"></i>
             </div>
-            <div class="card-body">
-              <h4>Avoid Cloud Computation Costs <span class="workspace-badge">Remote</span></h4>
+            <div class="docs-card-content">
+              <h4 class="docs-title-with-badge">Avoid Cloud Computation Costs <span class="docs-badge docs-badge-default">Remote</span></h4>
               <p>Offload expensive profile processing from cloud infrastructure to local machines. Download recordings remotely and analyze them locally.</p>
             </div>
           </div>
@@ -106,28 +92,25 @@ onMounted(() => {
         <h3>Operational Cost Optimization</h3>
         <p>Jeffrey prioritizes keeping operational costs low while maintaining useful features:</p>
 
-        <div class="design-points">
-          <div class="design-point">
-            <div class="point-icon"><i class="bi bi-hdd"></i></div>
-            <div class="point-content">
-              <strong>Filesystem & Blob Storage</strong>
-              <p>Use cheaper storage systems instead of expensive managed databases. Recordings are stored on disk or blob storage.</p>
-            </div>
-          </div>
-          <div class="design-point">
-            <div class="point-icon"><i class="bi bi-database"></i></div>
-            <div class="point-content">
-              <strong>In-Process Database (DuckDB)</strong>
-              <p>Use file-based, in-process databases to avoid deploying and maintaining separate database servers.</p>
-            </div>
-          </div>
-          <div class="design-point">
-            <div class="point-icon"><i class="bi bi-box-seam"></i></div>
-            <div class="point-content">
-              <strong>Minimal Components</strong>
-              <p>No additional services to deploy. Jeffrey runs as a single application with everything included.</p>
-            </div>
-          </div>
+        <div class="docs-grid docs-grid-stack">
+          <DocsFeatureCard
+            icon="bi bi-hdd"
+            title="Filesystem & Blob Storage"
+            description="Use cheaper storage systems instead of expensive managed databases. Recordings are stored on disk or blob storage."
+            color="neutral"
+          />
+          <DocsFeatureCard
+            icon="bi bi-database"
+            title="In-Process Database (DuckDB)"
+            description="Use file-based, in-process databases to avoid deploying and maintaining separate database servers."
+            color="neutral"
+          />
+          <DocsFeatureCard
+            icon="bi bi-box-seam"
+            title="Minimal Components"
+            description="No additional services to deploy. Jeffrey runs as a single application with everything included."
+            color="neutral"
+          />
         </div>
 
         <h3>Accessible Visualizations</h3>
@@ -141,228 +124,24 @@ onMounted(() => {
         <h2 id="auto-analysis">Auto Analysis</h2>
         <p>Tools for quick insights <strong>before</strong> deep and time-consuming investigation:</p>
 
-        <div class="analysis-cards">
-          <div class="analysis-card">
-            <div class="card-icon"><i class="bi bi-shield-check"></i></div>
-            <div class="card-content">
-              <h4>Guardian</h4>
-              <p>Automated analysis of flamegraphs. Traverses stacktraces to find suspicious patterns - infinite loops, excessive locking, problematic allocations.</p>
-            </div>
-          </div>
-          <div class="analysis-card">
-            <div class="card-icon"><i class="bi bi-graph-up"></i></div>
-            <div class="card-content">
-              <h4>Auto-Analysis</h4>
-              <p>Basic analysis of JFR recording data. Rule-based insights with color-coded results (OK, Warning, Critical) about application behavior.</p>
-            </div>
-          </div>
+        <div class="docs-grid docs-grid-2">
+          <DocsFeatureCard
+            icon="bi bi-shield-check"
+            title="Guardian"
+            description="Automated analysis of flamegraphs. Traverses stacktraces to find suspicious patterns - infinite loops, excessive locking, problematic allocations."
+          />
+          <DocsFeatureCard
+            icon="bi bi-graph-up"
+            title="Auto-Analysis"
+            description="Basic analysis of JFR recording data. Rule-based insights with color-coded results (OK, Warning, Critical) about application behavior."
+          />
         </div>
       </div>
 
-      <nav class="docs-nav-footer">
-        <router-link
-          v-if="adjacentPages.prev"
-          :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
-          class="nav-link prev"
-        >
-          <i class="bi bi-arrow-left"></i>
-          <div class="nav-text">
-            <span class="nav-label">Previous</span>
-            <span class="nav-title">{{ adjacentPages.prev.title }}</span>
-          </div>
-        </router-link>
-        <div v-else class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-/* Objectives List */
-.objectives-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.objective-card {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-}
-
-.objective-card .card-header {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.objective-card.sandbox .card-header {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.objective-card.live .card-header {
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-}
-
-.objective-card.remote .card-header {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.objective-card .card-header i {
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.objective-card .card-body {
-  flex: 1;
-}
-
-.objective-card .card-body h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #343a40;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.workspace-badge {
-  font-size: 0.65rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: #e2e8f0;
-  color: #495057;
-}
-
-.objective-card .card-body p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-  line-height: 1.5;
-}
-
-/* Design Points */
-.design-points {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.design-point {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.point-icon {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 8px;
-  background: #e2e8f0;
-  color: #495057;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.point-content {
-  flex: 1;
-}
-
-.point-content strong {
-  display: block;
-  color: #343a40;
-  margin-bottom: 0.25rem;
-}
-
-.point-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-}
-
-/* Analysis Cards */
-.analysis-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.analysis-card {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.card-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-}
-
-.card-content {
-  flex: 1;
-}
-
-.card-content h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.card-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .analysis-cards {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

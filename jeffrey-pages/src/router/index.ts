@@ -87,90 +87,110 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'architecture/public-api',
         name: 'DocsPublicApi',
-        component: () => import('@/views/docs/architecture/PublicApiPage.vue')
+        component: () => import('@/views/docs/architecture/ArchitecturePublicApiPage.vue')
       },
       {
         path: 'architecture/storage',
         name: 'DocsStorage',
-        component: () => import('@/views/docs/architecture/StoragePage.vue')
+        component: () => import('@/views/docs/architecture/ArchitectureStoragePage.vue')
       },
       // Getting Started
       {
         path: 'getting-started/introduction',
         name: 'DocsIntroduction',
-        component: () => import('@/views/docs/getting-started/IntroductionPage.vue')
+        component: () => import('@/views/docs/getting-started/GettingStartedIntroductionPage.vue')
       },
       {
         path: 'getting-started/installation',
         name: 'DocsInstallation',
-        component: () => import('@/views/docs/getting-started/InstallationPage.vue')
+        component: () => import('@/views/docs/getting-started/GettingStartedInstallationPage.vue')
       },
       {
         path: 'getting-started/quick-start',
         name: 'DocsQuickStart',
-        component: () => import('@/views/docs/getting-started/QuickStartPage.vue')
+        component: () => import('@/views/docs/getting-started/GettingStartedQuickStartPage.vue')
       },
       // Concepts
       {
-        path: 'concepts/workspaces',
+        path: 'platform/workspaces',
         name: 'DocsWorkspaces',
-        component: () => import('@/views/docs/concepts/WorkspacesPage.vue')
+        component: () => import('@/views/docs/platform/WorkspacesPage.vue')
       },
       {
-        path: 'concepts/projects',
+        path: 'platform/projects',
         name: 'DocsProjects',
-        component: () => import('@/views/docs/concepts/ProjectsPage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsOverviewPage.vue')
       },
       {
-        path: 'concepts/projects/profiles',
+        path: 'platform/projects/profiles',
         name: 'DocsProjectsProfiles',
-        component: () => import('@/views/docs/concepts/projects/ProfilesFeaturePage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsProfilesPage.vue')
       },
       {
-        path: 'concepts/projects/recordings',
+        path: 'platform/projects/recordings',
         name: 'DocsProjectsRecordings',
-        component: () => import('@/views/docs/concepts/projects/RecordingsFeaturePage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsRecordingsPage.vue')
       },
       {
-        path: 'concepts/projects/repository',
+        path: 'platform/projects/repository',
         name: 'DocsProjectsRepository',
-        component: () => import('@/views/docs/concepts/projects/RepositoryFeaturePage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsRepositoryPage.vue')
       },
       {
-        path: 'concepts/recording-sessions/overview',
+        path: 'platform/recording-sessions/overview',
         name: 'DocsRecordingSessionsOverview',
-        component: () => import('@/views/docs/concepts/recording-sessions/RecordingSessionsOverviewPage.vue')
+        component: () => import('@/views/docs/platform/recording-sessions/RecordingSessionsOverviewPage.vue')
       },
       {
-        path: 'concepts/recording-sessions/configuration',
+        path: 'platform/recording-sessions/configuration',
         name: 'DocsRecordingSessionsConfiguration',
-        component: () => import('@/views/docs/concepts/recording-sessions/RecordingSessionsConfigurationPage.vue')
+        component: () => import('@/views/docs/platform/recording-sessions/RecordingSessionsConfigurationPage.vue')
       },
       {
-        path: 'concepts/recording-sessions/lifecycle',
+        path: 'platform/recording-sessions/lifecycle',
         name: 'DocsRecordingSessionsLifecycle',
-        component: () => import('@/views/docs/concepts/recording-sessions/RecordingSessionsLifecyclePage.vue')
+        component: () => import('@/views/docs/platform/recording-sessions/RecordingSessionsLifecyclePage.vue')
       },
       {
-        path: 'concepts/projects/profiler-settings',
+        path: 'platform/projects/profiler-settings',
         name: 'DocsProjectsProfilerSettings',
-        component: () => import('@/views/docs/concepts/projects/ProfilerSettingsPage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsProfilerSettingsPage.vue')
       },
       {
-        path: 'concepts/projects/scheduler',
+        path: 'platform/projects/scheduler',
         name: 'DocsProjectsScheduler',
-        component: () => import('@/views/docs/concepts/projects/SchedulerFeaturePage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsSchedulerPage.vue')
       },
       {
-        path: 'concepts/projects/alerts-messages',
+        path: 'platform/projects/alerts-messages',
         name: 'DocsProjectsAlertsMessages',
-        component: () => import('@/views/docs/concepts/projects/AlertsMessagesPage.vue')
+        component: () => import('@/views/docs/platform/projects/ProjectsAlertsMessagesPage.vue')
       },
       // Profiles
       {
         path: 'profiles/overview',
         name: 'DocsProfiles',
         component: () => import('@/views/docs/profiles/ProfilesOverviewPage.vue')
+      },
+      {
+        path: 'profiles/jvm-internals',
+        name: 'DocsProfilesJvmInternals',
+        component: () => import('@/views/docs/profiles/ProfilesJvmInternalsSectionPage.vue')
+      },
+      {
+        path: 'profiles/application',
+        name: 'DocsProfilesApplication',
+        component: () => import('@/views/docs/profiles/ProfilesApplicationSectionPage.vue')
+      },
+      {
+        path: 'profiles/visualization',
+        name: 'DocsProfilesVisualization',
+        component: () => import('@/views/docs/profiles/ProfilesVisualizationSectionPage.vue')
+      },
+      {
+        path: 'profiles/heap-dump-analysis',
+        name: 'DocsProfilesHeapDumpAnalysis',
+        component: () => import('@/views/docs/profiles/ProfilesHeapDumpAnalysisSectionPage.vue')
       },
       // Jeffrey JFR Events
       {
@@ -180,24 +200,9 @@ const routes: RouteRecordRaw[] = [
       },
       // Features
       {
-        path: 'features/flamegraphs',
-        name: 'DocsFlamegraphs',
-        component: () => import('@/views/docs/features/FlamegraphsPage.vue')
-      },
-      {
-        path: 'features/timeseries',
-        name: 'DocsTimeseries',
-        component: () => import('@/views/docs/features/TimeseriesPage.vue')
-      },
-      {
-        path: 'features/guardian',
-        name: 'DocsGuardian',
-        component: () => import('@/views/docs/features/GuardianPage.vue')
-      },
-      {
-        path: 'features/auto-analysis',
-        name: 'DocsAutoAnalysis',
-        component: () => import('@/views/docs/features/AutoAnalysisPage.vue')
+        path: 'features/overview',
+        name: 'DocsFeatures',
+        component: () => import('@/views/docs/features/FeaturesPage.vue')
       },
       // CLI
       {
@@ -224,17 +229,17 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'configuration/application-properties',
         name: 'DocsConfigurationApplicationProperties',
-        component: () => import('@/views/docs/configuration/ApplicationPropertiesPage.vue')
+        component: () => import('@/views/docs/configuration/ConfigurationApplicationPropertiesPage.vue')
       },
       {
         path: 'configuration/advanced-properties',
         name: 'DocsConfigurationAdvancedProperties',
-        component: () => import('@/views/docs/configuration/AdvancedPropertiesPage.vue')
+        component: () => import('@/views/docs/configuration/ConfigurationAdvancedPropertiesPage.vue')
       },
       {
         path: 'configuration/secrets',
         name: 'DocsConfigurationSecrets',
-        component: () => import('@/views/docs/configuration/SecretsPropertiesPage.vue')
+        component: () => import('@/views/docs/configuration/ConfigurationSecretsPage.vue')
       },
       // Deployments
       {
@@ -271,12 +276,12 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'live-recording/jeffrey-deployment',
         name: 'DocsLiveRecordingJeffreyDeployment',
-        component: () => import('@/views/docs/live-recording/JeffreyDeploymentPage.vue')
+        component: () => import('@/views/docs/live-recording/LiveRecordingJeffreyDeploymentPage.vue')
       },
       {
         path: 'live-recording/service-deployment',
         name: 'DocsLiveRecordingServiceDeployment',
-        component: () => import('@/views/docs/live-recording/ServiceDeploymentPage.vue')
+        component: () => import('@/views/docs/live-recording/LiveRecordingServiceDeploymentPage.vue')
       }
     ]
   }

@@ -18,7 +18,12 @@
 
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import type { DocSection, AdjacentPages, DocPageWithCategory, CurrentPageInfo } from '@/types/docs';
+import type { DocSection, DocPage, AdjacentPages, DocPageWithCategory, CurrentPageInfo } from '@/types/docs';
+
+export interface BreadcrumbItem {
+  label: string
+  to?: string
+}
 
 export const docsNavigation: DocSection[] = [
   {
@@ -51,7 +56,7 @@ export const docsNavigation: DocSection[] = [
   },
   {
     title: 'Platform',
-    path: 'concepts',
+    path: 'platform',
     icon: 'bi-layers',
     children: [
       { title: 'Workspaces', path: 'workspaces' },
@@ -84,7 +89,11 @@ export const docsNavigation: DocSection[] = [
     path: 'profiles',
     icon: 'bi-speedometer2',
     children: [
-      { title: 'Overview', path: 'overview' }
+      { title: 'Overview', path: 'overview' },
+      { title: 'JVM Internals Section', path: 'jvm-internals' },
+      { title: 'Application Section', path: 'application' },
+      { title: 'Visualization Section', path: 'visualization' },
+      { title: 'Heap Dump Section', path: 'heap-dump-analysis' }
     ]
   },
   {
@@ -124,7 +133,7 @@ export const docsNavigation: DocSection[] = [
     path: 'live-recording',
     icon: 'bi-broadcast-pin',
     children: [
-      { title: 'Overview', path: 'overview' },
+      { title: 'Live Recording Overview', path: 'overview' },
       {
         title: 'Kubernetes',
         path: 'kubernetes',
@@ -148,10 +157,7 @@ export const docsNavigation: DocSection[] = [
     path: 'features',
     icon: 'bi-stars',
     children: [
-      { title: 'Flamegraphs', path: 'flamegraphs' },
-      { title: 'Timeseries', path: 'timeseries' },
-      { title: 'Guardian', path: 'guardian' },
-      { title: 'Auto Analysis', path: 'auto-analysis' }
+      { title: 'Highlighted Features', path: 'overview' }
     ]
   }
 ];
@@ -160,11 +166,23 @@ export function getAllDocs(): { title: string; section: string; path: string }[]
   const docs: { title: string; section: string; path: string }[] = [];
   docsNavigation.forEach(section => {
     section.children.forEach(page => {
-      docs.push({
-        title: page.title,
-        section: section.title,
-        path: `/docs/${section.path}/${page.path}`
-      });
+      // If this item has children, it's a parent category - add its children instead
+      if (page.children) {
+        page.children.forEach(child => {
+          docs.push({
+            title: child.title,
+            section: `${section.title} / ${page.title}`,
+            path: `/docs/${section.path}/${child.path}`
+          });
+        });
+      } else {
+        // Regular page without children
+        docs.push({
+          title: page.title,
+          section: section.title,
+          path: `/docs/${section.path}/${page.path}`
+        });
+      }
     });
   });
   return docs;
@@ -184,13 +202,32 @@ export function findCurrentPage(category: string, page: string): CurrentPageInfo
 
 export function getAdjacentPages(category: string, page: string): AdjacentPages {
   const allPages: DocPageWithCategory[] = [];
+
   docsNavigation.forEach(section => {
+    const isSinglePageSection = section.children.length === 1 && !section.children[0].children;
+
     section.children.forEach(p => {
-      allPages.push({
-        ...p,
-        category: section.path,
-        section: section.title
-      });
+      // If this item has children, it's a parent category - add its children instead
+      if (p.children) {
+        p.children.forEach(child => {
+          allPages.push({
+            ...child,
+            category: section.path,
+            // Include parent title in the section path
+            section: `${section.title} / ${p.title}`
+          });
+        });
+      } else {
+        // Regular page without children
+        allPages.push({
+          ...p,
+          // For single-page sections, use section title instead of child title
+          title: isSinglePageSection ? section.title : p.title,
+          category: section.path,
+          // Don't show section for single-page sections (it would be redundant)
+          section: isSinglePageSection ? '' : section.title
+        });
+      }
     });
   });
 
@@ -202,6 +239,85 @@ export function getAdjacentPages(category: string, page: string): AdjacentPages 
     prev: currentIndex > 0 ? allPages[currentIndex - 1] : null,
     next: currentIndex < allPages.length - 1 ? allPages[currentIndex + 1] : null
   };
+}
+
+export function getBreadcrumbs(routePath: string): BreadcrumbItem[] {
+  // Parse: /docs/concepts/projects/profiles → ['concepts', 'projects', 'profiles']
+  const pathWithoutDocs = routePath.replace(/^\/docs\/?/, '');
+  if (!pathWithoutDocs) return [];
+
+  const breadcrumbs: BreadcrumbItem[] = [];
+
+  // Find section by first path segment
+  const firstSegment = pathWithoutDocs.split('/')[0];
+  const section = docsNavigation.find(s => s.path === firstSegment);
+  if (!section) return [];
+
+  // Build the remaining path after section
+  const remainingPath = pathWithoutDocs.substring(firstSegment.length + 1) || '';
+
+  // Find the page in section children
+  let foundPage: DocPage | null = null;
+  let parentPage: DocPage | null = null;
+
+  for (const page of section.children) {
+    // Check if this page has children (nested navigation)
+    if (page.children) {
+      // Check if any child matches the remaining path
+      for (const child of page.children) {
+        if (child.path === remainingPath || child.path === pathWithoutDocs.substring(firstSegment.length + 1)) {
+          parentPage = page;
+          foundPage = child;
+          break;
+        }
+      }
+      if (foundPage) break;
+    }
+
+    // Check direct match (for simple pages like 'overview', 'workspaces')
+    if (page.path === remainingPath) {
+      foundPage = page;
+      break;
+    }
+  }
+
+  // Build breadcrumbs
+  // Check if this is a single-page section (only one child with same or similar title)
+  const isSinglePageSection = section.children.length === 1;
+
+  // Section level (e.g., "Platform" for path "concepts")
+  const firstChildPath = section.children[0]?.path || '';
+
+  if (isSinglePageSection) {
+    // For single-page sections, just show the section title (no link, it's current page)
+    breadcrumbs.push({
+      label: section.title
+    });
+  } else {
+    // For multi-page sections, show section with link
+    breadcrumbs.push({
+      label: section.title,
+      to: `/docs/${section.path}/${firstChildPath}`
+    });
+
+    // Parent level (if nested, e.g., "Projects")
+    if (parentPage) {
+      const parentFirstChild = parentPage.children?.[0]?.path || parentPage.path;
+      breadcrumbs.push({
+        label: parentPage.title,
+        to: `/docs/${section.path}/${parentFirstChild}`
+      });
+    }
+
+    // Current page level (no link - it's the current page)
+    if (foundPage) {
+      breadcrumbs.push({
+        label: foundPage.title
+      });
+    }
+  }
+
+  return breadcrumbs;
 }
 
 export function useDocsNavigation() {

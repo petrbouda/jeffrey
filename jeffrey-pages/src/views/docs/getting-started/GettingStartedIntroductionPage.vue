@@ -19,10 +19,9 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
-
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -38,26 +37,10 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <!-- Breadcrumb -->
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Getting Started</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Introduction</span>
-      </nav>
-
-      <!-- Page header -->
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-file-earmark-text"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Introduction to Jeffrey</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Introduction to Jeffrey"
+        icon="bi bi-file-earmark-text"
+      />
 
       <!-- Content -->
       <div class="docs-content">
@@ -125,21 +108,7 @@ onMounted(() => {
         </ol>
       </div>
 
-      <!-- Navigation -->
-      <nav class="docs-nav-footer">
-        <div class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 

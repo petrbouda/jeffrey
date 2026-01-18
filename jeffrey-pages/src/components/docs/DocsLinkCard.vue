@@ -17,50 +17,34 @@
 -->
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
-import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
-import { useDocHeadings } from '@/composables/useDocHeadings';
-const { setHeadings } = useDocHeadings();
-
-const headings: { id: string; text: string; level: number }[] = [];
-
-onMounted(() => {
-  setHeadings(headings);
-});
+defineProps<{
+  to: string
+  icon: string
+  title: string
+  description: string
+  variant?: 'primary' | 'secondary'
+}>()
 </script>
 
 <template>
-  <article class="docs-article">
-      <DocsPageHeader
-        title="Container with Examples"
-        icon="bi bi-collection"
-      />
-
-      <div class="docs-content">
-        <p>The <code>jeffrey-examples</code> image comes pre-loaded with sample JFR recordings and profiles. This is perfect for exploring Jeffrey's features without needing your own profiling data.</p>
-
-        <router-link to="/tour-with-examples" class="tour-link-card">
-          <div class="tour-link-icon">
-            <i class="bi bi-play-circle"></i>
-          </div>
-          <div class="tour-link-content">
-            <h4>Tour with Examples</h4>
-            <p>Follow a guided tour through Jeffrey's features using the pre-loaded example profiles.</p>
-          </div>
-          <i class="bi bi-arrow-right tour-link-arrow"></i>
-        </router-link>
-      </div>
-
-      <DocsNavFooter />
-  </article>
+  <router-link
+    :to="to"
+    class="docs-link-card"
+    :class="{ 'variant-secondary': variant === 'secondary' }"
+  >
+    <div class="link-icon">
+      <i :class="icon"></i>
+    </div>
+    <div class="link-content">
+      <h4>{{ title }}</h4>
+      <p>{{ description }}</p>
+    </div>
+    <i class="bi bi-arrow-right link-arrow"></i>
+  </router-link>
 </template>
 
 <style scoped>
-@import '@/views/docs/docs-page.css';
-
-/* Tour Link Card */
-.tour-link-card {
+.docs-link-card {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -75,14 +59,23 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.tour-link-card:hover {
-  background: linear-gradient(135deg, rgba(94,100,255,0.08) 0%, rgba(124,58,237,0.08) 100%);
+.docs-link-card:hover {
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
   border-color: #5e64ff;
   transform: translateX(4px);
   text-decoration: none !important;
 }
 
-.tour-link-icon {
+.docs-link-card.variant-secondary {
+  border-left-color: #10b981;
+}
+
+.docs-link-card.variant-secondary:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.08) 100%);
+  border-color: #10b981;
+}
+
+.link-icon {
   width: 48px;
   height: 48px;
   min-width: 48px;
@@ -93,36 +86,46 @@ onMounted(() => {
   border-radius: 10px;
 }
 
-.tour-link-icon i {
+.variant-secondary .link-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.link-icon i {
   font-size: 1.25rem;
   color: #fff;
 }
 
-.tour-link-content {
+.link-content {
   flex: 1;
 }
 
-.tour-link-content h4 {
+.link-content h4 {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;
   font-weight: 600;
   color: #343a40;
+  text-decoration: none !important;
 }
 
-.tour-link-content p {
+.link-content p {
   margin: 0;
   font-size: 0.85rem;
   color: #5e6e82;
   line-height: 1.4;
+  text-decoration: none !important;
 }
 
-.tour-link-arrow {
+.link-arrow {
   font-size: 1.25rem;
   color: #5e64ff;
   transition: transform 0.2s ease;
 }
 
-.tour-link-card:hover .tour-link-arrow {
+.variant-secondary .link-arrow {
+  color: #10b981;
+}
+
+.docs-link-card:hover .link-arrow {
   transform: translateX(4px);
 }
 </style>

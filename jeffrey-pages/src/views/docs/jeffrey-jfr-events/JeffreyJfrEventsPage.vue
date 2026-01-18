@@ -19,10 +19,9 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
-
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -37,24 +36,10 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Jeffrey JFR Events</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Overview</span>
-      </nav>
-
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-broadcast"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Jeffrey JFR Events</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Jeffrey JFR Events"
+        icon="bi bi-broadcast"
+      />
 
       <div class="docs-content">
         <p><strong>Jeffrey JFR Events</strong> is a library that provides custom JFR event definitions for emitting application-level events that can be captured and analyzed in Jeffrey.</p>
@@ -103,31 +88,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <nav class="docs-nav-footer">
-        <router-link
-          v-if="adjacentPages.prev"
-          :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
-          class="nav-link prev"
-        >
-          <i class="bi bi-arrow-left"></i>
-          <div class="nav-text">
-            <span class="nav-label">Previous</span>
-            <span class="nav-title">{{ adjacentPages.prev.title }}</span>
-          </div>
-        </router-link>
-        <div v-else class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 

@@ -20,10 +20,11 @@
 import { onMounted } from 'vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -64,24 +65,10 @@ exec java -jar /app/my-app.jar`;
 
 <template>
   <article class="docs-article">
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">CLI</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Overview</span>
-      </nav>
-
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-terminal"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Jeffrey CLI</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Jeffrey CLI"
+        icon="bi bi-terminal"
+      />
 
       <div class="docs-content">
         <p>Jeffrey CLI is a command-line tool that <strong>configures JVM processes</strong> for profiling, especially in containerized environments.</p>
@@ -91,7 +78,9 @@ exec java -jar /app/my-app.jar`;
 
         <div class="how-it-works">
           <div class="flow-step">
-            <div class="flow-icon"><i class="bi bi-file-earmark-code"></i></div>
+            <div class="docs-icon docs-icon-md docs-icon-purple">
+              <i class="bi bi-file-earmark-code"></i>
+            </div>
             <div class="flow-content">
               <strong>HOCON Config</strong>
               <p>Define features and settings</p>
@@ -99,7 +88,9 @@ exec java -jar /app/my-app.jar`;
           </div>
           <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
           <div class="flow-step">
-            <div class="flow-icon"><i class="bi bi-terminal"></i></div>
+            <div class="docs-icon docs-icon-md docs-icon-purple">
+              <i class="bi bi-terminal"></i>
+            </div>
             <div class="flow-content">
               <strong>Jeffrey CLI</strong>
               <p>Generates JVM flags</p>
@@ -107,7 +98,9 @@ exec java -jar /app/my-app.jar`;
           </div>
           <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
           <div class="flow-step">
-            <div class="flow-icon"><i class="bi bi-filetype-java"></i></div>
+            <div class="docs-icon docs-icon-md docs-icon-purple">
+              <i class="bi bi-filetype-java"></i>
+            </div>
             <div class="flow-content">
               <strong>Environment Variable</strong>
               <p>Used by target JVM</p>
@@ -142,53 +135,53 @@ exec java -jar /app/my-app.jar`;
         <h3>Session Contents</h3>
         <p>Each session directory can contain multiple file types:</p>
 
-        <div class="session-contents-grid">
-          <div class="session-content-card jfr">
-            <div class="card-header">
+        <div class="docs-grid docs-grid-3">
+          <div class="docs-card session-card jfr">
+            <div class="docs-card-header">
               <i class="bi bi-file-earmark-binary"></i>
               <h4>JFR Files</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <code>profile-*.jfr</code>
               <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions.</p>
             </div>
           </div>
-          <div class="session-content-card heap">
-            <div class="card-header">
+          <div class="docs-card session-card heap">
+            <div class="docs-card-header">
               <i class="bi bi-memory"></i>
               <h4>Heap Dump</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <code>heap-dump.hprof.gz</code>
               <p>Memory snapshot captured on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
             </div>
           </div>
-          <div class="session-content-card logs">
-            <div class="card-header">
+          <div class="docs-card session-card logs">
+            <div class="docs-card-header">
               <i class="bi bi-file-text"></i>
               <h4>JVM Logs</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <code>jfr-jvm.log</code>
               <p>Structured JVM diagnostic logs including GC events, JIT compilation activity, and JFR-related messages.</p>
             </div>
           </div>
-          <div class="session-content-card perf">
-            <div class="card-header">
+          <div class="docs-card session-card perf">
+            <div class="docs-card-header">
               <i class="bi bi-speedometer2"></i>
               <h4>Perf Counters</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <code>perf-counters.hsperfdata</code>
               <p>JVM performance data captured via <code>-XX:+UsePerfData</code>. Contains low-level metrics about JVM internals.</p>
             </div>
           </div>
-          <div class="session-content-card metadata">
-            <div class="card-header">
+          <div class="docs-card session-card metadata">
+            <div class="docs-card-header">
               <i class="bi bi-info-circle"></i>
               <h4>Session Metadata</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <code>.session-info.json</code>
               <p>Session ID, timestamps, project/workspace identifiers, profiler settings, and custom attributes (cluster, namespace).</p>
             </div>
@@ -228,16 +221,12 @@ exec java -jar /app/my-app.jar`;
           :code="dockerEntrypoint"
         />
 
-        <router-link to="/docs/cli/configuration" class="config-link-card">
-          <div class="config-link-icon">
-            <i class="bi bi-gear"></i>
-          </div>
-          <div class="config-link-content">
-            <h4>Configuration</h4>
-            <p>Learn about HOCON configuration files, available options, features (heap dumps, JVM logging, messaging), and profiler backends.</p>
-          </div>
-          <i class="bi bi-arrow-right config-link-arrow"></i>
-        </router-link>
+        <DocsLinkCard
+          to="/docs/cli/configuration"
+          icon="bi bi-gear"
+          title="Configuration"
+          description="Learn about HOCON configuration files, available options, features (heap dumps, JVM logging, messaging), and profiler backends."
+        />
 
         <h2 id="integration">Integration with Jeffrey</h2>
         <p>Sessions created by Jeffrey CLI appear in Jeffrey's <strong>Repository</strong> feature within Live and Remote workspaces.</p>
@@ -283,31 +272,7 @@ exec java -jar /app/my-app.jar`;
 
       </div>
 
-      <nav class="docs-nav-footer">
-        <router-link
-          v-if="adjacentPages.prev"
-          :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
-          class="nav-link prev"
-        >
-          <i class="bi bi-arrow-left"></i>
-          <div class="nav-text">
-            <span class="nav-label">Previous</span>
-            <span class="nav-title">{{ adjacentPages.prev.title }}</span>
-          </div>
-        </router-link>
-        <div v-else class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 
@@ -337,22 +302,6 @@ exec java -jar /app/my-app.jar`;
   border: 1px solid #e2e8f0;
 }
 
-.flow-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-  border-radius: 8px;
-}
-
-.flow-icon i {
-  font-size: 1.1rem;
-  color: #fff;
-}
-
 .flow-content strong {
   display: block;
   font-size: 0.85rem;
@@ -369,85 +318,6 @@ exec java -jar /app/my-app.jar`;
 .flow-arrow {
   color: #9ca3af;
   font-size: 1.25rem;
-}
-
-@media (max-width: 768px) {
-  .how-it-works {
-    flex-direction: column;
-  }
-
-  .flow-arrow {
-    transform: rotate(90deg);
-  }
-}
-
-/* Config Link Card */
-.config-link-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  margin: 1.5rem 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #5e64ff;
-  border-radius: 8px;
-  text-decoration: none !important;
-  color: inherit;
-  transition: all 0.2s ease;
-}
-
-.config-link-card:hover {
-  background: linear-gradient(135deg, rgba(94,100,255,0.08) 0%, rgba(124,58,237,0.08) 100%);
-  border-color: #5e64ff;
-  transform: translateX(4px);
-  text-decoration: none !important;
-}
-
-.config-link-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-  border-radius: 10px;
-}
-
-.config-link-icon i {
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.config-link-content {
-  flex: 1;
-}
-
-.config-link-content h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #343a40;
-  text-decoration: none !important;
-}
-
-.config-link-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-  line-height: 1.4;
-  text-decoration: none !important;
-}
-
-.config-link-arrow {
-  font-size: 1.25rem;
-  color: #5e64ff;
-  transition: transform 0.2s ease;
-}
-
-.config-link-card:hover .config-link-arrow {
-  transform: translateX(4px);
 }
 
 /* Workflow Steps */
@@ -495,44 +365,8 @@ exec java -jar /app/my-app.jar`;
   color: #5e6e82;
 }
 
-/* Session Contents Grid */
-.session-contents-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.session-content-card {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.session-content-card .card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  color: #fff;
-}
-
-.session-content-card .card-header i {
-  font-size: 1rem;
-}
-
-.session-content-card .card-header h4 {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.session-content-card .card-body {
-  padding: 0.75rem;
-  background: #fff;
-}
-
-.session-content-card .card-body code {
+/* Session Cards */
+.session-card .docs-card-body code {
   display: block;
   font-size: 0.75rem;
   background: #f8fafc;
@@ -542,50 +376,27 @@ exec java -jar /app/my-app.jar`;
   margin-bottom: 0.5rem;
 }
 
-.session-content-card .card-body p {
+.session-card .docs-card-body p {
   margin: 0;
   font-size: 0.8rem;
   color: #5e6e82;
   line-height: 1.4;
 }
 
-/* Session content card themes - subtle colors */
-.session-content-card .card-header {
-  background: #f8fafc;
-  color: #495057;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.session-content-card.jfr .card-header i {
-  color: #5e64ff;
-}
-
-.session-content-card.heap .card-header i {
-  color: #ef4444;
-}
-
-.session-content-card.logs .card-header i {
-  color: #10b981;
-}
-
-.session-content-card.perf .card-header i {
-  color: #f59e0b;
-}
-
-.session-content-card.metadata .card-header i {
-  color: #6366f1;
-}
+.session-card.jfr .docs-card-header i { color: #5e64ff; }
+.session-card.heap .docs-card-header i { color: #ef4444; }
+.session-card.logs .docs-card-header i { color: #10b981; }
+.session-card.perf .docs-card-header i { color: #f59e0b; }
+.session-card.metadata .docs-card-header i { color: #6366f1; }
 
 /* Responsive */
-@media (max-width: 992px) {
-  .session-contents-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
-  .session-contents-grid {
-    grid-template-columns: 1fr;
+  .how-it-works {
+    flex-direction: column;
+  }
+
+  .flow-arrow {
+    transform: rotate(90deg);
   }
 }
 </style>

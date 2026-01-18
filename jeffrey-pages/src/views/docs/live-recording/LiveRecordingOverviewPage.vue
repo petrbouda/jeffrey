@@ -18,11 +18,12 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
+import DocsFeatureCard from '@/components/docs/DocsFeatureCard.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
-
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -41,24 +42,10 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Live Recording</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Overview</span>
-      </nav>
-
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-broadcast-pin"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Overview</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Live Recording Overview"
+        icon="bi bi-broadcast-pin"
+      />
 
       <div class="docs-content">
         <p>Live Recording enables continuous profiling by sharing a mounted disk between your Java services and Jeffrey. This approach eliminates manual file transfers and provides real-time visibility into application performance.</p>
@@ -66,28 +53,25 @@ onMounted(() => {
         <h2 id="principle">The Principle</h2>
         <p>The core concept behind Live Recording is simple: services and Jeffrey share the same mounted storage.</p>
 
-        <div class="principle-cards">
-          <div class="principle-card">
-            <div class="principle-icon"><i class="bi bi-hdd-network"></i></div>
-            <div class="principle-content">
-              <h4>Shared Storage</h4>
-              <p>Services and Jeffrey mount the same storage volume (NFS, PVC in Kubernetes, or local disk).</p>
-            </div>
-          </div>
-          <div class="principle-card">
-            <div class="principle-icon"><i class="bi bi-arrow-right-circle"></i></div>
-            <div class="principle-content">
-              <h4>Services Write</h4>
-              <p>Java applications emit JFR recordings and artifacts to a specified directory structure.</p>
-            </div>
-          </div>
-          <div class="principle-card">
-            <div class="principle-icon"><i class="bi bi-eye"></i></div>
-            <div class="principle-content">
-              <h4>Jeffrey Reads</h4>
-              <p>Jeffrey monitors the directories and automatically discovers new recordings for analysis.</p>
-            </div>
-          </div>
+        <div class="docs-grid docs-grid-3">
+          <DocsFeatureCard
+            icon="bi bi-hdd-network"
+            title="Shared Storage"
+            description="Services and Jeffrey mount the same storage volume (NFS, PVC in Kubernetes, or local disk)."
+            layout="vertical"
+          />
+          <DocsFeatureCard
+            icon="bi bi-arrow-right-circle"
+            title="Services Write"
+            description="Java applications emit JFR recordings and artifacts to a specified directory structure."
+            layout="vertical"
+          />
+          <DocsFeatureCard
+            icon="bi bi-eye"
+            title="Jeffrey Reads"
+            description="Jeffrey monitors the directories and automatically discovers new recordings for analysis."
+            layout="vertical"
+          />
         </div>
 
         <DocsCallout type="tip">
@@ -97,9 +81,8 @@ onMounted(() => {
         <h2 id="architecture">Architecture Diagram</h2>
         <p>The following diagram illustrates the Live Recording architecture:</p>
 
-        <div class="architecture-diagram">
-          <pre class="diagram-ascii">
-┌───────────────────────────────────────────────────────────────────────────┐
+        <div class="docs-code-block">
+          <pre>┌───────────────────────────────────────────────────────────────────────────┐
 │                           SHARED MOUNTED STORAGE                          │
 │  ┌─────────────────────────────────────────────────────────────────────┐  │
 │  │  /recordings                                                        │  │
@@ -128,26 +111,24 @@ onMounted(() => {
         <h3>Provided Components</h3>
         <p>The official Jeffrey container includes these components that can be copied to shared storage:</p>
 
-        <div class="component-grid">
-          <div class="component-card">
-            <div class="component-icon"><i class="bi bi-file-earmark-binary"></i></div>
-            <div class="component-text">
-              <h4>Async-Profiler Library</h4>
-              <p>Native profiling library (<code>libasyncProfiler.so</code>) for capturing CPU, allocation, and lock events.</p>
-            </div>
-          </div>
-          <div class="component-card">
-            <div class="component-icon"><i class="bi bi-file-earmark-zip"></i></div>
-            <div class="component-text">
-              <h4>Jeffrey CLI JAR</h4>
-              <p>Java library that reads profiler configuration and sets up the JVM arguments for profiling.</p>
-            </div>
-          </div>
+        <div class="docs-grid docs-grid-2">
+          <DocsFeatureCard
+            icon="bi bi-file-earmark-binary"
+            title="Async-Profiler Library"
+            description="Native profiling library (libasyncProfiler.so) for capturing CPU, allocation, and lock events."
+            color="orange"
+          />
+          <DocsFeatureCard
+            icon="bi bi-file-earmark-zip"
+            title="Jeffrey CLI JAR"
+            description="Java library that reads profiler configuration and sets up the JVM arguments for profiling."
+            color="orange"
+          />
         </div>
 
         <p>To copy these libraries to shared storage, configure the following properties:</p>
 
-        <div class="code-block">
+        <div class="docs-code-inline">
           <code>jeffrey.copy-libs.enabled=true<br/>jeffrey.copy-libs.target=${jeffrey.home.dir}/libs</code>
         </div>
 
@@ -160,33 +141,33 @@ onMounted(() => {
         <h3>Environment Variable Configuration</h3>
         <p>Jeffrey CLI generates the final JVM configuration and can output it to one of two environment variables:</p>
 
-        <div class="env-options">
-          <div class="env-option">
-            <div class="env-header">
-              <code>JEFFREY_PROFILER_CONFIG</code>
-              <span class="env-badge manual">Manual</span>
+        <div class="docs-grid docs-grid-2">
+          <div class="docs-card docs-card-subtle">
+            <div class="docs-card-body">
+              <div class="env-header">
+                <code>JEFFREY_PROFILER_CONFIG</code>
+                <span class="docs-badge docs-badge-warning">Manual</span>
+              </div>
+              <p>The configuration value needs to be manually placed on the command-line when starting the JVM.</p>
             </div>
-            <p>The configuration value needs to be manually placed on the command-line when starting the JVM.</p>
           </div>
-          <div class="env-option">
-            <div class="env-header">
-              <code>JDK_JAVA_OPTIONS</code>
-              <span class="env-badge auto">Automatic</span>
+          <div class="docs-card docs-card-subtle">
+            <div class="docs-card-body">
+              <div class="env-header">
+                <code>JDK_JAVA_OPTIONS</code>
+                <span class="docs-badge docs-badge-success">Automatic</span>
+              </div>
+              <p>Automatically loaded by the JVM at startup - no manual intervention required.</p>
             </div>
-            <p>Automatically loaded by the JVM at startup - no manual intervention required.</p>
           </div>
         </div>
 
-        <router-link to="/docs/cli/configuration" class="config-link-card">
-          <div class="config-link-icon">
-            <i class="bi bi-terminal"></i>
-          </div>
-          <div class="config-link-content">
-            <h4>Jeffrey CLI Configuration</h4>
-            <p>Learn about HOCON configuration files, environment variable options, and how to set up profiling for your services.</p>
-          </div>
-          <i class="bi bi-arrow-right config-link-arrow"></i>
-        </router-link>
+        <DocsLinkCard
+          to="/docs/cli/configuration"
+          icon="bi bi-terminal"
+          title="Jeffrey CLI Configuration"
+          description="Learn about HOCON configuration files, environment variable options, and how to set up profiling for your services."
+        />
 
         <h3>Metadata File</h3>
         <p>For each recording session, Jeffrey CLI creates a JSON metadata file containing:</p>
@@ -205,7 +186,7 @@ onMounted(() => {
             <div class="level-header">
               <i class="bi bi-globe"></i>
               <span>Global Settings</span>
-              <span class="level-badge default">Default</span>
+              <span class="docs-badge docs-badge-default">Default</span>
             </div>
             <p>Base configuration applied to all workspaces and projects</p>
             <code class="level-path">&lt;jeffrey-home&gt;/.settings/</code>
@@ -215,7 +196,7 @@ onMounted(() => {
             <div class="level-header">
               <i class="bi bi-folder2"></i>
               <span>Workspace Settings</span>
-              <span class="level-badge override">Override</span>
+              <span class="docs-badge docs-badge-primary">Override</span>
             </div>
             <p>Workspace-specific settings that override global defaults</p>
             <code class="level-path">&lt;jeffrey-home&gt;/workspaces/&lt;workspace-id&gt;/.settings/</code>
@@ -225,7 +206,7 @@ onMounted(() => {
             <div class="level-header">
               <i class="bi bi-folder"></i>
               <span>Project Settings</span>
-              <span class="level-badge override">Override</span>
+              <span class="docs-badge docs-badge-primary">Override</span>
             </div>
             <p>Project-specific settings with highest priority</p>
             <code class="level-path">&lt;jeffrey-home&gt;/workspaces/&lt;workspace-id&gt;/&lt;project-name&gt;/.settings/</code>
@@ -239,13 +220,13 @@ onMounted(() => {
         <h2 id="sessions">Recording Sessions</h2>
         <p>A <strong>session</strong> represents a single application execution. Each time your application starts, a new session folder is created.</p>
 
-        <div class="session-structure">
-          <div class="structure-header">
+        <div class="docs-structure-block">
+          <div class="docs-structure-header">
             <i class="bi bi-folder-check"></i>
             <h4>Session Folder Structure</h4>
           </div>
-          <div class="structure-content">
-            <pre class="structure-tree">session-001/
+          <div class="docs-structure-body">
+            <pre>session-001/
 ├── recording-1.jfr      # JFR recording chunks
 ├── recording-2.jfr
 ├── recording-3.jfr
@@ -268,208 +249,41 @@ onMounted(() => {
         <h2 id="repository-visualization">Repository Visualization</h2>
         <p>Jeffrey watches session folders for each project and displays them in the <router-link to="/docs/concepts/projects/repository">Repository</router-link> page.</p>
 
-        <div class="repo-features">
-          <div class="repo-feature">
-            <div class="feature-icon"><i class="bi bi-collection"></i></div>
-            <div class="feature-content">
-              <h4>Session Overview</h4>
-              <p>View all recording sessions for a project, with status indicators showing active or finished state.</p>
-            </div>
-          </div>
-          <div class="repo-feature">
-            <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
-            <div class="feature-content">
-              <h4>Timeline View</h4>
-              <p>See when sessions started, their duration, and how many recordings each session contains.</p>
-            </div>
-          </div>
-          <div class="repo-feature">
-            <div class="feature-icon"><i class="bi bi-file-earmark-play"></i></div>
-            <div class="feature-content">
-              <h4>Recording Actions</h4>
-              <p>Merge selected JFR chunks, download recordings, or create profiles for detailed analysis.</p>
-            </div>
-          </div>
+        <div class="docs-grid docs-grid-3">
+          <DocsFeatureCard
+            icon="bi bi-collection"
+            title="Session Overview"
+            description="View all recording sessions for a project, with status indicators showing active or finished state."
+            color="green"
+            layout="vertical"
+          />
+          <DocsFeatureCard
+            icon="bi bi-clock-history"
+            title="Timeline View"
+            description="See when sessions started, their duration, and how many recordings each session contains."
+            color="green"
+            layout="vertical"
+          />
+          <DocsFeatureCard
+            icon="bi bi-file-earmark-play"
+            title="Recording Actions"
+            description="Merge selected JFR chunks, download recordings, or create profiles for detailed analysis."
+            color="green"
+            layout="vertical"
+          />
         </div>
 
         <p>The Repository provides a central place to manage all live recording data, from viewing session status to creating profiles for flame graph analysis.</p>
       </div>
 
-      <nav class="docs-nav-footer">
-        <router-link
-          v-if="adjacentPages.prev"
-          :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
-          class="nav-link prev"
-        >
-          <i class="bi bi-arrow-left"></i>
-          <div class="nav-text">
-            <span class="nav-label">Previous</span>
-            <span class="nav-title">{{ adjacentPages.prev.title }}</span>
-          </div>
-        </router-link>
-        <div v-else class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* Principle Cards */
-.principle-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.principle-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.25rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.principle-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-  border-radius: 12px;
-  margin-bottom: 0.75rem;
-}
-
-.principle-icon i {
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.principle-content h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.principle-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-  line-height: 1.4;
-}
-
-/* Architecture Diagram */
-.architecture-diagram {
-  margin: 1.5rem 0;
-  padding: 1.5rem;
-  background: #1e293b;
-  border-radius: 8px;
-  overflow-x: auto;
-}
-
-.diagram-ascii {
-  margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: #e2e8f0;
-  white-space: pre;
-}
-
-/* Component Grid */
-.component-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1rem 0 1.5rem 0;
-}
-
-.component-card {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.component-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border-radius: 10px;
-}
-
-.component-icon i {
-  font-size: 1.1rem;
-  color: #fff;
-}
-
-.component-text h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.component-text p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #5e6e82;
-  line-height: 1.4;
-}
-
-/* Code Block */
-.code-block {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  background: #1e293b;
-  border-radius: 6px;
-  overflow-x: auto;
-}
-
-.code-block code {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.8rem;
-  color: #e2e8f0;
-}
-
-/* Environment Options */
-.env-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1rem 0 1.5rem 0;
-}
-
-.env-option {
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
+/* Environment Header */
 .env-header {
   display: flex;
   align-items: center;
@@ -482,100 +296,6 @@ onMounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   color: #343a40;
-}
-
-.env-badge {
-  padding: 0.15rem 0.4rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-radius: 4px;
-}
-
-.env-badge.manual {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.env-badge.auto {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.env-option p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #5e6e82;
-  line-height: 1.4;
-}
-
-/* Config Link Card */
-.config-link-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  margin: 1.5rem 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #5e64ff;
-  border-radius: 8px;
-  text-decoration: none !important;
-  color: inherit;
-  transition: all 0.2s ease;
-}
-
-.config-link-card:hover {
-  background: linear-gradient(135deg, rgba(94,100,255,0.08) 0%, rgba(124,58,237,0.08) 100%);
-  border-color: #5e64ff;
-  transform: translateX(4px);
-  text-decoration: none !important;
-}
-
-.config-link-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-  border-radius: 10px;
-}
-
-.config-link-icon i {
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.config-link-content {
-  flex: 1;
-}
-
-.config-link-content h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #343a40;
-  text-decoration: none !important;
-}
-
-.config-link-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-  line-height: 1.4;
-  text-decoration: none !important;
-}
-
-.config-link-arrow {
-  font-size: 1.25rem;
-  color: #5e64ff;
-  transition: transform 0.2s ease;
-}
-
-.config-link-card:hover .config-link-arrow {
-  transform: translateX(4px);
 }
 
 /* Hierarchy Diagram */
@@ -624,24 +344,6 @@ onMounted(() => {
   color: #343a40;
 }
 
-.level-badge {
-  padding: 0.15rem 0.4rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  border-radius: 4px;
-}
-
-.level-badge.default {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.level-badge.override {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
 .hierarchy-level p {
   margin: 0 0 0.5rem 0;
   font-size: 0.8rem;
@@ -672,114 +374,5 @@ onMounted(() => {
   font-size: 0.75rem;
   color: #6b7280;
   font-style: italic;
-}
-
-/* Session Structure */
-.session-structure {
-  margin: 1.5rem 0;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-}
-
-.structure-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.structure-header i {
-  font-size: 1rem;
-  color: #10b981;
-}
-
-.structure-header h4 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.structure-content {
-  padding: 1rem;
-  background: #fff;
-}
-
-.structure-tree {
-  margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: #374151;
-}
-
-/* Repository Features */
-.repo-features {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.repo-feature {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.25rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.feature-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 10px;
-  margin-bottom: 0.75rem;
-}
-
-.feature-icon i {
-  font-size: 1.1rem;
-  color: #fff;
-}
-
-.feature-content h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.feature-content p {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #5e6e82;
-  line-height: 1.4;
-}
-
-@media (max-width: 992px) {
-  .principle-cards,
-  .repo-features {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .component-grid,
-  .env-options {
-    grid-template-columns: 1fr;
-  }
-
-  .hierarchy-level {
-    max-width: none;
-  }
 }
 </style>

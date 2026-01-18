@@ -233,6 +233,12 @@
   color: #343a40;
 }
 
+.nav-section {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.15rem;
+}
+
 .nav-spacer {
   flex: 1;
 }
@@ -253,4 +259,345 @@
   .docs-nav-footer {
     flex-direction: column;
   }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Icon Container Utilities */
+.docs-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.docs-icon-sm {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.docs-icon-md {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+.docs-icon-lg {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 12px;
+  font-size: 1.25rem;
+}
+
+/* Icon Color Variants */
+.docs-icon-purple {
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+}
+
+.docs-icon-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.docs-icon-orange {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.docs-icon-red {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.docs-icon-blue {
+  background: linear-gradient(135deg, #2496ed 0%, #1a7bc9 100%);
+}
+
+.docs-icon-neutral {
+  background: #e2e8f0;
+  color: #495057;
+}
+
+/* Grid Utilities */
+.docs-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.docs-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.docs-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.docs-grid-stack {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 992px) {
+  .docs-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .docs-grid-2,
+  .docs-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card Utilities */
+.docs-card {
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.docs-card-subtle {
+  background: #f8fafc;
+}
+
+.docs-card-horizontal {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.docs-card-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.docs-card-content {
+  flex: 1;
+}
+
+.docs-card-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.docs-card-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5e6e82;
+  line-height: 1.5;
+}
+
+.docs-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.docs-card-header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.docs-card-body {
+  padding: 0.75rem;
+}
+
+/* Badge Utilities */
+.docs-badge {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+
+.docs-badge-default {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.docs-badge-primary {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.docs-badge-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.docs-badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Code Block Utilities */
+.docs-code-block {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: #1e293b;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.docs-code-block pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #e2e8f0;
+  white-space: pre;
+}
+
+.docs-code-inline {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.docs-code-inline code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+}
+
+/* Structure Block Utilities */
+.docs-structure-block {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.docs-structure-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.docs-structure-header i {
+  font-size: 1rem;
+  color: #10b981;
+}
+
+.docs-structure-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.docs-structure-body {
+  padding: 1rem;
+  background: #fff;
+}
+
+.docs-structure-body pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* Title with Badge Pattern */
+.docs-title-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Vertical Card Icon Spacing */
+.docs-card-vertical .docs-icon {
+  margin-bottom: 0.75rem;
+}
+
+.docs-card-vertical h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.docs-card-vertical p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5e6e82;
+  line-height: 1.4;
+}
+
+/* Feature List Pattern */
+.docs-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem 0;
+}
+
+.docs-feature-item {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #5e64ff;
+}
+
+.docs-feature-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.docs-feature-header i {
+  color: #5e64ff;
+  font-size: 1rem;
+}
+
+.docs-feature-header strong {
+  color: #343a40;
+}
+
+.docs-feature-item p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5e6e82;
+}
+
+/* Text color helpers */
+.text-danger {
+  color: #dc3545;
+}
+
+.text-primary {
+  color: #0d6efd;
+}
+
+.text-success {
+  color: #198754;
+}
+
+.text-muted {
+  color: #6c757d;
 }

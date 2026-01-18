@@ -19,7 +19,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import Fuse from 'fuse.js';
 import { getAllDocs } from '@/composables/useDocsNavigation';
 import type { SearchableDoc } from '@/types/docs';
 
@@ -37,22 +36,21 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const searchQuery = ref('');
-const selectedIndex = ref(0);
+const selectedIndex = ref(-1);
 const searchInput = ref<HTMLInputElement | null>(null);
 
-// Initialize Fuse.js for fuzzy search
 const allDocs = getAllDocs();
-const fuse = new Fuse(allDocs, {
-  keys: ['title', 'section'],
-  threshold: 0.3,
-  includeMatches: true
-});
 
 const results = computed(() => {
   if (!searchQuery.value.trim()) {
-    return allDocs.slice(0, 5); // Show first 5 when empty
+    return allDocs.slice(0, 8); // Show first 8 when empty
   }
-  return fuse.search(searchQuery.value).slice(0, 10).map(r => r.item);
+  const query = searchQuery.value.toLowerCase();
+  return allDocs.filter(doc => {
+    const titleMatch = doc.title.toLowerCase().includes(query);
+    const sectionMatch = doc.section.toLowerCase().includes(query);
+    return titleMatch || sectionMatch;
+  }).slice(0, 12);
 });
 
 const navigateToResult = (result: SearchableDoc): void => {
@@ -65,15 +63,23 @@ const handleKeydown = (e: KeyboardEvent): void => {
   switch (e.key) {
     case 'ArrowDown':
       e.preventDefault();
-      selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1);
+      if (selectedIndex.value < 0) {
+        selectedIndex.value = 0;
+      } else {
+        selectedIndex.value = Math.min(selectedIndex.value + 1, results.value.length - 1);
+      }
       break;
     case 'ArrowUp':
       e.preventDefault();
-      selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
+      if (selectedIndex.value < 0) {
+        selectedIndex.value = results.value.length - 1;
+      } else {
+        selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
+      }
       break;
     case 'Enter':
       e.preventDefault();
-      if (results.value[selectedIndex.value]) {
+      if (selectedIndex.value >= 0 && results.value[selectedIndex.value]) {
         navigateToResult(results.value[selectedIndex.value]);
       }
       break;
@@ -86,7 +92,7 @@ const handleKeydown = (e: KeyboardEvent): void => {
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     searchQuery.value = '';
-    selectedIndex.value = 0;
+    selectedIndex.value = -1;
     setTimeout(() => {
       searchInput.value?.focus();
     }, 100);
@@ -94,7 +100,7 @@ watch(() => props.isOpen, (isOpen) => {
 });
 
 watch(searchQuery, () => {
-  selectedIndex.value = 0;
+  selectedIndex.value = -1;
 });
 
 // Global keyboard shortcut
@@ -131,7 +137,7 @@ onUnmounted(() => {
           <kbd>ESC</kbd>
         </div>
 
-        <div class="search-results">
+        <div class="search-results" @mouseleave="selectedIndex = -1">
           <div v-if="results.length === 0" class="no-results">
             <i class="bi bi-search"></i>
             <p>No results found for "{{ searchQuery }}"</p>
@@ -199,7 +205,7 @@ onUnmounted(() => {
 }
 
 .search-modal {
-  width: 600px;
+  width: 720px;
   max-width: 90vw;
   background: #fff;
   border-radius: 12px;
@@ -254,7 +260,8 @@ onUnmounted(() => {
 }
 
 .search-results {
-  max-height: 400px;
+  min-height: 500px;
+  max-height: 500px;
   overflow-y: auto;
   padding: 0.5rem;
 }
@@ -348,6 +355,7 @@ onUnmounted(() => {
   border-radius: 3px;
   padding: 0.125rem 0.25rem;
   font-size: 0.7rem;
+  color: #6c757d;
 }
 
 /* Custom scrollbar */

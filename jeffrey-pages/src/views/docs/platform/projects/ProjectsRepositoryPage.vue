@@ -19,10 +19,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -39,26 +40,10 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Concepts</span>
-        <span class="breadcrumb-separator">/</span>
-        <router-link to="/docs/concepts/projects" class="breadcrumb-item">Projects</router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Repository</span>
-      </nav>
-
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-folder"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Repository</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Repository"
+        icon="bi bi-folder"
+      />
 
       <div class="docs-content">
         <p>The Repository provides access to <strong>recording sessions</strong> from live applications. It's the bridge between your running applications and Jeffrey's analysis capabilities.</p>
@@ -77,16 +62,12 @@ onMounted(() => {
 
         <p>Think of Repository as a "staging area" where recordings accumulate before you choose which ones to analyze.</p>
 
-        <router-link to="/docs/concepts/recording-sessions/overview" class="session-link-card">
-          <div class="session-link-icon">
-            <i class="bi bi-collection-play"></i>
-          </div>
-          <div class="session-link-content">
-            <h4>Recording Sessions</h4>
-            <p>Learn about session contents (JFR files, heap dumps, logs), lifecycle states, and how sessions are created by Async-Profiler.</p>
-          </div>
-          <i class="bi bi-arrow-right session-link-arrow"></i>
-        </router-link>
+        <DocsLinkCard
+          to="/docs/concepts/recording-sessions/overview"
+          icon="bi bi-collection-play"
+          title="Recording Sessions"
+          description="Learn about session contents (JFR files, heap dumps, logs), lifecycle states, and how sessions are created by Async-Profiler."
+        />
 
         <h2 id="merge-and-copy">Merge and Copy</h2>
         <p>When you find an interesting session in Repository, use <strong>"Merge and Copy"</strong> to:</p>
@@ -184,101 +165,10 @@ onMounted(() => {
         </DocsCallout>
       </div>
 
-      <nav class="docs-nav-footer">
-        <router-link
-          v-if="adjacentPages.prev"
-          :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
-          class="nav-link prev"
-        >
-          <i class="bi bi-arrow-left"></i>
-          <div class="nav-text">
-            <span class="nav-label">Previous</span>
-            <span class="nav-title">{{ adjacentPages.prev.title }}</span>
-          </div>
-        </router-link>
-        <div v-else class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-/* Session Link Card */
-.session-link-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  margin: 1.5rem 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #5e64ff;
-  border-radius: 8px;
-  text-decoration: none !important;
-  color: inherit;
-  transition: all 0.2s ease;
-}
-
-.session-link-card:hover {
-  background: linear-gradient(135deg, rgba(94,100,255,0.08) 0%, rgba(124,58,237,0.08) 100%);
-  border-color: #5e64ff;
-  transform: translateX(4px);
-  text-decoration: none !important;
-}
-
-.session-link-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-  border-radius: 10px;
-}
-
-.session-link-icon i {
-  font-size: 1.25rem;
-  color: #fff;
-}
-
-.session-link-content {
-  flex: 1;
-}
-
-.session-link-content h4 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.session-link-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-  line-height: 1.4;
-}
-
-.session-link-arrow {
-  font-size: 1.25rem;
-  color: #5e64ff;
-  transition: transform 0.2s ease;
-}
-
-.session-link-card:hover .session-link-arrow {
-  transform: translateX(4px);
-}
 </style>

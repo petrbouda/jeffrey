@@ -18,10 +18,9 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useDocsNavigation } from '@/composables/useDocsNavigation';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
-
-const { adjacentPages } = useDocsNavigation();
 const { setHeadings } = useDocHeadings();
 
 const headings = [
@@ -37,37 +36,23 @@ onMounted(() => {
 
 <template>
   <article class="docs-article">
-      <nav class="docs-breadcrumb">
-        <router-link to="/docs" class="breadcrumb-item">
-          <i class="bi bi-book me-1"></i>Docs
-        </router-link>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item">Architecture</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">Overview</span>
-      </nav>
-
-      <header class="docs-header">
-        <div class="header-icon">
-          <i class="bi bi-diagram-3"></i>
-        </div>
-        <div class="header-content">
-          <h1 class="docs-title">Architecture Overview</h1>
-        </div>
-      </header>
+      <DocsPageHeader
+        title="Architecture Overview"
+        icon="bi bi-diagram-3"
+      />
 
       <div class="docs-content">
         <p>Jeffrey is a <strong>Java application</strong> composed into a single JAR file that contains the backend and also serves the frontend. This design offers an easy way to run the application locally, on a server, or using a single container in the cloud.</p>
 
         <h2 id="technology-stack">Technology Stack</h2>
 
-        <div class="tech-stack-grid">
-          <div class="tech-card backend">
-            <div class="card-header">
+        <div class="docs-grid docs-grid-2">
+          <div class="docs-card tech-card backend">
+            <div class="docs-card-header">
               <i class="bi bi-server"></i>
               <h4>Backend</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <ul>
                 <li><strong>Java 25</strong> - Modern Java with latest features</li>
                 <li><strong>Spring Boot</strong> - Application framework</li>
@@ -76,12 +61,12 @@ onMounted(() => {
               </ul>
             </div>
           </div>
-          <div class="tech-card frontend">
-            <div class="card-header">
+          <div class="docs-card tech-card frontend">
+            <div class="docs-card-header">
               <i class="bi bi-window"></i>
               <h4>Frontend</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <ul>
                 <li><strong>Vue 3</strong> - Reactive framework with Composition API</li>
                 <li><strong>TypeScript</strong> - Type-safe JavaScript</li>
@@ -90,12 +75,12 @@ onMounted(() => {
               </ul>
             </div>
           </div>
-          <div class="tech-card database">
-            <div class="card-header">
+          <div class="docs-card tech-card database">
+            <div class="docs-card-header">
               <i class="bi bi-database"></i>
               <h4>Database</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <ul>
                 <li><strong>DuckDB</strong> - In-process analytical database</li>
                 <li><strong>No external DB</strong> - Zero database servers to deploy</li>
@@ -104,12 +89,12 @@ onMounted(() => {
               </ul>
             </div>
           </div>
-          <div class="tech-card deployment">
-            <div class="card-header">
+          <div class="docs-card tech-card deployment">
+            <div class="docs-card-header">
               <i class="bi bi-box-seam"></i>
               <h4>Deployment</h4>
             </div>
-            <div class="card-body">
+            <div class="docs-card-body">
               <ul>
                 <li><strong>Docker</strong> - Single container deployment</li>
                 <li><strong>Kubernetes</strong> - Cloud-native ready</li>
@@ -272,91 +257,29 @@ onMounted(() => {
         </table>
       </div>
 
-      <nav class="docs-nav-footer">
-        <router-link
-          v-if="adjacentPages.prev"
-          :to="`/docs/${adjacentPages.prev.category}/${adjacentPages.prev.path}`"
-          class="nav-link prev"
-        >
-          <i class="bi bi-arrow-left"></i>
-          <div class="nav-text">
-            <span class="nav-label">Previous</span>
-            <span class="nav-title">{{ adjacentPages.prev.title }}</span>
-          </div>
-        </router-link>
-        <div v-else class="nav-spacer"></div>
-        <router-link
-          v-if="adjacentPages.next"
-          :to="`/docs/${adjacentPages.next.category}/${adjacentPages.next.path}`"
-          class="nav-link next"
-        >
-          <div class="nav-text">
-            <span class="nav-label">Next</span>
-            <span class="nav-title">{{ adjacentPages.next.title }}</span>
-          </div>
-          <i class="bi bi-arrow-right"></i>
-        </router-link>
-      </nav>
+      <DocsNavFooter />
   </article>
 </template>
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* Tech Stack Grid */
-.tech-stack-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.tech-card {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.tech-card .card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.tech-card .card-header i {
-  font-size: 1rem;
-}
-
-.tech-card.backend .card-header i { color: #ef4444; }
-.tech-card.frontend .card-header i { color: #10b981; }
-.tech-card.database .card-header i { color: #f59e0b; }
-.tech-card.deployment .card-header i { color: #5e64ff; }
-
-.tech-card .card-header h4 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.tech-card .card-body {
-  padding: 0.75rem;
-  background: #fff;
-}
-
-.tech-card .card-body ul {
+/* Tech Cards */
+.tech-card .docs-card-body ul {
   margin: 0;
   padding-left: 1.25rem;
   font-size: 0.85rem;
   color: #5e6e82;
 }
 
-.tech-card .card-body li {
+.tech-card .docs-card-body li {
   margin-bottom: 0.25rem;
 }
+
+.tech-card.backend .docs-card-header i { color: #ef4444; }
+.tech-card.frontend .docs-card-header i { color: #10b981; }
+.tech-card.database .docs-card-header i { color: #f59e0b; }
+.tech-card.deployment .docs-card-header i { color: #5e64ff; }
 
 /* Architecture Diagram */
 .architecture-diagram {
@@ -585,10 +508,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .tech-stack-grid {
-    grid-template-columns: 1fr;
-  }
-
   .profile-modules {
     flex-direction: column;
   }
