@@ -67,30 +67,27 @@ onMounted(() => {
           <div class="objective-card sandbox">
             <div class="card-header">
               <i class="bi bi-house"></i>
-              <h4>Quick Local Analysis</h4>
-              <span class="workspace-badge">Sandbox</span>
             </div>
             <div class="card-body">
+              <h4>Quick Local Analysis <span class="workspace-badge">Sandbox</span></h4>
               <p>Quickly analyze locally available JFR recordings and organize them into projects. Upload a file and start investigating within seconds.</p>
             </div>
           </div>
           <div class="objective-card live">
             <div class="card-header">
               <i class="bi bi-cloud"></i>
-              <h4>Recording Collection Infrastructure</h4>
-              <span class="workspace-badge">Live</span>
             </div>
             <div class="card-body">
+              <h4>Recording Collection Infrastructure <span class="workspace-badge">Live</span></h4>
               <p>Conveniently collect JFR recordings and artifacts from running applications, especially in containerized cloud environments like Kubernetes.</p>
             </div>
           </div>
           <div class="objective-card remote">
             <div class="card-header">
               <i class="bi bi-pc-display"></i>
-              <h4>Avoid Cloud Computation Costs</h4>
-              <span class="workspace-badge">Remote</span>
             </div>
             <div class="card-body">
+              <h4>Avoid Cloud Computation Costs <span class="workspace-badge">Remote</span></h4>
               <p>Offload expensive profile processing from cloud infrastructure to local machines. Download recordings remotely and analyze them locally.</p>
             </div>
           </div>
@@ -193,72 +190,79 @@ onMounted(() => {
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* Objectives Grid */
+/* Objectives List */
 .objectives-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin: 1.5rem 0;
 }
 
 .objective-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
   border-radius: 8px;
-  overflow: hidden;
   border: 1px solid #e2e8f0;
+  background: #fff;
 }
 
 .objective-card .card-header {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.objective-card.sandbox .card-header {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.objective-card.live .card-header {
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+}
+
+.objective-card.remote .card-header {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 .objective-card .card-header i {
-  font-size: 1.1rem;
-}
-
-.objective-card .card-header h4 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #343a40;
-  flex: 1;
-}
-
-.workspace-badge {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  background: #e2e8f0;
-  color: #495057;
+  font-size: 1.25rem;
+  color: #fff;
 }
 
 .objective-card .card-body {
-  padding: 1rem;
-  background: #fff;
+  flex: 1;
+}
+
+.objective-card .card-body h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #343a40;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workspace-badge {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #e2e8f0;
+  color: #495057;
 }
 
 .objective-card .card-body p {
   margin: 0;
   font-size: 0.85rem;
   color: #5e6e82;
-}
-
-/* Objective card themes */
-.objective-card.sandbox .card-header i {
-  color: #f59e0b;
-}
-
-.objective-card.live .card-header i {
-  color: #5e64ff;
-}
-
-.objective-card.remote .card-header i {
-  color: #10b981;
+  line-height: 1.5;
 }
 
 /* Design Points */
@@ -356,12 +360,6 @@ onMounted(() => {
 }
 
 /* Responsive */
-@media (max-width: 992px) {
-  .objectives-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 768px) {
   .analysis-cards {
     grid-template-columns: 1fr;

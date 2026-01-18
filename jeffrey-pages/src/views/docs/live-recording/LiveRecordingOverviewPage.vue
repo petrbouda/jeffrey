@@ -29,7 +29,7 @@ const headings = [
   { id: 'principle', text: 'The Principle', level: 2 },
   { id: 'architecture', text: 'Architecture Diagram', level: 2 },
   { id: 'jeffrey-cli', text: 'Jeffrey CLI', level: 2 },
-  { id: 'configuration-hierarchy', text: 'Configuration Hierarchy', level: 2 },
+  { id: 'profiler-settings-hierarchy', text: 'Profiler Settings Hierarchy', level: 2 },
   { id: 'sessions', text: 'Recording Sessions', level: 2 },
   { id: 'repository-visualization', text: 'Repository Visualization', level: 2 }
 ];
@@ -197,8 +197,8 @@ onMounted(() => {
           <li><strong>Configuration</strong> - Profiler settings used for this session</li>
         </ul>
 
-        <h2 id="configuration-hierarchy">Configuration Hierarchy</h2>
-        <p>Jeffrey propagates profiler configuration through a folder hierarchy. Jeffrey CLI loads configuration from this structure, allowing different settings at each level.</p>
+        <h2 id="profiler-settings-hierarchy">Profiler Settings Hierarchy</h2>
+        <p>Jeffrey propagates profiler settings to the shared storage in a <code>.settings</code> folder at each level. Jeffrey CLI loads these settings when initializing a profiling session.</p>
 
         <div class="hierarchy-diagram">
           <div class="hierarchy-level global">
@@ -208,6 +208,7 @@ onMounted(() => {
               <span class="level-badge default">Default</span>
             </div>
             <p>Base configuration applied to all workspaces and projects</p>
+            <code class="level-path">&lt;jeffrey-home&gt;/.settings/</code>
           </div>
           <div class="hierarchy-arrow"><i class="bi bi-arrow-down"></i></div>
           <div class="hierarchy-level workspace">
@@ -217,6 +218,7 @@ onMounted(() => {
               <span class="level-badge override">Override</span>
             </div>
             <p>Workspace-specific settings that override global defaults</p>
+            <code class="level-path">&lt;jeffrey-home&gt;/workspaces/&lt;workspace-id&gt;/.settings/</code>
           </div>
           <div class="hierarchy-arrow"><i class="bi bi-arrow-down"></i></div>
           <div class="hierarchy-level project">
@@ -226,11 +228,12 @@ onMounted(() => {
               <span class="level-badge override">Override</span>
             </div>
             <p>Project-specific settings with highest priority</p>
+            <code class="level-path">&lt;jeffrey-home&gt;/workspaces/&lt;workspace-id&gt;/&lt;project-name&gt;/.settings/</code>
           </div>
         </div>
 
         <DocsCallout type="info">
-          <strong>Configuration inheritance:</strong> If no custom configuration exists at a level, settings from the parent level are used. This allows you to set global defaults while customizing specific projects as needed.
+          <strong>Settings inheritance:</strong> Jeffrey CLI merges settings from all levels, with more specific levels overriding parent settings. This allows you to set global defaults while customizing specific workspaces or projects as needed.
         </DocsCallout>
 
         <h2 id="sessions">Recording Sessions</h2>
@@ -579,14 +582,12 @@ onMounted(() => {
 .hierarchy-diagram {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 0.5rem;
   margin: 1.5rem 0;
 }
 
 .hierarchy-level {
   width: 100%;
-  max-width: 400px;
   padding: 1rem 1.25rem;
   background: #fff;
   border-radius: 8px;
@@ -642,14 +643,35 @@ onMounted(() => {
 }
 
 .hierarchy-level p {
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   font-size: 0.8rem;
   color: #5e6e82;
 }
 
+.level-path {
+  display: block;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: #6b7280;
+  background: #f1f5f9;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+}
+
 .hierarchy-arrow {
-  color: #9ca3af;
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #5e64ff;
+  font-size: 1.25rem;
+}
+
+.hierarchy-arrow::after {
+  content: 'inherits from';
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
 }
 
 /* Session Structure */
