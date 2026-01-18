@@ -9,7 +9,7 @@ Execute these steps in order:
 ### 1. Build the Frontend
 
 ```bash
-cd /Users/petrbouda/IdeaProjects/jeffrey-pages && npm run build
+cd ./jeffrey-pages && npm run build
 ```
 
 Verify the build completed successfully by checking that `dist/` contains:
@@ -22,9 +22,10 @@ Verify the build completed successfully by checking that `dist/` contains:
 Remove old files from the GitHub Pages repository:
 
 ```bash
-rm -f /Users/petrbouda/IdeaProjects/petrbouda.github.io/index.html
-rm -rf /Users/petrbouda/IdeaProjects/petrbouda.github.io/assets
-rm -rf /Users/petrbouda/IdeaProjects/petrbouda.github.io/images
+cd ../
+rm -f ../petrbouda.github.io/index.html
+rm -rf ../petrbouda.github.io/assets
+rm -rf ../petrbouda.github.io/images
 ```
 
 ### 3. Copy New Files
@@ -32,9 +33,9 @@ rm -rf /Users/petrbouda/IdeaProjects/petrbouda.github.io/images
 Copy the built files to the destination:
 
 ```bash
-cp /Users/petrbouda/IdeaProjects/jeffrey-pages/dist/index.html /Users/petrbouda/IdeaProjects/petrbouda.github.io/
-cp -r /Users/petrbouda/IdeaProjects/jeffrey-pages/dist/assets /Users/petrbouda/IdeaProjects/petrbouda.github.io/
-cp -r /Users/petrbouda/IdeaProjects/jeffrey-pages/dist/images /Users/petrbouda/IdeaProjects/petrbouda.github.io/
+cp jeffrey-pages/dist/index.html ../petrbouda.github.io/
+cp -r jeffrey-pages/dist/assets ../petrbouda.github.io/
+cp -r jeffrey-pages/dist/images ../petrbouda.github.io/
 ```
 
 ### 4. Git Commit and Push
@@ -42,7 +43,7 @@ cp -r /Users/petrbouda/IdeaProjects/jeffrey-pages/dist/images /Users/petrbouda/I
 Commit and push the changes:
 
 ```bash
-cd /Users/petrbouda/IdeaProjects/petrbouda.github.io && git add -A && git commit -m "Update Jeffrey documentation site" && git push
+cd ../petrbouda.github.io && git add -A && git commit -m "Update Jeffrey documentation site" && git push
 ```
 
 ## Verification
