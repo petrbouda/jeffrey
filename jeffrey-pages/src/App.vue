@@ -162,27 +162,5 @@ const closeMenu = () => {
   transition: all 0.3s;
 }
 
-/* Responsive styles */
-@media (max-width: 991px) {
-  .nav-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: #fff;
-    padding: 1rem 0;
-    display: none;
-    flex-direction: column;
-    gap: 0.5rem;
-    z-index: 10;
-  }
-
-  .nav-menu.active {
-    display: flex;
-  }
-
-  .hamburger {
-    display: flex;
-  }
-}
+/* Responsive styles are in global.css */
 </style>

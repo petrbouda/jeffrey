@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import GlobalVars from '@/services/GlobalVars'
+
 export default class EventTypes {
     static EXECUTION_SAMPLE = 'jdk.ExecutionSample'
     static METHOD_TRACE = 'jdk.MethodTrace'
@@ -89,5 +91,13 @@ export default class EventTypes {
 
     static isNativeLeakEventType(code: string) {
         return code === this.NATIVE_LEAK
+    }
+
+    static getSapDocumentationUrl(code: string): string | null {
+        if (!code || !code.startsWith('jdk.')) {
+            return null
+        }
+        const eventName = code.replace('jdk.', '')
+        return `${GlobalVars.SAP_EVENT_LINK}?search=${eventName}`
     }
 }

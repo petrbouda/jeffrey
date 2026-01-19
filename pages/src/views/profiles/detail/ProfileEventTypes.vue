@@ -214,8 +214,8 @@
                             <i class="bi bi-eye"></i> View
                           </button>
                           <a
-                            v-if="node.leaf && node.data.code && node.data.code.startsWith('jdk.')"
-                            :href="`https://sap.github.io/SapMachine/jfrevents/24.html#${node.data.code.replace('jdk.', '').toLowerCase()}`"
+                            v-if="node.leaf && EventTypes.getSapDocumentationUrl(node.data.code)"
+                            :href="EventTypes.getSapDocumentationUrl(node.data.code)!"
                             target="_blank"
                             class="btn btn-sm btn-secondary action-btn"
                             title="View JFR event documentation"
@@ -294,6 +294,7 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
+import EventTypes from '@/services/EventTypes';
 
 // Props definition
 const props = defineProps({
