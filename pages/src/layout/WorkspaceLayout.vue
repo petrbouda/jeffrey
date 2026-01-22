@@ -19,14 +19,25 @@
 <template>
   <div class="workspace-layout">
     <!-- Main workspace content -->
-    <div class="workspace-content">
+    <div ref="workspaceContent" class="workspace-content">
       <router-view />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Empty script - no logic needed for simple layout
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+const workspaceContent = ref<HTMLElement | null>(null);
+
+// Scroll to top when route changes
+watch(() => route.fullPath, () => {
+  if (workspaceContent.value) {
+    workspaceContent.value.scrollTop = 0;
+  }
+});
 </script>
 
 <style lang="scss" scoped>
