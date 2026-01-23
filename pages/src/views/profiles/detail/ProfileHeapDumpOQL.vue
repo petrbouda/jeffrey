@@ -808,11 +808,15 @@ onMounted(() => {
   font-size: 0.8rem !important;
   padding: 0.5rem 1rem !important;
   border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
 }
 
 .empty-state .btn-ai-assistant i {
   font-size: 0.9rem !important;
   color: white !important;
+  line-height: 1 !important;
 }
 
 .btn-purple {
