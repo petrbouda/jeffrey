@@ -130,44 +130,116 @@ Save screenshots to `screenshots/target/` following the folder structure defined
 
 ## Chrome MCP Workflow (--chrome parameter)
 
-When running Claude with the `--chrome` parameter, use this workflow to capture and save screenshots.
+When running Claude with the `--chrome` parameter, use this workflow to capture and save screenshots using html2canvas and a local screenshot server.
+
+### How Screenshots Are Saved (Browser → Local Files)
+
+The screenshot capture process works as follows:
+
+1. **html2canvas library** is injected into the browser page via JavaScript
+2. **html2canvas captures** the entire page as a canvas element
+3. **Canvas is converted** to a PNG blob (binary image data)
+4. **Browser sends POST request** with the image blob to the local screenshot server
+5. **Screenshot server receives** the binary data and writes it to the `screenshots/target/` directory
+6. **Subdirectories are created automatically** based on the filename path (e.g., `jvm-internals/analysis/`)
+
+```
+Browser (Jeffrey page)
+    │
+    ├─► html2canvas captures page → Canvas
+    │
+    ├─► Canvas.toBlob() → PNG binary data
+    │
+    └─► fetch POST to localhost:3333/upload/{path/filename.png}
+                │
+                ▼
+        Screenshot Server (Node.js)
+                │
+                └─► Writes file to screenshots/target/{path/filename.png}
+```
 
 ### Prerequisites
 
-1. Start the screenshot upload server:
-   ```bash
-   cd /path/to/jeffrey/screenshots
-   node screenshots-server.cjs
-   ```
+1. Start Jeffrey application (see steps above)
+2. Run Claude with `--chrome` parameter for browser automation
+3. Start the screenshot upload server
 
-2. Start Jeffrey application (see steps above)
+### Start Screenshot Server
 
-3. Open Chrome with Claude browser automation
+The screenshot server accepts POST requests with image data and saves files to the `screenshots/target/` directory.
+
+```bash
+# From the screenshots directory
+cd screenshots
+node screenshots-server.cjs &
+```
+
+The server runs on `http://localhost:3333` and provides:
+- `POST /upload/{path/filename.png}` - Save a screenshot to the specified path
 
 ### Screenshot Capture Process
 
-1. **Open two tabs in Chrome:**
-   - Tab 1: `http://localhost:3333` (drop zone)
-   - Tab 2: `http://localhost:8080` (Jeffrey application)
+Use the `javascript_tool` to inject html2canvas and capture screenshots directly from the browser.
 
-2. **For each screenshot:**
-   - In the drop zone tab, enter the filename (e.g., `guardian-analysis.png`)
-   - Switch to Jeffrey tab and navigate to the target page
-   - Use `computer` tool with `action="screenshot"` to capture
-   - Switch back to drop zone tab
-   - Use `upload_image` tool with coordinates targeting the drop zone center
-   - The file is automatically saved to `screenshots/target/`
+**Important**: html2canvas must be re-injected after each page navigation since the script is cleared when the page changes.
 
-### Example Tool Usage
+### Capture Script Pattern
 
+For each screenshot, execute this JavaScript in the Jeffrey tab:
+
+```javascript
+// Step 1: Inject html2canvas library
+const script = document.createElement('script');
+script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+document.head.appendChild(script);
+
+// Step 2: Wait for library to load, capture, and upload
+new Promise(r => setTimeout(r, 1500)).then(async () => {
+  const canvas = await html2canvas(document.body, {
+    useCORS: true,
+    allowTaint: true
+  });
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const response = await fetch('http://localhost:3333/upload/jvm-internals/analysis/configuration.png', {
+    method: 'POST',
+    body: blob
+  });
+  console.log(response.ok ? 'Screenshot saved successfully' : 'Failed to save screenshot');
+});
 ```
-# Take screenshot
-computer: action="screenshot", tabId=<jeffrey-tab-id>
 
-# Upload to drop zone (coordinates at center of drop zone)
-upload_image: imageId=<from-screenshot>, tabId=<dropzone-tab-id>, coordinate=[400, 350]
+Replace `jvm-internals/analysis/configuration.png` with the appropriate path for each screenshot according to the section guide.
+
+### Example Workflow
+
+1. **Navigate** to the target page in Jeffrey using sidebar menu clicks
+2. **Wait** for charts and data to fully load
+3. **Inject** html2canvas script
+4. **Capture and upload** with the appropriate filename
+5. **Repeat** for each page/tab
+
+### Capturing Tabs
+
+For pages with multiple tabs:
+1. Click the tab to switch views
+2. Wait for content to load
+3. Re-inject html2canvas (if page reloaded) and capture with tab-specific filename
+
+Example tab filenames:
+- `tab-before-after-gc.png`
+- `tab-allocation-rate.png`
+
+### Verifying Captures
+
+Check the `screenshots/target/` directory to verify screenshots were saved:
+
+```bash
+ls -la screenshots/target/jvm-internals/
 ```
 
-### After Capture
+### Troubleshooting
 
-Once all screenshots are captured to the flat `target/` folder, organize them into the structure defined in the section guide files (e.g., `jvm-internals-guide.md`).
+- **html2canvas not defined**: The library needs time to load. Increase the timeout or re-inject the script.
+- **Fetch failed**: Ensure the screenshot server is running on port 3333.
+- **Blank screenshots**: Wait longer for page content to render before capturing.
+- **CORS errors**: The `useCORS: true` option should handle most cases.
