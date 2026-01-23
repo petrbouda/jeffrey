@@ -36,8 +36,8 @@ import java.util.Map;
  */
 public class DiffgraphProtoFormatter {
 
-    private static final double MIN_SAMPLES_IN_PCT = 0.1;
-    private static final int MAX_LEVEL = 1000;
+    private static final double MIN_SAMPLES_IN_PCT = 0;
+    private static final int MAX_LEVEL = Integer.MAX_VALUE;
 
     private final DiffFrame diffFrame;
     private final long minSamples;

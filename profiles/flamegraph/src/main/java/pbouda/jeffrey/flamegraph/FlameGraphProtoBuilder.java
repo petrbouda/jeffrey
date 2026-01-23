@@ -52,7 +52,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<pbouda.jeffrey.frame
     private static final Function<Long, String> LATENCY_FORMATTER =
             weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
 
-    private static final int MAX_LEVEL = 1000;
+    private static final int MAX_LEVEL = Integer.MAX_VALUE;
 
     private final boolean withMarker;
     private final boolean withWeight;

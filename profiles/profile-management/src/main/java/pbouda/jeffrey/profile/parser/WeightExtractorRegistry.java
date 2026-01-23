@@ -43,7 +43,7 @@ public class WeightExtractorRegistry {
         REGISTRY.put(JAVA_MONITOR_WAIT, WeightExtractor.duration("monitorClass"));
         REGISTRY.put(THREAD_PARK, WeightExtractor.duration("parkedClass"));
         REGISTRY.put(THREAD_SLEEP, WeightExtractor.duration());
-        REGISTRY.put(OBJECT_ALLOCATION_IN_NEW_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
+        REGISTRY.put(OBJECT_ALLOCATION_IN_NEW_TLAB, WeightExtractor.allocation("tlabSize", "objectClass"));
         REGISTRY.put(OBJECT_ALLOCATION_OUTSIDE_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
         REGISTRY.put(OBJECT_ALLOCATION_SAMPLE, WeightExtractor.allocation("weight", "objectClass"));
         REGISTRY.put(SOCKET_READ, WeightExtractor.allocation("bytesRead"));

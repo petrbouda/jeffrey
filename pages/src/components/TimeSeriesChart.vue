@@ -585,8 +585,22 @@ const mainChartOptions = computed(() => ({
     },
     y: {
       formatter: function (value: number, { seriesIndex }: { seriesIndex: number }) {
-        const axisType = seriesIndex === 0 ? props.primaryAxisType : props.secondaryAxisType;
-        return formatValue(value, axisType);
+        // Series order: Primary (0), Secondary (1 if present), Search Results (last if present)
+        const hasSecondaryData =
+          effectiveSecondaryData.value && effectiveSecondaryData.value.length > 0;
+
+        // Index 0 is always primary data
+        // Index 1 is secondary data only if secondary data exists, otherwise it's search results
+        // Index 2 (when exists) is always search results
+        // Search results are derived from primary data, so use primary axis type
+        if (seriesIndex === 0) {
+          return formatValue(value, props.primaryAxisType);
+        } else if (hasSecondaryData && seriesIndex === 1) {
+          return formatValue(value, props.secondaryAxisType);
+        } else {
+          // Search results (or any other series) use primary axis type
+          return formatValue(value, props.primaryAxisType);
+        }
       }
     }
   },

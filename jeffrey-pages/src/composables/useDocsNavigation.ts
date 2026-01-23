@@ -103,6 +103,7 @@ export const docsNavigation: DocSection[] = [
     children: [
       { title: 'Overview', path: 'overview' },
       { title: 'Configuration', path: 'configuration' },
+      { title: 'Generated Output', path: 'generated-output' },
       { title: 'Directory Structure', path: 'directory-structure' }
     ]
   },

@@ -89,11 +89,11 @@ After uploading recordings, create profiles from them using the UI:
 
 **Note:** The initialization is complete when the green button changes to indicate the profile already exists.
 
-### 6. Step: Navigation Steps:
+### 6. Step: Profile Selection
 
-1. **Select Profile** Click on "Profiles" tab in sidebar menu
-2. **Select the profile**: `jeffrey-persons-direct-serde-cpu.jfr`
-3. **Ensure JVM Internals section is active** (should be the default view)
+Each guide specifies which profile to use. Follow the **Profile Selection** section in each guide file.
+
+**Navigation between guides**: After finishing one guide, use the blue **"Profiles"** button in the top-right corner of the ProfileDetails page to return to the profiles list and select a different profile for the next guide.
 
 ### 7. Screenshot Capture Rules
 
@@ -112,9 +112,9 @@ Use the following guides for detailed traversal plans:
 | Section | Guide File | Output Folder |
 |---------|------------|---------------|
 | JVM Internals | `jvm-internals-guide.md` | `target/jvm-internals/` |
+| Visualization | `visualization-guide.md` | `target/visualization/` |
 
 [//]: # (| Application | `application-guide.md` | `target/application/` |)
-[//]: # (| Visualization | `visualization-guide.md` | `target/visualization/` |)
 [//]: # (| Heap Dump | `heap-dump-guide.md` | `target/heap-dump/` |)
 
 Each guide contains:

@@ -77,7 +77,7 @@ export default class Flamegraph {
         this.contextMenu = contextMenu
 
         this.canvas = canvas;
-        this.canvas.style.height = Math.min(data.depth * Flamegraph.FRAME_HEIGHT, 5000) + "px"
+        this.canvas.style.height = (data.depth * Flamegraph.FRAME_HEIGHT) + "px"
         this.context = this.canvas.getContext('2d')!;
 
         // Create wrapper for canvas and highlight - ensures proper positioning context

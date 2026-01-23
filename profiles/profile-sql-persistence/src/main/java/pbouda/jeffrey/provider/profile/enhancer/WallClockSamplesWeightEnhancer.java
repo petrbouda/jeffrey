@@ -33,6 +33,8 @@ public class WallClockSamplesWeightEnhancer implements EventTypeEnhancer {
 
     private static final Logger LOG = LoggerFactory.getLogger(WallClockSamplesWeightEnhancer.class);
 
+    private static final Duration ASYNC_PROFILER_DEFAULT_INTERVAL = Duration.ofMillis(10);
+
     private final ActiveSettings settings;
 
     public WallClockSamplesWeightEnhancer(ActiveSettings settings) {
@@ -57,9 +59,8 @@ public class WallClockSamplesWeightEnhancer implements EventTypeEnhancer {
                 .map(Long::parseLong)
                 .map(Duration::ofNanos);
 
-        if (periodOpt.isEmpty()) {
-            LOG.warn("The `period` or `interval` is not set for the Execution Samples");
-            return event;
+        if (periodOpt.isEmpty() || periodOpt.get().equals(Duration.ZERO)) {
+            periodOpt = Optional.of(ASYNC_PROFILER_DEFAULT_INTERVAL);
         }
 
         // Every sample is weighted by the period of the wall clock

@@ -220,6 +220,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsCliDirectoryStructure',
         component: () => import('@/views/docs/cli/CliDirectoryStructurePage.vue')
       },
+      {
+        path: 'cli/generated-output',
+        name: 'DocsCliGeneratedOutput',
+        component: () => import('@/views/docs/cli/CliGeneratedOutputPage.vue')
+      },
       // Configuration
       {
         path: 'configuration/overview',

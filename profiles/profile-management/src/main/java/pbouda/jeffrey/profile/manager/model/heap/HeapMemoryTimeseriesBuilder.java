@@ -36,7 +36,7 @@ public class HeapMemoryTimeseriesBuilder implements RecordBuilder<GenericRecord,
 
     public HeapMemoryTimeseriesBuilder(RelativeTimeRange timeRange, HeapMemoryTimeseriesType timeseriesType) {
         this.timeseriesType = timeseriesType;
-        this.timeseries = TimeseriesUtils.init(timeRange, ChronoUnit.MILLIS);
+        this.timeseries = TimeseriesUtils.init(timeRange, ChronoUnit.SECONDS);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class HeapMemoryTimeseriesBuilder implements RecordBuilder<GenericRecord,
         ObjectNode fields = record.jsonFields();
         String when = Json.readString(fields, "when");
         long heapUsed = Json.readLong(fields, "heapUsed");
-        long seconds = record.timestampFromStart().toMillis();
+        long seconds = record.timestampFromStart().toSeconds();
 
         // Combine both before and after GC events into a single series
         if ("Before GC".equals(when) || "After GC".equals(when)) {

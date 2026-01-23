@@ -208,6 +208,7 @@ jeffrey/
 
 ### Database Schema
 - read database schema from `service/providers/duckdb-persistence/src/main/resources/db/migration/V001__init.sql`
+- JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
 - JSONB `fields` column in the `events` table contains event-specific data with the following structure based on JFR event types:
 
 #### Flight Recorder Events

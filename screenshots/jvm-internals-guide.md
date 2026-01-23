@@ -6,6 +6,14 @@ This document provides a comprehensive guide for capturing screenshots of all pa
 
 ---
 
+## Profile Selection
+
+1. Click **"Profiles"** in the sidebar menu
+2. Select the profile: `jeffrey-persons-direct-serde-cpu.jfr`
+3. Ensure **JVM Internals** section is active (should be the default view)
+
+---
+
 ## Navigation Structure
 
 JVM Internals:
@@ -16,8 +24,8 @@ JVM Internals:
   - Performance Counters (performance-counters)
 - EVENTS:
   - Event Types (event-types) - Special: Filter with alloc
-  - Event Viewer (events)
   - JVM Flags (flags) - 2 tabs: JVM Flags, How It Works
+- JVM FLAGS (flags) - 2 tabs: JVM Flags, How It Works
 - THREADS:
   - Statistics (thread-statistics)
   - Timeline (threads-timeline)
@@ -45,7 +53,7 @@ jeffrey-screenshots/jvm-internals/
   - event-types.png
   - event-types-filtered-alloc.png
   - event-viewer.png
-  - jvm-flags/ (tab-jvm-flags.png, tab-how-it-works.png)
+- flags/ (tab-jvm-flags.png, tab-how-it-works.png)
 - threads/
   - statistics.png
   - timeline.png
