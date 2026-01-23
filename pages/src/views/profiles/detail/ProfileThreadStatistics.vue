@@ -302,9 +302,7 @@ const loadThreadStatistics = async (): Promise<void> => {
     loading.value = true;
     chartLoading.value = true;
 
-    if (!workspaceId.value || !projectId.value) return;
-
-    const client = new ProfileThreadClient(workspaceId.value, projectId.value, profileId);
+    const client = new ProfileThreadClient(profileId);
 
     // Call both APIs in parallel
     const [statisticsResponse, timeseriesResponse] = await Promise.all([
@@ -361,8 +359,6 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Use the threadInfo from the AllocatingThread
   // Create the flamegraph client for allocation data
   const flamegraphClient = new PrimaryFlamegraphClient(
-    workspaceId.value!,
-    projectId.value!,
     profileId,
     selectedEventCode.value,
     true,
@@ -415,8 +411,6 @@ const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
 
   // Create the flamegraph client for execution sample data
   const flamegraphClient = new PrimaryFlamegraphClient(
-    workspaceId.value!,
-    projectId.value!,
     profileId,
     selectedEventCode.value,
     true,

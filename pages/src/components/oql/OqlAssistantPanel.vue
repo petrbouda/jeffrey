@@ -108,8 +108,6 @@ import { useOqlAssistant, type ChatMessageWithOql } from '@/composables/useOqlAs
 
 const props = defineProps<{
   isOpen: boolean;
-  workspaceId: string;
-  projectId: string;
   profileId: string;
 }>();
 
@@ -132,7 +130,7 @@ const {
   clearHistory,
   clearError,
   useSuggestion
-} = useOqlAssistant(props.workspaceId, props.projectId, props.profileId);
+} = useOqlAssistant(props.profileId);
 
 const messagesContainer = ref<HTMLElement | null>(null);
 

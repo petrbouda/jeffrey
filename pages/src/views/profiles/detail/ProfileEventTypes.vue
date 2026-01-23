@@ -346,9 +346,7 @@ let eventViewerClient: EventViewerClient;
 
 onMounted(async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
-    eventViewerClient = new EventViewerClient(workspaceId.value, projectId.value, profileId);
+    eventViewerClient = new EventViewerClient(profileId);
 
     // Load event types from the client
     const events = await eventViewerClient.eventTypesTree();
@@ -420,16 +418,14 @@ watch(showFlamegraphDialog, isVisible => {
     // Initialize flamegraph components
     if (selectedEventCode.value) {
       const flamegraphClient = new PrimaryFlamegraphClient(
-        workspaceId.value!,
-        projectId.value!,
         profileId,
         selectedEventCode.value,
-        false, // useThreadInfo
-        false, // useSecondary
-        false, // useDifferential
-        false, // useGuardian
-        false, // useIncomplete
-        null
+        false, // useThreadMode
+        false, // useWeight
+        false, // excludeNonJavaSamples
+        false, // excludeIdleSamples
+        false, // onlyUnsafeAllocationSamples
+        null   // threadInfo
       );
 
       graphUpdater = new FullGraphUpdater(flamegraphClient, false);
@@ -568,9 +564,7 @@ const viewEventDetails = (node: EventType) => {
     localStorage.setItem('selectedEventType', JSON.stringify(eventTypeParam));
 
     // Navigate to the events page
-    router.push(
-      `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/events`
-    );
+    router.push(`/profiles/${profileId}/events`);
   }
 };
 

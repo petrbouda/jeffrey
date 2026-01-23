@@ -78,8 +78,6 @@ onBeforeMount(() => {
   }
 
   const flamegraphClient = new PrimaryFlamegraphClient(
-    workspaceId.value!,
-    projectId.value!,
     profileId,
     EventTypes.METHOD_TRACE,
     useThreadMode.value,

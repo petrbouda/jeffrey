@@ -23,8 +23,8 @@ import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileHeapMemoryClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'heap-memory');
+    constructor(profileId: string) {
+        super(profileId, 'heap-memory');
     }
 
     public getOverview(): Promise<HeapMemoryOverviewData> {

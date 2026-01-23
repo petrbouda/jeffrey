@@ -21,8 +21,8 @@ import ContainerConfigurationData from '@/services/api/model/ContainerConfigurat
 
 export default class ProfileContainerClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'container');
+    constructor(profileId: string) {
+        super(profileId, 'container');
     }
 
     public getConfiguration(): Promise<ContainerConfigurationData> {

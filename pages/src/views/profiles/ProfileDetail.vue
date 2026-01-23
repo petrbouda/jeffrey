@@ -45,7 +45,7 @@
         <div class="pill-content">
           <div class="title-row">
             <i class="bi bi-database"></i>
-            <span>Heap Dump Analysis</span>
+            <span>Heap Dump</span>
           </div>
           <small>Memory analysis from heap dumps</small>
         </div>
@@ -90,7 +90,7 @@
                 <div class="nav-section-title">ANALYSIS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/overview`"
+                      :to="`/profiles/${profileId}/overview`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -98,7 +98,7 @@
                     <span>Configuration</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/guardian`"
+                      :to="`/profiles/${profileId}/guardian`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -108,7 +108,7 @@
                            class="ms-auto"/>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/auto-analysis`"
+                      :to="`/profiles/${profileId}/auto-analysis`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -118,7 +118,7 @@
                            variant="danger" size="xs" class="ms-auto"/>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/performance-counters`"
+                      :to="`/profiles/${profileId}/performance-counters`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('performance-counters') }"
                       active-class="active"
@@ -133,7 +133,7 @@
                 <div class="nav-section-title">EVENTS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/event-types`"
+                      :to="`/profiles/${profileId}/event-types`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -141,7 +141,7 @@
                     <span>Event Types</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/events`"
+                      :to="`/profiles/${profileId}/events`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -149,7 +149,7 @@
                     <span>Event Viewer</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/flags`"
+                      :to="`/profiles/${profileId}/flags`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -163,7 +163,7 @@
                 <div class="nav-section-title">THREADS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/thread-statistics`"
+                      :to="`/profiles/${profileId}/thread-statistics`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -171,7 +171,7 @@
                     <span>Statistics</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/threads-timeline`"
+                      :to="`/profiles/${profileId}/threads-timeline`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -196,7 +196,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': heapMemorySubmenuExpanded }">
                       <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-memory/timeseries`"
+                          :to="`/profiles/${profileId}/heap-memory/timeseries`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -216,7 +216,7 @@
                     </div>
                     <div class="nav-submenu" :class="{ 'expanded': gcSubmenuExpanded }">
                       <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/garbage-collection`"
+                          :to="`/profiles/${profileId}/garbage-collection`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -224,7 +224,7 @@
                         <span>Overview</span>
                       </router-link>
                       <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/garbage-collection/timeseries`"
+                          :to="`/profiles/${profileId}/garbage-collection/timeseries`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -232,7 +232,7 @@
                         <span>Timeseries</span>
                       </router-link>
                       <router-link
-                          :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/garbage-collection/configuration`"
+                          :to="`/profiles/${profileId}/garbage-collection/configuration`"
                           class="nav-item nav-subitem"
                           active-class="active"
                       >
@@ -248,7 +248,7 @@
                 <div class="nav-section-title">COMPILER</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/jit-compilation`"
+                      :to="`/profiles/${profileId}/jit-compilation`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -262,7 +262,7 @@
                 <div class="nav-section-title">INFRASTRUCTURE</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/container/configuration`"
+                      :to="`/profiles/${profileId}/container/configuration`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('container') }"
                       active-class="active"
@@ -280,7 +280,7 @@
                 <div class="nav-section-title">HTTP SERVER</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=server`"
+                      :to="`/profiles/${profileId}/application/http/overview?mode=server`"
                       class="nav-item"
                       :class="{ 'active': $route.path.includes('/application/http/overview') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
                   >
@@ -288,7 +288,7 @@
                     <span>Overview</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=server`"
+                      :to="`/profiles/${profileId}/application/http/endpoints?mode=server`"
                       class="nav-item"
                       :class="{ 'active': $route.path.includes('/application/http/endpoints') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('http-server') }"
                   >
@@ -302,7 +302,7 @@
                 <div class="nav-section-title">HTTP CLIENT</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/overview?mode=client`"
+                      :to="`/profiles/${profileId}/application/http/overview?mode=client`"
                       class="nav-item"
                       :class="{ 'active': $route.path.includes('/application/http/overview') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
                   >
@@ -310,7 +310,7 @@
                     <span>Overview</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/http/endpoints?mode=client`"
+                      :to="`/profiles/${profileId}/application/http/endpoints?mode=client`"
                       class="nav-item"
                       :class="{ 'active': $route.path.includes('/application/http/endpoints') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('http-client') }"
                   >
@@ -324,7 +324,7 @@
                 <div class="nav-section-title">DATABASE</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/overview`"
+                      :to="`/profiles/${profileId}/application/jdbc/overview`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
                       active-class="active"
@@ -333,7 +333,7 @@
                     <span>Statements Overview</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc/statement-groups`"
+                      :to="`/profiles/${profileId}/application/jdbc/statement-groups`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('jdbc-statements') }"
                       active-class="active"
@@ -342,7 +342,7 @@
                     <span>Statement Groups</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/jdbc-pool`"
+                      :to="`/profiles/${profileId}/application/jdbc-pool`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('jdbc-pool') }"
                       active-class="active"
@@ -357,7 +357,7 @@
                 <div class="nav-section-title">TRACING</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/overview`"
+                      :to="`/profiles/${profileId}/application/method-tracing/overview`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
                       active-class="active"
@@ -366,7 +366,7 @@
                     <span>Overview</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/flamegraph`"
+                      :to="`/profiles/${profileId}/application/method-tracing/flamegraph`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
                       active-class="active"
@@ -375,7 +375,7 @@
                     <span>Flamegraph</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/slowest`"
+                      :to="`/profiles/${profileId}/application/method-tracing/slowest`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
                       active-class="active"
@@ -384,7 +384,7 @@
                     <span>Slowest Traces</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/application/method-tracing/cumulated`"
+                      :to="`/profiles/${profileId}/application/method-tracing/cumulated`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('method-tracing') }"
                       active-class="active"
@@ -402,7 +402,7 @@
                 <div class="nav-section-title">FLAMEGRAPHS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/flamegraphs/primary`"
+                      :to="`/profiles/${profileId}/flamegraphs/primary`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -426,7 +426,7 @@
                 <div class="nav-section-title">SUBSECOND</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/subsecond/primary`"
+                      :to="`/profiles/${profileId}/subsecond/primary`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -453,7 +453,7 @@
                 <div class="nav-section-title">OVERVIEW</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/settings`"
+                      :to="`/profiles/${profileId}/heap-dump/settings`"
                       class="nav-item"
                       active-class="active"
                   >
@@ -467,7 +467,7 @@
                 <div class="nav-section-title">ANALYSIS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/histogram`"
+                      :to="`/profiles/${profileId}/heap-dump/histogram`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
                       active-class="active"
@@ -476,7 +476,7 @@
                     <span>Class Histogram</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/string-analysis`"
+                      :to="`/profiles/${profileId}/heap-dump/string-analysis`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
                       active-class="active"
@@ -485,7 +485,7 @@
                     <span>String Analysis</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/oql`"
+                      :to="`/profiles/${profileId}/heap-dump/oql`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
                       active-class="active"
@@ -500,7 +500,7 @@
                 <div class="nav-section-title">DETAILS</div>
                 <div class="nav-items">
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/gc-roots`"
+                      :to="`/profiles/${profileId}/heap-dump/gc-roots`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
                       active-class="active"
@@ -509,7 +509,7 @@
                     <span>GC Roots</span>
                   </router-link>
                   <router-link
-                      :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/threads`"
+                      :to="`/profiles/${profileId}/heap-dump/threads`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
                       active-class="active"
@@ -621,7 +621,7 @@ import {useRoute, useRouter} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/api/model/Profile.ts";
-import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
+import DirectProfileClient from "@/services/api/DirectProfileClient.ts";
 import ProfileInfo from "@/services/api/model/ProfileInfo.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import Badge from '@/components/Badge.vue';
@@ -632,12 +632,13 @@ import AutoAnalysisClient from "@/services/api/AutoAnalysisClient";
 import ProfileFeaturesClient from "@/services/api/ProfileFeaturesClient";
 import FeatureType from "@/services/api/model/FeatureType";
 import HeapDumpClient from "@/services/api/HeapDumpClient";
+import { profileStore, ProfileWithContext } from "@/stores/profileStore";
+import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 
 const route = useRoute();
 const router = useRouter();
-const {workspaceId, projectId, generateProjectUrl} = useNavigation();
+const {workspaceId, projectId, generateProjectUrl, generateProfileUrl, navigateToProjectProfiles} = useNavigation();
 const profileId = route.params.profileId as string;
-const profileService = new ProjectProfileClient(workspaceId.value!, projectId.value!);
 
 const profile = ref<Profile | null>(null);
 const secondaryProfile = ref<Profile | null>(null);
@@ -718,12 +719,16 @@ watch(() => route.path, (newPath) => {
 
 onMounted(async () => {
   try {
-    // Fetch profile details, available projects, and profiles in parallel
-    profile.value = await profileService.get(profileId);
+    // Fetch profile details using direct profile client (simplified URL)
+    const profileWithContext = await DirectProfileClient.get(profileId) as ProfileWithContext;
+    profile.value = profileWithContext;
+
+    // Store profile context in profileStore for navigation
+    profileStore.setProfile(profileWithContext);
 
     // Load guardian warning count
     try {
-      const guardData = await GuardianClient.list(workspaceId.value!, projectId.value!, profileId);
+      const guardData = await GuardianClient.list(profileId);
       // Count WARNING severity items across all categories
       let count = 0;
       guardData.forEach(category => {
@@ -737,7 +742,7 @@ onMounted(async () => {
 
     // Load auto analysis warning count
     try {
-      const analysisData = await AutoAnalysisClient.rules(workspaceId.value!, projectId.value!, profileId);
+      const analysisData = await AutoAnalysisClient.rules(profileId);
       // Count WARNING severity items
       autoAnalysisWarningCount.value = analysisData.filter(rule => rule.severity === "WARNING").length;
     } catch (error) {
@@ -747,7 +752,7 @@ onMounted(async () => {
 
     // Load disabled features from API
     try {
-      const profileFeaturesClient = new ProfileFeaturesClient(workspaceId.value!, projectId.value!, profileId);
+      const profileFeaturesClient = new ProfileFeaturesClient(profileId);
       disabledFeatures.value = await profileFeaturesClient.getDisabledFeatures();
     } catch (error) {
       console.error('Failed to load disabled features:', error);
@@ -755,7 +760,7 @@ onMounted(async () => {
 
     // Check if heap dump is ready (cache initialized)
     try {
-      const heapDumpClient = new HeapDumpClient(workspaceId.value!, projectId.value!, profileId);
+      const heapDumpClient = new HeapDumpClient(profileId);
       const exists = await heapDumpClient.exists();
       if (exists) {
         heapDumpReady.value = await heapDumpClient.isCacheReady();
@@ -774,9 +779,9 @@ onMounted(async () => {
 
       try {
         loadingProfiles.value = true;
-        // Create a profile client for the saved project
-        const savedProjectProfileClient = new ProjectProfileClient(workspaceId.value!, savedProfile.projectId);
-        secondaryProfile.value = await savedProjectProfileClient.get(savedProfile.id);
+        // Load secondary profile using direct client
+        const secondaryWithContext = await DirectProfileClient.get(savedProfile.id);
+        secondaryProfile.value = secondaryWithContext;
       } catch (error) {
         console.error('Failed to load secondary profile:', error);
         SecondaryProfileService.remove(); // Clear invalid secondary profile
@@ -802,7 +807,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load profile:', error);
     ToastService.error('Failed to load profile', 'Error occurred while loading profile details');
-    router.push(generateProjectUrl('profiles'));
+    navigateToProjectProfiles();
   } finally {
     loading.value = false;
   }
@@ -831,12 +836,12 @@ const toggleSidebar = () => {
 const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') => {
   selectedMode.value = mode;
 
-  // Navigate to the first item in the selected mode's menu
+  // Navigate to the first item in the selected mode's menu (simplified URLs)
   const firstRoutes: Record<string, string> = {
-    'JVM': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/overview`,
-    'Application': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/application/http/overview?mode=server`,
-    'Visualization': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/flamegraphs/primary`,
-    'HeapDump': `/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/heap-dump/settings`
+    'JVM': `/profiles/${profileId}/overview`,
+    'Application': `/profiles/${profileId}/application/http/overview?mode=server`,
+    'Visualization': `/profiles/${profileId}/flamegraphs/primary`,
+    'HeapDump': `/profiles/${profileId}/heap-dump/settings`
   };
 
   router.push(firstRoutes[mode]);
@@ -850,10 +855,10 @@ const toggleGCSubmenu = () => {
   gcSubmenuExpanded.value = !gcSubmenuExpanded.value;
 };
 
-// Navigate to differential pages only if secondary profile is selected
+// Navigate to differential pages only if secondary profile is selected (simplified URLs)
 const navigateToDifferentialPage = (type: 'flamegraphs' | 'subsecond') => {
   if (secondaryProfile.value) {
-    router.push(`/workspaces/${workspaceId.value}/projects/${projectId.value}/profiles/${profileId}/${type}/differential`);
+    router.push(`/profiles/${profileId}/${type}/differential`);
   } else {
     // Show a toast message and automatically display the comparison panel
     ToastService.warn('No Secondary Profile', 'Please select a secondary profile for comparison');

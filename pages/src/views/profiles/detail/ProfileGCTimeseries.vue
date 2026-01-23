@@ -106,15 +106,9 @@ const onTimeseriesTabChange = async (_tabIndex: number, tab: any) => {
   if (tab.type) {
     currentTimeseriesType.value = tab.type;
     try {
-      if (!workspaceId.value || !projectId.value) return;
-
       // Initialize client if needed
       if (!client) {
-        client = new ProfileGCClient(
-          workspaceId.value,
-          projectId.value,
-          route.params.profileId as string
-        );
+        client = new ProfileGCClient(route.params.profileId as string);
       }
 
       // Load new timeseries data for the selected type
@@ -135,18 +129,12 @@ const refreshData = () => {
 // Load timeseries data from API
 const loadTimeseriesData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
     // Initialize client if needed
     if (!client) {
-      client = new ProfileGCClient(
-        workspaceId.value,
-        projectId.value,
-        route.params.profileId as string
-      );
+      client = new ProfileGCClient(route.params.profileId as string);
     }
 
     // Load timeline data with default COUNT type

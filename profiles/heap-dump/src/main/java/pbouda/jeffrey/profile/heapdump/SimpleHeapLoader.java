@@ -68,7 +68,7 @@ public class SimpleHeapLoader implements HeapLoader {
                 return Optional.empty();
             }
         } catch (Exception e) {
-            LOG.error("Failed to load heap dump: path={}", normalizedPath, e);
+            LOG.warn("Failed to load heap dump: path={} error={}", normalizedPath, e.getMessage());
             return Optional.empty();
         }
     }

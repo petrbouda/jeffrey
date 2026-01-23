@@ -151,8 +151,6 @@ onBeforeMount(() => {
   }
 
   primarySubSecondDataProvider = new SubSecondDataProviderImpl(
-      workspaceId.value!,
-      projectId.value!,
       route.params.profileId as string,
       eventTypeValue,
       useWeightValue,
@@ -160,8 +158,6 @@ onBeforeMount(() => {
 
   if (isDifferentialValue) {
     secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
-        workspaceId.value!,
-        SecondaryProfileService.projectId() as string,
         SecondaryProfileService.id() as string,
         eventTypeValue,
         useWeightValue,
@@ -171,8 +167,6 @@ onBeforeMount(() => {
   let flamegraphClient: FlamegraphClient
   if (isPrimaryValue) {
     flamegraphClient = new PrimaryFlamegraphClient(
-        workspaceId.value!,
-        projectId.value!,
         route.params.profileId as string,
         eventTypeValue,
         false,
@@ -185,8 +179,6 @@ onBeforeMount(() => {
     timeseriesClient = flamegraphClient as PrimaryFlamegraphClient
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
-        workspaceId.value!,
-        projectId.value!,
         route.params.profileId as string,
         SecondaryProfileService.id() as string,
         eventTypeValue,

@@ -26,6 +26,7 @@ import java.time.Instant;
  *
  * @param id                  ID of the profile
  * @param projectId           ID of the project where the profile belongs to
+ * @param workspaceId         ID of the workspace where the profile belongs to
  * @param name                Name of the profile
  * @param createdAt           Time when the profile was created
  * @param profilingStartedAt  Resolved using ActiveRecording and recordingStart field
@@ -36,6 +37,7 @@ import java.time.Instant;
 public record ProfileInfo(
         String id,
         String projectId,
+        String workspaceId,
         String name,
         RecordingEventSource eventSource,
         Instant profilingStartedAt,

@@ -549,7 +549,7 @@ const summaryMetrics = computed(() => {
     },
     {
       icon: 'check-circle',
-      title: 'Memory Saved by Sharing',
+      title: 'Saved by Sharing',
       value: FormattingService.formatBytes(report.value.memorySavedByDedup),
       variant: 'success' as const
     },
@@ -811,12 +811,10 @@ const scrollToTop = () => {
 
 const loadData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
-    client = new HeapDumpClient(workspaceId.value, projectId.value, profileId);
+    client = new HeapDumpClient(profileId);
 
     heapExists.value = await client.exists();
     if (!heapExists.value) {

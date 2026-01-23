@@ -27,8 +27,8 @@ import ChatMessage from '@/services/api/model/ChatMessage';
  */
 export default class OqlAssistantClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'heap/oql-assistant');
+    constructor(profileId: string) {
+        super(profileId, 'heap/oql-assistant');
     }
 
     /**

@@ -23,19 +23,18 @@ import HttpUtils from '@/services/HttpUtils';
 /**
  * Base class for profile feature API clients.
  * Provides common functionality for making HTTP requests to profile-related endpoints.
+ * Uses simplified URLs: /profiles/{profileId}/{featurePath}
  */
 export default abstract class BaseProfileClient {
     protected readonly baseUrl: string;
 
     /**
-     * Creates a new profile client instance.
-     * @param workspaceId - The workspace identifier
-     * @param projectId - The project identifier
+     * Creates a new profile client instance using simplified URL pattern.
      * @param profileId - The profile identifier
      * @param featurePath - The feature-specific path suffix (e.g., 'gc', 'heap-memory', 'container')
      */
-    constructor(workspaceId: string, projectId: string, profileId: string, featurePath: string) {
-        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/${featurePath}`;
+    constructor(profileId: string, featurePath: string) {
+        this.baseUrl = `${GlobalVars.internalUrl}/profiles/${profileId}/${featurePath}`;
     }
 
     /**

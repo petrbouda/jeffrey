@@ -224,6 +224,7 @@ import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
+import { useNavigation } from '@/composables/useNavigation';
 
 // Define props
 interface Props {
@@ -236,6 +237,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
+const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const jdbcOverviewData = ref<JdbcOverviewData | null>(null);
@@ -265,11 +267,7 @@ const isJdbcStatementsDisabled = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileJdbcStatementClient(
-  route.params.workspaceId as string,
-  route.params.projectId as string,
-  route.params.profileId as string
-);
+const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
 // Computed property for timeline tabs
 const timelineTabs = computed(() => {

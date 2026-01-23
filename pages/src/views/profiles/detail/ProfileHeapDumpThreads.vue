@@ -118,12 +118,10 @@
 
     <!-- Instance Tree Modal -->
     <InstanceTreeModal
-        v-if="workspaceId && projectId && selectedObjectId !== null"
+        v-if="selectedObjectId !== null"
         v-model:show="showTreeModal"
         :object-id="selectedObjectId"
         :initial-mode="treeMode"
-        :workspace-id="workspaceId"
-        :project-id="projectId"
         :profile-id="profileId"
     />
   </div>
@@ -260,12 +258,10 @@ const scrollToTop = () => {
 
 const loadData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
-    client = new HeapDumpClient(workspaceId.value, projectId.value, profileId);
+    client = new HeapDumpClient(profileId);
 
     heapExists.value = await client.exists();
 

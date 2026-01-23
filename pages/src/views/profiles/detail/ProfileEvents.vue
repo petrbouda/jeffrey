@@ -277,9 +277,7 @@ async function selectEventType(eventType: EventTypeDescription) {
   if (eventType && eventType.code) {
     loadingEventData.value = true;
     try {
-      if (!workspaceId.value || !projectId.value) return;
-
-      const client = new EventViewerClient(workspaceId.value, projectId.value, profileId);
+      const client = new EventViewerClient(profileId);
       
       // Load columns information
       eventColumns.value = await client.eventColumns(eventType.code);
@@ -356,9 +354,8 @@ function resolveType(jfrType: string) {
 onMounted(async () => {
   try {
     loading.value = true;
-    if (!workspaceId.value || !projectId.value) return;
 
-    const client = new EventViewerClient(workspaceId.value, projectId.value, profileId);
+    const client = new EventViewerClient(profileId);
     eventTypes.value = await client.eventTypes();
 
     // Sort by name as default

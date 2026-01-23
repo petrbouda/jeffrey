@@ -256,7 +256,7 @@ const loadPerformanceCounters = async () => {
   try {
     // Use the ProfilePerformanceCountersClient to fetch real data
     const profileId = route.params.profileId as string;
-    const counters: PerformanceCounterEnhanced[] = await ProfilePerformanceCountersClient.get(workspaceId.value!, projectId.value!, profileId);
+    const counters: PerformanceCounterEnhanced[] = await ProfilePerformanceCountersClient.get(profileId);
     
     // Process counters to use the second part of the key for category determination
     allCounters.value = counters

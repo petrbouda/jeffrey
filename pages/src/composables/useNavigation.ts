@@ -18,14 +18,28 @@
 
 import { useRoute, useRouter } from 'vue-router';
 import { computed } from 'vue';
+import { profileStore } from '@/stores/profileStore';
 
 export function useNavigation() {
   const route = useRoute();
   const router = useRouter();
 
-  const workspaceId = computed(() => route.params.workspaceId as string);
-  const projectId = computed(() => route.params.projectId as string);
+  // Get workspaceId and projectId from route params OR from profileStore
+  // This enables working with both old nested URLs and new simplified URLs
+  const workspaceId = computed(() =>
+    (route.params.workspaceId as string) || profileStore.workspaceId.value
+  );
+  const projectId = computed(() =>
+    (route.params.projectId as string) || profileStore.projectId.value
+  );
   const profileId = computed(() => route.params.profileId as string);
+
+  /**
+   * Check if we're using the simplified profile URL pattern (/profiles/:profileId/...)
+   */
+  const isSimplifiedProfileUrl = computed(() =>
+    route.path.startsWith('/profiles/') && !route.params.workspaceId
+  );
 
   const navigateToWorkspace = (workspaceId: string) => {
     router.push(`/workspaces/${workspaceId}`);
@@ -40,10 +54,21 @@ export function useNavigation() {
     router.push(`/workspaces/${targetWorkspaceId}/projects/${projectId}`);
   };
 
-  const navigateToProfile = (profileId: string, pId?: string, wsId?: string) => {
+  /**
+   * Navigate to a profile using simplified URL pattern.
+   */
+  const navigateToProfile = (profileId: string) => {
+    router.push(`/profiles/${profileId}`);
+  };
+
+  /**
+   * Navigate back to the project's profiles list.
+   * Uses workspaceId/projectId from profileStore when using simplified URLs.
+   */
+  const navigateToProjectProfiles = (wsId?: string, pId?: string) => {
     const targetWorkspaceId = wsId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    router.push(`/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/profiles/${profileId}`);
+    router.push(`/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/profiles`);
   };
 
   const generateProjectUrl = (path: string, pId?: string, wsId?: string) => {
@@ -52,24 +77,29 @@ export function useNavigation() {
     return `/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/${path}`;
   };
 
-  const generateProfileUrl = (path: string, prId?: string, pId?: string, wsId?: string) => {
-    const targetWorkspaceId = wsId || workspaceId.value;
-    const targetProjectId = pId || projectId.value;
+  /**
+   * Generate a profile URL using simplified pattern.
+   */
+  const generateProfileUrl = (path: string, prId?: string) => {
     const targetProfileId = prId || profileId.value;
-    return `/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/profiles/${targetProfileId}/${path}`;
+    return `/profiles/${targetProfileId}/${path}`;
   };
 
   return {
-    // Route params
+    // Route params (with profileStore fallback)
     workspaceId,
     projectId,
     profileId,
+
+    // URL pattern detection
+    isSimplifiedProfileUrl,
 
     // Navigation functions
     navigateToWorkspace,
     navigateToWorkspaceProjects,
     navigateToProject,
     navigateToProfile,
+    navigateToProjectProfiles,
 
     // URL generators
     generateProjectUrl,

@@ -27,8 +27,8 @@ export default class EventViewerClient {
 
     private baseUrl: string;
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/viewer';
+    constructor(profileId: string) {
+        this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/viewer';
     }
 
     eventTypes(): Promise<EventTypeDescription[]> {

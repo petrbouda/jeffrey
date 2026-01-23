@@ -23,8 +23,8 @@ import FlagsData from './model/FlagsData';
  * API client for JVM flags dashboard functionality.
  */
 export default class FlagsClient extends BaseProfileClient {
-  constructor(workspaceId: string, projectId: string, profileId: string) {
-    super(workspaceId, projectId, profileId, 'flags');
+  constructor(profileId: string) {
+    super(profileId, 'flags');
   }
 
   /**

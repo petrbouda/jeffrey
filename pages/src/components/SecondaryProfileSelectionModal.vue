@@ -21,261 +21,102 @@
     :show="show"
     @update:show="emit('update:show', $event)"
     modal-id="secondary-profile-selection"
-    title="Select Secondary Profile"
+    title="Select Secondary Profile for Differential Analysis"
     icon="bi-layers"
-    size="xl"
+    size="lg"
     :show-footer="true"
     class="profile-selection-modal"
   >
-    <!-- Breadcrumb Navigation -->
-    <div class="breadcrumb-nav mb-4">
-      <div class="breadcrumb-item">
-        <i class="bi bi-house-door me-1"></i>
-        <span class="text-primary">Current</span>
-      </div>
-      <i class="bi bi-chevron-right mx-2 text-muted"></i>
-      <div class="breadcrumb-item">
-        <i class="workspace-icon me-1" :class="getWorkspaceIcon(currentWorkspace?.type)"></i>
-        <span>{{ currentWorkspace?.name || 'Loading...' }}</span>
-      </div>
-      <i class="bi bi-chevron-right mx-2 text-muted"></i>
-      <div class="breadcrumb-item">
-        <i class="bi bi-folder me-1"></i>
-        <span>{{ selectedProject?.name || currentProject?.name || 'Select Project' }}</span>
-      </div>
-      <template v-if="selectedProfile">
-        <i class="bi bi-chevron-right mx-2 text-muted"></i>
-        <div class="breadcrumb-item">
-          <i class="bi bi-file-earmark-bar-graph me-1"></i>
-          <span class="text-success">{{ selectedProfile.name }}</span>
-        </div>
-      </template>
+    <!-- Search Box -->
+    <div class="search-box mb-4">
+      <i class="bi bi-search search-icon"></i>
+      <input
+        type="text"
+        class="form-control form-control-lg"
+        placeholder="Search profiles across all workspaces and projects..."
+        v-model="profileSearchQuery"
+      />
     </div>
 
-    <!-- Three-Panel Selection Interface -->
-    <div class="selection-container">
-      <!-- Panel 1: Workspaces -->
-      <div class="selection-panel">
-        <div class="panel-header">
-          <h6 class="panel-title">
-            <i class="bi bi-building me-2"></i>
-            Workspaces
-          </h6>
-          <div v-if="loadingWorkspaces" class="spinner-border spinner-border-sm text-primary ms-auto" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
+    <!-- Loading State -->
+    <div v-if="loadingProfiles" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="text-muted mt-3">Loading profiles...</p>
+    </div>
 
-        <div class="panel-content">
-          <!-- Current Workspace (Contains Primary) -->
-          <div class="workspace-card current-workspace"
-               :class="{ 'selected': selectedWorkspace?.id === currentWorkspace?.id }"
-               @click="selectWorkspace(currentWorkspace)">
-            <div class="workspace-header">
-              <i class="workspace-icon me-2" :class="getWorkspaceIcon(currentWorkspace?.type)"></i>
-              <div class="workspace-info">
-                <div class="workspace-name">{{ currentWorkspace?.name }}</div>
-                <div class="workspace-meta">
-                  <span>Current Workspace</span>
-                  <span class="primary-indicator">• Contains Primary</span>
-                </div>
-              </div>
-              <div class="selection-indicator" v-if="selectedWorkspace?.id === currentWorkspace?.id">
-                <i class="bi bi-check-circle-fill text-primary"></i>
-              </div>
-            </div>
-            <div class="workspace-stats">
-              <span class="stat-item">
-                <i class="bi bi-folder me-1"></i>
-                {{ currentWorkspace?.projectCount || 0 }} projects
-              </span>
-            </div>
-          </div>
-
-          <!-- Other Available Workspaces -->
-          <div v-for="workspace in otherWorkspaces"
-               :key="workspace.id"
-               class="workspace-card"
-               :class="{ 'selected': selectedWorkspace?.id === workspace.id }"
-               @click="selectWorkspace(workspace)">
-            <div class="workspace-header">
-              <i class="workspace-icon me-2" :class="getWorkspaceIcon(workspace.type)"></i>
-              <div class="workspace-info">
-                <div class="workspace-name">{{ workspace.name }}</div>
-                <div class="workspace-meta">{{ formatWorkspaceType(workspace.type) }}</div>
-              </div>
-              <div class="selection-indicator" v-if="selectedWorkspace?.id === workspace.id">
-                <i class="bi bi-check-circle-fill text-primary"></i>
-              </div>
-            </div>
-            <div class="workspace-stats">
-              <span class="stat-item">
-                <i class="bi bi-folder me-1"></i>
-                {{ workspace.projectCount }} projects
-              </span>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-if="!loadingWorkspaces && allWorkspaces.length === 0" class="empty-state">
-            <i class="bi bi-building text-muted mb-2"></i>
-            <p class="text-muted mb-0">No workspaces available</p>
-          </div>
-        </div>
+    <!-- Profiles List -->
+    <div v-else class="profiles-list">
+      <!-- Empty State -->
+      <div v-if="filteredProfiles.length === 0" class="empty-state">
+        <i class="bi bi-file-earmark-bar-graph text-muted mb-3" style="font-size: 3rem;"></i>
+        <h5 class="text-muted">No profiles found</h5>
+        <p class="text-muted mb-0">
+          {{ profileSearchQuery ? 'Try a different search term' : 'No profiles available for selection' }}
+        </p>
       </div>
 
-      <!-- Panel 2: Projects -->
-      <div class="selection-panel">
-        <div class="panel-header">
-          <h6 class="panel-title">
-            <i class="bi bi-folder me-2"></i>
-            Projects
-          </h6>
-          <div v-if="loadingProjects" class="spinner-border spinner-border-sm text-primary ms-auto" role="status">
-            <span class="visually-hidden">Loading...</span>
+      <!-- Grouped Profiles -->
+      <div v-for="group in groupedProfiles" :key="`${group.workspaceId}:${group.projectId}`" class="profile-group mb-4">
+        <!-- Group Header -->
+        <div class="group-header mb-2">
+          <div class="group-path">
+            <span class="badge" :class="isCurrentWorkspace(group.workspaceId) ? 'bg-primary' : 'bg-secondary'">
+              <i class="bi bi-building me-1"></i>
+              {{ group.workspaceId.substring(0, 8) }}...
+            </span>
+            <i class="bi bi-chevron-right text-muted mx-1"></i>
+            <span class="badge" :class="isCurrentProject(group.projectId) ? 'bg-success' : 'bg-secondary'">
+              <i class="bi bi-folder me-1"></i>
+              {{ group.projectId.substring(0, 8) }}...
+            </span>
+            <span v-if="isCurrentProject(group.projectId)" class="badge bg-warning text-dark ms-2">
+              <i class="bi bi-star-fill me-1"></i>
+              Current Project
+            </span>
           </div>
         </div>
 
-        <div class="panel-content">
-          <!-- Search Projects -->
-          <div class="search-box mb-3" v-if="availableProjects.length > 5">
-            <i class="bi bi-search search-icon"></i>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Search projects..."
-              v-model="projectSearchQuery"
-            />
-          </div>
-
-          <!-- Current Project (Contains Primary) -->
-          <div v-if="currentProject && effectiveWorkspace?.id === currentWorkspaceId"
-               class="project-card current-project"
-               :class="{ 'selected': selectedProject?.id === currentProject.id }"
-               @click="selectProject(currentProject)">
-            <div class="project-header">
-              <i class="bi bi-folder-fill me-2 text-primary"></i>
-              <div class="project-info">
-                <div class="project-name">{{ currentProject.name }}</div>
-                <div class="project-meta">
-                  <span>Current Project</span>
-                  <span class="primary-indicator">• Contains Primary</span>
-                </div>
-              </div>
-              <div class="selection-indicator" v-if="selectedProject?.id === currentProject.id">
-                <i class="bi bi-check-circle-fill text-primary"></i>
-              </div>
-            </div>
-          </div>
-
-          <!-- Other Projects -->
-          <div v-for="project in filteredProjects"
-               :key="project.id"
-               class="project-card"
-               :class="{ 'selected': selectedProject?.id === project.id }"
-               @click="selectProject(project)">
-            <div class="project-header">
-              <i class="bi bi-folder me-2"></i>
-              <div class="project-info">
-                <div class="project-name">{{ Project.displayName(project) }}</div>
-                <div class="project-meta">{{ FormattingService.formatDate(project.createdAt) }}</div>
-              </div>
-              <div class="selection-indicator" v-if="selectedProject?.id === project.id">
-                <i class="bi bi-check-circle-fill text-primary"></i>
+        <!-- Profile Cards in Group -->
+        <div v-for="profile in group.profiles"
+             :key="profile.id"
+             class="profile-card"
+             :class="{
+               'selected': selectedProfile?.id === profile.id,
+               'current-primary': isPrimaryProfile(profile),
+               'disabled': isPrimaryProfile(profile)
+             }"
+             @click="selectProfile(profile)">
+          <div class="profile-header">
+            <i class="bi bi-file-earmark-bar-graph me-3 profile-icon"></i>
+            <div class="profile-info">
+              <div class="profile-name">{{ profile.name }}</div>
+              <div class="profile-meta">
+                <span class="profile-date">
+                  <i class="bi bi-calendar me-1"></i>
+                  {{ FormattingService.formatDate(profile.createdAt) }}
+                </span>
+                <span class="profile-duration">
+                  <i class="bi bi-stopwatch me-1"></i>
+                  {{ FormattingService.formatDurationInMillis2Units(profile.durationInMillis) }}
+                </span>
+                <span class="profile-size">
+                  <i class="bi bi-hdd me-1"></i>
+                  {{ FormattingService.formatBytes(profile.sizeInBytes) }}
+                </span>
               </div>
             </div>
-          </div>
-
-          <!-- Projects Loading State -->
-          <div v-if="loadingProjects" class="loading-state">
-            <div v-for="i in 3" :key="i" class="skeleton-card"></div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-if="!loadingProjects && availableProjects.length === 0 && effectiveWorkspace" class="empty-state">
-            <i class="bi bi-folder text-muted mb-2"></i>
-            <p class="text-muted mb-0">No projects in this workspace</p>
-          </div>
-
-          <!-- No Workspace Selected -->
-          <div v-if="!effectiveWorkspace" class="empty-state">
-            <i class="bi bi-arrow-left text-muted mb-2"></i>
-            <p class="text-muted mb-0">Select a workspace to view projects</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel 3: Profiles -->
-      <div class="selection-panel">
-        <div class="panel-header">
-          <h6 class="panel-title">
-            <i class="bi bi-file-earmark-bar-graph me-2"></i>
-            Profiles
-          </h6>
-          <div v-if="loadingProfiles" class="spinner-border spinner-border-sm text-primary ms-auto" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-
-        <div class="panel-content">
-          <!-- Search Profiles -->
-          <div class="search-box mb-3" v-if="availableProfiles.length > 5">
-            <i class="bi bi-search search-icon"></i>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Search profiles..."
-              v-model="profileSearchQuery"
-            />
-          </div>
-
-          <!-- Profile Cards -->
-          <div v-for="profile in filteredProfiles"
-               :key="profile.id"
-               class="profile-card"
-               :class="{
-                 'selected': selectedProfile?.id === profile.id,
-                 'current-primary': profile.id === currentProfileId && selectedProject?.id === currentProjectId,
-                 'disabled': profile.id === currentProfileId && selectedProject?.id === currentProjectId
-               }"
-               @click="selectProfile(profile)">
-            <div class="profile-header">
-              <i class="bi bi-file-earmark-bar-graph me-2"></i>
-              <div class="profile-info">
-                <div class="profile-name">{{ profile.name }}</div>
-                <div class="profile-meta">
-                  <span class="profile-date">{{ FormattingService.formatDate(profile.createdAt) }}</span>
-                  <span class="profile-duration">{{ FormattingService.formatDurationInMillis2Units(profile.durationInMillis) }}</span>
-                </div>
+            <div class="profile-indicators">
+              <div v-if="isPrimaryProfile(profile)" class="indicator primary">
+                <i class="bi bi-star-fill"></i>
+                <span>Primary</span>
               </div>
-              <div class="profile-indicators">
-                <div v-if="profile.id === currentProfileId && selectedProject?.id === currentProjectId" class="indicator primary">
-                  <i class="bi bi-star-fill"></i>
-                  <span>Primary</span>
-                </div>
-                <div v-else-if="selectedProfile?.id === profile.id" class="indicator selected">
-                  <i class="bi bi-check-circle-fill"></i>
-                  <span>Selected</span>
-                </div>
+              <div v-else-if="selectedProfile?.id === profile.id" class="indicator selected">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>Selected</span>
               </div>
             </div>
-          </div>
-
-          <!-- Profiles Loading State -->
-          <div v-if="loadingProfiles" class="loading-state">
-            <div v-for="i in 3" :key="i" class="skeleton-card profile-skeleton"></div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-if="!loadingProfiles && availableProfiles.length === 0 && selectedProject" class="empty-state">
-            <i class="bi bi-file-earmark-bar-graph text-muted mb-2"></i>
-            <p class="text-muted mb-0">No profiles in this project</p>
-          </div>
-
-          <!-- No Project Selected -->
-          <div v-if="!selectedProject" class="empty-state">
-            <i class="bi bi-arrow-left text-muted mb-2"></i>
-            <p class="text-muted mb-0">Select a project to view profiles</p>
           </div>
         </div>
       </div>
@@ -287,15 +128,13 @@
         <div class="selection-summary">
           <span v-if="selectedProfile" class="text-muted">
             Selected: <strong>{{ selectedProfile.name }}</strong>
-            <span v-if="selectedProject?.id !== currentProjectId">
-              from <strong>{{ selectedProject?.name }}</strong>
-            </span>
           </span>
+          <span v-else class="text-muted fst-italic">No profile selected</span>
         </div>
         <div class="button-group">
           <button type="button" class="btn btn-outline-danger me-2" @click="clearSelection">
             <i class="bi bi-x-circle me-1"></i>
-            Clear Selection
+            Clear
           </button>
           <button type="button" class="btn btn-secondary me-2" @click="closeModal">
             Cancel
@@ -316,17 +155,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
-import ProjectProfileClient from '@/services/api/ProjectProfileClient';
-import ProjectsClient from '@/services/api/ProjectsClient';
-import WorkspaceClient from '@/services/api/WorkspaceClient';
+import DirectProfileClient, { ProfileListResponse } from '@/services/api/DirectProfileClient';
 import FormattingService from '@/services/FormattingService';
 import ToastService from '@/services/ToastService';
 import Profile from '@/services/api/model/Profile';
-import Project from '@/services/api/model/Project';
-import Workspace from '@/services/api/model/Workspace';
-import WorkspaceType from '@/services/api/model/WorkspaceType';
 
 interface Props {
   show: boolean;
@@ -346,82 +180,54 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// Local state
-const allWorkspaces = ref<Workspace[]>([]);
-const currentWorkspace = ref<Workspace | null>(null);
-const selectedWorkspace = ref<Workspace | null>(null);
-const currentProject = ref<Project | null>(null);
-const selectedProject = ref<Project | null>(null);
-const availableProjects = ref<Project[]>([]);
-const availableProfiles = ref<Profile[]>([]);
-const selectedProfile = ref<Profile | null>(null);
+// Local state - simplified to use all profiles from DirectProfileClient
+const allProfiles = ref<ProfileListResponse[]>([]);
+const selectedProfile = ref<ProfileListResponse | null>(null);
 
-// Loading states
-const loadingWorkspaces = ref(false);
-const loadingProjects = ref(false);
+// Loading state
 const loadingProfiles = ref(false);
 
-// Search queries
-const projectSearchQuery = ref('');
+// Search query
 const profileSearchQuery = ref('');
 
 // Computed properties
-const currentWorkspaceId = computed(() => props.workspaceId);
-const currentProjectId = computed(() => props.currentProjectId);
+const filteredProfiles = computed(() => {
+  let profiles = allProfiles.value;
 
-const otherWorkspaces = computed(() =>
-  allWorkspaces.value.filter(w => w.id !== currentWorkspaceId.value)
-);
-
-const effectiveWorkspace = computed(() =>
-  selectedWorkspace.value || currentWorkspace.value
-);
-
-const filteredProjects = computed(() => {
-  if (!projectSearchQuery.value) {
-    return availableProjects.value.filter(p =>
-      !(currentProject.value && p.id === currentProject.value.id)
+  // Filter by search query
+  if (profileSearchQuery.value) {
+    const query = profileSearchQuery.value.toLowerCase();
+    profiles = profiles.filter(p =>
+      p.name.toLowerCase().includes(query)
     );
   }
-  return availableProjects.value
-    .filter(p => !(currentProject.value && p.id === currentProject.value.id))
-    .filter(p => p.name.toLowerCase().includes(projectSearchQuery.value.toLowerCase()));
+
+  return profiles;
 });
 
-const filteredProfiles = computed(() => {
-  if (!profileSearchQuery.value) {
-    return availableProfiles.value;
+// Group profiles by workspace and project for display
+const groupedProfiles = computed(() => {
+  const groups: Map<string, { workspaceId: string; projectId: string; profiles: ProfileListResponse[] }> = new Map();
+
+  for (const profile of filteredProfiles.value) {
+    const key = `${profile.workspaceId}:${profile.projectId}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        workspaceId: profile.workspaceId,
+        projectId: profile.projectId,
+        profiles: []
+      });
+    }
+    groups.get(key)!.profiles.push(profile);
   }
-  return availableProfiles.value.filter(p =>
-    p.name.toLowerCase().includes(profileSearchQuery.value.toLowerCase())
-  );
+
+  return Array.from(groups.values());
 });
 
 const hasValidSelection = computed(() => {
   return selectedProfile.value !== null &&
-    !(selectedProfile.value.id === props.currentProfileId &&
-      selectedProject.value?.id === props.currentProjectId);
+    selectedProfile.value.id !== props.currentProfileId;
 });
-
-// Helper functions
-const getWorkspaceIcon = (type?: WorkspaceType) => {
-  switch (type) {
-    case WorkspaceType.LIVE: return 'bi-house-door-fill text-primary';
-    case WorkspaceType.REMOTE: return 'bi-cloud-fill text-info';
-    case WorkspaceType.SANDBOX: return 'bi-box-fill text-warning';
-    default: return 'bi-building text-secondary';
-  }
-};
-
-const formatWorkspaceType = (type: WorkspaceType) => {
-  switch (type) {
-    case WorkspaceType.LIVE: return 'Live Workspace';
-    case WorkspaceType.REMOTE: return 'Remote Workspace';
-    case WorkspaceType.SANDBOX: return 'Sandbox Environment';
-    default: return 'Unknown';
-  }
-};
-
 
 // Initialize when modal opens
 watch(() => props.show, (newShow) => {
@@ -430,117 +236,34 @@ watch(() => props.show, (newShow) => {
   }
 }, { immediate: true });
 
-// Initialize current selections
-watch([() => props.currentSecondaryProfileId, () => props.currentSecondaryProjectId], () => {
-  if (props.currentSecondaryProfileId && props.currentSecondaryProjectId) {
-    // Will be handled in initializeModal
-  }
-}, { immediate: true });
-
 const initializeModal = async () => {
-  await loadWorkspaces();
-  await loadCurrentProject();
-
-  // Set initial workspace selection (current workspace)
-  selectedWorkspace.value = currentWorkspace.value;
-
-  // Load projects for current workspace
-  if (effectiveWorkspace.value) {
-    await loadProjectsForWorkspace(effectiveWorkspace.value.id);
-  }
+  await loadAllProfiles();
 
   // Handle existing secondary profile selection
-  if (props.currentSecondaryProjectId && props.currentSecondaryProfileId) {
-    // Find and select the secondary project
-    const secondaryProject = availableProjects.value.find(p => p.id === props.currentSecondaryProjectId);
-    if (secondaryProject) {
-      await selectProject(secondaryProject);
-      // Find and select the secondary profile
-      const secondaryProfile = availableProfiles.value.find(p => p.id === props.currentSecondaryProfileId);
-      if (secondaryProfile) {
-        selectedProfile.value = secondaryProfile;
-      }
-    }
-  } else {
-    // Default to current project
-    if (currentProject.value) {
-      await selectProject(currentProject.value);
+  if (props.currentSecondaryProfileId) {
+    const existingSelection = allProfiles.value.find(p => p.id === props.currentSecondaryProfileId);
+    if (existingSelection) {
+      selectedProfile.value = existingSelection;
     }
   }
 };
 
-const loadWorkspaces = async () => {
-  loadingWorkspaces.value = true;
-  try {
-    allWorkspaces.value = await WorkspaceClient.list();
-    currentWorkspace.value = allWorkspaces.value.find(w => w.id === currentWorkspaceId.value) || null;
-  } catch (error) {
-    console.error('Failed to load workspaces:', error);
-    ToastService.error('Failed to load workspaces', 'Error occurred while loading workspaces');
-  } finally {
-    loadingWorkspaces.value = false;
-  }
-};
-
-const loadCurrentProject = async () => {
-  try {
-    const projects = await ProjectsClient.list(currentWorkspaceId.value);
-    currentProject.value = projects.find(p => p.id === currentProjectId.value) || null;
-  } catch (error) {
-    console.error('Failed to load current project:', error);
-  }
-};
-
-const loadProjectsForWorkspace = async (workspaceId: string) => {
-  loadingProjects.value = true;
-  try {
-    availableProjects.value = await ProjectsClient.list(workspaceId);
-  } catch (error) {
-    console.error('Failed to load projects:', error);
-    ToastService.error('Failed to load projects', 'Error occurred while loading projects');
-    availableProjects.value = [];
-  } finally {
-    loadingProjects.value = false;
-  }
-};
-
-const loadProfilesForProject = async (workspaceId: string, projectId: string) => {
+const loadAllProfiles = async () => {
   loadingProfiles.value = true;
   try {
-    const projectProfileClient = new ProjectProfileClient(workspaceId, projectId);
-    availableProfiles.value = await projectProfileClient.list();
+    allProfiles.value = await DirectProfileClient.listAll();
   } catch (error) {
     console.error('Failed to load profiles:', error);
     ToastService.error('Failed to load profiles', 'Error occurred while loading profiles');
-    availableProfiles.value = [];
+    allProfiles.value = [];
   } finally {
     loadingProfiles.value = false;
   }
 };
 
-// Selection handlers
-const selectWorkspace = async (workspace: Workspace | null) => {
-  if (!workspace) return;
-
-  selectedWorkspace.value = workspace;
-  selectedProject.value = null;
-  selectedProfile.value = null;
-  availableProfiles.value = [];
-
-  await loadProjectsForWorkspace(workspace.id);
-};
-
-const selectProject = async (project: Project) => {
-  selectedProject.value = project;
-  selectedProfile.value = null;
-
-  const workspaceId = effectiveWorkspace.value?.id || currentWorkspaceId.value;
-  await loadProfilesForProject(workspaceId, project.id);
-};
-
-const selectProfile = (profile: Profile) => {
+const selectProfile = (profile: ProfileListResponse) => {
   // Don't allow selecting the primary profile as the secondary profile
-  if (profile.id === props.currentProfileId && selectedProject.value?.id === props.currentProjectId) {
+  if (profile.id === props.currentProfileId) {
     ToastService.error("Selection failed", "Cannot select primary profile as secondary profile");
     return;
   }
@@ -549,8 +272,20 @@ const selectProfile = (profile: Profile) => {
 };
 
 const confirmSelection = () => {
-  if (selectedProfile.value && selectedProject.value && hasValidSelection.value) {
-    emit('profile-selected', selectedProfile.value, selectedProject.value.id);
+  if (selectedProfile.value && hasValidSelection.value) {
+    // Convert ProfileListResponse to Profile for compatibility
+    const profile = new Profile(
+      selectedProfile.value.id,
+      selectedProfile.value.projectId,
+      selectedProfile.value.workspaceId,
+      selectedProfile.value.name,
+      selectedProfile.value.createdAt,
+      selectedProfile.value.eventSource as any,
+      selectedProfile.value.enabled,
+      selectedProfile.value.durationInMillis,
+      selectedProfile.value.sizeInBytes
+    );
+    emit('profile-selected', profile, selectedProfile.value.projectId);
     closeModal();
   }
 };
@@ -564,261 +299,36 @@ const clearSelection = () => {
 const closeModal = () => {
   emit('update:show', false);
 };
+
+const isPrimaryProfile = (profile: ProfileListResponse) => {
+  return profile.id === props.currentProfileId;
+};
+
+const isCurrentProject = (projectId: string) => {
+  return projectId === props.currentProjectId;
+};
+
+const isCurrentWorkspace = (workspaceId: string) => {
+  return workspaceId === props.workspaceId;
+};
 </script>
 
 <style scoped>
-/* Breadcrumb Navigation */
-.breadcrumb-nav {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 8px;
-  border-left: 4px solid #5e64ff;
-}
-
-.breadcrumb-item {
-  display: flex;
-  align-items: center;
-  font-weight: 500;
-  color: #495057;
-}
-
 /* Modal Customization */
 :deep(.profile-selection-modal .modal-dialog) {
-  max-width: 95vw;
-  width: 95vw;
-  height: 90vh;
-  max-height: 90vh;
-  margin: 2.5vh auto;
-}
-
-:deep(.profile-selection-modal .modal-content) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  max-width: 800px;
 }
 
 :deep(.profile-selection-modal .modal-body) {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  max-height: 70vh;
+  overflow-y: auto;
   padding: 1.5rem;
 }
 
 :deep(.profile-selection-modal .modal-footer) {
-  flex-shrink: 0;
   padding: 1rem 1.5rem;
   border-top: 1px solid #dee2e6;
   background: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* Selection Container */
-.selection-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
-  flex: 1;
-  min-height: 0; /* Important for flexbox children */
-}
-
-/* Panel Styles */
-.selection-panel {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.panel-title {
-  margin: 0;
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.95rem;
-}
-
-.panel-content {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  min-height: 0; /* Important for flex children to allow scrolling */
-}
-
-.panel-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.panel-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.panel-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.panel-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* Card Styles */
-.workspace-card,
-.project-card,
-.profile-card {
-  padding: 0.75rem;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: #fff;
-}
-
-.workspace-card:hover,
-.project-card:hover,
-.profile-card:hover {
-  border-color: #5e64ff;
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.1);
-  transform: translateY(-1px);
-}
-
-.workspace-card.current-workspace {
-  background: linear-gradient(135deg, #fff9e6, #fef3cd);
-  border-color: #ffc107;
-  border-left: 3px solid #ffc107;
-}
-
-.workspace-card.current-workspace.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
-  border-left: 3px solid #5e64ff;
-}
-
-.project-card.current-project {
-  background: linear-gradient(135deg, #fff9e6, #fef3cd);
-  border-color: #ffc107;
-  border-left: 3px solid #ffc107;
-}
-
-.project-card.current-project.selected {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
-  border-left: 3px solid #5e64ff;
-}
-
-.workspace-card.selected,
-.project-card.selected,
-.profile-card.selected {
-  border-color: #5e64ff;
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-}
-
-.profile-card.current-primary {
-  background: linear-gradient(135deg, #fff3cd, #fef3cd);
-  border-color: #ffc107;
-  cursor: not-allowed;
-}
-
-.profile-card.disabled {
-  opacity: 0.6;
-}
-
-/* Card Headers */
-.workspace-header,
-.project-header,
-.profile-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.workspace-info,
-.project-info,
-.profile-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.workspace-name,
-.project-name,
-.profile-name {
-  font-weight: 600;
-  color: #212529;
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.workspace-meta,
-.project-meta,
-.profile-meta {
-  font-size: 0.75rem;
-  color: #6c757d;
-  display: flex;
-  gap: 0.5rem;
-}
-
-/* Selection Indicators */
-.selection-indicator {
-  margin-left: auto;
-  color: #5e64ff;
-}
-
-.profile-indicators {
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-}
-
-.indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.indicator.primary {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.indicator.selected {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-/* Workspace Stats */
-.workspace-stats {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
-
-.stat-item {
-  font-size: 0.75rem;
-  color: #6c757d;
-  display: flex;
-  align-items: center;
 }
 
 /* Search Box */
@@ -828,7 +338,7 @@ const closeModal = () => {
 
 .search-icon {
   position: absolute;
-  left: 0.75rem;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
   color: #6c757d;
@@ -836,9 +346,164 @@ const closeModal = () => {
 }
 
 .search-box input {
-  padding-left: 2.5rem;
-  font-size: 0.85rem;
-  border-radius: 6px;
+  padding-left: 2.75rem;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.search-box input:focus {
+  border-color: #5e64ff;
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
+}
+
+/* Profiles List */
+.profiles-list {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.profiles-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profiles-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.profiles-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+/* Profile Group */
+.profile-group {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.group-header {
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.group-path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.group-path .badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* Profile Card */
+.profile-card {
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+}
+
+.profile-card:last-child {
+  border-bottom: none;
+}
+
+.profile-card:hover:not(.disabled) {
+  background: rgba(94, 100, 255, 0.04);
+}
+
+.profile-card.selected {
+  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
+  border-left: 3px solid #5e64ff;
+}
+
+.profile-card.current-primary {
+  background: linear-gradient(135deg, #fff9e6, #fef3cd);
+  border-left: 3px solid #ffc107;
+  cursor: not-allowed;
+}
+
+.profile-card.disabled {
+  opacity: 0.7;
+}
+
+/* Profile Header */
+.profile-header {
+  display: flex;
+  align-items: center;
+}
+
+.profile-icon {
+  font-size: 1.5rem;
+  color: #5e64ff;
+}
+
+.profile-card.current-primary .profile-icon {
+  color: #ffc107;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  font-weight: 600;
+  color: #212529;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-meta {
+  font-size: 0.75rem;
+  color: #6c757d;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.profile-meta span {
+  display: flex;
+  align-items: center;
+}
+
+/* Profile Indicators */
+.profile-indicators {
+  display: flex;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.indicator.primary {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.indicator.selected {
+  background: #d4edda;
+  color: #155724;
 }
 
 /* Empty State */
@@ -847,37 +512,8 @@ const closeModal = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 3rem;
   text-align: center;
-}
-
-.empty-state i {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-/* Loading States */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.skeleton-card {
-  height: 60px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 6px;
-}
-
-.profile-skeleton {
-  height: 80px;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
 }
 
 /* Selection Summary */
@@ -885,6 +521,7 @@ const closeModal = () => {
   font-size: 0.9rem;
 }
 
+/* Button Group */
 .button-group {
   display: flex;
   align-items: center;
@@ -916,79 +553,20 @@ const closeModal = () => {
   box-shadow: 0 4px 8px rgba(94, 100, 255, 0.3);
 }
 
-/* Workspace Icons */
-.workspace-icon {
-  font-size: 1rem;
-}
-
-/* Primary Indicator */
-.primary-indicator {
-  color: #856404;
-  font-weight: 600;
-  font-size: 0.7rem;
-}
-
 /* Responsive Design */
-@media (max-width: 1200px) {
-  :deep(.profile-selection-modal .modal-dialog) {
-    max-width: 98vw;
-    width: 98vw;
-  }
-
-  .selection-container {
-    gap: 0.75rem;
-  }
-}
-
-@media (max-width: 992px) {
-  :deep(.profile-selection-modal .modal-dialog) {
-    height: 95vh;
-    max-height: 95vh;
-    margin: 1vh auto;
-  }
-
-  .selection-container {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-}
-
 @media (max-width: 768px) {
   :deep(.profile-selection-modal .modal-dialog) {
-    max-width: 100vw;
-    width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    margin: 0;
-    border-radius: 0;
+    max-width: 100%;
+    margin: 0.5rem;
   }
 
-  :deep(.profile-selection-modal .modal-content) {
-    border-radius: 0;
-    border: none;
+  .profile-meta {
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
-  .selection-container {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-
-  .breadcrumb-nav {
+  .button-group {
     flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.75rem;
-  }
-
-  .breadcrumb-item {
-    font-size: 0.8rem;
-  }
-
-  .panel-header {
-    padding: 0.75rem;
-  }
-
-  .panel-content {
-    padding: 0.75rem;
   }
 }
 </style>

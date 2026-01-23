@@ -142,8 +142,6 @@ interface Props {
   show: boolean;
   objectId: number;
   initialMode?: TreeMode;
-  workspaceId: string;
-  projectId: string;
   profileId: string;
 }
 
@@ -235,7 +233,7 @@ const collapseAll = () => {
 // Initialize client and load tree when modal opens
 watch(() => props.show, async (show) => {
   if (show) {
-    client.value = new HeapDumpClient(props.workspaceId, props.projectId, props.profileId);
+    client.value = new HeapDumpClient(props.profileId);
     mode.value = props.initialMode;
     await loadTree();
   }
@@ -250,7 +248,7 @@ watch(() => props.objectId, async () => {
 
 onMounted(() => {
   if (props.show) {
-    client.value = new HeapDumpClient(props.workspaceId, props.projectId, props.profileId);
+    client.value = new HeapDumpClient(props.profileId);
     loadTree();
   }
 });

@@ -23,13 +23,19 @@ import EventSummary from "@/services/api/model/EventSummary";
 
 export default abstract class EventSummariesClient {
 
-    public static primary(workspaceId: string, projectId: string, profileId: string): Promise<EventSummary[]> {
-        let baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph';
+    /**
+     * Get event summaries for a primary profile using simplified URL.
+     */
+    public static primary(profileId: string): Promise<EventSummary[]> {
+        const baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph';
         return EventSummariesClient.eventSummaries(baseUrl);
     }
 
-    public static differential(workspaceId: string, projectId: string, primaryProfileId: string, secondaryProfileId: string): Promise<EventSummary[]> {
-        let baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph'
+    /**
+     * Get event summaries for differential analysis using simplified URL.
+     */
+    public static differential(primaryProfileId: string, secondaryProfileId: string): Promise<EventSummary[]> {
+        const baseUrl = GlobalVars.internalUrl + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph';
         return EventSummariesClient.eventSummaries(baseUrl);
     }
 

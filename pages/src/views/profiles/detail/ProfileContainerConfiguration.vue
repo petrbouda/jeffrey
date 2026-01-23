@@ -182,13 +182,11 @@ let containerClient: ProfileContainerClient;
 
 const loadData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = false;
 
     if (!containerClient) {
-      containerClient = new ProfileContainerClient(workspaceId.value, projectId.value, profileId);
+      containerClient = new ProfileContainerClient(profileId);
     }
 
     configData.value = await containerClient.getConfiguration();

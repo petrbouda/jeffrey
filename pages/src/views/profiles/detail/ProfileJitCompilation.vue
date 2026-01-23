@@ -425,10 +425,8 @@ onMounted(async () => {
   try {
     const profileId = route.params.profileId as string;
 
-    if (!workspaceId.value || !projectId.value) return;
-
     // Create the client instance
-    const compilationClient = new ProfileCompilationClient(workspaceId.value, projectId.value, profileId);
+    const compilationClient = new ProfileCompilationClient(profileId);
 
     // Fetch all data sets in parallel
     const [statisticsDataResult, timeseriesDataResult, compilationsDataResult] = await Promise.all([

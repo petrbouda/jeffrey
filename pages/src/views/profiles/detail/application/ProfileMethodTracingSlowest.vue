@@ -257,7 +257,7 @@ async function loadData() {
   error.value = null;
 
   try {
-    const client = new ProfileMethodTracingClient(workspaceId.value, projectId.value, profileId);
+    const client = new ProfileMethodTracingClient(profileId);
     slowestData.value = await client.getSlowest();
   } catch (e: unknown) {
     console.error('Failed to load slowest traces data:', e);

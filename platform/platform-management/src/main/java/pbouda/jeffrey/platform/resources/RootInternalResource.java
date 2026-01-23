@@ -98,4 +98,9 @@ public class RootInternalResource {
     public SimulateResource simulateResource() {
         return new SimulateResource();
     }
+
+    @Path("/profiles")
+    public ProfilesResource profilesResource() {
+        return new ProfilesResource(workspacesManager, oqlAssistantService, heapDumpContextExtractor);
+    }
 }

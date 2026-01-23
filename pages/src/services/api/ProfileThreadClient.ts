@@ -23,8 +23,8 @@ import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileThreadClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'thread');
+    constructor(profileId: string) {
+        super(profileId, 'thread');
     }
 
     public list(): Promise<ThreadResponse> {

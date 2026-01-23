@@ -608,7 +608,7 @@ const loadGCData = async () => {
 
     // Initialize client if needed
     if (!client) {
-      client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+      client = new ProfileGCClient(route.params.profileId as string);
     }
 
     // Load overview data from API

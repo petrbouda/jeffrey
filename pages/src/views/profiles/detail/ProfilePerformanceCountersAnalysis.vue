@@ -805,7 +805,7 @@ const loadPerformanceCounters = async () => {
   try {
     // Use the ProfilePerformanceCountersClient to fetch real data
     const profileId = route.params.profileId as string;
-    counters.value = await ProfilePerformanceCountersClient.get(workspaceId.value!, projectId.value!, profileId);
+    counters.value = await ProfilePerformanceCountersClient.get(profileId);
 
     // Initialize charts after getting the data
     setTimeout(() => {

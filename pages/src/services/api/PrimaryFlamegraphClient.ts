@@ -40,8 +40,6 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
     private readonly threadInfo: ThreadInfo | null;
 
     constructor(
-        workspaceId: string,
-        projectId: string,
         profileId: string,
         eventType: string,
         useThreadMode: boolean,
@@ -52,7 +50,7 @@ export default class PrimaryFlamegraphClient extends FlamegraphClient {
         threadInfo: ThreadInfo | null) {
 
         super();
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
+        this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph'
         this.eventType = eventType;
         this.useThreadMode = useThreadMode;
         this.useWeight = useWeight;

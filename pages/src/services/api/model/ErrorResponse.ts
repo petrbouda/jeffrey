@@ -35,7 +35,8 @@ export type ErrorCode =
   | 'INVALID_REQUEST'
   | 'SCHEDULER_JOB_NOT_FOUND'
   | 'PROFILER_CONFIGURATION_ERROR'
-  | 'REMOTE_OPERATION_FAILED';
+  | 'REMOTE_OPERATION_FAILED'
+  | 'HEAP_DUMP_CORRUPTED';
 
 /**
  * Error response structure matching the backend ErrorResponse record

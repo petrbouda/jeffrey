@@ -57,8 +57,11 @@ public class JdbcProfileRepository implements ProfileRepository {
             "UPDATE profiles SET enabled_at = :enabled_at WHERE profile_id = :profile_id";
 
     //language=SQL
-    private static final String SELECT_SINGLE_PROFILE =
-            "SELECT * FROM profiles WHERE profile_id = :profile_id";
+    private static final String SELECT_SINGLE_PROFILE = """
+            SELECT p.*, proj.workspace_id
+            FROM profiles p
+            JOIN projects proj ON p.project_id = proj.project_id
+            WHERE p.profile_id = :profile_id""";
 
     //language=SQL
     private static final String UPDATE_PROFILE_NAME =

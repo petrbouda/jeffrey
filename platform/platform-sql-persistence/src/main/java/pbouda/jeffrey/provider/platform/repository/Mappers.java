@@ -63,6 +63,7 @@ public abstract class Mappers {
             return new ProfileInfo(
                     rs.getString("profile_id"),
                     rs.getString("project_id"),
+                    rs.getString("workspace_id"),
                     rs.getString("profile_name"),
                     RecordingEventSource.valueOf(rs.getString("event_source")),
                     Mappers.instant(rs, "recording_started_at"),

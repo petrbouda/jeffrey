@@ -74,8 +74,6 @@ onBeforeMount(() => {
   let flamegraphClient;
   if (isPrimaryValue) {
     flamegraphClient = new PrimaryFlamegraphClient(
-      workspaceId.value!,
-      projectId.value!,
       route.params.profileId as string,
       eventTypeValue,
       useThreadMode,
@@ -87,8 +85,6 @@ onBeforeMount(() => {
     );
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
-      workspaceId.value!,
-      projectId.value!,
       route.params.profileId as string,
       SecondaryProfileService.id() as string,
       eventTypeValue,

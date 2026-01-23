@@ -22,8 +22,8 @@ import HttpUtils from '@/services/HttpUtils';
 import GuardResponse from "@/services/api/model/GuardResponse.ts";
 
 export default class GuardianClient {
-    static list(workspaceId: string, projectId: string, profileId: string) {
-        return axios.get<GuardResponse>(GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
+    static list(profileId: string) {
+        return axios.get<GuardResponse>(GlobalVars.internalUrl + '/profiles/' + profileId + '/guardian', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 }

@@ -475,7 +475,7 @@ const chartSeries = computed(() => [
 
 // Lifecycle
 onMounted(() => {
-  GuardianClient.list(workspaceId.value!, projectId.value!, route.params.profileId as string)
+  GuardianClient.list(route.params.profileId as string)
     .then((data: GuardResponse[]) => {
       guards.value = data;
       loading.value = false;
@@ -575,8 +575,6 @@ function openFlamegraph(rule: FlatRule) {
     activeVisualization.value = rule.visualization;
 
     const flamegraphClient = new GuardianFlamegraphClient(
-      route.params.workspaceId as string,
-      route.params.projectId as string,
       rule.visualization.primaryProfileId,
       rule.visualization.eventType,
       rule.visualization.useWeight,

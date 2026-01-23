@@ -31,8 +31,8 @@ import InstanceTreeResponse from '@/services/api/model/InstanceTreeResponse';
 
 export default class HeapDumpClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'heap');
+    constructor(profileId: string) {
+        super(profileId, 'heap');
     }
 
     public exists(): Promise<boolean> {

@@ -24,8 +24,8 @@ import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileGCClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'gc');
+    constructor(profileId: string) {
+        super(profileId, 'gc');
     }
 
     public getOverview(): Promise<GCOverviewData> {

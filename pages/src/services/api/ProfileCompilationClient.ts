@@ -23,8 +23,8 @@ import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileCompilationClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'compilation');
+    constructor(profileId: string) {
+        super(profileId, 'compilation');
     }
 
     public getStatistics(): Promise<JITCompilationData> {

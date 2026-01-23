@@ -244,7 +244,7 @@ async function loadData() {
   error.value = null;
 
   try {
-    const client = new ProfileMethodTracingClient(workspaceId.value, projectId.value, profileId);
+    const client = new ProfileMethodTracingClient(profileId);
     overviewData.value = await client.getOverview();
   } catch (e: unknown) {
     console.error('Failed to load method tracing data:', e);

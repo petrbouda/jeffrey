@@ -316,7 +316,7 @@ const chartSeries = computed(() => [
 
 // Lifecycle
 onMounted(() => {
-  AutoAnalysisClient.rules(workspaceId.value!, projectId.value!, route.params.profileId as string)
+  AutoAnalysisClient.rules(route.params.profileId as string)
     .then((data: AnalysisResult[]) => {
       rules.value = data;
       loading.value = false;

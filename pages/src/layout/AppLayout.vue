@@ -4,7 +4,7 @@
     
     <!-- Only show sidebar for non-profile layouts -->
     <div class="d-flex vh-100">
-      <div class="sidebar-container" v-show="sidebarActive && !isProfileLayout">
+      <div class="sidebar-container" v-if="sidebarActive && !isProfileLayout">
         <AppSidebar />
       </div>
       

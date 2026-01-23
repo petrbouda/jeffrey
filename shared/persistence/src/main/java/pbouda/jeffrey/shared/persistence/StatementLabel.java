@@ -105,6 +105,8 @@ public enum StatementLabel {
     ENABLED_PROFILE,
     UPDATE_PROFILE_NAME,
     DELETE_PROFILE,
+    INSERT_PROFILE_INFO,
+    FIND_PROFILE_INFO,
 
     /**
      * {@link GroupLabel#PROJECTS}

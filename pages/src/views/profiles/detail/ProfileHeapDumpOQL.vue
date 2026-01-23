@@ -281,11 +281,8 @@
 
     <!-- AI Assistant -->
     <OqlAssistant
-        v-if="workspaceId && projectId"
         :is-open="showAssistant"
         :is-expanded="assistantExpanded"
-        :workspace-id="workspaceId"
-        :project-id="projectId"
         :profile-id="profileId"
         @close="closeAssistant"
         @expand="openAssistant"
@@ -296,12 +293,10 @@
 
     <!-- Instance Tree Modal -->
     <InstanceTreeModal
-        v-if="workspaceId && projectId && selectedObjectId !== null"
+        v-if="selectedObjectId !== null"
         v-model:show="showTreeModal"
         :object-id="selectedObjectId"
         :initial-mode="treeMode"
-        :workspace-id="workspaceId"
-        :project-id="projectId"
         :profile-id="profileId"
     />
   </div>
@@ -509,8 +504,7 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
 
 const checkAiAvailability = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-    const aiClient = new OqlAssistantClient(workspaceId.value, projectId.value, profileId);
+    const aiClient = new OqlAssistantClient(profileId);
     const status = await aiClient.getStatus();
     aiAvailable.value = status.enabled && status.configured;
   } catch {
@@ -527,12 +521,10 @@ const scrollToTop = () => {
 
 const loadData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
-    client = new HeapDumpClient(workspaceId.value, projectId.value, profileId);
+    client = new HeapDumpClient(profileId);
 
     heapExists.value = await client.exists();
 

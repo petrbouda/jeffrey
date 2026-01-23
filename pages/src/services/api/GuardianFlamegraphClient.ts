@@ -35,15 +35,13 @@ export default class GuardianFlamegraphClient extends FlamegraphClient {
     private readonly markers: any;
 
     constructor(
-        workspaceId: string,
-        projectId: string,
         profileId: string,
         eventType: string,
         useWeight: boolean,
         markers: any) {
 
         super();
-        this.baseUrlFlamegraph = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles/' + profileId + '/flamegraph'
+        this.baseUrlFlamegraph = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph'
         this.eventType = eventType;
         this.useWeight = useWeight;
         this.markers = markers;

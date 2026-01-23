@@ -31,12 +31,8 @@ export interface ChatMessageWithOql extends ChatMessage {
  * Composable for managing the OQL AI assistant state and interactions.
  * Handles conversation history, message sending, and status management.
  */
-export function useOqlAssistant(
-    workspaceId: string,
-    projectId: string,
-    profileId: string
-) {
-    const client = new OqlAssistantClient(workspaceId, projectId, profileId);
+export function useOqlAssistant(profileId: string) {
+    const client = new OqlAssistantClient(profileId);
 
     // State
     const isLoading = ref(false);

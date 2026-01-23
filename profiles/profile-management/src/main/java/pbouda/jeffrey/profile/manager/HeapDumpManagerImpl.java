@@ -45,6 +45,10 @@ import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
+import pbouda.jeffrey.shared.common.exception.ErrorCode;
+import pbouda.jeffrey.shared.common.exception.ErrorType;
+import pbouda.jeffrey.shared.common.exception.JeffreyException;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
 
@@ -142,9 +146,20 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public HeapSummary getSummary() {
-        return getHeap()
-                .map(summaryAnalyzer::analyze)
-                .orElse(null);
+        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
+        if (heapPath.isEmpty()) {
+            return null; // No heap dump exists
+        }
+
+        Optional<Heap> heap = heapLoader.load(heapPath.get());
+        if (heap.isEmpty()) {
+            // Heap exists but can't be loaded - corrupted
+            deleteCorruptedHeapDump(heapPath.get());
+            throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_CORRUPTED,
+                    "The heap dump file could not be loaded. The file may be corrupted or truncated.");
+        }
+
+        return summaryAnalyzer.analyze(heap.get());
     }
 
     @Override
@@ -190,10 +205,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void unloadHeap() {
         Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
-        heapPath.ifPresent(path -> {
-            heapLoader.unload(path);
-            LOG.info("Heap unloaded: profileId={} path={}", profileInfo.id(), path);
-        });
+        heapPath.ifPresent(heapLoader::unload);
     }
 
     @Override
@@ -215,13 +227,10 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
         // Delete .nbcache directory
         Path cachePath = path.resolveSibling(path.getFileName() + ".nbcache");
-        if (Files.isDirectory(cachePath)) {
-            try {
-                deleteDirectory(cachePath);
-                LOG.info("Cache deleted: profileId={} path={}", profileInfo.id(), cachePath);
-            } catch (IOException e) {
-                LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
-            }
+        try {
+            FileSystemUtils.removeDirectory(cachePath);
+        } catch (RuntimeException e) {
+            LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
         }
     }
 
@@ -259,20 +268,16 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
         // Delete .nbcache directory
         Path cachePath = hprofPath.resolveSibling(hprofPath.getFileName() + ".nbcache");
-        if (Files.isDirectory(cachePath)) {
-            try {
-                deleteDirectory(cachePath);
-                LOG.info("Cache deleted: profileId={} path={}", profileInfo.id(), cachePath);
-            } catch (IOException e) {
-                LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
-            }
+        try {
+            FileSystemUtils.removeDirectory(cachePath);
+        } catch (RuntimeException e) {
+            LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
         }
 
         // Delete .hprof file
         if (Files.exists(hprofPath)) {
             try {
                 Files.delete(hprofPath);
-                LOG.info("Heap dump deleted: profileId={} path={}", profileInfo.id(), hprofPath);
             } catch (IOException e) {
                 LOG.error("Failed to delete heap dump: profileId={} path={}", profileInfo.id(), hprofPath, e);
             }
@@ -282,23 +287,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         if (gzPath != null && Files.exists(gzPath)) {
             try {
                 Files.delete(gzPath);
-                LOG.info("Compressed heap dump deleted: profileId={} path={}", profileInfo.id(), gzPath);
             } catch (IOException e) {
                 LOG.error("Failed to delete compressed heap dump: profileId={} path={}", profileInfo.id(), gzPath, e);
             }
-        }
-    }
-
-    private void deleteDirectory(Path directory) throws IOException {
-        try (var paths = Files.walk(directory)) {
-            paths.sorted(java.util.Comparator.reverseOrder())
-                    .forEach(p -> {
-                        try {
-                            Files.delete(p);
-                        } catch (IOException e) {
-                            LOG.warn("Failed to delete file: path={}", p, e);
-                        }
-                    });
         }
     }
 
@@ -327,18 +318,36 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
         Path heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
 
+        // Clean up any existing files/cache before uploading new heap dump
+        try {
+            FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
+        } catch (RuntimeException e) {
+            LOG.warn("Failed to clean up existing heap dump directory: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath, e);
+        }
+
+        Path targetPath = heapDumpAnalysisPath.resolve(filename);
+
         try {
             // Create the directory if it doesn't exist
             Files.createDirectories(heapDumpAnalysisPath);
 
             // Save the file
-            Path targetPath = heapDumpAnalysisPath.resolve(filename);
             Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
             LOG.info("Heap dump uploaded: profileId={} path={}", profileInfo.id(), targetPath);
         } catch (IOException e) {
             LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
             throw new RuntimeException("Failed to upload heap dump: " + e.getMessage(), e);
+        }
+    }
+
+    private void deleteCorruptedHeapDump(Path path) {
+        Path heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
+        try {
+            FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
+            LOG.info("Deleted corrupted heap dump analysis folder: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath);
+        } catch (RuntimeException e) {
+            LOG.warn("Failed to delete corrupted heap dump analysis folder: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath, e);
         }
     }
 
@@ -355,8 +364,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runStringAnalysis(int topN) {
         getHeap().ifPresent(heap -> {
-            LOG.info("Running string analysis: profileId={} topN={}", profileInfo.id(), topN);
-
             // Analyze heap for string deduplication
             StringAnalysisReport heapAnalysis = stringAnalyzer.analyze(heap, topN);
 
@@ -378,8 +385,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             );
 
             additionalFilesManager.saveStringAnalysis(report);
-            LOG.info("String analysis completed: profileId={} totalStrings={} potentialSavings={} jvmFlags={}",
-                    profileInfo.id(), report.totalStrings(), report.potentialSavings(), jvmFlags.size());
         });
     }
 
@@ -416,8 +421,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runThreadAnalysis() {
         getHeap().ifPresent(heap -> {
-            LOG.info("Running thread analysis with retained heap: profileId={}", profileInfo.id());
-
             // Analyze threads with retained size calculation (expensive)
             List<HeapThreadInfo> threads = threadAnalyzer.analyze(heap, true);
 
@@ -437,8 +440,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             );
 
             additionalFilesManager.saveThreadAnalysis(report);
-            LOG.info("Thread analysis completed: profileId={} totalThreads={} totalRetained={}",
-                    profileInfo.id(), report.totalThreads(), report.totalRetainedSize());
         });
     }
 

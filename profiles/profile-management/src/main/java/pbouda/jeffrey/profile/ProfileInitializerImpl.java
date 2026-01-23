@@ -27,6 +27,7 @@ import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.RecordingEventParser;
 import pbouda.jeffrey.provider.profile.model.parser.ParserResult;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import pbouda.jeffrey.provider.profile.repository.ProfileInfoRepository;
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
 import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -77,6 +78,14 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         // it's creates a new database file on disk if it does not exist yet
         DataSource dataSource = databaseManager.open(profileInfo.id());
         try {
+            // Store profile context (workspace_id, project_id) in the profile database
+            // This enables direct profile access without needing workspace/project in URL
+            ProfileInfoRepository profileInfoRepository = profileRepositories.newProfileInfoRepository(dataSource);
+            profileInfoRepository.insert(new ProfileInfoRepository.ProfileContext(
+                    profileInfo.id(),
+                    profileInfo.projectId(),
+                    profileInfo.workspaceId()));
+
             // Parse recording and store events into the database
             EventWriter eventWriter = eventWriterFactory.create(dataSource);
             ParserResult parserResult = recordingEventParser.start(eventWriter, recordingPath);

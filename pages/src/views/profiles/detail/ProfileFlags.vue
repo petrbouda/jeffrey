@@ -494,12 +494,10 @@ const scrollToTop = () => {
 
 const loadData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
-    client = new FlagsClient(workspaceId.value, projectId.value, profileId);
+    client = new FlagsClient(profileId);
     flagsData.value = await client.getAllFlags();
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load JVM flags';

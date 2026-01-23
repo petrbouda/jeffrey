@@ -107,15 +107,9 @@ const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
   if (tab.type) {
     currentTimeseriesType.value = tab.type;
     try {
-      if (!workspaceId.value || !projectId.value) return;
-
       // Initialize client if needed
       if (!client) {
-        client = new ProfileHeapMemoryClient(
-          workspaceId.value,
-          projectId.value,
-          route.params.profileId as string
-        );
+        client = new ProfileHeapMemoryClient(route.params.profileId as string);
       }
 
       // Always load data when switching tabs and clear inactive tab data
@@ -143,18 +137,12 @@ const refreshData = () => {
 // Load heap memory data
 const loadHeapMemoryData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
     // Initialize client if needed
     if (!client) {
-      client = new ProfileHeapMemoryClient(
-        workspaceId.value,
-        projectId.value,
-        route.params.profileId as string
-      );
+      client = new ProfileHeapMemoryClient(route.params.profileId as string);
     }
 
     // Load heap memory data with default HEAP_BEFORE_AFTER_GC type

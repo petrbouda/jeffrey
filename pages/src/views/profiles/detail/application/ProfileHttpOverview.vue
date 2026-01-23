@@ -77,6 +77,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';
+import { useNavigation } from '@/composables/useNavigation';
 
 // Define props
 interface Props {
@@ -89,6 +90,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
+const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const httpOverviewData = ref<HttpOverviewData | null>(null);
@@ -183,12 +185,7 @@ const metricsData = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileHttpClient(
-  mode,
-  route.params.workspaceId as string,
-  route.params.projectId as string,
-  route.params.profileId as string
-);
+const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
 
 // Helper functions

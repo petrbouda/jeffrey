@@ -39,7 +39,10 @@ public enum ErrorCode {
     PROFILER_CONFIGURATION_ERROR,
 
     // Remote operation errors
-    REMOTE_OPERATION_FAILED;
+    REMOTE_OPERATION_FAILED,
+
+    // Heap dump errors
+    HEAP_DUMP_CORRUPTED;
 
     public boolean isNotFound() {
         return this == WORKSPACE_NOT_FOUND

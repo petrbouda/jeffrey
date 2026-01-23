@@ -24,7 +24,7 @@
     <h5>Heap Dump Not Initialized</h5>
     <p>{{ message }}</p>
     <router-link
-        :to="`/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/heap-dump/settings`"
+        :to="`/profiles/${profileId}/heap-dump/settings`"
         class="btn btn-primary"
     >
       <i class="bi bi-arrow-right me-2"></i>
@@ -35,7 +35,6 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
 
 withDefaults(defineProps<{
   icon?: string;
@@ -46,7 +45,6 @@ withDefaults(defineProps<{
 });
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
 </script>
 

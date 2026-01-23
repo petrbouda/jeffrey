@@ -103,6 +103,8 @@ function getErrorTitle(error: ApiError): string {
         return 'Profiler Configuration Error';
       case 'REMOTE_OPERATION_FAILED':
         return 'Remote Operation Failed';
+      case 'HEAP_DUMP_CORRUPTED':
+        return 'Heap Dump Corrupted';
       default:
         return 'Error';
     }

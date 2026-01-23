@@ -275,7 +275,7 @@ async function loadData() {
   error.value = null;
 
   try {
-    const client = new ProfileMethodTracingClient(workspaceId.value, projectId.value, profileId);
+    const client = new ProfileMethodTracingClient(profileId);
     data.value = await client.getCumulated(mode.value);
   } catch (e: unknown) {
     console.error('Failed to load cumulated traces:', e);

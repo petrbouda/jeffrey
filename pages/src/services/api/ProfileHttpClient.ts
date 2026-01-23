@@ -32,9 +32,9 @@ export default class ProfileHttpClient {
     private readonly baseUrl: string;
     private readonly mode: string;
 
-    constructor(mode: 'client' | 'server', workspaceId: string, projectId: string, profileId: string) {
+    constructor(mode: 'client' | 'server', profileId: string) {
         this.mode = mode;
-        this.baseUrl = `${GlobalVars.internalUrl}/workspaces/${workspaceId}/projects/${projectId}/profiles/${profileId}/http/overview`;
+        this.baseUrl = `${GlobalVars.internalUrl}/profiles/${profileId}/http/overview`;
     }
 
     public getOverview(): Promise<HttpOverviewData> {

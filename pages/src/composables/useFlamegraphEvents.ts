@@ -92,18 +92,9 @@ export function useFlamegraphEvents(graphMode: string) {
           loaded.value = true;
           return;
         }
-        data = await EventSummariesClient.differential(
-          workspaceId.value!,
-          projectId.value!,
-          profileId,
-          secondaryId
-        );
+        data = await EventSummariesClient.differential(profileId, secondaryId);
       } else {
-        data = await EventSummariesClient.primary(
-          workspaceId.value!,
-          projectId.value!,
-          profileId
-        );
+        data = await EventSummariesClient.primary(profileId);
       }
 
       categorizeEventTypes(data);

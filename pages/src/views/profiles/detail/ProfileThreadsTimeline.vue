@@ -232,9 +232,7 @@ onBeforeMount(() => {
   // Too many layers, it spams the console
   Konva.showWarnings = false;
 
-  if (!workspaceId.value || !projectId.value) return;
-
-  threadService = new ProfileThreadClient(workspaceId.value, projectId.value, profileId)
+  threadService = new ProfileThreadClient(profileId)
 
   threadService.list()
       .then((response) => {

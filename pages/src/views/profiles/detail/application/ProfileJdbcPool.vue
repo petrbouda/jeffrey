@@ -182,6 +182,7 @@ import FormattingService from '@/services/FormattingService.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
+import { useNavigation } from '@/composables/useNavigation';
 
 // Define props
 interface Props {
@@ -193,6 +194,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
+const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const poolDataList = ref<PoolData[]>([]);
@@ -209,11 +211,7 @@ const isJdbcPoolDisabled = computed(() => {
 });
 
 // Client initialization
-const client = new ProfileJdbcPoolClient(
-  route.params.workspaceId as string,
-  route.params.projectId as string,
-  route.params.profileId as string
-);
+const client = new ProfileJdbcPoolClient(route.params.profileId as string);
 
 // Computed property for tabs
 const eventTabs = computed(() => {

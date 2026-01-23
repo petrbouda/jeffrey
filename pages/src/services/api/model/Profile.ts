@@ -22,6 +22,8 @@ export default class Profile {
 
     constructor(
         public id: string,
+        public projectId: string,
+        public workspaceId: string,
         public name: string,
         public createdAt: string,
         public eventSource: RecordingEventSource,

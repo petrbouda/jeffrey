@@ -267,13 +267,11 @@ const refreshData = () => {
 
 const loadConfigurationData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
     if (!client) {
-      client = new ProfileGCClient(workspaceId.value, projectId.value, route.params.profileId as string);
+      client = new ProfileGCClient(route.params.profileId as string);
     }
 
     configData.value = await client.getConfiguration();

@@ -206,11 +206,7 @@ onUnmounted(() => {
 });
 
 const showFlamegraph = (eventCode: string) => {
-  if (!workspaceId.value) return;
-
   let flamegraphClient = new PrimaryFlamegraphClient(
-    workspaceId.value,
-    props.projectId,
     props.primaryProfileId,
     eventCode,
     true,

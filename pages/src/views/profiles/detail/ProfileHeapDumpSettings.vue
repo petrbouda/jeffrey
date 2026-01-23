@@ -1,20 +1,21 @@
 <template>
-  <!-- Delete Heap Dump Confirmation Modal -->
-  <ConfirmationDialog
-      v-model:show="deleteHeapDumpDialog"
-      title="Delete Heap Dump"
-      message="Are you sure you want to delete the heap dump?"
-      sub-message="This will remove all heap dump files including the cache. This action cannot be undone."
-      confirm-label="Delete"
-      confirm-button-class="btn-danger"
-      confirm-button-id="deleteHeapDumpButton"
-      modal-id="deleteHeapDumpModal"
-      @confirm="confirmDeleteHeapDump"
-  />
+  <div>
+    <!-- Delete Heap Dump Confirmation Modal -->
+    <ConfirmationDialog
+        v-model:show="deleteHeapDumpDialog"
+        title="Delete Heap Dump"
+        message="Are you sure you want to delete the heap dump?"
+        sub-message="This will remove all heap dump files including the cache. This action cannot be undone."
+        confirm-label="Delete"
+        confirm-button-class="btn-danger"
+        confirm-button-id="deleteHeapDumpButton"
+        modal-id="deleteHeapDumpModal"
+        @confirm="confirmDeleteHeapDump"
+    />
 
-  <LoadingState v-if="loading" message="Loading heap dump status..." />
+    <LoadingState v-if="loading" message="Loading heap dump status..." />
 
-  <div v-else-if="!heapExists">
+    <div v-else-if="!heapExists">
     <PageHeader
         title="Heap Dump Overview"
         description="Memory analysis summary and processing status"
@@ -98,6 +99,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Initialization Error Panel -->
+    <transition name="slide-fade">
+      <div v-if="initError" class="upload-error-panel">
+        <div class="error-panel-content">
+          <div class="error-icon-wrapper">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+          <div class="error-details">
+            <h5 class="error-title">Heap Dump Initialization Failed</h5>
+            <p class="error-message">{{ initError }}</p>
+            <div class="error-suggestions">
+              <h6><i class="bi bi-lightbulb me-2"></i>Possible Solutions</h6>
+              <ul>
+                <li>Verify the original heap dump file is valid using <code>jhat</code> or VisualVM</li>
+                <li>Ensure the heap dump process completed successfully without interruption</li>
+                <li>The file may have been truncated during upload - try uploading again</li>
+                <li>For large files (>2GB), ensure sufficient server resources are available</li>
+              </ul>
+            </div>
+          </div>
+          <button class="error-dismiss-btn" @click="dismissInitError" title="Dismiss">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 
   <ErrorState v-else-if="error" :message="error" />
@@ -198,6 +226,7 @@
       </button>
     </div>
   </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -214,6 +243,7 @@ import HeapSummary from '@/services/api/model/HeapSummary';
 import FormattingService from '@/services/FormattingService';
 import { ToastService } from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
+import { ApiError } from '@/services/HttpInterceptor';
 
 const route = useRoute();
 const { workspaceId, projectId } = useNavigation();
@@ -229,6 +259,7 @@ const lastSummary = ref<HeapSummary | null>(null);
 const processing = ref(false);
 const processingProgress = ref(0);
 const processingMessage = ref('');
+const initError = ref<string | null>(null);
 
 // Upload state
 const uploadFile = ref<File | null>(null);
@@ -316,7 +347,13 @@ const processHeapDump = async () => {
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
+    // Check if this is a heap dump corruption error
+    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
+      initError.value = err.errorResponse.message;
+      heapExists.value = false; // File was deleted by backend
+    } else {
+      error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
+    }
   } finally {
     processing.value = false;
     processingProgress.value = 0;
@@ -439,17 +476,25 @@ const uploadHeapDump = async () => {
 
     ToastService.success('Upload Complete', 'Heap dump uploaded successfully');
 
+    // Clear any previous initialization error
+    initError.value = null;
+
     // Reload data to show the heap dump
     await loadData();
 
     // Reset upload state
     uploadFile.value = null;
   } catch (err) {
-    ToastService.error('Upload Failed', err instanceof Error ? err.message : 'Failed to upload heap dump');
+    const errorMessage = err instanceof Error ? err.message : 'Failed to upload heap dump';
+    ToastService.error('Upload Failed', errorMessage);
   } finally {
     uploading.value = false;
     uploadProgress.value = 0;
   }
+};
+
+const dismissInitError = () => {
+  initError.value = null;
 };
 
 const scrollToTop = () => {
@@ -461,12 +506,10 @@ const scrollToTop = () => {
 
 const loadData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
-    client = new HeapDumpClient(workspaceId.value, projectId.value, profileId);
+    client = new HeapDumpClient(profileId);
 
     // Check if heap dump exists
     heapExists.value = await client.exists();
@@ -485,7 +528,13 @@ const loadData = async () => {
       lastSummary.value = summary;
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load heap dump status';
+    // Check if this is a heap dump corruption error
+    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
+      initError.value = err.errorResponse.message;
+      heapExists.value = false; // File was deleted by backend
+    } else {
+      error.value = err instanceof Error ? err.message : 'Failed to load heap dump status';
+    }
   } finally {
     loading.value = false;
   }
@@ -811,6 +860,148 @@ onMounted(() => {
 .progress {
   height: 8px;
   border-radius: 4px;
+}
+
+/* Upload Error Panel */
+.upload-error-panel {
+  margin-top: 1rem;
+  background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+  border: 1px solid #fecaca;
+  border-left: 4px solid #ef4444;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.error-panel-content {
+  display: flex;
+  padding: 1.25rem;
+  gap: 1rem;
+  position: relative;
+}
+
+.error-icon-wrapper {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.error-icon-wrapper i {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.error-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #991b1b;
+  margin: 0 0 0.5rem 0;
+}
+
+.error-message {
+  font-size: 0.875rem;
+  color: #b91c1c;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.error-suggestions {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+}
+
+.error-suggestions h6 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #92400e;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.error-suggestions h6 i {
+  color: #f59e0b;
+}
+
+.error-suggestions ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  color: #78350f;
+}
+
+.error-suggestions li {
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.error-suggestions li:last-child {
+  margin-bottom: 0;
+}
+
+.error-suggestions code {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.error-dismiss-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  color: #dc2626;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.error-dismiss-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #991b1b;
+}
+
+.error-dismiss-btn i {
+  font-size: 0.875rem;
+}
+
+/* Slide fade transition */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
 }
 
 /* Responsive adjustments */

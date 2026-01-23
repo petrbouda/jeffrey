@@ -23,8 +23,8 @@ import MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumula
 
 export default class ProfileMethodTracingClient extends BaseProfileClient {
 
-    constructor(workspaceId: string, projectId: string, profileId: string) {
-        super(workspaceId, projectId, profileId, 'method-tracing');
+    constructor(profileId: string) {
+        super(profileId, 'method-tracing');
     }
 
     public getOverview(): Promise<MethodTracingOverviewData> {

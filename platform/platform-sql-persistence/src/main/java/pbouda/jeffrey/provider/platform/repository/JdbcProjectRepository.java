@@ -32,8 +32,11 @@ import java.util.Optional;
 public class JdbcProjectRepository implements ProjectRepository {
 
     //language=SQL
-    private static final String SELECT_ALL_PROFILES =
-            "SELECT * FROM profiles WHERE project_id = :project_id";
+    private static final String SELECT_ALL_PROFILES = """
+            SELECT p.*, proj.workspace_id
+            FROM profiles p
+            JOIN projects proj ON p.project_id = proj.project_id
+            WHERE p.project_id = :project_id""";
 
     //language=SQL
     private static final String SELECT_SINGLE_PROJECT = """

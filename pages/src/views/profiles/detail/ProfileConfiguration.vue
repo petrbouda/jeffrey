@@ -73,7 +73,7 @@ onMounted(() => {
     },
   }
 
-  InformationClient.info(workspaceId.value!, projectId.value!, route.params.profileId as string)
+  InformationClient.info(route.params.profileId as string)
       .then((data) => {
         info = data;
 

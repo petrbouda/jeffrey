@@ -25,6 +25,7 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.ext.Provider;
 import org.glassfish.jersey.server.ExtendedUriInfo;
 import pbouda.jeffrey.shared.common.Json;
@@ -70,10 +71,44 @@ public class JfrHttpEventFilter implements ContainerRequestFilter, ContainerResp
             event.mediaType = request.getMediaType() != null ? request.getMediaType().toString() : null;
             event.queryParams = Json.toString(request.getUriInfo().getQueryParameters());
             event.pathParams = Json.toString(request.getUriInfo().getPathParameters());
-            event.requestLength = request.getLength();
-            event.responseLength = response.getLength();
+            event.requestLength = getContentLength(request);
+            event.responseLength = getContentLength(response);
             event.status = response.getStatus();
             event.commit();
+        }
+    }
+
+    /**
+     * Gets the content length from a request context as a long.
+     * Reads the Content-Length header directly to support values > 2GB.
+     * Returns -1 if the header is missing or cannot be parsed.
+     */
+    private long getContentLength(ContainerRequestContext request) {
+        String contentLength = request.getHeaderString(HttpHeaders.CONTENT_LENGTH);
+        if (contentLength == null || contentLength.isEmpty()) {
+            return -1;
+        }
+        try {
+            return Long.parseLong(contentLength);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Gets the content length from a response context as a long.
+     * Reads the Content-Length header directly to support values > 2GB.
+     * Returns -1 if the header is missing or cannot be parsed.
+     */
+    private long getContentLength(ContainerResponseContext response) {
+        String contentLength = response.getHeaderString(HttpHeaders.CONTENT_LENGTH);
+        if (contentLength == null || contentLength.isEmpty()) {
+            return -1;
+        }
+        try {
+            return Long.parseLong(contentLength);
+        } catch (NumberFormatException e) {
+            return -1;
         }
     }
 

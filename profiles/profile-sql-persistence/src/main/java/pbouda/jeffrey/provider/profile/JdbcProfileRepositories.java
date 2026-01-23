@@ -71,4 +71,10 @@ public class JdbcProfileRepositories implements ProfileRepositories {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         return new JdbcProfileCacheRepository(profileClientProvider);
     }
+
+    @Override
+    public ProfileInfoRepository newProfileInfoRepository(DataSource dataSource) {
+        DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
+        return new JdbcProfileInfoRepository(profileClientProvider);
+    }
 }
