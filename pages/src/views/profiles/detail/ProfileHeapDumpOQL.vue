@@ -191,10 +191,10 @@
         <p class="text-muted mt-3 mb-0">Enter an OQL query above and click Execute to see results.</p>
         <button
             v-if="aiAvailable"
-            class="btn btn-ai-assistant-lg mt-4"
+            class="btn btn-ai-assistant mt-4"
             @click="openAssistant"
         >
-          <i class="bi bi-stars me-2"></i>
+          <i class="bi bi-stars me-1"></i>
           Ask AI Assistant
         </button>
       </div>
@@ -804,6 +804,17 @@ onMounted(() => {
   border: 1px solid #dee2e6;
 }
 
+.empty-state .btn-ai-assistant {
+  font-size: 0.8rem !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 6px !important;
+}
+
+.empty-state .btn-ai-assistant i {
+  font-size: 0.9rem !important;
+  color: white !important;
+}
+
 .btn-purple {
   background-color: #6f42c1;
   border-color: #6f42c1;
@@ -833,10 +844,16 @@ onMounted(() => {
   border: none;
   color: white;
   font-weight: 500;
+  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
   transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .btn-ai-assistant::before {
@@ -872,7 +889,8 @@ onMounted(() => {
 }
 
 .btn-ai-assistant i {
-  animation: sparkle 3s ease-in-out infinite;
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 @keyframes sparkle {
@@ -884,57 +902,6 @@ onMounted(() => {
     opacity: 0.8;
     transform: scale(1.15);
   }
-}
-
-/* Large AI Assistant Button for empty state */
-.btn-ai-assistant-lg {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-  border: none;
-  color: white;
-  font-weight: 600;
-  font-size: 1rem;
-  padding: 0.75rem 1.75rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-ai-assistant-lg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.25),
-    transparent
-  );
-  transition: left 0.6s ease;
-}
-
-.btn-ai-assistant-lg:hover {
-  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
-  box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
-  transform: translateY(-2px);
-  color: white;
-}
-
-.btn-ai-assistant-lg:hover::before {
-  left: 100%;
-}
-
-.btn-ai-assistant-lg:active {
-  transform: translateY(0);
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-}
-
-.btn-ai-assistant-lg i {
-  animation: sparkle 3s ease-in-out infinite;
 }
 
 /* Object cell with inline action buttons */

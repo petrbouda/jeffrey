@@ -616,7 +616,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref, watch} from 'vue';
+import {onMounted, onUnmounted, ref, watch, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useNavigation} from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
@@ -716,6 +716,13 @@ watch(() => route.path, (newPath) => {
     gcSubmenuExpanded.value = true;
   }
 }, {immediate: true});
+
+// Scroll to top when route changes within profile
+watch(() => route.path, () => {
+  nextTick(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+});
 
 onMounted(async () => {
   try {
