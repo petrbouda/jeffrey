@@ -55,11 +55,11 @@ import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
 import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
 import pbouda.jeffrey.profile.manager.ProfileManager;
-import pbouda.jeffrey.profile.manager.ProfileManagerImpl;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
-import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
+import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
+import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
@@ -128,6 +128,22 @@ public class AppConfiguration {
 
         LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
         return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
+    }
+
+    @Bean
+    public DatabaseManagerResolver databaseManagerResolver(
+            ProfilePersistenceProvider profilePersistenceProvider,
+            Clock clock,
+            JeffreyDirs jeffreyDirs,
+            @Value("${jeffrey.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
+
+        // Quick Analysis uses a separate persistence provider with quickProfiles directory
+        ProfilePersistenceProvider quickAnalysisProvider =
+                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.quickProfiles(), frameResolutionMode);
+
+        return new DatabaseManagerResolverImpl(
+                profilePersistenceProvider.databaseManager(),
+                quickAnalysisProvider.databaseManager());
     }
 
     @Bean
@@ -317,30 +333,22 @@ public class AppConfiguration {
     public QuickAnalysisManager quickAnalysisManager(
             Clock clock,
             JeffreyDirs jeffreyDirs,
-            PlatformRepositories platformRepositories,
-            ProfileManagerFactoryRegistry profileManagerFactoryRegistry,
+            ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
             @Value("${jeffrey.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
-        // Create a separate ProfilePersistenceProvider for quick analysis using quickProfiles directory
-        ProfilePersistenceProvider quickAnalysisPersistenceProvider =
+        // Create a separate ProfilePersistenceProvider for quick analysis (for writing during profile creation)
+        ProfilePersistenceProvider quickProvider =
                 new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.quickProfiles(), frameResolutionMode);
 
-        // Create ProfileManager.Factory for quick analysis profiles
-        ProfileManager.Factory quickAnalysisProfileManagerFactory = profileInfo ->
-                new ProfileManagerImpl(
-                        profileInfo,
-                        platformRepositories.newProfileRepository(profileInfo.id()),
-                        profileManagerFactoryRegistry,
-                        jeffreyDirs.quickProfiles());
-
-        // Create ProfileInitializer for quick analysis
+        // Create ProfileInitializer for quick analysis using quickProfiles directory
+        // (the shared ProfileManagerFactory will handle routing via DatabaseManagerResolver)
         ProfileInitializer quickAnalysisProfileInitializer = new ProfileInitializerImpl(
-                quickAnalysisPersistenceProvider.repositories(),
-                quickAnalysisPersistenceProvider.databaseManager(),
+                quickProvider.repositories(),
+                quickProvider.databaseManager(),
                 new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
-                quickAnalysisPersistenceProvider.eventWriterFactory(),
-                quickAnalysisProfileManagerFactory,
+                quickProvider.eventWriterFactory(),
+                profileManagerFactory,
                 profileDataInitializer,
                 clock);
 
@@ -349,6 +357,6 @@ public class AppConfiguration {
                 jeffreyDirs,
                 new JfrRecordingInformationParser(jeffreyDirs),
                 quickAnalysisProfileInitializer,
-                quickAnalysisProfileManagerFactory);
+                profileManagerFactory);
     }
 }

@@ -20,26 +20,28 @@ package pbouda.jeffrey.profile.configuration;
 
 import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.profile.manager.custom.*;
+import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
-import pbouda.jeffrey.shared.persistence.DatabaseManager;
 
 import javax.sql.DataSource;
 
 public class ProfileCustomFactoriesConfiguration {
 
     private final ProfileRepositories repositories;
-    private final DatabaseManager databaseManager;
+    private final DatabaseManagerResolver databaseManagerResolver;
 
-    public ProfileCustomFactoriesConfiguration(ProfilePersistenceProvider persistenceProvider) {
+    public ProfileCustomFactoriesConfiguration(
+            ProfilePersistenceProvider persistenceProvider,
+            DatabaseManagerResolver databaseManagerResolver) {
         this.repositories = persistenceProvider.repositories();
-        this.databaseManager = persistenceProvider.databaseManager();
+        this.databaseManagerResolver = databaseManagerResolver;
     }
 
     @Bean
     public JdbcPoolManager.Factory jdbcPoolManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id());
+            DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new JdbcPoolManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
@@ -48,7 +50,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public JdbcStatementManager.Factory jdbcStatementManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id());
+            DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new JdbcStatementManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
@@ -57,7 +59,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public HttpManager.Factory httpManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id());
+            DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new HttpManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
@@ -66,7 +68,7 @@ public class ProfileCustomFactoriesConfiguration {
     @Bean
     public MethodTracingManager.Factory methodTracingManagerFactory() {
         return profileInfo -> {
-            DataSource dataSource = databaseManager.open(profileInfo.id());
+            DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new MethodTracingManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
         };
