@@ -24,6 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
+import pbouda.jeffrey.platform.manager.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
@@ -46,6 +47,7 @@ public class RootInternalResource {
     private final ProfilerRepository profilerRepository;
     private final OqlAssistantService oqlAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final QuickAnalysisManager quickAnalysisManager;
 
     @Inject
     public RootInternalResource(
@@ -55,7 +57,8 @@ public class RootInternalResource {
             CompositeWorkspacesManager workspacesManager,
             ProfilerRepository profilerRepository,
             OqlAssistantService oqlAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            QuickAnalysisManager quickAnalysisManager) {
 
         this.globalSchedulerManager = globalSchedulerManager;
         this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
@@ -64,6 +67,7 @@ public class RootInternalResource {
         this.profilerRepository = profilerRepository;
         this.oqlAssistantService = oqlAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.quickAnalysisManager = quickAnalysisManager;
     }
 
     @Path("/projects")
@@ -101,6 +105,11 @@ public class RootInternalResource {
 
     @Path("/profiles")
     public ProfilesResource profilesResource() {
-        return new ProfilesResource(workspacesManager, oqlAssistantService, heapDumpContextExtractor);
+        return new ProfilesResource(workspacesManager, quickAnalysisManager, oqlAssistantService, heapDumpContextExtractor);
+    }
+
+    @Path("/quick-analysis")
+    public QuickAnalysisResource quickAnalysisResource() {
+        return new QuickAnalysisResource(quickAnalysisManager, oqlAssistantService, heapDumpContextExtractor);
     }
 }

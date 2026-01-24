@@ -23,3 +23,4 @@ export { default as AssistantMinimizedContainer } from './AssistantMinimizedCont
 
 // Global assistants
 export { default as DownloadAssistant } from './global/DownloadAssistant.vue';
+export { default as QuickAnalysisAssistant } from './global/QuickAnalysisAssistant.vue';

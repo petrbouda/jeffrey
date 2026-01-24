@@ -84,7 +84,10 @@ onMounted(() => {
           items.value.push({label: formatted})
         });
 
-        section.value = formatSections(Object.values(info).at(0))
+        const firstSection = Object.values(info).at(0);
+        if (firstSection) {
+          section.value = formatSections(firstSection);
+        }
       });
 });
 

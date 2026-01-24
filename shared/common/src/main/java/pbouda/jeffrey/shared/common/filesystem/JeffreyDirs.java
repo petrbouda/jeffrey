@@ -44,6 +44,8 @@ public class JeffreyDirs {
     private static final String JEFFREY_DB_FILE = "jeffrey.db";
     private static final String WORKSPACES_DIR = "workspaces";
     private static final String PROFILES_DIR = "profiles";
+    private static final String QUICK_PROFILES_DIR = "quick-profiles";
+    private static final String QUICK_RECORDINGS_DIR = "quick-recordings";
 
     private final Path homeDir;
     private final Path tempDir;
@@ -89,5 +91,37 @@ public class JeffreyDirs {
 
     public Directory newTempDir(String directory) {
         return new Directory(tempDir.resolve(directory));
+    }
+
+    /**
+     * Returns the directory for quick analysis profiles.
+     * These profiles are stored in the temp directory and are automatically
+     * cleaned up when the application restarts.
+     *
+     * @return path to the quick profiles directory
+     */
+    public Path quickProfiles() {
+        return tempDir.resolve(QUICK_PROFILES_DIR);
+    }
+
+    /**
+     * Returns the directory for a specific quick analysis profile.
+     *
+     * @param profileId the profile ID
+     * @return path to the quick profile directory
+     */
+    public Path quickProfileDirectory(String profileId) {
+        return quickProfiles().resolve(profileId);
+    }
+
+    /**
+     * Returns the directory for quick analysis recordings.
+     * These recordings are stored in the temp directory and are automatically
+     * cleaned up when the application restarts.
+     *
+     * @return path to the quick recordings directory
+     */
+    public Path quickRecordings() {
+        return tempDir.resolve(QUICK_RECORDINGS_DIR);
     }
 }

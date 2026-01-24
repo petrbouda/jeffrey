@@ -115,6 +115,6 @@ CREATE TABLE IF NOT EXISTS threads
 CREATE TABLE IF NOT EXISTS profile_info
 (
     profile_id   VARCHAR NOT NULL PRIMARY KEY,
-    project_id   VARCHAR NOT NULL,
-    workspace_id VARCHAR NOT NULL
+    project_id   VARCHAR,
+    workspace_id VARCHAR
 );

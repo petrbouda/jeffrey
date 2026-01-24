@@ -153,7 +153,7 @@ public class ProfileFactoriesConfiguration {
                         profileInfo,
                         platformRepositories.newProfileRepository(profileInfo.id()),
                         registry,
-                        jeffreyDirs);
+                        jeffreyDirs.profiles());
     }
 
     @Bean

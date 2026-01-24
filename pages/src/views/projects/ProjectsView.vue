@@ -179,6 +179,26 @@
       confirm-button-class="btn-danger"
       @confirm="confirmDeleteWorkspace"
   />
+
+  <!-- Quick Analysis Assistant (only on Projects page) -->
+  <QuickAnalysisAssistant
+      :is-open="quickStore.isOpen.value"
+      :is-expanded="quickStore.isExpanded.value"
+      :selected-file="quickStore.selectedFile.value"
+      :status="quickStore.status.value"
+      :status-message="quickStore.statusMessage.value"
+      :recent-profiles="quickStore.recentProfiles.value"
+      :error-message="quickStore.errorMessage.value"
+      :is-processing="quickStore.isProcessing.value"
+      @open="quickStore.open"
+      @expand="quickStore.expand"
+      @minimize="quickStore.minimize"
+      @close="quickStore.close"
+      @set-selected-file="quickStore.setSelectedFile"
+      @start-analysis="quickStore.startAnalysis"
+      @open-profile="quickStore.openProfile"
+      @delete-profile="quickStore.deleteProfile"
+  />
 </template>
 
 <script setup lang="ts">
@@ -189,6 +209,8 @@ import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
+import { QuickAnalysisAssistant } from '@/components/assistants';
+import { quickAnalysisAssistantStore as quickStore } from '@/stores/assistants';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ProjectsClient from "@/services/api/ProjectsClient.ts";

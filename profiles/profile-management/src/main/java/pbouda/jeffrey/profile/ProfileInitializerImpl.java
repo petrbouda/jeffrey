@@ -108,8 +108,11 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
             // Process additional files (like logs, metrics, heap-dumps, perf-counters etc.)
             // Currently only perf-counters are supported
-            AdditionalFilesManager additionalFilesManager = profileManager.additionalFilesManager();
-            additionalFilesManager.processAdditionalFiles(recordingId);
+            // Skip for Quick Analysis where recordingId is null
+            if (recordingId != null) {
+                AdditionalFilesManager additionalFilesManager = profileManager.additionalFilesManager();
+                additionalFilesManager.processAdditionalFiles(recordingId);
+            }
 
             // Ensure all data is flushed to disk - especially important for WAL mode databases
             // WAL checkpointing merges the WAL (Write-Ahead Log) into the main database file

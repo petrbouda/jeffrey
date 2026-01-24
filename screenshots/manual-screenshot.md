@@ -7,7 +7,7 @@ Interactive workflow for capturing screenshots while exploring Jeffrey.
 ## Setup
 
 1. Run Claude with `--chrome` parameter
-2. Have Jeffrey running at `http://localhost:8080`
+2. Have Jeffrey running at `http://localhost:8080` or http://localhost:5173/
 3. Ask Claude to **"enable screenshot hotkey"** - this injects the capture script
 
 ---

@@ -20,7 +20,6 @@ package pbouda.jeffrey.provider.profile;
 
 import org.flywaydb.core.Flyway;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.persistence.DataSourceParams;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
 import pbouda.jeffrey.shared.persistence.DuckDBDataSourceProvider;
@@ -34,15 +33,15 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
     private static final int MAX_POOL_SIZE = 10;
 
-    private final JeffreyDirs jeffreyDirs;
+    private final Path baseDir;
 
-    public DuckDBProfileDatabaseManager(JeffreyDirs jeffreyDirs) {
-        this.jeffreyDirs = jeffreyDirs;
+    public DuckDBProfileDatabaseManager(Path baseDir) {
+        this.baseDir = baseDir;
     }
 
     @Override
     public DataSource open(String profileId) {
-        Path profileDirectory = jeffreyDirs.profileDirectory(profileId);
+        Path profileDirectory = baseDir.resolve(profileId);
         Path dbPath = profileDirectory.resolve(PROFILE_DB_FILENAME);
 
         if (!dbPath.toFile().exists()) {

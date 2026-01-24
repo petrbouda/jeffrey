@@ -19,6 +19,7 @@
 package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
+import pbouda.jeffrey.platform.manager.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
@@ -61,14 +62,17 @@ public class ProfilesResource {
     }
 
     private final CompositeWorkspacesManager workspacesManager;
+    private final QuickAnalysisManager quickAnalysisManager;
     private final OqlAssistantService oqlAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     public ProfilesResource(
             CompositeWorkspacesManager workspacesManager,
+            QuickAnalysisManager quickAnalysisManager,
             OqlAssistantService oqlAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.workspacesManager = workspacesManager;
+        this.quickAnalysisManager = quickAnalysisManager;
         this.oqlAssistantService = oqlAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
@@ -120,9 +124,16 @@ public class ProfilesResource {
     }
 
     /**
-     * Finds a profile manager by profile ID across all workspaces and projects.
+     * Finds a profile manager by profile ID across all workspaces, projects, and quick analysis profiles.
      */
     private Optional<ProfileManager> findProfileManager(String profileId) {
+        // First check quick analysis profiles
+        Optional<ProfileManager> quickProfile = quickAnalysisManager.profile(profileId);
+        if (quickProfile.isPresent()) {
+            return quickProfile;
+        }
+
+        // Then check regular workspace/project profiles
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
                 Optional<ProfileManager> profileManager = projectManager.profilesManager().profile(profileId);

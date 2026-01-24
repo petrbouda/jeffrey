@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import pbouda.jeffrey.provider.platform.repository.ProfileRepository;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.nio.file.Path;
@@ -35,18 +34,18 @@ public class ProfileManagerImpl implements ProfileManager {
     private final ProfileInfo profileInfo;
     private final ProfileRepository profileRepository;
     private final ProfileManagerFactoryRegistry registry;
-    private final JeffreyDirs jeffreyDirs;
+    private final Path profilesBaseDir;
 
     public ProfileManagerImpl(
             ProfileInfo profileInfo,
             ProfileRepository profileRepository,
             ProfileManagerFactoryRegistry registry,
-            JeffreyDirs jeffreyDirs) {
+            Path profilesBaseDir) {
 
         this.profileInfo = profileInfo;
         this.profileRepository = profileRepository;
         this.registry = registry;
-        this.jeffreyDirs = jeffreyDirs;
+        this.profilesBaseDir = profilesBaseDir;
     }
 
     @Override
@@ -161,7 +160,7 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public long sizeInBytes() {
-        Path profileDirectory = jeffreyDirs.profileDirectory(profileInfo.id());
+        Path profileDirectory = profilesBaseDir.resolve(profileInfo.id());
         return FileSystemUtils.directorySize(profileDirectory);
     }
 
@@ -170,7 +169,7 @@ public class ProfileManagerImpl implements ProfileManager {
         // 1. Delete profile metadata from platform database
         this.profileRepository.delete();
         // 2. Delete profile database and directory
-        Path profileDirectory = jeffreyDirs.profileDirectory(profileInfo.id());
+        Path profileDirectory = profilesBaseDir.resolve(profileInfo.id());
         FileSystemUtils.removeDirectory(profileDirectory);
 
         LOG.info("Profile deleted: project_id={} profile_id={} name={}",

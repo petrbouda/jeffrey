@@ -21,6 +21,7 @@
     <div class="container-fluid px-4">
       <router-view />
     </div>
+
   </div>
 </template>
 

@@ -16,5 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export { downloadAssistantStore } from './downloadAssistantStore';
-export { quickAnalysisAssistantStore } from './quickAnalysisAssistantStore';
+/**
+ * Quick analysis profile information.
+ */
+export default interface QuickAnalysisProfile {
+    id: string;
+    name: string;
+    createdAt: string;
+    eventSource: string;
+    enabled: boolean;
+    durationInMillis: number;
+    sizeInBytes: number;
+}

@@ -29,6 +29,8 @@
           class="panel-backdrop"
           :class="{ visible: isExpanded }"
           @click="$emit('close')"
+          @dragover.prevent
+          @drop.prevent
       ></div>
 
       <div class="panel-content" :style="contentStyles">

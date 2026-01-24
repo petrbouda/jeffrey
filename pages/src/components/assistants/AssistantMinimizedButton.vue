@@ -48,7 +48,7 @@
       </svg>
 
       <!-- Icon -->
-      <i :class="[icon, { spin: isSpinning }]" class="indicator-icon"></i>
+      <i :class="[icon, { spin: isSpinning, 'has-badge': badgeText }]" class="indicator-icon"></i>
 
       <!-- Badge -->
       <span v-if="badgeText" class="indicator-badge" :class="badgeClass">
@@ -176,6 +176,9 @@ const progressRingStyle = computed(() => {
   font-size: 1.25rem;
   z-index: 1;
   color: white;
+}
+
+.indicator-icon.has-badge {
   margin-top: -6px;
 }
 

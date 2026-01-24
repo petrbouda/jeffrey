@@ -48,11 +48,19 @@ import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.manager.QuickAnalysisManager;
+import pbouda.jeffrey.platform.manager.QuickAnalysisManagerImpl;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.profile.ProfileInitializer;
+import pbouda.jeffrey.profile.ProfileInitializerImpl;
 import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.profile.manager.ProfileManagerImpl;
+import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
+import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
+import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
+import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -119,7 +127,7 @@ public class AppConfiguration {
             @Value("${jeffrey.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
-        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs, frameResolutionMode);
+        return new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
     }
 
     @Bean
@@ -304,4 +312,42 @@ public class AppConfiguration {
     //
     //     return new JfrStreamingInitializer(jfrStreamingConsumerManager, compositeWorkspacesManager, platformRepositories);
     // }
+
+    @Bean
+    public QuickAnalysisManager quickAnalysisManager(
+            Clock clock,
+            JeffreyDirs jeffreyDirs,
+            PlatformRepositories platformRepositories,
+            ProfileManagerFactoryRegistry profileManagerFactoryRegistry,
+            ProfileDataInitializer profileDataInitializer,
+            @Value("${jeffrey.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
+
+        // Create a separate ProfilePersistenceProvider for quick analysis using quickProfiles directory
+        ProfilePersistenceProvider quickAnalysisPersistenceProvider =
+                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.quickProfiles(), frameResolutionMode);
+
+        // Create ProfileManager.Factory for quick analysis profiles
+        ProfileManager.Factory quickAnalysisProfileManagerFactory = profileInfo ->
+                new ProfileManagerImpl(
+                        profileInfo,
+                        platformRepositories.newProfileRepository(profileInfo.id()),
+                        profileManagerFactoryRegistry,
+                        jeffreyDirs.quickProfiles());
+
+        // Create ProfileInitializer for quick analysis
+        ProfileInitializer quickAnalysisProfileInitializer = new ProfileInitializerImpl(
+                quickAnalysisPersistenceProvider.repositories(),
+                quickAnalysisPersistenceProvider.databaseManager(),
+                new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs)),
+                quickAnalysisPersistenceProvider.eventWriterFactory(),
+                quickAnalysisProfileManagerFactory,
+                profileDataInitializer,
+                clock);
+
+        return new QuickAnalysisManagerImpl(
+                clock,
+                jeffreyDirs,
+                new JfrRecordingInformationParser(jeffreyDirs),
+                quickAnalysisProfileInitializer);
+    }
 }
