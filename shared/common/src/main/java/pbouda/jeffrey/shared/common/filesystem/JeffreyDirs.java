@@ -46,6 +46,7 @@ public class JeffreyDirs {
     private static final String PROFILES_DIR = "profiles";
     private static final String QUICK_PROFILES_DIR = "quick-profiles";
     private static final String QUICK_RECORDINGS_DIR = "quick-recordings";
+    private static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump-analysis";
 
     private final Path homeDir;
     private final Path tempDir;
@@ -73,8 +74,18 @@ public class JeffreyDirs {
         return homeDir.resolve(PROFILES_DIR);
     }
 
-    public Path profileDirectory(String profileId) {
+    public Path profileDir(String profileId) {
         return profiles().resolve(profileId);
+    }
+
+    /**
+     * Returns the heap dump analysis directory for a specific profile.
+     *
+     * @param profileId the profile ID
+     * @return path to the heap dump analysis directory
+     */
+    public Path heapDumpAnalysisDir(String profileId) {
+        return profileDir(profileId).resolve(HEAP_DUMP_ANALYSIS_DIR);
     }
 
     public Path homeDir() {
@@ -110,8 +121,18 @@ public class JeffreyDirs {
      * @param profileId the profile ID
      * @return path to the quick profile directory
      */
-    public Path quickProfileDirectory(String profileId) {
+    public Path quickProfileDir(String profileId) {
         return quickProfiles().resolve(profileId);
+    }
+
+    /**
+     * Returns the heap dump analysis directory for a specific quick analysis profile.
+     *
+     * @param profileId the profile ID
+     * @return path to the heap dump analysis directory
+     */
+    public Path quickHeapDumpAnalysisDir(String profileId) {
+        return quickProfileDir(profileId).resolve(HEAP_DUMP_ANALYSIS_DIR);
     }
 
     /**

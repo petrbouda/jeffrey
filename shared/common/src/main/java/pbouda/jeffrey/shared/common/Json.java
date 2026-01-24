@@ -37,7 +37,6 @@ import pbouda.jeffrey.shared.common.serde.TypeSerializer;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,20 +74,6 @@ public abstract class Json {
         return MAPPER;
     }
 
-    /**
-     * Reads a content of a file and maps it to a given class
-     *
-     * @param path  path to the file
-     * @param clazz class to which the content should be mapped
-     * @param <T>   type of the class
-     * @return an instance of the given class
-     * @throws IOException to handle FileNotFoundException (Profile is not found for the given project)
-     */
-    public static <T> T read(Path path, Class<T> clazz) throws IOException {
-        String content = Files.readString(path);
-        return MAPPER.readValue(content, clazz);
-    }
-
     public static <T> T read(String content, Class<T> clazz) {
         try {
             return MAPPER.readValue(content, clazz);
@@ -108,6 +93,22 @@ public abstract class Json {
     public static <T> T read(File file, TypeReference<T> type) {
         try {
             return MAPPER.readValue(file, type);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T read(Path path, Class<T> clazz) {
+        try {
+            return MAPPER.readValue(path.toFile(), clazz);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void write(Path path, Object value) {
+        try {
+            MAPPER.writerWithDefaultPrettyPrinter().writeValue(path.toFile(), value);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

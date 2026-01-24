@@ -52,7 +52,6 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final Path HEAP_DUMP_ANALYSIS_FOLDER = Path.of("heap-dump-analysis");
     private static final String STRING_ANALYSIS_FILE = "string-analysis.json";
     private static final String THREAD_ANALYSIS_FILE = "thread-analysis.json";
 
@@ -73,7 +72,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
         this.cacheRepository = cacheRepository;
         this.projectRecordingStorage = projectRecordingStorage;
-        this.heapDumpAnalysisPath = jeffreyDirs.profileDirectory(profileId).resolve(HEAP_DUMP_ANALYSIS_FOLDER);
+        this.heapDumpAnalysisPath = jeffreyDirs.heapDumpAnalysisDir(profileId);
 
         // Initialize processors map with all supported processors
         this.processors = Map.of(

@@ -25,6 +25,7 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.provider.profile.RecordingInformationParser;
 import pbouda.jeffrey.provider.profile.model.recording.RecordingInformation;
 import pbouda.jeffrey.shared.common.IDGenerator;
+import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
@@ -39,65 +40,32 @@ import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(QuickAnalysisManagerImpl.class);
 
-    /**
-     * Synthetic workspace ID for quick analysis profiles.
-     */
-    public static final String QUICK_ANALYSIS_WORKSPACE_ID = "quick-analysis";
-
-    /**
-     * Synthetic project ID for quick analysis profiles.
-     */
-    public static final String QUICK_ANALYSIS_PROJECT_ID = "quick-analysis";
-
     private final Clock clock;
     private final JeffreyDirs jeffreyDirs;
     private final RecordingInformationParser recordingInformationParser;
     private final ProfileInitializer profileInitializer;
-
-    /**
-     * In-memory storage for quick analysis profiles.
-     * Maps profile ID to ProfileInfo.
-     */
-    private final Map<String, ProfileInfo> quickProfiles = new ConcurrentHashMap<>();
-
-    /**
-     * In-memory storage for quick analysis profile managers.
-     * Maps profile ID to ProfileManager.
-     */
-    private final Map<String, ProfileManager> profileManagers = new ConcurrentHashMap<>();
+    private final ProfileManager.Factory profileManagerFactory;
 
     public QuickAnalysisManagerImpl(
             Clock clock,
             JeffreyDirs jeffreyDirs,
             RecordingInformationParser recordingInformationParser,
-            ProfileInitializer profileInitializer) {
+            ProfileInitializer profileInitializer,
+            ProfileManager.Factory profileManagerFactory) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.recordingInformationParser = recordingInformationParser;
         this.profileInitializer = profileInitializer;
-    }
-
-    @Override
-    public CompletableFuture<String> analyze(Path filePath) {
-        String profileName = filePath.getFileName().toString();
-        return CompletableFuture.supplyAsync(
-                        () -> analyzeInternal(filePath, profileName),
-                        Schedulers.sharedVirtual())
-                .exceptionally(ex -> {
-                    LOG.error("Could not create quick analysis profile: path={} message={}",
-                            filePath, ex.getMessage(), ex);
-                    throw new RuntimeException("Could not create quick analysis profile: " + filePath, ex);
-                });
+        this.profileManagerFactory = profileManagerFactory;
     }
 
     @Override
@@ -146,11 +114,11 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         // Parse recording information
         RecordingInformation recordingInfo = recordingInformationParser.provide(filePath);
 
-        // Create ProfileInfo with synthetic workspace/project
+        // Create ProfileInfo without workspace/project (Quick Analysis is independent)
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId,
-                QUICK_ANALYSIS_PROJECT_ID,
-                QUICK_ANALYSIS_WORKSPACE_ID,
+                null,
+                null,
                 profileName,
                 recordingInfo.eventSource(),
                 recordingInfo.recordingStartedAt(),
@@ -160,59 +128,79 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         );
 
         // Initialize the profile (no recordingId needed for quick analysis)
-        ProfileManager profileManager = profileInitializer.initialize(profileInfo, null, filePath);
+        profileInitializer.initialize(profileInfo, null, filePath);
 
-        // Create enabled profile info
-        ProfileInfo enabledProfileInfo = new ProfileInfo(
+        // Write metadata file for filesystem-based resolution
+        QuickProfileMetadata metadata = new QuickProfileMetadata(
                 profileId,
-                QUICK_ANALYSIS_PROJECT_ID,
-                QUICK_ANALYSIS_WORKSPACE_ID,
                 profileName,
-                recordingInfo.eventSource(),
+                recordingInfo.eventSource().name(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt(),
-                createdAt,
-                true  // now enabled
-        );
+                createdAt);
 
-        // Store in memory
-        quickProfiles.put(profileId, enabledProfileInfo);
-        profileManagers.put(profileId, profileManager);
+        writeMetadata(profileId, metadata);
 
         LOG.info("Quick analysis profile created: profile_id={} profile_name={}", profileId, profileName);
 
         return profileId;
     }
 
+    private void writeMetadata(String profileId, QuickProfileMetadata metadata) {
+        Path metadataPath = QuickProfileMetadata.metadataPath(jeffreyDirs.quickProfileDir(profileId));
+        Json.write(metadataPath, metadata);
+    }
+
+    private Optional<QuickProfileMetadata> loadMetadata(Path profileDir) {
+        Path metadataPath = QuickProfileMetadata.metadataPath(profileDir);
+        if (!Files.exists(metadataPath)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(Json.read(metadataPath, QuickProfileMetadata.class));
+        } catch (RuntimeException e) {
+            LOG.warn("Failed to read profile metadata: path={}", metadataPath, e);
+            return Optional.empty();
+        }
+    }
+
     @Override
     public List<ProfileInfo> listProfiles() {
-        return List.copyOf(quickProfiles.values());
+        Path quickProfilesDir = jeffreyDirs.quickProfiles();
+        if (!Files.exists(quickProfilesDir)) {
+            return List.of();
+        }
+
+        try (Stream<Path> dirs = Files.list(quickProfilesDir)) {
+            return dirs.filter(Files::isDirectory)
+                    .map(this::loadMetadata)
+                    .flatMap(Optional::stream)
+                    .map(QuickProfileMetadata::toProfileInfo)
+                    .toList();
+        } catch (IOException e) {
+            LOG.error("Failed to list quick profiles: dir={}", quickProfilesDir, e);
+            return List.of();
+        }
     }
 
     @Override
     public Optional<ProfileManager> profile(String profileId) {
-        ProfileManager manager = profileManagers.get(profileId);
-        if (manager != null) {
-            return Optional.of(manager);
-        }
-        return Optional.empty();
+        Path profileDir = jeffreyDirs.quickProfileDir(profileId);
+        return loadMetadata(profileDir)
+                .map(QuickProfileMetadata::toProfileInfo)
+                .map(profileManagerFactory);
     }
 
     @Override
     public void deleteProfile(String profileId) {
-        ProfileInfo profileInfo = quickProfiles.remove(profileId);
+        Path profileDir = jeffreyDirs.quickProfileDir(profileId);
 
-        if (profileInfo == null) {
+        if (!Files.exists(profileDir)) {
             LOG.warn("Quick analysis profile not found for deletion: profile_id={}", profileId);
             return;
         }
 
-        // Delete profile directory
-        Path profileDir = jeffreyDirs.quickProfileDirectory(profileId);
-        if (Files.exists(profileDir)) {
-            FileSystemUtils.removeDirectory(profileDir);
-        }
-
+        FileSystemUtils.removeDirectory(profileDir);
         LOG.info("Quick analysis profile deleted: profile_id={}", profileId);
     }
 }

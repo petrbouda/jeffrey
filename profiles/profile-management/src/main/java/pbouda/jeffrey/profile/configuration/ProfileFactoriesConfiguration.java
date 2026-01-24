@@ -344,6 +344,10 @@ public class ProfileFactoriesConfiguration {
             RecordingStorage recordingStorage,
             JeffreyDirs jeffreyDirs) {
         return profileInfo -> {
+            // Quick Analysis profiles don't have a project - return no-op implementation
+            if (profileInfo.projectId() == null) {
+                return new NoOpAdditionalFilesManager(jeffreyDirs, profileInfo.id());
+            }
             DataSource profileDb = profileDatabaseProvider.open(profileInfo.id());
             return new AdditionalFilesManagerImpl(
                     profileRepositories.newProfileCacheRepository(profileDb),

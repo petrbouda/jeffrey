@@ -25,8 +25,8 @@ import java.time.Instant;
  * Keeps basic information about the profile.
  *
  * @param id                  ID of the profile
- * @param projectId           ID of the project where the profile belongs to
- * @param workspaceId         ID of the workspace where the profile belongs to
+ * @param projectId           ID of the project where the profile belongs to (null for Quick Analysis)
+ * @param workspaceId         ID of the workspace where the profile belongs to (null for Quick Analysis)
  * @param name                Name of the profile
  * @param createdAt           Time when the profile was created
  * @param profilingStartedAt  Resolved using ActiveRecording and recordingStart field
@@ -49,7 +49,7 @@ public record ProfileInfo(
         return Duration.between(profilingStartedAt, profilingFinishedAt);
     }
 
-    public ProfilingStartEnd profilingStartEnd() {
+    public  ProfilingStartEnd profilingStartEnd() {
         return new ProfilingStartEnd(profilingStartedAt, profilingFinishedAt);
     }
 }

@@ -35,15 +35,6 @@ import java.util.concurrent.CompletableFuture;
 public interface QuickAnalysisManager {
 
     /**
-     * Analyzes a JFR file from the given path.
-     * The parsing happens asynchronously.
-     *
-     * @param filePath path to the JFR file on the server's filesystem
-     * @return a CompletableFuture containing the profile ID
-     */
-    CompletableFuture<String> analyze(Path filePath);
-
-    /**
      * Uploads and analyzes a JFR file.
      * The file is saved to the quick-recordings directory and then parsed.
      *

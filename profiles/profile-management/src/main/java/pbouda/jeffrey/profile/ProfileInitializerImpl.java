@@ -79,12 +79,14 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         DataSource dataSource = databaseManager.open(profileInfo.id());
         try {
             // Store profile context (workspace_id, project_id) in the profile database
-            // This enables direct profile access without needing workspace/project in URL
-            ProfileInfoRepository profileInfoRepository = profileRepositories.newProfileInfoRepository(dataSource);
-            profileInfoRepository.insert(new ProfileInfoRepository.ProfileContext(
-                    profileInfo.id(),
-                    profileInfo.projectId(),
-                    profileInfo.workspaceId()));
+            // Skip for Quick Analysis profiles where workspace/project are null
+            if (profileInfo.projectId() != null && profileInfo.workspaceId() != null) {
+                ProfileInfoRepository profileInfoRepository = profileRepositories.newProfileInfoRepository(dataSource);
+                profileInfoRepository.insert(new ProfileInfoRepository.ProfileContext(
+                        profileInfo.id(),
+                        profileInfo.projectId(),
+                        profileInfo.workspaceId()));
+            }
 
             // Parse recording and store events into the database
             EventWriter eventWriter = eventWriterFactory.create(dataSource);

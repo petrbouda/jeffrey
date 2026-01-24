@@ -348,6 +348,7 @@ public class AppConfiguration {
                 clock,
                 jeffreyDirs,
                 new JfrRecordingInformationParser(jeffreyDirs),
-                quickAnalysisProfileInitializer);
+                quickAnalysisProfileInitializer,
+                quickAnalysisProfileManagerFactory);
     }
 }
