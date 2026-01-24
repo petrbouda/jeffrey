@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
-import pbouda.jeffrey.platform.manager.QuickAnalysisManager;
+import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;

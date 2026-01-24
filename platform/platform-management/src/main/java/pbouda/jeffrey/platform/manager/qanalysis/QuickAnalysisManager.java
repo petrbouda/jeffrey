@@ -16,13 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.manager;
+package pbouda.jeffrey.platform.manager.qanalysis;
 
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

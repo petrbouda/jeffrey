@@ -23,7 +23,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import pbouda.jeffrey.platform.manager.QuickAnalysisManager;
+import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;

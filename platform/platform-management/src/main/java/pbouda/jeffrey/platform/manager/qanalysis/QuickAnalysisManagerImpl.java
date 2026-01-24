@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.manager;
+package pbouda.jeffrey.platform.manager.qanalysis;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

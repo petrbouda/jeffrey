@@ -24,7 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
-import pbouda.jeffrey.platform.manager.QuickAnalysisManager;
+import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
