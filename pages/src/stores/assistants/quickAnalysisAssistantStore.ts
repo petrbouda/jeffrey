@@ -28,14 +28,20 @@ import router from '@/router';
 export type QuickAnalysisStatus = 'idle' | 'parsing' | 'completed' | 'failed';
 
 /**
+ * Type of file being analyzed.
+ */
+export type QuickAnalysisFileType = 'jfr' | 'hprof';
+
+/**
  * Global state for Quick Analysis Assistant.
- * Allows ad-hoc JFR file analysis without creating workspaces/projects.
+ * Allows ad-hoc JFR and Heap Dump file analysis without creating workspaces/projects.
  */
 
 // Global state
 const isOpen = ref(false);
 const isExpanded = ref(true);
 const selectedFile = ref<File | null>(null);
+const selectedFileType = ref<QuickAnalysisFileType>('jfr');
 const status = ref<QuickAnalysisStatus>('idle');
 const statusMessage = ref('');
 const recentProfiles = ref<QuickAnalysisProfile[]>([]);
@@ -50,6 +56,17 @@ const isProcessing = computed(() => status.value === 'parsing');
  * Check if there's an active analysis that shouldn't be interrupted.
  */
 const hasActiveAnalysis = computed(() => isProcessing.value);
+
+/**
+ * Detect file type from filename.
+ */
+const detectFileType = (filename: string): QuickAnalysisFileType => {
+    const lower = filename.toLowerCase();
+    if (lower.endsWith('.hprof') || lower.endsWith('.hprof.gz')) {
+        return 'hprof';
+    }
+    return 'jfr';
+};
 
 /**
  * Opens the Quick Analysis panel.
@@ -90,6 +107,7 @@ const minimize = () => {
 const reset = () => {
     if (!isProcessing.value) {
         selectedFile.value = null;
+        selectedFileType.value = 'jfr';
         status.value = 'idle';
         statusMessage.value = '';
         errorMessage.value = null;
@@ -97,11 +115,17 @@ const reset = () => {
 };
 
 /**
- * Sets the selected file.
+ * Sets the selected file and detects its type.
  */
 const setSelectedFile = (file: File | null) => {
     selectedFile.value = file;
     errorMessage.value = null;
+
+    if (file) {
+        selectedFileType.value = detectFileType(file.name);
+    } else {
+        selectedFileType.value = 'jfr';
+    }
 };
 
 /**
@@ -116,24 +140,40 @@ const loadRecentProfiles = async () => {
 };
 
 /**
- * Starts the analysis by uploading and parsing the selected file.
+ * Starts the analysis by uploading the selected file.
+ * Routes to different endpoints and pages based on file type.
  */
 const startAnalysis = async () => {
     const file = selectedFile.value;
     if (!file) return;
 
+    const isHeapDump = selectedFileType.value === 'hprof';
+
     status.value = 'parsing';
-    statusMessage.value = 'Analyzing JFR file...';
+    statusMessage.value = isHeapDump ? 'Uploading heap dump...' : 'Analyzing JFR file...';
     errorMessage.value = null;
 
     try {
-        const profileId = await QuickAnalysisClient.uploadAndAnalyze(file);
+        let profileId: string;
+
+        if (isHeapDump) {
+            profileId = await QuickAnalysisClient.uploadHeapDump(file);
+        } else {
+            profileId = await QuickAnalysisClient.uploadAndAnalyze(file);
+        }
 
         status.value = 'completed';
 
-        // Close panel and navigate to profile
+        // Close panel and navigate to appropriate page
         isOpen.value = false;
-        await router.push(`/profiles/${profileId}/overview`);
+
+        if (isHeapDump) {
+            // Navigate to heap dump settings page for initialization
+            await router.push(`/profiles/${profileId}/heap-dump/settings`);
+        } else {
+            // Navigate to profile overview for JFR files
+            await router.push(`/profiles/${profileId}/overview`);
+        }
 
         // Reset after navigation
         reset();
@@ -141,7 +181,8 @@ const startAnalysis = async () => {
 
     } catch (error) {
         status.value = 'failed';
-        errorMessage.value = error instanceof Error ? error.message : 'Failed to analyze JFR file';
+        const fileTypeLabel = isHeapDump ? 'heap dump' : 'JFR file';
+        errorMessage.value = error instanceof Error ? error.message : `Failed to process ${fileTypeLabel}`;
         ToastService.error('Analysis Failed', errorMessage.value);
     }
 };
@@ -174,6 +215,7 @@ export const quickAnalysisAssistantStore = {
     isOpen,
     isExpanded,
     selectedFile,
+    selectedFileType,
     status,
     statusMessage,
     recentProfiles,

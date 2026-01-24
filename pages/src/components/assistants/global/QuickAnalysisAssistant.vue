@@ -25,7 +25,7 @@
       :is-spinning="isSpinningIcon"
       :order="2"
       @click="handleButtonClick"
-      title="Quick JFR Analysis"
+      title="Quick Analysis"
   />
 
   <!-- Expanded State - Panel -->
@@ -74,7 +74,7 @@
           <input
               ref="fileInputRef"
               type="file"
-              accept=".jfr"
+              accept=".jfr,.lz4,.hprof,.gz"
               class="file-input-hidden"
               @change="handleFileSelect"
           >
@@ -82,18 +82,18 @@
           <!-- Default state -->
           <template v-if="!isProcessing && !selectedFile">
             <i class="bi bi-cloud-upload dropzone-icon"></i>
-            <span class="dropzone-text">Drop your JFR file here</span>
-            <span class="dropzone-subtext">or click to select</span>
+            <span class="dropzone-text">Drop your JFR or Heap Dump file here</span>
+            <span class="dropzone-subtext">or click to select (.jfr, .jfr.lz4, .hprof, .hprof.gz)</span>
           </template>
 
           <!-- File selected state -->
           <template v-else-if="!isProcessing && selectedFile">
-            <i class="bi bi-file-earmark-binary file-icon"></i>
+            <i :class="selectedFileType === 'hprof' ? 'bi bi-database file-icon' : 'bi bi-file-earmark-binary file-icon'"></i>
             <span class="file-name">{{ selectedFile.name }}</span>
             <span class="file-size">{{ formatBytes(selectedFile.size) }}</span>
             <button class="btn-start" @click.stop="$emit('start-analysis')">
               <i class="bi bi-play-fill me-1"></i>
-              Start Analysis
+              {{ selectedFileType === 'hprof' ? 'Upload & Analyze' : 'Start Analysis' }}
             </button>
           </template>
 
@@ -139,7 +139,7 @@
                 @click="$emit('open-profile', profile.id)"
             >
               <div class="item-info">
-                <i class="bi bi-graph-up item-icon"></i>
+                <i :class="isHeapDumpProfile(profile) ? 'bi bi-database item-icon' : 'bi bi-graph-up item-icon'"></i>
                 <div class="item-details">
                   <span class="item-name">{{ profile.name }}</span>
                   <span class="item-meta">
@@ -177,12 +177,13 @@ import FormattingService from '@/services/FormattingService';
 import QuickAnalysisProfile from '@/services/api/model/QuickAnalysisProfile';
 import AssistantPanel from '@/components/assistants/AssistantPanel.vue';
 import AssistantMinimizedButton from '@/components/assistants/AssistantMinimizedButton.vue';
-import type { QuickAnalysisStatus } from '@/stores/assistants/quickAnalysisAssistantStore';
+import type { QuickAnalysisStatus, QuickAnalysisFileType } from '@/stores/assistants/quickAnalysisAssistantStore';
 
 interface Props {
   isOpen: boolean;
   isExpanded: boolean;
   selectedFile: File | null;
+  selectedFileType: QuickAnalysisFileType;
   status: QuickAnalysisStatus;
   statusMessage: string;
   recentProfiles: QuickAnalysisProfile[];
@@ -211,6 +212,12 @@ const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
 const formatRelativeTime = (dateString: string) => {
   const timestamp = new Date(dateString).getTime();
   return FormattingService.formatRelativeTime(timestamp);
+};
+
+// Helper to determine if a profile is a heap dump based on filename
+const isHeapDumpProfile = (profile: QuickAnalysisProfile): boolean => {
+  const name = profile.name.toLowerCase();
+  return name.endsWith('.hprof') || name.endsWith('.hprof.gz');
 };
 
 // Minimized button computed properties
