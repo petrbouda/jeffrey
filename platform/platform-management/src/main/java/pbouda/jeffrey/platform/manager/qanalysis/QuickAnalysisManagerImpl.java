@@ -111,13 +111,13 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
         LOG.info("Uploaded heap dump saved: path={}", targetPath);
 
-        // Create ProfileInfo without JFR-specific data (use UNKNOWN event source)
+        // Create ProfileInfo for heap dump profile
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId,
                 null,  // workspaceId
                 null,  // projectId
                 filename,  // name
-                RecordingEventSource.UNKNOWN,
+                RecordingEventSource.HEAP_DUMP,
                 createdAt,  // profilingStartedAt (use creation time)
                 createdAt,  // profilingFinishedAt
                 createdAt,
@@ -128,7 +128,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         QuickProfileMetadata metadata = new QuickProfileMetadata(
                 profileId,
                 filename,
-                RecordingEventSource.UNKNOWN.name(),
+                RecordingEventSource.HEAP_DUMP.name(),
                 createdAt,
                 createdAt,
                 createdAt);

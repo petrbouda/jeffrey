@@ -214,10 +214,9 @@ const formatRelativeTime = (dateString: string) => {
   return FormattingService.formatRelativeTime(timestamp);
 };
 
-// Helper to determine if a profile is a heap dump based on filename
+// Helper to determine if a profile is a heap dump based on event source
 const isHeapDumpProfile = (profile: QuickAnalysisProfile): boolean => {
-  const name = profile.name.toLowerCase();
-  return name.endsWith('.hprof') || name.endsWith('.hprof.gz');
+  return profile.eventSource === 'HEAP_DUMP';
 };
 
 // Minimized button computed properties

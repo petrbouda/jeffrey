@@ -19,7 +19,10 @@
 package pbouda.jeffrey.shared.common.model;
 
 public enum RecordingEventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"), JDK(1, "JDK"), UNKNOWN(2, "Unknown");
+    ASYNC_PROFILER(0, "Async-Profiler"),
+    JDK(1, "JDK"),
+    UNKNOWN(2, "Unknown"),
+    HEAP_DUMP(3, "Heap Dump");
 
     private final int id;
     private final String label;

@@ -664,14 +664,10 @@ const isHeapDumpOnlyProfile = ref(false);
 
 /**
  * Check if the profile is a heap-dump-only profile (no JFR data).
- * These profiles have UNKNOWN event source and .hprof filename.
+ * These profiles have HEAP_DUMP event source.
  */
 const checkHeapDumpOnlyProfile = (p: Profile): boolean => {
-  if (p.eventSource !== RecordingEventSource.UNKNOWN) {
-    return false;
-  }
-  const name = p.name.toLowerCase();
-  return name.endsWith('.hprof') || name.endsWith('.hprof.gz');
+  return p.eventSource === RecordingEventSource.HEAP_DUMP;
 };
 
 // Mapping function to determine which features are associated with menu items
