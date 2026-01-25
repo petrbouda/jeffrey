@@ -68,8 +68,12 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
             // Get DataSource for this profile
             DataSource dataSource = databaseManagerResolver.open(profileInfo);
 
-            // Create tools for this profile's database
-            DuckDbMcpTools tools = new DuckDbMcpTools(dataSource);
+            // Create tools for this profile's database (with modification support if enabled)
+            DuckDbMcpTools tools = new DuckDbMcpTools(dataSource, request.canModify());
+
+            if (request.canModify()) {
+                LOG.info("Data modification enabled for analysis: profileId={}", profileInfo.id());
+            }
 
             // Build conversation messages
             List<Message> messages = buildMessages(request, profileInfo);

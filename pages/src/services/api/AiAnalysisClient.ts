@@ -43,9 +43,10 @@ export default class AiAnalysisClient extends BaseProfileClient {
      * Send a chat message to get an AI analysis response.
      * @param message - The user's natural language message
      * @param history - The conversation history for context
+     * @param canModify - Whether data modifications are allowed
      * @returns Promise resolving to the AI response with analysis results
      */
-    public chat(message: string, history: ChatMessage[]): Promise<AiAnalysisResponse> {
-        return this.post<AiAnalysisResponse>('/chat', { message, history });
+    public chat(message: string, history: ChatMessage[], canModify: boolean = false): Promise<AiAnalysisResponse> {
+        return this.post<AiAnalysisResponse>('/chat', { message, history, canModify });
     }
 }

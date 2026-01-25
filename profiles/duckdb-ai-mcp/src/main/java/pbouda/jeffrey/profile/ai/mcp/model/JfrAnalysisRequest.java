@@ -25,12 +25,18 @@ import java.util.List;
  *
  * @param message the user's question or analysis request
  * @param history optional conversation history for context
+ * @param canModify whether data modification is allowed (must be explicitly enabled by user)
  */
 public record JfrAnalysisRequest(
         String message,
-        List<JfrChatMessage> history
+        List<JfrChatMessage> history,
+        boolean canModify
 ) {
     public JfrAnalysisRequest(String message) {
-        this(message, List.of());
+        this(message, List.of(), false);
+    }
+
+    public JfrAnalysisRequest(String message, List<JfrChatMessage> history) {
+        this(message, history, false);
     }
 }

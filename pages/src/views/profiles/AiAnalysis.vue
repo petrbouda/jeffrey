@@ -11,6 +11,20 @@
           <i :class="isAvailable ? 'bi-check-circle-fill' : 'bi-x-circle-fill'"></i>
           {{ isAvailable ? status.provider || 'AI' : 'Not configured' }}
         </span>
+        <div class="modify-toggle" :class="{ active: canModify }">
+          <label class="toggle-label" :title="canModify ? 'Data modification is enabled' : 'Enable to allow AI to modify profile data'">
+            <input
+                type="checkbox"
+                v-model="canModify"
+                :disabled="!isAvailable"
+            />
+            <span class="toggle-switch"></span>
+            <span class="toggle-text">
+              <i :class="canModify ? 'bi-pencil-fill' : 'bi-pencil'"></i>
+              Allow Modifications
+            </span>
+          </label>
+        </div>
         <button
             v-if="hasMessages"
             class="btn btn-sm btn-outline-secondary"
@@ -124,6 +138,7 @@ const {
   status,
   messages,
   currentInput,
+  canModify,
   isAvailable,
   hasMessages,
   checkStatus,
@@ -226,6 +241,74 @@ onMounted(() => {
 .status-badge.available {
   background-color: #dafbe1;
   color: #1a7f37;
+}
+
+.modify-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #656d76;
+  user-select: none;
+}
+
+.toggle-label input {
+  display: none;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background-color: #d0d7de;
+  border-radius: 9px;
+  transition: background-color 0.2s;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-label input:checked + .toggle-switch {
+  background-color: #d4a106;
+}
+
+.toggle-label input:checked + .toggle-switch::after {
+  transform: translateX(14px);
+}
+
+.toggle-label input:disabled + .toggle-switch {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.modify-toggle.active .toggle-text {
+  color: #9a6700;
+  font-weight: 500;
+}
+
+.modify-toggle.active .toggle-text i {
+  color: #d4a106;
 }
 
 .chat-area {

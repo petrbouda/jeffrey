@@ -68,7 +68,8 @@ public class AiAnalysisResource {
     public JfrAnalysisResponse chat(AiAnalysisChatRequest request) {
         JfrAnalysisRequest analysisRequest = new JfrAnalysisRequest(
                 request.message(),
-                request.history() != null ? request.history() : List.of()
+                request.history() != null ? request.history() : List.of(),
+                request.canModify() != null && request.canModify()
         );
         return assistantService.analyze(profileInfo, analysisRequest);
     }
@@ -84,10 +85,15 @@ public class AiAnalysisResource {
 
     /**
      * Chat request for AI analysis.
+     *
+     * @param message the user's message
+     * @param history conversation history
+     * @param canModify whether data modifications are allowed (must be explicitly enabled)
      */
     public record AiAnalysisChatRequest(
             String message,
-            List<JfrChatMessage> history
+            List<JfrChatMessage> history,
+            Boolean canModify
     ) {
     }
 }

@@ -40,6 +40,7 @@ export function useAiAnalysis(profileId: string) {
     const status = ref<AiStatusResponse | null>(null);
     const messages = ref<AiAnalysisChatMessage[]>([]);
     const currentInput = ref('');
+    const canModify = ref(false);
 
     // Computed
     const isAvailable = computed(() => status.value?.available ?? false);
@@ -94,7 +95,7 @@ export function useAiAnalysis(profileId: string) {
                 content: m.content
             }));
 
-            const response: AiAnalysisResponse = await client.chat(message.trim(), history);
+            const response: AiAnalysisResponse = await client.chat(message.trim(), history, canModify.value);
 
             // Add assistant response to history
             const assistantMessage: AiAnalysisChatMessage = {
@@ -145,6 +146,7 @@ export function useAiAnalysis(profileId: string) {
         status,
         messages,
         currentInput,
+        canModify,
 
         // Computed
         isAvailable,

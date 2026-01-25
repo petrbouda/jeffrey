@@ -40,9 +40,15 @@ public class DuckDbMcpTools {
     private static final int MAX_QUERY_RESULT_LENGTH = 50000;
 
     private final DataSource dataSource;
+    private final boolean canModify;
 
     public DuckDbMcpTools(DataSource dataSource) {
+        this(dataSource, false);
+    }
+
+    public DuckDbMcpTools(DataSource dataSource, boolean canModify) {
         this.dataSource = dataSource;
+        this.canModify = canModify;
     }
 
     @Tool(description = "List all tables in the JFR profile database. Returns table names that can be queried.")
@@ -290,6 +296,54 @@ public class DuckDbMcpTools {
         } catch (SQLException e) {
             LOG.error("Failed to get profile info: message={}", e.getMessage(), e);
             return "Error: Failed to get profile info: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = "Execute a data modification query (UPDATE or DELETE) on the JFR profile database. " +
+            "Use this to remove events, obfuscate frame names, anonymize thread names, or clean up data. " +
+            "This tool is only available when modification mode is explicitly enabled by the user. " +
+            "A WHERE clause is required to prevent accidental full-table modifications.")
+    public String executeModification(
+            @ToolParam(description = "SQL UPDATE or DELETE query. Must include a WHERE clause for safety.")
+            String query) {
+
+        if (!canModify) {
+            return "Error: Data modification is not enabled. The user must enable 'Allow Modifications' in the UI to use this tool.";
+        }
+
+        if (query == null || query.isBlank()) {
+            return "Error: Query is required";
+        }
+
+        String normalizedQuery = query.trim().toLowerCase();
+
+        // Only allow UPDATE and DELETE
+        if (!normalizedQuery.startsWith("update") && !normalizedQuery.startsWith("delete")) {
+            return "Error: Only UPDATE and DELETE queries are allowed. Use executeQuery for SELECT statements.";
+        }
+
+        // Require WHERE clause for safety
+        if (!normalizedQuery.contains("where")) {
+            return "Error: A WHERE clause is required to prevent accidental full-table modifications. " +
+                    "If you really want to affect all rows, use 'WHERE 1=1' explicitly.";
+        }
+
+        // Prevent modifications to system tables
+        if (normalizedQuery.contains("flyway_") || normalizedQuery.contains("profile_info")) {
+            return "Error: Modifications to system tables (flyway_*, profile_info) are not allowed.";
+        }
+
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            int affectedRows = stmt.executeUpdate(query);
+
+            LOG.info("Executed modification query: query={} affectedRows={}", query, affectedRows);
+
+            return String.format("Successfully executed modification. %d row(s) affected.", affectedRows);
+        } catch (SQLException e) {
+            LOG.error("Failed to execute modification: query={} message={}", query, e.getMessage(), e);
+            return "Error: Modification failed: " + e.getMessage();
         }
     }
 
