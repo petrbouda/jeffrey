@@ -29,7 +29,7 @@ import java.util.function.Function;
  * Factory for creating profile-specific JFR analysis assistants.
  * This factory pattern allows the ProfileManager to integrate AI analysis capabilities.
  */
-public class JfrAnalysisAssistantFactory implements Function<ProfileInfo, JfrAnalysisAssistant> {
+public class JfrAnalysisAssistantFactory implements Function<ProfileInfo, JfrAnalysisAssistantFactory.JfrAnalysisAssistant> {
 
     private final JfrAnalysisAssistantService service;
 
