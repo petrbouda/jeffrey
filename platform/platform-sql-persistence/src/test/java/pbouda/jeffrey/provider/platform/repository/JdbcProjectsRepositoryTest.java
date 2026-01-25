@@ -125,6 +125,7 @@ class JdbcProjectsRepositoryTest {
                     null,
                     "New Project",
                     null,
+                    null, // namespace
                     "ws-001",
                     WorkspaceType.LIVE,
                     Instant.parse("2025-01-15T12:00:00Z"),
@@ -156,6 +157,7 @@ class JdbcProjectsRepositoryTest {
                     "origin-002",  // Same origin_project_id as Project Two
                     "Duplicate Project",
                     null,
+                    null, // namespace
                     "ws-001",
                     WorkspaceType.LIVE,
                     Instant.parse("2025-01-15T12:00:00Z"),

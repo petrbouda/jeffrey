@@ -141,4 +141,9 @@ public class RemoteProjectsManager implements ProjectsManager {
     public Optional<ProjectManager> findByOriginProjectId(String originProjectId) {
         throw new UnsupportedOperationException("Remote workspace does not support remote repository.");
     }
+
+    @Override
+    public List<String> findAllNamespaces() {
+        return commonProjectsManager.findAllNamespaces();
+    }
 }

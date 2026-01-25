@@ -16,19 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.shared.common.model.workspace;
+package pbouda.jeffrey.shared.common.model.repository;
 
-import java.nio.file.Path;
-import java.time.Instant;
-
-public record RepositorySessionInfo(
+public record RemoteProjectInstanceSession(
         String sessionId,
-        String repositoryId,
-        Path relativeSessionPath,
+        String projectId,
+        String workspaceId,
+        String instanceId,
+        long createdAt,
+        int order,
         String finishedFile,
+        String relativeSessionPath,
         String profilerSettings,
-        boolean streamingEnabled,
-        Instant originCreatedAt,
-        Instant createdAt,
-        Instant finishedAt) {
+        boolean streamingEnabled) {
 }

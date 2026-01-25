@@ -108,6 +108,11 @@ public class ProjectResource {
         return new ProjectMessagesResource(projectManager.messagesManager());
     }
 
+    @Path("/instances")
+    public ProjectInstancesResource instancesResource() {
+        return new ProjectInstancesResource(projectManager.projectInstanceRepository());
+    }
+
     @GET
     @Path("/initializing")
     public boolean initializing() {

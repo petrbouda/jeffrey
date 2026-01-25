@@ -47,6 +47,6 @@ public class StopStreamingWorkspaceEventConsumer implements WorkspaceEventConsum
 
     @Override
     public boolean isApplicable(WorkspaceEvent event) {
-        return event.eventType() == WorkspaceEventType.SESSION_FINISHED;
+        return event.eventType() == WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED;
     }
 }

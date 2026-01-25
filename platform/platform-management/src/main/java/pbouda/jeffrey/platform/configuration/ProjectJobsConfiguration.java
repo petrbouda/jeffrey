@@ -71,9 +71,9 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public RepositorySessionCleanerProjectJob repositorySessionCleanerProjectJob(
-            @Value("${jeffrey.job.repository-session-cleaner.period:}") Duration jobPeriod) {
-        return new RepositorySessionCleanerProjectJob(
+    public ProjectInstanceSessionCleanerJob projectInstanceSessionCleanerJob(
+            @Value("${jeffrey.job.project-instance-session-cleaner.period:}") Duration jobPeriod) {
+        return new ProjectInstanceSessionCleanerJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
@@ -81,9 +81,9 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public RepositoryRecordingCleanerProjectJob repositoryRecordingCleanerProjectJob(
-            @Value("${jeffrey.job.repository-recording-cleaner.period:}") Duration jobPeriod) {
-        return new RepositoryRecordingCleanerProjectJob(
+    public ProjectInstanceRecordingCleanerJob projectInstanceRecordingCleanerJob(
+            @Value("${jeffrey.job.project-instance-recording-cleaner.period:}") Duration jobPeriod) {
+        return new ProjectInstanceRecordingCleanerJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,

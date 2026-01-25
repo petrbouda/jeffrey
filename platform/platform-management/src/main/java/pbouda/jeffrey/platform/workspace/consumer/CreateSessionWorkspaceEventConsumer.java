@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
@@ -62,9 +62,11 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     event.eventId(), event.originEventId(), projectManager.info().id());
             return;
         }
-        RepositorySessionInfo sessionInfo = new RepositorySessionInfo(
+        ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                 null,
                 repositoryInfo.get().id(),
+                eventContent.instanceId(),
+                eventContent.order(),
                 Path.of(eventContent.relativeSessionPath()),
                 eventContent.finishedFile(),
                 eventContent.profilerSettings(),
@@ -79,6 +81,6 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     @Override
     public boolean isApplicable(WorkspaceEvent event) {
-        return event.eventType() == WorkspaceEventType.SESSION_CREATED;
+        return event.eventType() == WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED;
     }
 }

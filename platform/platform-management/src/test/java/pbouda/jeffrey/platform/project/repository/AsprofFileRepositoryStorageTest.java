@@ -31,7 +31,7 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
 import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
 import java.io.IOException;
@@ -105,9 +105,11 @@ class AsprofFileRepositoryStorageTest {
 
         // Mock session info
         Instant now = Instant.now();
-        RepositorySessionInfo sessionInfo = new RepositorySessionInfo(
+        ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                 SESSION_ID,
                 PROJECT_ID,
+                null,                 // instanceId
+                1,                    // order
                 Path.of(SESSION_ID),  // relativeSessionPath
                 ".finished",          // finishedFile
                 null,                 // profilerSettings
@@ -123,6 +125,7 @@ class AsprofFileRepositoryStorageTest {
                 PROJECT_ID,
                 "Test Project",
                 "Test Label",
+                null, // namespace
                 WORKSPACE_ID,
                 WorkspaceType.LIVE,
                 now,

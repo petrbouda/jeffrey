@@ -82,7 +82,7 @@ class JdbcProjectSchedulerRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectSchedulerRepository repository = new JdbcProjectSchedulerRepository("proj-001", provider);
 
-            JobInfo jobInfo = new JobInfo("new-job-001", "proj-001", JobType.REPOSITORY_SESSION_CLEANER, Map.of("keepLast", "5"), true);
+            JobInfo jobInfo = new JobInfo("new-job-001", "proj-001", JobType.PROJECT_INSTANCE_SESSION_CLEANER, Map.of("keepLast", "5"), true);
             repository.insert(jobInfo);
 
             List<JobInfo> result = repository.all();

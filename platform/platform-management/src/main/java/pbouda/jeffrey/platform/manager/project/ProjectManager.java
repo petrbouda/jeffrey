@@ -31,6 +31,7 @@ import pbouda.jeffrey.platform.manager.RecordingsManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 
 import java.util.function.Function;
@@ -85,6 +86,8 @@ public interface ProjectManager {
     ProfilerSettingsManager profilerSettingsManager();
 
     ProjectRepository projectRepository();
+
+    ProjectInstanceRepository projectInstanceRepository();
 
     ProjectRecordingInitializer recordingInitializer();
 

@@ -27,7 +27,7 @@ import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
@@ -78,9 +78,11 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
         }
 
         RepositoryInfo repositoryInfo = repositoryInfoOpt.get();
-        RepositorySessionInfo sessionInfo = new RepositorySessionInfo(
+        ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                 event.originEventId(),
                 repositoryInfo.id(),
+                eventContent.instanceId(),
+                eventContent.order(),
                 Path.of(eventContent.relativeSessionPath()),
                 eventContent.finishedFile(),
                 eventContent.profilerSettings(),
@@ -94,6 +96,6 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
 
     @Override
     public boolean isApplicable(WorkspaceEvent event) {
-        return event.eventType() == WorkspaceEventType.SESSION_CREATED;
+        return event.eventType() == WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED;
     }
 }

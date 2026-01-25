@@ -28,6 +28,7 @@ import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -146,6 +147,11 @@ public class CommonProjectManager implements ProjectManager {
     @Override
     public ProjectRepository projectRepository() {
         return projectRepository;
+    }
+
+    @Override
+    public ProjectInstanceRepository projectInstanceRepository() {
+        return platformRepositories.newProjectInstanceRepository(projectInfo.id());
     }
 
     @Override

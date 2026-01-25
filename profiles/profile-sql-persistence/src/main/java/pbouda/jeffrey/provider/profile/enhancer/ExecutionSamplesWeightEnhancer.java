@@ -69,8 +69,7 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
                         .map(Duration::ofNanos)
                         .map(interval -> interval == Duration.ZERO ? ASYNC_PROFILER_DEFAULT_INTERVAL : interval);
             }
-            case UNKNOWN -> Optional.empty();
-            case null -> Optional.empty();
+            case null, default -> Optional.empty();
         };
 
         if (periodOpt.isEmpty()) {

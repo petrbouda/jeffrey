@@ -7,5 +7,5 @@ VALUES ('proj-001', NULL, 'Test Project', 'Label 1', 'ws-001', '2025-01-01T11:00
 
 INSERT INTO schedulers (id, project_id, job_type, params, enabled)
 VALUES
-    ('job-001', 'proj-001', 'REPOSITORY_SESSION_CLEANER', '{"keepLast":10}', true),
-    ('job-002', 'proj-001', 'REPOSITORY_RECORDING_CLEANER', '{}', false);
+    ('job-001', 'proj-001', 'PROJECT_INSTANCE_SESSION_CLEANER', '{"keepLast":10}', true),
+    ('job-002', 'proj-001', 'PROJECT_INSTANCE_RECORDING_CLEANER', '{}', false);

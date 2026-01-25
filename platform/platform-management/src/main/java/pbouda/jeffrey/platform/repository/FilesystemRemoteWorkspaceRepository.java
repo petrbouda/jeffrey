@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
-import pbouda.jeffrey.shared.common.model.repository.RemoteSession;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import pbouda.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +56,7 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
             }).reversed();
 
     private static final String PROJECT_INFO_FILE = ".project-info.json";
+    private static final String INSTANCE_INFO_FILE = ".instance-info.json";
     private static final String SESSION_INFO_FILE = ".session-info.json";
     private static final String WORKSPACE_SETTINGS_PREFIX = "settings-";
     private static final String WORKSPACE_SETTINGS_FILE_PATTERN = WORKSPACE_SETTINGS_PREFIX + "<<timestamp>>.json";
@@ -85,17 +88,43 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
     }
 
     @Override
-    public List<RemoteSession> allSessions(RemoteProject project) {
+    public List<RemoteProjectInstance> allInstances(RemoteProject project) {
         Path projectDir = workspacePath.resolve(project.projectName());
         if (!FileSystemUtils.isDirectory(projectDir)) {
             throw new IllegalArgumentException("Project directory does not exist: " + project);
         }
 
         return FileSystemUtils.allDirectoriesInDirectory(projectDir).stream()
-                .map(path -> path.resolve(SESSION_INFO_FILE))
+                .map(path -> path.resolve(INSTANCE_INFO_FILE))
                 .filter(FilesystemRemoteWorkspaceRepository::hasInfoFile)
-                .map(p -> readInfoFile(p, RemoteSession.class))
+                .map(p -> readInfoFile(p, RemoteProjectInstance.class))
                 .toList();
+    }
+
+    @Override
+    public List<RemoteProjectInstanceSession> allSessions(RemoteProject project) {
+        Path projectDir = workspacePath.resolve(project.projectName());
+        if (!FileSystemUtils.isDirectory(projectDir)) {
+            throw new IllegalArgumentException("Project directory does not exist: " + project);
+        }
+
+        List<RemoteProjectInstanceSession> sessions = new ArrayList<>();
+
+        // Sessions are always under instance directories: project/{instanceId}/{sessionId}
+        for (Path instanceDir : FileSystemUtils.allDirectoriesInDirectory(projectDir)) {
+            // Only process instance directories (those with instance-info.json)
+            Path instanceInfoPath = instanceDir.resolve(INSTANCE_INFO_FILE);
+            if (Files.exists(instanceInfoPath)) {
+                for (Path sessionDir : FileSystemUtils.allDirectoriesInDirectory(instanceDir)) {
+                    Path sessionInfoPath = sessionDir.resolve(SESSION_INFO_FILE);
+                    if (Files.exists(sessionInfoPath)) {
+                        sessions.add(readInfoFile(sessionInfoPath, RemoteProjectInstanceSession.class));
+                    }
+                }
+            }
+        }
+
+        return sessions;
     }
 
     @Override

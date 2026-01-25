@@ -50,6 +50,7 @@ public abstract class RemoteMappers {
                 response.id(),
                 response.name(),
                 response.label(),
+                liveProject.map(ProjectInfo::namespace).orElse(null),
                 response.workspaceId(),
                 WorkspaceType.REMOTE,
                 InstantUtils.parseInstant(response.createdAt()),

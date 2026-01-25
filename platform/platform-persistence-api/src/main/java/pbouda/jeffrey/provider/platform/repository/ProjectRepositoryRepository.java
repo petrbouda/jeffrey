@@ -19,7 +19,7 @@
 package pbouda.jeffrey.provider.platform.repository;
 
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +42,7 @@ public interface ProjectRepositoryRepository {
      *
      * @param repositorySessionInfo the workspace session to create
      */
-    void createSession(RepositorySessionInfo repositorySessionInfo);
+    void createSession(ProjectInstanceSessionInfo repositorySessionInfo);
 
     /**
      * Delete a workspace session by its session ID.
@@ -56,7 +56,7 @@ public interface ProjectRepositoryRepository {
      *
      * @return list of workspace sessions for the project
      */
-    List<RepositorySessionInfo> findAllSessions();
+    List<ProjectInstanceSessionInfo> findAllSessions();
 
     /**
      * Find a single workspace session by project ID and session ID.
@@ -64,7 +64,7 @@ public interface ProjectRepositoryRepository {
      * @param sessionId the session ID
      * @return the workspace session if it exists, otherwise an empty optional
      */
-    Optional<RepositorySessionInfo> findSessionById(String sessionId);
+    Optional<ProjectInstanceSessionInfo> findSessionById(String sessionId);
 
     /**
      * Find all sessions that have not been marked as finished yet.
@@ -72,7 +72,7 @@ public interface ProjectRepositoryRepository {
      *
      * @return list of unfinished sessions
      */
-    List<RepositorySessionInfo> findUnfinishedSessions();
+    List<ProjectInstanceSessionInfo> findUnfinishedSessions();
 
     /**
      * Mark a session as finished by setting the finished_at timestamp.

@@ -38,20 +38,20 @@ const duration = ref(1);
 const timeUnits = ['Minutes', 'Hours', 'Days'];
 const selectedTimeUnit = ref('Days');
 const loading = ref(false);
-const currentJobType = ref<string>(JobType.REPOSITORY_SESSION_CLEANER);
+const currentJobType = ref<string>(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
 
-const isSessionCleaner = computed(() => currentJobType.value === JobType.REPOSITORY_SESSION_CLEANER);
+const isSessionCleaner = computed(() => currentJobType.value === JobType.PROJECT_INSTANCE_SESSION_CLEANER);
 
 const modalTitle = computed(() =>
   isSessionCleaner.value
-    ? 'Create a Repository Session Cleaner Job'
-    : 'Create a Repository Recording Cleaner Job'
+    ? 'Create a Project Instance Session Cleaner Job'
+    : 'Create a Project Instance Recording Cleaner Job'
 );
 
 const jobName = computed(() =>
   isSessionCleaner.value
-    ? 'Repository Session Cleaner'
-    : 'Repository Recording Cleaner'
+    ? 'Project Instance Session Cleaner'
+    : 'Project Instance Recording Cleaner'
 );
 
 const jobDescription = computed(() =>
@@ -60,7 +60,7 @@ const jobDescription = computed(() =>
     : 'Fill in a duration for how long to keep recordings in the active (latest) session. Only recordings older than the given duration will be removed. Older sessions are not affected.'
 );
 
-const showModal = (jobType: string = JobType.REPOSITORY_SESSION_CLEANER) => {
+const showModal = (jobType: string = JobType.PROJECT_INSTANCE_SESSION_CLEANER) => {
   currentJobType.value = jobType;
   resetForm();
   baseModalRef.value?.showModal();
@@ -114,7 +114,7 @@ defineExpose({
 <template>
   <BaseModal
     ref="baseModalRef"
-    modal-id="repositorySessionCleanerModal"
+    modal-id="projectInstanceSessionCleanerModal"
     :title="modalTitle"
     icon="bi-trash"
     icon-color="text-teal"

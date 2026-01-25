@@ -169,7 +169,12 @@ jeffrey/
 - **Components**: PascalCase for component names
 - **Composition API**: Preferred over Options API
 - **TypeScript**: Strict typing with interfaces for API models
-- **Styling**: Scoped CSS with SCSS preprocessing
+- **Styling**: Use shared CSS files first, then scoped CSS for component-specific styles
+  - **Shared CSS files** (import via `import '@/styles/...'` or `@import` in SCSS):
+    - `@/styles/shared-components.css` - Common UI patterns (search-container, cards, buttons, loading/empty states)
+    - `@/assets/_sidebar-menu.scss` - Sidebar navigation styles (nav-item, nav-submenu, disabled-feature)
+  - Always check shared CSS files before adding new scoped styles
+  - Add commonly reused styles to shared files to avoid duplication
 - **File Organization**: Feature-based grouping with shared components
 - Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
 - Always try to use Vue Components first. If you need create a new to deduplicate code, suggest it and create it.

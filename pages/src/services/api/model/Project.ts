@@ -26,6 +26,7 @@ export default class Project {
         public originId: string,
         public name: string,
         public label: string | null,
+        public namespace: string | null,
         public createdAt: string,
         public profileCount: number,
         public workspaceId: string,

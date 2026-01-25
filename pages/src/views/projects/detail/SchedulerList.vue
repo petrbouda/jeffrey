@@ -27,7 +27,7 @@ import SettingsResponse from "@/services/api/model/SettingsResponse.ts";
 import ToastService from "@/services/ToastService";
 import MessageBus from "@/services/MessageBus";
 import JobCard from "@/components/JobCard.vue";
-import RepositorySessionCleanerModal from "@/components/scheduler/modal/RepositorySessionCleanerModal.vue";
+import ProjectInstanceSessionCleanerModal from "@/components/scheduler/modal/ProjectInstanceSessionCleanerModal.vue";
 import PeriodicRecordingGeneratorModal from "@/components/scheduler/modal/PeriodicRecordingGeneratorModal.vue";
 import CopyRecordingGeneratorModal from "@/components/scheduler/modal/CopyRecordingGeneratorModal.vue";
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -43,7 +43,7 @@ const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectI
 const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
 
 // Modal refs
-const repositorySessionCleanerModalRef = ref<InstanceType<typeof RepositorySessionCleanerModal> | null>(null);
+const projectInstanceSessionCleanerModalRef = ref<InstanceType<typeof ProjectInstanceSessionCleanerModal> | null>(null);
 const periodicRecordingGeneratorModalRef = ref<InstanceType<typeof PeriodicRecordingGeneratorModal> | null>(null);
 const copyRecordingGeneratorModalRef = ref<InstanceType<typeof CopyRecordingGeneratorModal> | null>(null);
 
@@ -88,9 +88,9 @@ function checkForExistingJobs(jobs: JobInfo[]) {
 
   // Check for existing jobs by type
   for (let job of jobs) {
-    if (job.jobType === JobType.REPOSITORY_SESSION_CLEANER) {
+    if (job.jobType === JobType.PROJECT_INSTANCE_SESSION_CLEANER) {
       sessionCleanerJobAlreadyExists.value = true;
-    } else if (job.jobType === JobType.REPOSITORY_RECORDING_CLEANER) {
+    } else if (job.jobType === JobType.PROJECT_INSTANCE_RECORDING_CLEANER) {
       recordingCleanerJobAlreadyExists.value = true;
     } else if (job.jobType === JobType.COPY_RECORDING_GENERATOR) {
       copyGeneratorJobAlreadyExists.value = true;
@@ -157,11 +157,11 @@ async function deleteActiveTask(id: string) {
 // Handle job creation from JobCard component
 const handleCreateJob = async (jobType: string) => {
   switch (jobType) {
-    case JobType.REPOSITORY_SESSION_CLEANER:
-      repositorySessionCleanerModalRef.value?.showModal(JobType.REPOSITORY_SESSION_CLEANER);
+    case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
+      projectInstanceSessionCleanerModalRef.value?.showModal(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
       break;
-    case JobType.REPOSITORY_RECORDING_CLEANER:
-      repositorySessionCleanerModalRef.value?.showModal(JobType.REPOSITORY_RECORDING_CLEANER);
+    case JobType.PROJECT_INSTANCE_RECORDING_CLEANER:
+      projectInstanceSessionCleanerModalRef.value?.showModal(JobType.PROJECT_INSTANCE_RECORDING_CLEANER);
       break;
     case JobType.COPY_RECORDING_GENERATOR:
       copyRecordingGeneratorModalRef.value?.showModal();
@@ -208,16 +208,16 @@ const createSimpleJob = async (jobType: string) => {
 // Get display info for jobs in the table
 const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
   switch (job.jobType) {
-    case JobType.REPOSITORY_SESSION_CLEANER:
+    case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
       return {
-        title: 'Repository Session Cleaner',
+        title: 'Project Instance Session Cleaner',
         icon: 'bi-trash',
         iconColor: 'text-teal',
         iconBg: 'bg-teal-soft'
       };
-    case JobType.REPOSITORY_RECORDING_CLEANER:
+    case JobType.PROJECT_INSTANCE_RECORDING_CLEANER:
       return {
-        title: 'Repository Recording Cleaner',
+        title: 'Project Instance Recording Cleaner',
         icon: 'bi-trash',
         iconColor: 'text-teal',
         iconBg: 'bg-teal-soft'
@@ -272,12 +272,12 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
     <!-- Job Types -->
     <div class="col-12 mb-4">
       <div class="row g-4">
-        <!-- Repository Session Cleaner -->
+        <!-- Project Instance Session Cleaner -->
         <div class="col-12 col-lg-6">
           <JobCard
-                  :job-type="JobType.REPOSITORY_SESSION_CLEANER"
-                  title="Repository Session Cleaner"
-                  description="Task for removing Repository Session older than the configured duration. Once a Repository Session is removed, all associated Recordings and Additional Files (e.g. HeapDup, PerfCounters, ...) are being removed as well."
+                  :job-type="JobType.PROJECT_INSTANCE_SESSION_CLEANER"
+                  title="Project Instance Session Cleaner"
+                  description="Task for removing Project Instance Session older than the configured duration. Once a session is removed, all associated Recordings and Additional Files (e.g. HeapDump, PerfCounters, ...) are being removed as well."
                   icon="bi-trash"
                   icon-color="text-teal"
                   icon-bg="bg-teal-soft"
@@ -289,12 +289,12 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
               />
             </div>
 
-            <!-- Repository Recording Cleaner -->
+            <!-- Project Instance Recording Cleaner -->
             <div class="col-12 col-lg-6">
               <JobCard
-                  :job-type="JobType.REPOSITORY_RECORDING_CLEANER"
-                  title="Repository Recording Cleaner"
-                  description="Task for removing only Recording in the active (latest) Repository Session. It does not remove recordings in older sessions, it just ensure that the rolling recordings in the latest Repository Session are limited."
+                  :job-type="JobType.PROJECT_INSTANCE_RECORDING_CLEANER"
+                  title="Project Instance Recording Cleaner"
+                  description="Task for removing only Recording in the active (latest) Project Instance Session. It does not remove recordings in older sessions, it just ensures that the rolling recordings in the latest session are limited."
                   icon="bi-trash"
                   icon-color="text-teal"
                   icon-bg="bg-teal-soft"
@@ -428,8 +428,8 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
   </PageHeader>
 
   <!-- Modal Components -->
-  <RepositorySessionCleanerModal
-    ref="repositorySessionCleanerModalRef"
+  <ProjectInstanceSessionCleanerModal
+    ref="projectInstanceSessionCleanerModalRef"
     :scheduler-service="schedulerService"
     @saved="handleModalSaved" />
 

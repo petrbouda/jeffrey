@@ -43,4 +43,6 @@ public interface PlatformRepositories {
     WorkspacesRepository newWorkspacesRepository();
 
     ProfileRepository newProfileRepository(String profileId);
+
+    ProjectInstanceRepository newProjectInstanceRepository(String projectId);
 }

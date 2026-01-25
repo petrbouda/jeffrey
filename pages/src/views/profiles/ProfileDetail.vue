@@ -78,7 +78,7 @@
 
   <div class="d-flex w-100">
     <!-- Sidebar Menu -->
-    <div class="profile-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <div class="detail-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
         <div class="edge-toggle" @click="toggleSidebar">
           <div class="edge-toggle-line">
@@ -542,7 +542,7 @@
 
 
     <!-- Main Content -->
-    <div class="profile-main-content">
+    <div class="detail-main-content">
 
       <!-- Compact Differential Analysis Bar -->
       <div class="compact-comparison-bar mb-3" v-if="!sidebarCollapsed && comparisonPanelVisible">
@@ -613,7 +613,7 @@
 
 
       <!-- Content Area without tabs -->
-      <div class="profile-content-container mb-4">
+      <div class="detail-content-container mb-4">
         <div class="card">
           <div class="card-body">
             <router-view
@@ -953,258 +953,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Content container styles */
-.profile-content-container {
-  width: 100%;
-}
-
-.card {
-  border: none;
-  border-radius: 0;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-/* Sidebar styles */
-.profile-sidebar {
-  width: 280px;
-  min-height: 100vh;
-  background-color: #fff;
-  border-right: 1px solid #dee2e6;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.profile-sidebar.collapsed {
-  width: 50px;
-}
-
-.sidebar {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
-
-.sidebar.collapsed {
-  width: 50px;
-}
-
-.scrollbar {
-  overflow-y: auto;
-  height: calc(100% - 40px);
-
-  &::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-  }
-
-  &:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-}
-
-.edge-toggle {
-  position: absolute;
-  right: -8px;
-  top: 0;
-  bottom: 0;
-  width: 20px;
-  cursor: pointer;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-  z-index: 10;
-
-  &:hover {
-    opacity: 1;
-  }
-
-  &:hover .edge-toggle-line {
-    background: linear-gradient(135deg, #5e64ff, #4338ca);
-    width: 7px;
-    box-shadow: -2px 0 8px rgba(94, 100, 255, 0.2);
-  }
-
-  &:hover .edge-toggle-line i {
-    opacity: 1;
-  }
-}
-
-.edge-toggle-line {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-  height: 90px;
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  border-radius: 4px 0 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.05);
-  pointer-events: none;
-
-  i {
-    position: absolute;
-    font-size: 0.8rem;
-    color: white;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-}
-
-/* Show edge toggle on sidebar hover */
-.profile-sidebar:hover .edge-toggle {
-  opacity: 0.7;
-}
-
-/* Modern sidebar styling */
-.sidebar-menu {
-  padding: 0.5rem 0;
-}
-
-.nav-section {
-  margin-bottom: 1.25rem;
-}
-
-.nav-section-title {
-  color: #748194;
-  font-weight: 600;
-  font-size: 0.7rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 0 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.nav-items {
-  display: flex;
-  flex-direction: column;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1.25rem;
-  color: #5e6e82;
-  font-weight: 500;
-  font-size: 0.85rem;
-  border-radius: 0;
-  transition: all 0.2s ease;
-  position: relative;
-  text-decoration: none;
-  margin: 0.125rem 0;
-
-  &:hover {
-    color: #5e64ff;
-    background-color: rgba(94, 100, 255, 0.06);
-  }
-
-  &.active {
-    color: #5e64ff;
-    background-color: rgba(94, 100, 255, 0.1);
-    border-left: 3px solid #5e64ff;
-    padding-left: calc(1.25rem - 3px);
-
-    i {
-      color: #5e64ff;
-    }
-  }
-
-  i {
-    color: #7d899b;
-    font-size: 0.9rem;
-    width: 1.5rem;
-    text-align: center;
-    margin-right: 0.5rem;
-  }
-}
-
-
-/* HTTP Submenu Styles */
-.nav-item-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.nav-item-parent {
-  cursor: pointer;
-  position: relative;
-
-  .submenu-arrow {
-    margin-left: auto;
-    transition: transform 0.2s ease;
-    font-size: 0.7rem;
-  }
-
-  .submenu-arrow.rotated {
-    transform: rotate(90deg);
-  }
-}
-
-.nav-submenu {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-  background-color: rgba(248, 249, 250, 0.5);
-  margin-left: 1rem;
-}
-
-.nav-submenu.expanded {
-  max-height: 250px;
-}
-
-.nav-subitem {
-  padding: 0.5rem 0.75rem;
-  margin: 0.125rem 0.5rem;
-  font-size: 0.8rem;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-
-  &:hover {
-    background-color: rgba(94, 100, 255, 0.06);
-    border-color: rgba(94, 100, 255, 0.15);
-    transform: translateX(2px);
-    box-shadow: 0 2px 4px rgba(94, 100, 255, 0.1);
-  }
-
-  &.active {
-    background-color: rgba(94, 100, 255, 0.12);
-    border-color: #5e64ff;
-    color: #5e64ff;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(94, 100, 255, 0.15);
-
-    i {
-      color: #5e64ff;
-    }
-  }
-
-  i {
-    font-size: 0.8rem;
-    width: 1rem;
-    margin-right: 0.4rem;
-  }
-}
-
-.fs-7 {
-  font-size: 0.75rem !important;
-}
-
-.profile-main-content {
-  flex: 1;
-  padding-left: 1rem;
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
+/* ProfileDetail-specific styles */
+/* Common sidebar styles are in @/assets/_sidebar-menu.scss */
 
 /* Compact Comparison Bar */
 .compact-comparison-bar {
@@ -1740,29 +1490,6 @@ onUnmounted(() => {
   100% {
     background-color: #f8f9fa;
   }
-}
-
-
-/* Disabled features styling */
-.disabled-feature {
-  color: #a1a9b8 !important;
-  border-left: 2px dashed #cbd5e1 !important;
-  padding-left: calc(1.25rem - 5px) !important;
-  background-color: rgba(241, 245, 249, 0.5);
-}
-
-.disabled-feature i {
-  color: #a1a9b8 !important;
-}
-
-.disabled-feature:hover {
-  color: #64748b !important;
-  border-left-color: #94a3b8 !important;
-  background-color: rgba(241, 245, 249, 0.8);
-}
-
-.disabled-feature:hover i {
-  color: #64748b !important;
 }
 
 /* Comparison Toggle Button */

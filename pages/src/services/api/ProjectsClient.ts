@@ -55,4 +55,10 @@ export default class ProjectsClient {
             params: {target: target},
         }).then(HttpUtils.RETURN_DATA);
     }
+
+    static async namespaces(workspaceId: string): Promise<string[]> {
+        return axios.get<string[]>(
+            ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects/namespaces", HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
 }

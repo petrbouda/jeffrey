@@ -147,7 +147,7 @@ class JdbcWorkspaceRepositoryTest {
             List<WorkspaceEvent> events = List.of(
                     new WorkspaceEvent(0L, "origin-001", "proj-001", "ws-001", WorkspaceEventType.PROJECT_CREATED,
                             "{}", Instant.parse("2025-01-01T10:00:00Z"), Instant.parse("2025-01-01T10:00:01Z"), "test"),
-                    new WorkspaceEvent(0L, "origin-002", "proj-001", "ws-001", WorkspaceEventType.SESSION_CREATED,
+                    new WorkspaceEvent(0L, "origin-002", "proj-001", "ws-001", WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
                             "{}", Instant.parse("2025-01-01T11:00:00Z"), Instant.parse("2025-01-01T11:00:01Z"), "test")
             );
 

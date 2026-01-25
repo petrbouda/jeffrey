@@ -24,7 +24,7 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
@@ -44,7 +44,7 @@ public class SessionFinishEventEmitter {
         this.compositeWorkspacesManager = compositeWorkspacesManager;
     }
 
-    public void emitSessionFinished(ProjectInfo projectInfo, RepositorySessionInfo sessionInfo) {
+    public void emitSessionFinished(ProjectInfo projectInfo, ProjectInstanceSessionInfo sessionInfo) {
         Optional<WorkspaceManager> workspaceOpt =
                 compositeWorkspacesManager.findById(projectInfo.workspaceId());
 

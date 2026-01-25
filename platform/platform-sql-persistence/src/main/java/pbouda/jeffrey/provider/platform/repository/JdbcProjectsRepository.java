@@ -57,14 +57,21 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  origin_project_id,
                  project_name,
                  project_label,
+                 namespace,
                  workspace_id,
                  created_at,
                  origin_created_at,
                  attributes,
                  graph_visualization)
-                SELECT :project_id, :origin_project_id, :project_name, :project_label, :workspace_id, :created_at, :origin_created_at, :attributes, :graph_visualization
+                SELECT :project_id, :origin_project_id, :project_name, :project_label, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes, :graph_visualization
                 WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL)
                 ON CONFLICT DO NOTHING""";
+
+    //language=SQL
+    private static final String SELECT_ALL_NAMESPACES = """
+            SELECT DISTINCT namespace FROM projects
+            WHERE namespace IS NOT NULL
+            ORDER BY namespace""";
 
     private final DatabaseClient databaseClient;
 
@@ -94,6 +101,7 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("origin_project_id", newProject.originId())
                 .addValue("project_name", newProject.name())
                 .addValue("project_label", newProject.label())
+                .addValue("namespace", newProject.namespace())
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().atOffset(ZoneOffset.UTC))
                 .addValue("origin_created_at", newProject.originCreatedAt() != null ? newProject.originCreatedAt().atOffset(ZoneOffset.UTC) : null)
@@ -112,5 +120,13 @@ public class JdbcProjectsRepository implements ProjectsRepository {
         return databaseClient.querySingle(
                 StatementLabel.FIND_PROJECT_BY_ORIGIN_ID, SELECT_PROJECT_BY_ORIGIN_ID, paramSource,
                 Mappers.projectInfoMapper());
+    }
+
+    @Override
+    public List<String> findAllNamespaces() {
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_PROJECT_NAMESPACES,
+                SELECT_ALL_NAMESPACES,
+                (rs, _) -> rs.getString("namespace"));
     }
 }

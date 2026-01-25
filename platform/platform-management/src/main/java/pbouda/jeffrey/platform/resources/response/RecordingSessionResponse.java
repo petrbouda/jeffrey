@@ -27,6 +27,7 @@ import java.util.List;
 public record RecordingSessionResponse(
         String id,
         String name,
+        String instanceId,
         Instant createdAt,
         RecordingStatus status,
         String profilerSettings,
@@ -36,6 +37,7 @@ public record RecordingSessionResponse(
         return new RecordingSessionResponse(
                 session.id(),
                 session.name(),
+                session.instanceId(),
                 session.createdAt(),
                 session.status(),
                 session.profilerSettings(),
@@ -48,6 +50,7 @@ public record RecordingSessionResponse(
         return new RecordingSession(
                 response.id(),
                 response.name(),
+                response.instanceId(),
                 response.createdAt(),
                 response.status(),
                 response.profilerSettings(),

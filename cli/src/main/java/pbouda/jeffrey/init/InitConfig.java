@@ -22,6 +22,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigFactory;
 import pbouda.jeffrey.init.model.HeapDumpType;
+import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
 
 import java.nio.file.Files;
@@ -41,10 +42,13 @@ public class InitConfig {
             workspaces-dir = ""
             profiler-path = ""
             profiler-config = ""
-            workspace-id = ""
-            project-name = ""
-            project-label = ""
             repository-type = ""
+            project {
+                workspace-id = ""
+                name = ""
+                label = ""
+                instance-id = ""
+            }
             attributes = {}
             perf-counters { enabled = false }
             heap-dump { enabled = false, type = "exit" }
@@ -77,12 +81,10 @@ public class InitConfig {
     private boolean silent;
     private String jeffreyHome;
     private String workspacesDir;
-    private String workspaceId;
-    private String projectName;
-    private String projectLabel;
     private String profilerPath;
     private String profilerConfig;
     private String repositoryType;
+    private ProjectConfig project;
     private PerfCountersConfig perfCounters;
     private HeapDumpConfig heapDump;
     private JvmLoggingConfig jvmLogging;
@@ -114,28 +116,45 @@ public class InitConfig {
         this.workspacesDir = workspacesDir;
     }
 
-    public String getWorkspaceId() {
-        return workspaceId;
+    public ProjectConfig getProject() {
+        return project;
     }
 
-    public void setWorkspaceId(String workspaceId) {
-        this.workspaceId = workspaceId;
+    public void setProject(ProjectConfig project) {
+        this.project = project;
+    }
+
+    // Delegation methods for project fields (backwards compatible API)
+    public String getWorkspaceId() {
+        return project != null ? project.getWorkspaceId() : null;
     }
 
     public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(String projectName) {
-        this.projectName = projectName;
+        return project != null ? project.getName() : null;
     }
 
     public String getProjectLabel() {
-        return nullIfBlank(projectLabel);
+        return project != null ? project.getLabel() : null;
     }
 
-    public void setProjectLabel(String projectLabel) {
-        this.projectLabel = projectLabel;
+    /**
+     * Returns the instance ID with fallback resolution:
+     * 1. Config value if set
+     * 2. HOSTNAME environment variable if set
+     * 3. Generated UUID
+     */
+    public String getInstanceId() {
+        // 1. Config value
+        if (project != null && !isNullOrBlank(project.getInstanceId())) {
+            return project.getInstanceId();
+        }
+        // 2. HOSTNAME env var
+        String hostname = System.getenv("HOSTNAME");
+        if (!isNullOrBlank(hostname)) {
+            return hostname;
+        }
+        // 3. Generate UUID
+        return IDGenerator.generate();
     }
 
     public String getProfilerPath() {
@@ -329,6 +348,13 @@ public class InitConfig {
         return !isNullOrBlank(jeffreyHome);
     }
 
+    /**
+     * Always returns true since getInstanceId() now has UUID fallback.
+     */
+    public boolean hasInstanceId() {
+        return true;
+    }
+
     public boolean isPerfCountersEnabled() {
         return perfCounters != null && perfCounters.isEnabled();
     }
@@ -388,20 +414,66 @@ public class InitConfig {
             throw new IllegalArgumentException("Cannot specify both 'jeffrey-home' and 'workspaces-dir'");
         }
 
-        if (isNullOrBlank(workspaceId)) {
-            throw new IllegalArgumentException("'workspace-id' must be specified");
+        if (project == null || isNullOrBlank(project.getWorkspaceId())) {
+            throw new IllegalArgumentException("'project.workspace-id' must be specified");
         }
 
-        if (isNullOrBlank(projectName)) {
-            throw new IllegalArgumentException("'project-name' must be specified");
+        if (project == null || isNullOrBlank(project.getName())) {
+            throw new IllegalArgumentException("'project.name' must be specified");
         }
 
+        String projectName = project.getName();
         if (!projectName.matches("^[a-zA-Z0-9_-]+$")) {
             throw new IllegalArgumentException("Project name can only contain alphanumeric characters, underscores, and dashes");
         }
 
         if (isMessagingEnabled() && !isNullOrBlank(profilerConfig)) {
             throw new IllegalArgumentException("Cannot specify both 'messaging.enabled' and 'profiler-config'");
+        }
+    }
+
+    // ==================== Project Config ====================
+
+    public static class ProjectConfig {
+        private String workspaceId;
+        private String name;
+        private String label;
+        private String instanceId;
+
+        public String getWorkspaceId() {
+            return workspaceId;
+        }
+
+        public void setWorkspaceId(String workspaceId) {
+            this.workspaceId = workspaceId;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getLabel() {
+            return nullIfBlank(label);
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
+        }
+
+        public String getInstanceId() {
+            return nullIfBlank(instanceId);
+        }
+
+        public void setInstanceId(String instanceId) {
+            this.instanceId = instanceId;
+        }
+
+        private static String nullIfBlank(String value) {
+            return (value == null || value.isBlank()) ? null : value;
         }
     }
 }

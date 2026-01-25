@@ -19,7 +19,8 @@
 package pbouda.jeffrey.platform.repository;
 
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
-import pbouda.jeffrey.shared.common.model.repository.RemoteSession;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import pbouda.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings;
 
 import java.util.List;
@@ -34,12 +35,22 @@ public interface RemoteWorkspaceRepository {
     List<RemoteProject> allProjects();
 
     /**
+     * Returns a list of all instances belonging to a single project.
+     * Instances represent deployed PODs/containers that create sessions.
+     *
+     * @param project the project to get instances for
+     * @return list of all instances in a single project
+     */
+    List<RemoteProjectInstance> allInstances(RemoteProject project);
+
+    /**
      * Returns a list of all sessions belonging to a single project.
+     * Sessions may be organized under instances or directly under the project.
      *
      * @param project the project to get sessions for
      * @return list of all sessions in a single project
      */
-    List<RemoteSession> allSessions(RemoteProject project);
+    List<RemoteProjectInstanceSession> allSessions(RemoteProject project);
 
     /**
      * Uploads profiler settings for the workspace.

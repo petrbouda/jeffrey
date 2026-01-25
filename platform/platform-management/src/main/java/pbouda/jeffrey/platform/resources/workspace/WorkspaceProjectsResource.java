@@ -126,6 +126,12 @@ public class WorkspaceProjectsResource {
         return projects;
     }
 
+    @GET
+    @Path("/namespaces")
+    public List<String> namespaces() {
+        return projectsManager.findAllNamespaces();
+    }
+
     @POST
     public Response createProject(CreateProjectRequest request) {
         if (this.workspaceInfo.isLive()) {
@@ -136,8 +142,9 @@ public class WorkspaceProjectsResource {
                 request.originProjectId(),
                 request.name(),
                 request.label(),
+                null, // namespace - can be set later via update
                 request.templateId(),
-                null, // No origin project ID for API created projects
+                null, // No origin created at for API created projects
                 Map.of());
 
         ProjectManager projectManager = projectsManager.create(createProject);

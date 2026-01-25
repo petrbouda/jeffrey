@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.manager;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
@@ -86,11 +86,11 @@ public interface RepositoryManager {
     void create(RepositoryInfo projectRepository);
 
     /**
-     * Create a new workspace session.
+     * Create a new project instance session.
      *
-     * @param repositorySessionInfo the workspace session to create
+     * @param projectInstanceSessionInfo the project instance session to create
      */
-    void createSession(RepositorySessionInfo repositorySessionInfo);
+    void createSession(ProjectInstanceSessionInfo projectInstanceSessionInfo);
 
     Optional<RepositoryInfo> info();
 
