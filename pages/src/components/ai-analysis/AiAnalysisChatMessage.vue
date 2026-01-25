@@ -34,7 +34,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { marked } from 'marked';
 import type { AiAnalysisChatMessage } from '@/composables/useAiAnalysis';
+
+// Configure marked for clean output
+marked.setOptions({
+  gfm: true,
+  breaks: true
+});
 
 const props = defineProps<{
   message: AiAnalysisChatMessage;
@@ -50,35 +57,7 @@ const formatToolName = (tool: string) => {
 };
 
 const formattedContent = computed(() => {
-  let text = props.message.content;
-
-  // Escape HTML entities
-  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  // Convert code blocks (triple backticks)
-  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-    return `<pre class="code-block"><code>${code.trim()}</code></pre>`;
-  });
-
-  // Convert inline code
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Convert bold
-  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-  // Convert headers
-  text = text.replace(/^### (.+)$/gm, '<h4 class="content-header">$1</h4>');
-  text = text.replace(/^## (.+)$/gm, '<h3 class="content-header">$1</h3>');
-
-  // Convert line breaks (but not inside code blocks)
-  text = text.replace(/\n/g, '<br>');
-
-  // Fix double line breaks in pre blocks
-  text = text.replace(/<pre([^>]*)>([\s\S]*?)<\/pre>/g, (match, attrs, content) => {
-    return `<pre${attrs}>${content.replace(/<br>/g, '\n')}</pre>`;
-  });
-
-  return text;
+  return marked.parse(props.message.content) as string;
 });
 </script>
 
@@ -137,55 +116,126 @@ const formattedContent = computed(() => {
 }
 
 .message-text {
-  font-size: 0.875rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.5;
   color: #212529;
   word-wrap: break-word;
 }
 
+/* Paragraphs */
+.message-text :deep(p) {
+  margin: 0 0 0.5rem 0;
+}
+
+.message-text :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+/* Headers */
+.message-text :deep(h1),
+.message-text :deep(h2),
+.message-text :deep(h3),
+.message-text :deep(h4) {
+  margin: 0.75rem 0 0.25rem 0;
+  font-weight: 600;
+  color: #1f2328;
+}
+
+.message-text :deep(h1) { font-size: 1rem; }
+.message-text :deep(h2) { font-size: 0.925rem; }
+.message-text :deep(h3) { font-size: 0.875rem; }
+.message-text :deep(h4) { font-size: 0.8rem; }
+
+.message-text :deep(h1:first-child),
+.message-text :deep(h2:first-child),
+.message-text :deep(h3:first-child),
+.message-text :deep(h4:first-child) {
+  margin-top: 0;
+}
+
+/* Inline code */
 .message-text :deep(code) {
   background-color: #f1f3f5;
-  padding: 0.125rem 0.375rem;
+  padding: 0.1rem 0.3rem;
   border-radius: 3px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #0969da;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
 }
 
-.message-text :deep(.code-block) {
+/* Code blocks */
+.message-text :deep(pre) {
   background-color: #f6f8fa;
   border: 1px solid #d0d7de;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
   margin: 0.5rem 0;
   overflow-x: auto;
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
-.message-text :deep(.code-block code) {
+.message-text :deep(pre code) {
   background: none;
   padding: 0;
+  color: #24292f;
   white-space: pre;
   display: block;
 }
 
+/* Bold/Strong */
 .message-text :deep(strong) {
   font-weight: 600;
 }
 
-.message-text :deep(.content-header) {
-  margin: 0.5rem 0 0.25rem 0;
-  font-size: 0.875rem;
+/* Lists */
+.message-text :deep(ul),
+.message-text :deep(ol) {
+  margin: 0.25rem 0 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.message-text :deep(li) {
+  margin: 0.125rem 0;
+}
+
+/* Tables */
+.message-text :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.75rem;
+}
+
+.message-text :deep(th),
+.message-text :deep(td) {
+  border: 1px solid #d0d7de;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+}
+
+.message-text :deep(th) {
+  background-color: #f6f8fa;
   font-weight: 600;
-  color: #1f2328;
+}
+
+.message-text :deep(tr:nth-child(even)) {
+  background-color: #f9fafb;
+}
+
+/* Blockquotes */
+.message-text :deep(blockquote) {
+  margin: 0.5rem 0;
+  padding: 0.25rem 0.75rem;
+  border-left: 3px solid #d0d7de;
+  color: #656d76;
+}
+
+/* Horizontal rules */
+.message-text :deep(hr) {
+  border: none;
+  border-top: 1px solid #d0d7de;
+  margin: 0.75rem 0;
 }
 
 .tools-used {

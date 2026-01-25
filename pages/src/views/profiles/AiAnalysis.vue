@@ -1,12 +1,12 @@
 <template>
-  <div class="ai-analysis-container">
-    <!-- Header -->
-    <div class="ai-analysis-header">
-      <div class="header-title">
-        <i class="bi-cpu-fill"></i>
-        <span>AI Analysis</span>
-      </div>
-      <div class="header-actions">
+  <PageHeader
+    title="AI Analysis"
+    description="Ask questions about your JFR profile and get AI-powered insights"
+    icon="bi-cpu-fill"
+  >
+    <div class="ai-analysis-container">
+      <!-- Panel Header -->
+      <div class="panel-header">
         <span v-if="status" class="status-badge" :class="{ available: isAvailable }">
           <i :class="isAvailable ? 'bi-check-circle-fill' : 'bi-x-circle-fill'"></i>
           {{ isAvailable ? status.provider || 'AI' : 'Not configured' }}
@@ -34,20 +34,24 @@
           <i class="bi-trash"></i>
         </button>
       </div>
-    </div>
 
-    <!-- Chat Area -->
-    <div class="chat-area" ref="chatAreaRef">
+      <!-- Chat Area -->
+      <div class="chat-area" ref="chatAreaRef">
       <!-- Welcome Message -->
       <div v-if="!hasMessages && !isLoading" class="welcome-message">
-        <div class="welcome-icon">
-          <i class="bi-cpu-fill"></i>
+        <div class="welcome-header">
+          <div class="welcome-icon">
+            <i class="bi bi-stars"></i>
+          </div>
+          <h3 class="welcome-title">Ask anything about your JFR profile</h3>
+          <div class="welcome-features">
+            <span class="feature-tag"><i class="bi bi-cpu"></i> CPU hotspots</span>
+            <span class="feature-tag"><i class="bi bi-recycle"></i> GC analysis</span>
+            <span class="feature-tag"><i class="bi bi-diagram-3"></i> Thread states</span>
+            <span class="feature-tag"><i class="bi bi-memory"></i> Memory patterns</span>
+          </div>
         </div>
-        <h3>AI-Powered JFR Analysis</h3>
-        <p>Ask questions about your JFR profile and get AI-powered insights about performance, events, threads, and more.</p>
-
         <div class="example-prompts">
-          <span class="prompts-label">Try asking:</span>
           <div class="prompt-chips">
             <button
                 v-for="(prompt, index) in examplePrompts"
@@ -120,7 +124,8 @@
         Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send
       </div>
     </div>
-  </div>
+    </div>
+  </PageHeader>
 </template>
 
 <script setup lang="ts">
@@ -128,6 +133,7 @@ import { ref, onMounted, nextTick, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAiAnalysis } from '@/composables/useAiAnalysis';
 import AiAnalysisChatMessage from '@/components/ai-analysis/AiAnalysisChatMessage.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
 const profileId = route.params.profileId as string;
@@ -193,38 +199,19 @@ onMounted(() => {
 .ai-analysis-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
   background-color: #fff;
   border-radius: 8px;
   border: 1px solid #e1e4e8;
-  overflow: hidden;
 }
 
-.ai-analysis-header {
+.panel-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background-color: #f6f8fa;
   border-bottom: 1px solid #e1e4e8;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: #1f2328;
-}
-
-.header-title i {
-  color: #0969da;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .status-badge {
@@ -312,8 +299,6 @@ onMounted(() => {
 }
 
 .chat-area {
-  flex: 1;
-  overflow-y: auto;
   padding: 1rem;
 }
 
@@ -321,51 +306,75 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
   padding: 1.5rem;
-  height: 100%;
+}
+
+.welcome-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
 }
 
 .welcome-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: #e8f4fd;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  color: #0969da;
-  margin-bottom: 0.75rem;
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.25);
 }
 
-.welcome-message h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  color: #1f2328;
+.welcome-icon i {
+  font-size: 1.6rem;
+  color: white;
+  animation: sparkle 3s ease-in-out infinite;
 }
 
-.welcome-message p {
-  margin: 0 0 1rem 0;
-  color: #656d76;
-  max-width: 400px;
-  font-size: 0.8rem;
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.08); }
+}
+
+.welcome-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0.25rem 0 0 0;
+}
+
+.welcome-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.feature-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+}
+
+.feature-tag i {
+  font-size: 0.65rem;
+  color: #9ca3af;
 }
 
 .example-prompts {
   width: 100%;
-  max-width: 600px;
-}
-
-.prompts-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #656d76;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: block;
-  margin-bottom: 0.5rem;
+  max-width: 650px;
+  margin-bottom: 1rem;
 }
 
 .prompt-chips {
@@ -377,19 +386,19 @@ onMounted(() => {
 
 .prompt-chip {
   font-size: 0.75rem;
-  padding: 0.35rem 0.65rem;
-  background-color: #f6f8fa;
-  border: 1px solid #d0d7de;
-  border-radius: 16px;
-  color: #1f2328;
+  padding: 0.375rem 0.75rem;
+  background-color: #e8f4fd;
+  border: 1px solid #b6d4f8;
+  border-radius: 20px;
+  color: #0969da;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .prompt-chip:hover {
-  background-color: #e8f4fd;
+  background-color: #0969da;
   border-color: #0969da;
-  color: #0969da;
+  color: white;
 }
 
 .messages-container {
