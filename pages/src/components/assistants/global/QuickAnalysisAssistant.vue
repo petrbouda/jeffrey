@@ -111,18 +111,15 @@
               </div>
             </div>
           </template>
+
+          <!-- Bottom note -->
+          <span class="dropzone-note">Temporary profiles - cleared on restart</span>
         </div>
 
         <!-- Error Message -->
         <div v-if="errorMessage" class="error-message">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
           {{ errorMessage }}
-        </div>
-
-        <!-- Panel Hint -->
-        <div class="panel-hint">
-          <i class="bi bi-info-circle"></i>
-          <span>Temporary profiles - cleared on restart</span>
         </div>
 
         <!-- Recent Analyses -->
@@ -452,21 +449,11 @@ const handleButtonClick = () => {
   font-size: 0.8rem;
 }
 
-/* Panel Hint */
-.panel-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  color: #6c757d;
-}
-
-.panel-hint i {
-  font-size: 0.85rem;
-  color: #667eea;
+/* Dropzone Note */
+.dropzone-note {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  margin-top: 4px;
 }
 
 /* Recent Analyses */
