@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -46,14 +47,17 @@ public class WorkspacesResource {
 
     private final CompositeWorkspacesManager workspacesManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     public WorkspacesResource(
             CompositeWorkspacesManager workspacesManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.workspacesManager = workspacesManager;
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -74,6 +78,7 @@ public class WorkspacesResource {
                 workspaceInfo,
                 workspaceManager,
                 oqlAssistantService,
+                jfrAnalysisAssistantService,
                 heapDumpContextExtractor);
     }
 

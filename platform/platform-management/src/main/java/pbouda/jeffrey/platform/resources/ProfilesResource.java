@@ -24,6 +24,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.manager.ProfileManager;
@@ -64,16 +65,19 @@ public class ProfilesResource {
     private final CompositeWorkspacesManager workspacesManager;
     private final QuickAnalysisManager quickAnalysisManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     public ProfilesResource(
             CompositeWorkspacesManager workspacesManager,
             QuickAnalysisManager quickAnalysisManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.workspacesManager = workspacesManager;
         this.quickAnalysisManager = quickAnalysisManager;
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -104,7 +108,7 @@ public class ProfilesResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = findProfileManager(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found: " + profileId));
-        return new ProfileResource(profileManager, oqlAssistantService, heapDumpContextExtractor);
+        return new ProfileResource(profileManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
     }
 
     /**

@@ -26,6 +26,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -56,17 +57,20 @@ public class WorkspaceProjectsResource {
     private final ProjectsManager projectsManager;
     private final WorkspaceManager workspaceManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     public WorkspaceProjectsResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.projectsManager = workspaceManager.projectsManager();
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -79,6 +83,7 @@ public class WorkspaceProjectsResource {
                 projectManager,
                 projectsManager,
                 oqlAssistantService,
+                jfrAnalysisAssistantService,
                 heapDumpContextExtractor);
     }
 

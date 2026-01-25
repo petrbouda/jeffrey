@@ -57,6 +57,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>duckdb-ai-mcp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>subsecond</artifactId>
         </dependency>
         <dependency>

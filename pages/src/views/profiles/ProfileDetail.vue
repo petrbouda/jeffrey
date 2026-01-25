@@ -133,6 +133,14 @@
                     <i class="bi bi-speedometer2"></i>
                     <span>Performance Counters</span>
                   </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/ai-analysis`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-cpu-fill"></i>
+                    <span>AI Analysis</span>
+                  </router-link>
                 </div>
               </div>
 

@@ -21,6 +21,7 @@ package pbouda.jeffrey.platform.resources.project;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
@@ -36,22 +37,26 @@ public class ProjectResource {
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     /**
-     * @param projectManager           Primary Project Manager
-     * @param projectsManager          Projects Manager to retrieve Profiles from different Projects
-     * @param oqlAssistantService      AI-powered OQL assistant service
-     * @param heapDumpContextExtractor Extracts heap dump context for AI prompts
+     * @param projectManager              Primary Project Manager
+     * @param projectsManager             Projects Manager to retrieve Profiles from different Projects
+     * @param oqlAssistantService         AI-powered OQL assistant service
+     * @param jfrAnalysisAssistantService AI-powered JFR analysis assistant service
+     * @param heapDumpContextExtractor    Extracts heap dump context for AI prompts
      */
     public ProjectResource(
             ProjectManager projectManager,
             ProjectsManager projectsManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.projectManager = projectManager;
         this.projectsManager = projectsManager;
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -61,6 +66,7 @@ public class ProjectResource {
                 projectManager.profilesManager(),
                 projectsManager,
                 oqlAssistantService,
+                jfrAnalysisAssistantService,
                 heapDumpContextExtractor);
     }
 
