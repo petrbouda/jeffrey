@@ -323,63 +323,64 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
   height: 100%;
 }
 
 .welcome-icon {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background-color: #e8f4fd;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   color: #0969da;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .welcome-message h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
   color: #1f2328;
 }
 
 .welcome-message p {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
   color: #656d76;
   max-width: 400px;
+  font-size: 0.8rem;
 }
 
 .example-prompts {
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
 }
 
 .prompts-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #656d76;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .prompt-chips {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .prompt-chip {
-  font-size: 0.8rem;
-  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
   background-color: #f6f8fa;
   border: 1px solid #d0d7de;
-  border-radius: 20px;
+  border-radius: 16px;
   color: #1f2328;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -490,11 +491,12 @@ onMounted(() => {
 
 .input-wrapper {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   background-color: #fff;
   border: 1px solid #d0d7de;
-  border-radius: 8px;
-  padding: 0.5rem;
+  border-radius: 6px;
+  padding: 0.375rem;
   transition: border-color 0.2s;
 }
 
@@ -508,10 +510,10 @@ onMounted(() => {
   border: none;
   outline: none;
   resize: none;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   line-height: 1.5;
   padding: 0.25rem 0.5rem;
-  min-height: 24px;
+  min-height: 22px;
   max-height: 150px;
   font-family: inherit;
 }
@@ -526,10 +528,10 @@ onMounted(() => {
 }
 
 .send-button {
-  align-self: flex-end;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
   background-color: #0969da;
   border: none;
   color: white;
@@ -537,6 +539,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.75rem;
   transition: background-color 0.2s;
 }
 
@@ -576,5 +579,6 @@ onMounted(() => {
   padding: 0.1rem 0.3rem;
   font-family: inherit;
   font-size: 0.65rem;
+  color: #1f2328;
 }
 </style>

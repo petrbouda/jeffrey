@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.profile.ai.mcp.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * A chat message in the JFR analysis conversation.
  *
@@ -29,7 +31,9 @@ public record JfrChatMessage(
         String content
 ) {
     public enum Role {
+        @JsonProperty("user")
         USER,
+        @JsonProperty("assistant")
         ASSISTANT
     }
 

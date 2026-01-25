@@ -19,10 +19,10 @@
         <span class="suggestions-label">Try asking:</span>
         <div class="suggestion-chips">
           <button
-              v-for="(suggestion, index) in message.suggestions"
-              :key="index"
-              class="suggestion-chip"
-              @click="$emit('suggestion', suggestion)"
+            v-for="(suggestion, index) in message.suggestions"
+            :key="index"
+            class="suggestion-chip"
+            @click="$emit('suggestion', suggestion)"
           >
             {{ suggestion }}
           </button>
@@ -90,6 +90,14 @@ const formattedContent = computed(() => {
   border-bottom: 1px solid #f0f0f0;
 }
 
+.chat-message.user {
+  align-items: center;
+}
+
+.chat-message.assistant {
+  align-items: flex-start;
+}
+
 .chat-message:last-child {
   border-bottom: none;
 }
@@ -141,7 +149,14 @@ const formattedContent = computed(() => {
   border-radius: 3px;
   font-size: 0.8rem;
   color: #0969da;
-  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    SF Mono,
+    Menlo,
+    Consolas,
+    Liberation Mono,
+    monospace;
 }
 
 .message-text :deep(.code-block) {
@@ -167,8 +182,8 @@ const formattedContent = computed(() => {
 }
 
 .message-text :deep(.content-header) {
-  margin: 1rem 0 0.5rem 0;
-  font-size: 0.95rem;
+  margin: 0.5rem 0 0.25rem 0;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1f2328;
 }
