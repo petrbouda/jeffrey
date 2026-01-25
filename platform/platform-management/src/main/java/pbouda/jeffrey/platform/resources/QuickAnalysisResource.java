@@ -25,6 +25,7 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.manager.ProfileManager;
@@ -64,14 +65,17 @@ public class QuickAnalysisResource {
 
     private final QuickAnalysisManager quickAnalysisManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     public QuickAnalysisResource(
             QuickAnalysisManager quickAnalysisManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.quickAnalysisManager = quickAnalysisManager;
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -149,7 +153,7 @@ public class QuickAnalysisResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = quickAnalysisManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Quick analysis profile not found: " + profileId));
-        return new ProfileResource(profileManager, oqlAssistantService, heapDumpContextExtractor);
+        return new ProfileResource(profileManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
     }
 
     /**

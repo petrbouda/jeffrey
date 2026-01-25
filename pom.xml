@@ -108,6 +108,11 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>duckdb-ai-mcp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>jfr-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>

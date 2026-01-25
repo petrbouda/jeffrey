@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -52,22 +53,26 @@ public class ProjectProfilesResource {
     private final ProfilesManager profilesManager;
     private final ProjectsManager projectsManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     /**
-     * @param profilesManager          Primary Profiles Manager
-     * @param projectsManager          Projects Manager to retrieve Profiles from different Projects
-     * @param oqlAssistantService      AI-powered OQL assistant service
-     * @param heapDumpContextExtractor Extracts heap dump context for AI prompts
+     * @param profilesManager             Primary Profiles Manager
+     * @param projectsManager             Projects Manager to retrieve Profiles from different Projects
+     * @param oqlAssistantService         AI-powered OQL assistant service
+     * @param jfrAnalysisAssistantService AI-powered JFR analysis assistant service
+     * @param heapDumpContextExtractor    Extracts heap dump context for AI prompts
      */
     public ProjectProfilesResource(
             ProfilesManager profilesManager,
             ProjectsManager projectsManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.profilesManager = profilesManager;
         this.projectsManager = projectsManager;
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -75,7 +80,7 @@ public class ProjectProfilesResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = profilesManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found"));
-        return new ProfileResource(profileManager, oqlAssistantService, heapDumpContextExtractor);
+        return new ProfileResource(profileManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
     }
 
     @Path("/{primaryProfileId}/diff/{secondaryProfileId}")

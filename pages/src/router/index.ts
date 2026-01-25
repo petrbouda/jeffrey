@@ -26,6 +26,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'ai-analysis',
+    name: 'profile-ai-analysis',
+    component: () => import('@/views/profiles/AiAnalysis.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'event-types',
     name: 'profile-event-types',
     component: () => import('@/views/profiles/detail/ProfileEventTypes.vue'),

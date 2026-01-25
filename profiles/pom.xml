@@ -46,6 +46,7 @@
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
+        <module>duckdb-ai-mcp</module>
     </modules>
 
     <properties>
@@ -125,6 +126,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>ai-assistant</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>duckdb-ai-mcp</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- Service modules that profile depends on -->

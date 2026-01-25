@@ -22,6 +22,7 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -35,14 +36,17 @@ public class ProfileResource {
 
     private final ProfileManager profileManager;
     private final OqlAssistantService oqlAssistantService;
+    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
 
     public ProfileResource(
             ProfileManager profileManager,
             OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor) {
         this.profileManager = profileManager;
         this.oqlAssistantService = oqlAssistantService;
+        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
     }
 
@@ -149,6 +153,11 @@ public class ProfileResource {
     @Path("/features")
     public ProfileFeaturesResource featuresResource() {
         return new ProfileFeaturesResource(profileManager.featuresManager());
+    }
+
+    @Path("/ai-analysis")
+    public AiAnalysisResource aiAnalysisResource() {
+        return new AiAnalysisResource(profileManager.info(), jfrAnalysisAssistantService);
     }
 
     @GET
