@@ -35,8 +35,31 @@
         </button>
       </div>
 
+      <!-- Input Area -->
+      <div class="input-area">
+        <div class="input-wrapper">
+          <textarea
+              v-model="currentInput"
+              :disabled="!isAvailable || isLoading"
+              :placeholder="isAvailable ? 'Ask about this JFR profile...' : 'AI assistant not configured'"
+              @keydown.ctrl.enter="handleSend"
+              @keydown.meta.enter="handleSend"
+              rows="1"
+              ref="inputRef"
+          ></textarea>
+          <button
+              class="send-button"
+              :disabled="!isAvailable || isLoading || !currentInput.trim()"
+              @click="handleSend"
+          >
+            <i v-if="isLoading" class="bi-hourglass-split spinning"></i>
+            <i v-else class="bi-send-fill"></i>
+          </button>
+        </div>
+      </div>
+
       <!-- Chat Area -->
-      <div class="chat-area" ref="chatAreaRef">
+      <div class="chat-area">
       <!-- Welcome Message -->
       <div v-if="!hasMessages && !isLoading" class="welcome-message">
         <div class="welcome-header">
@@ -67,26 +90,25 @@
 
       <!-- Chat Messages -->
       <div v-else class="messages-container">
-        <AiAnalysisChatMessage
-            v-for="(message, index) in messages"
-            :key="index"
-            :message="message"
-            @suggestion="useSuggestion"
-        />
-
-        <!-- Loading Indicator -->
-        <div v-if="isLoading" class="chat-message assistant loading">
-          <div class="message-avatar">
-            <i class="bi-cpu-fill"></i>
-          </div>
-          <div class="message-content">
-            <div class="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+        <template v-for="(message, index) in orderedMessages" :key="index">
+          <AiAnalysisChatMessage
+              :message="message"
+              @suggestion="useSuggestion"
+          />
+          <!-- Loading Indicator appears after the newest user message -->
+          <div v-if="isLoading && index === 0 && message.role === 'user'" class="chat-message assistant loading">
+            <div class="message-avatar">
+              <i class="bi-cpu-fill"></i>
+            </div>
+            <div class="message-content">
+              <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- Error Message -->
@@ -98,38 +120,12 @@
         </button>
       </div>
     </div>
-
-    <!-- Input Area -->
-    <div class="input-area">
-      <div class="input-wrapper">
-        <textarea
-            v-model="currentInput"
-            :disabled="!isAvailable || isLoading"
-            :placeholder="isAvailable ? 'Ask about this JFR profile...' : 'AI assistant not configured'"
-            @keydown.ctrl.enter="handleSend"
-            @keydown.meta.enter="handleSend"
-            rows="1"
-            ref="inputRef"
-        ></textarea>
-        <button
-            class="send-button"
-            :disabled="!isAvailable || isLoading || !currentInput.trim()"
-            @click="handleSend"
-        >
-          <i v-if="isLoading" class="bi-hourglass-split spinning"></i>
-          <i v-else class="bi-send-fill"></i>
-        </button>
-      </div>
-      <div class="input-hint">
-        Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send
-      </div>
-    </div>
     </div>
   </PageHeader>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAiAnalysis } from '@/composables/useAiAnalysis';
 import AiAnalysisChatMessage from '@/components/ai-analysis/AiAnalysisChatMessage.vue';
@@ -154,8 +150,21 @@ const {
   useSuggestion
 } = useAiAnalysis(profileId);
 
-const chatAreaRef = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
+
+// Group messages into pairs (request + response) and reverse to show newest first
+const orderedMessages = computed(() => {
+  const msgs = messages.value;
+  const pairs: typeof msgs = [];
+
+  // Group in pairs of 2 (user question + assistant answer)
+  for (let i = 0; i < msgs.length; i += 2) {
+    const pair = msgs.slice(i, i + 2);
+    pairs.unshift(...pair); // Add pair at the beginning
+  }
+
+  return pairs;
+});
 
 const examplePrompts = [
   'What JFR events are available in this profile?',
@@ -173,14 +182,6 @@ const handleSend = async () => {
   currentInput.value = '';
   await sendMessage(message);
 };
-
-// Auto-scroll to bottom when new messages arrive
-watch(messages, async () => {
-  await nextTick();
-  if (chatAreaRef.value) {
-    chatAreaRef.value.scrollTop = chatAreaRef.value.scrollHeight;
-  }
-}, { deep: true });
 
 // Auto-resize textarea
 watch(currentInput, () => {
@@ -408,6 +409,7 @@ onMounted(() => {
 
 .chat-message.loading {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
   padding: 1rem;
 }
@@ -494,7 +496,7 @@ onMounted(() => {
 
 .input-area {
   padding: 1rem;
-  border-top: 1px solid #e1e4e8;
+  border-bottom: 1px solid #e1e4e8;
   background-color: #f6f8fa;
 }
 
@@ -574,20 +576,4 @@ onMounted(() => {
   }
 }
 
-.input-hint {
-  font-size: 0.7rem;
-  color: #8c959f;
-  margin-top: 0.375rem;
-  text-align: right;
-}
-
-.input-hint kbd {
-  background-color: #eaeef2;
-  border: 1px solid #d0d7de;
-  border-radius: 3px;
-  padding: 0.1rem 0.3rem;
-  font-family: inherit;
-  font-size: 0.65rem;
-  color: #1f2328;
-}
 </style>

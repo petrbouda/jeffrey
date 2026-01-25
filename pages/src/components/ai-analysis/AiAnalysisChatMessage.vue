@@ -82,7 +82,14 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.user {
-  background-color: #f8f9fa;
+  background-color: #f0f4f8;
+  border-left: 3px solid #0969da;
+}
+
+.chat-message.user .message-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #24292f;
 }
 
 .chat-message.assistant {
