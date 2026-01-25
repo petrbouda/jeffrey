@@ -2,7 +2,9 @@
   <!-- Feature Collection Navigation -->
   <div class="feature-collection-nav normal-nav content-aligned">
     <div class="nav-container">
-      <div class="nav-pill"
+      <!-- JVM Internals mode (hidden for heap-dump-only profiles) -->
+      <div v-if="!isHeapDumpOnlyProfile"
+           class="nav-pill"
            :class="{ 'active': selectedMode === 'JVM' }"
            @click="selectMode('JVM')"
            title="Core JVM metrics and analysis">
@@ -14,7 +16,9 @@
           <small>Core JVM metrics and analysis</small>
         </div>
       </div>
-      <div class="nav-pill"
+      <!-- Application mode (hidden for heap-dump-only profiles) -->
+      <div v-if="!isHeapDumpOnlyProfile"
+           class="nav-pill"
            :class="{ 'active': selectedMode === 'Application' }"
            @click="selectMode('Application')"
            title="Application-specific analysis">
@@ -26,7 +30,9 @@
           <small>Application-specific analysis</small>
         </div>
       </div>
-      <div class="nav-pill"
+      <!-- Visualization mode (hidden for heap-dump-only profiles) -->
+      <div v-if="!isHeapDumpOnlyProfile"
+           class="nav-pill"
            :class="{ 'active': selectedMode === 'Visualization' }"
            @click="selectMode('Visualization')"
            title="Profiling graphs and visualizations">
@@ -38,6 +44,7 @@
           <small>Profiling graphs and visualizations</small>
         </div>
       </div>
+      <!-- Heap Dump mode (always visible) -->
       <div class="nav-pill"
            :class="{ 'active': selectedMode === 'HeapDump' }"
            @click="selectMode('HeapDump')"
@@ -51,8 +58,8 @@
         </div>
       </div>
 
-      <!-- Comparison Panel Toggle -->
-      <div class="comparison-toggle-wrapper ms-auto">
+      <!-- Comparison Panel Toggle (hidden for heap-dump-only profiles) -->
+      <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper ms-auto">
         <button
           class="comparison-toggle-btn"
           :class="{ 'active': comparisonPanelVisible, 'has-profile': secondaryProfile }"
@@ -623,6 +630,7 @@ import ToastService from '@/services/ToastService';
 import Profile from "@/services/api/model/Profile.ts";
 import DirectProfileClient from "@/services/api/DirectProfileClient.ts";
 import ProfileInfo from "@/services/api/model/ProfileInfo.ts";
+import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import Badge from '@/components/Badge.vue';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
@@ -652,6 +660,15 @@ const warningCount = ref<number>(0);
 const autoAnalysisWarningCount = ref<number>(0);
 const disabledFeatures = ref<FeatureType[]>([]);
 const heapDumpReady = ref(false);
+const isHeapDumpOnlyProfile = ref(false);
+
+/**
+ * Check if the profile is a heap-dump-only profile (no JFR data).
+ * These profiles have HEAP_DUMP event source.
+ */
+const checkHeapDumpOnlyProfile = (p: Profile): boolean => {
+  return p.eventSource === RecordingEventSource.HEAP_DUMP;
+};
 
 // Mapping function to determine which features are associated with menu items
 const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
@@ -732,6 +749,13 @@ onMounted(async () => {
 
     // Store profile context in profileStore for navigation
     profileStore.setProfile(profileWithContext);
+
+    // Check if this is a heap-dump-only profile (no JFR data)
+    isHeapDumpOnlyProfile.value = checkHeapDumpOnlyProfile(profileWithContext);
+    if (isHeapDumpOnlyProfile.value) {
+      // Auto-select HeapDump mode for heap-dump-only profiles
+      selectedMode.value = 'HeapDump';
+    }
 
     // Load guardian warning count
     try {

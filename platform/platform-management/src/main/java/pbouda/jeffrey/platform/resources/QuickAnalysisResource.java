@@ -100,6 +100,36 @@ public class QuickAnalysisResource {
     }
 
     /**
+     * Upload a heap dump file and create a profile for analysis.
+     * The heap dump is saved and a lightweight profile is created without JFR parsing.
+     */
+    @POST
+    @Path("/heap-dump")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response uploadHeapDump(
+            @FormDataParam("file") InputStream fileInputStream,
+            @FormDataParam("file") FormDataContentDisposition cdh) {
+
+        if (fileInputStream == null || cdh == null || cdh.getFileName() == null) {
+            throw new BadRequestException("File is required");
+        }
+
+        String filename = cdh.getFileName().toLowerCase();
+        if (!filename.endsWith(".hprof") && !filename.endsWith(".hprof.gz")) {
+            throw new BadRequestException("Only .hprof and .hprof.gz files are supported");
+        }
+
+        try {
+            String profileId = quickAnalysisManager.uploadHeapDump(cdh.getFileName(), fileInputStream).get();
+            return Response.ok(new AnalyzeResponse(profileId)).build();
+        } catch (InterruptedException | ExecutionException e) {
+            Thread.currentThread().interrupt();
+            throw new InternalServerErrorException("Failed to upload heap dump: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * List all quick analysis profiles.
      */
     @GET

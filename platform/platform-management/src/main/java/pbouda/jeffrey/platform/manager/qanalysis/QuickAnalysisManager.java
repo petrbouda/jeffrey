@@ -44,6 +44,16 @@ public interface QuickAnalysisManager {
     CompletableFuture<String> uploadAndAnalyze(String filename, InputStream inputStream);
 
     /**
+     * Uploads a heap dump file and creates a lightweight profile.
+     * No JFR parsing is performed - just stores the heap dump for analysis.
+     *
+     * @param filename    the original filename (must end with .hprof or .hprof.gz)
+     * @param inputStream the file content stream
+     * @return a CompletableFuture containing the profile ID
+     */
+    CompletableFuture<String> uploadHeapDump(String filename, InputStream inputStream);
+
+    /**
      * Lists all quick analysis profiles that are currently available.
      *
      * @return list of profile info for quick analysis profiles

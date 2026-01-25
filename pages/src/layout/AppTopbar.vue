@@ -16,13 +16,13 @@
       </a>
       
       <div class="d-flex align-items-center ms-auto">
-        <!-- Back to Profiles button (only shown on profile pages) -->
+        <!-- Back to Profiles/Home button (only shown on profile pages) -->
         <button v-if="isProfilePage"
                 class="back-to-profiles-btn me-2"
-                @click="$router.push(generateProjectUrl('profiles'))"
-                title="Back to profiles">
+                @click="isQuickAnalysisProfile ? $router.push('/') : $router.push(generateProjectUrl('profiles'))"
+                :title="isQuickAnalysisProfile ? 'Back to home' : 'Back to profiles'">
           <i class="bi bi-arrow-return-left"></i>
-          <span>Profiles</span>
+          <span>{{ isQuickAnalysisProfile ? 'Home' : 'Profiles' }}</span>
         </button>
 
         <!-- Back to Workspaces button (only shown on project pages) -->
@@ -60,6 +60,11 @@ const workspaceInfo = ref<Workspace | null>(null);
 // Check if current route is a profile detail page
 const isProfilePage = computed(() => {
   return route.meta.layout === 'profile';
+});
+
+// Check if current profile is a Quick Analysis profile (no workspace/project context)
+const isQuickAnalysisProfile = computed(() => {
+  return !workspaceId.value || !projectId.value;
 });
 
 // Check if current route is a project detail page

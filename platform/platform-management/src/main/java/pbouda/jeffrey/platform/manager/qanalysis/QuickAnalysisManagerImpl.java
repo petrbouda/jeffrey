@@ -30,6 +30,7 @@ import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +79,68 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
                             filename, ex.getMessage(), ex);
                     throw new RuntimeException("Could not upload and analyze JFR file: " + filename, ex);
                 });
+    }
+
+    @Override
+    public CompletableFuture<String> uploadHeapDump(String filename, InputStream inputStream) {
+        return CompletableFuture.supplyAsync(
+                        () -> uploadHeapDumpInternal(filename, inputStream),
+                        Schedulers.sharedVirtual())
+                .exceptionally(ex -> {
+                    LOG.error("Could not upload heap dump: filename={} message={}",
+                            filename, ex.getMessage(), ex);
+                    throw new RuntimeException("Could not upload heap dump: " + filename, ex);
+                });
+    }
+
+    private String uploadHeapDumpInternal(String filename, InputStream inputStream) {
+        String profileId = IDGenerator.generate();
+        Instant createdAt = clock.instant();
+
+        // Create heap dump analysis directory for this quick profile
+        Path heapDumpAnalysisPath = jeffreyDirs.quickHeapDumpAnalysisDir(profileId);
+        FileSystemUtils.createDirectories(heapDumpAnalysisPath);
+
+        // Save heap dump file
+        Path targetPath = heapDumpAnalysisPath.resolve(filename);
+        try {
+            Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to save heap dump file", e);
+        }
+
+        LOG.info("Uploaded heap dump saved: path={}", targetPath);
+
+        // Create ProfileInfo for heap dump profile
+        ProfileInfo profileInfo = new ProfileInfo(
+                profileId,
+                null,  // workspaceId
+                null,  // projectId
+                filename,  // name
+                RecordingEventSource.HEAP_DUMP,
+                createdAt,  // profilingStartedAt (use creation time)
+                createdAt,  // profilingFinishedAt
+                createdAt,
+                true   // enabled
+        );
+
+        // Write metadata file for filesystem-based resolution
+        QuickProfileMetadata metadata = new QuickProfileMetadata(
+                profileId,
+                filename,
+                RecordingEventSource.HEAP_DUMP.name(),
+                createdAt,
+                createdAt,
+                createdAt);
+
+        writeMetadata(profileId, metadata);
+
+        // Create profile manager (initializes database)
+        profileManagerFactory.apply(profileInfo);
+
+        LOG.info("Quick heap dump profile created: profile_id={} profile_name={}", profileId, filename);
+
+        return profileId;
     }
 
     private String uploadAndAnalyzeInternal(String filename, InputStream inputStream) {

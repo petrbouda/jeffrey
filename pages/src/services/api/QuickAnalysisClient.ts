@@ -48,6 +48,24 @@ export default class QuickAnalysisClient {
     }
 
     /**
+     * Upload a heap dump file and create a profile for analysis.
+     * The heap dump is saved and a lightweight profile is created without JFR parsing.
+     *
+     * @param file The heap dump file to upload (.hprof or .hprof.gz)
+     * @returns The profile ID of the created profile
+     */
+    static async uploadHeapDump(file: File): Promise<string> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return axios.post<{ profileId: string }>(
+            QuickAnalysisClient.baseUrl + '/heap-dump',
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        ).then(response => response.data.profileId);
+    }
+
+    /**
      * List all quick analysis profiles.
      */
     static async listProfiles(): Promise<QuickAnalysisProfile[]> {

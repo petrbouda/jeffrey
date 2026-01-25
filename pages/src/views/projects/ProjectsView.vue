@@ -185,6 +185,7 @@
       :is-open="quickStore.isOpen.value"
       :is-expanded="quickStore.isExpanded.value"
       :selected-file="quickStore.selectedFile.value"
+      :selected-file-type="quickStore.selectedFileType.value"
       :status="quickStore.status.value"
       :status-message="quickStore.statusMessage.value"
       :recent-profiles="quickStore.recentProfiles.value"
