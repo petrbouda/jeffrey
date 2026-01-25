@@ -28,15 +28,9 @@
     </parent>
 
     <artifactId>duckdb-ai-mcp</artifactId>
-    <description>DuckDB MCP server integration for AI-powered JFR analysis using Spring AI</description>
+    <description>AI-powered JFR analysis using Spring AI with direct DuckDB tool access</description>
 
     <dependencies>
-        <!-- Spring AI MCP Server -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
-        </dependency>
-
         <!-- Spring AI - Anthropic Claude -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

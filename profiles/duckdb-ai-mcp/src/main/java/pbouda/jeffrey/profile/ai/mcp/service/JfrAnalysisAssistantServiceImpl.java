@@ -18,9 +18,6 @@
 
 package pbouda.jeffrey.profile.ai.mcp.service;
 
-import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
-import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -28,7 +25,6 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.model.function.FunctionCallback;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrAnalysisRequest;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrAnalysisResponse;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrChatMessage;
@@ -40,10 +36,9 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Implementation of JFR Analysis Assistant using Spring AI with MCP tools for DuckDB access.
+ * Implementation of JFR Analysis Assistant using Spring AI with DuckDB tools for direct database access.
  */
 public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantService {
 
@@ -59,7 +54,7 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
                 .defaultSystem(JfrAnalysisSystemPrompt.SYSTEM_PROMPT)
                 .build();
         this.databaseManagerResolver = databaseManagerResolver;
-        LOG.info("JFR Analysis Assistant initialized with MCP tools");
+        LOG.info("JFR Analysis Assistant initialized with DuckDB tools");
     }
 
     @Override
@@ -73,19 +68,15 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
             // Get DataSource for this profile
             DataSource dataSource = databaseManagerResolver.open(profileInfo);
 
-            // Create MCP tools for this profile's database
-            DuckDbMcpTools mcpTools = new DuckDbMcpTools(dataSource);
-            List<SyncToolSpecification> toolSpecs = mcpTools.getToolSpecifications();
-
-            // Convert MCP tools to Spring AI function callbacks
-            List<FunctionCallback> functionCallbacks = convertToFunctionCallbacks(toolSpecs);
+            // Create tools for this profile's database
+            DuckDbMcpTools tools = new DuckDbMcpTools(dataSource);
 
             // Build conversation messages
             List<Message> messages = buildMessages(request, profileInfo);
 
             // Call the AI with tool support
             List<String> toolsUsed = new ArrayList<>();
-            String response = executeWithTools(messages, functionCallbacks, toolsUsed);
+            String response = executeWithTools(messages, tools, toolsUsed);
 
             // Generate follow-up suggestions
             List<String> suggestions = generateSuggestions(request.message(), response);
@@ -96,31 +87,6 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
             LOG.error("Error during JFR analysis: profileId={} message={}", profileInfo.id(), e.getMessage(), e);
             return JfrAnalysisResponse.error("Analysis failed: " + e.getMessage());
         }
-    }
-
-    private List<FunctionCallback> convertToFunctionCallbacks(List<SyncToolSpecification> toolSpecs) {
-        List<FunctionCallback> callbacks = new ArrayList<>();
-
-        for (SyncToolSpecification spec : toolSpecs) {
-            FunctionCallback callback = FunctionCallback.builder()
-                    .function(spec.tool().name(), (Map<String, Object> args) -> {
-                        CallToolResult result = spec.call().apply(args);
-                        // Extract text content from the result
-                        StringBuilder sb = new StringBuilder();
-                        for (var content : result.content()) {
-                            if (content instanceof TextContent textContent) {
-                                sb.append(textContent.text());
-                            }
-                        }
-                        return sb.toString();
-                    })
-                    .description(spec.tool().description())
-                    .inputType(Map.class)
-                    .build();
-            callbacks.add(callback);
-        }
-
-        return callbacks;
     }
 
     private List<Message> buildMessages(JfrAnalysisRequest request, ProfileInfo profileInfo) {
@@ -169,18 +135,12 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
         return "unknown";
     }
 
-    private String executeWithTools(List<Message> messages, List<FunctionCallback> functionCallbacks, List<String> toolsUsed) {
-        var promptSpec = chatClient.prompt()
+    private String executeWithTools(List<Message> messages, DuckDbMcpTools tools, List<String> toolsUsed) {
+        ChatResponse response = chatClient.prompt()
                 .messages(messages)
-                .functions(functionCallbacks.toArray(new FunctionCallback[0]));
-
-        ChatResponse response = promptSpec.call().chatResponse();
-
-        // Track which tools were used
-        if (response.getResult().getMetadata() != null) {
-            // Note: Tool usage tracking depends on the specific ChatModel implementation
-            // Some models expose this in metadata, others don't
-        }
+                .tools(tools)
+                .call()
+                .chatResponse();
 
         return response.getResult().getOutput().getText();
     }
