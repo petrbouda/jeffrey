@@ -33,10 +33,10 @@ public record JobDescriptorFactory() {
         return (T) switch (jobType) {
             case PROJECTS_SYNCHRONIZER ->
                     ProjectsSynchronizerJobDescriptor.of(params);
-            case REPOSITORY_SESSION_CLEANER ->
-                    RepositorySessionCleanerProjectJobDescriptor.of(params);
-            case REPOSITORY_RECORDING_CLEANER ->
-                    RepositoryRecordingCleanerJobDescriptor.of(params);
+            case PROJECT_INSTANCE_SESSION_CLEANER ->
+                    ProjectInstanceSessionCleanerJobDescriptor.of(params);
+            case PROJECT_INSTANCE_RECORDING_CLEANER ->
+                    ProjectInstanceRecordingCleanerJobDescriptor.of(params);
             case WORKSPACE_EVENTS_REPLICATOR ->
                     new WorkspaceEventsReplicatorJobDescriptor();
             case WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER ->

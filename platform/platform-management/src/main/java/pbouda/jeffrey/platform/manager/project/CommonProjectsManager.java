@@ -74,4 +74,9 @@ public class CommonProjectsManager implements ProjectsManager {
         return projectsRepository.findByOriginProjectId(originProjectId)
                 .map(projectManagerFactory);
     }
+
+    @Override
+    public List<String> findAllNamespaces() {
+        return projectsRepository.findAllNamespaces();
+    }
 }

@@ -37,6 +37,7 @@ import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRecordingsDownload
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.SchedulerRepository;
@@ -142,6 +143,14 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public ProjectRepository projectRepository() {
         return resolveProjectManager().projectRepository();
+    }
+
+    @Override
+    public ProjectInstanceRepository projectInstanceRepository() {
+        return new RemoteProjectInstanceRepository(
+                detailedProjectInfo.projectInfo(),
+                workspaceInfo,
+                remoteWorkspaceClient);
     }
 
     @Override

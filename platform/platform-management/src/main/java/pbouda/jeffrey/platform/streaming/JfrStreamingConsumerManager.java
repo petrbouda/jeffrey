@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class JfrStreamingConsumerManager implements Closeable {
      * @param repositoryInfo information about the repository
      * @param sessionInfo    information about the session
      */
-    public void registerConsumer(RepositoryInfo repositoryInfo, RepositorySessionInfo sessionInfo) {
+    public void registerConsumer(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
         if (!sessionInfo.streamingEnabled()) {
             LOG.debug("Streaming not enabled for session, skipping: sessionId={}", sessionInfo.sessionId());
             return;
@@ -109,7 +109,7 @@ public class JfrStreamingConsumerManager implements Closeable {
         return consumers.size();
     }
 
-    private Path resolveSessionPath(RepositoryInfo repositoryInfo, RepositorySessionInfo sessionInfo) {
+    private Path resolveSessionPath(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
         String workspacesPath = repositoryInfo.workspacesPath();
         Path resolvedWorkspacesPath = workspacesPath == null
                 ? jeffreyDirs.workspaces()

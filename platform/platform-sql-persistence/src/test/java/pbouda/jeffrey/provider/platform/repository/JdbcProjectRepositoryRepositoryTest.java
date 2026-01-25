@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
@@ -106,13 +106,13 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            RepositorySessionInfo sessionInfo = new RepositorySessionInfo(
-                    null, "repo-001", Path.of("session-test"), "finished.flag", "cpu=true",
+            ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
+                    null, "repo-001", "inst-001", 1, Path.of("session-test"), "finished.flag", "cpu=true",
                     false, Instant.parse("2025-01-15T10:00:00Z"), null, null);
 
             repository.createSession(sessionInfo);
 
-            List<RepositorySessionInfo> result = repository.findAllSessions();
+            List<ProjectInstanceSessionInfo> result = repository.findAllSessions();
             assertEquals(1, result.size());
             assertEquals("cpu=true", result.get(0).profilerSettings());
         }
@@ -123,7 +123,7 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            Optional<RepositorySessionInfo> result = repository.findSessionById("session-001");
+            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-001");
 
             assertTrue(result.isPresent());
             assertEquals("session-001", result.get().sessionId());
@@ -135,7 +135,7 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            Optional<RepositorySessionInfo> result = repository.findSessionById("non-existent");
+            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("non-existent");
 
             assertTrue(result.isEmpty());
         }
@@ -146,7 +146,7 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            List<RepositorySessionInfo> result = repository.findUnfinishedSessions();
+            List<ProjectInstanceSessionInfo> result = repository.findUnfinishedSessions();
 
             assertEquals(1, result.size());
             assertEquals("session-002", result.get(0).sessionId());
@@ -162,7 +162,7 @@ class JdbcProjectRepositoryRepositoryTest {
             Instant finishedAt = Instant.parse("2025-01-15T14:00:00Z");
             repository.markSessionFinished("session-002", finishedAt);
 
-            Optional<RepositorySessionInfo> result = repository.findSessionById("session-002");
+            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-002");
             assertTrue(result.isPresent());
             assertNotNull(result.get().finishedAt());
         }
@@ -175,7 +175,7 @@ class JdbcProjectRepositoryRepositoryTest {
 
             repository.deleteSession("session-001");
 
-            Optional<RepositorySessionInfo> result = repository.findSessionById("session-001");
+            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-001");
             assertTrue(result.isEmpty());
         }
     }

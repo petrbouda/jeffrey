@@ -43,6 +43,10 @@ export interface SessionDeletedContent {
     reason?: string;
 }
 
+export interface ProjectInstanceCreatedContent {
+    relativeInstancePath: string;
+}
+
 export class EventContentParser {
     static parseContent(event: WorkspaceEvent): any {
         try {
@@ -59,11 +63,13 @@ export class EventContentParser {
         switch (event.eventType) {
             case WorkspaceEventType.PROJECT_CREATED:
                 return `Project "${content.projectName}" created with ${content.repositoryType} repository`;
-            case WorkspaceEventType.SESSION_CREATED:
+            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+                return `Instance "${content.relativeInstancePath}" created`;
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
                 return `Session "${content.sessionId}" created in ${content.relativePath}`;
             case WorkspaceEventType.PROJECT_DELETED:
                 return `Project "${content.projectName}" deleted`;
-            case WorkspaceEventType.SESSION_DELETED:
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return `Session "${content.sessionId}" deleted`;
             default:
                 return 'Unknown event type';
@@ -76,9 +82,11 @@ export class EventContentParser {
                 return 'bi-folder-plus';
             case WorkspaceEventType.PROJECT_DELETED:
                 return 'bi-folder-x';
-            case WorkspaceEventType.SESSION_CREATED:
+            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+                return 'bi-box';
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
                 return 'bi-play-circle';
-            case WorkspaceEventType.SESSION_DELETED:
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return 'bi-stop-circle';
             default:
                 return 'bi-question-circle';
@@ -91,9 +99,11 @@ export class EventContentParser {
                 return 'success';
             case WorkspaceEventType.PROJECT_DELETED:
                 return 'danger';
-            case WorkspaceEventType.SESSION_CREATED:
+            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+                return 'info';
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
                 return 'primary';
-            case WorkspaceEventType.SESSION_DELETED:
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return 'warning';
             default:
                 return 'secondary';
@@ -106,9 +116,11 @@ export class EventContentParser {
                 return 'Project Created';
             case WorkspaceEventType.PROJECT_DELETED:
                 return 'Project Deleted';
-            case WorkspaceEventType.SESSION_CREATED:
+            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+                return 'Instance Created';
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
                 return 'Session Created';
-            case WorkspaceEventType.SESSION_DELETED:
+            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return 'Session Deleted';
             default:
                 return 'Unknown Event';

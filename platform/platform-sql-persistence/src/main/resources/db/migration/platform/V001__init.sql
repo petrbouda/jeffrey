@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS projects
     origin_project_id       VARCHAR,
     project_name            VARCHAR NOT NULL,
     project_label           VARCHAR,
+    namespace               VARCHAR,
     workspace_id            VARCHAR NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL,
     origin_created_at       TIMESTAMPTZ,
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS projects
 );
 
 CREATE INDEX IF NOT EXISTS idx_projects_workspace_id ON projects(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_projects_namespace ON projects(namespace);
 
 CREATE TABLE IF NOT EXISTS schedulers
 (
@@ -132,10 +134,12 @@ CREATE TABLE IF NOT EXISTS repositories
     PRIMARY KEY (project_id, repository_id)
 );
 
-CREATE TABLE IF NOT EXISTS repository_sessions
+CREATE TABLE IF NOT EXISTS project_instance_sessions
 (
     session_id            VARCHAR NOT NULL,
     repository_id         VARCHAR NOT NULL,
+    instance_id           VARCHAR NOT NULL,
+    session_order         INTEGER NOT NULL DEFAULT 1,
     relative_session_path VARCHAR NOT NULL,
     profiler_settings     VARCHAR,
     finished_file         VARCHAR,
@@ -146,7 +150,8 @@ CREATE TABLE IF NOT EXISTS repository_sessions
     PRIMARY KEY (repository_id, session_id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_repository_sessions_session_path ON repository_sessions(repository_id, relative_session_path);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_project_instance_sessions_session_path ON project_instance_sessions(repository_id, relative_session_path);
+CREATE INDEX IF NOT EXISTS idx_project_instance_sessions_instance_id ON project_instance_sessions(instance_id);
 
 CREATE TABLE IF NOT EXISTS workspace_events
 (
@@ -179,3 +184,19 @@ CREATE TABLE IF NOT EXISTS profiler_settings
     agent_settings  VARCHAR NOT NULL,
     UNIQUE (workspace_id, project_id)
 );
+
+--
+-- PROJECT INSTANCE TABLES
+--
+CREATE TABLE IF NOT EXISTS project_instances
+(
+    instance_id    VARCHAR NOT NULL,
+    project_id     VARCHAR NOT NULL,
+    hostname       VARCHAR NOT NULL,
+    status         VARCHAR NOT NULL,
+    last_heartbeat TIMESTAMPTZ NOT NULL,
+    started_at     TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (instance_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_instances_project_id ON project_instances(project_id);

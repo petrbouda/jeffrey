@@ -45,4 +45,12 @@ public interface ProjectsManager {
      */
     Optional<ProjectManager> findByOriginProjectId(String originProjectId);
 
+    /**
+     * Find all distinct namespaces across all projects.
+     * Used by UI to provide namespace filtering options.
+     *
+     * @return list of distinct namespace names (excluding null values)
+     */
+    List<String> findAllNamespaces();
+
 }

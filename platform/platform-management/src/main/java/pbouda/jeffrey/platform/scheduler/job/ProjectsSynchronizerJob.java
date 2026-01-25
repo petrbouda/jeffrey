@@ -77,6 +77,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         ProjectsManager projectsManager = workspaceManager.projectsManager();
         List<WorkspaceEventConsumer> consumers = List.of(
                 new CreateProjectWorkspaceEventConsumer(projectsManager),
+                new InstanceCreatedWorkspaceEventConsumer(projectsManager),
                 new CreateSessionWorkspaceEventConsumer(projectsManager),
                 // Not enabled yet
                 // new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager),

@@ -1,0 +1,121 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.platform.manager.project;
+
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
+import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+public class RemoteProjectInstanceRepository implements ProjectInstanceRepository {
+
+    private static final String UNSUPPORTED =
+            "Not supported operation in " + RemoteProjectInstanceRepository.class.getSimpleName();
+
+    private final ProjectInfo projectInfo;
+    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceClient remoteWorkspaceClient;
+
+    public RemoteProjectInstanceRepository(
+            ProjectInfo projectInfo,
+            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceClient remoteWorkspaceClient) {
+
+        this.projectInfo = projectInfo;
+        this.workspaceInfo = workspaceInfo;
+        this.remoteWorkspaceClient = remoteWorkspaceClient;
+    }
+
+    @Override
+    public List<ProjectInstanceInfo> findAll() {
+        return remoteWorkspaceClient.projectInstances(workspaceInfo.originId(), projectInfo.originId()).stream()
+                .map(this::toProjectInstanceInfo)
+                .toList();
+    }
+
+    @Override
+    public Optional<ProjectInstanceInfo> find(String instanceId) {
+        InstanceResponse response = remoteWorkspaceClient.projectInstance(
+                workspaceInfo.originId(), projectInfo.originId(), instanceId);
+        return Optional.ofNullable(response).map(this::toProjectInstanceInfo);
+    }
+
+    @Override
+    public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {
+        return remoteWorkspaceClient.projectInstanceSessions(
+                        workspaceInfo.originId(), projectInfo.originId(), instanceId).stream()
+                .map(RemoteProjectInstanceRepository::toProjectInstanceSessionInfo)
+                .toList();
+    }
+
+    @Override
+    public void insert(ProjectInstanceInfo instance) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void updateHeartbeat(String instanceId, Instant timestamp) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void updateStatus(String instanceId, ProjectInstanceStatus status) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    private ProjectInstanceInfo toProjectInstanceInfo(InstanceResponse response) {
+        return new ProjectInstanceInfo(
+                response.id(),
+                projectInfo.originId(),
+                response.hostname(),
+                ProjectInstanceStatus.valueOf(response.status()),
+                parseInstant(response.lastHeartbeat()),
+                parseInstant(response.startedAt()),
+                response.sessionCount(),
+                response.activeSessionId());
+    }
+
+    private static ProjectInstanceSessionInfo toProjectInstanceSessionInfo(InstanceSessionResponse response) {
+        return new ProjectInstanceSessionInfo(
+                response.id(),
+                response.repositoryId(),
+                null,
+                0,
+                null,
+                null,
+                null,
+                false,
+                null,
+                parseInstant(response.startedAt()),
+                parseInstant(response.finishedAt()));
+    }
+
+    private static Instant parseInstant(String value) {
+        return value != null ? Instant.parse(value) : null;
+    }
+}

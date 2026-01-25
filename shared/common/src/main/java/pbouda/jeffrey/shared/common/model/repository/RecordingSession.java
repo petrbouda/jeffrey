@@ -25,6 +25,7 @@ import java.util.List;
 public record RecordingSession(
         String id,
         String name,
+        String instanceId,
         Instant createdAt,
         RecordingStatus status,
         String profilerSettings,

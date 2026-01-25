@@ -56,4 +56,12 @@ public interface ProjectsRepository {
      * @return project information if found, empty otherwise
      */
     Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
+
+    /**
+     * Find all distinct namespaces across all projects.
+     * Used by UI to provide namespace filtering options.
+     *
+     * @return list of distinct namespace names (excluding null values)
+     */
+    List<String> findAllNamespaces();
 }

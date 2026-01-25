@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -28,20 +28,20 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositorySessionCleanerProjectJobDescriptor;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
-public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<RepositorySessionCleanerProjectJobDescriptor> {
+public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<ProjectInstanceSessionCleanerJobDescriptor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RepositorySessionCleanerProjectJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectInstanceSessionCleanerJob.class);
 
     private final Duration period;
 
-    public RepositorySessionCleanerProjectJob(
+    public ProjectInstanceSessionCleanerJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
@@ -54,11 +54,11 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
     protected void executeOnRepository(
             ProjectManager manager,
             RepositoryStorage repositoryStorage,
-            RepositorySessionCleanerProjectJobDescriptor jobDescriptor,
+            ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
             JobContext context) {
 
         String projectName = manager.info().name();
-        LOG.info("Cleaning the repository sessions: project='{}'", projectName);
+        LOG.info("Cleaning the project instance sessions: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
         Instant currentTime = Instant.now();
@@ -72,8 +72,8 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
 
         candidatesForDeletion.forEach(session -> {
             manager.repositoryManager()
-                    .deleteRecordingSession(session.id(), WorkspaceEventCreator.REPOSITORY_SESSION_CLEANER_PROJECT_JOB);
-            LOG.info("Deleted recording from the repository: project='{}' session={}", projectName, session.id());
+                    .deleteRecordingSession(session.id(), WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
+            LOG.info("Deleted recording from the project instance session: project='{}' session={}", projectName, session.id());
         });
     }
 
@@ -84,6 +84,6 @@ public class RepositorySessionCleanerProjectJob extends RepositoryProjectJob<Rep
 
     @Override
     public JobType jobType() {
-        return JobType.REPOSITORY_SESSION_CLEANER;
+        return JobType.PROJECT_INSTANCE_SESSION_CLEANER;
     }
 }

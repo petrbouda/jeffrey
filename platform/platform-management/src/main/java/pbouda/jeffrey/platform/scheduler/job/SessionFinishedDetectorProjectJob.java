@@ -37,7 +37,7 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -96,7 +96,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         ProjectRepositoryRepository projectRepositoryRepository =
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id());
 
-        List<RepositorySessionInfo> unfinishedSessions = projectRepositoryRepository.findUnfinishedSessions();
+        List<ProjectInstanceSessionInfo> unfinishedSessions = projectRepositoryRepository.findUnfinishedSessions();
 
         if (unfinishedSessions.isEmpty()) {
             return;
@@ -109,7 +109,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         }
         RepositoryInfo repositoryInfo = repositoryInfos.getFirst();
 
-        for (RepositorySessionInfo sessionInfo : unfinishedSessions) {
+        for (ProjectInstanceSessionInfo sessionInfo : unfinishedSessions) {
             processSession(projectInfo, projectRepositoryRepository, repositoryInfo, sessionInfo);
         }
     }
@@ -118,7 +118,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             ProjectInfo projectInfo,
             ProjectRepositoryRepository projectRepositoryRepository,
             RepositoryInfo repositoryInfo,
-            RepositorySessionInfo sessionInfo) {
+            ProjectInstanceSessionInfo sessionInfo) {
 
         Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
         StatusStrategy strategy = createStatusStrategy(sessionInfo);
@@ -133,7 +133,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         }
     }
 
-    private Path resolveSessionPath(RepositoryInfo repositoryInfo, RepositorySessionInfo sessionInfo) {
+    private Path resolveSessionPath(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
         String workspacesPath = repositoryInfo.workspacesPath();
         Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : Path.of(workspacesPath);
         return resolvedWorkspacesPath
@@ -142,7 +142,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                 .resolve(sessionInfo.relativeSessionPath());
     }
 
-    private StatusStrategy createStatusStrategy(RepositorySessionInfo sessionInfo) {
+    private StatusStrategy createStatusStrategy(ProjectInstanceSessionInfo sessionInfo) {
         if (sessionInfo.finishedFile() != null) {
             return new WithDetectionFileStrategy(sessionInfo.finishedFile(), finishedPeriod, clock);
         } else {

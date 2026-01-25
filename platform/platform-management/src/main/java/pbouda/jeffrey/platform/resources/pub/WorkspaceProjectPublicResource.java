@@ -57,4 +57,9 @@ public class WorkspaceProjectPublicResource {
     public ProjectMessagesPublicResource messagesResource() {
         return new ProjectMessagesPublicResource(projectManager.messagesManager());
     }
+
+    @Path("/instances")
+    public ProjectInstancesPublicResource instancesResource() {
+        return new ProjectInstancesPublicResource(projectManager.projectInstanceRepository());
+    }
 }

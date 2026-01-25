@@ -82,4 +82,9 @@ public class JdbcPlatformRepositories implements PlatformRepositories {
     public WorkspacesRepository newWorkspacesRepository() {
         return new JdbcWorkspacesRepository(databaseClientProvider);
     }
+
+    @Override
+    public ProjectInstanceRepository newProjectInstanceRepository(String projectId) {
+        return new JdbcProjectInstanceRepository(projectId, databaseClientProvider);
+    }
 }

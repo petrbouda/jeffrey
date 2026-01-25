@@ -22,8 +22,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import pbouda.jeffrey.shared.common.IDGenerator;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
 import pbouda.jeffrey.shared.persistence.GroupLabel;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
@@ -54,41 +54,41 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     // Workspace Sessions SQL
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
-            INSERT INTO repository_sessions
-            (session_id, repository_id, relative_session_path, profiler_settings, finished_file, streaming_enabled, origin_created_at, created_at)
-            VALUES (:session_id, :repository_id, :relative_session_path, :profiler_settings, :finished_file, :streaming_enabled, :origin_created_at, :created_at)
+            INSERT INTO project_instance_sessions
+            (session_id, repository_id, instance_id, session_order, relative_session_path, profiler_settings, finished_file, streaming_enabled, origin_created_at, created_at)
+            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :profiler_settings, :finished_file, :streaming_enabled, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
     private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
-            SELECT rs.* FROM repository_sessions rs
+            SELECT rs.* FROM project_instance_sessions rs
             JOIN repositories r ON rs.repository_id = r.repository_id
             WHERE r.project_id = :project_id
             ORDER BY rs.origin_created_at DESC""";
 
     //language=SQL
     private static final String SELECT_SESSION_BY_PROJECT_AND_SESSION_ID = """
-            SELECT rs.* FROM repository_sessions rs
+            SELECT rs.* FROM project_instance_sessions rs
             JOIN repositories r ON rs.repository_id = r.repository_id
             WHERE r.project_id = :project_id AND rs.session_id = :session_id""";
 
     //language=SQL
     private static final String DELETE_REPOSITORY_SESSION = """
-            DELETE FROM repository_sessions
+            DELETE FROM project_instance_sessions
             WHERE session_id = :session_id
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)
             """;
 
     //language=SQL
     private static final String SELECT_UNFINISHED_SESSIONS = """
-            SELECT rs.* FROM repository_sessions rs
+            SELECT rs.* FROM project_instance_sessions rs
             JOIN repositories r ON rs.repository_id = r.repository_id
             WHERE r.project_id = :project_id AND rs.finished_at IS NULL
             ORDER BY rs.origin_created_at DESC""";
 
     //language=SQL
     private static final String UPDATE_SESSION_FINISHED = """
-            UPDATE repository_sessions
+            UPDATE project_instance_sessions
             SET finished_at = :finished_at
             WHERE session_id = :session_id
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
@@ -145,10 +145,12 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public void createSession(RepositorySessionInfo session) {
+    public void createSession(ProjectInstanceSessionInfo session) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("session_id", IDGenerator.generate())
                 .addValue("repository_id", session.repositoryId())
+                .addValue("instance_id", session.instanceId())
+                .addValue("session_order", session.order())
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
                 .addValue("profiler_settings", session.profilerSettings())
                 .addValue("finished_file", session.finishedFile())
@@ -169,7 +171,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public List<RepositorySessionInfo> findAllSessions() {
+    public List<ProjectInstanceSessionInfo> findAllSessions() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
@@ -177,11 +179,11 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_SESSIONS_BY_PROJECT_ID,
                 SELECT_SESSIONS_BY_PROJECT_ID,
                 paramSource,
-                repositorySessionMapper());
+                projectInstanceSessionMapper());
     }
 
     @Override
-    public Optional<RepositorySessionInfo> findSessionById(String sessionId) {
+    public Optional<ProjectInstanceSessionInfo> findSessionById(String sessionId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
                 .addValue("session_id", sessionId);
@@ -190,11 +192,11 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_SESSION_BY_PROJECT_AND_SESSION_ID,
                 SELECT_SESSION_BY_PROJECT_AND_SESSION_ID,
                 paramSource,
-                repositorySessionMapper());
+                projectInstanceSessionMapper());
     }
 
     @Override
-    public List<RepositorySessionInfo> findUnfinishedSessions() {
+    public List<ProjectInstanceSessionInfo> findUnfinishedSessions() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
 
@@ -202,7 +204,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 StatementLabel.FIND_UNFINISHED_SESSIONS,
                 SELECT_UNFINISHED_SESSIONS,
                 paramSource,
-                repositorySessionMapper());
+                projectInstanceSessionMapper());
     }
 
     @Override
@@ -215,11 +217,13 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         databaseClient.update(StatementLabel.UPDATE_SESSION_FINISHED, UPDATE_SESSION_FINISHED, paramSource);
     }
 
-    private static RowMapper<RepositorySessionInfo> repositorySessionMapper() {
+    private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
         return (rs, _) -> {
-            return new RepositorySessionInfo(
+            return new ProjectInstanceSessionInfo(
                     rs.getString("session_id"),
                     rs.getString("repository_id"),
+                    rs.getString("instance_id"),
+                    rs.getInt("session_order"),
                     Path.of(rs.getString("relative_session_path")),
                     rs.getString("finished_file"),
                     rs.getString("profiler_settings"),

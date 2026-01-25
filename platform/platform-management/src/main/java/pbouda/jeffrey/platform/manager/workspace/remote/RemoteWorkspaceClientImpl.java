@@ -39,6 +39,8 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.exception.ErrorResponse;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.exception.RemoteJeffreyUnavailableException;
+import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
+import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
 import pbouda.jeffrey.platform.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.ProfilerSettingsRequest;
@@ -75,6 +77,14 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             new ParameterizedTypeReference<>() {
             };
 
+    private static final ParameterizedTypeReference<List<InstanceResponse>> INSTANCE_LIST_TYPE =
+            new ParameterizedTypeReference<>() {
+            };
+
+    private static final ParameterizedTypeReference<List<InstanceSessionResponse>> INSTANCE_SESSION_LIST_TYPE =
+            new ParameterizedTypeReference<>() {
+            };
+
     private static final String API_WORKSPACES = "/api/public/workspaces";
     private static final String API_WORKSPACES_ID = API_WORKSPACES + "/{workspaceId}";
     private static final String API_WORKSPACES_PROJECTS = API_WORKSPACES + "/{workspaceId}/projects";
@@ -86,6 +96,9 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     private static final String API_PROFILER_SETTINGS = API_WORKSPACES_PROJECTS + "/{projectId}/profiler/settings";
     private static final String API_MESSAGES = API_WORKSPACES_PROJECTS + "/{projectId}/messages";
     private static final String API_ALERTS = API_MESSAGES + "/alerts";
+    private static final String API_INSTANCES = API_WORKSPACES_PROJECTS + "/{projectId}/instances";
+    private static final String API_INSTANCE = API_INSTANCES + "/{instanceId}";
+    private static final String API_INSTANCE_SESSIONS = API_INSTANCE + "/sessions";
 
     private final RestClient restClient;
     private final URI uri;
@@ -277,6 +290,43 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
         });
 
         return alerts.getBody() != null ? alerts.getBody() : List.of();
+    }
+
+    @Override
+    public List<InstanceResponse> projectInstances(String workspaceId, String projectId) {
+        ResponseEntity<List<InstanceResponse>> instances = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_INSTANCES, workspaceId, projectId)
+                    .retrieve()
+                    .toEntity(INSTANCE_LIST_TYPE);
+        });
+
+        return instances.getBody() != null ? instances.getBody() : List.of();
+    }
+
+    @Override
+    public InstanceResponse projectInstance(String workspaceId, String projectId, String instanceId) {
+        ResponseEntity<InstanceResponse> instance = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_INSTANCE, workspaceId, projectId, instanceId)
+                    .retrieve()
+                    .toEntity(InstanceResponse.class);
+        });
+
+        return instance.getBody();
+    }
+
+    @Override
+    public List<InstanceSessionResponse> projectInstanceSessions(
+            String workspaceId, String projectId, String instanceId) {
+        ResponseEntity<List<InstanceSessionResponse>> sessions = invokeGet(uri, () -> {
+            return restClient.get()
+                    .uri(API_INSTANCE_SESSIONS, workspaceId, projectId, instanceId)
+                    .retrieve()
+                    .toEntity(INSTANCE_SESSION_LIST_TYPE);
+        });
+
+        return sessions.getBody() != null ? sessions.getBody() : List.of();
     }
 
     private static <T> ResponseEntity<T> invokeGet(URI uri, Supplier<ResponseEntity<T>> invocation) {

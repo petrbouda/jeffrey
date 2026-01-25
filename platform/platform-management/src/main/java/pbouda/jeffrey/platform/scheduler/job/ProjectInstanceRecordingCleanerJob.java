@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -29,7 +29,7 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.RepositoryRecordingCleanerJobDescriptor;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,12 +37,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<RepositoryRecordingCleanerJobDescriptor> {
+public class ProjectInstanceRecordingCleanerJob extends RepositoryProjectJob<ProjectInstanceRecordingCleanerJobDescriptor> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RepositoryRecordingCleanerProjectJob.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectInstanceRecordingCleanerJob.class);
     private final Duration period;
 
-    public RepositoryRecordingCleanerProjectJob(
+    public ProjectInstanceRecordingCleanerJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
@@ -55,11 +55,11 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
     protected void executeOnRepository(
             ProjectManager manager,
             RepositoryStorage repositoryStorage,
-            RepositoryRecordingCleanerJobDescriptor jobDescriptor,
+            ProjectInstanceRecordingCleanerJobDescriptor jobDescriptor,
             JobContext context) {
 
         String projectName = manager.info().name();
-        LOG.info("Cleaning the repository recordings: project='{}'", projectName);
+        LOG.info("Cleaning the project instance recordings: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
         // Find the active session (newest one with ACTIVE status, or just the newest)
@@ -106,6 +106,6 @@ public class RepositoryRecordingCleanerProjectJob extends RepositoryProjectJob<R
 
     @Override
     public JobType jobType() {
-        return JobType.REPOSITORY_RECORDING_CLEANER;
+        return JobType.PROJECT_INSTANCE_RECORDING_CLEANER;
     }
 }

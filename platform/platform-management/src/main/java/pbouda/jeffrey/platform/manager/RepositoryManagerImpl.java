@@ -32,7 +32,7 @@ import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
@@ -175,8 +175,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public void createSession(RepositorySessionInfo repositorySessionInfo) {
-        repository.createSession(repositorySessionInfo);
+    public void createSession(ProjectInstanceSessionInfo projectInstanceSessionInfo) {
+        repository.createSession(projectInstanceSessionInfo);
     }
 
     @Override

@@ -22,6 +22,8 @@ import org.springframework.core.io.Resource;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
+import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
 import pbouda.jeffrey.platform.resources.response.ImportantMessageResponse;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
@@ -106,4 +108,33 @@ public interface RemoteWorkspaceClient {
      * @return list of alert messages
      */
     List<ImportantMessageResponse> getAlerts(String workspaceId, String projectId, Long start, Long end);
+
+    /**
+     * Fetches all project instances for the given project.
+     *
+     * @param workspaceId the workspace ID
+     * @param projectId   the project ID
+     * @return list of project instances
+     */
+    List<InstanceResponse> projectInstances(String workspaceId, String projectId);
+
+    /**
+     * Fetches a specific project instance.
+     *
+     * @param workspaceId the workspace ID
+     * @param projectId   the project ID
+     * @param instanceId  the instance ID
+     * @return the project instance
+     */
+    InstanceResponse projectInstance(String workspaceId, String projectId, String instanceId);
+
+    /**
+     * Fetches sessions for a specific project instance.
+     *
+     * @param workspaceId the workspace ID
+     * @param projectId   the project ID
+     * @param instanceId  the instance ID
+     * @return list of sessions for the instance
+     */
+    List<InstanceSessionResponse> projectInstanceSessions(String workspaceId, String projectId, String instanceId);
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="d-flex w-100">
     <!-- Sidebar Menu -->
-    <div class="project-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <div class="detail-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
         <div class="edge-toggle" @click="toggleSidebar">
           <div class="edge-toggle-line">
@@ -46,61 +46,115 @@
                          class="ms-auto"/>
                 </router-link>
                 <router-link
+                    v-if="!isSandboxWorkspace"
                     :to="generateProjectUrl('repository')"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isSandboxWorkspace }"
-                    :title="isSandboxWorkspace ? 'Repository is not available in Sandbox workspaces' : ''"
-                    :tabindex="isSandboxWorkspace ? -1 : 0"
-                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-folder"></i>
                   <span>Repository</span>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Repository is not available in Sandbox workspaces">
+                  <i class="bi bi-folder"></i>
+                  <span>Repository</span>
+                </div>
+                <!-- Instances with 2-level submenu -->
+                <div class="nav-item-group">
+                  <div class="nav-item nav-item-parent"
+                       @click="isSandboxWorkspace ? null : toggleInstancesSubmenu()"
+                       :class="{ 'active': $route.path.includes('/instances'), 'expanded': instancesSubmenuExpanded, 'disabled-feature': isSandboxWorkspace }"
+                       :title="isSandboxWorkspace ? 'Instances are not available in Sandbox workspaces' : ''">
+                    <i class="bi bi-box"></i>
+                    <span>Instances</span>
+                    <i v-if="!isSandboxWorkspace" class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': instancesSubmenuExpanded }"></i>
+                  </div>
+                  <div v-if="!isSandboxWorkspace" class="nav-submenu" :class="{ 'expanded': instancesSubmenuExpanded }">
+                    <router-link
+                        :to="generateProjectUrl('instances')"
+                        class="nav-item nav-subitem"
+                        active-class="active">
+                      <i class="bi bi-circle-fill"></i>
+                      <span>Active</span>
+                    </router-link>
+                    <router-link
+                        :to="generateProjectUrl('instances/history')"
+                        class="nav-item nav-subitem"
+                        active-class="active">
+                      <i class="bi bi-clock-history"></i>
+                      <span>History</span>
+                    </router-link>
+                    <router-link
+                        :to="generateProjectUrl('instances/timeline')"
+                        class="nav-item nav-subitem"
+                        active-class="active">
+                      <i class="bi bi-bar-chart-steps"></i>
+                      <span>Timeline</span>
+                    </router-link>
+                  </div>
+                </div>
                 <router-link
+                    v-if="!isSandboxWorkspace"
                     :to="generateProjectUrl('profiler-settings')"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isSandboxWorkspace }"
-                    :title="isSandboxWorkspace ? 'Profiler Settings is not available in Sandbox workspaces' : ''"
-                    :tabindex="isSandboxWorkspace ? -1 : 0"
-                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-cpu"></i>
                   <span>Profiler Settings</span>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Profiler Settings is not available in Sandbox workspaces">
+                  <i class="bi bi-cpu"></i>
+                  <span>Profiler Settings</span>
+                </div>
                 <router-link
+                    v-if="!isSchedulerDisabled"
                     :to="generateProjectUrl('scheduler')"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isSchedulerDisabled }"
-                    :title="isSchedulerDisabled ? 'Scheduler is not available in this workspace type' : ''"
-                    :tabindex="isSchedulerDisabled ? -1 : 0"
-                    @click="isSchedulerDisabled ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0 && !isSchedulerDisabled" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
+                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Scheduler is not available in this workspace type">
+                  <i class="bi bi-calendar-check"></i>
+                  <span>Scheduler</span>
+                </div>
                 <router-link
+                    v-if="!isSandboxWorkspace"
                     :to="generateProjectUrl('alerts')"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isSandboxWorkspace }"
-                    :title="isSandboxWorkspace ? 'Alerts not available in Sandbox workspaces' : ''"
-                    :tabindex="isSandboxWorkspace ? -1 : 0"
-                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-bell"></i>
                   <span>Alerts</span>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Alerts not available in Sandbox workspaces">
+                  <i class="bi bi-bell"></i>
+                  <span>Alerts</span>
+                </div>
                 <router-link
+                    v-if="!isSandboxWorkspace"
                     :to="generateProjectUrl('messages')"
                     class="nav-item"
-                    :class="{ 'disabled-feature': isSandboxWorkspace }"
-                    :title="isSandboxWorkspace ? 'Messages not available in Sandbox workspaces' : ''"
-                    :tabindex="isSandboxWorkspace ? -1 : 0"
-                    @click="isSandboxWorkspace ? $event.preventDefault() : null"
                     active-class="active">
                   <i class="bi bi-chat-square-text"></i>
                   <span>Messages</span>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Messages not available in Sandbox workspaces">
+                  <i class="bi bi-chat-square-text"></i>
+                  <span>Messages</span>
+                </div>
                 <router-link
                     :to="generateProjectUrl('settings')"
                     class="nav-item"
@@ -117,9 +171,9 @@
     </div>
 
     <!-- Main Content -->
-    <div class="project-main-content">
+    <div class="detail-main-content">
       <!-- Content Area without tabs -->
-      <div class="project-content-container mb-4">
+      <div class="detail-content-container mb-4">
         <div class="card">
           <div class="card-body">
             <router-view></router-view>
@@ -132,7 +186,7 @@
 
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
-import {useRouter} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import ToastService from '@/services/ToastService';
 import MessageBus from "@/services/MessageBus.ts";
 import Badge from '@/components/Badge.vue';
@@ -144,12 +198,21 @@ import Workspace from "@/services/api/model/Workspace.ts";
 import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
 import { useNavigation } from '@/composables/useNavigation';
 
+const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
 const sidebarCollapsed = ref(false);
+
+// Submenu expansion state
+const instancesSubmenuExpanded = ref(false);
+
+// Toggle function for Instances submenu
+const toggleInstancesSubmenu = () => {
+  instancesSubmenuExpanded.value = !instancesSubmenuExpanded.value;
+};
 
 // Initialization state variables
 const hasInitializingProfiles = ref(false);
@@ -277,6 +340,13 @@ watch([projectId, workspaceId], async ([newProjectId, newWorkspaceId]) => {
   }
 }, { immediate: true });
 
+// Watch for route changes to auto-expand submenus
+watch(() => route.path, (newPath) => {
+  if (newPath.includes('/instances')) {
+    instancesSubmenuExpanded.value = true;
+  }
+}, { immediate: true });
+
 onMounted(async () => {
   // Set up message bus listeners
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
@@ -308,189 +378,8 @@ const toggleSidebar = () => {
 </script>
 
 <style scoped>
-/* Content container styles */
-.project-content-container {
-  width: 100%;
-}
-
-.card {
-  border: none;
-  border-radius: 0;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-/* Sidebar styles */
-.project-sidebar {
-  width: 280px;
-  min-height: 100vh;
-  background-color: #fff;
-  border-right: 1px solid #dee2e6;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.project-sidebar.collapsed {
-  width: 50px;
-}
-
-.sidebar {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
-
-.sidebar.collapsed {
-  width: 50px;
-}
-
-.scrollbar {
-  overflow-y: auto;
-  height: calc(100% - 40px);
-
-  &::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-  }
-
-  &:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-}
-
-.edge-toggle {
-  position: absolute;
-  right: -8px;
-  top: 0;
-  bottom: 0;
-  width: 20px;
-  cursor: pointer;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-  z-index: 10;
-
-  &:hover {
-    opacity: 1;
-  }
-
-  &:hover .edge-toggle-line {
-    background: linear-gradient(135deg, #5e64ff, #4338ca);
-    width: 7px;
-    box-shadow: -2px 0 8px rgba(94, 100, 255, 0.2);
-  }
-
-  &:hover .edge-toggle-line i {
-    opacity: 1;
-  }
-}
-
-.edge-toggle-line {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-  height: 90px;
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  border-radius: 4px 0 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.05);
-  pointer-events: none;
-
-  i {
-    position: absolute;
-    font-size: 0.8rem;
-    color: white;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-}
-
-/* Show edge toggle on sidebar hover */
-.project-sidebar:hover .edge-toggle {
-  opacity: 0.7;
-}
-
-/* Modern sidebar styling */
-.sidebar-menu {
-  padding: 0.5rem 0;
-}
-
-.nav-section {
-  margin-bottom: 1.25rem;
-}
-
-.nav-section-title {
-  color: #748194;
-  font-weight: 600;
-  font-size: 0.7rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  padding: 0 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.nav-items {
-  display: flex;
-  flex-direction: column;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1.25rem;
-  color: #5e6e82;
-  font-weight: 500;
-  font-size: 0.85rem;
-  border-radius: 0;
-  transition: all 0.2s ease;
-  position: relative;
-  text-decoration: none;
-  margin: 0.125rem 0;
-
-  &:hover {
-    color: #5e64ff;
-    background-color: rgba(94, 100, 255, 0.06);
-  }
-
-  &.active {
-    color: #5e64ff;
-    background-color: rgba(94, 100, 255, 0.1);
-    border-left: 3px solid #5e64ff;
-    padding-left: calc(1.25rem - 3px);
-
-    i {
-      color: #5e64ff;
-    }
-  }
-
-  i {
-    color: #7d899b;
-    font-size: 0.9rem;
-    width: 1.5rem;
-    text-align: center;
-    margin-right: 0.5rem;
-  }
-}
-
-.fs-7 {
-  font-size: 0.75rem !important;
-}
-
-.project-main-content {
-  flex: 1;
-  padding-left: 1rem;
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
+/* ProjectDetail-specific styles */
+/* Common sidebar styles are in @/assets/_sidebar-menu.scss */
 
 /* Sidebar Header - Light Tinted with Accent Border */
 .sidebar-header {
@@ -528,51 +417,5 @@ const toggleSidebar = () => {
   display: flex;
   gap: 0.375rem;
   margin-top: 0.5rem;
-}
-
-
-/* Disabled features styling */
-.disabled-feature {
-  opacity: 0.5;
-  cursor: not-allowed !important;
-  position: relative;
-  pointer-events: none;
-
-  &:hover {
-    background-color: transparent !important;
-    color: #6b7280 !important;
-    transform: none !important;
-  }
-
-  i {
-    color: #9ca3af !important;
-  }
-
-  span {
-    color: #9ca3af !important;
-  }
-
-  /* Add subtle indication that it's disabled */
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    border-radius: 0 3px 3px 0;
-  }
-
-  /* Override active state for disabled items */
-  &.active {
-    background-color: transparent !important;
-    border-left: none !important;
-    padding-left: 1.25rem !important;
-
-    i, span {
-      color: #9ca3af !important;
-    }
-  }
 }
 </style>

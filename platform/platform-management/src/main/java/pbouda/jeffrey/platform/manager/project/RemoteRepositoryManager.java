@@ -21,7 +21,7 @@ package pbouda.jeffrey.platform.manager.project;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
@@ -94,7 +94,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public void createSession(RepositorySessionInfo repositorySessionInfo) {
+    public void createSession(ProjectInstanceSessionInfo projectInstanceSessionInfo) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 

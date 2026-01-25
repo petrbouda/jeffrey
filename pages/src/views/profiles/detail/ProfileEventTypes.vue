@@ -295,6 +295,7 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import EventTypes from '@/services/EventTypes';
+import '@/styles/shared-components.css';
 
 // Props definition
 const props = defineProps({
@@ -802,59 +803,6 @@ const filterEvents = () => {
   margin-bottom: 0;
   font-size: 0.875rem;
   color: #6c757d;
-}
-
-/* Search Styles */
-.search-container {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
-  overflow: hidden;
-}
-
-.search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  height: 38px;
-}
-
-.search-icon {
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
-.search-input {
-  border-left: none;
-  font-size: 0.875rem;
-  height: 38px;
-  padding: 0.375rem 0.75rem;
-  line-height: 1.5;
-}
-
-.search-input:focus {
-  box-shadow: none;
-  border-color: #ced4da;
-}
-
-.clear-btn {
-  border-color: #ced4da;
-  border-left: none;
-  background-color: #fff;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-}
-
-.clear-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.clear-btn i {
-  font-size: 0.75rem;
 }
 
 .modal-title {

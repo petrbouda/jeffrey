@@ -28,7 +28,7 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.RepositorySessionInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.util.List;
 
@@ -78,10 +78,10 @@ public class JfrStreamingInitializer implements ApplicationListener<ApplicationR
         }
 
         RepositoryInfo repositoryInfo = repos.getFirst();
-        List<RepositorySessionInfo> unfinishedSessions = repoRepository.findUnfinishedSessions();
+        List<ProjectInstanceSessionInfo> unfinishedSessions = repoRepository.findUnfinishedSessions();
 
         int count = 0;
-        for (RepositorySessionInfo session : unfinishedSessions) {
+        for (ProjectInstanceSessionInfo session : unfinishedSessions) {
             if (session.streamingEnabled()) {
                 consumerManager.registerConsumer(repositoryInfo, session);
                 count++;

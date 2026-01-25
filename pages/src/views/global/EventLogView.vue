@@ -42,8 +42,9 @@
               <option value="">All Events</option>
               <option value="PROJECT_CREATED">Project Created</option>
               <option value="PROJECT_DELETED">Project Deleted</option>
-              <option value="SESSION_CREATED">Session Created</option>
-              <option value="SESSION_DELETED">Session Deleted</option>
+              <option value="PROJECT_INSTANCE_CREATED">Instance Created</option>
+              <option value="PROJECT_INSTANCE_SESSION_CREATED">Session Created</option>
+              <option value="PROJECT_INSTANCE_SESSION_DELETED">Session Deleted</option>
             </select>
           </div>
         </div>
@@ -328,7 +329,12 @@ const getMainContentPairs = (event: WorkspaceEvent) => {
     if (content.repositoryType && content.repositoryType.trim()) {
       pairs['repositoryType'] = content.repositoryType;
     }
-  } else if (event.eventType === WorkspaceEventType.SESSION_CREATED) {
+  } else if (event.eventType === WorkspaceEventType.PROJECT_INSTANCE_CREATED) {
+    // For ProjectInstanceCreatedEvent
+    if (content.relativeInstancePath && content.relativeInstancePath.trim()) {
+      pairs['relativeInstancePath'] = content.relativeInstancePath;
+    }
+  } else if (event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED) {
     // For SessionCreatedEvent
     if (content.relativePath && content.relativePath.trim()) {
       pairs['relativePath'] = content.relativePath;
@@ -381,9 +387,11 @@ const getEventBadgeVariant = (eventType: WorkspaceEventType) => {
       return 'green';
     case WorkspaceEventType.PROJECT_DELETED:
       return 'danger';
-    case WorkspaceEventType.SESSION_CREATED:
+    case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+      return 'info';
+    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
       return 'primary';
-    case WorkspaceEventType.SESSION_DELETED:
+    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
       return 'warning';
     default:
       return 'secondary';
@@ -408,9 +416,11 @@ const getEventIconColor = (eventType: WorkspaceEventType) => {
       return 'text-success';
     case WorkspaceEventType.PROJECT_DELETED:
       return 'text-danger';
-    case WorkspaceEventType.SESSION_CREATED:
+    case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+      return 'text-info';
+    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
       return 'text-primary';
-    case WorkspaceEventType.SESSION_DELETED:
+    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
       return 'text-warning';
     default:
       return 'text-secondary';

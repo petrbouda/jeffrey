@@ -61,6 +61,7 @@ public abstract class Mappers {
                 projectInfo.originId(),
                 projectInfo.name(),
                 projectInfo.label(),
+                projectInfo.namespace(),
                 InstantUtils.formatInstant(projectInfo.createdAt()),
                 projectInfo.workspaceId(),
                 projectInfo.workspaceType(),

@@ -1,12 +1,33 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
+import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -69,8 +90,21 @@ public class InitExecutor {
                     projectPath);
         }
 
+        // Create instance folder (from config, HOSTNAME env var, or generated UUID)
+        String instanceId = config.getInstanceId();
+        Path instancePath = projectPath.resolve(instanceId);
+        Optional<RemoteProjectInstance> instanceOpt = repository.findInstance(instancePath);
+        if (instanceOpt.isEmpty()) {
+            createDirectories(instancePath);
+            repository.addInstance(
+                    instanceId,
+                    projectId,
+                    config.getWorkspaceId(),
+                    instancePath);
+        }
+
         String sessionId = IDGenerator.generate();
-        Path newSessionPath = createDirectories(projectPath.resolve(sessionId));
+        Path newSessionPath = createDirectories(instancePath.resolve(sessionId));
 
         if (config.isMessagingEnabled()) {
             createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
@@ -93,10 +127,20 @@ public class InitExecutor {
                 newSessionPath,
                 features);
 
+        // Calculate order: find max order from existing sessions + 1
+        List<RemoteProjectInstanceSession> existingSessions = repository.findSessionsInInstance(instancePath);
+        int maxOrder = existingSessions.stream()
+                .mapToInt(RemoteProjectInstanceSession::order)
+                .max()
+                .orElse(0);
+        int order = maxOrder + 1;
+
         repository.addSession(
                 sessionId,
                 projectId,
                 config.getWorkspaceId(),
+                instanceId,
+                order,
                 config.isPerfCountersEnabled() ? FeatureBuilder.PERF_COUNTERS_FILE : null,
                 profilerSettings,
                 config.isMessagingEnabled(),

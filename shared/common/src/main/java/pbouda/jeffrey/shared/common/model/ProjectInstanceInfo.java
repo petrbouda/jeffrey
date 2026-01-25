@@ -16,15 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.shared.common.model.repository;
+package pbouda.jeffrey.shared.common.model;
 
-public record RemoteSession(
-        String sessionId,
+import java.time.Instant;
+
+public record ProjectInstanceInfo(
+        String id,
         String projectId,
-        String workspaceId,
-        long createdAt,
-        String finishedFile,
-        String relativeSessionPath,
-        String profilerSettings,
-        boolean streamingEnabled) {
+        String hostname,
+        ProjectInstanceStatus status,
+        Instant lastHeartbeat,
+        Instant startedAt,
+        int sessionCount,
+        String activeSessionId) {
+
+    public enum ProjectInstanceStatus {
+        ONLINE, OFFLINE
+    }
 }

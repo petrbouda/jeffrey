@@ -33,6 +33,7 @@ export function useNavigation() {
     (route.params.projectId as string) || profileStore.projectId.value
   );
   const profileId = computed(() => route.params.profileId as string);
+  const instanceId = computed(() => route.params.instanceId as string);
 
   /**
    * Check if we're using the simplified profile URL pattern (/profiles/:profileId/...)
@@ -85,11 +86,29 @@ export function useNavigation() {
     return `/profiles/${targetProfileId}/${path}`;
   };
 
+  /**
+   * Generate an instance URL within a project.
+   */
+  const generateInstanceUrl = (instId: string, path?: string, pId?: string, wsId?: string) => {
+    const targetWorkspaceId = wsId || workspaceId.value;
+    const targetProjectId = pId || projectId.value;
+    const basePath = `/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/instances/${instId}`;
+    return path ? `${basePath}/${path}` : basePath;
+  };
+
+  /**
+   * Navigate to an instance detail page.
+   */
+  const navigateToInstance = (instId: string, pId?: string, wsId?: string) => {
+    router.push(generateInstanceUrl(instId, undefined, pId, wsId));
+  };
+
   return {
     // Route params (with profileStore fallback)
     workspaceId,
     projectId,
     profileId,
+    instanceId,
 
     // URL pattern detection
     isSimplifiedProfileUrl,
@@ -100,9 +119,11 @@ export function useNavigation() {
     navigateToProject,
     navigateToProfile,
     navigateToProjectProfiles,
+    navigateToInstance,
 
     // URL generators
     generateProjectUrl,
     generateProfileUrl,
+    generateInstanceUrl,
   };
 }

@@ -19,6 +19,8 @@
 package pbouda.jeffrey.platform.workspace.model;
 
 public record SessionCreatedEventContent(
+        String instanceId,
+        int order,
         String relativeSessionPath,
         String finishedFile,
         String profilerSettings,

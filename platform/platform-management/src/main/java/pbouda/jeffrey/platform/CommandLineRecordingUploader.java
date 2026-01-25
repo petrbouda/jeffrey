@@ -120,7 +120,7 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
         ProjectsManager projectsManager = workspaceManager.projectsManager();
 
         CreateProject createProject = new CreateProject(
-                null, PROJECT_NAME, PROJECT_LABEL, null, null, Map.of());
+                null, PROJECT_NAME, PROJECT_LABEL, null, null, null, Map.of());
 
         ProjectManager projectManager = projectsManager.create(createProject);
 
