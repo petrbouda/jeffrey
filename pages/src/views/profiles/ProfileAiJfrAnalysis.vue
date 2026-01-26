@@ -105,7 +105,7 @@
         <template v-for="(message, index) in orderedMessages" :key="index">
           <AiAnalysisChatMessage
               :message="message"
-              @suggestion="useSuggestion"
+              @suggestion="handleSuggestion"
           />
           <!-- Loading Indicator appears after the newest user message -->
           <div v-if="isLoading && index === 0 && message.role === 'user'" class="chat-message assistant loading">
@@ -193,6 +193,11 @@ const handleSend = async () => {
   const message = currentInput.value;
   currentInput.value = '';
   await sendMessage(message);
+};
+
+const handleSuggestion = async (suggestion: string) => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  await useSuggestion(suggestion);
 };
 
 // Auto-resize textarea
