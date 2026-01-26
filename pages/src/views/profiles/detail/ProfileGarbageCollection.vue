@@ -8,20 +8,12 @@
     <PageHeader
         title="Garbage Collection Analysis"
         description="Comprehensive analysis of garbage collection events and performance"
-        icon="bi-recycle">
-      <template #actions>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary" @click="refreshData">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </template>
-    </PageHeader>
+        icon="bi-recycle"
+    />
+
 
     <!-- Key Metrics Row -->
-    <div class="mb-4">
-      <StatsTable :metrics="metricsData" />
-    </div>
+    <GCMetricsStatsRow :profile-id="route.params.profileId as string" />
 
     <!-- GC Analysis Section -->
     <ChartSectionWithTabs
@@ -220,8 +212,8 @@ import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ApexCharts from 'apexcharts';
-import StatsTable from '@/components/StatsTable.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
@@ -290,86 +282,6 @@ const gcSummary = computed(() => {
     systemGCCalls: FormattingService.formatNumber(header.manualGCCalls.systemGCCalls),
     diagnosticCommandCalls: FormattingService.formatNumber(header.manualGCCalls.diagnosticCommandCalls)
   };
-});
-
-// Computed metrics for StatsTable
-const metricsData = computed(() => {
-  if (!gcOverviewData.value) return [];
-
-  return [
-    {
-      icon: 'recycle',
-      title: 'GC Collections',
-      value: gcSummary.value.totalCollections,
-      variant: 'highlight' as const,
-      breakdown: [
-        {
-          label: 'Young',
-          value: gcSummary.value.youngCollections,
-          color: '#4285F4'
-        },
-        {
-          label: 'Old',
-          value: gcSummary.value.oldCollections,
-          color: '#4285F4'
-        }
-      ]
-    },
-    {
-      icon: 'hourglass-split',
-      title: 'GC Pauses',
-      value: gcSummary.value.maxPauseTime,
-      variant: 'warning' as const,
-      breakdown: [
-        {
-          label: '99th',
-          value: gcSummary.value.p99PauseTime,
-          color: '#FBBC05'
-        },
-        {
-          label: '95th',
-          value: gcSummary.value.p95PauseTime,
-          color: '#FBBC05'
-        }
-      ]
-    },
-    {
-      icon: 'speedometer2',
-      title: 'GC Overhead',
-      value: gcSummary.value.gcOverhead,
-      variant: 'info' as const,
-      breakdown: [
-        {
-          label: 'Throughput',
-          value: gcSummary.value.gcThroughput,
-          color: '#34A853'
-        },
-        {
-          label: 'Frequency',
-          value: gcSummary.value.collectionFrequency,
-          color: '#34A853'
-        }
-      ]
-    },
-    {
-      icon: 'hand-index-thumb',
-      title: 'Manual GC Calls',
-      value: gcSummary.value.manualGCTime,
-      variant: 'warning' as const,
-      breakdown: [
-        {
-          label: 'System GC',
-          value: gcSummary.value.systemGCCalls,
-          color: '#FBBC05'
-        },
-        {
-          label: 'Diagnostic Cmd',
-          value: gcSummary.value.diagnosticCommandCalls,
-          color: '#FBBC05'
-        }
-      ]
-    }
-  ];
 });
 
 const formatDifference = (beforeGC: number, afterGC: number) => {
@@ -590,11 +502,6 @@ const onTabChange = (_tabIndex: number, tab: any) => {
       createEfficiencyChart();
     }
   }
-};
-
-// Refresh data
-const refreshData = () => {
-  loadGCData();
 };
 
 // Load data on component mount

@@ -20,7 +20,7 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import GCOverviewData from '@/services/api/model/GCOverviewData';
 import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
-import Serie from '@/services/timeseries/model/Serie';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 export default class ProfileGCClient extends BaseProfileClient {
 
@@ -32,8 +32,8 @@ export default class ProfileGCClient extends BaseProfileClient {
         return this.get<GCOverviewData>('');
     }
 
-    public getTimeseries(timeseriesType: GCTimeseriesType): Promise<Serie> {
-        return this.get<Serie>('/timeseries', { timeseriesType });
+    public getTimeseries(timeseriesType: GCTimeseriesType): Promise<TimeseriesData> {
+        return this.get<TimeseriesData>('/timeseries', { timeseriesType });
     }
 
     public getConfiguration(): Promise<GCConfigurationData> {

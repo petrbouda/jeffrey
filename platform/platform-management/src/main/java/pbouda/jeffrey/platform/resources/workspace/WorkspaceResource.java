@@ -21,13 +21,13 @@ package pbouda.jeffrey.platform.resources.workspace;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
+import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
-import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 
 import java.util.List;
 

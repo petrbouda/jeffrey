@@ -1,7 +1,7 @@
 <template>
   <div class="chat-message" :class="message.role">
     <div class="message-avatar">
-      <i :class="message.role === 'user' ? 'bi-person-fill' : 'bi-cpu-fill'"></i>
+      <i :class="message.role === 'user' ? 'bi-person-fill' : 'bi-stars'"></i>
     </div>
     <div class="message-content">
       <div class="message-text" v-html="formattedContent"></div>
@@ -71,6 +71,9 @@ const formattedContent = computed(() => {
 
 .chat-message.user {
   align-items: center;
+  padding: 0.625rem 1rem;
+  background-color: #f8f9fa;
+  border-left: 2px solid #0969da;
 }
 
 .chat-message.assistant {
@@ -81,15 +84,10 @@ const formattedContent = computed(() => {
   border-bottom: none;
 }
 
-.chat-message.user {
-  background-color: #f0f4f8;
-  border-left: 3px solid #0969da;
-}
-
 .chat-message.user .message-text {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #24292f;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #495057;
 }
 
 .chat-message.assistant {
@@ -108,8 +106,11 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.user .message-avatar {
-  background-color: #e3e8ef;
-  color: #495057;
+  width: 26px;
+  height: 26px;
+  font-size: 0.75rem;
+  background-color: #e9ecef;
+  color: #6c757d;
 }
 
 .chat-message.assistant .message-avatar {

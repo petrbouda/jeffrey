@@ -57,6 +57,20 @@
           <small>Memory analysis from heap dumps</small>
         </div>
       </div>
+      <!-- AI mode (hidden for heap-dump-only profiles) -->
+      <div v-if="!isHeapDumpOnlyProfile"
+           class="nav-pill nav-pill-ai"
+           :class="{ 'active': selectedMode === 'AI' }"
+           @click="selectMode('AI')"
+           title="AI-powered profile analysis">
+        <div class="pill-content">
+          <div class="title-row">
+            <i class="bi bi-stars"></i>
+            <span>AI Analysis</span>
+          </div>
+          <small>AI-powered insights</small>
+        </div>
+      </div>
 
       <!-- Comparison Panel Toggle (hidden for heap-dump-only profiles) -->
       <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper ms-auto">
@@ -132,14 +146,6 @@
                   >
                     <i class="bi bi-speedometer2"></i>
                     <span>Performance Counters</span>
-                  </router-link>
-                  <router-link
-                      :to="`/profiles/${profileId}/ai-analysis`"
-                      class="nav-item"
-                      active-class="active"
-                  >
-                    <i class="bi bi-cpu-fill"></i>
-                    <span>AI Analysis</span>
                   </router-link>
                 </div>
               </div>
@@ -535,6 +541,23 @@
                 </div>
               </div>
             </template>
+
+            <!-- AI Mode Menu -->
+            <template v-else-if="selectedMode === 'AI'">
+              <div class="nav-section">
+                <div class="nav-section-title">AI ASSISTANT</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/profiles/${profileId}/ai-analysis`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-activity"></i>
+                    <span>JFR Analysis</span>
+                  </router-link>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -698,16 +721,16 @@ const isFeatureDisabled = (menuItem: string): boolean => {
   return featureType ? disabledFeatures.value.includes(featureType) : false;
 };
 // Initialize mode from sessionStorage or default to 'JVM'
-const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' | 'HeapDump' => {
+const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' | 'HeapDump' | 'AI' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
   // Handle backward compatibility: 'JDK' -> 'JVM', 'Custom' -> 'Application'
   if (stored === 'JDK') return 'JVM';
   if (stored === 'Custom') return 'Application';
-  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization' || stored === 'HeapDump') return stored;
+  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization' || stored === 'HeapDump' || stored === 'AI') return stored;
   return 'JVM';
 };
 
-const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump'>(getStoredMode());
+const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump' | 'AI'>(getStoredMode());
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 
@@ -872,11 +895,12 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') => {
+const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump' | 'AI') => {
   selectedMode.value = mode;
 
   // Navigate to the first item in the selected mode's menu (simplified URLs)
   const firstRoutes: Record<string, string> = {
+    'AI': `/profiles/${profileId}/ai-analysis`,
     'JVM': `/profiles/${profileId}/overview`,
     'Application': `/profiles/${profileId}/application/http/overview?mode=server`,
     'Visualization': `/profiles/${profileId}/flamegraphs/primary`,
@@ -1592,6 +1616,47 @@ onUnmounted(() => {
   .comparison-toggle-btn .toggle-status {
     display: none;
   }
+}
+
+/* AI Mode Navigation - Colorful Gradient */
+.feature-collection-nav .nav-pill.nav-pill-ai {
+  position: relative;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai .title-row i {
+  color: #8b5cf6;
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai .title-row span {
+  color: #8b5cf6;
+  opacity: 1;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai:hover .title-row i {
+  color: #7c3aed;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai.active {
+  color: #7c3aed;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai.active .title-row i {
+  color: #7c3aed;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai.active small {
+  color: #8b5cf6;
+}
+
+.feature-collection-nav .nav-pill.nav-pill-ai.active::after {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.1); }
 }
 
 </style>

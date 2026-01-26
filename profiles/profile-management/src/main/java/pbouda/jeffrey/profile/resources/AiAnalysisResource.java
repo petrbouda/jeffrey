@@ -38,7 +38,9 @@ public class AiAnalysisResource {
     private final ProfileInfo profileInfo;
     private final JfrAnalysisAssistantService assistantService;
 
-    public AiAnalysisResource(ProfileInfo profileInfo, JfrAnalysisAssistantService assistantService) {
+    public AiAnalysisResource(
+            ProfileInfo profileInfo,
+            JfrAnalysisAssistantService assistantService) {
         this.profileInfo = profileInfo;
         this.assistantService = assistantService;
     }
@@ -53,7 +55,8 @@ public class AiAnalysisResource {
     public AiAnalysisStatusResponse status() {
         return new AiAnalysisStatusResponse(
                 assistantService.isAvailable(),
-                assistantService.isAvailable() ? "anthropic" : "none"
+                assistantService.isAvailable() ? "anthropic" : null,
+                assistantService.getModelName()
         );
     }
 
@@ -79,7 +82,8 @@ public class AiAnalysisResource {
      */
     public record AiAnalysisStatusResponse(
             boolean available,
-            String provider
+            String provider,
+            String model
     ) {
     }
 

@@ -25,9 +25,9 @@ import jakarta.ws.rs.Path;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.custom.*;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 public class ProfileResource {
 
@@ -157,7 +157,9 @@ public class ProfileResource {
 
     @Path("/ai-analysis")
     public AiAnalysisResource aiAnalysisResource() {
-        return new AiAnalysisResource(profileManager.info(), jfrAnalysisAssistantService);
+        return new AiAnalysisResource(
+                profileManager.info(),
+                jfrAnalysisAssistantService);
     }
 
     @GET

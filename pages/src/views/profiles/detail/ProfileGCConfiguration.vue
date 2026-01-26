@@ -8,15 +8,9 @@
     <PageHeader
         title="Garbage Collection Configuration"
         description="JFR-based analysis of garbage collection configuration and settings"
-        icon="bi-gear">
-      <template #actions>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary" @click="refreshData">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </template>
-    </PageHeader>
+        icon="bi-gear"
+    />
+
 
     <!-- Configuration Overview Cards -->
     <div class="mb-4">
@@ -260,10 +254,6 @@ const metricsData = computed(() => {
     }
   ];
 });
-
-const refreshData = () => {
-  loadConfigurationData();
-};
 
 const loadConfigurationData = async () => {
   try {

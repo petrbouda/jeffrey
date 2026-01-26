@@ -20,19 +20,19 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
-import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.profile.resources.ProfileDiffResource;
-import pbouda.jeffrey.profile.resources.ProfileResource;
 import pbouda.jeffrey.platform.resources.request.CreateProfileRequest;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.profile.resources.ProfileDiffResource;
+import pbouda.jeffrey.profile.resources.ProfileResource;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.util.Comparator;
 import java.util.List;
@@ -80,7 +80,11 @@ public class ProjectProfilesResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = profilesManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found"));
-        return new ProfileResource(profileManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
+        return new ProfileResource(
+                profileManager,
+                oqlAssistantService,
+                jfrAnalysisAssistantService,
+                heapDumpContextExtractor);
     }
 
     @Path("/{primaryProfileId}/diff/{secondaryProfileId}")

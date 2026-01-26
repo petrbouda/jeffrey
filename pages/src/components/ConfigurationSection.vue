@@ -93,4 +93,11 @@ defineProps<Props>();
   text-align: right;
   flex: 1;
 }
+
+.config-items :deep(.config-value i.bi) {
+  vertical-align: baseline;
+  position: relative;
+  top: -1px;
+  margin-right: 0.25rem;
+}
 </style>

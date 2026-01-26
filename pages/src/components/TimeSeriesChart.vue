@@ -10,7 +10,7 @@
       <div class="main-chart-container">
         <apexchart
           ref="mainChart"
-          :type="props.showPoints ? 'scatter' : 'area'"
+          :type="effectiveChartType"
           height="300"
           :options="mainChartOptions"
           :series="mainChartSeries"
@@ -55,6 +55,10 @@
           <span class="graph-title-icon" :style="`background-color: ${secondaryColor};`"></span>
           <span class="graph-title-text">{{ props.secondaryTitle }}</span>
         </div>
+        <div v-if="props.tertiaryTitle" class="graph-title-item">
+          <span class="graph-title-icon" :style="`background-color: ${tertiaryColor};`"></span>
+          <span class="graph-title-text">{{ props.tertiaryTitle }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -74,18 +78,23 @@ import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverte
 const props = defineProps<{
   primaryData?: number[][];
   secondaryData?: number[][];
+  tertiaryData?: number[][];
   searchData?: number[][];
   primaryTitle?: string;
   secondaryTitle?: string;
+  tertiaryTitle?: string;
   secondaryUnit?: string;
   visibleMinutes?: number;
   independentSecondaryAxis?: boolean;
   primaryAxisType?: AxisFormatType;
   secondaryAxisType?: AxisFormatType;
+  tertiaryAxisType?: AxisFormatType;
   stacked?: boolean;
   primaryColor?: string;
   secondaryColor?: string;
+  tertiaryColor?: string;
   showPoints?: boolean;
+  chartType?: 'area' | 'bar'; // Chart type: 'area' (default) or 'bar'
   timeUnit?: TimeUnit;
   zoomEnabled?: boolean; // Whether to emit time range updates on brush selection
   graphUpdater?: GraphUpdater; // Optional: When provided, component manages data internally
@@ -100,9 +109,17 @@ const emit = defineEmits<{
 // Search highlight color (purple)
 const searchHighlightColor = '#8E44AD';
 
+// Computed chart type based on props
+const effectiveChartType = computed(() => {
+  if (props.showPoints) return 'scatter';
+  if (props.chartType === 'bar') return 'bar';
+  return 'area';
+});
+
 // Internal data refs (used when graphUpdater is provided)
 const internalPrimaryData = ref<number[][]>([]);
 const internalSecondaryData = ref<number[][] | undefined>(undefined);
+const internalTertiaryData = ref<number[][] | undefined>(undefined);
 const internalSearchData = ref<number[][] | undefined>(undefined);
 const isLoading = ref(false);
 
@@ -122,12 +139,23 @@ const extractSecondaryTimeseriesData = (data: TimeseriesData): number[][] | unde
   return undefined;
 };
 
+// Extract tertiary data from TimeseriesData (third series)
+const extractTertiaryTimeseriesData = (data: TimeseriesData): number[][] | undefined => {
+  if (data.series && data.series.length > 2) {
+    return data.series[2].data;
+  }
+  return undefined;
+};
+
 // Computed to use either props data or internal data (when graphUpdater is used)
 const effectivePrimaryData = computed(() =>
   props.graphUpdater ? internalPrimaryData.value : props.primaryData
 );
 const effectiveSecondaryData = computed(() =>
   props.graphUpdater ? internalSecondaryData.value : props.secondaryData
+);
+const effectiveTertiaryData = computed(() =>
+  props.graphUpdater ? internalTertiaryData.value : props.tertiaryData
 );
 const effectiveSearchData = computed(() =>
   props.graphUpdater ? internalSearchData.value : props.searchData
@@ -153,6 +181,7 @@ let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selecti
 // Colors
 const primaryColor = props.primaryColor || '#2E93fA';
 const secondaryColor = props.secondaryColor || '#E53935';
+const tertiaryColor = props.tertiaryColor || '#EA4335';
 
 // Time converter for consistent time handling
 const timeConverter = computed(() => new TimeConverter(props.timeUnit));
@@ -216,16 +245,18 @@ const findMaxValueInSeries = (data: number[][] | undefined, axisType?: AxisForma
 const calculateMaxYValues = (): void => {
   const primaryData = effectivePrimaryData.value;
   const secondaryData = effectiveSecondaryData.value;
+  const tertiaryData = effectiveTertiaryData.value;
 
-  if (props.stacked && primaryData && secondaryData) {
+  if (props.stacked && primaryData) {
     // For stacked charts, calculate the maximum sum at any point
     let maxSum = 0;
-    const minLength = Math.min(primaryData.length, secondaryData.length);
+    const dataLength = primaryData.length;
 
-    for (let i = 0; i < minLength; i++) {
-      const primaryValue = primaryData[i][1] || 0;
-      const secondaryValue = secondaryData[i][1] || 0;
-      const sum = primaryValue + secondaryValue;
+    for (let i = 0; i < dataLength; i++) {
+      const primaryValue = primaryData[i]?.[1] || 0;
+      const secondaryValue = secondaryData?.[i]?.[1] || 0;
+      const tertiaryValue = tertiaryData?.[i]?.[1] || 0;
+      const sum = primaryValue + secondaryValue + tertiaryValue;
       if (sum > maxSum) maxSum = sum;
     }
 
@@ -408,6 +439,7 @@ const mainChartSeries = computed(() => {
   const series = [];
   const primaryData = effectivePrimaryData.value;
   const secondaryData = effectiveSecondaryData.value;
+  const tertiaryData = effectiveTertiaryData.value;
   const searchData = effectiveSearchData.value;
 
   if (primaryData && primaryData.length > 0) {
@@ -423,6 +455,14 @@ const mainChartSeries = computed(() => {
       name: props.secondaryTitle || 'Secondary',
       data: getVisibleData(secondaryData),
       color: secondaryColor
+    });
+  }
+
+  if (tertiaryData && tertiaryData.length > 0) {
+    series.push({
+      name: props.tertiaryTitle || 'Tertiary',
+      data: getVisibleData(tertiaryData),
+      color: tertiaryColor
     });
   }
 
@@ -443,6 +483,7 @@ const brushChartSeries = computed(() => {
   const series = [];
   const primaryData = effectivePrimaryData.value;
   const secondaryData = effectiveSecondaryData.value;
+  const tertiaryData = effectiveTertiaryData.value;
   const searchData = effectiveSearchData.value;
 
   if (primaryData && primaryData.length > 0) {
@@ -461,6 +502,14 @@ const brushChartSeries = computed(() => {
     });
   }
 
+  if (tertiaryData && tertiaryData.length > 0) {
+    series.push({
+      name: props.tertiaryTitle || 'Tertiary',
+      data: processDataForApex(tertiaryData, 1500),
+      color: tertiaryColor
+    });
+  }
+
   // Add search highlight data if provided
   if (searchData && searchData.length > 0) {
     series.push({
@@ -474,10 +523,14 @@ const brushChartSeries = computed(() => {
 });
 
 // Main chart options
-const mainChartOptions = computed(() => ({
+const mainChartOptions = computed(() => {
+  const isBarChart = effectiveChartType.value === 'bar';
+  const isScatterChart = props.showPoints;
+
+  return {
   chart: {
     id: 'main-chart',
-    type: props.showPoints ? 'scatter' : 'area',
+    type: effectiveChartType.value,
     height: 300,
     stacked: props.stacked || false,
     toolbar: {
@@ -492,26 +545,44 @@ const mainChartOptions = computed(() => ({
       enabled: false
     }
   },
+  plotOptions: isBarChart
+    ? {
+        bar: {
+          columnWidth: '80%'
+        }
+      }
+    : {},
   dataLabels: {
     enabled: false
   },
-  stroke: {
-    curve: 'smooth',
-    width: 1
-  },
-  fill: props.showPoints
+  stroke: isBarChart
+    ? {
+        show: true,
+        width: 1,
+        colors: ['transparent']
+      }
+    : {
+        curve: 'smooth',
+        width: 1
+      },
+  fill: isScatterChart
     ? {
         type: 'solid',
         opacity: 0.8
       }
-    : {
-        type: 'gradient',
-        gradient: {
-          opacityFrom: 0.4,
-          opacityTo: 0.1
+    : isBarChart
+      ? {
+          type: 'solid',
+          opacity: 0.85
         }
-      },
-  markers: props.showPoints
+      : {
+          type: 'gradient',
+          gradient: {
+            opacityFrom: 0.4,
+            opacityTo: 0.1
+          }
+        },
+  markers: isScatterChart
     ? {
         size: 6,
         strokeWidth: 2,
@@ -585,18 +656,22 @@ const mainChartOptions = computed(() => ({
     },
     y: {
       formatter: function (value: number, { seriesIndex }: { seriesIndex: number }) {
-        // Series order: Primary (0), Secondary (1 if present), Search Results (last if present)
+        // Series order: Primary (0), Secondary (1 if present), Tertiary (2 if present), Search Results (last if present)
         const hasSecondaryData =
           effectiveSecondaryData.value && effectiveSecondaryData.value.length > 0;
+        const hasTertiaryData =
+          effectiveTertiaryData.value && effectiveTertiaryData.value.length > 0;
 
         // Index 0 is always primary data
-        // Index 1 is secondary data only if secondary data exists, otherwise it's search results
-        // Index 2 (when exists) is always search results
+        // Index 1 is secondary data only if secondary data exists
+        // Index 2 is tertiary data only if tertiary data exists (and secondary exists)
         // Search results are derived from primary data, so use primary axis type
         if (seriesIndex === 0) {
           return formatValue(value, props.primaryAxisType);
         } else if (hasSecondaryData && seriesIndex === 1) {
           return formatValue(value, props.secondaryAxisType);
+        } else if (hasTertiaryData && seriesIndex === 2) {
+          return formatValue(value, props.tertiaryAxisType || props.primaryAxisType);
         } else {
           // Search results (or any other series) use primary axis type
           return formatValue(value, props.primaryAxisType);
@@ -613,7 +688,8 @@ const mainChartOptions = computed(() => ({
   animations: {
     enabled: false
   }
-}));
+};
+});
 
 // Brush chart options with selection functionality
 const brushChartOptions = computed(() => ({
@@ -908,10 +984,11 @@ onMounted(async () => {
       (data: TimeseriesData) => {
         internalPrimaryData.value = extractPrimaryTimeseriesData(data);
         internalSecondaryData.value = extractSecondaryTimeseriesData(data);
+        internalTertiaryData.value = extractTertiaryTimeseriesData(data);
         internalSearchData.value = undefined;
       },
       (data: TimeseriesData) => {
-        internalSearchData.value = extractPrimaryTimeseriesData(data);
+        internalSearchData.value = extractSecondaryTimeseriesData(data);
       },
       () => {
         internalSearchData.value = undefined;

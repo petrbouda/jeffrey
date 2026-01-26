@@ -9,15 +9,8 @@
       title="Heap Memory Timeseries"
       description="Time-series analysis of heap memory usage, allocation patterns, and GC impact"
       icon="bi-graph-up-arrow"
-    >
-      <template #actions>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary" @click="refreshData">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </template>
-    </PageHeader>
+    />
+
 
     <!-- Heap Memory Timeseries Section -->
     <ChartSectionWithTabs
@@ -127,11 +120,6 @@ const onHeapMemoryTabChange = async (_tabIndex: number, tab: any) => {
       error.value = 'Failed to load timeseries data';
     }
   }
-};
-
-// Refresh data
-const refreshData = () => {
-  loadHeapMemoryData();
 };
 
 // Load heap memory data

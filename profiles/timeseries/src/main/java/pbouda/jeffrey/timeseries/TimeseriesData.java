@@ -22,6 +22,10 @@ import java.util.List;
 
 public record TimeseriesData(List<SingleSerie> series) {
 
+    public TimeseriesData(SingleSerie serie1, SingleSerie serie2, SingleSerie serie3) {
+        this(List.of(serie1, serie2, serie3));
+    }
+
     public TimeseriesData(SingleSerie serie1, SingleSerie serie2) {
         this(List.of(serie1, serie2));
     }

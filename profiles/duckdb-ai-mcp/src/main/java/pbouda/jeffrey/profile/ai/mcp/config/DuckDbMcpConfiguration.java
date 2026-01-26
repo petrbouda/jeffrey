@@ -21,6 +21,7 @@ package pbouda.jeffrey.profile.ai.mcp.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -44,9 +45,10 @@ public class DuckDbMcpConfiguration {
     @ConditionalOnProperty(name = "jeffrey.ai.enabled", havingValue = "true")
     public JfrAnalysisAssistantService jfrAnalysisAssistantService(
             ChatClient.Builder chatClientBuilder,
-            DatabaseManagerResolver databaseManagerResolver) {
-        LOG.info("Creating JFR Analysis Assistant Service with MCP tools");
-        return new JfrAnalysisAssistantServiceImpl(chatClientBuilder, databaseManagerResolver);
+            DatabaseManagerResolver databaseManagerResolver,
+            @Value("${spring.ai.anthropic.chat.options.model:}") String modelName) {
+        LOG.info("Creating JFR Analysis Assistant Service with MCP tools: model={}", modelName);
+        return new JfrAnalysisAssistantServiceImpl(chatClientBuilder, databaseManagerResolver, modelName);
     }
 
     /**

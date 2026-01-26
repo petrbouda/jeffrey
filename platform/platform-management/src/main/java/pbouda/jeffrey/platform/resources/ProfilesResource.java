@@ -108,7 +108,11 @@ public class ProfilesResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = findProfileManager(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found: " + profileId));
-        return new ProfileResource(profileManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
+        return new ProfileResource(
+                profileManager,
+                oqlAssistantService,
+                jfrAnalysisAssistantService,
+                heapDumpContextExtractor);
     }
 
     /**

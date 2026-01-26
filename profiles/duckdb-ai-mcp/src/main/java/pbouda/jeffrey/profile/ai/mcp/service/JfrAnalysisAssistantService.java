@@ -36,6 +36,13 @@ public interface JfrAnalysisAssistantService {
     boolean isAvailable();
 
     /**
+     * Get the name of the AI model being used.
+     *
+     * @return the model name, or null if not configured
+     */
+    String getModelName();
+
+    /**
      * Analyze JFR events for a specific profile.
      *
      * @param profileInfo the profile to analyze

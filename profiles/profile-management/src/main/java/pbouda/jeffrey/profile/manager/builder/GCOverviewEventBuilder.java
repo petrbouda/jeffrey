@@ -67,6 +67,7 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
     private int totalCollections = 0;
     private int youngCollections = 0;
     private int oldCollections = 0;
+    private int fullCollections = 0;
     private long totalGcTime = 0;
     private long maxPauseTime = 0;
     private long totalMemoryFreed = 0;
@@ -151,7 +152,12 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
 
         String collectorName = Json.readString(fields, "name");
         String cause = Json.readString(fields, "cause");
-        
+
+        // Track Full GC events (e.g., G1Full, SerialFull, ParallelFull)
+        if (collectorName != null && collectorName.contains("Full")) {
+            fullCollections++;
+        }
+
         // Track Manual GC events (System GC and Diagnostic Command)
         if (GarbageCollectionCause.SYSTEM_GC.sameAs(cause)) {
             systemGCCalls++;
@@ -252,6 +258,7 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 totalCollections,
                 youngCollections,
                 oldCollections,
+                fullCollections,
                 maxPauseTime,
                 pauseTimesHistogram.getValueAtPercentile(0.99),
                 pauseTimesHistogram.getValueAtPercentile(0.95),

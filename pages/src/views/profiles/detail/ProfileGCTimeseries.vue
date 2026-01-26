@@ -9,15 +9,11 @@
       title="GC Timeseries Analysis"
       description="Time-series analysis of garbage collection events and performance metrics"
       icon="bi-graph-up-arrow"
-    >
-      <template #actions>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary" @click="refreshData">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </template>
-    </PageHeader>
+    />
+
+
+    <!-- Key Metrics Row -->
+    <GCMetricsStatsRow :profile-id="route.params.profileId as string" />
 
     <!-- GC Timeseries Section -->
     <ChartSectionWithTabs
@@ -30,34 +26,74 @@
     >
       <!-- Count Tab -->
       <template #count>
+        <div class="chart-description">
+          <span class="chart-description-label">Shows:</span> Number of GC events per second
+          <span class="chart-description-separator">|</span>
+          <span class="chart-description-label">Use case:</span> Identify periods of high GC activity and frequency patterns
+        </div>
         <TimeSeriesChart
-          :primary-data="gcTimeseriesData"
-          primary-title="GC Count"
+          :primary-data="youngGCData"
+          :secondary-data="oldGCData"
+          :tertiary-data="fullGCData"
+          primary-title="Young GC"
+          secondary-title="Old GC"
+          tertiary-title="Full GC"
           :primary-axis-type="AxisFormatType.NUMBER"
           :visible-minutes="60"
-          primary-color="#007bff"
+          primary-color="#4285F4"
+          secondary-color="#FBBC04"
+          tertiary-color="#EA4335"
+          :stacked="true"
         />
       </template>
 
       <!-- Max Pause Tab -->
       <template #max-pause>
+        <div class="chart-description">
+          <span class="chart-description-label">Shows:</span> Longest single pause within each second
+          <span class="chart-description-separator">|</span>
+          <span class="chart-description-label">Use case:</span> Find worst-case latency spikes that may affect user experience
+        </div>
         <TimeSeriesChart
-          :primary-data="gcTimeseriesData"
-          primary-title="Max Pause Time"
+          :primary-data="youngGCData"
+          :secondary-data="oldGCData"
+          :tertiary-data="fullGCData"
+          primary-title="Young GC"
+          secondary-title="Old GC"
+          tertiary-title="Full GC"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
           :visible-minutes="60"
-          primary-color="#dc3545"
+          primary-color="#4285F4"
+          secondary-color="#FBBC04"
+          tertiary-color="#EA4335"
+          :stacked="true"
         />
       </template>
 
       <!-- Sum of Pauses Tab -->
       <template #sum-pauses>
+        <div class="chart-description">
+          <span class="chart-description-label">Shows:</span> Total pause time per second
+          <span class="chart-description-separator">|</span>
+          <span class="chart-description-label">Use case:</span> Measure overall GC overhead and throughput impact
+        </div>
         <TimeSeriesChart
-          :primary-data="gcTimeseriesData"
-          primary-title="Sum of Pause Times"
+          :primary-data="youngGCData"
+          :secondary-data="oldGCData"
+          :tertiary-data="fullGCData"
+          primary-title="Young GC"
+          secondary-title="Old GC"
+          tertiary-title="Full GC"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :secondary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :tertiary-axis-type="AxisFormatType.DURATION_IN_NANOS"
           :visible-minutes="60"
-          primary-color="#ffc107"
+          primary-color="#4285F4"
+          secondary-color="#FBBC04"
+          tertiary-color="#EA4335"
+          :stacked="true"
         />
       </template>
     </ChartSectionWithTabs>
@@ -73,6 +109,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
@@ -94,8 +131,10 @@ const gcTimeseriesTabs = [
   }
 ];
 
-// Timeseries data for different GC types
-const gcTimeseriesData = ref<number[][]>([]);
+// Timeseries data for Young, Old, and Full GC generations
+const youngGCData = ref<number[][]>([]);
+const oldGCData = ref<number[][]>([]);
+const fullGCData = ref<number[][]>([]);
 const currentTimeseriesType = ref<GCTimeseriesType>(GCTimeseriesType.COUNT);
 
 // Client initialization - will be set after workspace/project IDs are available
@@ -113,17 +152,15 @@ const onTimeseriesTabChange = async (_tabIndex: number, tab: any) => {
 
       // Load new timeseries data for the selected type
       const timeseriesData = await client.getTimeseries(tab.type);
-      gcTimeseriesData.value = timeseriesData.data;
+      // Extract Young GC (first series), Old GC (second series), and Full GC (third series)
+      youngGCData.value = timeseriesData.series?.[0]?.data ?? [];
+      oldGCData.value = timeseriesData.series?.[1]?.data ?? [];
+      fullGCData.value = timeseriesData.series?.[2]?.data ?? [];
     } catch (err) {
       console.error('Error loading timeseries data:', err);
       error.value = 'Failed to load timeseries data';
     }
   }
-};
-
-// Refresh data
-const refreshData = () => {
-  loadTimeseriesData();
 };
 
 // Load timeseries data from API
@@ -138,8 +175,11 @@ const loadTimeseriesData = async () => {
     }
 
     // Load timeline data with default COUNT type
-    const timelineData = await client.getTimeseries(GCTimeseriesType.COUNT);
-    gcTimeseriesData.value = timelineData.data;
+    const timeseriesData = await client.getTimeseries(GCTimeseriesType.COUNT);
+    // Extract Young GC (first series), Old GC (second series), and Full GC (third series)
+    youngGCData.value = timeseriesData.series?.[0]?.data ?? [];
+    oldGCData.value = timeseriesData.series?.[1]?.data ?? [];
+    fullGCData.value = timeseriesData.series?.[2]?.data ?? [];
     currentTimeseriesType.value = GCTimeseriesType.COUNT;
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -162,6 +202,25 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 300px;
+}
+
+.chart-description {
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.chart-description-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.chart-description-separator {
+  margin: 0 0.75rem;
+  color: #dee2e6;
 }
 
 /* Responsive Design */

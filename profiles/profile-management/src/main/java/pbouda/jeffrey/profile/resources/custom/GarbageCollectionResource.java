@@ -25,7 +25,7 @@ import pbouda.jeffrey.profile.manager.GarbageCollectionManager;
 import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public class GarbageCollectionResource {
 
@@ -42,7 +42,7 @@ public class GarbageCollectionResource {
 
     @GET
     @Path("timeseries")
-    public SingleSerie timeseries(@QueryParam("timeseriesType") GCTimeseriesType timeseriesType) {
+    public TimeseriesData timeseries(@QueryParam("timeseriesType") GCTimeseriesType timeseriesType) {
         return garbageCollectionManager.timeseries(timeseriesType);
     }
 

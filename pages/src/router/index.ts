@@ -28,7 +28,7 @@ const profileChildRoutes = [
   {
     path: 'ai-analysis',
     name: 'profile-ai-analysis',
-    component: () => import('@/views/profiles/AiAnalysis.vue'),
+    component: () => import('@/views/profiles/ProfileAiJfrAnalysis.vue'),
     meta: { layout: 'profile' }
   },
   {

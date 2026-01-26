@@ -65,7 +65,7 @@ export function useAiAnalysis(profileId: string) {
             status.value = await client.getStatus();
         } catch (e: any) {
             error.value = e?.message || 'Failed to check AI status';
-            status.value = { available: false, provider: null };
+            status.value = { available: false, provider: null, model: null };
         }
     };
 

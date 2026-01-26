@@ -43,6 +43,11 @@ public class NoOpJfrAnalysisAssistantService implements JfrAnalysisAssistantServ
     }
 
     @Override
+    public String getModelName() {
+        return null;
+    }
+
+    @Override
     public JfrAnalysisResponse analyze(ProfileInfo profileInfo, JfrAnalysisRequest request) {
         return JfrAnalysisResponse.textOnly(NOT_CONFIGURED_MESSAGE);
     }

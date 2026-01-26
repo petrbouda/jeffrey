@@ -23,6 +23,7 @@ export default class GCHeader {
         public totalCollections: number,
         public youngCollections: number,
         public oldCollections: number,
+        public fullCollections: number,
         public maxPauseTime: number,
         public p95PauseTime: number,
         public p99PauseTime: number,

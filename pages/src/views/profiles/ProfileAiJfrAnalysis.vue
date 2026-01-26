@@ -1,16 +1,27 @@
 <template>
   <PageHeader
-    title="AI Analysis"
+    title="JFR Analysis"
     description="Ask questions about your JFR profile and get AI-powered insights"
-    icon="bi-cpu-fill"
+    icon="bi-activity"
   >
     <div class="ai-analysis-container">
       <!-- Panel Header -->
       <div class="panel-header">
-        <span v-if="status" class="status-badge" :class="{ available: isAvailable }">
-          <i :class="isAvailable ? 'bi-check-circle-fill' : 'bi-x-circle-fill'"></i>
-          {{ isAvailable ? status.provider || 'AI' : 'Not configured' }}
-        </span>
+        <div v-if="status" class="ai-status" :class="{ available: isAvailable }">
+          <template v-if="isAvailable">
+            <span class="provider-badge">
+              <i class="bi-cpu"></i>
+              {{ status.provider }}
+            </span>
+            <span v-if="status.model" class="model-badge">
+              {{ status.model }}
+            </span>
+          </template>
+          <span v-else class="status-badge unavailable">
+            <i class="bi-x-circle-fill"></i>
+            Not configured
+          </span>
+        </div>
         <div class="modify-toggle" :class="{ active: canModify }">
           <label class="toggle-label" :title="canModify ? 'Data modification is enabled' : 'Enable to allow AI to modify profile data'">
             <input
@@ -56,6 +67,7 @@
             <i v-else class="bi-send-fill"></i>
           </button>
         </div>
+        <span v-if="isAvailable" class="input-hint">Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span>
       </div>
 
       <!-- Chat Area -->
@@ -98,7 +110,7 @@
           <!-- Loading Indicator appears after the newest user message -->
           <div v-if="isLoading && index === 0 && message.role === 'user'" class="chat-message assistant loading">
             <div class="message-avatar">
-              <i class="bi-cpu-fill"></i>
+              <i class="bi-stars"></i>
             </div>
             <div class="message-content">
               <div class="typing-indicator">
@@ -215,7 +227,44 @@ onMounted(() => {
   border-bottom: 1px solid #e1e4e8;
 }
 
-.status-badge {
+.ai-status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff !important;
+}
+
+.provider-badge i {
+  font-size: 0.65rem;
+  color: #ffffff !important;
+}
+
+.model-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background-color: #f3f4f6;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb;
+}
+
+.status-badge.unavailable {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -224,11 +273,6 @@ onMounted(() => {
   border-radius: 20px;
   background-color: #ffebe9;
   color: #cf222e;
-}
-
-.status-badge.available {
-  background-color: #dafbe1;
-  color: #1a7f37;
 }
 
 .modify-toggle {
@@ -495,9 +539,29 @@ onMounted(() => {
 }
 
 .input-area {
-  padding: 1rem;
+  padding: 1rem 1rem 0.375rem 1rem;
   border-bottom: 1px solid #e1e4e8;
   background-color: #f6f8fa;
+}
+
+.input-hint {
+  display: block;
+  font-size: 0.65rem;
+  color: #8c959f;
+  margin-top: 0.375rem;
+  text-align: right;
+}
+
+.input-hint kbd {
+  display: inline-block;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 #d0d7de;
+  color: #24292f !important;
 }
 
 .input-wrapper {

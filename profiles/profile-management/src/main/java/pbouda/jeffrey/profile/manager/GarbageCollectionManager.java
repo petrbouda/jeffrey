@@ -23,7 +23,7 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.function.Function;
 
@@ -37,7 +37,7 @@ public interface GarbageCollectionManager {
 
     GCOverviewData overviewData();
 
-    SingleSerie timeseries(GCTimeseriesType timeseriesType);
+    TimeseriesData timeseries(GCTimeseriesType timeseriesType);
 
     GCConfigurationData configuration();
 }

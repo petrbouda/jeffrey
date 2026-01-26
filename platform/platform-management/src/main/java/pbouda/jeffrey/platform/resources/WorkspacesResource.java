@@ -20,18 +20,18 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.platform.resources.workspace.WorkspaceResource;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
 import java.util.List;
 

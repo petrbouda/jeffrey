@@ -110,11 +110,20 @@ public class RootInternalResource {
 
     @Path("/profiles")
     public ProfilesResource profilesResource() {
-        return new ProfilesResource(workspacesManager, quickAnalysisManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
+        return new ProfilesResource(
+                workspacesManager,
+                quickAnalysisManager,
+                oqlAssistantService,
+                jfrAnalysisAssistantService,
+                heapDumpContextExtractor);
     }
 
     @Path("/quick-analysis")
     public QuickAnalysisResource quickAnalysisResource() {
-        return new QuickAnalysisResource(quickAnalysisManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
+        return new QuickAnalysisResource(
+                quickAnalysisManager,
+                oqlAssistantService,
+                jfrAnalysisAssistantService,
+                heapDumpContextExtractor);
     }
 }

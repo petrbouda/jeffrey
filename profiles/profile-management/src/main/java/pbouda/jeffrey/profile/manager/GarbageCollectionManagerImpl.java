@@ -27,8 +27,8 @@ import pbouda.jeffrey.profile.manager.builder.ConcurrentGCOverviewEventBuilder;
 import pbouda.jeffrey.profile.manager.builder.G1GCOverviewEventBuilder;
 import pbouda.jeffrey.profile.manager.builder.GCConfigurationEventBuilder;
 import pbouda.jeffrey.profile.manager.builder.NonConcurrentGCOverviewEventBuilder;
+import pbouda.jeffrey.profile.manager.model.gc.GCGenerationTimeseriesBuilder;
 import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;
-import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesBuilder;
 import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
 import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
@@ -36,7 +36,7 @@ import pbouda.jeffrey.provider.profile.repository.EventQueryConfigurer;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.profile.model.GenericRecord;
-import pbouda.jeffrey.timeseries.SingleSerie;
+import pbouda.jeffrey.timeseries.TimeseriesData;
 
 import java.util.List;
 
@@ -117,14 +117,17 @@ public class GarbageCollectionManagerImpl implements GarbageCollectionManager {
     }
 
     @Override
-    public SingleSerie timeseries(GCTimeseriesType timeseriesType) {
+    public TimeseriesData timeseries(GCTimeseriesType timeseriesType) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        GarbageCollectorType gcType = garbageCollectorType();
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.GARBAGE_COLLECTION)
                 .withJsonFields();
 
-        return eventStreamRepository.genericStreaming(configurer, new GCTimeseriesBuilder(timeRange, timeseriesType));
+        return eventStreamRepository.genericStreaming(
+                configurer,
+                new GCGenerationTimeseriesBuilder(timeRange, timeseriesType, gcType));
     }
 
     @Override

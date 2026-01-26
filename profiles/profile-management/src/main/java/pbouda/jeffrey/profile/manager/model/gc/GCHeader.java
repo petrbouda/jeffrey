@@ -24,6 +24,7 @@ public record GCHeader(
     int totalCollections,
     int youngCollections,
     int oldCollections,
+    int fullCollections,
     long maxPauseTime,
     long p95PauseTime,
     long p99PauseTime,

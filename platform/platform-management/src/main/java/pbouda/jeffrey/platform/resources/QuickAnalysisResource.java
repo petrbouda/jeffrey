@@ -153,7 +153,11 @@ public class QuickAnalysisResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = quickAnalysisManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Quick analysis profile not found: " + profileId));
-        return new ProfileResource(profileManager, oqlAssistantService, jfrAnalysisAssistantService, heapDumpContextExtractor);
+        return new ProfileResource(
+                profileManager,
+                oqlAssistantService,
+                jfrAnalysisAssistantService,
+                heapDumpContextExtractor);
     }
 
     /**
