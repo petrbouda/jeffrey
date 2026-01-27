@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,51 +23,47 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.common.settings.ActiveSettings;
 import pbouda.jeffrey.profile.guardian.guard.Guard;
-import pbouda.jeffrey.profile.guardian.guard.alloc.*;
-import pbouda.jeffrey.profile.guardian.guard.app.LogbackOverheadGuard;
+import pbouda.jeffrey.profile.guardian.guard.app.*;
 import pbouda.jeffrey.profile.guardian.traverse.ResultType;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 
 import java.util.List;
 
-public class AllocationGuardianGroup extends AbstractGuardianGroup {
+public class WallClockGuardianGroup extends AbstractGuardianGroup {
 
-    public AllocationGuardianGroup(
+    public WallClockGuardianGroup(
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
             long minimumSamples) {
 
-        super("Allocation", profileInfo, eventRepository, settings, "Minimum for Allocation Samples", minimumSamples);
+        super("Wall Clock", profileInfo, eventRepository, settings, "Minimum for Wall Clock Samples", minimumSamples);
     }
 
     @Override
     public List<Type> applicableTypes() {
-        return List.of(
-                Type.OBJECT_ALLOCATION_SAMPLE,
-                Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
-                Type.OBJECT_ALLOCATION_OUTSIDE_TLAB);
+        return List.of(Type.WALL_CLOCK_SAMPLE);
     }
 
     @Override
     public GraphParameters graphParameters() {
         return GraphParameters.builder()
-                .withEventType(Type.EXECUTION_SAMPLE)
-                .withUseWeight(true)
+                .withEventType(Type.WALL_CLOCK_SAMPLE)
                 .build();
     }
 
     @Override
     List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo) {
         return List.of(
-                new LogbackOverheadGuard("Logback Allocation Overhead", ResultType.WEIGHT, profileInfo, 0.1),
-                new HashMapCollisionAllocGuard(profileInfo, 0.05),
-                new RegexAllocGuard(profileInfo, 0.05),
-                new StringConcatAllocGuard(profileInfo, 0.05),
-                new ExceptionAllocGuard(profileInfo, 0.05),
-                new BoxingAllocGuard(profileInfo, 0.05),
-                new CollectionAllocGuard(profileInfo, 0.05),
-                new Log4jAllocGuard(profileInfo, 0.05)
+                new LogbackOverheadGuard("Logback Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
+                new Log4jOverheadGuard("Log4j Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
+                new HashMapCollisionGuard(profileInfo, 0.05),
+                new RegexOverheadGuard(profileInfo, 0.05),
+                new ReflectionOverheadGuard("Reflection Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
+                new ExceptionOverheadGuard("Exception Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
+                new CryptoOverheadGuard("Crypto/TLS Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
+                new ClassLoadingOverheadGuard("Class Loading Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05),
+                new ThreadSynchronizationOverheadGuard("Thread Synchronization Wall-Clock Overhead", ResultType.SAMPLES, profileInfo, 0.05)
         );
     }
 }

@@ -28,6 +28,8 @@ import java.util.List;
 
 public interface GuardianGroup {
 
+    String groupName();
+
     List<GuardianResult> execute(EventSummary eventSummary, Preconditions preconditions);
 
     List<Type> applicableTypes();

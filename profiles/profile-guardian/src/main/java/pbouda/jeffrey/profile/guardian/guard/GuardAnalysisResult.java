@@ -28,7 +28,24 @@ public record GuardAnalysisResult(
         String solution,
         String score,
         Guard.Category category,
-        GuardVisualization visualization) implements AnalysisResult {
+        GuardVisualization visualization,
+        String group) implements AnalysisResult {
+
+    public GuardAnalysisResult(
+            String rule,
+            AnalysisResult.Severity severity,
+            String explanation,
+            String summary,
+            String solution,
+            String score,
+            Guard.Category category,
+            GuardVisualization visualization) {
+        this(rule, severity, explanation, summary, solution, score, category, visualization, null);
+    }
+
+    public GuardAnalysisResult withGroup(String group) {
+        return new GuardAnalysisResult(rule, severity, explanation, summary, solution, score, category, visualization, group);
+    }
 
     public static GuardAnalysisResult notApplicable(String rule, Guard.Category category) {
         return new GuardAnalysisResult(rule, AnalysisResult.Severity.NA, null, null, null, null, category, null);

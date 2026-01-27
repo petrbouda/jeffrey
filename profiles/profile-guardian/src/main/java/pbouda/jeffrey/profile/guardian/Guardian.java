@@ -33,8 +33,10 @@ import pbouda.jeffrey.profile.guardian.preconditions.GuardianInformationBuilder;
 import pbouda.jeffrey.profile.guardian.preconditions.Preconditions;
 import pbouda.jeffrey.profile.guardian.preconditions.PreconditionsBuilder;
 import pbouda.jeffrey.profile.guardian.type.AllocationGuardianGroup;
+import pbouda.jeffrey.profile.guardian.type.BlockingGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.ExecutionSampleGuardianGroup;
 import pbouda.jeffrey.profile.guardian.type.GuardianGroup;
+import pbouda.jeffrey.profile.guardian.type.WallClockGuardianGroup;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventStreamRepository;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
@@ -82,7 +84,9 @@ public class Guardian {
 
         List<GuardianGroup> groups = List.of(
                 new ExecutionSampleGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
-                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000)
+                new AllocationGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
+                new WallClockGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 1000),
+                new BlockingGuardianGroup(profileInfo, eventStreamRepository, activeSettings, 100)
         );
 
         List<GuardianResult> results = new ArrayList<>();
@@ -91,7 +95,10 @@ public class Guardian {
 
             if (eventSummary != null) {
                 List<GuardianResult> groupResults = group.execute(eventSummary, preconditions);
-                results.addAll(groupResults);
+                String groupName = group.groupName();
+                for (GuardianResult result : groupResults) {
+                    results.add(new GuardianResult(result.analysisItem().withGroup(groupName), result.frame()));
+                }
             }
         }
 

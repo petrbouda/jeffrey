@@ -27,6 +27,7 @@ export default class GuardAnalysisResult {
         public solution: string,
         public score: string,
         public category: string,
-        public visualization: GuardVisualization) {
+        public visualization: GuardVisualization,
+        public group: string) {
     }
 }

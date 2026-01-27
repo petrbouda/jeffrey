@@ -36,6 +36,7 @@ import java.util.List;
 
 public abstract class AbstractGuardianGroup implements GuardianGroup {
 
+    private final String groupName;
     private final String profileId;
     private final ProfileEventStreamRepository eventRepository;
     private final ActiveSettings settings;
@@ -43,17 +44,24 @@ public abstract class AbstractGuardianGroup implements GuardianGroup {
     private final long minimumSamples;
 
     public AbstractGuardianGroup(
+            String groupName,
             ProfileInfo profileInfo,
             ProfileEventStreamRepository eventRepository,
             ActiveSettings settings,
             String totalSamplesGuardName,
             long minimumSamples) {
 
+        this.groupName = groupName;
         this.profileId = profileInfo.id();
         this.eventRepository = eventRepository;
         this.settings = settings;
         this.totalSamplesGuardName = totalSamplesGuardName;
         this.minimumSamples = minimumSamples;
+    }
+
+    @Override
+    public String groupName() {
+        return groupName;
     }
 
     abstract List<? extends Guard> candidateGuards(Guard.ProfileInfo profileInfo);

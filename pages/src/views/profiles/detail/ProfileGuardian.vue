@@ -114,6 +114,10 @@
       <!-- Filter Bar -->
       <div class="filter-bar mb-3" v-if="analysisRulesFlat.length > 0">
         <div class="filter-group">
+          <select v-model="groupFilter" class="form-select form-select-sm">
+            <option value="">All Groups</option>
+            <option v-for="g in groups" :key="g" :value="g">{{ g }}</option>
+          </select>
           <select v-model="categoryFilter" class="form-select form-select-sm">
             <option value="">All Categories</option>
             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
@@ -142,8 +146,9 @@
           <!-- Table Header -->
           <div class="table-header">
             <div class="col-status">Status</div>
-            <div class="col-category">Category</div>
             <div class="col-rule">Rule</div>
+            <div class="col-group">Group</div>
+            <div class="col-category">Category</div>
             <div class="col-score">Score</div>
             <div class="col-actions">Actions</div>
           </div>
@@ -165,10 +170,14 @@
                   :class="[`bi-${getSeverityIcon(rule.severity)}`, getSeverityTextClass(rule.severity)]"
                 ></i>
               </div>
+              <div class="col-rule">{{ rule.rule }}</div>
+              <div class="col-group">
+                <span class="group-badge" v-if="rule.group">{{ rule.group }}</span>
+                <span v-else class="no-score">-</span>
+              </div>
               <div class="col-category">
                 <span class="category-badge">{{ rule.category }}</span>
               </div>
-              <div class="col-rule">{{ rule.rule }}</div>
               <div class="col-score">
                 <div class="score-wrapper" v-if="rule.score">
                   <span class="score-text">{{ rule.score }}</span>
@@ -320,6 +329,7 @@ const guards = ref<GuardResponse[]>([]);
 const loading = ref(true);
 
 // Filter State
+const groupFilter = ref('');
 const categoryFilter = ref('');
 const severityFilter = ref('');
 const searchQuery = ref('');
@@ -373,9 +383,22 @@ const categories = computed(() =>
   )].sort()
 );
 
+// Computed: Unique groups for filter dropdown
+const groups = computed(() =>
+  [...new Set(allRulesFlat.value
+    .map(r => r.group)
+    .filter((g): g is string => g != null)
+  )].sort()
+);
+
 // Computed: Filtered and sorted rules
 const filteredAndSortedRules = computed(() => {
   let rules = [...allRulesFlat.value];
+
+  // Apply group filter
+  if (groupFilter.value) {
+    rules = rules.filter(r => r.group === groupFilter.value);
+  }
 
   // Apply category filter
   if (categoryFilter.value) {
@@ -393,6 +416,7 @@ const filteredAndSortedRules = computed(() => {
     rules = rules.filter(r =>
       r.rule.toLowerCase().includes(query) ||
       r.category.toLowerCase().includes(query) ||
+      r.group?.toLowerCase().includes(query) ||
       r.summary?.toLowerCase().includes(query)
     );
   }
@@ -822,7 +846,7 @@ function scrollToTop() {
 /* Table Header */
 .table-header {
   display: grid;
-  grid-template-columns: 60px 150px 1fr 120px 80px;
+  grid-template-columns: 60px 1fr 140px 150px 120px 80px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #f8fafc, #f1f5f9);
@@ -844,7 +868,7 @@ function scrollToTop() {
 /* Table Row */
 .table-row {
   display: grid;
-  grid-template-columns: 60px 150px 1fr 120px 80px;
+  grid-template-columns: 60px 1fr 140px 150px 120px 80px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   align-items: center;
@@ -882,6 +906,26 @@ function scrollToTop() {
 
 .col-status i {
   font-size: 1rem;
+}
+
+.col-group {
+  display: flex;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.group-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #1e40af;
+  background: #dbeafe;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .col-category {
@@ -1068,7 +1112,7 @@ function scrollToTop() {
 @media (max-width: 992px) {
   .table-header,
   .table-row {
-    grid-template-columns: 50px 120px 1fr 100px 70px;
+    grid-template-columns: 50px 1fr 110px 120px 100px 70px;
   }
 
   .legend-section,
@@ -1122,13 +1166,18 @@ function scrollToTop() {
     width: auto;
   }
 
-  .col-category {
+  .col-group {
     order: 4;
     width: auto;
   }
 
-  .col-score {
+  .col-category {
     order: 5;
+    width: auto;
+  }
+
+  .col-score {
+    order: 6;
     width: auto;
     justify-content: flex-start;
   }
