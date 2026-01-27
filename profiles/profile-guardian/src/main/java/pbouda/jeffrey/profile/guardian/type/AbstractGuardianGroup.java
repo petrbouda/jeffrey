@@ -70,11 +70,13 @@ public abstract class AbstractGuardianGroup implements GuardianGroup {
                     .filter(guard -> guard.initialize(preconditions))
                     .toList();
 
-            Frame frame = new RecordsFrameIterator(params, eventRepository)
-                    .iterate();
+            if (!guards.isEmpty()) {
+                Frame frame = new RecordsFrameIterator(params, eventRepository)
+                        .iterate();
 
-            FrameTraversal traversal = new FrameTraversal(frame);
-            traversal.traverseWith(guards);
+                FrameTraversal traversal = new FrameTraversal(frame);
+                traversal.traverseWith(guards);
+            }
         }
 
         List<GuardianResult> results = new ArrayList<>();
