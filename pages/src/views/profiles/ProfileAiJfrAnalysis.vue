@@ -79,23 +79,38 @@
             <i class="bi bi-stars"></i>
           </div>
           <h3 class="welcome-title">Ask anything about your JFR profile</h3>
-          <div class="welcome-features">
-            <span class="feature-tag"><i class="bi bi-cpu"></i> CPU hotspots</span>
-            <span class="feature-tag"><i class="bi bi-recycle"></i> GC analysis</span>
-            <span class="feature-tag"><i class="bi bi-diagram-3"></i> Thread states</span>
-            <span class="feature-tag"><i class="bi bi-memory"></i> Memory patterns</span>
-          </div>
         </div>
         <div class="example-prompts">
-          <div class="prompt-chips">
-            <button
-                v-for="(prompt, index) in examplePrompts"
-                :key="index"
-                class="prompt-chip"
-                @click="useSuggestion(prompt)"
-            >
-              {{ prompt }}
-            </button>
+          <div class="prompt-section">
+            <span class="prompt-section-label">
+              <i class="bi bi-eye"></i> Read-only suggestions
+            </span>
+            <div class="prompt-chips">
+              <button
+                  v-for="(prompt, index) in examplePrompts"
+                  :key="index"
+                  class="prompt-chip"
+                  @click="useReadOnlySuggestion(prompt)"
+              >
+                {{ prompt }}
+              </button>
+            </div>
+          </div>
+          <div class="prompt-divider"></div>
+          <div class="prompt-section">
+            <span class="prompt-section-label prompt-section-label-modify">
+              <i class="bi bi-pencil"></i> Modifying suggestions
+            </span>
+            <div class="prompt-chips">
+              <button
+                  v-for="(prompt, index) in modificationPrompts"
+                  :key="'mod-' + index"
+                  class="prompt-chip-modify"
+                  @click="prefillInput(prompt)"
+              >
+                {{ prompt }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -182,10 +197,27 @@ const examplePrompts = [
   'What JFR events are available in this profile?',
   'Show me the CPU hotspots',
   'Analyze GC pause times',
-  'What threads are consuming the most resources?',
   'Are there any performance issues?',
   'Show memory allocation patterns'
 ];
+
+const modificationPrompts = [
+  'Remove all events of <event-type>',
+  'Replace package name <old> by <new>',
+  'Remove all events before/after a timestamp',
+  'Strip events from a specific thread',
+];
+
+const useReadOnlySuggestion = async (text: string) => {
+  canModify.value = false;
+  await useSuggestion(text);
+};
+
+const prefillInput = (text: string) => {
+  canModify.value = true;
+  currentInput.value = text;
+  inputRef.value?.focus();
+};
 
 const handleSend = async () => {
   if (!currentInput.value.trim() || isLoading.value) return;
@@ -397,40 +429,42 @@ onMounted(() => {
   margin: 0.25rem 0 0 0;
 }
 
-.welcome-features {
+.example-prompts {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  align-items: stretch;
+  gap: 1rem;
+  max-width: 800px;
+  margin-bottom: 1rem;
 }
 
-.feature-tag {
-  display: inline-flex;
+.prompt-section {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prompt-section-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #0969da;
+  display: flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.7rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
 }
 
-.feature-tag i {
-  font-size: 0.65rem;
-  color: #9ca3af;
-}
-
-.example-prompts {
-  width: 100%;
-  max-width: 650px;
-  margin-bottom: 1rem;
+.prompt-section-label-modify {
+  color: #9a6700;
 }
 
 .prompt-chips {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+  align-content: center;
   gap: 0.375rem;
 }
 
@@ -448,6 +482,29 @@ onMounted(() => {
 .prompt-chip:hover {
   background-color: #0969da;
   border-color: #0969da;
+  color: white;
+}
+
+.prompt-divider {
+  width: 1px;
+  background-color: #e1e4e8;
+  flex-shrink: 0;
+}
+
+.prompt-chip-modify {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  background-color: #fef9c3;
+  border: 1px solid #d4a106;
+  border-radius: 20px;
+  color: #9a6700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prompt-chip-modify:hover {
+  background-color: #d4a106;
+  border-color: #d4a106;
   color: white;
 }
 
