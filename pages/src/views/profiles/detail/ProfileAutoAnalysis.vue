@@ -106,7 +106,7 @@
           <div class="table-header">
             <div class="col-status">Status</div>
             <div class="col-rule">Rule</div>
-            <div class="col-score">Score</div>
+            <div class="col-score" title="Severity score (0-100). Higher values indicate more significant findings.">Severity</div>
             <div class="col-actions">Details</div>
           </div>
 
@@ -129,14 +129,14 @@
               </div>
               <div class="col-rule">{{ rule.rule }}</div>
               <div class="col-score">
-                <div class="score-wrapper" v-if="rule.score">
-                  <span class="score-text">{{ rule.score }}</span>
-                  <div v-if="isPercentageScore(rule.score)" class="mini-progress">
+                <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
+                  <div class="severity-bar-track">
                     <div
-                      class="mini-progress-bar"
-                      :style="{ width: rule.score, backgroundColor: getSeverityColor(rule.severity) }"
+                      class="severity-bar-fill"
+                      :style="{ width: parseScore(rule.score) + '%', backgroundColor: getSeverityColor(rule.severity) }"
                     ></div>
                   </div>
+                  <span class="severity-bar-value">{{ parseScore(rule.score) }}</span>
                 </div>
                 <span v-else class="no-score">-</span>
               </div>
@@ -337,8 +337,10 @@ function toggleRow(index: number) {
   expandedRows.value = new Set(expandedRows.value);
 }
 
-function isPercentageScore(score: string | null): boolean {
-  return score != null && typeof score === 'string' && score.includes('%');
+function parseScore(score: string | null): number | null {
+  if (score == null) return null;
+  const parsed = parseFloat(score);
+  return isNaN(parsed) ? null : Math.round(parsed * 10) / 10;
 }
 
 function getSeverityIcon(severity: string): string {
@@ -510,7 +512,7 @@ function getSeverityColor(severity: string): string {
 /* Table Header */
 .table-header {
   display: grid;
-  grid-template-columns: 60px 1fr 120px 80px;
+  grid-template-columns: 60px 1fr 160px 80px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #f8fafc, #f1f5f9);
@@ -532,7 +534,7 @@ function getSeverityColor(severity: string): string {
 /* Table Row */
 .table-row {
   display: grid;
-  grid-template-columns: 60px 1fr 120px 80px;
+  grid-template-columns: 60px 1fr 160px 80px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   align-items: center;
@@ -583,41 +585,43 @@ function getSeverityColor(severity: string): string {
 
 .col-score {
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
-.score-wrapper {
+.severity-bar-wrapper {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
   width: 100%;
 }
 
-.score-text {
-  font-size: 0.75rem;
+.severity-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.severity-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.severity-bar-value {
+  font-size: 0.7rem;
   font-weight: 600;
   color: #374151;
+  min-width: 28px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .no-score {
   color: #9ca3af;
   font-size: 0.75rem;
-}
-
-.mini-progress {
-  width: 100%;
-  max-width: 80px;
-  height: 4px;
-  background: #e5e7eb;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.mini-progress-bar {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
 }
 
 .col-actions {
