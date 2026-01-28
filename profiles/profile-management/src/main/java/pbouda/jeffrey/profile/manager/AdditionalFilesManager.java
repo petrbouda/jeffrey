@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
-import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.profile.manager.model.PerfCounter;
 
@@ -60,56 +58,4 @@ public interface AdditionalFilesManager {
      * @return path to the heap-dump-analysis folder
      */
     Path getHeapDumpAnalysisPath();
-
-    /**
-     * Check if string analysis results exist for this profile.
-     *
-     * @return true if string-analysis.json exists
-     */
-    boolean stringAnalysisExists();
-
-    /**
-     * Get the pre-computed string analysis results.
-     *
-     * @return string analysis report, or empty if not yet computed
-     */
-    Optional<StringAnalysisReport> getStringAnalysis();
-
-    /**
-     * Save string analysis results to JSON file.
-     *
-     * @param report the analysis report to save
-     */
-    void saveStringAnalysis(StringAnalysisReport report);
-
-    /**
-     * Delete the string analysis JSON file if it exists.
-     */
-    void deleteStringAnalysis();
-
-    /**
-     * Check if thread analysis results exist for this profile.
-     *
-     * @return true if thread-analysis.json exists
-     */
-    boolean threadAnalysisExists();
-
-    /**
-     * Get the pre-computed thread analysis results.
-     *
-     * @return thread analysis report, or empty if not yet computed
-     */
-    Optional<ThreadAnalysisReport> getThreadAnalysis();
-
-    /**
-     * Save thread analysis results to JSON file.
-     *
-     * @param report the analysis report to save
-     */
-    void saveThreadAnalysis(ThreadAnalysisReport report);
-
-    /**
-     * Delete the thread analysis JSON file if it exists.
-     */
-    void deleteThreadAnalysis();
 }

@@ -14,6 +14,13 @@
     >
       <i class="bi bi-box-arrow-right"></i>
     </button>
+    <button
+        class="btn btn-action"
+        title="Path to GC Root"
+        @click="$emit('showGCRootPath', objectId)"
+    >
+      <i class="bi bi-signpost-2"></i>
+    </button>
   </div>
 </template>
 
@@ -27,6 +34,7 @@ defineProps<Props>();
 defineEmits<{
   showReferrers: [objectId: number];
   showReachables: [objectId: number];
+  showGCRootPath: [objectId: number];
 }>();
 </script>
 

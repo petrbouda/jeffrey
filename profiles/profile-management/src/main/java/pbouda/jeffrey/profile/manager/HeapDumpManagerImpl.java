@@ -18,25 +18,38 @@
 
 package pbouda.jeffrey.profile.manager;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.HeapLoader;
+import pbouda.jeffrey.profile.heapdump.analyzer.BiggestObjectsAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.DominatorTreeAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.GCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.InstanceDetailAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.InstanceTreeAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.LeakSuspectsAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
+import pbouda.jeffrey.profile.heapdump.analyzer.PathToGCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.StringAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
+import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
+import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.JvmStringFlag;
+import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
@@ -68,6 +81,14 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpManagerImpl.class);
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final String STRING_ANALYSIS_FILE = "string-analysis.json";
+    private static final String THREAD_ANALYSIS_FILE = "thread-analysis.json";
+    private static final String BIGGEST_OBJECTS_FILE = "biggest-objects.json";
+    private static final String COLLECTION_ANALYSIS_FILE = "collection-analysis.json";
+    private static final String LEAK_SUSPECTS_FILE = "leak-suspects.json";
+
     private static final Map<String, String> FLAG_DESCRIPTIONS = Map.ofEntries(
             Map.entry("UseStringDeduplication", "Enable string deduplication during GC"),
             Map.entry("StringDeduplicationAgeThreshold", "GC cycles before string becomes dedup candidate"),
@@ -84,6 +105,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final HeapLoader heapLoader;
     private final AdditionalFilesManager additionalFilesManager;
     private final ProfileEventRepository eventRepository;
+    private final Path heapDumpAnalysisPath;
 
     // Analyzers
     private final HeapSummaryAnalyzer summaryAnalyzer;
@@ -94,6 +116,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final StringAnalyzer stringAnalyzer;
     private final InstanceDetailAnalyzer instanceDetailAnalyzer;
     private final InstanceTreeAnalyzer instanceTreeAnalyzer;
+    private final BiggestObjectsAnalyzer biggestObjectsAnalyzer;
+    private final PathToGCRootAnalyzer pathToGCRootAnalyzer;
+    private final DominatorTreeAnalyzer dominatorTreeAnalyzer;
+    private final CollectionAnalyzer collectionAnalyzer;
+    private final ClassInstanceBrowserAnalyzer classInstanceBrowserAnalyzer;
+    private final LeakSuspectsAnalyzer leakSuspectsAnalyzer;
 
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
@@ -105,6 +133,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.heapLoader = heapLoader;
         this.additionalFilesManager = additionalFilesManager;
         this.eventRepository = eventRepository;
+        this.heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
 
         // Initialize analyzers
         this.summaryAnalyzer = new HeapSummaryAnalyzer();
@@ -115,6 +144,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.stringAnalyzer = new StringAnalyzer();
         this.instanceDetailAnalyzer = new InstanceDetailAnalyzer();
         this.instanceTreeAnalyzer = new InstanceTreeAnalyzer();
+        this.biggestObjectsAnalyzer = new BiggestObjectsAnalyzer();
+        this.pathToGCRootAnalyzer = new PathToGCRootAnalyzer();
+        this.dominatorTreeAnalyzer = new DominatorTreeAnalyzer();
+        this.collectionAnalyzer = new CollectionAnalyzer();
+        this.classInstanceBrowserAnalyzer = new ClassInstanceBrowserAnalyzer();
+        this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer();
     }
 
     @Override
@@ -232,6 +267,13 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         } catch (RuntimeException e) {
             LOG.error("Failed to delete cache: profileId={} path={}", profileInfo.id(), cachePath, e);
         }
+
+        // Delete all pre-computed analysis files
+        deleteJsonFile(STRING_ANALYSIS_FILE, "String analysis");
+        deleteJsonFile(THREAD_ANALYSIS_FILE, "Thread analysis");
+        deleteJsonFile(BIGGEST_OBJECTS_FILE, "Biggest objects");
+        deleteJsonFile(COLLECTION_ANALYSIS_FILE, "Collection analysis");
+        deleteJsonFile(LEAK_SUSPECTS_FILE, "Leak suspects");
     }
 
     @Override
@@ -316,8 +358,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             throw new IllegalArgumentException("Invalid file type. Only .hprof and .hprof.gz files are supported.");
         }
 
-        Path heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
-
         // Clean up any existing files/cache before uploading new heap dump
         try {
             FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
@@ -342,7 +382,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     private void deleteCorruptedHeapDump(Path path) {
-        Path heapDumpAnalysisPath = additionalFilesManager.getHeapDumpAnalysisPath();
         try {
             FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
             LOG.info("Deleted corrupted heap dump analysis folder: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath);
@@ -353,12 +392,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public boolean stringAnalysisExists() {
-        return additionalFilesManager.stringAnalysisExists();
+        return Files.exists(heapDumpAnalysisPath.resolve(STRING_ANALYSIS_FILE));
     }
 
     @Override
     public StringAnalysisReport getStringAnalysis() {
-        return additionalFilesManager.getStringAnalysis().orElse(null);
+        return readJsonFile(STRING_ANALYSIS_FILE, StringAnalysisReport.class).orElse(null);
     }
 
     @Override
@@ -384,7 +423,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     jvmFlags
             );
 
-            additionalFilesManager.saveStringAnalysis(report);
+            writeJsonFile(STRING_ANALYSIS_FILE, report, "String analysis");
         });
     }
 
@@ -404,18 +443,13 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     @Override
-    public void deleteStringAnalysis() {
-        additionalFilesManager.deleteStringAnalysis();
-    }
-
-    @Override
     public boolean threadAnalysisExists() {
-        return additionalFilesManager.threadAnalysisExists();
+        return Files.exists(heapDumpAnalysisPath.resolve(THREAD_ANALYSIS_FILE));
     }
 
     @Override
     public ThreadAnalysisReport getThreadAnalysis() {
-        return additionalFilesManager.getThreadAnalysis().orElse(null);
+        return readJsonFile(THREAD_ANALYSIS_FILE, ThreadAnalysisReport.class).orElse(null);
     }
 
     @Override
@@ -439,13 +473,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     threads
             );
 
-            additionalFilesManager.saveThreadAnalysis(report);
+            writeJsonFile(THREAD_ANALYSIS_FILE, report, "Thread analysis");
         });
-    }
-
-    @Override
-    public void deleteThreadAnalysis() {
-        additionalFilesManager.deleteThreadAnalysis();
     }
 
     @Override
@@ -467,5 +496,140 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         return getHeap()
                 .map(heap -> instanceTreeAnalyzer.getReachables(heap, objectId, limit, offset))
                 .orElse(InstanceTreeResponse.notFound());
+    }
+
+    // --- Biggest Objects ---
+
+    @Override
+    public boolean biggestObjectsExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(BIGGEST_OBJECTS_FILE));
+    }
+
+    @Override
+    public BiggestObjectsReport getBiggestObjects() {
+        return readJsonFile(BIGGEST_OBJECTS_FILE, BiggestObjectsReport.class).orElse(null);
+    }
+
+    @Override
+    public void runBiggestObjects(int topN) {
+        getHeap().ifPresent(heap -> {
+            BiggestObjectsReport report = biggestObjectsAnalyzer.analyze(heap, topN);
+            writeJsonFile(BIGGEST_OBJECTS_FILE, report, "Biggest objects");
+        });
+    }
+
+    // --- Path to GC Root ---
+
+    @Override
+    public List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths) {
+        return getHeap()
+                .map(heap -> pathToGCRootAnalyzer.findPaths(heap, objectId, excludeWeakRefs, maxPaths))
+                .orElse(List.of());
+    }
+
+    // --- Dominator Tree ---
+
+    @Override
+    public DominatorTreeResponse getDominatorTreeRoots(int limit) {
+        return getHeap()
+                .map(heap -> dominatorTreeAnalyzer.getRoots(heap, limit))
+                .orElse(new DominatorTreeResponse(List.of(), 0, false));
+    }
+
+    @Override
+    public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
+        return getHeap()
+                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, limit))
+                .orElse(new DominatorTreeResponse(List.of(), 0, false));
+    }
+
+    // --- Collection Analysis ---
+
+    @Override
+    public boolean collectionAnalysisExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(COLLECTION_ANALYSIS_FILE));
+    }
+
+    @Override
+    public CollectionAnalysisReport getCollectionAnalysis() {
+        return readJsonFile(COLLECTION_ANALYSIS_FILE, CollectionAnalysisReport.class).orElse(null);
+    }
+
+    @Override
+    public void runCollectionAnalysis() {
+        getHeap().ifPresent(heap -> {
+            CollectionAnalysisReport report = collectionAnalyzer.analyze(heap);
+            writeJsonFile(COLLECTION_ANALYSIS_FILE, report, "Collection analysis");
+        });
+    }
+
+    // --- Class Instance Browser ---
+
+    @Override
+    public ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize) {
+        return getHeap()
+                .map(heap -> classInstanceBrowserAnalyzer.browse(heap, className, limit, offset, includeRetainedSize))
+                .orElse(new ClassInstancesResponse(className, 0, List.of(), false));
+    }
+
+    // --- Leak Suspects ---
+
+    @Override
+    public boolean leakSuspectsExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(LEAK_SUSPECTS_FILE));
+    }
+
+    @Override
+    public LeakSuspectsReport getLeakSuspects() {
+        return readJsonFile(LEAK_SUSPECTS_FILE, LeakSuspectsReport.class).orElse(null);
+    }
+
+    @Override
+    public void runLeakSuspects() {
+        getHeap().ifPresent(heap -> {
+            LeakSuspectsReport report = leakSuspectsAnalyzer.analyze(heap);
+            writeJsonFile(LEAK_SUSPECTS_FILE, report, "Leak suspects");
+        });
+    }
+
+    // --- JSON I/O helpers ---
+
+    private <T> Optional<T> readJsonFile(String fileName, Class<T> type) {
+        Path filePath = heapDumpAnalysisPath.resolve(fileName);
+        if (!Files.exists(filePath)) {
+            return Optional.empty();
+        }
+        try {
+            T report = OBJECT_MAPPER.readValue(filePath.toFile(), type);
+            return Optional.of(report);
+        } catch (IOException e) {
+            LOG.error("Failed to read analysis file: path={}", filePath, e);
+            return Optional.empty();
+        }
+    }
+
+    private void writeJsonFile(String fileName, Object report, String analysisName) {
+        try {
+            Files.createDirectories(heapDumpAnalysisPath);
+            Path filePath = heapDumpAnalysisPath.resolve(fileName);
+            OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
+                    .writeValue(filePath.toFile(), report);
+            LOG.info("{} saved: path={}", analysisName, filePath);
+        } catch (IOException e) {
+            LOG.error("Failed to save {}: path={}", analysisName, heapDumpAnalysisPath, e);
+            throw new RuntimeException("Failed to save " + analysisName + ": " + e.getMessage(), e);
+        }
+    }
+
+    private void deleteJsonFile(String fileName, String analysisName) {
+        Path filePath = heapDumpAnalysisPath.resolve(fileName);
+        if (Files.exists(filePath)) {
+            try {
+                Files.delete(filePath);
+                LOG.info("{} deleted: path={}", analysisName, filePath);
+            } catch (IOException e) {
+                LOG.error("Failed to delete {}: path={}", analysisName, filePath, e);
+            }
+        }
     }
 }

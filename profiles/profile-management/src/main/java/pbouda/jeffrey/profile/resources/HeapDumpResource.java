@@ -18,30 +18,13 @@
 
 package pbouda.jeffrey.profile.resources;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import pbouda.jeffrey.profile.resources.OqlAssistantResource;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
-import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
-import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
-import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
-import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
-import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
-import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
-import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
-import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
-import pbouda.jeffrey.profile.heapdump.model.SortBy;
-import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
-import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.*;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 
 import java.io.InputStream;
@@ -219,15 +202,6 @@ public class HeapDumpResource {
     }
 
     /**
-     * Delete string analysis results.
-     */
-    @POST
-    @Path("/string-analysis/delete")
-    public void deleteStringAnalysis() {
-        heapDumpManager.deleteStringAnalysis();
-    }
-
-    /**
      * Check if thread analysis results exist.
      */
     @GET
@@ -253,15 +227,6 @@ public class HeapDumpResource {
     @Path("/thread-analysis/run")
     public void runThreadAnalysis() {
         heapDumpManager.runThreadAnalysis();
-    }
-
-    /**
-     * Delete thread analysis results.
-     */
-    @POST
-    @Path("/thread-analysis/delete")
-    public void deleteThreadAnalysis() {
-        heapDumpManager.deleteThreadAnalysis();
     }
 
     /**
@@ -309,4 +274,106 @@ public class HeapDumpResource {
             @QueryParam("offset") @DefaultValue("0") int offset) {
         return heapDumpManager.getReachables(objectId, limit, offset);
     }
+
+    // --- Biggest Objects ---
+
+    @GET
+    @Path("/biggest-objects/exists")
+    public boolean biggestObjectsExists() {
+        return heapDumpManager.biggestObjectsExists();
+    }
+
+    @GET
+    @Path("/biggest-objects")
+    public BiggestObjectsReport getBiggestObjects() {
+        return heapDumpManager.getBiggestObjects();
+    }
+
+    @POST
+    @Path("/biggest-objects/run")
+    public void runBiggestObjects(
+            @QueryParam("topN") @DefaultValue("50") int topN) {
+        heapDumpManager.runBiggestObjects(topN);
+    }
+
+    // --- Path to GC Root ---
+
+    @GET
+    @Path("/instance/{objectId}/gc-root-path")
+    public List<GCRootPath> getPathToGCRoot(
+            @PathParam("objectId") long objectId,
+            @QueryParam("excludeWeak") @DefaultValue("true") boolean excludeWeakRefs,
+            @QueryParam("maxPaths") @DefaultValue("3") int maxPaths) {
+        return heapDumpManager.getPathsToGCRoot(objectId, excludeWeakRefs, maxPaths);
+    }
+
+    // --- Dominator Tree ---
+
+    @GET
+    @Path("/dominator-tree")
+    public DominatorTreeResponse getDominatorTreeRoots(
+            @QueryParam("limit") @DefaultValue("50") int limit) {
+        return heapDumpManager.getDominatorTreeRoots(limit);
+    }
+
+    @GET
+    @Path("/dominator-tree/{objectId}/children")
+    public DominatorTreeResponse getDominatorTreeChildren(
+            @PathParam("objectId") long objectId,
+            @QueryParam("limit") @DefaultValue("50") int limit) {
+        return heapDumpManager.getDominatorTreeChildren(objectId, limit);
+    }
+
+    // --- Collection Analysis ---
+
+    @GET
+    @Path("/collection-analysis/exists")
+    public boolean collectionAnalysisExists() {
+        return heapDumpManager.collectionAnalysisExists();
+    }
+
+    @GET
+    @Path("/collection-analysis")
+    public CollectionAnalysisReport getCollectionAnalysis() {
+        return heapDumpManager.getCollectionAnalysis();
+    }
+
+    @POST
+    @Path("/collection-analysis/run")
+    public void runCollectionAnalysis() {
+        heapDumpManager.runCollectionAnalysis();
+    }
+
+    // --- Class Instance Browser ---
+
+    @GET
+    @Path("/class-instances")
+    public ClassInstancesResponse getClassInstances(
+            @QueryParam("className") String className,
+            @QueryParam("limit") @DefaultValue("50") int limit,
+            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("includeRetainedSize") @DefaultValue("false") boolean includeRetainedSize) {
+        return heapDumpManager.getClassInstances(className, limit, offset, includeRetainedSize);
+    }
+
+    // --- Leak Suspects ---
+
+    @GET
+    @Path("/leak-suspects/exists")
+    public boolean leakSuspectsExists() {
+        return heapDumpManager.leakSuspectsExists();
+    }
+
+    @GET
+    @Path("/leak-suspects")
+    public LeakSuspectsReport getLeakSuspects() {
+        return heapDumpManager.getLeakSuspects();
+    }
+
+    @POST
+    @Path("/leak-suspects/run")
+    public void runLeakSuspects() {
+        heapDumpManager.runLeakSuspects();
+    }
+
 }

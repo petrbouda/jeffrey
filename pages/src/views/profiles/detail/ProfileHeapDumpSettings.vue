@@ -159,6 +159,19 @@
             <p>Build indexes and prepare for analysis</p>
           </div>
         </button>
+        <div class="init-options">
+          <label class="form-check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              v-model="includeBiggestObjects"
+            >
+            <span class="form-check-label">
+              Include "Finding biggest objects" analysis
+              <small class="text-muted d-block">Can be slow for large heaps. You can run it later from the Biggest Objects page.</small>
+            </span>
+          </label>
+        </div>
       </div>
       <button class="ready-card action" @click="deleteHeapDump">
         <div class="ready-card-icon">
@@ -173,26 +186,32 @@
 
     <!-- Processing Progress -->
     <div v-if="processing" class="processing-card">
-      <div class="processing-icon">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
+      <div class="processing-header">
+        <h4>Initializing Heap Dump</h4>
+        <p class="processing-hint">Please wait while we analyze the heap structure...</p>
       </div>
-      <h4>{{ processingMessage }}</h4>
-      <div class="progress-container">
-        <div class="progress">
-          <div
-              class="progress-bar"
-              role="progressbar"
-              :style="{ width: processingProgress + '%' }"
-              :aria-valuenow="processingProgress"
-              aria-valuemin="0"
-              aria-valuemax="100">
+
+      <div class="steps-container">
+        <div
+          v-for="(step, index) in processingSteps"
+          :key="step.id"
+          class="step-item"
+          :class="step.status"
+        >
+          <div class="step-top">
+            <div class="step-indicator">
+              <i v-if="step.status === 'completed'" class="bi bi-check-circle-fill text-success"></i>
+              <i v-else-if="step.status === 'skipped'" class="bi bi-dash-circle text-secondary"></i>
+              <div v-else-if="step.status === 'in_progress'" class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Processing...</span>
+              </div>
+              <i v-else class="bi bi-circle text-muted"></i>
+            </div>
+            <div class="step-connector" v-if="index < processingSteps.length - 1"></div>
           </div>
+          <span class="step-label">{{ step.label }}<span v-if="step.status === 'skipped'" class="skipped-badge">skipped</span></span>
         </div>
-        <span class="progress-label">{{ processingProgress }}%</span>
       </div>
-      <p class="processing-hint">Please wait while we analyze the heap structure...</p>
     </div>
 
     <!-- Success State with Management Actions -->
@@ -257,9 +276,52 @@ const lastSummary = ref<HeapSummary | null>(null);
 
 // Processing state
 const processing = ref(false);
-const processingProgress = ref(0);
-const processingMessage = ref('');
 const initError = ref<string | null>(null);
+
+// Option for including biggest objects analysis (default: unchecked)
+const includeBiggestObjects = ref(false);
+
+// Processing steps
+interface ProcessingStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+}
+
+// Dynamic steps based on checkbox
+const getProcessingSteps = (): ProcessingStep[] => {
+  return [
+    { id: 'load', label: 'Loading heap dump', status: 'pending' },
+    { id: 'parse', label: 'Parsing heap structure', status: 'pending' },
+    { id: 'index', label: 'Building indexes', status: 'pending' },
+    { id: 'strings', label: 'Analyzing strings', status: 'pending' },
+    { id: 'threads', label: 'Analyzing threads', status: 'pending' },
+    { id: 'objects', label: 'Finding biggest objects', status: includeBiggestObjects.value ? 'pending' : 'skipped' },
+    { id: 'collections', label: 'Analyzing collections', status: 'pending' },
+    { id: 'leaks', label: 'Detecting leak suspects', status: 'pending' }
+  ];
+};
+
+// Mutable copy for status updates during processing
+const processingSteps = ref<ProcessingStep[]>(getProcessingSteps());
+
+const resetSteps = () => {
+  // Rebuild steps based on current checkbox state
+  processingSteps.value = getProcessingSteps();
+};
+
+const setStepStatus = (id: string, status: 'pending' | 'in_progress' | 'completed' | 'skipped') => {
+  const step = processingSteps.value.find(s => s.id === id);
+  if (step) step.status = status;
+};
+
+const completeStep = (id: string) => {
+  setStepStatus(id, 'completed');
+};
+
+const startStep = (id: string) => {
+  setStepStatus(id, 'in_progress');
+};
 
 // Upload state
 const uploadFile = ref<File | null>(null);
@@ -311,38 +373,51 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const processHeapDump = async () => {
   processing.value = true;
-  processingProgress.value = 0;
-  processingMessage.value = 'Loading heap dump...';
+  resetSteps();
 
   try {
-    processingProgress.value = 20;
+    // Step 1: Load
+    startStep('load');
     await sleep(300);
+    completeStep('load');
 
-    processingMessage.value = 'Parsing heap structure...';
-    processingProgress.value = 40;
+    // Step 2: Parse
+    startStep('parse');
     await sleep(300);
+    completeStep('parse');
 
-    processingMessage.value = 'Building indexes...';
-    processingProgress.value = 60;
-
+    // Step 3: Index (actual API call)
+    startStep('index');
     const summary = await client.getSummary();
     lastSummary.value = summary;
+    completeStep('index');
 
-    processingMessage.value = 'Running string analysis...';
-    processingProgress.value = 70;
-
-    // Run string analysis as part of initialization
+    // Step 4: Strings
+    startStep('strings');
     await client.runStringAnalysis(100);
+    completeStep('strings');
 
-    processingMessage.value = 'Running thread analysis...';
-    processingProgress.value = 85;
-
-    // Run thread analysis as part of initialization
+    // Step 5: Threads
+    startStep('threads');
     await client.runThreadAnalysis();
+    completeStep('threads');
 
-    processingMessage.value = 'Done';
-    processingProgress.value = 100;
-    await sleep(200);
+    // Step 6: Biggest Objects (conditional)
+    if (includeBiggestObjects.value) {
+      startStep('objects');
+      await client.runBiggestObjects(50);
+      completeStep('objects');
+    }
+
+    // Step 7: Collections
+    startStep('collections');
+    await client.runCollectionAnalysis();
+    completeStep('collections');
+
+    // Step 8: Leak Suspects
+    startStep('leaks');
+    await client.runLeakSuspects();
+    completeStep('leaks');
 
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
@@ -356,16 +431,12 @@ const processHeapDump = async () => {
     }
   } finally {
     processing.value = false;
-    processingProgress.value = 0;
   }
 };
 
 const clearCache = async () => {
   try {
     await client.deleteCache();
-    // Also delete analyses so they get regenerated on next initialization
-    await client.deleteStringAnalysis();
-    await client.deleteThreadAnalysis();
     cacheReady.value = false;
     lastSummary.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
@@ -552,55 +623,134 @@ onMounted(() => {
   background: white;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  padding: 3rem 2rem;
-  text-align: center;
-  max-width: 520px;
+  padding: 2rem 2rem 2.5rem;
+  max-width: 1300px;
   margin: 0 auto;
 }
 
-.processing-icon {
+/* Step Progress Styles */
+.processing-header {
+  text-align: center;
   margin-bottom: 1.5rem;
 }
 
-.processing-icon .spinner-border {
-  width: 3rem;
-  height: 3rem;
-  color: #6f42c1;
-}
-
-.processing-card h4 {
+.processing-header h4 {
   font-size: 1.125rem;
   font-weight: 600;
   color: #1a1a2e;
-  margin-bottom: 1.25rem;
-}
-
-.progress-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  max-width: 320px;
-  margin: 0 auto 1rem;
-}
-
-.progress-container .progress {
-  flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  background-color: #e9ecef;
-}
-
-.progress-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6f42c1;
-  min-width: 36px;
+  margin-bottom: 0.5rem;
 }
 
 .processing-hint {
   font-size: 0.8125rem;
   color: #94a3b8;
   margin: 0;
+}
+
+.steps-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 0;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  max-width: 160px;
+}
+
+.step-top {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.step-indicator {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  background: white;
+  margin: 0 auto;
+}
+
+.step-indicator i {
+  font-size: 1.5rem;
+}
+
+.step-indicator .spinner-border-sm {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.step-connector {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 16px);
+  right: calc(-50% + 16px);
+  height: 2px;
+  background-color: #dee2e6;
+  transform: translateY(-50%);
+}
+
+.step-item.completed .step-connector {
+  background-color: #198754;
+}
+
+.step-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+  text-align: center;
+  margin-top: 0.5rem;
+  line-height: 1.3;
+  word-wrap: break-word;
+  max-width: 120px;
+}
+
+.step-item.completed .step-label {
+  color: #1a1a2e;
+}
+
+.step-item.in_progress .step-label {
+  color: #0d6efd;
+  font-weight: 500;
+}
+
+.step-item.pending .step-label {
+  color: #94a3b8;
+}
+
+.step-item.skipped .step-label {
+  color: #94a3b8;
+}
+
+.step-item.skipped .step-connector {
+  background-color: #dee2e6;
+}
+
+.skipped-badge {
+  display: inline-block;
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #6c757d;
+  background-color: #e9ecef;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  margin-left: 0.375rem;
+  vertical-align: middle;
 }
 
 /* Init Section */
@@ -1002,6 +1152,38 @@ onMounted(() => {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
+}
+
+/* Init Options */
+.init-options {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  text-align: left;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.init-options .form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.init-options .form-check-input {
+  margin-top: 0.25rem;
+}
+
+.init-options .form-check-label {
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.init-options .form-check-label small {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 /* Responsive adjustments */

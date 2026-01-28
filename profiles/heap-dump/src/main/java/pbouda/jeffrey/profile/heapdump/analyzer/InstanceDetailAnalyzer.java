@@ -32,7 +32,6 @@ import pbouda.jeffrey.profile.heapdump.model.InstanceField;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Analyzes individual heap instances, extracting their field values and details.
@@ -69,7 +68,8 @@ public class InstanceDetailAnalyzer {
 
         Long retainedSize = null;
         if (includeRetainedSize) {
-            retainedSize = calculateRetainedSize(engine, objectId);
+            long retained = instance.getRetainedSize();
+            retainedSize = retained > 0 ? retained : null;
         }
 
         return new InstanceDetail(
@@ -125,21 +125,6 @@ public class InstanceDetailAnalyzer {
             String value = fieldValue.getValue();
             return InstanceField.primitive(name, type, value);
         }
-    }
-
-    private Long calculateRetainedSize(OQLEngine engine, long objectId) {
-        AtomicLong size = new AtomicLong(0);
-        try {
-            engine.executeQuery("select rsizeof(heap.findObject(" + objectId + "))", result -> {
-                if (result instanceof Number n) {
-                    size.set(n.longValue());
-                }
-                return true;
-            });
-        } catch (OQLException e) {
-            LOG.debug("Failed to calculate retained size: objectId={} error={}", objectId, e.getMessage());
-        }
-        return size.get() > 0 ? size.get() : null;
     }
 
     /**

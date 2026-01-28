@@ -18,12 +18,18 @@
 
 package pbouda.jeffrey.profile.manager;
 
+import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
+import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
@@ -162,11 +168,6 @@ public interface HeapDumpManager {
     void runStringAnalysis(int topN);
 
     /**
-     * Delete the string analysis results.
-     */
-    void deleteStringAnalysis();
-
-    /**
      * Check if thread analysis results exist for this profile.
      *
      * @return true if thread-analysis.json exists
@@ -184,11 +185,6 @@ public interface HeapDumpManager {
      * Run thread analysis with retained heap calculation and save results to JSON file.
      */
     void runThreadAnalysis();
-
-    /**
-     * Delete the thread analysis results.
-     */
-    void deleteThreadAnalysis();
 
     /**
      * Get detailed information about an instance including all its fields.
@@ -218,4 +214,102 @@ public interface HeapDumpManager {
      * @return tree response with reachables
      */
     InstanceTreeResponse getReachables(long objectId, int limit, int offset);
+
+    // --- Biggest Objects ---
+
+    /**
+     * Check if biggest objects analysis results exist for this profile.
+     */
+    boolean biggestObjectsExists();
+
+    /**
+     * Get the pre-computed biggest objects analysis results.
+     */
+    BiggestObjectsReport getBiggestObjects();
+
+    /**
+     * Run biggest objects analysis and save results to JSON file.
+     *
+     * @param topN number of biggest objects to include
+     */
+    void runBiggestObjects(int topN);
+
+    // --- Path to GC Root ---
+
+    /**
+     * Find the shortest reference chain(s) from GC roots to a given object.
+     *
+     * @param objectId        the target object ID
+     * @param excludeWeakRefs whether to exclude weak references from paths
+     * @param maxPaths        maximum number of paths to return
+     * @return list of GC root paths to the target object
+     */
+    List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths);
+
+    // --- Dominator Tree ---
+
+    /**
+     * Get the top-level entries of the dominator tree (objects with the largest retained size).
+     *
+     * @param limit maximum number of entries to return
+     * @return dominator tree response with top-level nodes
+     */
+    DominatorTreeResponse getDominatorTreeRoots(int limit);
+
+    /**
+     * Get children of a dominator tree node (objects retained by the given object).
+     *
+     * @param objectId the parent object ID
+     * @param limit    maximum number of children to return
+     * @return dominator tree response with children
+     */
+    DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit);
+
+    // --- Collection Analysis ---
+
+    /**
+     * Check if collection analysis results exist for this profile.
+     */
+    boolean collectionAnalysisExists();
+
+    /**
+     * Get the pre-computed collection analysis results.
+     */
+    CollectionAnalysisReport getCollectionAnalysis();
+
+    /**
+     * Run collection analysis and save results to JSON file.
+     */
+    void runCollectionAnalysis();
+
+    // --- Class Instance Browser ---
+
+    /**
+     * Browse instances of a specific class with pagination.
+     *
+     * @param className           fully qualified class name
+     * @param limit               maximum number of instances to return
+     * @param offset              offset for pagination
+     * @param includeRetainedSize whether to compute retained size per instance
+     * @return paginated response with class instances
+     */
+    ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize);
+
+    // --- Leak Suspects ---
+
+    /**
+     * Check if leak suspects analysis results exist for this profile.
+     */
+    boolean leakSuspectsExists();
+
+    /**
+     * Get the pre-computed leak suspects report.
+     */
+    LeakSuspectsReport getLeakSuspects();
+
+    /**
+     * Run leak suspects analysis and save results to JSON file.
+     */
+    void runLeakSuspects();
+
 }

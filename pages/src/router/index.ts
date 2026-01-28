@@ -170,6 +170,36 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'heap-dump/dashboard',
+    name: 'profile-heap-dump-dashboard',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpDashboard.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/biggest-objects',
+    name: 'profile-heap-dump-biggest-objects',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestObjects.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/dominator-tree',
+    name: 'profile-heap-dump-dominator-tree',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpDominatorTree.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/collection-analysis',
+    name: 'profile-heap-dump-collection-analysis',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpCollectionAnalysis.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/leak-suspects',
+    name: 'profile-heap-dump-leak-suspects',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpLeakSuspects.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'container/configuration',
     name: 'profile-container-configuration',
     component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),

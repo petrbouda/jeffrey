@@ -481,6 +481,15 @@
                     <i class="bi bi-memory"></i>
                     <span>Heap Dump Overview</span>
                   </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/dashboard`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                  </router-link>
                 </div>
               </div>
 
@@ -497,6 +506,33 @@
                     <span>Class Histogram</span>
                   </router-link>
                   <router-link
+                      :to="`/profiles/${profileId}/heap-dump/biggest-objects`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-box-seam"></i>
+                    <span>Biggest Objects</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/dominator-tree`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-diagram-2"></i>
+                    <span>Dominator Tree</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/collection-analysis`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-collection"></i>
+                    <span>Collection Analysis</span>
+                  </router-link>
+                  <router-link
                       :to="`/profiles/${profileId}/heap-dump/string-analysis`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
@@ -504,6 +540,15 @@
                   >
                     <i class="bi bi-fonts"></i>
                     <span>String Analysis</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/leak-suspects`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-bug"></i>
+                    <span>Leak Suspects</span>
                   </router-link>
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/oql`"
@@ -514,12 +559,6 @@
                     <i class="bi bi-terminal"></i>
                     <span>OQL Query</span>
                   </router-link>
-                </div>
-              </div>
-
-              <div class="nav-section">
-                <div class="nav-section-title">DETAILS</div>
-                <div class="nav-items">
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/gc-roots`"
                       class="nav-item"

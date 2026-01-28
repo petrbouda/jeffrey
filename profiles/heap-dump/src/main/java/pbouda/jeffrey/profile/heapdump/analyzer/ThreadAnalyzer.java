@@ -22,8 +22,6 @@ import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.JavaClass;
 import org.netbeans.lib.profiler.heap.PrimitiveArrayInstance;
-import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
-import org.netbeans.modules.profiler.oql.engine.api.OQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
@@ -31,7 +29,6 @@ import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Analyzes Thread objects in a heap dump.
@@ -68,12 +65,10 @@ public class ThreadAnalyzer {
             return threads;
         }
 
-        OQLEngine engine = includeRetainedSize ? new OQLEngine(heap) : null;
-
         List<Instance> instances = (List<Instance>) threadClass.getInstances();
         for (Instance instance : instances) {
             try {
-                HeapThreadInfo threadInfo = extractThreadInfo(instance, engine);
+                HeapThreadInfo threadInfo = extractThreadInfo(instance, includeRetainedSize);
                 threads.add(threadInfo);
             } catch (Exception e) {
                 LOG.debug("Failed to extract thread info for instance: id={}", instance.getInstanceId(), e);
@@ -83,7 +78,7 @@ public class ThreadAnalyzer {
         return threads;
     }
 
-    private HeapThreadInfo extractThreadInfo(Instance threadInstance, OQLEngine engine) {
+    private HeapThreadInfo extractThreadInfo(Instance threadInstance, boolean includeRetainedSize) {
         String name = getStringFieldValue(threadInstance, "name");
         if (name == null) {
             name = "unnamed-" + threadInstance.getInstanceId();
@@ -93,8 +88,9 @@ public class ThreadAnalyzer {
         int priority = getIntFieldValue(threadInstance, "priority", 5);
 
         Long retainedSize = null;
-        if (engine != null) {
-            retainedSize = calculateRetainedSize(engine, threadInstance.getInstanceId());
+        if (includeRetainedSize) {
+            long retained = threadInstance.getRetainedSize();
+            retainedSize = retained > 0 ? retained : null;
         }
 
         return new HeapThreadInfo(
@@ -104,21 +100,6 @@ public class ThreadAnalyzer {
                 priority,
                 retainedSize
         );
-    }
-
-    private Long calculateRetainedSize(OQLEngine engine, long objectId) {
-        AtomicLong size = new AtomicLong(0);
-        try {
-            engine.executeQuery("select rsizeof(heap.findObject(" + objectId + "))", result -> {
-                if (result instanceof Number n) {
-                    size.set(n.longValue());
-                }
-                return true;
-            });
-        } catch (OQLException e) {
-            LOG.debug("Failed to calculate retained size: objectId={} error={}", objectId, e.getMessage());
-        }
-        return size.get() > 0 ? size.get() : null;
     }
 
     private String getStringFieldValue(Instance instance, String fieldName) {

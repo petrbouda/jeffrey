@@ -54,13 +54,7 @@
           <thead>
           <tr>
             <th style="width: 50px;">#</th>
-            <SortableTableHeader
-                column="CLASS_NAME"
-                label="Class Name"
-                :sort-column="histogramSortBy"
-                :sort-direction="'asc'"
-                @sort="handleSort"
-            />
+            <th>Class Name</th>
             <SortableTableHeader
                 column="COUNT"
                 label="Instances"
@@ -86,10 +80,13 @@
           <tr v-for="(entry, index) in histogramData" :key="entry.className">
             <td class="text-muted">{{ index + 1 }}</td>
             <td>
-              <code class="class-name">{{ entry.className }}</code>
+              <div class="class-info">
+                <code class="class-name">{{ simpleClassName(entry.className) }}</code>
+                <span class="package-name">{{ packageName(entry.className) }}</span>
+              </div>
             </td>
             <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.instanceCount) }}</td>
-            <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.totalSize) }}</td>
+            <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.totalSize) }}</td>
             <td>
               <div class="d-flex align-items-center gap-2">
                 <div class="progress flex-grow-1" style="height: 6px;">
@@ -176,7 +173,6 @@ const maxValue = computed(() => {
   if (histogramSortBy.value === 'COUNT') {
     return Math.max(...histogramData.value.map(entry => entry.instanceCount));
   }
-  // For SIZE and CLASS_NAME, use totalSize
   return Math.max(...histogramData.value.map(entry => entry.totalSize));
 });
 
@@ -187,8 +183,17 @@ const getDistributionPercentage = (entry: ClassHistogramEntry): number => {
   if (histogramSortBy.value === 'COUNT') {
     return (entry.instanceCount / maxValue.value) * 100;
   }
-  // For SIZE and CLASS_NAME, use totalSize
   return (entry.totalSize / maxValue.value) * 100;
+};
+
+const simpleClassName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(lastDot + 1) : name;
+};
+
+const packageName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(0, lastDot) : '';
 };
 
 const loadHistogram = async () => {
@@ -261,11 +266,26 @@ onMounted(() => {
   padding: 2rem;
 }
 
+.class-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
 .class-name {
   font-size: 0.8rem;
-  word-break: break-all;
+  font-weight: 600;
   background-color: transparent;
   color: #495057;
+  white-space: nowrap;
+}
+
+.package-name {
+  font-size: 0.8rem;
+  color: #adb5bd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .table-card {
@@ -321,5 +341,10 @@ onMounted(() => {
 
 .font-monospace {
   font-size: 0.8rem;
+}
+
+/* Darker warning color for better readability */
+.text-warning {
+  color: #b8860b !important;
 }
 </style>

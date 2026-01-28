@@ -28,6 +28,12 @@ import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
 import ThreadAnalysisReport from '@/services/api/model/ThreadAnalysisReport';
 import InstanceDetail from '@/services/api/model/InstanceDetail';
 import InstanceTreeResponse from '@/services/api/model/InstanceTreeResponse';
+import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
+import { GCRootPath } from '@/services/api/model/GCRootPath';
+import DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
+import CollectionAnalysisReport from '@/services/api/model/CollectionAnalysisReport';
+import ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse';
+import LeakSuspectsReport from '@/services/api/model/LeakSuspectsReport';
 
 export default class HeapDumpClient extends BaseProfileClient {
 
@@ -91,11 +97,7 @@ export default class HeapDumpClient extends BaseProfileClient {
     }
 
     public runStringAnalysis(topN: number = 100): Promise<void> {
-        return this.post<void>('/string-analysis/run', {}, { topN });
-    }
-
-    public deleteStringAnalysis(): Promise<void> {
-        return this.post<void>('/string-analysis/delete', {});
+        return this.post<void>(`/string-analysis/run?topN=${topN}`, {});
     }
 
     public threadAnalysisExists(): Promise<boolean> {
@@ -110,10 +112,6 @@ export default class HeapDumpClient extends BaseProfileClient {
         return this.post<void>('/thread-analysis/run', {});
     }
 
-    public deleteThreadAnalysis(): Promise<void> {
-        return this.post<void>('/thread-analysis/delete', {});
-    }
-
     public getInstanceDetail(objectId: number, includeRetained: boolean = false): Promise<InstanceDetail> {
         return this.get<InstanceDetail>(`/instance/${objectId}`, { includeRetained });
     }
@@ -125,4 +123,69 @@ export default class HeapDumpClient extends BaseProfileClient {
     public getReachables(objectId: number, limit: number = 50, offset: number = 0): Promise<InstanceTreeResponse> {
         return this.get<InstanceTreeResponse>(`/instance/${objectId}/reachables`, { limit, offset });
     }
+
+    // --- Biggest Objects ---
+
+    public biggestObjectsExists(): Promise<boolean> {
+        return this.get<boolean>('/biggest-objects/exists');
+    }
+
+    public getBiggestObjects(): Promise<BiggestObjectsReport> {
+        return this.get<BiggestObjectsReport>('/biggest-objects');
+    }
+
+    public runBiggestObjects(topN: number = 50): Promise<void> {
+        return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
+    }
+
+    // --- Path to GC Root ---
+
+    public getPathToGCRoot(objectId: number, excludeWeak: boolean = true, maxPaths: number = 3): Promise<GCRootPath[]> {
+        return this.get<GCRootPath[]>(`/instance/${objectId}/gc-root-path`, { excludeWeak, maxPaths });
+    }
+
+    // --- Dominator Tree ---
+
+    public getDominatorTreeRoots(limit: number = 50): Promise<DominatorTreeResponse> {
+        return this.get<DominatorTreeResponse>('/dominator-tree', { limit });
+    }
+
+    public getDominatorTreeChildren(objectId: number, limit: number = 50): Promise<DominatorTreeResponse> {
+        return this.get<DominatorTreeResponse>(`/dominator-tree/${objectId}/children`, { limit });
+    }
+
+    // --- Collection Analysis ---
+
+    public collectionAnalysisExists(): Promise<boolean> {
+        return this.get<boolean>('/collection-analysis/exists');
+    }
+
+    public getCollectionAnalysis(): Promise<CollectionAnalysisReport> {
+        return this.get<CollectionAnalysisReport>('/collection-analysis');
+    }
+
+    public runCollectionAnalysis(): Promise<void> {
+        return this.post<void>('/collection-analysis/run', {});
+    }
+
+    // --- Class Instance Browser ---
+
+    public getClassInstances(className: string, limit: number = 50, offset: number = 0, includeRetainedSize: boolean = false): Promise<ClassInstancesResponse> {
+        return this.get<ClassInstancesResponse>('/class-instances', { className, limit, offset, includeRetainedSize });
+    }
+
+    // --- Leak Suspects ---
+
+    public leakSuspectsExists(): Promise<boolean> {
+        return this.get<boolean>('/leak-suspects/exists');
+    }
+
+    public getLeakSuspects(): Promise<LeakSuspectsReport> {
+        return this.get<LeakSuspectsReport>('/leak-suspects');
+    }
+
+    public runLeakSuspects(): Promise<void> {
+        return this.post<void>('/leak-suspects/run', {});
+    }
+
 }
