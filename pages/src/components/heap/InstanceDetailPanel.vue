@@ -47,9 +47,12 @@
       <div v-else-if="instance" class="panel-body">
         <!-- Instance Info -->
         <div class="instance-info">
-          <div class="info-row">
+          <div class="info-row info-row-class">
             <span class="label">Class:</span>
-            <code class="value class-name">{{ instance.className }}</code>
+            <div class="class-name-block">
+              <span class="class-simple-name">{{ simpleClassName(instance.className) }}</span>
+              <span v-if="packageName(instance.className)" class="class-package-name">{{ packageName(instance.className) }}</span>
+            </div>
           </div>
           <div class="info-row">
             <span class="label">Object ID:</span>
@@ -208,6 +211,16 @@ const instance = ref<InstanceDetail | null>(null);
 const simpleType = (fullType: string): string => {
   const lastDot = fullType.lastIndexOf('.');
   return lastDot > 0 ? fullType.substring(lastDot + 1) : fullType;
+};
+
+const simpleClassName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot >= 0 ? name.substring(lastDot + 1) : name;
+};
+
+const packageName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot >= 0 ? name.substring(0, lastDot) : '';
 };
 
 const truncateValue = (value: string, maxLen: number): string => {
@@ -384,10 +397,26 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
   color: #212529;
 }
 
-.info-row .value.class-name {
-  color: #6f42c1;
+.info-row-class {
+  align-items: flex-start;
+}
+
+.class-name-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.class-simple-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #343a40;
   word-break: break-all;
-  background: transparent;
+}
+
+.class-package-name {
+  font-size: 0.8rem;
+  color: #adb5bd;
+  word-break: break-all;
 }
 
 .info-row .value.monospace {

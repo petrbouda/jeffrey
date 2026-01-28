@@ -22,7 +22,10 @@ import org.netbeans.lib.profiler.heap.FieldValue;
 import org.netbeans.lib.profiler.heap.GCRoot;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
+import org.netbeans.lib.profiler.heap.JavaFrameGCRoot;
 import org.netbeans.lib.profiler.heap.ObjectFieldValue;
+import org.netbeans.lib.profiler.heap.ThreadObjectGCRoot;
+import org.netbeans.lib.profiler.heap.Value;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,13 +80,13 @@ public class PathToGCRootAnalyzer {
 
         // Build GC root instance ID set for fast lookup
         Set<Long> gcRootIds = new HashSet<>();
-        Map<Long, String> gcRootKinds = new HashMap<>();
+        Map<Long, GCRoot> gcRootsByInstanceId = new HashMap<>();
         Collection<GCRoot> gcRoots = (Collection<GCRoot>) heap.getGCRoots();
         for (GCRoot root : gcRoots) {
             Instance rootInstance = root.getInstance();
             if (rootInstance != null) {
                 gcRootIds.add(rootInstance.getInstanceId());
-                gcRootKinds.put(rootInstance.getInstanceId(), root.getKind());
+                gcRootsByInstanceId.put(rootInstance.getInstanceId(), root);
             }
         }
 
@@ -113,22 +116,22 @@ public class PathToGCRootAnalyzer {
             // Check if current is a GC root
             if (gcRootIds.contains(current.getInstanceId())) {
                 GCRootPath gcRootPath = buildGCRootPath(
-                        path, gcRootKinds.get(current.getInstanceId()), formatter);
+                        path, gcRootsByInstanceId.get(current.getInstanceId()), formatter);
                 results.add(gcRootPath);
                 continue;
             }
 
-            // Traverse referrers — getReferences() returns List<Value> which may contain
-            // Instance or ObjectFieldValue (e.g. HprofInstanceObjectValue), not just Instance
-            List<?> referrers = current.getReferences();
-            for (Object ref : referrers) {
-                Instance referrer = resolveInstance(ref);
+            // Traverse referrers — getReferences() returns List<Value>, use getDefiningInstance()
+            // to get the object that owns the reference (the actual referrer), not the referenced object
+            @SuppressWarnings("unchecked")
+            List<Value> references = (List<Value>) current.getReferences();
+            for (Value ref : references) {
+                Instance referrer = ref.getDefiningInstance();
                 if (referrer == null) continue;
 
                 long refId = referrer.getInstanceId();
                 if (visited.contains(refId)) continue;
 
-                // Skip weak/soft/phantom references if requested
                 if (excludeWeakRefs && isWeakReference(referrer)) {
                     continue;
                 }
@@ -142,16 +145,6 @@ public class PathToGCRootAnalyzer {
 
         LOG.debug("Path to GC root analysis: objectId={} pathsFound={}", objectId, results.size());
         return results;
-    }
-
-    private static Instance resolveInstance(Object value) {
-        if (value instanceof Instance inst) {
-            return inst;
-        }
-        if (value instanceof ObjectFieldValue ofv) {
-            return ofv.getInstance();
-        }
-        return null;
     }
 
     private boolean isWeakReference(Instance instance) {
@@ -170,8 +163,7 @@ public class PathToGCRootAnalyzer {
         return false;
     }
 
-    @SuppressWarnings("unchecked")
-    private GCRootPath buildGCRootPath(List<Instance> path, String rootKind, InstanceValueFormatter formatter) {
+    private GCRootPath buildGCRootPath(List<Instance> path, GCRoot gcRoot, InstanceValueFormatter formatter) {
         // Path is from target → ... → GC root, reverse it to root → ... → target
         List<Instance> reversedPath = new ArrayList<>(path);
         Collections.reverse(reversedPath);
@@ -199,12 +191,48 @@ public class PathToGCRootAnalyzer {
             ));
         }
 
+        String rootKind = gcRoot != null ? gcRoot.getKind() : "Unknown";
+        String threadName = null;
+        String stackFrame = null;
+
+        if (gcRoot instanceof JavaFrameGCRoot jf) {
+            ThreadObjectGCRoot threadRoot = jf.getThreadGCRoot();
+            if (threadRoot != null) {
+                Instance threadInstance = threadRoot.getInstance();
+                if (threadInstance != null) {
+                    threadName = extractThreadName(threadInstance, formatter);
+                }
+
+                StackTraceElement[] stackTrace = threadRoot.getStackTrace();
+                int frameNumber = jf.getFrameNumber();
+                if (stackTrace != null && frameNumber >= 0 && frameNumber < stackTrace.length) {
+                    stackFrame = stackTrace[frameNumber].toString();
+                }
+            }
+        }
+
         return new GCRootPath(
                 root.getInstanceId(),
                 root.getJavaClass().getName(),
-                rootKind != null ? rootKind : "Unknown",
+                rootKind,
+                threadName,
+                stackFrame,
                 steps
         );
+    }
+
+    private String extractThreadName(Instance threadInstance, InstanceValueFormatter formatter) {
+        Object nameField = threadInstance.getValueOfField("name");
+        if (nameField instanceof Instance nameInstance
+                && "java.lang.String".equals(nameInstance.getJavaClass().getName())) {
+            String formatted = formatter.format(nameInstance);
+            // Strip surrounding quotes added by the formatter
+            if (formatted.startsWith("\"") && formatted.endsWith("\"") && formatted.length() >= 2) {
+                return formatted.substring(1, formatted.length() - 1);
+            }
+            return formatted;
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")

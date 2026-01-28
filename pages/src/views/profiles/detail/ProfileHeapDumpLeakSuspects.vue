@@ -144,18 +144,12 @@
         @close="showTreeModal = false"
     />
 
-    <GCRootPathModal
-        :show="showGCRootModal"
-        :object-id="gcRootObjectId"
-        :profile-id="profileId"
-        @close="showGCRootModal = false"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -163,12 +157,12 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
-import GCRootPathModal from '@/components/heap/GCRootPathModal.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import LeakSuspectsReport, { LeakSuspect } from '@/services/api/model/LeakSuspectsReport';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
+const router = useRouter();
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);
@@ -183,9 +177,6 @@ const report = ref<LeakSuspectsReport | null>(null);
 const showTreeModal = ref(false);
 const treeModalObjectId = ref<number | null>(null);
 const treeModalMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
-const showGCRootModal = ref(false);
-const gcRootObjectId = ref<number>(0);
-
 let client: HeapDumpClient;
 
 const summaryMetrics = computed(() => {
@@ -230,8 +221,7 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
 };
 
 const openGCRootPath = (objectId: number) => {
-  gcRootObjectId.value = objectId;
-  showGCRootModal.value = true;
+  router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
 };
 
 const runAnalysis = async () => {

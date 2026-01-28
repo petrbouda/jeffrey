@@ -524,6 +524,15 @@
                     <span>Dominator Tree</span>
                   </router-link>
                   <router-link
+                      :to="`/profiles/${profileId}/heap-dump/gc-root-path`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-signpost-2"></i>
+                    <span>Path to GC Root</span>
+                  </router-link>
+                  <router-link
                       :to="`/profiles/${profileId}/heap-dump/collection-analysis`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"

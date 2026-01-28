@@ -59,7 +59,10 @@
                   <i v-else class="bi bi-chevron-right"></i>
                 </button>
                 <span v-else class="expand-placeholder me-1"></span>
-                <code class="class-name">{{ item.node.className }}</code>
+                <div class="class-info">
+                  <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
+                  <span class="package-name">{{ packageName(item.node.className) }}</span>
+                </div>
               </div>
             </td>
             <!-- Display Value -->
@@ -106,19 +109,12 @@
         @update:show="treeModalVisible = $event"
     />
 
-    <!-- GC Root Path Modal -->
-    <GCRootPathModal
-        :show="gcRootPathModalVisible"
-        :object-id="gcRootPathObjectId"
-        :profile-id="profileId"
-        @close="gcRootPathModalVisible = false"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -126,7 +122,6 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
-import GCRootPathModal from '@/components/heap/GCRootPathModal.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
 import type { DominatorNode } from '@/services/api/model/DominatorTreeResponse';
@@ -141,6 +136,7 @@ interface TreeItem {
 }
 
 const route = useRoute();
+const router = useRouter();
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);
@@ -154,9 +150,6 @@ const totalHeapSize = ref(0);
 const treeModalVisible = ref(false);
 const treeModalObjectId = ref(0);
 const treeModalMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
-const gcRootPathModalVisible = ref(false);
-const gcRootPathObjectId = ref(0);
-
 let client: HeapDumpClient;
 
 const summaryMetrics = computed(() => {
@@ -169,6 +162,16 @@ const summaryMetrics = computed(() => {
     }
   ];
 });
+
+const simpleClassName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(lastDot + 1) : name;
+};
+
+const packageName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(0, lastDot) : '';
+};
 
 const truncateValue = (value: string): string => {
   return value.length > 60 ? value.substring(0, 60) + '...' : value;
@@ -224,8 +227,7 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
 };
 
 const openGCRootPathModal = (objectId: number) => {
-  gcRootPathObjectId.value = objectId;
-  gcRootPathModalVisible.value = true;
+  router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
 };
 
 const scrollToTop = () => {
@@ -285,11 +287,26 @@ onMounted(() => {
   padding: 2rem;
 }
 
+.class-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
 .class-name {
   font-size: 0.8rem;
-  word-break: break-all;
+  font-weight: 600;
   background-color: transparent;
   color: #495057;
+  white-space: nowrap;
+}
+
+.package-name {
+  font-size: 0.8rem;
+  color: #adb5bd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .display-value {

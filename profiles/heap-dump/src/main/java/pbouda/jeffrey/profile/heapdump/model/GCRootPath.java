@@ -23,15 +23,19 @@ import java.util.List;
 /**
  * Represents a reference chain from a GC root to a target object.
  *
- * @param rootObjectId unique ID of the GC root object
+ * @param rootObjectId  unique ID of the GC root object
  * @param rootClassName class name of the GC root object
- * @param rootType     type of GC root (e.g. "Java Frame", "JNI Global")
- * @param steps        ordered chain of references from root to target
+ * @param rootType      type of GC root (e.g. "Java Frame", "JNI Global")
+ * @param threadName    thread name for Java Frame roots, null otherwise
+ * @param stackFrame    stack frame info (e.g. "MyClass.method(MyClass.java:42)") for Java Frame roots, null otherwise
+ * @param steps         ordered chain of references from root to target
  */
 public record GCRootPath(
         long rootObjectId,
         String rootClassName,
         String rootType,
+        String threadName,
+        String stackFrame,
         List<PathStep> steps
 ) {
 }

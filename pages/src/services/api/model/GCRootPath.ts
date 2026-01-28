@@ -11,5 +11,7 @@ export interface GCRootPath {
     rootObjectId: number;
     rootClassName: string;
     rootType: string;
+    threadName: string | null;
+    stackFrame: string | null;
     steps: PathStep[];
 }

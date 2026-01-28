@@ -164,6 +164,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'heap-dump/gc-root-path',
+    name: 'profile-heap-dump-gc-root-path',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpGCRootPath.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'heap-dump/threads',
     name: 'profile-heap-dump-threads',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpThreads.vue'),
