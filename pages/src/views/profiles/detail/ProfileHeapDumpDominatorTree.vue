@@ -36,7 +36,6 @@
           <thead>
           <tr>
             <th style="width: 40%;">Class Name</th>
-            <th>Display Value</th>
             <th class="text-end" style="width: 120px;">Shallow Size</th>
             <th class="text-end" style="width: 120px;">Retained Size</th>
             <th style="width: 180px;">% of Parent</th>
@@ -60,14 +59,17 @@
                 </button>
                 <span v-else class="expand-placeholder me-1"></span>
                 <div class="class-info">
-                  <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
-                  <span class="package-name">{{ packageName(item.node.className) }}</span>
+                  <div v-if="item.node.fieldName" class="field-name-line">
+                    <span class="field-name">{{ item.node.fieldName }}</span>
+                  </div>
+                  <div class="class-name-line">
+                    <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
+                    <span class="package-name">{{ packageName(item.node.className) }}</span>
+                    <span class="object-id-text">{{ FormattingService.formatObjectId(item.node.objectId) }}</span>
+                    <span v-if="Object.keys(item.node.objectParams).length > 0" class="object-params-text">{{ FormattingService.formatObjectParams(item.node.objectParams) }}</span>
+                  </div>
                 </div>
               </div>
-            </td>
-            <!-- Display Value -->
-            <td class="text-muted display-value">
-              <span v-if="item.node.displayValue">{{ truncateValue(item.node.displayValue) }}</span>
             </td>
             <!-- Shallow Size -->
             <td class="text-end font-monospace">{{ FormattingService.formatBytes(item.node.shallowSize) }}</td>
@@ -145,6 +147,7 @@ const heapExists = ref(false);
 const cacheReady = ref(false);
 const treeData = ref<TreeItem[]>([]);
 const totalHeapSize = ref(0);
+const compressedOops = ref(false);
 
 // Modal state
 const treeModalVisible = ref(false);
@@ -159,6 +162,12 @@ const summaryMetrics = computed(() => {
       title: 'Total Heap Size',
       value: FormattingService.formatBytes(totalHeapSize.value),
       variant: 'highlight' as const
+    },
+    {
+      icon: 'cpu',
+      title: 'Compressed Oops',
+      value: compressedOops.value ? 'Enabled' : 'Disabled',
+      variant: compressedOops.value ? 'success' as const : 'info' as const
     }
   ];
 });
@@ -171,10 +180,6 @@ const simpleClassName = (name: string): string => {
 const packageName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
   return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
-
-const truncateValue = (value: string): string => {
-  return value.length > 60 ? value.substring(0, 60) + '...' : value;
 };
 
 const getBarColor = (percent: number): string => {
@@ -260,6 +265,7 @@ const loadData = async () => {
 
     const response: DominatorTreeResponse = await client.getDominatorTreeRoots(50);
     totalHeapSize.value = response.totalHeapSize;
+    compressedOops.value = response.compressedOops;
     treeData.value = response.nodes.map(node => ({
       node,
       depth: 0,
@@ -289,8 +295,33 @@ onMounted(() => {
 
 .class-info {
   display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.object-id-text {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.object-params-text {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #868e96;
+}
+
+.class-name-line {
+  display: flex;
   align-items: baseline;
   gap: 0.4rem;
+}
+
+.field-name {
+  font-size: 0.8rem;
+  color: #6f42c1;
+  font-style: italic;
+  white-space: nowrap;
 }
 
 .class-name {
@@ -307,14 +338,6 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.display-value {
-  font-size: 0.8rem;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .table-card {

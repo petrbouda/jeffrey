@@ -180,4 +180,14 @@ export default class FormattingService {
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
                `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }
+
+    static formatObjectId(objectId: number): string {
+        return '@' + objectId.toString(16);
+    }
+
+    static formatObjectParams(params: Record<string, string>): string {
+        const entries = Object.entries(params);
+        if (entries.length === 0) return '';
+        return entries.map(([k, v]) => `${k}=${v}`).join(', ');
+    }
 }

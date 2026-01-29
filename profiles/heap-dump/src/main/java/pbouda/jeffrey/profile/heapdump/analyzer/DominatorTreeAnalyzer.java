@@ -22,7 +22,9 @@ import org.netbeans.lib.profiler.heap.FieldValue;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.JavaClass;
+import org.netbeans.lib.profiler.heap.ObjectArrayInstance;
 import org.netbeans.lib.profiler.heap.ObjectFieldValue;
+import org.netbeans.lib.profiler.heap.Value;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,13 @@ import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * Provides a retained-size tree view of the heap.
@@ -43,21 +51,123 @@ public class DominatorTreeAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DominatorTreeAnalyzer.class);
     private static final int DEFAULT_LIMIT = 50;
-    private static final int CANDIDATE_CLASSES = 1;
+    private static final int CANDIDATE_CLASSES = 200;
+    private static final int CANDIDATE_MULTIPLIER = 3;
+    private static final int ROOT_OVERSELECT_MULTIPLIER = 2;
+
+    private record CandidateEntry(Instance instance, long retainedSize, String fieldName) {
+    }
+
+    private record ChildCandidate(Instance instance, long shallowSize, String fieldName) {
+    }
+
+    private static final int UNCOMPRESSED_REF_SIZE = 8;
+    private static final int COMPRESSED_REF_SIZE = 4;
+    private static final int ARRAY_HEADER_SIZE = 16;
+    private static final long COMPRESSED_OOPS_MAX_HEAP = 32L * 1024 * 1024 * 1024; // 32 GB
+
+    /**
+     * Detects whether compressed oops are enabled. Trusts the JFR hint if available,
+     * otherwise infers from heap properties (64-bit JVM with heap &lt; 32GB).
+     */
+    private static boolean detectCompressedOops(Heap heap, Optional<Boolean> jfrHint) {
+        if (jfrHint.isPresent()) {
+            return jfrHint.get();
+        }
+        try {
+            Properties props = heap.getSystemProperties();
+            String archDataModel = props.getProperty("sun.arch.data.model", "");
+            if ("64".equals(archDataModel)) {
+                long totalLiveBytes = heap.getSummary().getTotalLiveBytes();
+                return totalLiveBytes < COMPRESSED_OOPS_MAX_HEAP;
+            }
+        } catch (Exception e) {
+            LOG.debug("Could not detect compressed oops from heap properties: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Returns the correct shallow size for an instance, adjusting for compressed oops
+     * where the NetBeans library incorrectly uses 8-byte references instead of 4-byte.
+     * This affects both object arrays and regular objects with object reference fields.
+     */
+    @SuppressWarnings("unchecked")
+    private static long correctedShallowSize(Instance instance, boolean compressedOops) {
+        if (!compressedOops) {
+            return instance.getSize();
+        }
+        if (instance instanceof ObjectArrayInstance arrayInstance) {
+            return ARRAY_HEADER_SIZE + (long) arrayInstance.getLength() * COMPRESSED_REF_SIZE;
+        }
+        // Regular objects: each object reference field is counted as 8 bytes by the library,
+        // but should be 4 bytes with compressed oops
+        List<FieldValue> fieldValues = (List<FieldValue>) instance.getFieldValues();
+        int objectRefCount = 0;
+        for (FieldValue fv : fieldValues) {
+            if (fv instanceof ObjectFieldValue) {
+                objectRefCount++;
+            }
+        }
+        long overcount = (long) objectRefCount * (UNCOMPRESSED_REF_SIZE - COMPRESSED_REF_SIZE);
+        return instance.getSize() - overcount;
+    }
+
+    /**
+     * Computes the total overcount across all instances in the heap.
+     * The NetBeans library uses 8-byte references even when compressed oops are
+     * enabled (4-byte refs). This affects both object arrays and object reference
+     * fields in regular objects. This method sums up the difference for every instance.
+     */
+    @SuppressWarnings("unchecked")
+    private static long computeTotalOvercount(Heap heap) {
+        long overcount = 0;
+        List<JavaClass> allClasses = (List<JavaClass>) heap.getAllClasses();
+        for (JavaClass jc : allClasses) {
+            List<Instance> instances = (List<Instance>) jc.getInstances();
+            for (Instance inst : instances) {
+                if (inst instanceof ObjectArrayInstance arr) {
+                    overcount += (long) arr.getLength() * (UNCOMPRESSED_REF_SIZE - COMPRESSED_REF_SIZE);
+                } else {
+                    List<FieldValue> fieldValues = (List<FieldValue>) inst.getFieldValues();
+                    for (FieldValue fv : fieldValues) {
+                        if (fv instanceof ObjectFieldValue) {
+                            overcount += (UNCOMPRESSED_REF_SIZE - COMPRESSED_REF_SIZE);
+                        }
+                    }
+                }
+            }
+        }
+        return overcount;
+    }
 
     /**
      * Get the top-level roots: biggest objects by retained size.
-     * This reuses the same approach as BiggestObjectsAnalyzer.
+     * Uses a min-heap to efficiently select the top N objects from instances
+     * of the top classes by total allocation size.
      */
     @SuppressWarnings("unchecked")
-    public DominatorTreeResponse getRoots(Heap heap, int limit) {
+    public DominatorTreeResponse getRoots(Heap heap, int limit, Optional<Boolean> compressedOopsHint) {
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
         }
 
+        boolean compressedOops = detectCompressedOops(heap, compressedOopsHint);
+
         OQLEngine engine = new OQLEngine(heap);
         InstanceValueFormatter formatter = new InstanceValueFormatter(engine);
         long totalHeapSize = heap.getSummary().getTotalLiveBytes();
+
+        // Compute heap-wide correction ratio for compressed oops
+        double correctionRatio = 1.0;
+        long correctedTotalHeap = totalHeapSize;
+        if (compressedOops) {
+            long totalOvercount = computeTotalOvercount(heap);
+            correctedTotalHeap = totalHeapSize - totalOvercount;
+            correctionRatio = totalHeapSize > 0
+                    ? (double) correctedTotalHeap / totalHeapSize
+                    : 1.0;
+        }
 
         // Get top classes by total size
         List<JavaClass> allClasses = (List<JavaClass>) heap.getAllClasses();
@@ -67,8 +177,13 @@ public class DominatorTreeAnalyzer {
                 .limit(CANDIDATE_CLASSES)
                 .toList();
 
-        // Compute retained size for instances from top classes
-        List<DominatorNode> nodes = new ArrayList<>();
+        // Over-select candidates to compensate for filtering dominated entries
+        int overselectLimit = ROOT_OVERSELECT_MULTIPLIER * limit;
+
+        // Use a min-heap to keep only the top N by retained size
+        PriorityQueue<CandidateEntry> minHeap = new PriorityQueue<>(
+                overselectLimit + 1, Comparator.comparingLong(CandidateEntry::retainedSize));
+
         for (JavaClass javaClass : candidates) {
             List<Instance> instances = (List<Instance>) javaClass.getInstances();
             for (Instance instance : instances) {
@@ -76,109 +191,189 @@ public class DominatorTreeAnalyzer {
                 if (retainedSize <= 0) {
                     retainedSize = instance.getSize();
                 }
-                double percent = totalHeapSize > 0 ? (double) retainedSize / totalHeapSize * 100.0 : 0;
-                boolean hasChildren = hasObjectReferences(instance);
 
-                nodes.add(new DominatorNode(
-                        instance.getInstanceId(),
-                        javaClass.getName(),
-                        formatter.format(instance),
-                        instance.getSize(),
-                        retainedSize,
-                        percent,
-                        hasChildren
-                ));
+                if (minHeap.size() < overselectLimit || retainedSize > minHeap.peek().retainedSize()) {
+                    minHeap.offer(new CandidateEntry(instance, retainedSize, null));
+                    if (minHeap.size() > overselectLimit) {
+                        minHeap.poll();
+                    }
+                }
             }
         }
 
-        // Sort by retained size descending and take top N
-        nodes.sort(Comparator.comparingLong(DominatorNode::retainedSize).reversed());
-        boolean hasMore = nodes.size() > limit;
-        List<DominatorNode> result = nodes.subList(0, Math.min(limit, nodes.size()));
+        // Filter out entries whose referrer is also a candidate (dominated objects)
+        Set<Long> candidateIds = new HashSet<>();
+        for (CandidateEntry entry : minHeap) {
+            candidateIds.add(entry.instance().getInstanceId());
+        }
 
-        return new DominatorTreeResponse(new ArrayList<>(result), totalHeapSize, hasMore);
+        List<CandidateEntry> filtered = new ArrayList<>();
+        for (CandidateEntry entry : minHeap) {
+            if (!isDominatedByCandidate(entry.instance(), candidateIds)) {
+                filtered.add(entry);
+            }
+        }
+
+        // Cap to the requested limit
+        filtered.sort(Comparator.comparingLong(CandidateEntry::retainedSize).reversed());
+        if (filtered.size() > limit) {
+            filtered = filtered.subList(0, limit);
+        }
+
+        // Build DominatorNode only for the final set
+        List<DominatorNode> nodes = new ArrayList<>(filtered.size());
+        for (CandidateEntry entry : filtered) {
+            Instance instance = entry.instance();
+            long shallowSize = correctedShallowSize(instance, compressedOops);
+            long retainedSize = (long) (entry.retainedSize() * correctionRatio);
+            double percent = correctedTotalHeap > 0 ? (double) retainedSize / correctedTotalHeap * 100.0 : 0;
+            boolean hasChildren = hasObjectReferences(instance);
+
+            Map<String, String> objectParams = formatter.format(instance);
+            nodes.add(new DominatorNode(
+                    instance.getInstanceId(),
+                    instance.getJavaClass().getName(),
+                    objectParams,
+                    null,
+                    shallowSize,
+                    retainedSize,
+                    percent,
+                    hasChildren
+            ));
+        }
+
+        // Already sorted above
+        boolean hasMore = nodes.size() >= limit;
+
+        return new DominatorTreeResponse(nodes, correctedTotalHeap, compressedOops, hasMore);
     }
 
     /**
      * Get children of a node: directly referenced objects sorted by retained size.
+     * Uses a two-phase approach: first collects all children with shallow size (cheap),
+     * over-selects candidates, then computes retained size only for the candidates.
      */
     @SuppressWarnings("unchecked")
-    public DominatorTreeResponse getChildren(Heap heap, long objectId, int limit) {
+    public DominatorTreeResponse getChildren(Heap heap, long objectId, int limit, Optional<Boolean> compressedOopsHint) {
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
         }
 
+        boolean compressedOops = detectCompressedOops(heap, compressedOopsHint);
+
         Instance parent = heap.getInstanceByID(objectId);
         if (parent == null) {
-            return new DominatorTreeResponse(List.of(), 0, false);
+            return new DominatorTreeResponse(List.of(), 0, compressedOops, false);
         }
 
         OQLEngine engine = new OQLEngine(heap);
         InstanceValueFormatter formatter = new InstanceValueFormatter(engine);
-        long parentRetainedSize = parent.getRetainedSize();
         long totalHeapSize = heap.getSummary().getTotalLiveBytes();
 
-        List<DominatorNode> children = new ArrayList<>();
+        // Compute heap-wide correction ratio for compressed oops
+        double correctionRatio = 1.0;
+        if (compressedOops) {
+            long totalOvercount = computeTotalOvercount(heap);
+            long correctedTotalHeap = totalHeapSize - totalOvercount;
+            correctionRatio = totalHeapSize > 0
+                    ? (double) correctedTotalHeap / totalHeapSize
+                    : 1.0;
+        }
 
-        // Get referenced objects from fields
+        long parentRetainedSize = (long) (parent.getRetainedSize() * correctionRatio);
+
+        // Phase 1: Collect all children with shallow size (cheap)
+        List<ChildCandidate> allChildren = new ArrayList<>();
+
         List<FieldValue> fieldValues = (List<FieldValue>) parent.getFieldValues();
         for (FieldValue fv : fieldValues) {
             if (fv instanceof ObjectFieldValue ofv) {
                 Instance ref = ofv.getInstance();
                 if (ref != null) {
-                    long retainedSize = ref.getRetainedSize();
-                    if (retainedSize <= 0) {
-                        retainedSize = ref.getSize();
-                    }
-                    double percent = parentRetainedSize > 0
-                            ? (double) retainedSize / parentRetainedSize * 100.0 : 0;
-                    boolean hasChildRefs = hasObjectReferences(ref);
-
-                    children.add(new DominatorNode(
-                            ref.getInstanceId(),
-                            ref.getJavaClass().getName(),
-                            formatter.format(ref),
-                            ref.getSize(),
-                            retainedSize,
-                            percent,
-                            hasChildRefs
-                    ));
+                    allChildren.add(new ChildCandidate(ref, ref.getSize(), ofv.getField().getName()));
                 }
             }
         }
 
-        // Handle array elements
         if (parent instanceof org.netbeans.lib.profiler.heap.ObjectArrayInstance arrayInstance) {
             List<Instance> values = (List<Instance>) arrayInstance.getValues();
-            for (Instance element : values) {
+            for (int i = 0; i < values.size(); i++) {
+                Instance element = values.get(i);
                 if (element != null) {
-                    long retainedSize = element.getRetainedSize();
-                    if (retainedSize <= 0) {
-                        retainedSize = element.getSize();
-                    }
-                    double percent = parentRetainedSize > 0
-                            ? (double) retainedSize / parentRetainedSize * 100.0 : 0;
-                    boolean hasChildRefs = hasObjectReferences(element);
-
-                    children.add(new DominatorNode(
-                            element.getInstanceId(),
-                            element.getJavaClass().getName(),
-                            formatter.format(element),
-                            element.getSize(),
-                            retainedSize,
-                            percent,
-                            hasChildRefs
-                    ));
+                    allChildren.add(new ChildCandidate(element, element.getSize(), "[" + i + "]"));
                 }
             }
+        }
+
+        // Phase 2: Over-select by shallow size
+        int candidateCount = CANDIDATE_MULTIPLIER * limit;
+        List<ChildCandidate> selected;
+        if (allChildren.size() <= candidateCount) {
+            selected = allChildren;
+        } else {
+            allChildren.sort(Comparator.comparingLong(ChildCandidate::shallowSize).reversed());
+            selected = allChildren.subList(0, candidateCount);
+        }
+
+        // Phase 3: Compute retained size for candidates only, use min-heap for top N
+        PriorityQueue<CandidateEntry> minHeap = new PriorityQueue<>(
+                limit + 1, Comparator.comparingLong(CandidateEntry::retainedSize));
+
+        for (ChildCandidate candidate : selected) {
+            Instance instance = candidate.instance();
+            long retainedSize = instance.getRetainedSize();
+            if (retainedSize <= 0) {
+                retainedSize = instance.getSize();
+            }
+
+            if (minHeap.size() < limit || retainedSize > minHeap.peek().retainedSize()) {
+                minHeap.offer(new CandidateEntry(instance, retainedSize, candidate.fieldName()));
+                if (minHeap.size() > limit) {
+                    minHeap.poll();
+                }
+            }
+        }
+
+        // Phase 4: Format only the final results
+        List<DominatorNode> children = new ArrayList<>(minHeap.size());
+        for (CandidateEntry entry : minHeap) {
+            Instance ref = entry.instance();
+            long shallowSize = correctedShallowSize(ref, compressedOops);
+            long retainedSize = (long) (entry.retainedSize() * correctionRatio);
+            double percent = parentRetainedSize > 0
+                    ? (double) retainedSize / parentRetainedSize * 100.0 : 0;
+            boolean hasChildRefs = hasObjectReferences(ref);
+
+            Map<String, String> objectParams = formatter.format(ref);
+            children.add(new DominatorNode(
+                    ref.getInstanceId(),
+                    ref.getJavaClass().getName(),
+                    objectParams,
+                    entry.fieldName(),
+                    shallowSize,
+                    retainedSize,
+                    percent,
+                    hasChildRefs
+            ));
         }
 
         // Sort by retained size descending
         children.sort(Comparator.comparingLong(DominatorNode::retainedSize).reversed());
-        boolean hasMore = children.size() > limit;
-        List<DominatorNode> result = children.subList(0, Math.min(limit, children.size()));
+        boolean hasMore = allChildren.size() > limit;
 
-        return new DominatorTreeResponse(new ArrayList<>(result), totalHeapSize, hasMore);
+        return new DominatorTreeResponse(children, totalHeapSize, compressedOops, hasMore);
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean isDominatedByCandidate(Instance instance, Set<Long> candidateIds) {
+        List<Value> references = (List<Value>) instance.getReferences();
+        for (Value ref : references) {
+            Instance referrer = ref.getDefiningInstance();
+            if (referrer != null && candidateIds.contains(referrer.getInstanceId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @SuppressWarnings("unchecked")

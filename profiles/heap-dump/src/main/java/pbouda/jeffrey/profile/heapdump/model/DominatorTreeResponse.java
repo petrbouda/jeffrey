@@ -23,13 +23,15 @@ import java.util.List;
 /**
  * Response for dominator tree queries (both roots and children).
  *
- * @param nodes         list of dominator tree nodes
- * @param totalHeapSize total heap size for percentage calculations
- * @param hasMore       whether more nodes are available beyond the limit
+ * @param nodes          list of dominator tree nodes
+ * @param totalHeapSize  total heap size for percentage calculations
+ * @param compressedOops whether compressed oops are detected/inferred
+ * @param hasMore        whether more nodes are available beyond the limit
  */
 public record DominatorTreeResponse(
         List<DominatorNode> nodes,
         long totalHeapSize,
+        boolean compressedOops,
         boolean hasMore
 ) {
 }

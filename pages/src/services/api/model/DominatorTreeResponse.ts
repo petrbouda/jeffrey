@@ -1,7 +1,8 @@
 export interface DominatorNode {
     objectId: number;
     className: string;
-    displayValue: string;
+    objectParams: Record<string, string>;
+    fieldName: string | null;
     shallowSize: number;
     retainedSize: number;
     retainedPercent: number;
@@ -11,5 +12,6 @@ export interface DominatorNode {
 export default interface DominatorTreeResponse {
     nodes: DominatorNode[];
     totalHeapSize: number;
+    compressedOops: boolean;
     hasMore: boolean;
 }

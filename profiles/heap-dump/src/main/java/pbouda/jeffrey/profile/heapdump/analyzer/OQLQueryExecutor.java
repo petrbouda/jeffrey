@@ -114,7 +114,7 @@ public class OQLQueryExecutor {
     @SuppressWarnings("unchecked")
     private OQLResultEntry toEntry(Object obj, OQLEngine engine, InstanceValueFormatter formatter, boolean includeRetained) {
         if (obj instanceof Instance instance) {
-            String value = formatter.format(instance);
+            String value = formatter.formatAsString(instance);
             Long retained = includeRetained ? calculateRetainedSize(engine, instance.getInstanceId()) : null;
 
             return retained != null
@@ -174,7 +174,7 @@ public class OQLQueryExecutor {
         }
         try {
             if (value instanceof Instance instance) {
-                return formatter.format(instance);
+                return formatter.formatAsString(instance);
             }
             if (value instanceof JavaClass javaClass) {
                 return javaClass.getName();

@@ -89,13 +89,12 @@ public class BiggestObjectsAnalyzer {
 
                 // Only add to the heap if it could be in the top N
                 if (minHeap.size() < topN || retainedSize > minHeap.peek().retainedSize()) {
-                    String displayValue = formatter.format(instance);
                     BiggestObjectEntry entry = new BiggestObjectEntry(
                             instance.getInstanceId(),
                             javaClass.getName(),
                             instance.getSize(),
                             retainedSize,
-                            displayValue
+                            formatter.format(instance)
                     );
                     minHeap.offer(entry);
                     if (minHeap.size() > topN) {

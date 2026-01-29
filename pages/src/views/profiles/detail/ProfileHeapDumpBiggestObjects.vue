@@ -93,7 +93,10 @@
                 <code class="class-name">{{ simpleClassName(entry.className) }}</code>
                 <span class="package-name">{{ packageName(entry.className) }}</span>
               </div>
-              <span class="display-value text-muted">{{ truncateValue(entry.displayValue) }}</span>
+              <span class="display-value text-muted">
+                <span class="object-id-text">{{ FormattingService.formatObjectId(entry.objectId) }}</span>
+                <span v-if="Object.keys(entry.objectParams).length > 0">{{ FormattingService.formatObjectParams(entry.objectParams) }}</span>
+              </span>
             </td>
             <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.shallowSize) }}</td>
             <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.retainedSize) }}</td>
@@ -199,11 +202,6 @@ const simpleClassName = (name: string): string => {
 const packageName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
   return lastDot > 0 ? name.substring(0, lastDot) : '';
-};
-
-const truncateValue = (value: string): string => {
-  if (!value) return '';
-  return value.length > 80 ? value.substring(0, 80) + '...' : value;
 };
 
 const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
@@ -313,6 +311,12 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.object-id-text {
+  font-family: monospace;
+  color: #6c757d;
+  margin-right: 0.25rem;
 }
 
 .table-card {

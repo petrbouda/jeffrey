@@ -60,7 +60,7 @@ public class InstanceDetailAnalyzer {
         InstanceValueFormatter formatter = new InstanceValueFormatter(engine);
 
         String className = instance.getJavaClass().getName();
-        String value = formatter.format(instance);
+        String value = formatter.formatAsString(instance);
         String stringValue = extractStringValue(engine, instance, className);
 
         List<InstanceField> fields = extractFields(instance, formatter);
@@ -118,7 +118,7 @@ public class InstanceDetailAnalyzer {
                 return InstanceField.nullReference(name, type);
             }
 
-            String value = formatter.format(referencedInstance);
+            String value = formatter.formatAsString(referencedInstance);
             return InstanceField.reference(name, type, value, referencedInstance.getInstanceId());
         } else {
             // Primitive value

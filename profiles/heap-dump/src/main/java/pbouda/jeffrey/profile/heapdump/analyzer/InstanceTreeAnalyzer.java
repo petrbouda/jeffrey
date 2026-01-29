@@ -132,7 +132,7 @@ public class InstanceTreeAnalyzer {
 
     private InstanceTreeNode createRootNode(Instance instance, InstanceValueFormatter formatter,
                                             InstanceTreeRequest.TreeMode mode, int childCount, Heap heap) {
-        String value = formatter.format(instance);
+        String value = formatter.formatAsString(instance);
         boolean hasChildren = childCount > 0;
 
         return InstanceTreeNode.root(
@@ -160,7 +160,7 @@ public class InstanceTreeAnalyzer {
             fieldName = "[" + aiv.getIndex() + "]";
         }
 
-        String value = formatter.format(definingInstance);
+        String value = formatter.formatAsString(definingInstance);
 
         // Check if this referrer has its own referrers
         List<Value> refs = (List<Value>) definingInstance.getReferences();
@@ -182,7 +182,7 @@ public class InstanceTreeAnalyzer {
     private InstanceTreeNode toReachableNode(ObjectFieldWithName objectFieldWithName,
                                               InstanceValueFormatter formatter, Heap heap) {
         Instance referencedInstance = objectFieldWithName.objectField.getInstance();
-        String value = formatter.format(referencedInstance);
+        String value = formatter.formatAsString(referencedInstance);
 
         // Check if this reachable has its own reachables
         List<FieldValue> fieldValues = (List<FieldValue>) referencedInstance.getFieldValues();

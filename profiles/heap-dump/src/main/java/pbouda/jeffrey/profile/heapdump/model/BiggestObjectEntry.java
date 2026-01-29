@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
+import java.util.Map;
+
 /**
  * Represents a single object instance ranked by retained size.
  *
@@ -25,13 +27,13 @@ package pbouda.jeffrey.profile.heapdump.model;
  * @param className    fully qualified class name
  * @param shallowSize  size of this object alone in bytes
  * @param retainedSize total size of objects retained exclusively by this object
- * @param displayValue human-readable preview of the object value
+ * @param objectParams structured key/value pairs describing the object
  */
 public record BiggestObjectEntry(
         long objectId,
         String className,
         long shallowSize,
         long retainedSize,
-        String displayValue
+        Map<String, String> objectParams
 ) {
 }

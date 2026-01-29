@@ -18,17 +18,20 @@
 
 package pbouda.jeffrey.profile.heapdump.analyzer;
 
-import org.netbeans.lib.profiler.heap.FieldValue;
 import org.netbeans.lib.profiler.heap.Instance;
+import org.netbeans.lib.profiler.heap.ObjectArrayInstance;
+import org.netbeans.lib.profiler.heap.PrimitiveArrayInstance;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 import org.netbeans.modules.profiler.oql.engine.api.OQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * Formats heap Instance objects into human-readable string representations.
+ * Formats heap Instance objects into structured key/value pairs
+ * representing the most interesting properties of the object.
  */
 public class InstanceValueFormatter {
 
@@ -42,49 +45,70 @@ public class InstanceValueFormatter {
     }
 
     /**
-     * Format an instance value for display.
+     * Format an instance into structured key/value pairs.
      */
-    public String format(Instance instance) {
+    public Map<String, String> format(Instance instance) {
+        if (instance instanceof ObjectArrayInstance arr) {
+            return Map.of("length", String.valueOf(arr.getLength()));
+        }
+        if (instance instanceof PrimitiveArrayInstance arr) {
+            return Map.of("length", String.valueOf(arr.getLength()));
+        }
+
         String className = instance.getJavaClass().getName();
 
         try {
             return switch (className) {
                 case "java.lang.String" -> formatString(instance);
                 case "java.lang.Integer", "java.lang.Long", "java.lang.Short", "java.lang.Byte",
-                     "java.lang.Double", "java.lang.Float" -> formatPrimitive(instance, "value");
+                     "java.lang.Double", "java.lang.Float" -> formatPrimitive(instance);
                 case "java.lang.Boolean" -> formatBoolean(instance);
                 case "java.lang.Character" -> formatCharacter(instance);
                 case "java.util.HashMap", "java.util.LinkedHashMap", "java.util.Hashtable",
-                     "java.util.concurrent.ConcurrentHashMap" -> formatCollection(instance, "{size=%d}");
-                case "java.util.ArrayList", "java.util.LinkedList", "java.util.Vector" -> formatCollection(instance, "[size=%d]");
+                     "java.util.concurrent.ConcurrentHashMap" -> formatCollection(instance);
+                case "java.util.ArrayList", "java.util.LinkedList", "java.util.Vector" -> formatCollection(instance);
                 case "java.util.HashSet", "java.util.LinkedHashSet", "java.util.TreeSet" -> formatSet(instance);
-                case "java.lang.Thread" -> formatWithStringField(instance, "name", "Thread");
-                case "java.lang.Class" -> formatWithStringField(instance, "name", "Class");
-                case "java.io.File" -> formatWithStringField(instance, "path", "File");
+                case "java.lang.Thread" -> formatWithStringField(instance, "name");
+                case "java.lang.Class" -> formatWithStringField(instance, "name");
+                case "java.io.File" -> formatWithStringField(instance, "path");
                 case "java.lang.StringBuilder", "java.lang.StringBuffer" -> formatStringBuilder(instance);
                 case "java.util.Date" -> formatDate(instance);
-                default -> formatDefault(instance, className);
+                default -> formatDefault(instance);
             };
         } catch (Exception e) {
             LOG.trace("Failed to format instance value: className={}", className, e);
         }
-        return className + "@" + Long.toHexString(instance.getInstanceId());
+        return Map.of();
     }
 
-    private String formatString(Instance instance) {
-        // Try direct extraction first
+    /**
+     * Format a String instance and return the raw string value (without surrounding quotes).
+     * This is useful for extracting plain text, e.g. for thread names.
+     */
+    public String formatStringValue(Instance instance) {
         String value = extractStringValue(instance);
         if (value != null) {
-            return "\"" + truncate(value, MAX_STRING_LENGTH) + "\"";
+            return truncate(value, MAX_STRING_LENGTH);
         }
-
-        // Fallback to OQL toString()
         String oqlValue = getValueViaOQL(instance.getInstanceId());
         if (oqlValue != null) {
-            return "\"" + truncate(oqlValue, MAX_STRING_LENGTH) + "\"";
+            return truncate(oqlValue, MAX_STRING_LENGTH);
+        }
+        return null;
+    }
+
+    private Map<String, String> formatString(Instance instance) {
+        String value = extractStringValue(instance);
+        if (value != null) {
+            return Map.of("value", "\"" + truncate(value, MAX_STRING_LENGTH) + "\"");
         }
 
-        return "String@" + Long.toHexString(instance.getInstanceId());
+        String oqlValue = getValueViaOQL(instance.getInstanceId());
+        if (oqlValue != null) {
+            return Map.of("value", "\"" + truncate(oqlValue, MAX_STRING_LENGTH) + "\"");
+        }
+
+        return Map.of();
     }
 
     private String extractStringValue(Instance stringInstance) {
@@ -145,47 +169,49 @@ public class InstanceValueFormatter {
         }
     }
 
-    private String formatPrimitive(Instance instance, String fieldName) {
-        Object value = instance.getValueOfField(fieldName);
-        return value != null ? value.toString() : "null";
-    }
-
-    private String formatBoolean(Instance instance) {
+    private Map<String, String> formatPrimitive(Instance instance) {
         Object value = instance.getValueOfField("value");
-        return value instanceof Boolean b ? b.toString() : "null";
+        return value != null ? Map.of("value", value.toString()) : Map.of();
     }
 
-    private String formatCharacter(Instance instance) {
+    private Map<String, String> formatBoolean(Instance instance) {
         Object value = instance.getValueOfField("value");
-        return value instanceof Character c ? "'" + c + "'" : "null";
+        return value instanceof Boolean b ? Map.of("value", b.toString()) : Map.of();
     }
 
-    private String formatCollection(Instance instance, String format) {
+    private Map<String, String> formatCharacter(Instance instance) {
+        Object value = instance.getValueOfField("value");
+        return value instanceof Character c ? Map.of("value", "'" + c + "'") : Map.of();
+    }
+
+    private Map<String, String> formatCollection(Instance instance) {
         Object size = instance.getValueOfField("size");
-        return size instanceof Number n ? String.format(format, n.intValue()) : "{...}";
+        return size instanceof Number n ? Map.of("size", String.valueOf(n.intValue())) : Map.of();
     }
 
-    private String formatSet(Instance instance) {
+    private Map<String, String> formatSet(Instance instance) {
         Object map = instance.getValueOfField("map");
         if (map instanceof Instance mapInstance) {
             Object size = mapInstance.getValueOfField("size");
             if (size instanceof Number n) {
-                return "{size=" + n.intValue() + "}";
+                return Map.of("size", String.valueOf(n.intValue()));
             }
         }
-        return "{...}";
+        return Map.of();
     }
 
-    private String formatWithStringField(Instance instance, String fieldName, String typeName) {
+    private Map<String, String> formatWithStringField(Instance instance, String fieldName) {
         Object field = instance.getValueOfField(fieldName);
         if (field instanceof Instance fieldInstance) {
-            String value = formatString(fieldInstance);
-            return typeName + "[" + value + "]";
+            String value = formatStringValue(fieldInstance);
+            if (value != null) {
+                return Map.of(fieldName, "\"" + value + "\"");
+            }
         }
-        return typeName + "@" + Long.toHexString(instance.getInstanceId());
+        return Map.of();
     }
 
-    private String formatStringBuilder(Instance instance) {
+    private Map<String, String> formatStringBuilder(Instance instance) {
         Object value = instance.getValueOfField("value");
         Object count = instance.getValueOfField("count");
         if (value instanceof List<?> chars && count instanceof Number n) {
@@ -196,40 +222,54 @@ public class InstanceValueFormatter {
                     sb.append((char) num.intValue());
                 }
             }
-            return "\"" + sb + "\"";
+            return Map.of("value", "\"" + sb + "\"");
         }
-        return "StringBuilder@" + Long.toHexString(instance.getInstanceId());
+        return Map.of();
     }
 
-    private String formatDate(Instance instance) {
+    private Map<String, String> formatDate(Instance instance) {
         Object fastTime = instance.getValueOfField("fastTime");
         return fastTime instanceof Number n
-                ? "Date[" + n.longValue() + "]"
-                : "Date@" + Long.toHexString(instance.getInstanceId());
+                ? Map.of("timestamp", String.valueOf(n.longValue()))
+                : Map.of();
     }
 
-    private String formatDefault(Instance instance, String className) {
+    private Map<String, String> formatDefault(Instance instance) {
         for (String fieldName : List.of("name", "value", "id", "key")) {
             Object fieldValue = instance.getValueOfField(fieldName);
             if (fieldValue instanceof Instance fieldInstance) {
                 String fieldClassName = fieldInstance.getJavaClass().getName();
                 if ("java.lang.String".equals(fieldClassName)) {
-                    return simpleClassName(className) + "[" + formatString(fieldInstance) + "]";
-                } else {
-                    // For non-String objects, show their simple class name and id
-                    return simpleClassName(className) + "[" + simpleClassName(fieldClassName) + "@" + Long.toHexString(fieldInstance.getInstanceId()) + "]";
+                    String strValue = formatStringValue(fieldInstance);
+                    if (strValue != null) {
+                        return Map.of(fieldName, "\"" + strValue + "\"");
+                    }
                 }
             } else if (fieldValue != null) {
-                // Primitive value
-                return simpleClassName(className) + "[" + fieldValue + "]";
+                return Map.of(fieldName, fieldValue.toString());
             }
         }
-        return simpleClassName(className) + "@" + Long.toHexString(instance.getInstanceId());
+        return Map.of();
     }
 
-    private String simpleClassName(String fullClassName) {
-        int lastDot = fullClassName.lastIndexOf('.');
-        return lastDot > 0 ? fullClassName.substring(lastDot + 1) : fullClassName;
+    /**
+     * Format an instance as a single display string for contexts that need a String value
+     * (e.g. instance detail panels, OQL results, instance tree nodes).
+     * Produces: "key1=v1, key2=v2" or empty string if no params.
+     */
+    public String formatAsString(Instance instance) {
+        Map<String, String> params = format(instance);
+        if (params.isEmpty()) {
+            return instance.getJavaClass().getName() + "@" + Long.toHexString(instance.getInstanceId());
+        }
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (!first) sb.append(", ");
+            first = false;
+            sb.append(entry.getKey()).append("=").append(entry.getValue());
+        }
+        return sb.toString();
     }
 
     private String truncate(String str, int maxLen) {

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
+import java.util.Map;
+
 /**
  * A single step in a reference chain from a GC root to a target object.
  *
@@ -25,7 +27,7 @@ package pbouda.jeffrey.profile.heapdump.model;
  * @param className    fully qualified class name
  * @param fieldName    field name (or array index) pointing to the next object in the chain
  * @param shallowSize  shallow size of this object in bytes
- * @param displayValue human-readable preview of the object value
+ * @param objectParams structured key/value pairs describing the object
  * @param isTarget     whether this is the target object being investigated
  */
 public record PathStep(
@@ -33,7 +35,7 @@ public record PathStep(
         String className,
         String fieldName,
         long shallowSize,
-        String displayValue,
+        Map<String, String> objectParams,
         boolean isTarget
 ) {
 }

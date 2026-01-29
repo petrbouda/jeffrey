@@ -171,6 +171,7 @@
                         :object-id="entry.objectId ?? null"
                         @show-referrers="openTreeModal($event, 'REFERRERS')"
                         @show-reachables="openTreeModal($event, 'REACHABLES')"
+                        @show-g-c-root-path="openGCRootPathModal"
                     />
                   </div>
                   <div v-if="entry.value" class="value-text" :title="entry.value">{{ truncateValue(entry.value, 300) }}</div>
@@ -304,7 +305,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -320,6 +321,7 @@ import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
+const router = useRouter();
 const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
 const loading = ref(true);
@@ -500,6 +502,10 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
   selectedObjectId.value = objectId;
   treeMode.value = mode;
   showTreeModal.value = true;
+};
+
+const openGCRootPathModal = (objectId: number) => {
+  router.push(`/profiles/${profileId}/heap-dump/gc-root-path?objectId=${objectId}`);
 };
 
 const checkAiAvailability = async () => {

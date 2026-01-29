@@ -13,14 +13,17 @@
       </div>
       <div v-if="path.threadName" class="gc-root-detail">
         <span class="detail-label">Thread:</span>
-        <span class="detail-value">"{{ path.threadName }}"</span>
+        <span class="detail-value thread-name">{{ path.threadName }}</span>
       </div>
       <div v-if="path.stackFrame" class="gc-root-detail">
         <span class="detail-label">Frame:</span>
-        <span class="detail-value">{{ frameShort(path.stackFrame) }}</span>
+        <span class="detail-value">
+          <span class="frame-package">{{ framePackagePart(path.stackFrame) }}{{ framePackagePart(path.stackFrame) ? '.' : '' }}</span>
+          <span class="frame-class-method">{{ frameClassName(path.stackFrame) }}<span class="frame-method">{{ frameMethodName(path.stackFrame) }}</span></span>
+        </span>
       </div>
-      <div v-if="path.stackFrame && framePackagePart(path.stackFrame)" class="gc-root-detail-sub">
-        {{ framePackagePart(path.stackFrame) }}
+      <div v-if="path.stackFrame && frameSourceLocation(path.stackFrame)" class="gc-root-detail-sub">
+        {{ frameSourceLocation(path.stackFrame) }}
       </div>
     </div>
 
@@ -47,8 +50,8 @@
             <span v-if="step.isTarget" class="target-badge">TARGET</span>
             <i class="bi bi-info-circle step-detail-icon" title="Show instance details"></i>
           </div>
-          <div v-if="step.displayValue" class="step-display-value">
-            {{ truncateValue(step.displayValue, 120) }}
+          <div v-if="Object.keys(step.objectParams).length > 0" class="step-display-value">
+            {{ FormattingService.formatObjectParams(step.objectParams) }}
           </div>
         </div>
       </div>
@@ -78,10 +81,6 @@ const packageName = (name: string): string => {
   return lastDot >= 0 ? name.substring(0, lastDot + 1) : ''
 }
 
-const truncateValue = (value: string, maxLen: number): string => {
-  return value.length > maxLen ? value.substring(0, maxLen) + '…' : value
-}
-
 // "s.f.p.a.DataCatalogUnited.getUnitedBid(File.kt:229)" → "DataCatalogUnited.getUnitedBid(File.kt:229)"
 const frameShort = (frame: string): string => {
   const parenIdx = frame.indexOf('(')
@@ -90,6 +89,30 @@ const frameShort = (frame: string): string => {
   const secondLastDot = fqn.lastIndexOf('.', lastDot - 1)
   const classMethod = secondLastDot >= 0 ? fqn.substring(secondLastDot + 1) : fqn
   return parenIdx >= 0 ? classMethod + frame.substring(parenIdx) : classMethod
+}
+
+// "DataCatalogUnited.getUnitedBid(File.kt:229)" → "DataCatalogUnited."
+const frameClassName = (frame: string): string => {
+  const short = frameShort(frame)
+  const parenIdx = short.indexOf('(')
+  const classMethod = parenIdx >= 0 ? short.substring(0, parenIdx) : short
+  const dotIdx = classMethod.lastIndexOf('.')
+  return dotIdx >= 0 ? classMethod.substring(0, dotIdx + 1) : classMethod
+}
+
+// "DataCatalogUnited.getUnitedBid(File.kt:229)" → "getUnitedBid"
+const frameMethodName = (frame: string): string => {
+  const short = frameShort(frame)
+  const parenIdx = short.indexOf('(')
+  const classMethod = parenIdx >= 0 ? short.substring(0, parenIdx) : short
+  const dotIdx = classMethod.lastIndexOf('.')
+  return dotIdx >= 0 ? classMethod.substring(dotIdx + 1) : ''
+}
+
+const frameSourceLocation = (frame: string): string => {
+  const short = frameShort(frame)
+  const parenIdx = short.indexOf('(')
+  return parenIdx >= 0 ? short.substring(parenIdx) : ''
 }
 
 // → "secondfoundation.power.models.baseprice.api"
@@ -176,6 +199,10 @@ const framePackagePart = (frame: string): string => {
   font-family: monospace;
   color: #495057;
   overflow-wrap: break-word;
+}
+
+.thread-name {
+  font-weight: 600;
 }
 
 .gc-root-detail-sub {
@@ -310,5 +337,18 @@ const framePackagePart = (frame: string): string => {
   font-family: monospace;
   margin-top: 0.25rem;
   word-break: break-all;
+}
+
+.frame-package {
+  font-weight: 400;
+  color: #adb5bd;
+}
+
+.frame-class-method {
+  font-weight: 600;
+}
+
+.frame-method {
+  font-style: italic;
 }
 </style>

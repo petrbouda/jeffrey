@@ -18,12 +18,15 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
+import java.util.Map;
+
 /**
  * A node in the dominator/retained-size tree.
  *
  * @param objectId        unique object identifier
  * @param className       fully qualified class name
- * @param displayValue    human-readable preview of the object value
+ * @param objectParams    structured key/value pairs describing the object
+ * @param fieldName       field name referencing this object (null for root nodes)
  * @param shallowSize     shallow size of this object in bytes
  * @param retainedSize    retained size of this object in bytes
  * @param retainedPercent percentage of parent's retained size this node occupies
@@ -32,7 +35,8 @@ package pbouda.jeffrey.profile.heapdump.model;
 public record DominatorNode(
         long objectId,
         String className,
-        String displayValue,
+        Map<String, String> objectParams,
+        String fieldName,
         long shallowSize,
         long retainedSize,
         double retainedPercent,

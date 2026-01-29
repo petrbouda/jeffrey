@@ -55,8 +55,11 @@ import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
+import pbouda.jeffrey.profile.common.event.GCHeapConfiguration;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
 import pbouda.jeffrey.shared.common.exception.ErrorCode;
 import pbouda.jeffrey.shared.common.exception.ErrorType;
@@ -531,16 +534,18 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public DominatorTreeResponse getDominatorTreeRoots(int limit) {
+        Optional<Boolean> compressedOopsHint = detectCompressedOopsFromJfr();
         return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getRoots(heap, limit))
-                .orElse(new DominatorTreeResponse(List.of(), 0, false));
+                .map(heap -> dominatorTreeAnalyzer.getRoots(heap, limit, compressedOopsHint))
+                .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 
     @Override
     public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
+        Optional<Boolean> compressedOopsHint = detectCompressedOopsFromJfr();
         return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, limit))
-                .orElse(new DominatorTreeResponse(List.of(), 0, false));
+                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, limit, compressedOopsHint))
+                .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 
     // --- Collection Analysis ---
@@ -590,6 +595,19 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             LeakSuspectsReport report = leakSuspectsAnalyzer.analyze(heap);
             writeJsonFile(LEAK_SUSPECTS_FILE, report, "Leak suspects");
         });
+    }
+
+    // --- Compressed Oops Detection ---
+
+    private Optional<Boolean> detectCompressedOopsFromJfr() {
+        try {
+            return eventRepository.latestJsonFields(Type.GC_HEAP_CONFIGURATION)
+                    .map(fields -> Json.treeToValue(fields, GCHeapConfiguration.class))
+                    .map(GCHeapConfiguration::usesCompressedOops);
+        } catch (Exception e) {
+            LOG.debug("Could not detect compressed oops from JFR events: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
     // --- JSON I/O helpers ---

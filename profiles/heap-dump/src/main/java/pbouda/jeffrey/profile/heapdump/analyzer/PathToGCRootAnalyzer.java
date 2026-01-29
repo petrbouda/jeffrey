@@ -225,12 +225,7 @@ public class PathToGCRootAnalyzer {
         Object nameField = threadInstance.getValueOfField("name");
         if (nameField instanceof Instance nameInstance
                 && "java.lang.String".equals(nameInstance.getJavaClass().getName())) {
-            String formatted = formatter.format(nameInstance);
-            // Strip surrounding quotes added by the formatter
-            if (formatted.startsWith("\"") && formatted.endsWith("\"") && formatted.length() >= 2) {
-                return formatted.substring(1, formatted.length() - 1);
-            }
-            return formatted;
+            return formatter.formatStringValue(nameInstance);
         }
         return null;
     }

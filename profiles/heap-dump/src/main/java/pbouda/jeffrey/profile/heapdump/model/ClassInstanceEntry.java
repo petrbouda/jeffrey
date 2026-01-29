@@ -18,18 +18,20 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
+import java.util.Map;
+
 /**
  * A single instance entry when browsing instances of a class.
  *
  * @param objectId      unique object identifier
  * @param shallowSize   shallow size in bytes
  * @param retainedSize  retained size in bytes (null if not computed)
- * @param displayValue  human-readable preview of the instance value
+ * @param objectParams  structured key/value pairs describing the instance
  */
 public record ClassInstanceEntry(
         long objectId,
         long shallowSize,
         Long retainedSize,
-        String displayValue
+        Map<String, String> objectParams
 ) {
 }

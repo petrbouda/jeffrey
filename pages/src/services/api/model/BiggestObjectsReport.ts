@@ -3,7 +3,7 @@ export interface BiggestObjectEntry {
     className: string;
     shallowSize: number;
     retainedSize: number;
-    displayValue: string;
+    objectParams: Record<string, string>;
 }
 
 export default interface BiggestObjectsReport {

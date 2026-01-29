@@ -2,7 +2,7 @@ export interface ClassInstanceEntry {
     objectId: number;
     shallowSize: number;
     retainedSize: number | null;
-    displayValue: string;
+    objectParams: Record<string, string>;
 }
 
 export default interface ClassInstancesResponse {
