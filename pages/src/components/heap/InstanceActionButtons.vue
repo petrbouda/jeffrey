@@ -15,6 +15,7 @@
       <i class="bi bi-box-arrow-right"></i>
     </button>
     <button
+        v-if="showGcRootPath"
         class="btn btn-action"
         title="Path to GC Root"
         @click="$emit('showGCRootPath', objectId)"
@@ -27,9 +28,12 @@
 <script setup lang="ts">
 interface Props {
   objectId: number | null;
+  showGcRootPath?: boolean;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  showGcRootPath: true,
+});
 
 defineEmits<{
   showReferrers: [objectId: number];

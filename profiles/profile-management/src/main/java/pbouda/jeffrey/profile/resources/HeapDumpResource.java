@@ -393,4 +393,24 @@ public class HeapDumpResource {
         heapDumpManager.runLeakSuspects();
     }
 
+    // --- Biggest Objects ---
+
+    @GET
+    @Path("/biggest-objects/exists")
+    public boolean biggestObjectsExists() {
+        return heapDumpManager.biggestObjectsExists();
+    }
+
+    @GET
+    @Path("/biggest-objects")
+    public BiggestObjectsReport getBiggestObjects() {
+        return heapDumpManager.getBiggestObjects();
+    }
+
+    @POST
+    @Path("/biggest-objects/run")
+    public void runBiggestObjects(@QueryParam("topN") @DefaultValue("20") int topN) {
+        heapDumpManager.runBiggestObjects(topN);
+    }
+
 }

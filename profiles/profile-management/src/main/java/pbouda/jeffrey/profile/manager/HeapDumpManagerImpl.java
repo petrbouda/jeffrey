@@ -49,6 +49,8 @@ import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.JvmStringFlag;
+import pbouda.jeffrey.profile.heapdump.model.BiggestObjectEntry;
+import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
@@ -89,6 +91,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private static final String STRING_ANALYSIS_FILE = "string-analysis.json";
     private static final String THREAD_ANALYSIS_FILE = "thread-analysis.json";
     private static final String COLLECTION_ANALYSIS_FILE = "collection-analysis.json";
+    private static final String BIGGEST_OBJECTS_FILE = "biggest-objects.json";
     private static final String LEAK_SUSPECTS_FILE = "leak-suspects.json";
     private static final String HEAP_DUMP_CONFIG_FILE = "heap-dump-config.json";
 
@@ -278,6 +281,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         deleteJsonFile(THREAD_ANALYSIS_FILE, "Thread analysis");
         deleteJsonFile(COLLECTION_ANALYSIS_FILE, "Collection analysis");
         deleteJsonFile(LEAK_SUSPECTS_FILE, "Leak suspects");
+        deleteJsonFile(BIGGEST_OBJECTS_FILE, "Biggest objects");
         deleteJsonFile(HEAP_DUMP_CONFIG_FILE, "Heap dump config");
     }
 
@@ -674,6 +678,40 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             LeakSuspectsReport report = leakSuspectsAnalyzer.analyze(
                     heap, oops.compressedOops, oops.correctionRatio, oops.totalOvercount);
             writeJsonFile(LEAK_SUSPECTS_FILE, report, "Leak suspects");
+        });
+    }
+
+    // --- Biggest Objects ---
+
+    @Override
+    public boolean biggestObjectsExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(BIGGEST_OBJECTS_FILE));
+    }
+
+    @Override
+    public BiggestObjectsReport getBiggestObjects() {
+        return readJsonFile(BIGGEST_OBJECTS_FILE, BiggestObjectsReport.class).orElse(null);
+    }
+
+    @Override
+    public void runBiggestObjects(int topN) {
+        getHeap().ifPresent(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            DominatorTreeResponse response = dominatorTreeAnalyzer.getRoots(heap, topN, oops.compressedOops, oops.totalOvercount);
+
+            List<BiggestObjectEntry> entries = response.nodes().stream()
+                    .map(node -> new BiggestObjectEntry(
+                            node.className(),
+                            node.shallowSize(),
+                            node.retainedSize(),
+                            node.objectId()))
+                    .toList();
+
+            long totalRetained = entries.stream().mapToLong(BiggestObjectEntry::retainedSize).sum();
+            long totalHeapSize = heap.getSummary().getTotalLiveBytes();
+
+            BiggestObjectsReport report = new BiggestObjectsReport(totalHeapSize, totalRetained, entries);
+            writeJsonFile(BIGGEST_OBJECTS_FILE, report, "Biggest objects");
         });
     }
 

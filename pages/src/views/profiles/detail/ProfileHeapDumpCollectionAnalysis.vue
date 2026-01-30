@@ -228,7 +228,10 @@
                 <tr v-for="(entry, index) in sortedByType" :key="index">
                   <td class="text-muted">{{ index + 1 }}</td>
                   <td>
-                    <code class="type-name">{{ entry.collectionType }}</code>
+                    <div class="class-info">
+                      <code class="class-name">{{ simpleClassName(entry.collectionType) }}</code>
+                      <span class="package-name">{{ packageName(entry.collectionType) }}</span>
+                    </div>
                   </td>
                   <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.totalCount) }}</td>
                   <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.emptyCount) }}</td>
@@ -523,6 +526,16 @@ const toggleTypeSort = (column: string) => {
   }
 };
 
+const simpleClassName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(lastDot + 1) : name;
+};
+
+const packageName = (name: string): string => {
+  const lastDot = name.lastIndexOf('.');
+  return lastDot > 0 ? name.substring(0, lastDot) : '';
+};
+
 const getTypePercentage = (entry: CollectionStats): number => {
   if (maxTypeWasted.value === 0) return 0;
   return (entry.totalWastedBytes / maxTypeWasted.value) * 100;
@@ -671,17 +684,26 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.type-name {
+.class-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.class-name {
   font-size: 0.8rem;
-  word-break: break-all;
+  font-weight: 600;
   background-color: transparent;
   color: #495057;
-  max-width: 400px;
-  display: inline-block;
+  white-space: nowrap;
+}
+
+.package-name {
+  font-size: 0.8rem;
+  color: #868e96;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
 }
 
 .legend-table {

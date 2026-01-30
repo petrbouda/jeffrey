@@ -33,6 +33,7 @@ import DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
 import CollectionAnalysisReport from '@/services/api/model/CollectionAnalysisReport';
 import ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse';
 import LeakSuspectsReport from '@/services/api/model/LeakSuspectsReport';
+import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 
 export default class HeapDumpClient extends BaseProfileClient {
@@ -181,6 +182,20 @@ export default class HeapDumpClient extends BaseProfileClient {
 
     public runLeakSuspects(): Promise<void> {
         return this.post<void>('/leak-suspects/run', {});
+    }
+
+    // --- Biggest Objects ---
+
+    public biggestObjectsExists(): Promise<boolean> {
+        return this.get<boolean>('/biggest-objects/exists');
+    }
+
+    public getBiggestObjects(): Promise<BiggestObjectsReport> {
+        return this.get<BiggestObjectsReport>('/biggest-objects');
+    }
+
+    public runBiggestObjects(topN: number = 20): Promise<void> {
+        return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
     }
 
 }
