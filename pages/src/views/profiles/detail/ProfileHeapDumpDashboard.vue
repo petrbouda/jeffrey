@@ -95,12 +95,6 @@
               </span>
             </div>
             <div class="analysis-status-item">
-              <span>Biggest Objects</span>
-              <span :class="biggestObjectsReady ? 'badge bg-success' : 'badge bg-secondary'">
-                {{ biggestObjectsReady ? 'Ready' : 'Not Run' }}
-              </span>
-            </div>
-            <div class="analysis-status-item">
               <span>Collection Analysis</span>
               <span :class="collectionAnalysisReady ? 'badge bg-success' : 'badge bg-secondary'">
                 {{ collectionAnalysisReady ? 'Ready' : 'Not Run' }}
@@ -142,7 +136,6 @@ const cacheReady = ref(false);
 const summary = ref<HeapSummary | null>(null);
 const topClasses = ref<ClassHistogramEntry[]>([]);
 const stringAnalysisReady = ref(false);
-const biggestObjectsReady = ref(false);
 const collectionAnalysisReady = ref(false);
 const leakSuspectsReady = ref(false);
 
@@ -225,15 +218,6 @@ const buildInsights = () => {
   }
 
   // Analysis availability hints
-  if (!biggestObjectsReady.value) {
-    result.push({
-      severity: 'info',
-      title: 'Biggest Objects analysis available',
-      description: 'Find individual objects consuming the most memory.',
-      actionRoute: `/profiles/${profileId}/heap-dump/biggest-objects`
-    });
-  }
-
   if (!collectionAnalysisReady.value) {
     result.push({
       severity: 'info',
@@ -276,14 +260,12 @@ const loadData = async () => {
     topClasses.value = histogramResult;
 
     // Check analysis statuses in parallel
-    const [stringExists, biggestExists, collectionExists, leakExists] = await Promise.all([
+    const [stringExists, collectionExists, leakExists] = await Promise.all([
       client.stringAnalysisExists(),
-      client.biggestObjectsExists(),
       client.collectionAnalysisExists(),
       client.leakSuspectsExists()
     ]);
     stringAnalysisReady.value = stringExists;
-    biggestObjectsReady.value = biggestExists;
     collectionAnalysisReady.value = collectionExists;
     leakSuspectsReady.value = leakExists;
 

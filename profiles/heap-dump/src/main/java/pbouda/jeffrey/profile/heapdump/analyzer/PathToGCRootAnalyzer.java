@@ -72,6 +72,15 @@ public class PathToGCRootAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public List<GCRootPath> findPaths(Heap heap, long objectId, boolean excludeWeakRefs, int maxPaths) {
+        return findPaths(heap, objectId, excludeWeakRefs, maxPaths, false, 1.0);
+    }
+
+    /**
+     * Find shortest paths from GC roots to the target object with compressed oops correction.
+     */
+    @SuppressWarnings("unchecked")
+    public List<GCRootPath> findPaths(Heap heap, long objectId, boolean excludeWeakRefs, int maxPaths,
+                                       boolean compressedOops, double correctionRatio) {
         Instance target = heap.getInstanceByID(objectId);
         if (target == null) {
             LOG.warn("Instance not found: objectId={}", objectId);
@@ -116,7 +125,7 @@ public class PathToGCRootAnalyzer {
             // Check if current is a GC root
             if (gcRootIds.contains(current.getInstanceId())) {
                 GCRootPath gcRootPath = buildGCRootPath(
-                        path, gcRootsByInstanceId.get(current.getInstanceId()), formatter);
+                        path, gcRootsByInstanceId.get(current.getInstanceId()), formatter, compressedOops, correctionRatio);
                 results.add(gcRootPath);
                 continue;
             }
@@ -163,7 +172,8 @@ public class PathToGCRootAnalyzer {
         return false;
     }
 
-    private GCRootPath buildGCRootPath(List<Instance> path, GCRoot gcRoot, InstanceValueFormatter formatter) {
+    private GCRootPath buildGCRootPath(List<Instance> path, GCRoot gcRoot, InstanceValueFormatter formatter,
+                                       boolean compressedOops, double correctionRatio) {
         // Path is from target → ... → GC root, reverse it to root → ... → target
         List<Instance> reversedPath = new ArrayList<>(path);
         Collections.reverse(reversedPath);
@@ -181,11 +191,16 @@ public class PathToGCRootAnalyzer {
                 fieldName = findFieldName(current, next);
             }
 
+            long shallowSize = CompressedOopsCorrector.correctedShallowSize(current, compressedOops);
+            long retainedSize = CompressedOopsCorrector.correctedRetainedSize(
+                    current.getRetainedSize(), compressedOops, correctionRatio);
+
             steps.add(new PathStep(
                     current.getInstanceId(),
                     current.getJavaClass().getName(),
                     fieldName,
-                    current.getSize(),
+                    shallowSize,
+                    retainedSize,
                     formatter.format(current),
                     i == reversedPath.size() - 1
             ));

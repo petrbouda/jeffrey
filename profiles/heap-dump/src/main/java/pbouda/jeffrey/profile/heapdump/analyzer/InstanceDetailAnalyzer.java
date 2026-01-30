@@ -27,7 +27,7 @@ import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
 import org.netbeans.modules.profiler.oql.engine.api.OQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
+import pbouda.jeffrey.profile.heapdump.model .InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceField;
 
 import java.util.ArrayList;
@@ -50,6 +50,22 @@ public class InstanceDetailAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public InstanceDetail analyze(Heap heap, long objectId, boolean includeRetainedSize) {
+        return analyze(heap, objectId, includeRetainedSize, false, 1.0);
+    }
+
+    /**
+     * Get detailed information about an instance with compressed oops correction.
+     *
+     * @param heap                the loaded heap dump
+     * @param objectId            the object ID to analyze
+     * @param includeRetainedSize whether to calculate retained size (expensive operation)
+     * @param compressedOops      whether compressed oops are enabled
+     * @param correctionRatio     correction ratio for retained size
+     * @return instance details or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public InstanceDetail analyze(Heap heap, long objectId, boolean includeRetainedSize,
+                                   boolean compressedOops, double correctionRatio) {
         Instance instance = (Instance) heap.getInstanceByID(objectId);
         if (instance == null) {
             LOG.debug("Instance not found: objectId={}", objectId);
@@ -66,18 +82,25 @@ public class InstanceDetailAnalyzer {
         List<InstanceField> fields = extractFields(instance, formatter);
         List<InstanceField> staticFields = extractStaticFields(instance, formatter);
 
+        long shallowSize = CompressedOopsCorrector.correctedShallowSize(instance, compressedOops);
+
         Long retainedSize = null;
         if (includeRetainedSize) {
             long retained = instance.getRetainedSize();
-            retainedSize = retained > 0 ? retained : null;
+            if (retained > 0) {
+                retainedSize = CompressedOopsCorrector.correctedRetainedSize(retained, compressedOops, correctionRatio);
+            }
         }
+
+        String displayValue = "java.lang.String".equals(className) ? stringValue : null;
 
         return new InstanceDetail(
                 objectId,
                 className,
                 value,
                 stringValue,
-                instance.getSize(),
+                displayValue,
+                shallowSize,
                 retainedSize,
                 fields,
                 staticFields
@@ -119,7 +142,8 @@ public class InstanceDetailAnalyzer {
             }
 
             String value = formatter.formatAsString(referencedInstance);
-            return InstanceField.reference(name, type, value, referencedInstance.getInstanceId());
+            String referencedClassName = referencedInstance.getJavaClass().getName();
+            return InstanceField.reference(name, type, value, referencedInstance.getInstanceId(), referencedClassName);
         } else {
             // Primitive value
             String value = fieldValue.getValue();

@@ -19,10 +19,10 @@
 package pbouda.jeffrey.profile.heapdump.analyzer;
 
 import org.netbeans.lib.profiler.heap.FieldValue;
+import org.netbeans.lib.profiler.heap.GCRoot;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.JavaClass;
-import org.netbeans.lib.profiler.heap.ObjectArrayInstance;
 import org.netbeans.lib.profiler.heap.ObjectFieldValue;
 import org.netbeans.lib.profiler.heap.Value;
 import org.netbeans.modules.profiler.oql.engine.api.OQLEngine;
@@ -32,13 +32,13 @@ import pbouda.jeffrey.profile.heapdump.model.DominatorNode;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.PriorityQueue;
-import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -61,84 +61,25 @@ public class DominatorTreeAnalyzer {
     private record ChildCandidate(Instance instance, long shallowSize, String fieldName) {
     }
 
-    private static final int UNCOMPRESSED_REF_SIZE = 8;
-    private static final int COMPRESSED_REF_SIZE = 4;
-    private static final int ARRAY_HEADER_SIZE = 16;
-    private static final long COMPRESSED_OOPS_MAX_HEAP = 32L * 1024 * 1024 * 1024; // 32 GB
-
-    /**
-     * Detects whether compressed oops are enabled. Trusts the JFR hint if available,
-     * otherwise infers from heap properties (64-bit JVM with heap &lt; 32GB).
-     */
-    private static boolean detectCompressedOops(Heap heap, Optional<Boolean> jfrHint) {
-        if (jfrHint.isPresent()) {
-            return jfrHint.get();
-        }
-        try {
-            Properties props = heap.getSystemProperties();
-            String archDataModel = props.getProperty("sun.arch.data.model", "");
-            if ("64".equals(archDataModel)) {
-                long totalLiveBytes = heap.getSummary().getTotalLiveBytes();
-                return totalLiveBytes < COMPRESSED_OOPS_MAX_HEAP;
-            }
-        } catch (Exception e) {
-            LOG.debug("Could not detect compressed oops from heap properties: {}", e.getMessage());
-        }
-        return false;
-    }
-
-    /**
-     * Returns the correct shallow size for an instance, adjusting for compressed oops
-     * where the NetBeans library incorrectly uses 8-byte references instead of 4-byte.
-     * This affects both object arrays and regular objects with object reference fields.
-     */
-    @SuppressWarnings("unchecked")
-    private static long correctedShallowSize(Instance instance, boolean compressedOops) {
-        if (!compressedOops) {
-            return instance.getSize();
-        }
-        if (instance instanceof ObjectArrayInstance arrayInstance) {
-            return ARRAY_HEADER_SIZE + (long) arrayInstance.getLength() * COMPRESSED_REF_SIZE;
-        }
-        // Regular objects: each object reference field is counted as 8 bytes by the library,
-        // but should be 4 bytes with compressed oops
-        List<FieldValue> fieldValues = (List<FieldValue>) instance.getFieldValues();
-        int objectRefCount = 0;
-        for (FieldValue fv : fieldValues) {
-            if (fv instanceof ObjectFieldValue) {
-                objectRefCount++;
-            }
-        }
-        long overcount = (long) objectRefCount * (UNCOMPRESSED_REF_SIZE - COMPRESSED_REF_SIZE);
-        return instance.getSize() - overcount;
-    }
-
     /**
      * Computes the total overcount across all instances in the heap.
-     * The NetBeans library uses 8-byte references even when compressed oops are
-     * enabled (4-byte refs). This affects both object arrays and object reference
-     * fields in regular objects. This method sums up the difference for every instance.
+     * @see CompressedOopsCorrector#computeTotalOvercount(Heap)
      */
+    public static long computeTotalOvercount(Heap heap) {
+        return CompressedOopsCorrector.computeTotalOvercount(heap);
+    }
+
     @SuppressWarnings("unchecked")
-    private static long computeTotalOvercount(Heap heap) {
-        long overcount = 0;
-        List<JavaClass> allClasses = (List<JavaClass>) heap.getAllClasses();
-        for (JavaClass jc : allClasses) {
-            List<Instance> instances = (List<Instance>) jc.getInstances();
-            for (Instance inst : instances) {
-                if (inst instanceof ObjectArrayInstance arr) {
-                    overcount += (long) arr.getLength() * (UNCOMPRESSED_REF_SIZE - COMPRESSED_REF_SIZE);
-                } else {
-                    List<FieldValue> fieldValues = (List<FieldValue>) inst.getFieldValues();
-                    for (FieldValue fv : fieldValues) {
-                        if (fv instanceof ObjectFieldValue) {
-                            overcount += (UNCOMPRESSED_REF_SIZE - COMPRESSED_REF_SIZE);
-                        }
-                    }
-                }
+    private static Map<Long, String> buildGcRootKindMap(Heap heap) {
+        Map<Long, String> map = new HashMap<>();
+        Collection<GCRoot> gcRoots = (Collection<GCRoot>) heap.getGCRoots();
+        for (GCRoot root : gcRoots) {
+            Instance inst = root.getInstance();
+            if (inst != null) {
+                map.putIfAbsent(inst.getInstanceId(), root.getKind());
             }
         }
-        return overcount;
+        return map;
     }
 
     /**
@@ -147,12 +88,10 @@ public class DominatorTreeAnalyzer {
      * of the top classes by total allocation size.
      */
     @SuppressWarnings("unchecked")
-    public DominatorTreeResponse getRoots(Heap heap, int limit, Optional<Boolean> compressedOopsHint) {
+    public DominatorTreeResponse getRoots(Heap heap, int limit, boolean compressedOops, long totalOvercount) {
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
         }
-
-        boolean compressedOops = detectCompressedOops(heap, compressedOopsHint);
 
         OQLEngine engine = new OQLEngine(heap);
         InstanceValueFormatter formatter = new InstanceValueFormatter(engine);
@@ -162,7 +101,6 @@ public class DominatorTreeAnalyzer {
         double correctionRatio = 1.0;
         long correctedTotalHeap = totalHeapSize;
         if (compressedOops) {
-            long totalOvercount = computeTotalOvercount(heap);
             correctedTotalHeap = totalHeapSize - totalOvercount;
             correctionRatio = totalHeapSize > 0
                     ? (double) correctedTotalHeap / totalHeapSize
@@ -220,11 +158,14 @@ public class DominatorTreeAnalyzer {
             filtered = filtered.subList(0, limit);
         }
 
+        // Build GC root kind map for annotating nodes
+        Map<Long, String> gcRootKindMap = buildGcRootKindMap(heap);
+
         // Build DominatorNode only for the final set
         List<DominatorNode> nodes = new ArrayList<>(filtered.size());
         for (CandidateEntry entry : filtered) {
             Instance instance = entry.instance();
-            long shallowSize = correctedShallowSize(instance, compressedOops);
+            long shallowSize = CompressedOopsCorrector.correctedShallowSize(instance, compressedOops);
             long retainedSize = (long) (entry.retainedSize() * correctionRatio);
             double percent = correctedTotalHeap > 0 ? (double) retainedSize / correctedTotalHeap * 100.0 : 0;
             boolean hasChildren = hasObjectReferences(instance);
@@ -238,7 +179,8 @@ public class DominatorTreeAnalyzer {
                     shallowSize,
                     retainedSize,
                     percent,
-                    hasChildren
+                    hasChildren,
+                    gcRootKindMap.get(instance.getInstanceId())
             ));
         }
 
@@ -254,12 +196,10 @@ public class DominatorTreeAnalyzer {
      * over-selects candidates, then computes retained size only for the candidates.
      */
     @SuppressWarnings("unchecked")
-    public DominatorTreeResponse getChildren(Heap heap, long objectId, int limit, Optional<Boolean> compressedOopsHint) {
+    public DominatorTreeResponse getChildren(Heap heap, long objectId, int limit, boolean compressedOops, long totalOvercount) {
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
         }
-
-        boolean compressedOops = detectCompressedOops(heap, compressedOopsHint);
 
         Instance parent = heap.getInstanceByID(objectId);
         if (parent == null) {
@@ -273,7 +213,6 @@ public class DominatorTreeAnalyzer {
         // Compute heap-wide correction ratio for compressed oops
         double correctionRatio = 1.0;
         if (compressedOops) {
-            long totalOvercount = computeTotalOvercount(heap);
             long correctedTotalHeap = totalHeapSize - totalOvercount;
             correctionRatio = totalHeapSize > 0
                     ? (double) correctedTotalHeap / totalHeapSize
@@ -334,11 +273,14 @@ public class DominatorTreeAnalyzer {
             }
         }
 
+        // Build GC root kind map for annotating nodes
+        Map<Long, String> gcRootKindMap = buildGcRootKindMap(heap);
+
         // Phase 4: Format only the final results
         List<DominatorNode> children = new ArrayList<>(minHeap.size());
         for (CandidateEntry entry : minHeap) {
             Instance ref = entry.instance();
-            long shallowSize = correctedShallowSize(ref, compressedOops);
+            long shallowSize = CompressedOopsCorrector.correctedShallowSize(ref, compressedOops);
             long retainedSize = (long) (entry.retainedSize() * correctionRatio);
             double percent = parentRetainedSize > 0
                     ? (double) retainedSize / parentRetainedSize * 100.0 : 0;
@@ -353,7 +295,8 @@ public class DominatorTreeAnalyzer {
                     shallowSize,
                     retainedSize,
                     percent,
-                    hasChildRefs
+                    hasChildRefs,
+                    gcRootKindMap.get(ref.getInstanceId())
             ));
         }
 

@@ -35,10 +35,25 @@ public class HeapSummaryAnalyzer {
      * @return summary statistics
      */
     public HeapSummary analyze(Heap heap) {
+        return analyze(heap, false, 0);
+    }
+
+    /**
+     * Extract summary statistics from the heap with compressed oops correction.
+     *
+     * @param heap           the loaded heap dump
+     * @param compressedOops whether compressed oops are enabled
+     * @param totalOvercount heap-wide overcount (only used when compressedOops is true)
+     * @return summary statistics with corrected total bytes
+     */
+    public HeapSummary analyze(Heap heap, boolean compressedOops, long totalOvercount) {
         org.netbeans.lib.profiler.heap.HeapSummary nativeSummary = heap.getSummary();
 
+        long totalBytes = CompressedOopsCorrector.correctedTotalHeap(
+                nativeSummary.getTotalLiveBytes(), compressedOops, totalOvercount);
+
         return new HeapSummary(
-                nativeSummary.getTotalLiveBytes(),
+                totalBytes,
                 nativeSummary.getTotalLiveInstances(),
                 heap.getAllClasses().size(),
                 heap.getGCRoots().size(),

@@ -22,4 +22,5 @@ export default interface InstanceField {
     value: string;
     isPrimitive: boolean;
     referencedObjectId: number | null;
+    referencedClassName: string | null;
 }

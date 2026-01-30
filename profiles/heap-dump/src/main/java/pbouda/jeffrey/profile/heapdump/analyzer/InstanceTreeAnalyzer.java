@@ -54,6 +54,14 @@ public class InstanceTreeAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public InstanceTreeResponse getReferrers(Heap heap, long objectId, int limit, int offset) {
+        return getReferrers(heap, objectId, limit, offset, false);
+    }
+
+    /**
+     * Get referrers of an instance with compressed oops correction.
+     */
+    @SuppressWarnings("unchecked")
+    public InstanceTreeResponse getReferrers(Heap heap, long objectId, int limit, int offset, boolean compressedOops) {
         Instance instance = (Instance) heap.getInstanceByID(objectId);
         if (instance == null) {
             LOG.debug("Instance not found: objectId={}", objectId);
@@ -74,12 +82,12 @@ public class InstanceTreeAnalyzer {
         List<InstanceTreeNode> children = references.stream()
                 .skip(offset)
                 .limit(effectiveLimit)
-                .map(ref -> toReferrerNode(ref, formatter, heap))
+                .map(ref -> toReferrerNode(ref, formatter, heap, compressedOops))
                 .filter(node -> node != null)
                 .toList();
 
         // Create root node
-        InstanceTreeNode root = createRootNode(instance, formatter, InstanceTreeRequest.TreeMode.REFERRERS, totalCount, heap);
+        InstanceTreeNode root = createRootNode(instance, formatter, InstanceTreeRequest.TreeMode.REFERRERS, totalCount, heap, compressedOops);
 
         return InstanceTreeResponse.of(root, children, hasMore, totalCount);
     }
@@ -95,6 +103,14 @@ public class InstanceTreeAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public InstanceTreeResponse getReachables(Heap heap, long objectId, int limit, int offset) {
+        return getReachables(heap, objectId, limit, offset, false);
+    }
+
+    /**
+     * Get reachables from an instance with compressed oops correction.
+     */
+    @SuppressWarnings("unchecked")
+    public InstanceTreeResponse getReachables(Heap heap, long objectId, int limit, int offset, boolean compressedOops) {
         Instance instance = (Instance) heap.getInstanceByID(objectId);
         if (instance == null) {
             LOG.debug("Instance not found: objectId={}", objectId);
@@ -121,17 +137,18 @@ public class InstanceTreeAnalyzer {
         List<InstanceTreeNode> children = objectFields.stream()
                 .skip(offset)
                 .limit(effectiveLimit)
-                .map(ofw -> toReachableNode(ofw, formatter, heap))
+                .map(ofw -> toReachableNode(ofw, formatter, heap, compressedOops))
                 .toList();
 
         // Create root node
-        InstanceTreeNode root = createRootNode(instance, formatter, InstanceTreeRequest.TreeMode.REACHABLES, totalCount, heap);
+        InstanceTreeNode root = createRootNode(instance, formatter, InstanceTreeRequest.TreeMode.REACHABLES, totalCount, heap, compressedOops);
 
         return InstanceTreeResponse.of(root, children, hasMore, totalCount);
     }
 
     private InstanceTreeNode createRootNode(Instance instance, InstanceValueFormatter formatter,
-                                            InstanceTreeRequest.TreeMode mode, int childCount, Heap heap) {
+                                            InstanceTreeRequest.TreeMode mode, int childCount, Heap heap,
+                                            boolean compressedOops) {
         String value = formatter.formatAsString(instance);
         boolean hasChildren = childCount > 0;
 
@@ -139,14 +156,15 @@ public class InstanceTreeAnalyzer {
                 instance.getInstanceId(),
                 instance.getJavaClass().getName(),
                 value,
-                instance.getSize(),
+                CompressedOopsCorrector.correctedShallowSize(instance, compressedOops),
                 hasChildren,
                 childCount
         );
     }
 
     @SuppressWarnings("unchecked")
-    private InstanceTreeNode toReferrerNode(Value reference, InstanceValueFormatter formatter, Heap heap) {
+    private InstanceTreeNode toReferrerNode(Value reference, InstanceValueFormatter formatter, Heap heap,
+                                             boolean compressedOops) {
         Instance definingInstance = reference.getDefiningInstance();
         if (definingInstance == null) {
             return null;
@@ -171,7 +189,7 @@ public class InstanceTreeAnalyzer {
                 definingInstance.getInstanceId(),
                 definingInstance.getJavaClass().getName(),
                 value,
-                definingInstance.getSize(),
+                CompressedOopsCorrector.correctedShallowSize(definingInstance, compressedOops),
                 fieldName,
                 hasChildren,
                 childCount
@@ -180,7 +198,8 @@ public class InstanceTreeAnalyzer {
 
     @SuppressWarnings("unchecked")
     private InstanceTreeNode toReachableNode(ObjectFieldWithName objectFieldWithName,
-                                              InstanceValueFormatter formatter, Heap heap) {
+                                              InstanceValueFormatter formatter, Heap heap,
+                                              boolean compressedOops) {
         Instance referencedInstance = objectFieldWithName.objectField.getInstance();
         String value = formatter.formatAsString(referencedInstance);
 
@@ -198,7 +217,7 @@ public class InstanceTreeAnalyzer {
                 referencedInstance.getInstanceId(),
                 referencedInstance.getJavaClass().getName(),
                 value,
-                referencedInstance.getSize(),
+                CompressedOopsCorrector.correctedShallowSize(referencedInstance, compressedOops),
                 objectFieldWithName.fieldName,
                 hasChildren,
                 objectFieldCount

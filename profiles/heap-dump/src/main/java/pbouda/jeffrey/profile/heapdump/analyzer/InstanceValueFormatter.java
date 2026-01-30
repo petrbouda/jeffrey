@@ -260,7 +260,7 @@ public class InstanceValueFormatter {
     public String formatAsString(Instance instance) {
         Map<String, String> params = format(instance);
         if (params.isEmpty()) {
-            return instance.getJavaClass().getName() + "@" + Long.toHexString(instance.getInstanceId());
+            return "@" + Long.toHexString(instance.getInstanceId());
         }
         StringBuilder sb = new StringBuilder();
         boolean first = true;

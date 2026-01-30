@@ -28,12 +28,12 @@ import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
 import ThreadAnalysisReport from '@/services/api/model/ThreadAnalysisReport';
 import InstanceDetail from '@/services/api/model/InstanceDetail';
 import InstanceTreeResponse from '@/services/api/model/InstanceTreeResponse';
-import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import { GCRootPath } from '@/services/api/model/GCRootPath';
 import DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
 import CollectionAnalysisReport from '@/services/api/model/CollectionAnalysisReport';
 import ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse';
 import LeakSuspectsReport from '@/services/api/model/LeakSuspectsReport';
+import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 
 export default class HeapDumpClient extends BaseProfileClient {
 
@@ -81,6 +81,15 @@ export default class HeapDumpClient extends BaseProfileClient {
         return this.post<void>('/delete', {});
     }
 
+    public initialize(compressedOops?: boolean): Promise<HeapSummary> {
+        const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
+        return this.post<HeapSummary>(`/initialize${params}`, {});
+    }
+
+    public getConfig(): Promise<HeapDumpConfig> {
+        return this.get<HeapDumpConfig>('/config');
+    }
+
     public uploadHeapDump(file: File): Promise<void> {
         const formData = new FormData();
         formData.append("file", file, file.name);
@@ -122,20 +131,6 @@ export default class HeapDumpClient extends BaseProfileClient {
 
     public getReachables(objectId: number, limit: number = 50, offset: number = 0): Promise<InstanceTreeResponse> {
         return this.get<InstanceTreeResponse>(`/instance/${objectId}/reachables`, { limit, offset });
-    }
-
-    // --- Biggest Objects ---
-
-    public biggestObjectsExists(): Promise<boolean> {
-        return this.get<boolean>('/biggest-objects/exists');
-    }
-
-    public getBiggestObjects(): Promise<BiggestObjectsReport> {
-        return this.get<BiggestObjectsReport>('/biggest-objects');
-    }
-
-    public runBiggestObjects(topN: number = 50): Promise<void> {
-        return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
     }
 
     // --- Path to GC Root ---

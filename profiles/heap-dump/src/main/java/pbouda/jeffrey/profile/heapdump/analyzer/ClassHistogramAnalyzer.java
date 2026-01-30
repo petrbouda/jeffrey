@@ -55,6 +55,22 @@ public class ClassHistogramAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public List<ClassHistogramEntry> analyze(Heap heap, int topN, SortBy sortBy) {
+        return analyze(heap, topN, sortBy, false, 1.0);
+    }
+
+    /**
+     * Generate class histogram with custom sorting and compressed oops correction.
+     *
+     * @param heap            the loaded heap dump
+     * @param topN            number of top entries to return (use -1 for all)
+     * @param sortBy          sort criteria
+     * @param compressedOops  whether compressed oops are enabled
+     * @param correctionRatio correction ratio for size values
+     * @return list of histogram entries
+     */
+    @SuppressWarnings("unchecked")
+    public List<ClassHistogramEntry> analyze(Heap heap, int topN, SortBy sortBy,
+                                              boolean compressedOops, double correctionRatio) {
         if (topN <= 0) {
             topN = DEFAULT_TOP_N;
         }
@@ -65,10 +81,12 @@ public class ClassHistogramAnalyzer {
         for (JavaClass javaClass : allClasses) {
             long instanceCount = javaClass.getInstancesCount();
             if (instanceCount > 0) {
+                long totalSize = CompressedOopsCorrector.correctedTotalSize(
+                        javaClass.getAllInstancesSize(), compressedOops, correctionRatio);
                 entries.add(new ClassHistogramEntry(
                         javaClass.getName(),
                         instanceCount,
-                        javaClass.getAllInstancesSize()
+                        totalSize
                 ));
             }
         }

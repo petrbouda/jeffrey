@@ -275,27 +275,6 @@ public class HeapDumpResource {
         return heapDumpManager.getReachables(objectId, limit, offset);
     }
 
-    // --- Biggest Objects ---
-
-    @GET
-    @Path("/biggest-objects/exists")
-    public boolean biggestObjectsExists() {
-        return heapDumpManager.biggestObjectsExists();
-    }
-
-    @GET
-    @Path("/biggest-objects")
-    public BiggestObjectsReport getBiggestObjects() {
-        return heapDumpManager.getBiggestObjects();
-    }
-
-    @POST
-    @Path("/biggest-objects/run")
-    public void runBiggestObjects(
-            @QueryParam("topN") @DefaultValue("50") int topN) {
-        heapDumpManager.runBiggestObjects(topN);
-    }
-
     // --- Path to GC Root ---
 
     @GET
@@ -305,6 +284,32 @@ public class HeapDumpResource {
             @QueryParam("excludeWeak") @DefaultValue("true") boolean excludeWeakRefs,
             @QueryParam("maxPaths") @DefaultValue("3") int maxPaths) {
         return heapDumpManager.getPathsToGCRoot(objectId, excludeWeakRefs, maxPaths);
+    }
+
+    // --- Heap Dump Config ---
+
+    /**
+     * Initialize heap dump: resolve compressed oops setting and build indexes.
+     * If compressedOops param is absent, auto-detects via JFR events or heap inference.
+     *
+     * @param compressedOops optional manual override for compressed oops
+     * @return heap summary after initialization
+     */
+    @POST
+    @Path("/initialize")
+    public HeapSummary initialize(
+            @QueryParam("compressedOops") Boolean compressedOops) {
+        heapDumpManager.resolveAndStoreCompressedOops(compressedOops);
+        return heapDumpManager.getSummary();
+    }
+
+    /**
+     * Get the stored heap dump config (compressed oops setting and source).
+     */
+    @GET
+    @Path("/config")
+    public HeapDumpConfig getConfig() {
+        return heapDumpManager.getHeapDumpConfig().orElse(null);
     }
 
     // --- Dominator Tree ---

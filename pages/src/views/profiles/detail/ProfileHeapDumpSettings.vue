@@ -160,17 +160,36 @@
           </div>
         </button>
         <div class="init-options">
-          <label class="form-check">
-            <input
-              type="checkbox"
-              class="form-check-input"
-              v-model="includeBiggestObjects"
-            >
-            <span class="form-check-label">
-              Include "Finding biggest objects" analysis
-              <small class="text-muted d-block">Can be slow for large heaps. You can run it later from the Biggest Objects page.</small>
-            </span>
-          </label>
+          <div class="init-options-row">
+            <div class="init-option-group">
+              <label class="option-label mb-2">Pre-computation</label>
+              <label class="form-check">
+                <input type="checkbox" class="form-check-input" v-model="includeDominatorTree">
+                <span class="form-check-label">
+                  Dominator Tree
+                  <small class="text-muted d-block">Computes retained sizes upfront. Can be slow for large heaps.</small>
+                </span>
+              </label>
+            </div>
+            <div class="init-option-delimiter"></div>
+            <div class="init-option-group">
+              <label class="option-label mb-2">Compressed Oops</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="compressedOops" id="coopsAuto" value="auto" v-model="compressedOopsChoice">
+                <label class="form-check-label" for="coopsAuto">
+                  Auto-detect <small class="text-muted">(recommended)</small>
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="compressedOops" id="coopsEnabled" value="enabled" v-model="compressedOopsChoice">
+                <label class="form-check-label" for="coopsEnabled">Enabled</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="compressedOops" id="coopsDisabled" value="disabled" v-model="compressedOopsChoice">
+                <label class="form-check-label" for="coopsDisabled">Disabled</label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <button class="ready-card action" @click="deleteHeapDump">
@@ -259,6 +278,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import HeapSummary from '@/services/api/model/HeapSummary';
+import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import FormattingService from '@/services/FormattingService';
 import { ToastService } from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
@@ -273,13 +293,17 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const lastSummary = ref<HeapSummary | null>(null);
+const heapConfig = ref<HeapDumpConfig | null>(null);
 
 // Processing state
 const processing = ref(false);
 const initError = ref<string | null>(null);
 
-// Option for including biggest objects analysis (default: unchecked)
-const includeBiggestObjects = ref(false);
+// Compressed oops choice: 'auto' | 'enabled' | 'disabled'
+const compressedOopsChoice = ref<string>('auto');
+
+// Dominator tree pre-computation
+const includeDominatorTree = ref(true);
 
 // Processing steps
 interface ProcessingStep {
@@ -296,7 +320,7 @@ const getProcessingSteps = (): ProcessingStep[] => {
     { id: 'index', label: 'Building indexes', status: 'pending' },
     { id: 'strings', label: 'Analyzing strings', status: 'pending' },
     { id: 'threads', label: 'Analyzing threads', status: 'pending' },
-    { id: 'objects', label: 'Finding biggest objects', status: includeBiggestObjects.value ? 'pending' : 'skipped' },
+    { id: 'dominator', label: 'Computing dominator tree', status: includeDominatorTree.value ? 'pending' : 'skipped' },
     { id: 'collections', label: 'Analyzing collections', status: 'pending' },
     { id: 'leaks', label: 'Detecting leak suspects', status: 'pending' }
   ];
@@ -358,12 +382,15 @@ const summaryMetrics = computed(() => {
       icon: 'layers',
       title: 'Classes',
       value: FormattingService.formatNumber(lastSummary.value.classCount),
-      variant: 'info' as const
+      variant: 'info' as const,
+      breakdown: [
+        { label: 'GC Roots', value: FormattingService.formatNumber(lastSummary.value.gcRootCount) }
+      ]
     },
     {
-      icon: 'diagram-3',
-      title: 'GC Roots',
-      value: FormattingService.formatNumber(lastSummary.value.gcRootCount),
+      icon: 'gear',
+      title: 'Compressed Oops',
+      value: heapConfig.value ? (heapConfig.value.compressedOops ? 'Enabled' : 'Disabled') : '—',
       variant: 'success' as const
     }
   ];
@@ -386,10 +413,14 @@ const processHeapDump = async () => {
     await sleep(300);
     completeStep('parse');
 
-    // Step 3: Index (actual API call)
+    // Step 3: Index (resolve compressed oops + build indexes)
     startStep('index');
-    const summary = await client.getSummary();
+    const compressedOopsOverride = compressedOopsChoice.value === 'enabled' ? true
+        : compressedOopsChoice.value === 'disabled' ? false
+        : undefined;
+    const summary = await client.initialize(compressedOopsOverride);
     lastSummary.value = summary;
+    heapConfig.value = await client.getConfig();
     completeStep('index');
 
     // Step 4: Strings
@@ -402,11 +433,11 @@ const processHeapDump = async () => {
     await client.runThreadAnalysis();
     completeStep('threads');
 
-    // Step 6: Biggest Objects (conditional)
-    if (includeBiggestObjects.value) {
-      startStep('objects');
-      await client.runBiggestObjects(50);
-      completeStep('objects');
+    // Step 6: Dominator Tree
+    if (includeDominatorTree.value) {
+      startStep('dominator');
+      await client.getDominatorTreeRoots(50);
+      completeStep('dominator');
     }
 
     // Step 7: Collections
@@ -439,6 +470,7 @@ const clearCache = async () => {
     await client.deleteCache();
     cacheReady.value = false;
     lastSummary.value = null;
+    heapConfig.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to clear cache';
@@ -455,6 +487,7 @@ const confirmDeleteHeapDump = async () => {
     heapExists.value = false;
     cacheReady.value = false;
     lastSummary.value = null;
+    heapConfig.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
     ToastService.success('Heap Dump Deleted', 'Heap dump and cache have been removed successfully.');
   } catch (err) {
@@ -594,9 +627,10 @@ const loadData = async () => {
     cacheReady.value = await client.isCacheReady();
 
     if (cacheReady.value) {
-      // Load summary automatically
+      // Load summary and config automatically
       const summary = await client.getSummary();
       lastSummary.value = summary;
+      heapConfig.value = await client.getConfig();
     }
   } catch (err) {
     // Check if this is a heap dump corruption error
@@ -1160,9 +1194,33 @@ onMounted(() => {
   padding-top: 1rem;
   border-top: 1px solid #e9ecef;
   text-align: left;
-  max-width: 340px;
+  max-width: 500px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.init-options-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.init-option-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.init-option-delimiter {
+  width: 1px;
+  align-self: stretch;
+  background-color: #e9ecef;
+}
+
+.init-options .option-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #495057;
+  display: block;
 }
 
 .init-options .form-check {
@@ -1170,6 +1228,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 0.5rem;
   cursor: pointer;
+  padding-left: 1.5rem;
 }
 
 .init-options .form-check-input {
@@ -1177,7 +1236,7 @@ onMounted(() => {
 }
 
 .init-options .form-check-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #495057;
 }
 

@@ -18,22 +18,19 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Represents a single object instance ranked by retained size.
+ * Persisted configuration resolved during heap dump initialization.
  *
- * @param objectId     unique object identifier in the heap
- * @param className    fully qualified class name
- * @param shallowSize  size of this object alone in bytes
- * @param retainedSize total size of objects retained exclusively by this object
- * @param objectParams structured key/value pairs describing the object
+ * @param compressedOops       whether compressed oops are enabled
+ * @param compressedOopsSource how compressed oops was determined: MANUAL, JFR, or INFERRED
+ * @param totalOvercount       heap-wide reference size overcount (only meaningful when compressedOops is true)
  */
-public record BiggestObjectEntry(
-        long objectId,
-        String className,
-        long shallowSize,
-        long retainedSize,
-        Map<String, String> objectParams
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record HeapDumpConfig(
+        boolean compressedOops,
+        String compressedOopsSource,
+        long totalOvercount
 ) {
 }

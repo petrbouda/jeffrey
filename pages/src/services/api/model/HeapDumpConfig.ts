@@ -16,20 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.heapdump.model;
-
-import java.util.List;
-
-/**
- * Report containing the biggest individual objects by retained size.
- *
- * @param totalRetainedSize combined retained size of all reported objects
- * @param totalHeapSize     total heap size for percentage calculations
- * @param entries           individual objects sorted by retained size descending
- */
-public record BiggestObjectsReport(
-        long totalRetainedSize,
-        long totalHeapSize,
-        List<BiggestObjectEntry> entries
-) {
+export default interface HeapDumpConfig {
+    compressedOops: boolean;
+    compressedOopsSource: string;
+    totalOvercount: number;
 }

@@ -31,6 +31,7 @@ import java.util.Map;
  * @param retainedSize    retained size of this object in bytes
  * @param retainedPercent percentage of parent's retained size this node occupies
  * @param hasChildren     whether this node has expandable children
+ * @param gcRootKind      GC root kind (e.g. "Java Frame", "Thread Obj") or null if not a GC root
  */
 public record DominatorNode(
         long objectId,
@@ -40,6 +41,7 @@ public record DominatorNode(
         long shallowSize,
         long retainedSize,
         double retainedPercent,
-        boolean hasChildren
+        boolean hasChildren,
+        String gcRootKind
 ) {
 }

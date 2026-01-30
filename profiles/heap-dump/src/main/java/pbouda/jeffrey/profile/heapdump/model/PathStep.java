@@ -35,6 +35,7 @@ public record PathStep(
         String className,
         String fieldName,
         long shallowSize,
+        long retainedSize,
         Map<String, String> objectParams,
         boolean isTarget
 ) {

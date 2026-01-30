@@ -282,7 +282,7 @@ onMounted(() => {
 
 .package-name {
   font-size: 0.8rem;
-  color: #adb5bd;
+  color: #868e96;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

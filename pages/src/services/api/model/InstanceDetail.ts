@@ -23,6 +23,7 @@ export default interface InstanceDetail {
     className: string;
     value: string;
     stringValue: string | null;
+    displayValue: string | null;
     shallowSize: number;
     retainedSize: number | null;
     fields: InstanceField[];

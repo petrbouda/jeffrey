@@ -18,13 +18,13 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
+import pbouda.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
@@ -39,6 +39,7 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -215,24 +216,23 @@ public interface HeapDumpManager {
      */
     InstanceTreeResponse getReachables(long objectId, int limit, int offset);
 
-    // --- Biggest Objects ---
+    // --- Heap Dump Config ---
 
     /**
-     * Check if biggest objects analysis results exist for this profile.
-     */
-    boolean biggestObjectsExists();
-
-    /**
-     * Get the pre-computed biggest objects analysis results.
-     */
-    BiggestObjectsReport getBiggestObjects();
-
-    /**
-     * Run biggest objects analysis and save results to JSON file.
+     * Resolve compressed oops setting and store it to disk as heap-dump-config.json.
+     * Detection priority: manual override -> JFR events -> heap inference.
      *
-     * @param topN number of biggest objects to include
+     * @param manualOverride if non-null, uses this value directly (source = MANUAL)
+     * @return the resolved config
      */
-    void runBiggestObjects(int topN);
+    HeapDumpConfig resolveAndStoreCompressedOops(Boolean manualOverride);
+
+    /**
+     * Read the stored heap dump config from disk.
+     *
+     * @return the config, or empty if not yet resolved
+     */
+    Optional<HeapDumpConfig> getHeapDumpConfig();
 
     // --- Path to GC Root ---
 

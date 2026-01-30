@@ -41,7 +41,7 @@ public class CollectionAnalyzer {
 
     private static final Logger LOG = LoggerFactory.getLogger(CollectionAnalyzer.class);
 
-    private static final long REFERENCE_SIZE = 8; // 64-bit references
+    private long referenceSize = 8; // 64-bit references (adjusted for compressed oops)
 
     private record CollectionType(String className, String arrayField, String sizeField, boolean isSet) {
     }
@@ -62,6 +62,16 @@ public class CollectionAnalyzer {
      * Analyze all collection types and return a comprehensive report.
      */
     public CollectionAnalysisReport analyze(Heap heap) {
+        return analyze(heap, false);
+    }
+
+    /**
+     * Analyze all collection types with compressed oops correction.
+     *
+     * @param compressedOops whether compressed oops are enabled
+     */
+    public CollectionAnalysisReport analyze(Heap heap, boolean compressedOops) {
+        this.referenceSize = CompressedOopsCorrector.referenceSize(compressedOops);
         List<CollectionStats> allStats = new ArrayList<>();
         int totalCollections = 0;
         int totalEmpty = 0;
@@ -150,7 +160,7 @@ public class CollectionAnalyzer {
             // Wasted = unused slots * reference size
             long unused = fill.capacity - fill.used;
             if (unused > 0) {
-                totalWasted += unused * REFERENCE_SIZE;
+                totalWasted += unused * referenceSize;
             }
         }
 

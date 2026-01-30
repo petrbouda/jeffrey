@@ -59,14 +59,22 @@
                 </button>
                 <span v-else class="expand-placeholder me-1"></span>
                 <div class="class-info">
-                  <div v-if="item.node.fieldName" class="field-name-line">
-                    <span class="field-name">{{ item.node.fieldName }}</span>
-                  </div>
                   <div class="class-name-line">
                     <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
                     <span class="package-name">{{ packageName(item.node.className) }}</span>
+                  </div>
+                  <div class="detail-line">
+                    <span v-if="item.node.fieldName" class="field-name">{{ item.node.fieldName }}</span>
+                    <span v-if="item.node.fieldName" class="detail-separator">·</span>
                     <span class="object-id-text">{{ FormattingService.formatObjectId(item.node.objectId) }}</span>
-                    <span v-if="Object.keys(item.node.objectParams).length > 0" class="object-params-text">{{ FormattingService.formatObjectParams(item.node.objectParams) }}</span>
+                    <template v-if="Object.keys(item.node.objectParams).length > 0">
+                      <span class="detail-separator">·</span>
+                      <span class="object-params-text">{{ FormattingService.formatObjectParams(item.node.objectParams) }}</span>
+                    </template>
+                    <template v-if="item.node.gcRootKind">
+                      <span class="detail-separator">·</span>
+                      <span class="gc-root-badge">{{ gcRootLabel(item.node.gcRootKind) }}</span>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -74,7 +82,7 @@
             <!-- Shallow Size -->
             <td class="text-end font-monospace">{{ FormattingService.formatBytes(item.node.shallowSize) }}</td>
             <!-- Retained Size -->
-            <td class="text-end font-monospace">{{ FormattingService.formatBytes(item.node.retainedSize) }}</td>
+            <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(item.node.retainedSize) }}</td>
             <!-- % of Parent -->
             <td>
               <div class="d-flex align-items-center gap-2">
@@ -180,6 +188,21 @@ const simpleClassName = (name: string): string => {
 const packageName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
   return lastDot > 0 ? name.substring(0, lastDot) : '';
+};
+
+const gcRootLabel = (kind: string): string => {
+  const labels: Record<string, string> = {
+    'Java frame': 'Local Variable',
+    'thread object': 'Thread Object',
+    'JNI global': 'JNI Global',
+    'JNI local': 'JNI Local',
+    'sticky class': 'Sticky Class',
+    'native stack': 'Native Stack',
+    'thread block': 'Thread Block',
+    'monitor used': 'Monitor',
+    'VM internal': 'VM Internal',
+  };
+  return labels[kind] ?? kind;
 };
 
 const getBarColor = (percent: number): string => {
@@ -299,28 +322,52 @@ onMounted(() => {
   gap: 0.15rem;
 }
 
-.object-id-text {
-  font-family: monospace;
-  font-size: 0.75rem;
-  color: #6c757d;
-}
-
-.object-params-text {
-  font-family: monospace;
-  font-size: 0.75rem;
-  color: #868e96;
-}
-
 .class-name-line {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
 }
 
+.detail-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  margin-top: 1px;
+}
+
+.detail-separator {
+  color: #adb5bd;
+  user-select: none;
+}
+
 .field-name {
   font-size: 0.8rem;
   color: #6f42c1;
   font-style: italic;
+  white-space: nowrap;
+}
+
+.object-id-text {
+  font-family: monospace;
+  color: #6c757d;
+}
+
+.object-params-text {
+  font-family: monospace;
+  color: #6c757d;
+}
+
+.gc-root-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1);
+  border: 1px solid rgba(13, 110, 253, 0.25);
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
@@ -334,7 +381,7 @@ onMounted(() => {
 
 .package-name {
   font-size: 0.8rem;
-  color: #adb5bd;
+  color: #868e96;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -424,5 +471,10 @@ onMounted(() => {
 
 .font-monospace {
   font-size: 0.8rem;
+}
+
+/* Darker warning color for better readability */
+.text-warning {
+  color: #b8860b !important;
 }
 </style>

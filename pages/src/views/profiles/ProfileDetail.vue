@@ -506,15 +506,6 @@
                     <span>Class Histogram</span>
                   </router-link>
                   <router-link
-                      :to="`/profiles/${profileId}/heap-dump/biggest-objects`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-box-seam"></i>
-                    <span>Biggest Objects</span>
-                  </router-link>
-                  <router-link
                       :to="`/profiles/${profileId}/heap-dump/dominator-tree`"
                       class="nav-item"
                       :class="{ 'disabled-feature': !heapDumpReady }"
