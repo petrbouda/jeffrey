@@ -24,6 +24,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
@@ -67,18 +68,21 @@ public class ProfilesResource {
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
 
     public ProfilesResource(
             CompositeWorkspacesManager workspacesManager,
             QuickAnalysisManager quickAnalysisManager,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.workspacesManager = workspacesManager;
         this.quickAnalysisManager = quickAnalysisManager;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
     }
 
     /**
@@ -112,7 +116,8 @@ public class ProfilesResource {
                 profileManager,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
-                heapDumpContextExtractor);
+                heapDumpContextExtractor,
+                heapDumpAnalysisAssistantService);
     }
 
     /**

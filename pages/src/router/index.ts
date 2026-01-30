@@ -176,9 +176,9 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'heap-dump/dashboard',
-    name: 'profile-heap-dump-dashboard',
-    component: () => import('@/views/profiles/detail/ProfileHeapDumpDashboard.vue'),
+    path: 'heap-dump/ai-analysis',
+    name: 'profile-heap-dump-ai-analysis',
+    component: () => import('@/views/profiles/ProfileHeapDumpAiAnalysis.vue'),
     meta: { layout: 'profile' }
   },
   {

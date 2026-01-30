@@ -482,13 +482,13 @@
                     <span>Heap Dump Overview</span>
                   </router-link>
                   <router-link
-                      :to="`/profiles/${profileId}/heap-dump/dashboard`"
-                      class="nav-item"
+                      :to="`/profiles/${profileId}/heap-dump/ai-analysis`"
+                      class="nav-item nav-item-ai"
                       :class="{ 'disabled-feature': !heapDumpReady }"
                       active-class="active"
                   >
-                    <i class="bi bi-speedometer2"></i>
-                    <span>Dashboard</span>
+                    <i class="bi bi-stars"></i>
+                    <span>AI Analysis</span>
                   </router-link>
                 </div>
               </div>

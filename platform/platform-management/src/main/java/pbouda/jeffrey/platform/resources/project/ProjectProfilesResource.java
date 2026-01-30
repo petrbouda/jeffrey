@@ -25,6 +25,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.resources.request.CreateProfileRequest;
 import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
@@ -55,25 +56,29 @@ public class ProjectProfilesResource {
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
 
     /**
-     * @param profilesManager             Primary Profiles Manager
-     * @param projectsManager             Projects Manager to retrieve Profiles from different Projects
-     * @param oqlAssistantService         AI-powered OQL assistant service
-     * @param jfrAnalysisAssistantService AI-powered JFR analysis assistant service
-     * @param heapDumpContextExtractor    Extracts heap dump context for AI prompts
+     * @param profilesManager                  Primary Profiles Manager
+     * @param projectsManager                  Projects Manager to retrieve Profiles from different Projects
+     * @param oqlAssistantService              AI-powered OQL assistant service
+     * @param jfrAnalysisAssistantService      AI-powered JFR analysis assistant service
+     * @param heapDumpContextExtractor         Extracts heap dump context for AI prompts
+     * @param heapDumpAnalysisAssistantService AI-powered heap dump analysis assistant service
      */
     public ProjectProfilesResource(
             ProfilesManager profilesManager,
             ProjectsManager projectsManager,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.profilesManager = profilesManager;
         this.projectsManager = projectsManager;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
     }
 
     @Path("/{profileId}")
@@ -84,7 +89,8 @@ public class ProjectProfilesResource {
                 profileManager,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
-                heapDumpContextExtractor);
+                heapDumpContextExtractor,
+                heapDumpAnalysisAssistantService);
     }
 
     @Path("/{primaryProfileId}/diff/{secondaryProfileId}")

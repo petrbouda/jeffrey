@@ -26,6 +26,7 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.platform.resources.workspace.WorkspaceResource;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
@@ -49,16 +50,19 @@ public class WorkspacesResource {
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
 
     public WorkspacesResource(
             CompositeWorkspacesManager workspacesManager,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.workspacesManager = workspacesManager;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
     }
 
     @Path("/{workspaceId}")
@@ -79,7 +83,8 @@ public class WorkspacesResource {
                 workspaceManager,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
-                heapDumpContextExtractor);
+                heapDumpContextExtractor,
+                heapDumpAnalysisAssistantService);
     }
 
     @GET

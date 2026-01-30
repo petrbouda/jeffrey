@@ -85,6 +85,7 @@
                   <span class="thread-name">{{ thread.name }}</span>
                   <InstanceActionButtons
                       :object-id="thread.objectId"
+                      :show-gc-root-path="false"
                       @show-referrers="openTreeModal($event, 'REFERRERS')"
                       @show-reachables="openTreeModal($event, 'REACHABLES')"
                   />

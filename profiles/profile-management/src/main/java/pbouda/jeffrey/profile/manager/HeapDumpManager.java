@@ -29,6 +29,7 @@ import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
@@ -311,5 +312,24 @@ public interface HeapDumpManager {
      * Run leak suspects analysis and save results to JSON file.
      */
     void runLeakSuspects();
+
+    // --- Biggest Objects ---
+
+    /**
+     * Check if biggest objects analysis results exist for this profile.
+     */
+    boolean biggestObjectsExists();
+
+    /**
+     * Get the pre-computed biggest objects report.
+     */
+    BiggestObjectsReport getBiggestObjects();
+
+    /**
+     * Run biggest objects analysis and save results to JSON file.
+     *
+     * @param topN number of biggest objects to include
+     */
+    void runBiggestObjects(int topN);
 
 }

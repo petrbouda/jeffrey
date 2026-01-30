@@ -32,6 +32,7 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.project.ProjectResource;
 import pbouda.jeffrey.platform.resources.request.CreateProjectRequest;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
@@ -59,19 +60,22 @@ public class WorkspaceProjectsResource {
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
 
     public WorkspaceProjectsResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.projectsManager = workspaceManager.projectsManager();
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
     }
 
     @Path("/{projectId}")
@@ -84,7 +88,8 @@ public class WorkspaceProjectsResource {
                 projectsManager,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
-                heapDumpContextExtractor);
+                heapDumpContextExtractor,
+                heapDumpAnalysisAssistantService);
     }
 
     /**

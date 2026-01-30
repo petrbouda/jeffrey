@@ -27,6 +27,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.resources.SchedulerResource;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
@@ -39,25 +40,29 @@ public class ProjectResource {
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
 
     /**
-     * @param projectManager              Primary Project Manager
-     * @param projectsManager             Projects Manager to retrieve Profiles from different Projects
-     * @param oqlAssistantService         AI-powered OQL assistant service
-     * @param jfrAnalysisAssistantService AI-powered JFR analysis assistant service
-     * @param heapDumpContextExtractor    Extracts heap dump context for AI prompts
+     * @param projectManager                    Primary Project Manager
+     * @param projectsManager                   Projects Manager to retrieve Profiles from different Projects
+     * @param oqlAssistantService               AI-powered OQL assistant service
+     * @param jfrAnalysisAssistantService       AI-powered JFR analysis assistant service
+     * @param heapDumpContextExtractor          Extracts heap dump context for AI prompts
+     * @param heapDumpAnalysisAssistantService  AI-powered heap dump analysis assistant service
      */
     public ProjectResource(
             ProjectManager projectManager,
             ProjectsManager projectsManager,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.projectManager = projectManager;
         this.projectsManager = projectsManager;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
     }
 
     @Path("/profiles")
@@ -67,7 +72,8 @@ public class ProjectResource {
                 projectsManager,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
-                heapDumpContextExtractor);
+                heapDumpContextExtractor,
+                heapDumpAnalysisAssistantService);
     }
 
     @Path("/settings")

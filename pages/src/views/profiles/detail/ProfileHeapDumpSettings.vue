@@ -321,6 +321,7 @@ const getProcessingSteps = (): ProcessingStep[] => {
     { id: 'strings', label: 'Analyzing strings', status: 'pending' },
     { id: 'threads', label: 'Analyzing threads', status: 'pending' },
     { id: 'dominator', label: 'Computing dominator tree', status: includeDominatorTree.value ? 'pending' : 'skipped' },
+    { id: 'biggest', label: 'Finding biggest objects', status: 'pending' },
     { id: 'collections', label: 'Analyzing collections', status: 'pending' },
     { id: 'leaks', label: 'Detecting leak suspects', status: 'pending' }
   ];
@@ -440,12 +441,17 @@ const processHeapDump = async () => {
       completeStep('dominator');
     }
 
-    // Step 7: Collections
+    // Step 7: Biggest Objects
+    startStep('biggest');
+    await client.runBiggestObjects(20);
+    completeStep('biggest');
+
+    // Step 8: Collections
     startStep('collections');
     await client.runCollectionAnalysis();
     completeStep('collections');
 
-    // Step 8: Leak Suspects
+    // Step 9: Leak Suspects
     startStep('leaks');
     await client.runLeakSuspects();
     completeStep('leaks');
