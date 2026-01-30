@@ -490,6 +490,15 @@
                     <i class="bi bi-speedometer2"></i>
                     <span>Dashboard</span>
                   </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/ai-analysis`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-stars"></i>
+                    <span>AI Analysis</span>
+                  </router-link>
                 </div>
               </div>
 

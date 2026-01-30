@@ -182,6 +182,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'heap-dump/ai-analysis',
+    name: 'profile-heap-dump-ai-analysis',
+    component: () => import('@/views/profiles/ProfileHeapDumpAiAnalysis.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'heap-dump/biggest-objects',
     name: 'profile-heap-dump-biggest-objects',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestObjects.vue'),

@@ -22,6 +22,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.heapdump.model.*;
@@ -38,14 +39,17 @@ public class HeapDumpResource {
     private final HeapDumpManager heapDumpManager;
     private final OqlAssistantService oqlAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
+    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
 
     public HeapDumpResource(
             HeapDumpManager heapDumpManager,
             OqlAssistantService oqlAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor) {
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.heapDumpManager = heapDumpManager;
         this.oqlAssistantService = oqlAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
+        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
     }
 
     /**
@@ -54,6 +58,14 @@ public class HeapDumpResource {
     @Path("/oql-assistant")
     public OqlAssistantResource oqlAssistantResource() {
         return new OqlAssistantResource(heapDumpManager, oqlAssistantService, heapDumpContextExtractor);
+    }
+
+    /**
+     * Sub-resource for AI-powered heap dump analysis.
+     */
+    @Path("/ai-analysis")
+    public HeapDumpAiAnalysisResource heapDumpAiAnalysisResource() {
+        return new HeapDumpAiAnalysisResource(heapDumpManager, heapDumpAnalysisAssistantService);
     }
 
     /**
