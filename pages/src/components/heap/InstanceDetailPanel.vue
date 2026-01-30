@@ -92,7 +92,7 @@
             </div>
           </div>
           <div class="value-content">
-            <code class="value-text">{{ instance.value }}</code>
+            <code class="value-text">{{ truncateValue(instance.stringValue ?? instance.value, 200) }}</code>
           </div>
         </div>
 
@@ -109,28 +109,30 @@
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Type</th>
-                  <th>Value</th>
+                  <th class="nav-col"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="field in instance.fields" :key="field.name">
-                  <td class="field-name-cell">{{ field.name }}</td>
-                  <td class="field-type-cell">
-                    <code>{{ simpleType(field.type) }}</code>
+                  <td class="field-name-cell">
+                    <div class="field-name">{{ field.name }}</div>
+                    <div class="field-type-line">
+                      <code class="field-type-simple">{{ simpleType(field.referencedClassName ?? field.type) }}</code>
+                      <span v-if="typePackage(field.referencedClassName ?? field.type)" class="field-type-package">{{ typePackage(field.referencedClassName ?? field.type) }}</span>
+                    </div>
+                    <div v-if="field.referencedObjectId || fieldDisplayValue(field)" class="field-identity-line">
+                      <span v-if="field.referencedObjectId" class="field-object-id">{{ FormattingService.formatObjectId(field.referencedObjectId) }}</span>
+                      <span v-if="field.referencedObjectId && fieldDisplayValue(field)" class="field-identity-sep">&middot;</span>
+                      <span v-if="fieldDisplayValue(field)" class="field-value-inline" :class="fieldValueClass(field)">{{ fieldDisplayValue(field) }}</span>
+                    </div>
                   </td>
-                  <td class="field-value-cell">
-                    <span v-if="field.isPrimitive" class="primitive-value">{{ field.value }}</span>
-                    <a
-                      v-else-if="field.referencedObjectId"
-                      href="#"
-                      class="reference-link"
-                      @click.prevent="$emit('navigate', field.referencedObjectId)"
-                      :title="'Navigate to ' + field.type"
-                    >
-                      {{ truncateValue(field.value, 60) }}
+                  <td class="field-nav-cell">
+                    <a v-if="field.referencedObjectId"
+                       href="#" class="nav-icon-link"
+                       @click.prevent="$emit('navigate', field.referencedObjectId)"
+                       title="Navigate to instance">
+                      <i class="bi bi-box-arrow-up-right"></i>
                     </a>
-                    <span v-else class="null-value">null</span>
                   </td>
                 </tr>
               </tbody>
@@ -152,27 +154,30 @@
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Type</th>
-                  <th>Value</th>
+                  <th class="nav-col"></th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="field in instance.staticFields" :key="field.name">
-                  <td class="field-name-cell">{{ field.name }}</td>
-                  <td class="field-type-cell">
-                    <code>{{ simpleType(field.type) }}</code>
+                  <td class="field-name-cell">
+                    <div class="field-name">{{ field.name }}</div>
+                    <div class="field-type-line">
+                      <code class="field-type-simple">{{ simpleType(field.referencedClassName ?? field.type) }}</code>
+                      <span v-if="typePackage(field.referencedClassName ?? field.type)" class="field-type-package">{{ typePackage(field.referencedClassName ?? field.type) }}</span>
+                    </div>
+                    <div v-if="field.referencedObjectId || fieldDisplayValue(field)" class="field-identity-line">
+                      <span v-if="field.referencedObjectId" class="field-object-id">{{ FormattingService.formatObjectId(field.referencedObjectId) }}</span>
+                      <span v-if="field.referencedObjectId && fieldDisplayValue(field)" class="field-identity-sep">&middot;</span>
+                      <span v-if="fieldDisplayValue(field)" class="field-value-inline" :class="fieldValueClass(field)">{{ fieldDisplayValue(field) }}</span>
+                    </div>
                   </td>
-                  <td class="field-value-cell">
-                    <span v-if="field.isPrimitive" class="primitive-value">{{ field.value }}</span>
-                    <a
-                      v-else-if="field.referencedObjectId"
-                      href="#"
-                      class="reference-link"
-                      @click.prevent="$emit('navigate', field.referencedObjectId)"
-                    >
-                      {{ truncateValue(field.value, 60) }}
+                  <td class="field-nav-cell">
+                    <a v-if="field.referencedObjectId"
+                       href="#" class="nav-icon-link"
+                       @click.prevent="$emit('navigate', field.referencedObjectId)"
+                       title="Navigate to instance">
+                      <i class="bi bi-box-arrow-up-right"></i>
                     </a>
-                    <span v-else class="null-value">null</span>
                   </td>
                 </tr>
               </tbody>
@@ -190,6 +195,7 @@ import FormattingService from '@/services/FormattingService';
 import ToastService from '@/services/ToastService';
 import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type InstanceDetail from '@/services/api/model/InstanceDetail';
+import type InstanceField from '@/services/api/model/InstanceField';
 
 interface Props {
   isOpen: boolean;
@@ -213,6 +219,11 @@ const simpleType = (fullType: string): string => {
   return lastDot > 0 ? fullType.substring(lastDot + 1) : fullType;
 };
 
+const typePackage = (fullType: string): string => {
+  const lastDot = fullType.lastIndexOf('.');
+  return lastDot >= 0 ? fullType.substring(0, lastDot) : '';
+};
+
 const simpleClassName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
   return lastDot >= 0 ? name.substring(lastDot + 1) : name;
@@ -228,12 +239,25 @@ const truncateValue = (value: string, maxLen: number): string => {
   return value.substring(0, maxLen) + '...';
 };
 
+const fieldDisplayValue = (field: InstanceField): string => {
+  if (field.isPrimitive) return field.value;
+  if (!field.referencedObjectId) return 'null';
+  // Skip if value is just the object ID (already shown separately)
+  const objectIdStr = FormattingService.formatObjectId(field.referencedObjectId);
+  if (field.value === objectIdStr) return '';
+  return truncateValue(field.value, 60);
+};
+
+const fieldValueClass = (field: InstanceField): string => {
+  if (field.isPrimitive) return 'primitive-value';
+  if (!field.referencedObjectId) return 'null-value';
+  return 'reference-value';
+};
+
 const isValueTruncated = computed(() => {
   if (!instance.value) return false;
-  const displayValue = instance.value.value || '';
-  const fullValue = instance.value.stringValue || '';
-  // Check if stringValue is longer than the display value (accounting for quotes)
-  return fullValue.length > 0 && fullValue.length > displayValue.length - 2;
+  const fullValue = instance.value.stringValue ?? instance.value.value ?? '';
+  return fullValue.length > 200;
 });
 
 const copyFullValue = async () => {
@@ -242,11 +266,7 @@ const copyFullValue = async () => {
   const valueToCopy = instance.value.stringValue || instance.value.value;
   if (valueToCopy) {
     await navigator.clipboard.writeText(valueToCopy);
-    const preview =
-      valueToCopy.length > 50
-        ? valueToCopy.substring(0, 50) + '...'
-        : valueToCopy;
-    ToastService.success(`Copied ${valueToCopy.length} chars: ${preview}`);
+    ToastService.success('Copied!', 'Value copied to clipboard');
   }
 };
 
@@ -257,7 +277,7 @@ const loadInstanceDetail = async () => {
   error.value = null;
 
   try {
-    instance.value = await props.client.getInstanceDetail(props.objectId, false);
+    instance.value = await props.client.getInstanceDetail(props.objectId, true);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load instance details';
     console.error('Error loading instance details:', err);
@@ -414,9 +434,8 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .class-package-name {
-  font-size: 0.8rem;
-  color: #adb5bd;
-  word-break: break-all;
+  font-size: 0.75rem;
+  color: #868e96;
 }
 
 .info-row .value.monospace {
@@ -516,17 +535,57 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .field-name-cell {
-  font-weight: 500;
   color: #495057;
 }
 
-.field-type-cell code {
-  font-size: 0.7rem;
-  color: #6c757d;
-  background: transparent;
+.field-type-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  margin-top: 1px;
 }
 
-.field-value-cell {
+.field-identity-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-top: 1px;
+}
+
+.field-object-id {
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: #868e96;
+}
+
+.field-identity-sep {
+  color: #adb5bd;
+  font-size: 0.85rem;
+}
+
+.field-name {
+  font-size: 0.75rem;
+  color: #6f42c1;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.field-type-simple {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: transparent;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.field-type-package {
+  font-size: 0.75rem;
+  color: #868e96;
+}
+
+.field-value-inline {
+  font-size: 0.75rem;
   word-break: break-word;
 }
 
@@ -534,18 +593,34 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
   color: #212529;
 }
 
-.reference-link {
-  color: #0d6efd;
-  text-decoration: none;
-}
-
-.reference-link:hover {
-  text-decoration: underline;
+.reference-value {
+  color: #495057;
 }
 
 .null-value {
   color: #6c757d;
   font-style: italic;
+}
+
+.nav-col {
+  width: 28px;
+}
+
+.field-nav-cell {
+  width: 28px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.nav-icon-link {
+  color: #6c757d;
+  text-decoration: none;
+  font-size: 0.7rem;
+  transition: color 0.2s ease;
+}
+
+.nav-icon-link:hover {
+  color: #0d6efd;
 }
 
 .empty-section {

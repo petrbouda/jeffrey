@@ -18,8 +18,8 @@
       <div v-if="path.stackFrame" class="gc-root-detail">
         <span class="detail-label">Frame:</span>
         <span class="detail-value">
-          <span class="frame-package">{{ framePackagePart(path.stackFrame) }}{{ framePackagePart(path.stackFrame) ? '.' : '' }}</span>
           <span class="frame-class-method">{{ frameClassName(path.stackFrame) }}<span class="frame-method">{{ frameMethodName(path.stackFrame) }}</span></span>
+          <span v-if="framePackagePart(path.stackFrame)" class="frame-package-inline">{{ framePackagePart(path.stackFrame) }}</span>
         </span>
       </div>
       <div v-if="path.stackFrame && frameSourceLocation(path.stackFrame)" class="gc-root-detail-sub">
@@ -43,15 +43,24 @@
 
         <!-- Step node -->
         <div class="step-node" :class="{ 'step-node-target': step.isTarget }" @click="emit('selectObjectId', step.objectId)">
-          <div class="step-class-line">
-            <span class="step-classname"><span class="step-package">{{ packageName(step.className) }}</span>{{ simpleClassName(step.className) }}</span>
-            <span class="step-object-id">#{{ step.objectId }}</span>
-            <span class="step-size">{{ FormattingService.formatBytes(step.shallowSize) }}</span>
-            <span v-if="step.isTarget" class="target-badge">TARGET</span>
-            <i class="bi bi-info-circle step-detail-icon" title="Show instance details"></i>
+          <div class="step-sizes">
+            <span class="step-size-item">
+              <span class="step-size-label">shallow</span>
+              <span class="step-size-value">{{ FormattingService.formatBytes(step.shallowSize) }}</span>
+            </span>
+            <span v-if="step.retainedSize > 0" class="step-size-item step-size-retained">
+              <span class="step-size-label">retained</span>
+              <span class="step-size-value">{{ FormattingService.formatBytes(step.retainedSize) }}</span>
+            </span>
           </div>
-          <div v-if="Object.keys(step.objectParams).length > 0" class="step-display-value">
-            {{ FormattingService.formatObjectParams(step.objectParams) }}
+          <div class="step-class-line">
+            <span class="step-classname">{{ simpleClassName(step.className) }}</span>
+            <span v-if="packageName(step.className)" class="step-package">{{ packageName(step.className) }}</span>
+          </div>
+          <div v-if="step.objectId || Object.keys(step.objectParams).length > 0" class="step-identity-line">
+            <span class="step-object-id">{{ FormattingService.formatObjectId(step.objectId) }}</span>
+            <span v-if="Object.keys(step.objectParams).length > 0" class="step-identity-sep">&middot;</span>
+            <span v-if="Object.keys(step.objectParams).length > 0" class="step-display-value">{{ FormattingService.formatObjectParams(step.objectParams) }}</span>
           </div>
         </div>
       </div>
@@ -78,7 +87,7 @@ const simpleClassName = (name: string): string => {
 
 const packageName = (name: string): string => {
   const lastDot = name.lastIndexOf('.')
-  return lastDot >= 0 ? name.substring(0, lastDot + 1) : ''
+  return lastDot >= 0 ? name.substring(0, lastDot) : ''
 }
 
 // "s.f.p.a.DataCatalogUnited.getUnitedBid(File.kt:229)" → "DataCatalogUnited.getUnitedBid(File.kt:229)"
@@ -207,9 +216,19 @@ const framePackagePart = (frame: string): string => {
 
 .gc-root-detail-sub {
   font-size: 0.8rem;
-  color: #adb5bd;
+  color: #868e96;
   margin-top: 0.1rem;
   margin-left: 3.2rem;
+}
+
+.frame-package-inline {
+  color: #868e96;
+  margin-left: 0.35rem;
+}
+
+.frame-source {
+  color: #868e96;
+  margin-left: 0.25rem;
 }
 
 
@@ -259,6 +278,7 @@ const framePackagePart = (frame: string): string => {
 
 /* Step node */
 .step-node {
+  position: relative;
   border: 1px solid #e9ecef;
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
@@ -292,56 +312,72 @@ const framePackagePart = (frame: string): string => {
 }
 
 .step-package {
-  font-weight: 400;
+  font-size: 0.8rem;
+  color: #868e96;
+}
+
+.step-identity-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+.step-identity-sep {
   color: #adb5bd;
+  font-size: 0.85rem;
 }
 
 .step-object-id {
-  font-size: 0.7rem;
-  font-family: monospace;
-  color: #adb5bd;
-}
-
-.step-detail-icon {
-  font-size: 0.75rem;
-  color: #adb5bd;
-  margin-left: 0.25rem;
-  transition: color 0.15s;
-}
-
-.step-node:hover .step-detail-icon {
-  color: #1971c2;
-}
-
-.step-size {
   font-size: 0.75rem;
   font-family: monospace;
-  color: #495057;
-  margin-left: auto;
+  color: #868e96;
 }
 
-.target-badge {
+.step-sizes {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.6rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.step-size-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.step-size-label {
   font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #1971c2;
-  background: #d0ebff;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
+  letter-spacing: 0.03em;
+  color: #adb5bd;
+}
+
+.step-size-value {
+  font-size: 0.75rem;
+  font-family: monospace;
+  font-weight: 600;
+  color: #495057;
+}
+
+.step-size-retained .step-size-value {
+  color: #b8860b;
 }
 
 .step-display-value {
   font-size: 0.78rem;
   color: #868e96;
   font-family: monospace;
-  margin-top: 0.25rem;
   word-break: break-all;
 }
 
 .frame-package {
   font-weight: 400;
-  color: #adb5bd;
+  color: #868e96;
 }
 
 .frame-class-method {

@@ -54,6 +54,19 @@ public class StringAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public StringAnalysisReport analyze(Heap heap, int topN) {
+        return analyze(heap, topN, false);
+    }
+
+    /**
+     * Analyze string deduplication with compressed oops correction.
+     *
+     * @param heap           the loaded heap dump
+     * @param topN           number of top entries to return for each list
+     * @param compressedOops whether compressed oops are enabled
+     * @return complete analysis report
+     */
+    @SuppressWarnings("unchecked")
+    public StringAnalysisReport analyze(Heap heap, int topN, boolean compressedOops) {
         if (topN <= 0) {
             topN = DEFAULT_TOP_N;
         }
@@ -73,7 +86,7 @@ public class StringAnalyzer {
         List<Instance> stringInstances = (List<Instance>) stringClass.getInstances();
         for (Instance stringInstance : stringInstances) {
             totalStrings++;
-            totalStringShallowSize += stringInstance.getSize();
+            totalStringShallowSize += CompressedOopsCorrector.correctedShallowSize(stringInstance, compressedOops);
 
             Object valueField = stringInstance.getValueOfField("value");
 

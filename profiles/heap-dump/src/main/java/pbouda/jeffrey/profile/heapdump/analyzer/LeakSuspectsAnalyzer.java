@@ -52,7 +52,20 @@ public class LeakSuspectsAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public LeakSuspectsReport analyze(Heap heap) {
-        long totalHeapSize = heap.getSummary().getTotalLiveBytes();
+        return analyze(heap, false, 1.0, 0);
+    }
+
+    /**
+     * Analyze the heap and identify potential leak suspects with compressed oops correction.
+     *
+     * @param compressedOops  whether compressed oops are enabled
+     * @param correctionRatio correction ratio for retained/total sizes
+     * @param totalOvercount  heap-wide overcount for total heap size correction
+     */
+    @SuppressWarnings("unchecked")
+    public LeakSuspectsReport analyze(Heap heap, boolean compressedOops, double correctionRatio, long totalOvercount) {
+        long rawTotalHeapSize = heap.getSummary().getTotalLiveBytes();
+        long totalHeapSize = CompressedOopsCorrector.correctedTotalHeap(rawTotalHeapSize, compressedOops, totalOvercount);
 
         List<LeakSuspect> suspects = new ArrayList<>();
 
@@ -68,7 +81,8 @@ public class LeakSuspectsAnalyzer {
         int rank = 0;
 
         for (JavaClass javaClass : topClasses) {
-            long classTotalSize = javaClass.getAllInstancesSize();
+            long classTotalSize = CompressedOopsCorrector.correctedTotalSize(
+                    javaClass.getAllInstancesSize(), compressedOops, correctionRatio);
             int instanceCount = (int) javaClass.getInstancesCount();
             analyzedBytes += classTotalSize;
 
@@ -84,7 +98,8 @@ public class LeakSuspectsAnalyzer {
                 // For classes with few instances, check individual retained sizes
                 if (instanceCount <= 100) {
                     for (Instance inst : instances) {
-                        long retained = inst.getRetainedSize();
+                        long retained = CompressedOopsCorrector.correctedRetainedSize(
+                                inst.getRetainedSize(), compressedOops, correctionRatio);
                         if (retained > largestRetained) {
                             largestRetained = retained;
                             largest = inst;

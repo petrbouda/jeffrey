@@ -27,6 +27,7 @@ import java.util.List;
  * @param className    the fully qualified class name of the instance
  * @param value        formatted string representation of the instance value
  * @param stringValue  raw string value for String instances or decoded byte[] (null if not applicable)
+ * @param displayValue human-readable value for common types like String (null if not applicable)
  * @param shallowSize  shallow size of the instance in bytes
  * @param retainedSize retained heap size in bytes (null if not calculated)
  * @param fields       list of instance fields
@@ -37,6 +38,7 @@ public record InstanceDetail(
         String className,
         String value,
         String stringValue,
+        String displayValue,
         long shallowSize,
         Long retainedSize,
         List<InstanceField> fields,

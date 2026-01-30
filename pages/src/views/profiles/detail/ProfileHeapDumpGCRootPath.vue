@@ -58,7 +58,7 @@
     <div v-if="!searched && !searching" class="text-center text-muted py-5">
       <i class="bi bi-signpost-2 fs-1 d-block mb-3" style="opacity: 0.3;"></i>
       <p class="mb-1">Enter an object ID to find its path to a GC root.</p>
-      <p class="small">You can find object IDs in the Biggest Objects, Dominator Tree, or OQL Query pages.</p>
+      <p class="small">You can find object IDs in the Dominator Tree or OQL Query pages.</p>
     </div>
 
     <!-- Searching spinner -->

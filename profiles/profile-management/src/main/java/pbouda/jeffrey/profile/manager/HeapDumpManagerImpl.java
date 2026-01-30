@@ -23,10 +23,10 @@ import org.netbeans.lib.profiler.heap.Heap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.HeapLoader;
-import pbouda.jeffrey.profile.heapdump.analyzer.BiggestObjectsAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.CompressedOopsCorrector;
 import pbouda.jeffrey.profile.heapdump.analyzer.DominatorTreeAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.GCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
@@ -37,13 +37,13 @@ import pbouda.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
 import pbouda.jeffrey.profile.heapdump.analyzer.PathToGCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.StringAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
-import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
+import pbouda.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
@@ -88,9 +88,11 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     private static final String STRING_ANALYSIS_FILE = "string-analysis.json";
     private static final String THREAD_ANALYSIS_FILE = "thread-analysis.json";
-    private static final String BIGGEST_OBJECTS_FILE = "biggest-objects.json";
     private static final String COLLECTION_ANALYSIS_FILE = "collection-analysis.json";
     private static final String LEAK_SUSPECTS_FILE = "leak-suspects.json";
+    private static final String HEAP_DUMP_CONFIG_FILE = "heap-dump-config.json";
+
+    private static final long COMPRESSED_OOPS_MAX_HEAP = 32L * 1024 * 1024 * 1024;
 
     private static final Map<String, String> FLAG_DESCRIPTIONS = Map.ofEntries(
             Map.entry("UseStringDeduplication", "Enable string deduplication during GC"),
@@ -119,7 +121,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final StringAnalyzer stringAnalyzer;
     private final InstanceDetailAnalyzer instanceDetailAnalyzer;
     private final InstanceTreeAnalyzer instanceTreeAnalyzer;
-    private final BiggestObjectsAnalyzer biggestObjectsAnalyzer;
     private final PathToGCRootAnalyzer pathToGCRootAnalyzer;
     private final DominatorTreeAnalyzer dominatorTreeAnalyzer;
     private final CollectionAnalyzer collectionAnalyzer;
@@ -147,7 +148,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.stringAnalyzer = new StringAnalyzer();
         this.instanceDetailAnalyzer = new InstanceDetailAnalyzer();
         this.instanceTreeAnalyzer = new InstanceTreeAnalyzer();
-        this.biggestObjectsAnalyzer = new BiggestObjectsAnalyzer();
         this.pathToGCRootAnalyzer = new PathToGCRootAnalyzer();
         this.dominatorTreeAnalyzer = new DominatorTreeAnalyzer();
         this.collectionAnalyzer = new CollectionAnalyzer();
@@ -197,7 +197,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     "The heap dump file could not be loaded. The file may be corrupted or truncated.");
         }
 
-        return summaryAnalyzer.analyze(heap.get());
+        OopsConfig oops = resolveOopsConfig(heap.get());
+        return summaryAnalyzer.analyze(heap.get(), oops.compressedOops, oops.totalOvercount);
     }
 
     @Override
@@ -207,9 +208,10 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public List<ClassHistogramEntry> getClassHistogram(int topN, SortBy sortBy) {
-        return getHeap()
-                .map(heap -> histogramAnalyzer.analyze(heap, topN, sortBy))
-                .orElse(List.of());
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return histogramAnalyzer.analyze(heap, topN, sortBy, oops.compressedOops, oops.correctionRatio);
+        }).orElse(List.of());
     }
 
     @Override
@@ -274,9 +276,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         // Delete all pre-computed analysis files
         deleteJsonFile(STRING_ANALYSIS_FILE, "String analysis");
         deleteJsonFile(THREAD_ANALYSIS_FILE, "Thread analysis");
-        deleteJsonFile(BIGGEST_OBJECTS_FILE, "Biggest objects");
         deleteJsonFile(COLLECTION_ANALYSIS_FILE, "Collection analysis");
         deleteJsonFile(LEAK_SUSPECTS_FILE, "Leak suspects");
+        deleteJsonFile(HEAP_DUMP_CONFIG_FILE, "Heap dump config");
     }
 
     @Override
@@ -336,6 +338,22 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 LOG.error("Failed to delete compressed heap dump: profileId={} path={}", profileInfo.id(), gzPath, e);
             }
         }
+    }
+
+    private record OopsConfig(boolean compressedOops, long totalOvercount, double correctionRatio) {
+        static final OopsConfig DISABLED = new OopsConfig(false, 0, 1.0);
+    }
+
+    private OopsConfig resolveOopsConfig(Heap heap) {
+        Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
+        boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
+        long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
+        if (!compressedOops) {
+            return OopsConfig.DISABLED;
+        }
+        double correctionRatio = CompressedOopsCorrector.computeCorrectionRatio(
+                heap.getSummary().getTotalLiveBytes(), totalOvercount);
+        return new OopsConfig(true, totalOvercount, correctionRatio);
     }
 
     private Optional<Heap> getHeap() {
@@ -406,8 +424,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runStringAnalysis(int topN) {
         getHeap().ifPresent(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
             // Analyze heap for string deduplication
-            StringAnalysisReport heapAnalysis = stringAnalyzer.analyze(heap, topN);
+            StringAnalysisReport heapAnalysis = stringAnalyzer.analyze(heap, topN, oops.compressedOops);
 
             // Get JVM flags related to strings from JFR events
             List<JvmStringFlag> jvmFlags = getStringRelatedJvmFlags();
@@ -482,69 +501,125 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize) {
-        return getHeap()
-                .map(heap -> instanceDetailAnalyzer.analyze(heap, objectId, includeRetainedSize))
-                .orElse(null);
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return instanceDetailAnalyzer.analyze(heap, objectId, includeRetainedSize,
+                    oops.compressedOops, oops.correctionRatio);
+        }).orElse(null);
     }
 
     @Override
     public InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
-        return getHeap()
-                .map(heap -> instanceTreeAnalyzer.getReferrers(heap, objectId, limit, offset))
-                .orElse(InstanceTreeResponse.notFound());
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return instanceTreeAnalyzer.getReferrers(heap, objectId, limit, offset, oops.compressedOops);
+        }).orElse(InstanceTreeResponse.notFound());
     }
 
     @Override
     public InstanceTreeResponse getReachables(long objectId, int limit, int offset) {
-        return getHeap()
-                .map(heap -> instanceTreeAnalyzer.getReachables(heap, objectId, limit, offset))
-                .orElse(InstanceTreeResponse.notFound());
-    }
-
-    // --- Biggest Objects ---
-
-    @Override
-    public boolean biggestObjectsExists() {
-        return Files.exists(heapDumpAnalysisPath.resolve(BIGGEST_OBJECTS_FILE));
-    }
-
-    @Override
-    public BiggestObjectsReport getBiggestObjects() {
-        return readJsonFile(BIGGEST_OBJECTS_FILE, BiggestObjectsReport.class).orElse(null);
-    }
-
-    @Override
-    public void runBiggestObjects(int topN) {
-        getHeap().ifPresent(heap -> {
-            BiggestObjectsReport report = biggestObjectsAnalyzer.analyze(heap, topN);
-            writeJsonFile(BIGGEST_OBJECTS_FILE, report, "Biggest objects");
-        });
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return instanceTreeAnalyzer.getReachables(heap, objectId, limit, offset, oops.compressedOops);
+        }).orElse(InstanceTreeResponse.notFound());
     }
 
     // --- Path to GC Root ---
 
     @Override
     public List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths) {
-        return getHeap()
-                .map(heap -> pathToGCRootAnalyzer.findPaths(heap, objectId, excludeWeakRefs, maxPaths))
-                .orElse(List.of());
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return pathToGCRootAnalyzer.findPaths(heap, objectId, excludeWeakRefs, maxPaths, oops.compressedOops, oops.correctionRatio);
+        }).orElse(List.of());
+    }
+
+    // --- Heap Dump Config ---
+
+    @Override
+    public HeapDumpConfig resolveAndStoreCompressedOops(Boolean manualOverride) {
+        boolean compressedOops;
+        String source;
+
+        if (manualOverride != null) {
+            compressedOops = manualOverride;
+            source = "MANUAL";
+        } else {
+            Optional<Boolean> jfrValue = detectCompressedOopsFromJfr();
+            if (jfrValue.isPresent()) {
+                compressedOops = jfrValue.get();
+                source = "JFR";
+            } else {
+                compressedOops = inferCompressedOopsFromHeap();
+                source = "INFERRED";
+            }
+        }
+
+        long totalOvercount = 0;
+        if (compressedOops) {
+            totalOvercount = getHeap()
+                    .map(CompressedOopsCorrector::computeTotalOvercount)
+                    .orElse(0L);
+            LOG.info("Total overcount computed: totalOvercount={} profileId={}", totalOvercount, profileInfo.id());
+        }
+
+        HeapDumpConfig config = new HeapDumpConfig(compressedOops, source, totalOvercount);
+        writeJsonFile(HEAP_DUMP_CONFIG_FILE, config, "Heap dump config");
+        LOG.info("Compressed oops resolved: compressedOops={} source={} profileId={}", compressedOops, source, profileInfo.id());
+        return config;
+    }
+
+    @Override
+    public Optional<HeapDumpConfig> getHeapDumpConfig() {
+        return readJsonFile(HEAP_DUMP_CONFIG_FILE, HeapDumpConfig.class);
+    }
+
+    private boolean inferCompressedOopsFromHeap() {
+        return getHeap().map(heap -> {
+            try {
+                java.util.Properties props = heap.getSystemProperties();
+                String archDataModel = props.getProperty("sun.arch.data.model", "");
+                if ("64".equals(archDataModel)) {
+                    long totalLiveBytes = heap.getSummary().getTotalLiveBytes();
+                    return totalLiveBytes < COMPRESSED_OOPS_MAX_HEAP;
+                }
+            } catch (Exception e) {
+                LOG.debug("Could not infer compressed oops from heap properties: {}", e.getMessage());
+            }
+            return false;
+        }).orElse(false);
+    }
+
+    private Optional<Boolean> detectCompressedOopsFromJfr() {
+        try {
+            return eventRepository.latestJsonFields(Type.GC_HEAP_CONFIGURATION)
+                    .map(fields -> Json.treeToValue(fields, GCHeapConfiguration.class))
+                    .map(GCHeapConfiguration::usesCompressedOops);
+        } catch (Exception e) {
+            LOG.debug("Could not detect compressed oops from JFR events: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
     // --- Dominator Tree ---
 
     @Override
     public DominatorTreeResponse getDominatorTreeRoots(int limit) {
-        Optional<Boolean> compressedOopsHint = detectCompressedOopsFromJfr();
+        Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
+        boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
+        long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
         return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getRoots(heap, limit, compressedOopsHint))
+                .map(heap -> dominatorTreeAnalyzer.getRoots(heap, limit, compressedOops, totalOvercount))
                 .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 
     @Override
     public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
-        Optional<Boolean> compressedOopsHint = detectCompressedOopsFromJfr();
+        Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
+        boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
+        long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
         return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, limit, compressedOopsHint))
+                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, limit, compressedOops, totalOvercount))
                 .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 
@@ -563,7 +638,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runCollectionAnalysis() {
         getHeap().ifPresent(heap -> {
-            CollectionAnalysisReport report = collectionAnalyzer.analyze(heap);
+            OopsConfig oops = resolveOopsConfig(heap);
+            CollectionAnalysisReport report = collectionAnalyzer.analyze(heap, oops.compressedOops);
             writeJsonFile(COLLECTION_ANALYSIS_FILE, report, "Collection analysis");
         });
     }
@@ -572,9 +648,11 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize) {
-        return getHeap()
-                .map(heap -> classInstanceBrowserAnalyzer.browse(heap, className, limit, offset, includeRetainedSize))
-                .orElse(new ClassInstancesResponse(className, 0, List.of(), false));
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return classInstanceBrowserAnalyzer.browse(heap, className, limit, offset, includeRetainedSize,
+                    oops.compressedOops, oops.correctionRatio);
+        }).orElse(new ClassInstancesResponse(className, 0, List.of(), false));
     }
 
     // --- Leak Suspects ---
@@ -592,22 +670,11 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     @Override
     public void runLeakSuspects() {
         getHeap().ifPresent(heap -> {
-            LeakSuspectsReport report = leakSuspectsAnalyzer.analyze(heap);
+            OopsConfig oops = resolveOopsConfig(heap);
+            LeakSuspectsReport report = leakSuspectsAnalyzer.analyze(
+                    heap, oops.compressedOops, oops.correctionRatio, oops.totalOvercount);
             writeJsonFile(LEAK_SUSPECTS_FILE, report, "Leak suspects");
         });
-    }
-
-    // --- Compressed Oops Detection ---
-
-    private Optional<Boolean> detectCompressedOopsFromJfr() {
-        try {
-            return eventRepository.latestJsonFields(Type.GC_HEAP_CONFIGURATION)
-                    .map(fields -> Json.treeToValue(fields, GCHeapConfiguration.class))
-                    .map(GCHeapConfiguration::usesCompressedOops);
-        } catch (Exception e) {
-            LOG.debug("Could not detect compressed oops from JFR events: {}", e.getMessage());
-            return Optional.empty();
-        }
     }
 
     // --- JSON I/O helpers ---

@@ -50,6 +50,15 @@ public class ClassInstanceBrowserAnalyzer {
      */
     @SuppressWarnings("unchecked")
     public ClassInstancesResponse browse(Heap heap, String className, int limit, int offset, boolean includeRetainedSize) {
+        return browse(heap, className, limit, offset, includeRetainedSize, false, 1.0);
+    }
+
+    /**
+     * Get a paginated list of instances with compressed oops correction.
+     */
+    @SuppressWarnings("unchecked")
+    public ClassInstancesResponse browse(Heap heap, String className, int limit, int offset,
+                                          boolean includeRetainedSize, boolean compressedOops, double correctionRatio) {
         if (limit <= 0 || limit > MAX_LIMIT) {
             limit = 50;
         }
@@ -74,15 +83,18 @@ public class ClassInstanceBrowserAnalyzer {
 
         for (int i = offset; i < end; i++) {
             Instance instance = allInstances.get(i);
+            long shallowSize = CompressedOopsCorrector.correctedShallowSize(instance, compressedOops);
             Long retainedSize = null;
             if (includeRetainedSize) {
                 long retained = instance.getRetainedSize();
-                retainedSize = retained > 0 ? retained : null;
+                if (retained > 0) {
+                    retainedSize = CompressedOopsCorrector.correctedRetainedSize(retained, compressedOops, correctionRatio);
+                }
             }
 
             entries.add(new ClassInstanceEntry(
                     instance.getInstanceId(),
-                    instance.getSize(),
+                    shallowSize,
                     retainedSize,
                     formatter.format(instance)
             ));

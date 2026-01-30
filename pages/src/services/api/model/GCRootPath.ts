@@ -3,6 +3,7 @@ export interface PathStep {
     className: string;
     fieldName: string | null;
     shallowSize: number;
+    retainedSize: number;
     objectParams: Record<string, string>;
     isTarget: boolean;
 }

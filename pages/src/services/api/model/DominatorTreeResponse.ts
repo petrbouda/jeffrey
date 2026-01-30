@@ -7,6 +7,7 @@ export interface DominatorNode {
     retainedSize: number;
     retainedPercent: number;
     hasChildren: boolean;
+    gcRootKind: string | null;
 }
 
 export default interface DominatorTreeResponse {

@@ -188,12 +188,6 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'heap-dump/biggest-objects',
-    name: 'profile-heap-dump-biggest-objects',
-    component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestObjects.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'heap-dump/dominator-tree',
     name: 'profile-heap-dump-dominator-tree',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpDominatorTree.vue'),
