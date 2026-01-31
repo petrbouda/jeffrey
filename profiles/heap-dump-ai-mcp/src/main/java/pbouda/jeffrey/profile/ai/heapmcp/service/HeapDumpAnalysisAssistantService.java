@@ -39,6 +39,11 @@ public interface HeapDumpAnalysisAssistantService {
     String getModelName();
 
     /**
+     * Get the display name of the AI provider (e.g. "Claude", "ChatGPT").
+     */
+    String getProviderName();
+
+    /**
      * Analyze a heap dump with an AI assistant.
      *
      * @param delegate the heap dump tools delegate for the current profile

@@ -117,15 +117,10 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.ai.enabled</code></td>
-            <td><code>true</code></td>
-            <td>Enable or disable the AI assistant feature</td>
-          </tr>
-          <tr>
             <td><code>jeffrey.ai.provider</code></td>
-            <td><code>anthropic</code></td>
+            <td><code>none</code></td>
             <td>
-              AI provider to use. Options: <code>anthropic</code> (Claude), <code>openai</code> (GPT), <code>none</code>
+              AI provider: <code>claude</code>, <code>chatgpt</code>, or <code>none</code> (disabled)
             </td>
           </tr>
         </tbody>

@@ -2,10 +2,12 @@ package pbouda.jeffrey.profile.configuration;
 
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.profile.ai.config.AiAssistantConfiguration;
+import pbouda.jeffrey.profile.ai.config.AiChatModelConfiguration;
 import pbouda.jeffrey.profile.ai.heapmcp.config.HeapDumpMcpConfiguration;
 import pbouda.jeffrey.profile.ai.mcp.config.DuckDbMcpConfiguration;
 
 @Import({
+        AiChatModelConfiguration.class,
         AiAssistantConfiguration.class,
         DuckDbMcpConfiguration.class,
         HeapDumpMcpConfiguration.class,

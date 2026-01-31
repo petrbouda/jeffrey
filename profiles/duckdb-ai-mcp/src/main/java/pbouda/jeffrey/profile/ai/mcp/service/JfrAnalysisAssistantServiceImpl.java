@@ -47,17 +47,20 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
     private final ChatClient chatClient;
     private final DatabaseManagerResolver databaseManagerResolver;
     private final String modelName;
+    private final String providerName;
 
     public JfrAnalysisAssistantServiceImpl(
             ChatClient.Builder chatClientBuilder,
             DatabaseManagerResolver databaseManagerResolver,
-            String modelName) {
+            String modelName,
+            String providerName) {
         this.chatClient = chatClientBuilder
                 .defaultSystem(JfrAnalysisSystemPrompt.SYSTEM_PROMPT)
                 .build();
         this.databaseManagerResolver = databaseManagerResolver;
         this.modelName = modelName;
-        LOG.info("JFR Analysis Assistant initialized with DuckDB tools: model={}", modelName);
+        this.providerName = providerName;
+        LOG.info("JFR Analysis Assistant initialized with DuckDB tools: provider={} model={}", providerName, modelName);
     }
 
     @Override
@@ -68,6 +71,11 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
     @Override
     public String getModelName() {
         return modelName;
+    }
+
+    @Override
+    public String getProviderName() {
+        return providerName;
     }
 
     @Override

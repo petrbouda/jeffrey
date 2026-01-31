@@ -34,17 +34,20 @@
         <!-- Spring AI - Anthropic Claude -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-model-anthropic</artifactId>
+            <artifactId>spring-ai-anthropic</artifactId>
         </dependency>
 
-        <!--
-        Note: OpenAI support can be added by including spring-ai-starter-model-openai
-        and setting spring.ai.openai.api-key in secrets.properties
+        <!-- Spring AI - OpenAI ChatGPT -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-model-openai</artifactId>
+            <artifactId>spring-ai-openai</artifactId>
         </dependency>
-        -->
+
+        <!-- Spring AI - ChatClient -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-client-chat</artifactId>
+        </dependency>
 
         <!-- Spring Boot dependencies -->
         <dependency>

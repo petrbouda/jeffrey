@@ -115,10 +115,9 @@ data:
     # Jeffrey home directory
     jeffrey.home.dir=/data/jeffrey
 
-    # AI Assistant (Anthropic Claude)
-    jeffrey.ai.enabled=true
-    jeffrey.ai.provider=anthropic
-    spring.ai.anthropic.api-key=<token>
+    # AI Assistant (Claude)
+    jeffrey.ai.provider=claude
+    jeffrey.ai.api-key=<token>
 
   jeffrey-init.conf: |
     # Jeffrey CLI configuration for self-monitoring

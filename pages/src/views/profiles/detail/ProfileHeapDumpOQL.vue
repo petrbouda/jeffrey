@@ -253,9 +253,10 @@
               application.properties
             </div>
             <div class="config-code">
-              <code>jeffrey.ai.enabled=<span class="code-value">true</span></code>
-              <code>jeffrey.ai.provider=<span class="code-value">anthropic</span></code>
-              <code>spring.ai.anthropic.chat.options.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code>
+              <code>jeffrey.ai.provider=<span class="code-value">claude</span></code>
+              <code># Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-sonnet-4-20250514</code>
+              <code># ChatGPT: gpt-4o, gpt-4o-mini, o3-mini</code>
+              <code>jeffrey.ai.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code>
             </div>
           </div>
 
@@ -265,7 +266,7 @@
               secrets.properties
             </div>
             <div class="config-code">
-              <code>spring.ai.anthropic.api-key=<span class="code-value">sk-ant-...</span></code>
+              <code>jeffrey.ai.api-key=<span class="code-value">sk-ant-...</span></code>
             </div>
             <div class="config-hint-text">
               Get your API key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>

@@ -18,36 +18,29 @@
 
 package pbouda.jeffrey.profile.ai.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.profile.ai.prompt.OqlSystemPrompt;
 import pbouda.jeffrey.profile.ai.service.*;
 
 public class AiAssistantConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AiAssistantConfiguration.class);
-
     /**
      * Create the OQL Assistant Service when AI is enabled and a ChatModel is available.
-     * Spring AI configuration creates the ChatModel bean when an API key is configured.
      */
     @Bean
-    @ConditionalOnProperty(name = "jeffrey.ai.enabled", havingValue = "true")
+    @ConditionalOnExpression("'${jeffrey.ai.provider:none}' != 'none'")
     public OqlAssistantService oqlAssistantService(
             ChatModel chatModel,
-            @Value("${jeffrey.ai.enabled:false}") boolean enabled,
-            @Value("${jeffrey.ai.provider:none}") String provider) {
-        LOG.info("Creating OQL Assistant Service: provider={}", provider);
+            @Value("${jeffrey.ai.provider}") String providerName) {
         ChatClient chatClient = ChatClient.builder(chatModel)
                 .defaultSystem(OqlSystemPrompt.SYSTEM_PROMPT)
                 .build();
-        return new OqlAssistantServiceImpl(chatClient, new AiAssistantConfig(enabled, provider));
+        return new OqlAssistantServiceImpl(chatClient, providerName);
     }
 
     /**
@@ -56,7 +49,6 @@ public class AiAssistantConfiguration {
     @Bean
     @ConditionalOnMissingBean(OqlAssistantService.class)
     public OqlAssistantService noOpOqlAssistantService() {
-        LOG.info("Creating No-Op OQL Assistant Service (AI not configured)");
         return new NoOpOqlAssistantService();
     }
 

@@ -43,6 +43,13 @@ public interface JfrAnalysisAssistantService {
     String getModelName();
 
     /**
+     * Get the display name of the AI provider (e.g. "Claude", "ChatGPT").
+     *
+     * @return the provider display name, or null if not configured
+     */
+    String getProviderName();
+
+    /**
      * Analyze JFR events for a specific profile.
      *
      * @param profileInfo the profile to analyze

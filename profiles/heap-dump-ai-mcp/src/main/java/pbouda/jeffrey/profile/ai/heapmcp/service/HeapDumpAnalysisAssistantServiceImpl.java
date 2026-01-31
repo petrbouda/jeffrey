@@ -44,15 +44,18 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
 
     private final ChatClient chatClient;
     private final String modelName;
+    private final String providerName;
 
     public HeapDumpAnalysisAssistantServiceImpl(
             ChatClient.Builder chatClientBuilder,
-            String modelName) {
+            String modelName,
+            String providerName) {
         this.chatClient = chatClientBuilder
                 .defaultSystem(HeapDumpAnalysisSystemPrompt.SYSTEM_PROMPT)
                 .build();
         this.modelName = modelName;
-        LOG.info("Heap Dump Analysis Assistant initialized: model={}", modelName);
+        this.providerName = providerName;
+        LOG.info("Heap Dump Analysis Assistant initialized: provider={} model={}", providerName, modelName);
     }
 
     @Override
@@ -63,6 +66,11 @@ public class HeapDumpAnalysisAssistantServiceImpl implements HeapDumpAnalysisAss
     @Override
     public String getModelName() {
         return modelName;
+    }
+
+    @Override
+    public String getProviderName() {
+        return providerName;
     }
 
     @Override

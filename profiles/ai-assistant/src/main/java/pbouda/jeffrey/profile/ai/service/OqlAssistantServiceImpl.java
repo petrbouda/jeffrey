@@ -37,18 +37,18 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
     private static final Logger LOG = LoggerFactory.getLogger(OqlAssistantServiceImpl.class);
 
     private final ChatClient chatClient;
-    private final AiAssistantConfig aiAssistantConfig;
+    private final String providerName;
     private final HeapDumpContextExtractor contextExtractor;
     private final OqlExtractor oqlExtractor;
 
     public OqlAssistantServiceImpl(
             ChatClient chatClient,
-            AiAssistantConfig aiAssistantConfig) {
+            String providerName) {
         this.chatClient = chatClient;
-        this.aiAssistantConfig = aiAssistantConfig;
+        this.providerName = providerName;
         this.contextExtractor = new HeapDumpContextExtractor();
         this.oqlExtractor = new OqlExtractor();
-        LOG.info("OQL Assistant initialized: provider={}", aiAssistantConfig.provider());
+        LOG.info("OQL Assistant initialized: provider={}", providerName);
     }
 
     @Override
@@ -58,11 +58,7 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
 
     @Override
     public AiStatusResponse getStatus() {
-        return new AiStatusResponse(
-                aiAssistantConfig.enabled(),
-                aiAssistantConfig.provider(),
-                isAvailable()
-        );
+        return new AiStatusResponse(true, providerName, isAvailable());
     }
 
     @Override

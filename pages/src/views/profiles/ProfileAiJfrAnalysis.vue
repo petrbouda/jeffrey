@@ -4,7 +4,8 @@
     description="Ask questions about your JFR profile and get AI-powered insights"
     icon="bi-activity"
   >
-    <div class="ai-analysis-container">
+    <AiDisabledFeatureAlert v-if="status && !isAvailable" />
+    <div v-else class="ai-analysis-container">
       <!-- Panel Header -->
       <div class="panel-header">
         <div v-if="status" class="ai-status" :class="{ available: isAvailable }">
@@ -156,6 +157,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAiAnalysis } from '@/composables/useAiAnalysis';
 import AiAnalysisChatMessage from '@/components/ai-analysis/AiAnalysisChatMessage.vue';
+import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();

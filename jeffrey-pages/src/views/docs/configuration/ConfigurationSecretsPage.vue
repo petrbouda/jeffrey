@@ -37,14 +37,11 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const secretsExample = `# Anthropic Claude API Key
-spring.ai.anthropic.api-key=sk-ant-api03-...
-
-# Or OpenAI API Key (if using OpenAI provider)
-# spring.ai.openai.api-key=sk-...`;
+const secretsExample = `# AI API Key (Anthropic or OpenAI, depending on jeffrey.ai.provider)
+jeffrey.ai.api-key=sk-ant-api03-...`;
 
 const envVarExample = `# Set API key via environment variable
-export SPRING_AI_ANTHROPIC_API_KEY=sk-ant-api03-...
+export JEFFREY_AI_API_KEY=sk-ant-api03-...
 
 # Start Jeffrey
 java -jar jeffrey.jar`;
@@ -84,20 +81,13 @@ secrets.properties
         <thead>
           <tr>
             <th>Property</th>
-            <th>Provider</th>
             <th>Description</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><code>spring.ai.anthropic.api-key</code></td>
-            <td>Anthropic</td>
-            <td>API key for Claude models. Get one at <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a></td>
-          </tr>
-          <tr>
-            <td><code>spring.ai.openai.api-key</code></td>
-            <td>OpenAI</td>
-            <td>API key for GPT models. Get one at <a href="https://platform.openai.com/" target="_blank">platform.openai.com</a></td>
+            <td><code>jeffrey.ai.api-key</code></td>
+            <td>API key for your chosen provider. Anthropic: <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>, OpenAI: <a href="https://platform.openai.com/" target="_blank">platform.openai.com</a></td>
           </tr>
         </tbody>
       </table>

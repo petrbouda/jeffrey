@@ -90,7 +90,8 @@ public record CommandLineRecordingUploader(Path recordingsDir) implements Applic
 
                 Map<String, Object> mapSources = Map.of(
                         "jeffrey.job.scheduler.enabled", false,
-                        "jeffrey.logging.jfr-events.application.enabled", false
+                        "jeffrey.logging.jfr-events.application.enabled", false,
+                        "jeffrey.ai.provider", "none"
                 );
                 var sources = context.getEnvironment().getPropertySources();
                 sources.addFirst(propertySource);

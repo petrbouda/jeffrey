@@ -22,8 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantServiceImpl;
@@ -42,13 +42,14 @@ public class DuckDbMcpConfiguration {
      * Requires a ChatClient.Builder and DatabaseManagerResolver to be available.
      */
     @Bean
-    @ConditionalOnProperty(name = "jeffrey.ai.enabled", havingValue = "true")
+    @ConditionalOnExpression("'${jeffrey.ai.provider:none}' != 'none'")
     public JfrAnalysisAssistantService jfrAnalysisAssistantService(
             ChatClient.Builder chatClientBuilder,
             DatabaseManagerResolver databaseManagerResolver,
-            @Value("${spring.ai.anthropic.chat.options.model:}") String modelName) {
-        LOG.info("Creating JFR Analysis Assistant Service with MCP tools: model={}", modelName);
-        return new JfrAnalysisAssistantServiceImpl(chatClientBuilder, databaseManagerResolver, modelName);
+            @Value("${jeffrey.ai.model:}") String modelName,
+            @Value("${jeffrey.ai.provider}") String providerName) {
+        LOG.info("Creating JFR Analysis Assistant Service with MCP tools: provider={} model={}", providerName, modelName);
+        return new JfrAnalysisAssistantServiceImpl(chatClientBuilder, databaseManagerResolver, modelName, providerName);
     }
 
     /**

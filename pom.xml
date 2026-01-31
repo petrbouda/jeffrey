@@ -36,7 +36,6 @@
         <module>build</module>
         <module>manual-tests</module>
         <module>jmh-tests</module>
-        <module>incubator</module>
     </modules>
 
     <properties>
@@ -49,7 +48,7 @@
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.2.3</jeffrey-events.version>
         <spring-boot.version>4.0.0</spring-boot.version>
-        <spring-ai.version>2.0.0-M1</spring-ai.version>
+        <spring-ai.version>2.0.0-M2</spring-ai.version>
         <duckdb.version>1.4.1.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
     </properties>

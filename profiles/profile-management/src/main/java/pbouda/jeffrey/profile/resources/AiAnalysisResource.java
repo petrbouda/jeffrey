@@ -55,7 +55,7 @@ public class AiAnalysisResource {
     public AiAnalysisStatusResponse status() {
         return new AiAnalysisStatusResponse(
                 assistantService.isAvailable(),
-                assistantService.isAvailable() ? "anthropic" : null,
+                assistantService.getProviderName(),
                 assistantService.getModelName()
         );
     }

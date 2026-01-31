@@ -31,8 +31,8 @@ public class NoOpJfrAnalysisAssistantService implements JfrAnalysisAssistantServ
             AI-powered JFR analysis is not configured.
 
             To enable AI analysis, configure the following properties:
-            - jeffrey.ai.enabled=true
-            - spring.ai.anthropic.api-key=your-api-key
+            - jeffrey.ai.provider=claude (or chatgpt)
+            - jeffrey.ai.api-key=your-api-key
 
             See the documentation for more details on configuring AI providers.
             """;
@@ -44,6 +44,11 @@ public class NoOpJfrAnalysisAssistantService implements JfrAnalysisAssistantServ
 
     @Override
     public String getModelName() {
+        return null;
+    }
+
+    @Override
+    public String getProviderName() {
         return null;
     }
 

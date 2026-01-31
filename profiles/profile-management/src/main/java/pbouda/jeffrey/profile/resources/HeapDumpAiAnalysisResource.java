@@ -51,7 +51,7 @@ public class HeapDumpAiAnalysisResource {
     public StatusResponse status() {
         return new StatusResponse(
                 assistantService.isAvailable(),
-                assistantService.isAvailable() ? "anthropic" : null,
+                assistantService.getProviderName(),
                 assistantService.getModelName()
         );
     }
