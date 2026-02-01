@@ -58,8 +58,8 @@ public class ProfilerSettingsResolver {
     }
 
     private static String replacePlaceholders(String config, String profilerPath, Path sessionPath) {
-        if (config == null) {
-            return null;
+        if (config == null || config.isBlank()) {
+            return "";
         }
 
         return config
@@ -77,12 +77,15 @@ public class ProfilerSettingsResolver {
                 ProfilerSettings profilerSettings = settings.profiler();
 
                 String projectConfig = profilerSettings.projectSettings().get(projectName);
-                if (projectConfig != null) {
+                if (projectConfig != null && !projectConfig.isBlank()) {
                     LOG.info("Profiler config resolved from: {} (project: {})", settingsFile, projectName);
                     return projectConfig;
-                } else {
+                } else if (profilerSettings.defaultSettings() != null && !profilerSettings.defaultSettings().isBlank()) {
                     LOG.info("Profiler config resolved from: {} (default section)", settingsFile);
                     return profilerSettings.defaultSettings();
+                } else {
+                    LOG.info("Profiler config resolved from: built-in default configuration (settings file had no applicable config)");
+                    return DEFAULT_PROFILER_CONFIG;
                 }
             } else {
                 LOG.info("Profiler config resolved from: built-in default configuration");
