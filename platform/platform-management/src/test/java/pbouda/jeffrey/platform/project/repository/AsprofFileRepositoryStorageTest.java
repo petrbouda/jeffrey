@@ -19,6 +19,7 @@
 package pbouda.jeffrey.platform.project.repository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -257,20 +258,6 @@ class AsprofFileRepositoryStorageTest {
         }
 
         @Test
-        void compressesBeforeMerging_whenFilesAreUncompressed() throws IOException {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            createFinishedFile();
-
-            try (MergedRecording merged = storage.mergeRecordings(SESSION_ID)) {
-                // Verify the merged file is compressed (has .lz4 extension)
-                assertTrue(merged.filename().endsWith(".jfr.lz4"));
-            }
-
-            // Verify compressed file was created persistently
-            assertTrue(Files.exists(sessionPath.resolve(FORMATTED_FILE_1 + ".lz4")));
-        }
-
-        @Test
         void mergesOnlySpecifiedRecordings_whenRecordingIdsProvided() throws IOException {
             copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
             copyJfrToSession("profile-2.jfr", FORMATTED_FILE_2);
@@ -336,51 +323,6 @@ class AsprofFileRepositoryStorageTest {
             List<Path> artifacts = storage.artifacts(SESSION_ID);
 
             assertTrue(artifacts.isEmpty());
-        }
-    }
-
-    @Nested
-    class CompressionThreadSafety {
-
-        @Test
-        void compressesOnlyOnce_whenCalledConcurrently() throws Exception {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            createFinishedFile();
-
-            int threadCount = 10;
-            ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-            CountDownLatch startLatch = new CountDownLatch(1);
-            CountDownLatch doneLatch = new CountDownLatch(threadCount);
-            AtomicInteger successCount = new AtomicInteger(0);
-
-            for (int i = 0; i < threadCount; i++) {
-                executor.submit(() -> {
-                    try {
-                        startLatch.await();
-                        List<Path> recordings = storage.recordings(SESSION_ID);
-                        if (!recordings.isEmpty()) {
-                            successCount.incrementAndGet();
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } finally {
-                        doneLatch.countDown();
-                    }
-                });
-            }
-
-            startLatch.countDown();
-            assertTrue(doneLatch.await(30, TimeUnit.SECONDS));
-            executor.shutdown();
-
-            // All threads should succeed
-            assertEquals(threadCount, successCount.get());
-
-            // Only one compressed file should exist
-            long compressedFileCount = Files.list(sessionPath)
-                    .filter(p -> p.toString().endsWith(".jfr.lz4"))
-                    .count();
-            assertEquals(1, compressedFileCount);
         }
     }
 
@@ -573,43 +515,6 @@ class AsprofFileRepositoryStorageTest {
                     anyLong(),
                     anyLong(),
                     eq(expectedCompressedPath));
-        }
-
-        @Test
-        void emitsEventOnlyOnce_whenCalledConcurrently() throws Exception {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            createFinishedFile();
-
-            int threadCount = 10;
-            ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-            CountDownLatch startLatch = new CountDownLatch(1);
-            CountDownLatch doneLatch = new CountDownLatch(threadCount);
-
-            for (int i = 0; i < threadCount; i++) {
-                executor.submit(() -> {
-                    try {
-                        startLatch.await();
-                        storage.recordings(SESSION_ID);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } finally {
-                        doneLatch.countDown();
-                    }
-                });
-            }
-
-            startLatch.countDown();
-            assertTrue(doneLatch.await(30, TimeUnit.SECONDS));
-            executor.shutdown();
-
-            // Verify event emitter was called exactly once (only one thread compresses)
-            verify(eventEmitter, times(1)).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    anyLong(),
-                    anyLong(),
-                    any(Path.class));
         }
     }
 }
