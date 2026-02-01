@@ -1,7 +1,7 @@
 [
   {
     "id": "default-repository-session-cleaner",
-    "type": "REPOSITORY_SESSION_CLEANER",
+    "type": "PROJECT_INSTANCE_SESSION_CLEANER",
     "params": {
       "duration": "7",
       "timeUnit": "Days"
@@ -9,7 +9,7 @@
   },
   {
     "id": "default-repository-recording-cleaner",
-    "type": "REPOSITORY_RECORDING_CLEANER",
+    "type": "PROJECT_INSTANCE_RECORDING_CLEANER",
     "params": {
       "duration": "2",
       "timeUnit": "Days"

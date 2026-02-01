@@ -31,17 +31,17 @@ Based on the gathered information, create/modify these files:
 
 #### 2.1 Add JobType Enum Value
 
-**File:** `service/common-model/src/main/java/pbouda/jeffrey/common/model/job/JobType.java`
+**File:** `shared/common/src/main/java/pbouda/jeffrey/shared/common/model/job/JobType.java`
 
 Add the new enum value with appropriate Group:
 
 ```java
-MY_NEW_JOB(Group.PROJECT),  // or GLOBAL, INTERNAL
+MY_NEW_JOB(Group.PROJECT),  // or GLOBAL
 ```
 
 #### 2.2 Create Job Descriptor
 
-**File:** `service/core/src/main/java/pbouda/jeffrey/scheduler/job/descriptor/{JobName}JobDescriptor.java`
+**File:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/descriptor/{JobName}JobDescriptor.java`
 
 Use this template:
 
@@ -64,81 +64,66 @@ Use this template:
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.scheduler.job.descriptor;
+package pbouda.jeffrey.platform.scheduler.job.descriptor;
 
-import pbouda.jeffrey.common.model.job.JobType;
+import pbouda.jeffrey.shared.common.model.job.JobType;
 
 import java.util.Map;
 
 /**
  * Job descriptor for {description}.
  */
-public record {JobName}
+public record {JobName}JobDescriptor(/* parameters if needed */)
+        implements JobDescriptor<{JobName}JobDescriptor> {
 
-        JobDescriptor(/* parameters if needed */)
-        implements JobDescriptor
+    // If has parameters, add static factory:
+    // public static {JobName}JobDescriptor of(Map<String, String> params) {
+    //     return new {JobName}JobDescriptor(params.get("paramName"));
+    // }
 
-        < {
-            JobName
-        }
+    @Override
+    public Map<String, String> params() {
+        return Map.of();  // Add params if needed
+    }
 
-        JobDescriptor>{
+    @Override
+    public JobType type() {
+        return JobType.{JOB_TYPE_ENUM};
+    }
 
-        // If has parameters, add static factory:
-        // public static {JobName}JobDescriptor of(Map<String, String> params) {
-        //     return new {JobName}JobDescriptor(params.get("paramName"));
-        // }
-
-        @Override
-        public Map<String, String> params() {
-            return Map.of();  // Add params if needed
-        }
-
-        @Override
-        public JobType type() {
-            return JobType. {
-                JOB_TYPE_ENUM
-            } ;
-        }
-
-        // Override if multiple instances allowed:
-        // @Override
-        // public boolean allowMulti() {
-        //     return true;
-        // }
+    // Override if multiple instances allowed:
+    // @Override
+    // public boolean allowMulti() {
+    //     return true;
+    // }
 }
 ```
 
 #### 2.3 Update JobDescriptor Sealed Interface
 
-**File:** `service/core/src/main/java/pbouda/jeffrey/scheduler/job/descriptor/JobDescriptor.java`
+**File:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/descriptor/JobDescriptor.java`
 
 Add the new descriptor to the permits clause:
 
 ```java
 public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         permits ...,
-        {JobName}
-
-JobDescriptor {
+        {JobName}JobDescriptor {
 ```
 
 #### 2.4 Update JobDescriptorFactory
 
-**File:** `service/core/src/main/java/pbouda/jeffrey/scheduler/job/descriptor/JobDescriptorFactory.java`
+**File:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/descriptor/JobDescriptorFactory.java`
 
 Add case in the switch statement:
 
 ```java
-case{JOB_TYPE_ENUM}->
-        new{JobName}
-
-JobDescriptor();  // or .of(params) if has parameters
+case {JOB_TYPE_ENUM} -> new {JobName}JobDescriptor();  // or .of(params) if has parameters
 ```
 
 #### 2.5 Create Job Implementation
 
-**File:** `service/core/src/main/java/pbouda/jeffrey/scheduler/job/{JobName}Job.java`
+**File:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/{JobName}Job.java`
 
 For PROJECT scope (extends RepositoryProjectJob):
 
@@ -149,116 +134,85 @@ For PROJECT scope (extends RepositoryProjectJob):
  * ... license header ...
  */
 
-package pbouda.jeffrey.scheduler.job;
+package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.common.model.job.JobType;
-import pbouda.jeffrey.manager.SchedulerManager;
-import pbouda.jeffrey.manager.project.ProjectManager;
-import pbouda.jeffrey.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.project.repository.RemoteRepositoryStorage;
-import pbouda.jeffrey.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.scheduler.job.descriptor.{JobName}JobDescriptor;
+import pbouda.jeffrey.shared.common.model.job.JobType;
+import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.{JobName}JobDescriptor;
 
 import java.time.Duration;
 
 /**
  * {description}
  */
-public class {JobName}Job extends RepositoryProjectJob
+public class {JobName}Job extends RepositoryProjectJob<{JobName}JobDescriptor> {
 
-        < {
-            JobName
-        }
+    private static final Logger LOG = LoggerFactory.getLogger({JobName}Job.class);
 
-        JobDescriptor>{
+    private final Duration period;
 
-        private static final Logger LOG = LoggerFactory.getLogger({JobName}Job.class);
+    public {JobName}Job(
+            LiveWorkspacesManager workspacesManager,
+            RepositoryStorage.Factory repositoryStorageFactory,
+            JobDescriptorFactory jobDescriptorFactory,
+            Duration period) {
 
-        private final Duration period;
+        super(workspacesManager, repositoryStorageFactory, jobDescriptorFactory);
+        this.period = period;
+    }
 
-        public {
-            JobName
-        }
-
-        Job(
-                WorkspacesManager workspacesManager,
-                SchedulerManager schedulerManager,
-                RemoteRepositoryStorage.Factory remoteRepositoryManagerFactory,
-                JobDescriptorFactory jobDescriptorFactory,
-                Duration period) {
-
-            super(workspacesManager, schedulerManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
-            this.period = period;
-        }
-
-        @Override
-        protected void executeOnRepository(
-                ProjectManager manager,
-                RemoteRepositoryStorage repositoryStorage, {
-            JobName
-        }
-
-        JobDescriptor jobDescriptor){
+    @Override
+    protected void executeOnRepository(
+            ProjectManager manager,
+            RepositoryStorage repositoryStorage,
+            {JobName}JobDescriptor jobDescriptor) {
 
         String projectName = manager.info().name();
-        LOG.
-
-        debug("Executing {JobName} job: project='{}'",projectName);
+        LOG.debug("Executing {JobName} job: project='{}'", projectName);
 
         // TODO: Implement job logic here
     }
 
-        @Override
-        public Duration period() {
-            return period;
-        }
+    @Override
+    public Duration period() {
+        return period;
+    }
 
-        @Override
-        public JobType jobType() {
-            return JobType. {
-                JOB_TYPE_ENUM
-            } ;
-        }
+    @Override
+    public JobType jobType() {
+        return JobType.{JOB_TYPE_ENUM};
+    }
 }
 ```
 
 For GLOBAL scope (extends WorkspaceJob):
 
 ```java
-public class {JobName}Job extends WorkspaceJob
-
-< {
-    JobName
+public class {JobName}Job extends WorkspaceJob<{JobName}JobDescriptor> {
+    // Similar structure but extends WorkspaceJob
+    // Override executeOnWorkspace() instead
 }
-
-JobDescriptor>{
-        // Similar structure but extends WorkspaceJob
-        // Override executeOnWorkspace() instead
-        }
 ```
 
 #### 2.6 Register Spring Bean
 
-**File:** `service/core/src/main/java/pbouda/jeffrey/configuration/JobsConfiguration.java`
+Job beans are split into two configuration classes based on scope:
 
-Add bean method:
+- **PROJECT jobs:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/configuration/ProjectJobsConfiguration.java`
+- **GLOBAL jobs:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/configuration/GlobalJobsConfiguration.java`
+
+Add bean method to the appropriate configuration class:
 
 ```java
-
 @Bean
-public Job {
-    jobName
-}
-
-Job(
+public {JobName}Job {jobName}Job(
         @Value("${jeffrey.job.{job-name-kebab}.period:}") Duration jobPeriod) {
-    return new {
-        JobName
-    } Job(
+    return new {JobName}Job(
             liveWorkspacesManager,
-            schedulerManager,
             repositoryStorageFactory,
             jobDescriptorFactory,
             jobPeriod == null ? defaultPeriod : jobPeriod);
@@ -286,7 +240,7 @@ jeffrey.job.my-custom-job.period=PT5M
 
 If the job should be auto-configured for new projects, add it to the default configuration files:
 
-**File:** `service/core/src/main/resources/job-definitions/default-job-definitions.json`
+**File:** `platform/platform-management/src/main/resources/job-definitions/default-job-definitions.json`
 
 Add a new job definition entry:
 
@@ -294,18 +248,16 @@ Add a new job definition entry:
 {
   "id": "default-{job-name-kebab}",
   "type": "{JOB_TYPE_ENUM}",
-  "params": {
-    // Add job parameters if needed
-  }
+  "params": {}
 }
 ```
 
-**File:** `service/core/src/main/resources/project-templates/default-project-templates.json`
+**File:** `platform/platform-management/src/main/resources/project-templates/default-project-templates.json`
 
 Add the job ID to the `jobDefinitions` array in the appropriate templates:
 
-- `default-projects-synchronizer-template` - for projects synced from workspace
-- `default-project-template` - for manually created projects
+- `default-projects-synchronizer-template` - for projects synced from workspace (target: GLOBAL_SCHEDULER)
+- `default-project-template` - for manually created projects (target: PROJECT)
 
 ```json
 {
@@ -314,41 +266,30 @@ Add the job ID to the `jobDefinitions` array in the appropriate templates:
     "default-repository-session-cleaner",
     "default-repository-recording-cleaner",
     "default-repository-jfr-compression",
+    "default-project-recording-storage-synchronizer",
+    "default-session-finished-detector",
     "default-{job-name-kebab}"
-    // Add your job here
   ]
 }
 ```
 
-#### 2.8 For GLOBAL Jobs: Update GlobalJobsInitializer
+#### 2.8 For GLOBAL Jobs: Update ApplicationInitializer
 
-**File:** `service/core/src/main/java/pbouda/jeffrey/appinitializer/GlobalJobsInitializer.java`
+**File:** `platform/platform-management/src/main/java/pbouda/jeffrey/platform/appinitializer/ApplicationInitializer.java`
 
-Add in `onApplicationEvent()`:
+Add in `initializeGlobalJobs()`:
 
 ```java
-boolean {
-    jobName
+boolean {jobName}Create = environment.getProperty(
+        "jeffrey.job.{job-name-kebab}.create-if-not-exists", Boolean.class, true);
+if ({jobName}Create) {
+    schedulerManager.create(new {JobName}JobDescriptor());
 }
-
-Create =environment.
-
-getProperty(
-        "jeffrey.job.{job-name-kebab}.create-if-not-exists",Boolean .class, false);
-if({jobName}Create){
-        schedulerManager.
-
-create(new {
-    JobName
-}
-
-JobDescriptor());
-        }
 ```
 
 #### 2.9 For GLOBAL Jobs: Add Application Properties
 
-**File:** `service/core/src/main/resources/application.properties`
+**File:** `platform/platform-management/src/main/resources/application.properties`
 
 Add properties for auto-creation and period:
 
@@ -363,9 +304,13 @@ jeffrey.job.{job-name-kebab}.period=5m
 
 #### 3.1 Add to Frontend JobType
 
-**File:** `pages/src/services/model/JobType.ts`
+**File:** `pages/src/services/api/model/JobType.ts`
 
-Add the new job type constant.
+Add the new job type constant:
+
+```typescript
+{JOB_TYPE_ENUM} = '{JOB_TYPE_ENUM}'
+```
 
 #### 3.2 For GLOBAL Jobs: Create Plugin
 
@@ -384,26 +329,13 @@ import {
     type JobValidationResult,
     type JobCreationParams
 } from './JobTypePlugin';
-import {JobName}
-
-Modal
-from
-'@/components/scheduler/modal/{JobName}Modal.vue';
+import {JobName}Modal from '@/components/scheduler/modal/{JobName}Modal.vue';
 import type JobInfo from '@/services/model/JobInfo';
 
-export class {
-    JobName
-}
+export class {JobName}Plugin extends BaseJobTypePlugin {
+    readonly jobType = '{JOB_TYPE_ENUM}';
 
-Plugin
-extends
-BaseJobTypePlugin
-{
-    readonly
-    jobType = '{JOB_TYPE_ENUM}';
-
-    readonly
-    cardMetadata: JobCardMetadata = {
+    readonly cardMetadata: JobCardMetadata = {
         jobType: '{JOB_TYPE_ENUM}',
         title: '{Job Title}',
         description: '{description}',
@@ -412,30 +344,16 @@ BaseJobTypePlugin
         iconBg: 'bg-primary-soft'
     };
 
-    readonly
-    modalComponent = {JobName}
-    Modal;
+    readonly modalComponent = {JobName}Modal;
 
-    async
-    validateJobCreation(params
-:
-    JobCreationParams
-):
-    Promise < JobValidationResult > {
-        const errors
-:
-    string[] = [];
-    // Add validation logic
-    return {isValid: errors.length === 0, errors};
-}
+    async validateJobCreation(params: JobCreationParams): Promise<JobValidationResult> {
+        const errors: string[] = [];
+        // Add validation logic
+        return { isValid: errors.length === 0, errors };
+    }
 
-    buildJobCreationParams(formData
-:
-    any
-):
-    JobCreationParams
-    {
-        return {...formData};
+    buildJobCreationParams(formData: any): JobCreationParams {
+        return { ...formData };
     }
 }
 ```
@@ -445,24 +363,11 @@ BaseJobTypePlugin
 Add import and registration:
 
 ```typescript
-import {
-
-{
-    JobName
-}
-Plugin
-}
-from
-'./plugins/{JobName}Plugin';
+import { {JobName}Plugin } from './plugins/{JobName}Plugin';
 
 // In setupJobPlugins():
-const {jobName}
-Plugin = new {JobName}
-Plugin();
-jobPluginRegistry.registerPlugin({jobName}
-Plugin
-)
-;
+const {jobName}Plugin = new {JobName}Plugin();
+jobPluginRegistry.registerPlugin({jobName}Plugin);
 ```
 
 #### 3.3 For PROJECT Jobs: Update SchedulerList.vue
@@ -495,32 +400,37 @@ After generating all files, provide a summary:
 
 ## File Locations Reference
 
-| Component               | Path                                                                                           |
-|-------------------------|------------------------------------------------------------------------------------------------|
-| JobType enum (backend)  | `service/common-model/src/main/java/pbouda/jeffrey/common/model/job/JobType.java`              |
-| Job descriptor          | `service/core/src/main/java/pbouda/jeffrey/scheduler/job/descriptor/`                          |
-| JobDescriptor interface | `service/core/src/main/java/pbouda/jeffrey/scheduler/job/descriptor/JobDescriptor.java`        |
-| JobDescriptorFactory    | `service/core/src/main/java/pbouda/jeffrey/scheduler/job/descriptor/JobDescriptorFactory.java` |
-| Job implementation      | `service/core/src/main/java/pbouda/jeffrey/scheduler/job/`                                     |
-| JobsConfiguration       | `service/core/src/main/java/pbouda/jeffrey/configuration/JobsConfiguration.java`               |
-| GlobalJobsInitializer   | `service/core/src/main/java/pbouda/jeffrey/appinitializer/GlobalJobsInitializer.java`          |
-| Application properties  | `service/core/src/main/resources/application.properties`                                       |
-| Default job definitions | `service/core/src/main/resources/job-definitions/default-job-definitions.json`                 |
-| Project templates       | `service/core/src/main/resources/project-templates/default-project-templates.json`             |
-| JobType enum (frontend) | `pages/src/services/model/JobType.ts`                                                          |
-| Job plugins             | `pages/src/services/scheduler/plugins/`                                                        |
-| Plugin setup            | `pages/src/services/scheduler/pluginSetup.ts`                                                  |
-| GlobalSchedulerView     | `pages/src/views/global/GlobalSchedulerView.vue`                                               |
-| SchedulerList           | `pages/src/views/projects/detail/SchedulerList.vue`                                            |
-| Modal components        | `pages/src/components/scheduler/modal/`                                                        |
+| Component               | Path                                                                                                        |
+|-------------------------|-------------------------------------------------------------------------------------------------------------|
+| JobType enum (backend)  | `shared/common/src/main/java/pbouda/jeffrey/shared/common/model/job/JobType.java`                          |
+| Job descriptor          | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/descriptor/`             |
+| JobDescriptor interface | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/descriptor/JobDescriptor.java` |
+| JobDescriptorFactory    | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/descriptor/JobDescriptorFactory.java` |
+| Job implementation      | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/scheduler/job/`                        |
+| GlobalJobsConfiguration | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/configuration/GlobalJobsConfiguration.java` |
+| ProjectJobsConfiguration| `platform/platform-management/src/main/java/pbouda/jeffrey/platform/configuration/ProjectJobsConfiguration.java` |
+| ApplicationInitializer  | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/appinitializer/ApplicationInitializer.java` |
+| Application properties  | `platform/platform-management/src/main/resources/application.properties`                                    |
+| Default job definitions | `platform/platform-management/src/main/resources/job-definitions/default-job-definitions.json`              |
+| Project templates       | `platform/platform-management/src/main/resources/project-templates/default-project-templates.json`          |
+| JobType enum (frontend) | `pages/src/services/api/model/JobType.ts`                                                                   |
+| Job plugins             | `pages/src/services/scheduler/plugins/`                                                                     |
+| Plugin setup            | `pages/src/services/scheduler/pluginSetup.ts`                                                               |
+| GlobalSchedulerView     | `pages/src/views/global/GlobalSchedulerView.vue`                                                            |
+| SchedulerList           | `pages/src/views/projects/detail/SchedulerList.vue`                                                         |
+| Modal components        | `pages/src/components/scheduler/modal/`                                                                     |
 
 ## Example Existing Jobs
 
 | Job                                       | Type                                       | Scope   | Description                                      |
 |-------------------------------------------|--------------------------------------------|---------|--------------------------------------------------|
 | RepositoryCompressionProjectJob           | REPOSITORY_JFR_COMPRESSION                 | PROJECT | Compresses JFR files using LZ4                   |
-| RepositorySessionCleanerProjectJob        | REPOSITORY_SESSION_CLEANER                 | PROJECT | Removes old repository sessions                  |
+| ProjectInstanceSessionCleanerJob          | PROJECT_INSTANCE_SESSION_CLEANER           | PROJECT | Removes old project instance sessions            |
+| ProjectInstanceRecordingCleanerJob        | PROJECT_INSTANCE_RECORDING_CLEANER         | PROJECT | Removes old project instance recordings          |
+| SessionFinishedDetectorProjectJob         | SESSION_FINISHED_DETECTOR                  | PROJECT | Detects finished recording sessions              |
+| RecordingIntervalGeneratorProjectJob      | INTERVAL_RECORDING_GENERATOR               | PROJECT | Generates interval-based recordings              |
 | ProjectRecordingStorageSynchronizerJob    | PROJECT_RECORDING_STORAGE_SYNCHRONIZER     | PROJECT | Syncs recordings between storage and database    |
 | ProjectsSynchronizerJob                   | PROJECTS_SYNCHRONIZER                      | GLOBAL  | Syncs projects from workspace directories        |
+| WorkspaceEventsReplicatorJob              | WORKSPACE_EVENTS_REPLICATOR                | GLOBAL  | Replicates workspace events                      |
 | WorkspaceProfilerSettingsSynchronizerJob  | WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER   | GLOBAL  | Syncs profiler settings                          |
 | OrphanedProjectRecordingStorageCleanerJob | ORPHANED_PROJECT_RECORDING_STORAGE_CLEANER | GLOBAL  | Removes orphaned projects from recording storage |
