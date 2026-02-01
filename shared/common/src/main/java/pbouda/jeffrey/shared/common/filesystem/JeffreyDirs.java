@@ -44,12 +44,18 @@ public class JeffreyDirs {
     private static final String JEFFREY_DB_FILE = "jeffrey.db";
     private static final String WORKSPACES_DIR = "workspaces";
     private static final String PROFILES_DIR = "profiles";
+    private static final String LIBS_DIR = "libs";
+    private static final String TMP_DIR = "tmp";
     private static final String QUICK_PROFILES_DIR = "quick-profiles";
     private static final String QUICK_RECORDINGS_DIR = "quick-recordings";
     private static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump-analysis";
 
     private final Path homeDir;
     private final Path tempDir;
+
+    public JeffreyDirs(Path homeDir) {
+        this(homeDir, homeDir.resolve(TMP_DIR));
+    }
 
     public JeffreyDirs(Path homeDir, Path tempDir) {
         this.homeDir = homeDir;
@@ -72,6 +78,10 @@ public class JeffreyDirs {
 
     public Path profiles() {
         return homeDir.resolve(PROFILES_DIR);
+    }
+
+    public Path libs() {
+        return homeDir.resolve(LIBS_DIR);
     }
 
     public Path profileDir(String profileId) {

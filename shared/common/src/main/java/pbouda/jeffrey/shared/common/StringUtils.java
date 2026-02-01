@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.flamegraph.diff;
+package pbouda.jeffrey.shared.common;
 
 public abstract class StringUtils {
 
@@ -24,5 +24,9 @@ public abstract class StringUtils {
         if (s.indexOf('\\') >= 0) s = s.replace("\\", "\\\\");
         if (s.indexOf('\'') >= 0) s = s.replace("'", "\\'");
         return s;
+    }
+
+    public static boolean isNullOrBlank(String s) {
+        return s == null || s.isBlank();
     }
 }

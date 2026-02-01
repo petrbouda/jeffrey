@@ -18,12 +18,13 @@
 
 package pbouda.jeffrey.flamegraph.diff;
 
-import pbouda.jeffrey.profile.common.model.FrameType;
 import pbouda.jeffrey.flamegraph.proto.DiffDetails;
 import pbouda.jeffrey.flamegraph.proto.FlamegraphData;
 import pbouda.jeffrey.flamegraph.proto.Frame;
 import pbouda.jeffrey.flamegraph.proto.Level;
 import pbouda.jeffrey.frameir.DiffFrame;
+import pbouda.jeffrey.profile.common.model.FrameType;
+import pbouda.jeffrey.shared.common.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -149,7 +150,7 @@ public class DiffgraphProtoFormatter {
                 .setTotalSamples(frame.totalSamples())
                 .setTotalWeight(frame.totalWeight())
                 .setType(mapFrameType(frame.frameType()))
-                .setTitleIndex(getOrAddTitle(StringUtils.escape(methodName)));
+                .setTitleIndex(getOrAddTitle(pbouda.jeffrey.shared.common.StringUtils.escape(methodName)));
 
         // Only include selfSamples when non-zero
         if (frame.selfSamples() > 0) {
@@ -212,10 +213,14 @@ public class DiffgraphProtoFormatter {
             case INLINED -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_INLINED;
             case KERNEL -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_KERNEL;
             case THREAD_NAME_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_THREAD_NAME_SYNTHETIC;
-            case ALLOCATED_OBJECT_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC;
-            case ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
-            case ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC;
-            case BLOCKING_OBJECT_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
+            case ALLOCATED_OBJECT_SYNTHETIC ->
+                    pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC;
+            case ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC ->
+                    pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
+            case ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC ->
+                    pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC;
+            case BLOCKING_OBJECT_SYNTHETIC ->
+                    pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
             case LAMBDA_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_LAMBDA_SYNTHETIC;
             case HIGHLIGHTED_WARNING -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;
             case UNKNOWN -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_UNKNOWN;

@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.shared.common.StringUtils;
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,8 @@ import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
 import pbouda.jeffrey.platform.manager.project.CommonProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
+import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
+import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManagerImpl;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
@@ -48,8 +51,6 @@ import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
-import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManagerImpl;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
@@ -58,16 +59,16 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
-import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
-import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
-import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
+import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
+import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -111,7 +112,7 @@ public class AppConfiguration {
             Clock clock) {
 
         // Use default database URL if not configured
-        String resolvedUrl = databaseUrl.isEmpty()
+        String resolvedUrl = StringUtils.isNullOrBlank(databaseUrl)
                 ? "jdbc:duckdb:" + jeffreyDirs.homeDir().resolve("jeffrey-data.db")
                 : databaseUrl;
 
@@ -154,12 +155,15 @@ public class AppConfiguration {
     @Bean
     public JeffreyDirs jeffreyDir(
             @Value("${jeffrey.home.dir:${user.home}/.jeffrey}") String homeDir,
-            @Value("${jeffrey.temp.dir:${jeffrey.home.dir}/temp}") String tempDir) {
+            @Value("${jeffrey.temp.dir:}") String tempDir) {
+
         Path homeDirPath = Path.of(homeDir);
-        Path tempDirPath = Path.of(tempDir);
-        LOG.info("Using Jeffrey directory: HOME={} TEMP={}", homeDirPath, tempDirPath);
-        JeffreyDirs jeffreyDirs = new JeffreyDirs(homeDirPath, tempDirPath);
+        JeffreyDirs jeffreyDirs = StringUtils.isNullOrBlank(tempDir)
+                ? new JeffreyDirs(homeDirPath)
+                : new JeffreyDirs(homeDirPath, Path.of(tempDir));
+
         jeffreyDirs.initialize();
+        LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
         return jeffreyDirs;
     }
 
@@ -309,10 +313,15 @@ public class AppConfiguration {
     @Bean
     @ConditionalOnProperty(value = "jeffrey.copy-libs.enabled", havingValue = "true", matchIfMissing = false)
     public CopyLibsInitializer copyLibsInitializer(
+            JeffreyDirs jeffreyDirs,
             @Value("${jeffrey.copy-libs.source:/jeffrey-libs}") String source,
-            @Value("${jeffrey.copy-libs.target:${jeffrey.home.dir}/libs}") String target) {
+            @Value("${jeffrey.copy-libs.target:}") String target) {
 
-        return new CopyLibsInitializer(Path.of(source), Path.of(target));
+        String resolvedTarget = StringUtils.isNullOrBlank(target)
+                ? jeffreyDirs.libs().toString()
+                : target;
+
+        return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget));
     }
 
     @Bean(destroyMethod = "close")

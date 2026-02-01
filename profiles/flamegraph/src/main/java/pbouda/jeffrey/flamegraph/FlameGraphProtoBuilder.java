@@ -21,7 +21,7 @@ package pbouda.jeffrey.flamegraph;
 import pbouda.jeffrey.shared.common.BytesUtils;
 import pbouda.jeffrey.shared.common.DurationUtils;
 import pbouda.jeffrey.profile.common.model.FrameType;
-import pbouda.jeffrey.flamegraph.diff.StringUtils;
+import pbouda.jeffrey.shared.common.StringUtils;
 import pbouda.jeffrey.flamegraph.proto.FlamegraphData;
 import pbouda.jeffrey.flamegraph.proto.Frame;
 import pbouda.jeffrey.flamegraph.proto.FramePosition;
