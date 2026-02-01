@@ -28,6 +28,7 @@ public record ProjectsSynchronizerJobDescriptor(
         String templateId
 ) implements JobDescriptor<ProjectsSynchronizerJobDescriptor> {
 
+    private static final String DEFAULT_TEMPLATE_ID = "default-projects-synchronizer-template";
     private static final String PARAM_TEMPLATE_ID = "templateId";
 
     @Override
@@ -41,7 +42,8 @@ public record ProjectsSynchronizerJobDescriptor(
     }
 
     public static ProjectsSynchronizerJobDescriptor of(PropertyResolver properties) {
-        String templateId = properties.getRequiredProperty("jeffrey.job.projects-synchronizer.template-id");
+        String templateId = properties.getProperty(
+                "jeffrey.job.projects-synchronizer.template-id", DEFAULT_TEMPLATE_ID);
 
         Map<String, String> params = new HashMap<>();
         params.put(PARAM_TEMPLATE_ID, templateId);

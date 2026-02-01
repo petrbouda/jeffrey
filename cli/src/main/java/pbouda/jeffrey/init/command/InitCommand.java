@@ -1,5 +1,7 @@
 package pbouda.jeffrey.init.command;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.init.InitConfig;
 import pbouda.jeffrey.init.InitExecutor;
 import picocli.CommandLine.Command;
@@ -14,6 +16,8 @@ import java.nio.file.Path;
 )
 public class InitCommand implements Runnable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(InitCommand.class);
+
     public static final String COMMAND_NAME = "init";
 
     @Parameters(index = "0", description = "Path to the HOCON configuration file.")
@@ -25,7 +29,7 @@ public class InitCommand implements Runnable {
             InitConfig config = InitConfig.fromHoconFile(configFile);
             new InitExecutor().execute(config);
         } catch (Exception e) {
-            System.err.println("[ERROR] " + e.getMessage());
+            LOG.error(e.getMessage(), e);
         }
     }
 }

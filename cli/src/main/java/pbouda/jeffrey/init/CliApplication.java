@@ -1,5 +1,7 @@
 package pbouda.jeffrey.init;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.init.command.InitCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -15,13 +17,15 @@ import picocli.CommandLine.Command;
 )
 public class CliApplication {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CliApplication.class);
+
     static void main(String... args) {
         try {
             new CommandLine(new CliApplication())
                     .setUsageHelpWidth(160)
                     .execute(args);
         } catch (Exception e) {
-            System.err.println("[ERROR] Unexpected error: " + e.getMessage());
+            LOG.error("Unexpected error: {}", e.getMessage(), e);
         }
         System.exit(0);
     }

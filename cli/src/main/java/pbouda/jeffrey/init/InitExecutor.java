@@ -119,7 +119,7 @@ public class InitExecutor {
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
                 .build(newSessionPath);
 
-        String profilerSettings = new ProfilerSettingsResolver(config.isSilent()).resolve(
+        String profilerSettings = new ProfilerSettingsResolver().resolve(
                 config.getProfilerPath(),
                 config.getProfilerConfig(),
                 workspacePath,

@@ -49,25 +49,25 @@ public class ApplicationInitializer implements ApplicationListener<ApplicationRe
 
     private void initializeGlobalJobs(ConfigurableEnvironment environment) {
         boolean projectSynchronizerCreate = environment.getProperty(
-                "jeffrey.job.projects-synchronizer.create-if-not-exists", Boolean.class, false);
+                "jeffrey.job.projects-synchronizer.create-if-not-exists", Boolean.class, true);
         if (projectSynchronizerCreate) {
             schedulerManager.create(ProjectsSynchronizerJobDescriptor.of(environment));
         }
 
         boolean workspaceEventsReplicatorCreate = environment.getProperty(
-                "jeffrey.job.workspace-events-replicator.create-if-not-exists", Boolean.class, false);
+                "jeffrey.job.workspace-events-replicator.create-if-not-exists", Boolean.class, true);
         if (workspaceEventsReplicatorCreate) {
             schedulerManager.create(new WorkspaceEventsReplicatorJobDescriptor());
         }
 
         boolean profileSynchronizerCreate = environment.getProperty(
-                "jeffrey.job.profiler-settings-synchronizer.create-if-not-exists", Boolean.class, false);
+                "jeffrey.job.profiler-settings-synchronizer.create-if-not-exists", Boolean.class, true);
         if (profileSynchronizerCreate) {
             schedulerManager.create(WorkspaceProfilerSettingsSynchronizerJobDescriptor.of(environment));
         }
 
         boolean orphanedProjectCleanerCreate = environment.getProperty(
-                "jeffrey.job.orphaned-project-recording-storage-cleaner.create-if-not-exists", Boolean.class, false);
+                "jeffrey.job.orphaned-project-recording-storage-cleaner.create-if-not-exists", Boolean.class, true);
         if (orphanedProjectCleanerCreate) {
             schedulerManager.create(new OrphanedProjectRecordingStorageCleanerJobDescriptor());
         }

@@ -42,7 +42,7 @@ class ProfilerSettingsResolverTest {
             Path sessionPath = tempDir.resolve("session");
             String profilerConfig = "-agentpath:/custom/path=start,event=cpu";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/path/to/profiler",
                     profilerConfig,
@@ -61,7 +61,7 @@ class ProfilerSettingsResolverTest {
             Path sessionPath = tempDir.resolve("session");
             String profilerConfig = "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,file=<<JEFFREY_CURRENT_SESSION>>/output.jfr";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/custom/profiler.so",
                     profilerConfig,
@@ -84,7 +84,7 @@ class ProfilerSettingsResolverTest {
             String profilerConfig = "-agentpath:/custom/path=start";
             String features = "-XX:+UsePerfData -XX:+HeapDumpOnOutOfMemoryError";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/path/to/profiler",
                     profilerConfig,
@@ -103,7 +103,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/path/to/profiler.so",
                     "   ",
@@ -130,7 +130,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/path/to/profiler.so",
                     null,
@@ -158,7 +158,7 @@ class ProfilerSettingsResolverTest {
 
             assertFalse(Files.exists(settingsDir));
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             resolver.resolve(
                     "/path/to/profiler.so",
                     null,
@@ -177,7 +177,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     null,
                     null,
@@ -214,7 +214,7 @@ class ProfilerSettingsResolverTest {
                     """;
             Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/my/profiler.so",
                     null,
@@ -247,7 +247,7 @@ class ProfilerSettingsResolverTest {
                     """;
             Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/my/profiler.so",
                     null,
@@ -279,7 +279,7 @@ class ProfilerSettingsResolverTest {
                     """;
             Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsJson);
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/profiler.so",
                     null,
@@ -302,7 +302,7 @@ class ProfilerSettingsResolverTest {
             Files.writeString(settingsDir.resolve("other-file.json"), "{}");
             Files.writeString(settingsDir.resolve("settings.txt"), "text file");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/profiler.so",
                     null,
@@ -328,7 +328,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/custom/async-profiler/libasyncProfiler.so",
                     null,
@@ -347,7 +347,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("sessions/session-abc123");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/profiler.so",
                     null,
@@ -373,7 +373,7 @@ class ProfilerSettingsResolverTest {
             Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
             Path sessionPath = tempDir.resolve("session");
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/profiler.so",
                     "-agentpath:/profiler.so=start",
@@ -392,7 +392,7 @@ class ProfilerSettingsResolverTest {
             Path sessionPath = tempDir.resolve("session");
             String features = "-XX:+UsePerfData -XX:+HeapDumpOnOutOfMemoryError -Xlog:jfr*=trace";
 
-            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver(true);
+            ProfilerSettingsResolver resolver = new ProfilerSettingsResolver();
             String result = resolver.resolve(
                     "/profiler.so",
                     "-agentpath:/profiler.so=start",

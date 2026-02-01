@@ -9,6 +9,7 @@ public record WorkspaceProfilerSettingsSynchronizerJobDescriptor(
         int maxVersions
 ) implements JobDescriptor<WorkspaceProfilerSettingsSynchronizerJobDescriptor> {
 
+    private static final int DEFAULT_MAX_VERSIONS = 10;
     private static final String PARAM_MAX_VERSIONS = "maxVersions";
 
     @Override
@@ -22,8 +23,8 @@ public record WorkspaceProfilerSettingsSynchronizerJobDescriptor(
     }
 
     public static WorkspaceProfilerSettingsSynchronizerJobDescriptor of(PropertyResolver properties) {
-        Integer maxVersions = properties.getRequiredProperty(
-                "jeffrey.job.profiler-settings-synchronizer.max-versions", Integer.class);
+        Integer maxVersions = properties.getProperty(
+                "jeffrey.job.profiler-settings-synchronizer.max-versions", Integer.class, DEFAULT_MAX_VERSIONS);
         return new WorkspaceProfilerSettingsSynchronizerJobDescriptor(maxVersions);
     }
 

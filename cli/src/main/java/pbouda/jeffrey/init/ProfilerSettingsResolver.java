@@ -1,5 +1,7 @@
 package pbouda.jeffrey.init;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.ProfilerSettings;
@@ -15,6 +17,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public class ProfilerSettingsResolver {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfilerSettingsResolver.class);
 
     private static final String WORKSPACE_SETTINGS_PREFIX = "settings-";
     private static final String WORKSPACE_SETTINGS_DIR = ".settings";
@@ -33,12 +37,6 @@ public class ProfilerSettingsResolver {
                 return Instant.from(TIMESTAMP_FORMATTER.parse(substring));
             }).reversed();
 
-    private final boolean silent;
-
-    public ProfilerSettingsResolver(boolean silent) {
-        this.silent = silent;
-    }
-
     public String resolve(
             String profilerPath,
             String profilerConfig,
@@ -51,18 +49,12 @@ public class ProfilerSettingsResolver {
         // Directly provided ProfilerConfig has priority over workspace settings
         if (profilerConfig != null && !profilerConfig.isBlank()) {
             config = profilerConfig;
-            info("Profiler config resolved from: --profiler-config option");
+            LOG.info("Profiler config resolved from: --profiler-config option");
         } else {
             config = resolveJeffreyProfilerConfig(workspacePath, projectName);
         }
 
         return replacePlaceholders(config, profilerPath, currentSessionPath) + " " + features;
-    }
-
-    private void info(String message) {
-        if (!silent) {
-            System.out.println("[INFO] " + message);
-        }
     }
 
     private static String replacePlaceholders(String config, String profilerPath, Path sessionPath) {
@@ -86,14 +78,14 @@ public class ProfilerSettingsResolver {
 
                 String projectConfig = profilerSettings.projectSettings().get(projectName);
                 if (projectConfig != null) {
-                    info("Profiler config resolved from: " + settingsFile + " (project: " + projectName + ")");
+                    LOG.info("Profiler config resolved from: {} (project: {})", settingsFile, projectName);
                     return projectConfig;
                 } else {
-                    info("Profiler config resolved from: " + settingsFile + " (default section)");
+                    LOG.info("Profiler config resolved from: {} (default section)", settingsFile);
                     return profilerSettings.defaultSettings();
                 }
             } else {
-                info("Profiler config resolved from: built-in default configuration");
+                LOG.info("Profiler config resolved from: built-in default configuration");
                 return DEFAULT_PROFILER_CONFIG;
             }
         } catch (IOException e) {

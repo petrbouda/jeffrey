@@ -46,9 +46,11 @@ jeffrey-home = "/tmp/jeffrey"
 profiler-path = "/tmp/asprof/libasyncProfiler.so"
 
 # Project identification
-workspace-id = "uat"
-project-name = "jeffrey"
-project-label = "Jeffrey"
+project {
+    workspace-id = "uat"
+    name = "jeffrey"
+    label = "Jeffrey"
+}
 
 # Features
 
@@ -157,11 +159,11 @@ export JDK_JAVA_OPTIONS='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,
             </tr>
             <tr>
               <td><code>JEFFREY_CURRENT_WORKSPACE</code></td>
-              <td>Path to the current workspace directory (from <code>workspace-id</code> config)</td>
+              <td>Path to the current workspace directory (from <code>project.workspace-id</code> config)</td>
             </tr>
             <tr>
               <td><code>JEFFREY_CURRENT_PROJECT</code></td>
-              <td>Path to the current project directory (from <code>project-name</code> config)</td>
+              <td>Path to the current project directory (from <code>project.name</code> config)</td>
             </tr>
             <tr>
               <td><code>JEFFREY_CURRENT_SESSION</code></td>

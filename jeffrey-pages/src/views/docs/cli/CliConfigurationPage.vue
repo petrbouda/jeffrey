@@ -37,14 +37,18 @@ onMounted(() => {
 });
 
 const minimalConfig = `jeffrey-home = "/opt/jeffrey"
-workspace-id = "production"
-project-name = "my-service"`;
+project {
+    workspace-id = "production"
+    name = "my-service"
+}`;
 
 const fullConfig = `jeffrey-home = "/opt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
-workspace-id = "production"
-project-name = "my-service"
-project-label = "My Service"
+project {
+    workspace-id = "production"
+    name = "my-service"
+    label = "My Service"
+}
 attributes { cluster = "blue", namespace = "production" }
 
 perf-counters { enabled = true }
@@ -103,12 +107,12 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
               <td>Base directory for Jeffrey data</td>
             </tr>
             <tr>
-              <td><code>workspace-id</code></td>
+              <td><code>project.workspace-id</code></td>
               <td>Yes</td>
               <td>Workspace identifier (e.g., "production", "staging")</td>
             </tr>
             <tr>
-              <td><code>project-name</code></td>
+              <td><code>project.name</code></td>
               <td>Yes</td>
               <td>Project name for organizing recordings</td>
             </tr>
@@ -118,7 +122,7 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
               <td>Path to libasyncProfiler.so</td>
             </tr>
             <tr>
-              <td><code>project-label</code></td>
+              <td><code>project.label</code></td>
               <td>No</td>
               <td>Human-readable project label</td>
             </tr>

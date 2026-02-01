@@ -357,5 +357,18 @@ jeffrey/
 }
 ```
 
+## Documentation Sync (Jeffrey Pages)
+
+When modifying code, keep the corresponding documentation pages in `jeffrey-pages/` up to date. The docs are organized by domain:
+
+| Code module | Documentation pages |
+|---|---|
+| `service/platform-management` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, scheduler, profiler settings, alerts |
+| `service/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
+| `cli/` | `jeffrey-pages/src/views/docs/cli/` — CLI overview, configuration, directory structure, generated output |
+| `service/core` (config) | `jeffrey-pages/src/views/docs/configuration/` — app properties, advanced properties, secrets |
+| Architecture changes | `jeffrey-pages/src/views/docs/architecture/` — overview, public API, storage |
+| Deployment changes | `jeffrey-pages/src/views/docs/deployments/` — JAR, container, live recording |
+
 ## License
 GNU Affero General Public License v3.0 (AGPL-3.0)
