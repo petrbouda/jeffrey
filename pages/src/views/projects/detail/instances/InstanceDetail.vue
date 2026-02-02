@@ -17,35 +17,28 @@
 
     <!-- Instance Details -->
     <div v-else class="col-12">
-      <!-- Instance Info Row (compact, matching list page style) -->
-      <div class="child-row p-3 mb-3 rounded">
-        <div class="d-flex align-items-center">
-          <span class="status-dot me-3" :class="instance.status === 'ONLINE' ? 'online' : 'offline'"></span>
-          <div class="flex-grow-1">
-            <div class="fw-bold">
-              <i class="bi bi-box me-2 text-secondary"></i>
-              {{ instance.hostname }}
-              <Badge
-                class="ms-2"
-                :value="instance.status"
-                :variant="instance.status === 'ONLINE' ? 'green' : 'gray'"
-                size="xs"
-              />
-            </div>
-            <div class="d-flex text-muted small mt-1 flex-wrap gap-3">
-              <div>
-                <i class="bi bi-layers me-1"></i>
-                {{ instance.sessionCount }} sessions
-              </div>
-              <div>
-                <i class="bi bi-play-circle me-1"></i>
-                Started: {{ FormattingService.formatRelativeTime(instance.startedAt) }}
-              </div>
-              <div>
-                <i class="bi bi-hash me-1"></i>
-                {{ instance.id }}
-              </div>
-            </div>
+      <!-- Compact Metadata Bar -->
+      <div class="instance-metadata-bar mb-3">
+        <div class="d-flex align-items-center flex-wrap gap-3">
+          <div class="d-flex align-items-center">
+            <span class="meta-status-dot" :class="instance.status === 'ONLINE' ? 'online' : 'offline'"></span>
+            <Badge
+              :value="instance.status"
+              :variant="instance.status === 'ONLINE' ? 'green' : 'gray'"
+              size="xs"
+            />
+          </div>
+          <div class="meta-item">
+            <i class="bi bi-layers me-1"></i>
+            {{ instance.sessionCount }} sessions
+          </div>
+          <div class="meta-item">
+            <i class="bi bi-clock me-1"></i>
+            Started {{ FormattingService.formatRelativeTime(instance.startedAt) }}
+          </div>
+          <div class="meta-item">
+            <i class="bi bi-hash me-1"></i>
+            {{ instance.id }}
           </div>
         </div>
       </div>
@@ -68,38 +61,43 @@
         description="No recording sessions found for this instance."
       />
 
-      <div v-else>
-        <div v-for="session in sessions" :key="session.id"
-             class="child-row p-3 mb-2 rounded"
-             :class="{ 'active-session-row': session.isActive }">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <div class="fw-bold">
-                <i class="bi bi-file-earmark-play me-2 text-secondary"></i>
-                {{ session.id }}
-                <Badge
-                  v-if="session.isActive"
-                  class="ms-2"
-                  value="RECORDING"
-                  variant="red"
-                  size="xs"
-                />
+      <div v-else class="session-timeline">
+        <div
+          v-for="(session, index) in sessions"
+          :key="session.id"
+          class="session-timeline-item"
+          :class="{ 'last-item': index === sessions.length - 1 }"
+        >
+          <div class="session-dot" :class="session.isActive ? 'active' : 'finished'"></div>
+          <div class="session-card" :class="{ 'session-card-active': session.isActive }">
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+              <span class="fw-bold session-label">Session #{{ sessions.length - index }}</span>
+              <Badge
+                v-if="session.isActive"
+                value="RECORDING"
+                variant="red"
+                size="xs"
+              />
+            </div>
+            <div class="session-times">
+              <div>
+                <i class="bi bi-calendar me-1"></i>
+                Started: {{ FormattingService.formatTimestampUTC(session.startedAt) }}
               </div>
-              <div class="d-flex text-muted small mt-1 flex-wrap gap-3">
-                <div>
-                  <i class="bi bi-calendar me-1"></i>
-                  Started: {{ FormattingService.formatTimestampUTC(session.startedAt) }}
-                </div>
-                <div v-if="session.finishedAt">
-                  <i class="bi bi-calendar-check me-1"></i>
-                  Finished: {{ FormattingService.formatTimestampUTC(session.finishedAt) }}
-                </div>
-                <div v-else-if="session.isActive" class="text-success">
-                  <i class="bi bi-record-circle me-1"></i>
-                  In progress ({{ FormattingService.formatRelativeTime(session.startedAt) }})
-                </div>
+              <div v-if="session.finishedAt">
+                <i class="bi bi-calendar-check me-1"></i>
+                Finished: {{ FormattingService.formatTimestampUTC(session.finishedAt) }}
+              </div>
+              <div v-else-if="session.isActive" class="text-success">
+                <i class="bi bi-record-circle me-1"></i>
+                In progress ({{ FormattingService.formatRelativeTime(session.startedAt) }})
+              </div>
+              <div v-if="session.finishedAt">
+                <i class="bi bi-stopwatch me-1"></i>
+                Duration: {{ formatSessionDuration(session.startedAt, session.finishedAt) }}
               </div>
             </div>
+            <div class="session-id-text">{{ session.id }}</div>
           </div>
         </div>
       </div>
@@ -130,6 +128,21 @@ const activeSession = computed(() => {
   return sessions.value.find(s => s.isActive);
 });
 
+function formatSessionDuration(startedAt: number, finishedAt: number): string {
+  const diffMs = finishedAt - startedAt;
+  if (diffMs < 1000) return `${diffMs}ms`;
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
 onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
@@ -158,23 +171,125 @@ onMounted(async () => {
   font-size: 0.85rem;
 }
 
-.active-session-row {
-  border-left: 3px solid #22c55e !important;
+/* Compact metadata bar */
+.instance-metadata-bar {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 16px;
 }
 
-.status-dot {
-  width: 12px;
-  height: 12px;
+.meta-status-dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  margin-right: 8px;
 }
 
-.status-dot.online {
+.meta-status-dot.online {
   background-color: #22c55e;
   box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
 }
 
-.status-dot.offline {
+.meta-status-dot.offline {
   background-color: #9ca3af;
+}
+
+.meta-item {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.meta-item i {
+  color: #94a3b8;
+}
+
+/* Session timeline */
+.session-timeline {
+  padding-left: 4px;
+}
+
+.session-timeline-item {
+  position: relative;
+  padding-left: 28px;
+  padding-bottom: 16px;
+}
+
+.session-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 16px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.session-timeline-item.last-item::before {
+  display: none;
+}
+
+.session-dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.session-dot.active {
+  border-color: #22c55e;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.session-dot.finished {
+  border-color: #9ca3af;
+  background: #9ca3af;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(34, 197, 94, 0.6); }
+}
+
+.session-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.session-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.session-card-active {
+  border-left: 3px solid #22c55e;
+  background-color: rgba(34, 197, 94, 0.03);
+}
+
+.session-label {
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.session-times {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.session-id-text {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 4px;
 }
 </style>

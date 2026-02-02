@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -38,9 +40,11 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     private static final Logger LOG = LoggerFactory.getLogger(CreateSessionWorkspaceEventConsumer.class);
 
     private final ProjectsManager projectsManager;
+    private final PlatformRepositories platformRepositories;
 
-    public CreateSessionWorkspaceEventConsumer(ProjectsManager projectsManager) {
+    public CreateSessionWorkspaceEventConsumer(ProjectsManager projectsManager, PlatformRepositories platformRepositories) {
         this.projectsManager = projectsManager;
+        this.platformRepositories = platformRepositories;
     }
 
     @Override
@@ -62,10 +66,19 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                     event.eventId(), event.originEventId(), projectManager.info().id());
             return;
         }
+
+        String projectId = projectManager.info().id();
+        String instanceId = eventContent.instanceId();
+
+        ProjectRepositoryRepository repositoryRepository = platformRepositories.newProjectRepositoryRepository(projectId);
+        repositoryRepository.markUnfinishedSessionsFinished(instanceId, event.createdAt());
+        LOG.info("Auto-closed unfinished sessions for instance before creating new session: project_id={} instance_id={}",
+                projectId, instanceId);
+
         ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                 null,
                 repositoryInfo.get().id(),
-                eventContent.instanceId(),
+                instanceId,
                 eventContent.order(),
                 Path.of(eventContent.relativeSessionPath()),
                 eventContent.finishedFile(),

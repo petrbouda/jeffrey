@@ -20,6 +20,13 @@
       </div>
     </div>
 
+    <!-- Instances Header Bar -->
+    <div class="col-12 mb-3" v-if="!loading">
+      <div class="instances-header-bar d-flex align-items-center px-3">
+        <span class="header-text">Instances ({{ instances.length }})</span>
+      </div>
+    </div>
+
     <!-- Loading Indicator -->
     <LoadingState v-if="loading" message="Loading timeline..." />
 
@@ -37,7 +44,10 @@
         <div v-for="instance in instances" :key="instance.id" class="timeline-row">
           <div class="instance-label">
             <span class="status-dot" :class="instance.status === 'ONLINE' ? 'online' : 'offline'"></span>
-            <span class="hostname">{{ truncateHostname(instance.hostname) }}</span>
+            <router-link
+              :to="generateInstanceUrl(instance.id)"
+              class="hostname-link"
+            >{{ truncateHostname(instance.hostname) }}</router-link>
           </div>
           <div class="instance-bar-container">
             <div
@@ -78,7 +88,7 @@ import ProjectInstance from '@/services/api/model/ProjectInstance';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const { workspaceId, projectId } = useNavigation();
+const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
 
 const timeRanges = [
   { label: '1H', value: '1h' },
@@ -120,18 +130,14 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
   const now = Date.now();
   const rangeMs = getRangeMs();
 
-  // Calculate how far back (as percentage) the instance started
-  // 0% = now (left side), 100% = end of range (right side)
   const startPercent = Math.min((now - instance.startedAt) / rangeMs * 100, 100);
 
-  // Calculate where the bar ends (0 = now for ONLINE, startedAt for OFFLINE since no end time is tracked)
   const endPercent = instance.status === 'ONLINE'
     ? 0
     : Math.min((now - instance.startedAt) / rangeMs * 100, 100);
 
-  // Bar starts at endPercent (closer to "Now") and extends to startPercent
   const left = endPercent;
-  const width = Math.max(startPercent - endPercent, 2); // min 2% width for visibility
+  const width = Math.max(startPercent - endPercent, 2);
 
   return {
     left: `${left}%`,
@@ -158,6 +164,19 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.instances-header-bar {
+  background-color: #f8fafc;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.header-text {
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.85rem;
+}
+
 .timeline-header {
   padding-left: 160px;
 }
@@ -180,7 +199,13 @@ onMounted(async () => {
 .timeline-row {
   display: flex;
   align-items: center;
-  height: 40px;
+  height: 44px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.timeline-row:hover {
+  background-color: rgba(94, 100, 255, 0.03);
 }
 
 .instance-label {
@@ -192,12 +217,20 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.hostname {
+.hostname-link {
   font-size: 0.8rem;
   color: #374151;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.hostname-link:hover {
+  color: #5e64ff;
+  text-decoration: underline;
 }
 
 .status-dot {
@@ -217,7 +250,7 @@ onMounted(async () => {
 
 .instance-bar-container {
   flex: 1;
-  height: 24px;
+  height: 28px;
   background-color: #f1f5f9;
   border-radius: 4px;
   position: relative;

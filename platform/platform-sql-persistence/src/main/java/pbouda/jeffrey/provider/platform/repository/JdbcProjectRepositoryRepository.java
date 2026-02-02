@@ -93,6 +93,13 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             WHERE session_id = :session_id
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
+    //language=SQL
+    private static final String MARK_UNFINISHED_SESSIONS_FINISHED = """
+            UPDATE project_instance_sessions
+            SET finished_at = :finished_at
+            WHERE instance_id = :instance_id AND finished_at IS NULL
+            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
+
     private final String projectId;
     private final DatabaseClient databaseClient;
     private final Clock clock;
@@ -215,6 +222,16 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.UPDATE_SESSION_FINISHED, UPDATE_SESSION_FINISHED, paramSource);
+    }
+
+    @Override
+    public void markUnfinishedSessionsFinished(String instanceId, java.time.Instant finishedAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("instance_id", instanceId)
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.MARK_UNFINISHED_SESSIONS_FINISHED, MARK_UNFINISHED_SESSIONS_FINISHED, paramSource);
     }
 
     private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {

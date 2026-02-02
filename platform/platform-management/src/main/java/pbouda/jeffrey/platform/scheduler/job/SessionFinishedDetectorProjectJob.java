@@ -30,8 +30,10 @@ import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFile
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
@@ -95,6 +97,8 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         ProjectInfo projectInfo = manager.info();
         ProjectRepositoryRepository projectRepositoryRepository =
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id());
+        ProjectInstanceRepository projectInstanceRepository =
+                platformRepositories.newProjectInstanceRepository(projectInfo.id());
 
         List<ProjectInstanceSessionInfo> unfinishedSessions = projectRepositoryRepository.findUnfinishedSessions();
 
@@ -110,13 +114,14 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         RepositoryInfo repositoryInfo = repositoryInfos.getFirst();
 
         for (ProjectInstanceSessionInfo sessionInfo : unfinishedSessions) {
-            processSession(projectInfo, projectRepositoryRepository, repositoryInfo, sessionInfo);
+            processSession(projectInfo, projectRepositoryRepository, projectInstanceRepository, repositoryInfo, sessionInfo);
         }
     }
 
     private void processSession(
             ProjectInfo projectInfo,
             ProjectRepositoryRepository projectRepositoryRepository,
+            ProjectInstanceRepository projectInstanceRepository,
             RepositoryInfo repositoryInfo,
             ProjectInstanceSessionInfo sessionInfo) {
 
@@ -130,6 +135,19 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
 
             // Emit SESSION_FINISHED event
             eventEmitter.emitSessionFinished(projectInfo, sessionInfo);
+
+            // Check if the instance has any remaining active sessions
+            String instanceId = sessionInfo.instanceId();
+            if (instanceId != null) {
+                boolean hasActiveSessions = projectInstanceRepository.findSessions(instanceId).stream()
+                        .anyMatch(s -> s.finishedAt() == null);
+
+                if (!hasActiveSessions) {
+                    projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.OFFLINE);
+                    LOG.info("Instance transitioned to OFFLINE, no active sessions remaining: projectId={} instanceId={}",
+                            projectInfo.id(), instanceId);
+                }
+            }
         }
     }
 

@@ -81,4 +81,13 @@ public interface ProjectRepositoryRepository {
      * @param finishedAt the timestamp when the session was detected as finished
      */
     void markSessionFinished(String sessionId, Instant finishedAt);
+
+    /**
+     * Mark all unfinished sessions for a given instance as finished.
+     * This is used when a new session starts for an instance, to auto-close the previous session.
+     *
+     * @param instanceId the instance ID whose unfinished sessions should be closed
+     * @param finishedAt the timestamp to set as the finished time
+     */
+    void markUnfinishedSessionsFinished(String instanceId, Instant finishedAt);
 }

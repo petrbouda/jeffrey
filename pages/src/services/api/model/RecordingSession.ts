@@ -23,6 +23,7 @@ export default class RecordingSession {
     constructor(
         public id: string,
         public name: string,
+        public instanceId: string,
         public createdAt: string,
         public status: RecordingStatus,
         public profilerSettings: string,

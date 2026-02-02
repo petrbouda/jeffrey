@@ -39,7 +39,13 @@ const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: 
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
 const showActions = ref<{ [sessionId: string]: boolean }>({});
 
-const {workspaceId, projectId} = useNavigation();
+const {workspaceId, projectId, generateInstanceUrl} = useNavigation();
+
+const parseSessionName = (name: string): { hostname: string; sessionId: string } => {
+  const slashIndex = name.indexOf('/');
+  if (slashIndex === -1) return { hostname: name, sessionId: '' };
+  return { hostname: name.substring(0, slashIndex), sessionId: name.substring(slashIndex + 1) };
+};
 
 const repositoryService = new ProjectRepositoryClient(workspaceId.value!, projectId.value!)
 const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
@@ -644,7 +650,16 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                     <div>
                       <div class="d-flex align-items-center gap-2">
                         <span class="status-dot" :class="getStatusDotClass(session.status)"></span>
-                        <span class="fw-bold session-name">{{ session.name }}</span>
+                        <span class="session-name-label">Instance:</span>
+                        <router-link
+                            :to="generateInstanceUrl(session.instanceId)"
+                            class="instance-link"
+                            @click.stop>
+                          {{ parseSessionName(session.name).hostname }}
+                        </router-link>
+                        <span class="session-separator">/</span>
+                        <span class="session-name-label">Session:</span>
+                        <span class="session-id-part">{{ parseSessionName(session.name).sessionId }}</span>
                       </div>
                       <div class="session-metadata">
                         {{ getSourcesCount(session) }} sources · {{ formatDate(session.createdAt) }} · {{ session.id }}
@@ -1366,6 +1381,38 @@ code {
 }
 
 /* Session header layout */
+.session-name-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.instance-link {
+  color: #5e64ff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.15s ease;
+}
+
+.instance-link:hover {
+  text-decoration: underline;
+  color: #4a51eb;
+}
+
+.session-separator {
+  color: #d1d5db;
+  margin: 0 8px;
+  font-weight: 400;
+}
+
+.session-id-part {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
 .session-name {
   font-size: 0.95rem;
   color: #1f2937;
