@@ -336,10 +336,31 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     // ========== Session Compression ==========
 
+    /**
+     * Number of latest recording files to skip during compression of ACTIVE sessions.
+     * Async-profiler may still be flushing data into the most recent JFR files,
+     * so compressing them could produce corrupted LZ4 files.
+     */
+    private static final int ACTIVE_SESSION_SKIP_LATEST_FILES = 2;
+
     @Override
     public int compressSession(String sessionId) {
-        // recordings() compresses all files and deletes originals via ensureCompressed()
-        return recordings(sessionId, null).size();
+        RecordingSession session = resolveSession(sessionId);
+
+        List<RepositoryFile> recordingFiles = session.files().stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(file -> file.status() == RecordingStatus.FINISHED)
+                .toList();
+
+        // In ACTIVE sessions, skip the latest files that async-profiler may still be writing to.
+        // Files are sorted latest-first, so skip() drops the most recent ones.
+        long skipCount = session.status() == RecordingStatus.ACTIVE ? ACTIVE_SESSION_SKIP_LATEST_FILES : 0;
+
+        return (int) recordingFiles.stream()
+                .skip(skipCount)
+                .map(file -> ensureCompressed(sessionId, file))
+                .distinct()
+                .count();
     }
 
     // ========== Private Helpers ==========

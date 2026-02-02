@@ -162,11 +162,14 @@ public interface RepositoryStorage {
     // ========== Session Compression ==========
 
     /**
-     * Compresses all FINISHED JFR recordings in the session and deletes originals.
+     * Compresses FINISHED JFR recordings in the session and deletes originals.
      * <p>
      * This is used by the scheduler job to save disk space. Files that are already
      * compressed (JFR_LZ4) are skipped. The original JFR files are deleted after
      * successful compression.
+     * <p>
+     * For ACTIVE sessions, the latest few recording files are skipped because
+     * async-profiler may still be flushing data into them.
      * </p>
      *
      * @param sessionId the session ID to compress
