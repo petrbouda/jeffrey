@@ -143,8 +143,8 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                         .anyMatch(s -> s.finishedAt() == null);
 
                 if (!hasActiveSessions) {
-                    projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.OFFLINE);
-                    LOG.info("Instance transitioned to OFFLINE, no active sessions remaining: projectId={} instanceId={}",
+                    projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.FINISHED);
+                    LOG.info("Instance transitioned to FINISHED, no active sessions remaining: projectId={} instanceId={}",
                             projectInfo.id(), instanceId);
                 }
             }

@@ -1,7 +1,7 @@
 <template>
   <PageHeader
     title="Instances Overview"
-    description="View all instances connected to this project. Filter by status to see online or offline instances."
+    description="View all instances connected to this project. Filter by status to see active or finished instances."
     icon="bi-box"
   >
     <!-- Inline Stats Strip -->
@@ -13,15 +13,15 @@
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <i class="bi bi-broadcast text-success"></i>
-        <span class="stat-label">Online</span>
-        <span class="stat-value">{{ onlineCount }}</span>
+        <i class="bi bi-broadcast" style="color: #f59e0b;"></i>
+        <span class="stat-label">Active</span>
+        <span class="stat-value">{{ activeCount }}</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <i class="bi bi-power" style="color: #9ca3af;"></i>
-        <span class="stat-label">Offline</span>
-        <span class="stat-value">{{ offlineCount }}</span>
+        <i class="bi bi-check-circle" style="color: #10b981;"></i>
+        <span class="stat-label">Finished</span>
+        <span class="stat-value">{{ finishedCount }}</span>
       </div>
     </div>
 
@@ -38,15 +38,15 @@
         <button
           type="button"
           class="btn btn-sm"
-          :class="statusFilter === 'ONLINE' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = 'ONLINE'"
-        >Online</button>
+          :class="statusFilter === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary'"
+          @click="statusFilter = 'ACTIVE'"
+        >Active</button>
         <button
           type="button"
           class="btn btn-sm"
-          :class="statusFilter === 'OFFLINE' ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="statusFilter = 'OFFLINE'"
-        >Offline</button>
+          :class="statusFilter === 'FINISHED' ? 'btn-primary' : 'btn-outline-secondary'"
+          @click="statusFilter = 'FINISHED'"
+        >Finished</button>
       </div>
     </div>
 
@@ -55,10 +55,6 @@
       <div class="d-flex align-items-center mb-3 gap-3">
         <div class="instances-header-bar flex-grow-1 d-flex align-items-center px-3">
           <span class="header-text">All Instances ({{ filteredInstances.length }})</span>
-          <div class="ms-auto d-flex gap-2">
-            <Badge :value="`${onlineCount} online`" variant="green" size="xs" />
-            <Badge :value="`${offlineCount} offline`" variant="grey" size="xs" />
-          </div>
         </div>
       </div>
     </div>
@@ -81,10 +77,10 @@
           :key="instance.id"
           :to="generateInstanceUrl(instance.id)"
           class="instance-card d-block text-decoration-none mb-2"
-          :class="instance.status === 'ONLINE' ? 'instance-online' : 'instance-offline'"
+          :class="instance.status === 'ACTIVE' ? 'instance-active' : 'instance-finished'"
         >
           <div class="d-flex align-items-center">
-            <div class="instance-icon-square me-3" :class="instance.status === 'ONLINE' ? 'icon-online' : 'icon-offline'">
+            <div class="instance-icon-square me-3" :class="instance.status === 'ACTIVE' ? 'icon-active' : 'icon-finished'">
               <i class="bi bi-box"></i>
             </div>
             <div class="flex-grow-1 min-width-0">
@@ -93,7 +89,7 @@
                 <Badge
                   class="ms-2"
                   :value="instance.status"
-                  :variant="instance.status === 'ONLINE' ? 'green' : 'grey'"
+                  :variant="instance.status === 'ACTIVE' ? 'warning' : 'green'"
                   size="xs"
                 />
               </div>
@@ -130,8 +126,8 @@ const searchQuery = ref('');
 const statusFilter = ref('');
 const instances = ref<ProjectInstance[]>([]);
 
-const onlineCount = computed(() => instances.value.filter(i => i.status === 'ONLINE').length);
-const offlineCount = computed(() => instances.value.filter(i => i.status === 'OFFLINE').length);
+const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
+const finishedCount = computed(() => instances.value.filter(i => i.status === 'FINISHED').length);
 
 const filteredInstances = computed(() => {
   let result = instances.value;
@@ -246,24 +242,22 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.instance-online {
-  border-left: 3px solid #22c55e;
-  background-color: rgba(34, 197, 94, 0.03);
+.instance-active {
+  border-left: 3px solid #f59e0b;
+  background-color: rgba(245, 158, 11, 0.03);
 }
 
-.instance-online:hover {
-  background-color: rgba(34, 197, 94, 0.06);
+.instance-active:hover {
+  background-color: rgba(245, 158, 11, 0.06);
 }
 
-.instance-offline {
-  border-left: 3px solid #9ca3af;
-  background-color: rgba(156, 163, 175, 0.03);
-  opacity: 0.7;
+.instance-finished {
+  border-left: 3px solid #10b981;
+  background-color: rgba(16, 185, 129, 0.03);
 }
 
-.instance-offline:hover {
-  opacity: 0.85;
-  background-color: rgba(156, 163, 175, 0.06);
+.instance-finished:hover {
+  background-color: rgba(16, 185, 129, 0.06);
 }
 
 .instance-icon-square {
@@ -277,14 +271,14 @@ onMounted(async () => {
   font-size: 1rem;
 }
 
-.icon-online {
-  background-color: rgba(34, 197, 94, 0.12);
-  color: #16a34a;
+.icon-active {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
 }
 
-.icon-offline {
-  background-color: rgba(156, 163, 175, 0.12);
-  color: #6b7280;
+.icon-finished {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #059669;
 }
 
 .instance-meta {

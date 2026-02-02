@@ -49,14 +49,14 @@ export default class ProjectInstanceClient {
             .then(data => data.map(this.mapToSession));
     }
 
-    async listOnline(): Promise<ProjectInstance[]> {
+    async listActive(): Promise<ProjectInstance[]> {
         const instances = await this.list();
-        return instances.filter(i => i.status === 'ONLINE');
+        return instances.filter(i => i.status === 'ACTIVE');
     }
 
-    async listOffline(): Promise<ProjectInstance[]> {
+    async listFinished(): Promise<ProjectInstance[]> {
         const instances = await this.list();
-        return instances.filter(i => i.status === 'OFFLINE');
+        return instances.filter(i => i.status === 'FINISHED');
     }
 
     private mapToInstance(data: any): ProjectInstance {

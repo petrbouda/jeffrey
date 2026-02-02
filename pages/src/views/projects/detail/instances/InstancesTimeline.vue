@@ -43,7 +43,7 @@
       <div class="timeline-container">
         <div v-for="instance in instances" :key="instance.id" class="timeline-row">
           <div class="instance-label">
-            <span class="status-dot" :class="instance.status === 'ONLINE' ? 'online' : 'offline'"></span>
+            <span class="status-dot" :class="instance.status === 'ACTIVE' ? 'active' : 'finished'"></span>
             <router-link
               :to="generateInstanceUrl(instance.id)"
               class="hostname-link"
@@ -52,7 +52,7 @@
           <div class="instance-bar-container">
             <div
               class="instance-bar"
-              :class="instance.status === 'ONLINE' ? 'active' : 'inactive'"
+              :class="instance.status === 'ACTIVE' ? 'active' : 'finished'"
               :style="getBarStyle(instance)"
             >
               <span class="bar-tooltip">
@@ -68,11 +68,11 @@
       <div class="timeline-legend mt-4">
         <div class="legend-item">
           <span class="legend-bar active"></span>
-          <span>Online</span>
+          <span>Active</span>
         </div>
         <div class="legend-item">
-          <span class="legend-bar inactive"></span>
-          <span>Offline</span>
+          <span class="legend-bar finished"></span>
+          <span>Finished</span>
         </div>
       </div>
     </div>
@@ -132,7 +132,7 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
 
   const startPercent = Math.min((now - instance.startedAt) / rangeMs * 100, 100);
 
-  const endPercent = instance.status === 'ONLINE'
+  const endPercent = instance.status === 'ACTIVE'
     ? 0
     : Math.min((now - instance.startedAt) / rangeMs * 100, 100);
 
@@ -240,12 +240,12 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.status-dot.online {
-  background-color: #22c55e;
+.status-dot.active {
+  background-color: #f59e0b;
 }
 
-.status-dot.offline {
-  background-color: #9ca3af;
+.status-dot.finished {
+  background-color: #10b981;
 }
 
 .instance-bar-container {
@@ -267,11 +267,11 @@ onMounted(async () => {
 }
 
 .instance-bar.active {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.instance-bar.inactive {
-  background: linear-gradient(135deg, #9ca3af, #6b7280);
+.instance-bar.finished {
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 
 .instance-bar:hover {
@@ -318,11 +318,11 @@ onMounted(async () => {
 }
 
 .legend-bar.active {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: linear-gradient(135deg, #f59e0b, #d97706);
 }
 
-.legend-bar.inactive {
-  background: linear-gradient(135deg, #9ca3af, #6b7280);
+.legend-bar.finished {
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 
 .btn-group .btn {

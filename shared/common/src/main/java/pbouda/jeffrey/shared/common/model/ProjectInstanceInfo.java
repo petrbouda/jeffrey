@@ -31,6 +31,6 @@ public record ProjectInstanceInfo(
         String activeSessionId) {
 
     public enum ProjectInstanceStatus {
-        ONLINE, OFFLINE
+        ACTIVE, FINISHED
     }
 }
