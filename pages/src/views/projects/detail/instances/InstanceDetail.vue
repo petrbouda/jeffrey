@@ -213,7 +213,7 @@ onMounted(async () => {
   content: '';
   position: absolute;
   left: 7px;
-  top: 50%;
+  top: 0;
   bottom: 0;
   width: 2px;
   background: #e2e8f0;
