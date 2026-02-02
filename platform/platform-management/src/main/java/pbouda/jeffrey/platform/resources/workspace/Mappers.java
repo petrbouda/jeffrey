@@ -25,7 +25,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInf
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.shared.common.InstantUtils;
 
 public abstract class Mappers {
 

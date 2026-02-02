@@ -22,7 +22,7 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
-import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.shared.common.InstantUtils;
 
 import java.util.Optional;
 

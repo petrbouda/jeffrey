@@ -22,7 +22,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 
 public class ProjectSettingsResource {

@@ -24,7 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
 import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
-import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;

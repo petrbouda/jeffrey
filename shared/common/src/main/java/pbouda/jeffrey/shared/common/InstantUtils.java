@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.resources.util;
+package pbouda.jeffrey.shared.common;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -28,7 +28,7 @@ public abstract class InstantUtils {
             .withZone(ZoneId.systemDefault());
 
     public static String formatInstant(Instant instant) {
-        return FORMATTER.format(instant);
+        return instant != null ? FORMATTER.format(instant) : null;
     }
 
     public static Instant parseInstant(String instant) {

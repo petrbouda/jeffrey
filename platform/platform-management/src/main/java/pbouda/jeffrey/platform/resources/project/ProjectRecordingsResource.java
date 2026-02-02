@@ -29,7 +29,7 @@ import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
 import pbouda.jeffrey.platform.manager.RecordingsManager;
 import pbouda.jeffrey.provider.platform.model.NewRecording;
-import pbouda.jeffrey.platform.resources.util.InstantUtils;
+import pbouda.jeffrey.shared.common.InstantUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
