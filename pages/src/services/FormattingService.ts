@@ -166,6 +166,11 @@ export default class FormattingService {
         }
     }
 
+    static formatTimestampUTC(millis: number | undefined | null): string {
+        if (!millis) return '-';
+        return new Date(millis).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+    }
+
     static formatDate(dateString: string): string {
         return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short',

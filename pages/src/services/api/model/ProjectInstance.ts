@@ -24,7 +24,6 @@ export default class ProjectInstance {
         public hostname: string,
         public projectId: string,
         public status: ProjectInstanceStatus,
-        public lastHeartbeat: number,
         public startedAt: number,
         public sessionCount: number,
         public activeSessionId?: string,

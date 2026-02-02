@@ -124,10 +124,10 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
   // 0% = now (left side), 100% = end of range (right side)
   const startPercent = Math.min((now - instance.startedAt) / rangeMs * 100, 100);
 
-  // Calculate where the bar ends (0 = now for ONLINE, or when it went offline)
+  // Calculate where the bar ends (0 = now for ONLINE, startedAt for OFFLINE since no end time is tracked)
   const endPercent = instance.status === 'ONLINE'
     ? 0
-    : Math.min((now - instance.lastHeartbeat) / rangeMs * 100, 100);
+    : Math.min((now - instance.startedAt) / rangeMs * 100, 100);
 
   // Bar starts at endPercent (closer to "Now") and extends to startPercent
   const left = endPercent;

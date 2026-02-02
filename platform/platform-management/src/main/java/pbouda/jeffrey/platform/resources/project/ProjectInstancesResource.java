@@ -35,8 +35,7 @@ public class ProjectInstancesResource {
             String id,
             String hostname,
             String status,
-            String lastHeartbeat,
-            String startedAt,
+            Long startedAt,
             int sessionCount,
             String activeSessionId) {
     }
@@ -44,8 +43,8 @@ public class ProjectInstancesResource {
     public record InstanceSessionResponse(
             String id,
             String repositoryId,
-            String startedAt,
-            String finishedAt,
+            Long startedAt,
+            Long finishedAt,
             boolean isActive) {
     }
 
@@ -83,8 +82,7 @@ public class ProjectInstancesResource {
                 info.id(),
                 info.hostname(),
                 info.status().name(),
-                InstantUtils.formatInstant(info.lastHeartbeat()),
-                InstantUtils.formatInstant(info.startedAt()),
+                InstantUtils.toEpochMilli(info.startedAt()),
                 info.sessionCount(),
                 info.activeSessionId());
     }
@@ -93,8 +91,8 @@ public class ProjectInstancesResource {
         return new InstanceSessionResponse(
                 info.sessionId(),
                 info.repositoryId(),
-                InstantUtils.formatInstant(info.createdAt()),
-                InstantUtils.formatInstant(info.finishedAt()),
+                InstantUtils.toEpochMilli(info.createdAt()),
+                InstantUtils.toEpochMilli(info.finishedAt()),
                 info.finishedAt() == null);
     }
 }

@@ -67,8 +67,7 @@ public class ProjectInstancesPublicResource {
                 info.id(),
                 info.hostname(),
                 info.status().name(),
-                InstantUtils.formatInstant(info.lastHeartbeat()),
-                InstantUtils.formatInstant(info.startedAt()),
+                InstantUtils.toEpochMilli(info.startedAt()),
                 info.sessionCount(),
                 info.activeSessionId());
     }
@@ -77,8 +76,8 @@ public class ProjectInstancesPublicResource {
         return new InstanceSessionResponse(
                 info.sessionId(),
                 info.repositoryId(),
-                InstantUtils.formatInstant(info.createdAt()),
-                InstantUtils.formatInstant(info.finishedAt()),
+                InstantUtils.toEpochMilli(info.createdAt()),
+                InstantUtils.toEpochMilli(info.finishedAt()),
                 info.finishedAt() == null);
     }
 }

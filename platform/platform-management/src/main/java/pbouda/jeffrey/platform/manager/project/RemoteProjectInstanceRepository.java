@@ -22,6 +22,7 @@ import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
 import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -94,8 +95,8 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 projectInfo.originId(),
                 response.hostname(),
                 ProjectInstanceStatus.valueOf(response.status()),
-                parseInstant(response.lastHeartbeat()),
-                parseInstant(response.startedAt()),
+                null,
+                InstantUtils.fromEpochMilli(response.startedAt()),
                 response.sessionCount(),
                 response.activeSessionId());
     }
@@ -111,11 +112,7 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 null,
                 false,
                 null,
-                parseInstant(response.startedAt()),
-                parseInstant(response.finishedAt()));
-    }
-
-    private static Instant parseInstant(String value) {
-        return value != null ? Instant.parse(value) : null;
+                InstantUtils.fromEpochMilli(response.startedAt()),
+                InstantUtils.fromEpochMilli(response.finishedAt()));
     }
 }

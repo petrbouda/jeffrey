@@ -65,8 +65,7 @@ export default class ProjectInstanceClient {
             data.hostname,
             data.projectId || '',
             data.status,
-            data.lastHeartbeat ? new Date(data.lastHeartbeat).getTime() : Date.now(),
-            data.startedAt ? new Date(data.startedAt).getTime() : Date.now(),
+            data.startedAt ?? Date.now(),
             data.sessionCount || 0,
             data.activeSessionId
         );
@@ -76,8 +75,8 @@ export default class ProjectInstanceClient {
         return new ProjectInstanceSession(
             data.id,
             data.repositoryId,
-            data.startedAt ? new Date(data.startedAt).getTime() : Date.now(),
-            data.finishedAt ? new Date(data.finishedAt).getTime() : undefined,
+            data.startedAt ?? Date.now(),
+            data.finishedAt ?? undefined,
             data.isActive
         );
     }

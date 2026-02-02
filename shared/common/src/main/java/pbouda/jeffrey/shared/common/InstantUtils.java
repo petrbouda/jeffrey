@@ -25,7 +25,7 @@ import java.time.format.DateTimeFormatter;
 public abstract class InstantUtils {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-            .withZone(ZoneId.systemDefault());
+            .withZone(ZoneId.of("UTC"));
 
     public static String formatInstant(Instant instant) {
         return instant != null ? FORMATTER.format(instant) : null;
@@ -33,5 +33,13 @@ public abstract class InstantUtils {
 
     public static Instant parseInstant(String instant) {
         return Instant.from(FORMATTER.parse(instant));
+    }
+
+    public static Long toEpochMilli(Instant instant) {
+        return instant != null ? instant.toEpochMilli() : null;
+    }
+
+    public static Instant fromEpochMilli(Long epochMilli) {
+        return epochMilli != null ? Instant.ofEpochMilli(epochMilli) : null;
     }
 }

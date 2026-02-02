@@ -80,13 +80,9 @@
                     <i class="bi bi-layers me-1"></i>
                     {{ instance.sessionCount }} sessions
                   </div>
-                  <div class="me-3">
-                    <i class="bi bi-clock me-1"></i>
-                    Last: {{ formatTimeAgo(instance.lastHeartbeat) }}
-                  </div>
                   <div>
                     <i class="bi bi-play-circle me-1"></i>
-                    Started: {{ formatTimeAgo(instance.startedAt) }}
+                    Started: {{ FormattingService.formatRelativeTime(instance.startedAt) }}
                   </div>
                 </div>
               </div>
@@ -113,6 +109,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
+import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
@@ -144,15 +141,6 @@ const filteredInstances = computed(() => {
 
   return result;
 });
-
-function formatTimeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-
-  if (seconds < 60) return `${seconds}s ago`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
-}
 
 onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
