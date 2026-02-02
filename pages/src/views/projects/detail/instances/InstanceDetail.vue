@@ -47,9 +47,6 @@
       <div class="d-flex align-items-center mb-3">
         <div class="sessions-header-bar flex-grow-1 d-flex align-items-center px-3">
           <span class="header-text">Sessions ({{ sessions.length }})</span>
-          <div v-if="activeSession" class="ms-auto">
-            <Badge value="1 recording" variant="red" size="xs" />
-          </div>
         </div>
       </div>
 
@@ -100,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -117,10 +114,6 @@ const { workspaceId, projectId, instanceId } = useNavigation();
 const loading = ref(true);
 const instance = ref<ProjectInstance | null>(null);
 const sessions = ref<ProjectInstanceSession[]>([]);
-
-const activeSession = computed(() => {
-  return sessions.value.find(s => s.isActive);
-});
 
 function formatSessionDuration(startedAt: number, finishedAt: number): string {
   const diffMs = finishedAt - startedAt;
@@ -153,16 +146,21 @@ onMounted(async () => {
 
 <style scoped>
 .sessions-header-bar {
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
+  border: 1px solid #4a50e2;
   border-radius: 6px;
-  padding: 0.5rem 1rem;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
+  height: 31px;
 }
 
 .header-text {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #475569;
-  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* Compact metadata bar */
@@ -215,7 +213,7 @@ onMounted(async () => {
   content: '';
   position: absolute;
   left: 7px;
-  top: 16px;
+  top: 50%;
   bottom: 0;
   width: 2px;
   background: #e2e8f0;
@@ -228,7 +226,8 @@ onMounted(async () => {
 .session-dot {
   position: absolute;
   left: 0;
-  top: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -287,6 +286,11 @@ onMounted(async () => {
   margin-left: 16px;
   font-size: 0.78rem;
   color: #64748b;
+}
+
+.session-times > div {
+  display: flex;
+  align-items: center;
 }
 
 .session-id-text {
