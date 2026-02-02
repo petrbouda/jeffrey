@@ -58,14 +58,12 @@
         description="No recording sessions found for this instance."
       />
 
-      <div v-else class="session-timeline">
+      <div v-else class="session-list">
         <div
           v-for="(session, index) in sessions"
           :key="session.id"
-          class="session-timeline-item"
-          :class="{ 'last-item': index === sessions.length - 1 }"
+          class="session-list-item"
         >
-          <div class="session-dot" :class="session.isActive ? 'active' : 'finished'"></div>
           <div class="session-card" :class="session.isActive ? 'session-card-active' : 'session-card-finished'">
             <div class="d-flex align-items-center">
               <span class="fw-bold session-label">Session #{{ sessions.length - index }}</span>
@@ -198,57 +196,13 @@ onMounted(async () => {
   color: #94a3b8;
 }
 
-/* Session timeline */
-.session-timeline {
-  padding-left: 4px;
+/* Session list */
+.session-list-item {
+  padding-bottom: 12px;
 }
 
-.session-timeline-item {
-  position: relative;
-  padding-left: 28px;
-  padding-bottom: 16px;
-}
-
-.session-timeline-item::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #e2e8f0;
-}
-
-.session-timeline-item.last-item::before {
-  display: none;
-}
-
-.session-dot {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid;
-}
-
-.session-dot.active {
-  border-color: #f59e0b;
-  background: #f59e0b;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-.session-dot.finished {
-  border-color: #10b981;
-  background: #10b981;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
-  50% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.7); }
+.session-list-item:last-child {
+  padding-bottom: 0;
 }
 
 .session-card {
