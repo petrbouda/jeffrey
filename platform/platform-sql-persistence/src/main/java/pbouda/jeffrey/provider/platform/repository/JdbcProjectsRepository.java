@@ -109,6 +109,11 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("graph_visualization", Json.toString(project.graphVisualization()));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT, INSERT_PROJECT, paramSource);
+
+        if (newProject.originId() != null) {
+            return findByOriginProjectId(newProject.originId())
+                    .orElse(newProject);
+        }
         return newProject;
     }
 

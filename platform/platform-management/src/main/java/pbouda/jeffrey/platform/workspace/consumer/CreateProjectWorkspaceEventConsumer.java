@@ -30,6 +30,8 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.workspace.model.ProjectCreatedEventContent;
 
+import java.util.Optional;
+
 public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
     private static final Logger LOG = LoggerFactory.getLogger(CreateProjectWorkspaceEventConsumer.class);
@@ -43,30 +45,41 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
-        CreateProject createProject = new CreateProject(
-                event.projectId(),
-                eventContent.projectName(),
-                eventContent.projectLabel(),
-                null, // namespace - not available from workspace events
-                jobDescriptor.templateId(),
-                // When the project/event was created in the workspace (not replicated to the Jeffrey)
-                event.originCreatedAt(),
-                eventContent.attributes());
 
-        ProjectManager projectManager = projectsManager.create(createProject);
+        Optional<ProjectManager> existingProject = projectsManager.findByOriginProjectId(event.projectId());
 
-        LOG.info("Project created from workspace event: project_id={} event={}",
-                projectManager.info().id(), event);
+        ProjectManager projectManager;
+        if (existingProject.isPresent()) {
+            projectManager = existingProject.get();
+            LOG.info("Project already exists, skipping creation: project_id={} origin_project_id={}",
+                    projectManager.info().id(), event.projectId());
+        } else {
+            CreateProject createProject = new CreateProject(
+                    event.projectId(),
+                    eventContent.projectName(),
+                    eventContent.projectLabel(),
+                    null, // namespace - not available from workspace events
+                    jobDescriptor.templateId(),
+                    // When the project/event was created in the workspace (not replicated to the Jeffrey)
+                    event.originCreatedAt(),
+                    eventContent.attributes());
 
-        RepositoryInfo projectRepository = new RepositoryInfo(
-                null,
-                eventContent.repositoryType(),
-                eventContent.workspacesPath(),
-                eventContent.relativeWorkspacePath(),
-                eventContent.relativeProjectPath());
+            projectManager = projectsManager.create(createProject);
+            LOG.info("Project created from workspace event: project_id={} event={}",
+                    projectManager.info().id(), event);
+        }
 
-        projectManager.repositoryManager()
-                .create(projectRepository);
+        if (projectManager.repositoryManager().info().isEmpty()) {
+            RepositoryInfo projectRepository = new RepositoryInfo(
+                    null,
+                    eventContent.repositoryType(),
+                    eventContent.workspacesPath(),
+                    eventContent.relativeWorkspacePath(),
+                    eventContent.relativeProjectPath());
+
+            projectManager.repositoryManager().create(projectRepository);
+            LOG.info("Repository created for project: project_id={}", projectManager.info().id());
+        }
     }
 
     @Override

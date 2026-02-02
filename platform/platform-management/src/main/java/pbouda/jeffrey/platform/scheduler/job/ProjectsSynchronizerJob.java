@@ -101,14 +101,19 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         long latestOffset = -1;
 
         for (WorkspaceEvent event : sortedEvents) {
-            for (WorkspaceEventConsumer consumer : consumers) {
-                if (consumer.isApplicable(event)) {
-                    consumer.on(event, jobDescriptor);
-                    latestOffset = event.eventId();
-                    LOG.debug("Successfully processed: event_type={} event_id={}", event.eventType(), event.eventId());
-                    break;
+            try {
+                for (WorkspaceEventConsumer consumer : consumers) {
+                    if (consumer.isApplicable(event)) {
+                        consumer.on(event, jobDescriptor);
+                        LOG.debug("Successfully processed: event_type={} event_id={}", event.eventType(), event.eventId());
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                LOG.error("Failed to process workspace event, skipping: event_type={} event_id={} project_id={}",
+                        event.eventType(), event.eventId(), event.projectId(), e);
             }
+            latestOffset = event.eventId();
         }
 
         // Update consumer state with the latest processed event timestamp
