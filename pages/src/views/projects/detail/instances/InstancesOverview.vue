@@ -1,43 +1,33 @@
 <template>
   <PageHeader
-    title="Instance History"
-    description="View all instances that have connected to this project, including both online and offline instances."
-    icon="bi-clock-history"
+    title="Instances Overview"
+    description="View all instances connected to this project. Filter by status to see online or offline instances."
+    icon="bi-box"
   >
-    <!-- Summary Stats Row -->
-    <div class="row g-3 mb-3" v-if="!loading && instances.length > 0">
-      <div class="col-md-4">
-        <div class="compact-stat-card">
-          <div class="compact-stat-header">
-            <i class="bi bi-grid text-primary"></i>
-            <span class="compact-stat-title">Total Instances</span>
-          </div>
-          <div class="compact-stat-value">{{ instances.length }}</div>
-        </div>
+    <!-- Inline Stats Strip -->
+    <div class="inline-stats-strip mb-3" v-if="!loading && instances.length > 0">
+      <div class="stat-item">
+        <i class="bi bi-grid"></i>
+        <span class="stat-label">Total</span>
+        <span class="stat-value">{{ instances.length }}</span>
       </div>
-      <div class="col-md-4">
-        <div class="compact-stat-card">
-          <div class="compact-stat-header">
-            <i class="bi bi-broadcast text-success"></i>
-            <span class="compact-stat-title">Online</span>
-          </div>
-          <div class="compact-stat-value">{{ onlineCount }}</div>
-        </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <i class="bi bi-broadcast text-success"></i>
+        <span class="stat-label">Online</span>
+        <span class="stat-value">{{ onlineCount }}</span>
       </div>
-      <div class="col-md-4">
-        <div class="compact-stat-card">
-          <div class="compact-stat-header">
-            <i class="bi bi-power" style="color: #9ca3af;"></i>
-            <span class="compact-stat-title">Offline</span>
-          </div>
-          <div class="compact-stat-value">{{ offlineCount }}</div>
-        </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <i class="bi bi-power" style="color: #9ca3af;"></i>
+        <span class="stat-label">Offline</span>
+        <span class="stat-value">{{ offlineCount }}</span>
       </div>
     </div>
 
     <!-- Search Box and Filter -->
-    <div class="d-flex gap-3 mb-3 align-items-start">
-      <SearchBox v-model="searchQuery" placeholder="Search instances..." />
+    <div class="d-flex gap-3 mb-3 align-items-center">
+      <SearchBox v-model="searchQuery" placeholder="Search instances..." class="flex-grow-1" />
       <div class="btn-group filter-btn-group" role="group">
         <button
           type="button"
@@ -67,7 +57,7 @@
           <span class="header-text">All Instances ({{ filteredInstances.length }})</span>
           <div class="ms-auto d-flex gap-2">
             <Badge :value="`${onlineCount} online`" variant="green" size="xs" />
-            <Badge :value="`${offlineCount} offline`" variant="gray" size="xs" />
+            <Badge :value="`${offlineCount} offline`" variant="grey" size="xs" />
           </div>
         </div>
       </div>
@@ -80,7 +70,7 @@
     <div v-else class="col-12">
       <EmptyState
         v-if="filteredInstances.length === 0"
-        icon="bi-clock-history"
+        icon="bi-box"
         title="No Instances Found"
         description="No instances match your search criteria."
       />
@@ -103,7 +93,7 @@
                 <Badge
                   class="ms-2"
                   :value="instance.status"
-                  :variant="instance.status === 'ONLINE' ? 'green' : 'gray'"
+                  :variant="instance.status === 'ONLINE' ? 'green' : 'grey'"
                   size="xs"
                 />
               </div>
@@ -168,48 +158,49 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Blue gradient header bar matching RepositoryView */
 .instances-header-bar {
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
+  border: 1px solid #4a50e2;
   border-radius: 6px;
-  padding: 0.5rem 1rem;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
+  height: 31px;
 }
 
 .header-text {
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #475569;
-  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* Compact stat cards */
-.compact-stat-card {
+/* Inline stats strip */
+.inline-stats-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 8px;
-  padding: 12px 16px;
-  height: 100%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  padding: 8px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
-.compact-stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(94, 100, 255, 0.1);
-  border-color: rgba(94, 100, 255, 0.15);
-}
-
-.compact-stat-header {
+.stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 6px;
 }
 
-.compact-stat-header i {
-  font-size: 1rem;
+.stat-item i {
+  font-size: 0.85rem;
+  color: #5e64ff;
 }
 
-.compact-stat-title {
+.stat-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: #6b7280;
@@ -217,10 +208,16 @@ onMounted(async () => {
   letter-spacing: 0.05em;
 }
 
-.compact-stat-value {
-  font-size: 1.25rem;
+.stat-value {
+  font-size: 0.85rem;
   font-weight: 700;
   color: #374151;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 18px;
+  background-color: #e2e8f0;
 }
 
 /* Filter button group */

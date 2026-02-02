@@ -416,14 +416,8 @@ const router = createRouter({
                 },
                 {
                   path: 'instances',
-                  name: 'project-instances',
-                  component: () => import('@/views/projects/detail/instances/InstancesList.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'instances/history',
-                  name: 'project-instances-history',
-                  component: () => import('@/views/projects/detail/instances/InstancesHistory.vue'),
+                  name: 'project-instances-overview',
+                  component: () => import('@/views/projects/detail/instances/InstancesOverview.vue'),
                   meta: { layout: 'project' }
                 },
                 {

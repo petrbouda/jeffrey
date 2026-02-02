@@ -75,15 +75,8 @@
                         :to="generateProjectUrl('instances')"
                         class="nav-item nav-subitem"
                         active-class="active">
-                      <i class="bi bi-circle-fill"></i>
-                      <span>Active</span>
-                    </router-link>
-                    <router-link
-                        :to="generateProjectUrl('instances/history')"
-                        class="nav-item nav-subitem"
-                        active-class="active">
-                      <i class="bi bi-clock-history"></i>
-                      <span>History</span>
+                      <i class="bi bi-grid"></i>
+                      <span>Overview</span>
                     </router-link>
                     <router-link
                         :to="generateProjectUrl('instances/timeline')"
