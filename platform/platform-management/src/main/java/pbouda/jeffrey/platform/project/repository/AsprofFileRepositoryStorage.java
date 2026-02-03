@@ -307,9 +307,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         LOG.info("Merging recordings: sessionId={} sourceFiles={} paths={}",
                 sessionId, compressedPaths.size(), compressedPaths);
 
-        // Create merged file with .jfr extension (not .jfr.lz4)
-        // because we decompress LZ4 files and concatenate raw JFR content.
-        // JFR format natively supports multiple chunks concatenated.
+        // Create intermediate merged file with .jfr extension.
+        // We decompress LZ4 files, concatenate raw JFR content (JFR supports multiple chunks),
+        // then compress the result back to .jfr.lz4 before returning.
         Path tempFile = jeffreyDirs.temp().resolve(SupportedRecordingFile.JFR.appendExtension(sessionId));
 
         // Decompress each LZ4 file and merge the raw JFR content
@@ -332,7 +332,11 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                     + " sourceFiles=" + compressedPaths.size());
         }
 
-        return new MergedRecording(tempFile);
+        Path compressedFile = jeffreyDirs.temp().resolve(SupportedRecordingFile.JFR_LZ4.appendExtension(sessionId));
+        Lz4Compressor.compress(tempFile, compressedFile);
+        FileSystemUtils.removeFile(tempFile);
+
+        return new MergedRecording(compressedFile);
     }
 
     // ========== Artifact Files ==========

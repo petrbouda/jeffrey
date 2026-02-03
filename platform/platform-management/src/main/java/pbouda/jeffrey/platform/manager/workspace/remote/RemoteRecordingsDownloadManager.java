@@ -192,21 +192,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             throw Exceptions.emptyRecordingSession(recordingSessionId);
         }
 
-        // Calculate total bytes for progress tracking
-        long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();
-        int totalFiles = files.size();
-
-        LOG.info("Starting parallel download with progress tracking: sessionId={} files={} totalBytes={} maxConcurrent={}",
-                recordingSessionId, totalFiles, totalBytes, MAX_CONCURRENT_DOWNLOADS);
-
-        // Notify start
-        progressCallback.onStart(totalFiles, totalBytes);
-
-        // Check for cancellation
-        if (progressCallback.isCancelled()) {
-            throw new CancellationException("Download cancelled");
-        }
-
         List<RepositoryFile> recordingFiles = files.stream()
                 .filter(RepositoryFile::isRecordingFile)
                 .toList();
@@ -219,12 +204,27 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .map(RepositoryFile::id)
                 .toList();
 
+        // Calculate total: 1 merged recording + individual artifact files
+        long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();
+        int totalFiles = 1 + artifactFiles.size();
+
+        LOG.info("Starting parallel download with progress tracking: sessionId={} files={} totalBytes={} maxConcurrent={}",
+                recordingSessionId, totalFiles, totalBytes, MAX_CONCURRENT_DOWNLOADS);
+
+        // Notify start
+        progressCallback.onStart(totalFiles, totalBytes);
+
+        // Check for cancellation
+        if (progressCallback.isCancelled()) {
+            throw new CancellationException("Download cancelled");
+        }
+
         // Semaphore to limit concurrent downloads
         Semaphore downloadSemaphore = new Semaphore(MAX_CONCURRENT_DOWNLOADS);
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
             // Download merged recording file with streaming progress
-            String mergedFileName = "merged-recording.jfr";
+            String mergedFileName = "merged-recording.jfr.lz4";
             long mergedSizeEstimate = recordingFiles.stream().mapToLong(RepositoryFile::size).sum();
 
             if (progressCallback.isCancelled()) {
