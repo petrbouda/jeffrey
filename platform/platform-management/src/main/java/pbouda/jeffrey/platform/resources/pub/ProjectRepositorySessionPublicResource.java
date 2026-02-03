@@ -21,15 +21,18 @@ package pbouda.jeffrey.platform.resources.pub;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.StreamingOutput;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
+import pbouda.jeffrey.profile.manager.model.CleanupInputStream;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.platform.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,10 +94,18 @@ public class ProjectRepositorySessionPublicResource {
     }
 
     private static Response streamRecording(StreamedRecordingFile recordingFile) {
-        StreamingOutput stream = output -> recordingFile.writer().accept(output);
-        return Response.ok(stream)
-                .header("Content-Disposition", "attachment; filename=\"" + recordingFile.fileName() + "\"")
-                .header("Content-Length", recordingFile.size())
-                .build();
+        try {
+            InputStream stream = Files.newInputStream(recordingFile.path());
+            if (recordingFile.cleanup() != null) {
+                stream = new CleanupInputStream(stream, recordingFile.cleanup());
+            }
+            return Response.ok(stream)
+                    .header("Content-Disposition", "attachment; filename=\"" + recordingFile.fileName() + "\"")
+                    .header("Content-Length", recordingFile.size())
+                    .type(MediaType.APPLICATION_OCTET_STREAM)
+                    .build();
+        } catch (java.io.IOException e) {
+            throw new UncheckedIOException("Failed to open recording file: " + recordingFile.fileName(), e);
+        }
     }
 }

@@ -48,6 +48,7 @@ public class DownloadTask implements ProgressCallback {
 
     // Thread-safe progress tracking for parallel downloads
     private final ConcurrentHashMap<String, FileProgress> activeFiles;
+    private final List<FileProgress> completedFiles;
     private final AtomicLong completedBytes;
     private final AtomicInteger completedCount;
     private final AtomicInteger totalFiles;
@@ -73,6 +74,7 @@ public class DownloadTask implements ProgressCallback {
         this.createdAt = clock.instant();
 
         this.activeFiles = new ConcurrentHashMap<>();
+        this.completedFiles = new CopyOnWriteArrayList<>();
         this.completedBytes = new AtomicLong(0);
         this.completedCount = new AtomicInteger(0);
         this.totalFiles = new AtomicInteger(0);
@@ -158,6 +160,7 @@ public class DownloadTask implements ProgressCallback {
     private DownloadProgress buildProgress() {
         // Snapshot of active files
         List<FileProgress> activeDownloads = new ArrayList<>(activeFiles.values());
+        List<FileProgress> completed = List.copyOf(completedFiles);
 
         // Calculate total downloaded bytes: completed + active files progress
         long activeBytes = activeDownloads.stream()
@@ -175,10 +178,12 @@ public class DownloadTask implements ProgressCallback {
 
         return new DownloadProgress(
                 taskId,
+                sessionId,
                 status,
                 totalFiles.get(),
                 completedCount.get(),
                 activeDownloads,
+                completed,
                 total,
                 downloadedBytes,
                 percentComplete,
@@ -217,7 +222,14 @@ public class DownloadTask implements ProgressCallback {
 
     @Override
     public void onFileProgress(String fileName, long bytesDownloaded) {
-        activeFiles.computeIfPresent(fileName, (k, v) -> v.withProgress(bytesDownloaded));
+        activeFiles.computeIfPresent(fileName, (k, v) -> {
+            FileProgress updated = v.withProgress(bytesDownloaded);
+            long sizeDiff = updated.fileSize() - v.fileSize();
+            if (sizeDiff > 0) {
+                totalBytes.addAndGet(sizeDiff);
+            }
+            return updated;
+        });
         notifyListeners();
     }
 
@@ -225,6 +237,12 @@ public class DownloadTask implements ProgressCallback {
     public void onFileComplete(String fileName) {
         FileProgress completed = activeFiles.remove(fileName);
         if (completed != null) {
+            completedFiles.add(new FileProgress(
+                    completed.fileName(),
+                    completed.fileSize(),
+                    completed.fileSize(),
+                    FileProgressStatus.COMPLETED
+            ));
             completedBytes.addAndGet(completed.fileSize());
             completedCount.incrementAndGet();
         }

@@ -30,6 +30,8 @@ import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +72,33 @@ public interface RemoteWorkspaceClient {
 
     CompletableFuture<Resource> downloadFile(
             String workspaceId, String projectId, String sessionId, String fileId);
+
+    /**
+     * Consumer for streaming HTTP response body.
+     *
+     * @param inputStream   the raw HTTP response body stream
+     * @param contentLength the Content-Length from the HTTP response, or -1 if unknown
+     */
+    @FunctionalInterface
+    interface InputStreamConsumer {
+        void accept(InputStream inputStream, long contentLength) throws IOException;
+    }
+
+    /**
+     * Streams merged recordings directly from the remote server without buffering the entire response in memory.
+     * The consumer receives the raw HTTP response body as an InputStream for streaming processing.
+     */
+    void streamRecordings(
+            String workspaceId, String projectId, String sessionId,
+            List<String> recordingIds, InputStreamConsumer consumer);
+
+    /**
+     * Streams a single file directly from the remote server without buffering the entire response in memory.
+     * The consumer receives the raw HTTP response body as an InputStream for streaming processing.
+     */
+    void streamFile(
+            String workspaceId, String projectId, String sessionId,
+            String fileId, InputStreamConsumer consumer);
 
     /**
      * Fetches the effective profiler settings for the given project,

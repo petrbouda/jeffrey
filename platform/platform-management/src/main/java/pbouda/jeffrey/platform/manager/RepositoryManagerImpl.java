@@ -25,7 +25,6 @@ import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
-import pbouda.jeffrey.profile.parser.chunk.Recordings;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
@@ -78,21 +77,13 @@ public class RepositoryManagerImpl implements RepositoryManager {
         String filename = artifactPath.getFileName().toString();
         long size = artifactPath.toFile().length();
 
-        return new StreamedRecordingFile(filename, size, output -> Recordings.copyByStreaming(artifactPath, output));
+        return new StreamedRecordingFile(filename, size, artifactPath);
     }
 
     @Override
     public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
         MergedRecording merged = repositoryStorage.mergeRecordings(sessionId, recordingFileIds);
-        return new StreamedRecordingFile(
-                merged.filename(),
-                merged.size(),
-                output -> {
-                    try (var rec = merged) {
-                        Recordings.copyByStreaming(rec.path(), output);
-                    }
-                }
-        );
+        return new StreamedRecordingFile(merged.filename(), merged.size(), merged.path(), merged::close);
     }
 
     @Override

@@ -49,10 +49,12 @@ record FileProgressResponse(
  */
 public record DownloadProgressResponse(
         String taskId,
+        String sessionName,
         String status,
         int totalFiles,
         int completedFiles,
         List<FileProgressResponse> activeDownloads,
+        List<FileProgressResponse> completedDownloads,
         long totalBytes,
         long downloadedBytes,
         int percentComplete,
@@ -65,12 +67,18 @@ public record DownloadProgressResponse(
                 .map(FileProgressResponse::from)
                 .toList();
 
+        List<FileProgressResponse> completedDownloads = progress.completedDownloads().stream()
+                .map(FileProgressResponse::from)
+                .toList();
+
         return new DownloadProgressResponse(
                 progress.taskId(),
+                progress.sessionName(),
                 progress.status().name(),
                 progress.totalFiles(),
                 progress.completedFiles(),
                 activeDownloads,
+                completedDownloads,
                 progress.totalBytes(),
                 progress.downloadedBytes(),
                 progress.percentComplete(),

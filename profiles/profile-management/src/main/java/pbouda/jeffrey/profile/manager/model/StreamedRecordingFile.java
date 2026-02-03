@@ -18,8 +18,12 @@
 
 package pbouda.jeffrey.profile.manager.model;
 
-import java.io.OutputStream;
-import java.util.function.Consumer;
+import java.io.Closeable;
+import java.nio.file.Path;
 
-public record StreamedRecordingFile(String fileName, long size, Consumer<OutputStream> writer) {
+public record StreamedRecordingFile(String fileName, long size, Path path, Closeable cleanup) {
+
+    public StreamedRecordingFile(String fileName, long size, Path path) {
+        this(fileName, size, path, null);
+    }
 }

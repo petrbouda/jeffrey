@@ -222,23 +222,23 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         Semaphore downloadSemaphore = new Semaphore(MAX_CONCURRENT_DOWNLOADS);
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
-            // Download merged recording file with progress
+            // Download merged recording file with streaming progress
             String mergedFileName = "merged-recording.jfr";
-            long mergedSize = recordingFiles.stream().mapToLong(RepositoryFile::size).sum();
-
-            progressCallback.onFileStart(mergedFileName, mergedSize);
+            long mergedSizeEstimate = recordingFiles.stream().mapToLong(RepositoryFile::size).sum();
 
             if (progressCallback.isCancelled()) {
                 throw new CancellationException("Download cancelled");
             }
 
-            CompletableFuture<Resource> recordingResourceF = remoteWorkspaceClient.downloadRecordings(
-                    workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, recordingFileIds);
-
-            // Wait for the resource and copy with progress tracking
-            Resource recordingResource = recordingResourceF.join();
-            Path recordingPath = copyToTempDirWithProgress(
-                    recordingResource, tempDir, mergedFileName, progressCallback);
+            Path recordingPath = tempDir.resolve(mergedFileName);
+            remoteWorkspaceClient.streamRecordings(
+                    workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, recordingFileIds,
+                    (inputStream, contentLength) -> {
+                        long actualSize = contentLength > 0 ? contentLength : mergedSizeEstimate;
+                        progressCallback.onFileStart(mergedFileName, actualSize);
+                        streamToFileWithProgress(
+                                inputStream, recordingPath, mergedFileName, progressCallback);
+                    });
 
             progressCallback.onFileComplete(mergedFileName);
 
@@ -255,14 +255,16 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                                         return null;
                                     }
 
-                                    progressCallback.onFileStart(artifactFile.name(), artifactFile.size());
-
-                                    Resource artifactResource = remoteWorkspaceClient.downloadFile(
+                                    Path artifactPath = tempDir.resolve(artifactFile.name());
+                                    remoteWorkspaceClient.streamFile(
                                             workspaceInfo.originId(), projectInfo.originId(),
-                                            recordingSessionId, artifactFile.id()).join();
-
-                                    Path artifactPath = copyToTempDirWithProgress(
-                                            artifactResource, tempDir, artifactFile.name(), progressCallback);
+                                            recordingSessionId, artifactFile.id(),
+                                            (inputStream, contentLength) -> {
+                                                long actualSize = contentLength > 0 ? contentLength : artifactFile.size();
+                                                progressCallback.onFileStart(artifactFile.name(), actualSize);
+                                                streamToFileWithProgress(
+                                                        inputStream, artifactPath, artifactFile.name(), progressCallback);
+                                            });
 
                                     progressCallback.onFileComplete(artifactFile.name());
                                     return artifactPath;
@@ -318,33 +320,25 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
     }
 
-    private Path copyToTempDirWithProgress(
-            Resource resource,
-            Directory tempDir,
+    private static void streamToFileWithProgress(
+            InputStream source,
+            Path target,
             String fileName,
-            ProgressCallback progressCallback) {
-        try {
-            String actualFilename = resource.getFilename();
-            Path target = tempDir.resolve(actualFilename);
+            ProgressCallback progressCallback) throws IOException {
 
-            try (InputStream in = new ProgressTrackingInputStream(
-                    resource.getInputStream(),
-                    fileName,
-                    (name, bytes) -> progressCallback.onFileProgress(name, bytes));
-                 OutputStream out = Files.newOutputStream(target)) {
+        try (InputStream in = new ProgressTrackingInputStream(
+                source, fileName,
+                (name, bytes) -> progressCallback.onFileProgress(name, bytes));
+             OutputStream out = Files.newOutputStream(target)) {
 
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                while ((bytesRead = in.read(buffer)) != -1) {
-                    if (progressCallback.isCancelled()) {
-                        throw new CancellationException("Download cancelled during file copy");
-                    }
-                    out.write(buffer, 0, bytesRead);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                if (progressCallback.isCancelled()) {
+                    throw new CancellationException("Download cancelled during file copy");
                 }
+                out.write(buffer, 0, bytesRead);
             }
-            return target;
-        } catch (IOException e) {
-            throw new RuntimeException("Cannot copy file from remote source: " + e.getMessage(), e);
         }
     }
 

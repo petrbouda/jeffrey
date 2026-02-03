@@ -38,6 +38,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.exception.ErrorResponse;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.exception.JeffreyException;
 import pbouda.jeffrey.shared.common.exception.RemoteJeffreyUnavailableException;
 import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
 import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
@@ -227,6 +228,65 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
     }
 
     @Override
+    public void streamRecordings(
+            String workspaceId, String projectId, String sessionId,
+            List<String> recordingIds, InputStreamConsumer consumer) {
+
+        invokeStreaming(uri, () -> {
+            restClient.post()
+                    .uri(API_DOWNLOAD_SELECTED_RECORDINGS, workspaceId, projectId, sessionId)
+                    .body(new FilesDownloadRequest(recordingIds))
+                    .exchange((request, response) -> {
+                        if (response.getStatusCode().isError()) {
+                            throw toRemoteError(uri, response.getStatusCode().value(),
+                                    () -> response.bodyTo(ErrorResponse.class));
+                        }
+                        consumer.accept(response.getBody(), response.getHeaders().getContentLength());
+                        return null;
+                    });
+        });
+    }
+
+    @Override
+    public void streamFile(
+            String workspaceId, String projectId, String sessionId,
+            String fileId, InputStreamConsumer consumer) {
+
+        invokeStreaming(uri, () -> {
+            restClient.post()
+                    .uri(API_DOWNLOAD_SELECTED_FILE, workspaceId, projectId, sessionId)
+                    .body(new FileDownloadRequest(fileId))
+                    .exchange((request, response) -> {
+                        if (response.getStatusCode().isError()) {
+                            throw toRemoteError(uri, response.getStatusCode().value(),
+                                    () -> response.bodyTo(ErrorResponse.class));
+                        }
+                        consumer.accept(response.getBody(), response.getHeaders().getContentLength());
+                        return null;
+                    });
+        });
+    }
+
+    private static void invokeStreaming(URI uri, Runnable invocation) {
+        HttpClientExchangeEvent event = new HttpClientExchangeEvent();
+        try {
+            invocation.run();
+        } catch (ResourceAccessException e) {
+            throw Exceptions.remoteJeffreyUnavailable(uri, e);
+        } finally {
+            event.end();
+            if (event.shouldCommit()) {
+                event.remoteHost = uri.getHost();
+                event.remotePort = uri.getPort();
+                event.method = HttpMethod.POST.name();
+                event.mediaType = MediaType.APPLICATION_JSON_VALUE;
+                event.status = -1;
+                event.commit();
+            }
+        }
+    }
+
+    @Override
     public EffectiveProfilerSettings fetchProfilerSettings(String workspaceId, String projectId) {
         ResponseEntity<ProfilerSettingsResponse> settings = invokeGet(uri, () -> {
             return restClient.get()
@@ -351,9 +411,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             throw Exceptions.remoteJeffreyUnavailable(uri, e);
         } catch (HttpStatusCodeException e) {
             statusCode = e.getStatusCode().value();
-            ErrorResponse responseError = e.getResponseBodyAs(ErrorResponse.class);
-            LOG.warn("Remote Jeffrey returned an error: uri={} error={}", uri, responseError);
-            throw Exceptions.fromErrorResponse(responseError);
+            throw toRemoteError(uri, statusCode, () -> e.getResponseBodyAs(ErrorResponse.class));
         } finally {
             event.end();
             if (event.shouldCommit()) {
@@ -364,6 +422,21 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
                 event.status = statusCode;
                 event.commit();
             }
+        }
+    }
+
+    /**
+     * Attempts to parse an {@link ErrorResponse} from a remote error. If the response body is not JSON
+     * (e.g., an HTML error page from a reverse proxy), falls back to a generic error message.
+     */
+    private static JeffreyException toRemoteError(URI uri, int statusCode, Supplier<ErrorResponse> errorResponseSupplier) {
+        try {
+            ErrorResponse error = errorResponseSupplier.get();
+            LOG.warn("Remote Jeffrey returned an error: uri={} error={}", uri, error);
+            return Exceptions.fromErrorResponse(error);
+        } catch (Exception ex) {
+            LOG.warn("Remote Jeffrey returned a non-JSON error: uri={} status={}", uri, statusCode);
+            return Exceptions.internal("Remote Jeffrey error (HTTP " + statusCode + ")");
         }
     }
 
