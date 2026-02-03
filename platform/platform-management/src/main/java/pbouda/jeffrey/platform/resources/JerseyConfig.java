@@ -26,6 +26,7 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.logging.LoggingFeature.Verbosity;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
+import org.glassfish.jersey.media.sse.SseFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,7 @@ public class JerseyConfig extends ResourceConfig {
         register(RootPublicResource.class);
         register(JacksonFeature.class);
         register(MultiPartFeature.class);
+        register(SseFeature.class);
         if (corsMode == CorsMode.PROD) {
             register(ProductionCORSFilter.class);
         } else {

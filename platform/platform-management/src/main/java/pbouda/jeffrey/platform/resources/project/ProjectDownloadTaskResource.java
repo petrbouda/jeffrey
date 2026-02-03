@@ -164,40 +164,41 @@ public class ProjectDownloadTaskResource {
 
         // Create a listener that sends SSE events
         Consumer<DownloadProgress> listener = progress -> {
-            if (!eventSink.isClosed()) {
-                try {
-                    DownloadProgressResponse response = DownloadProgressResponse.from(progress);
-                    eventSink.send(sse.newEventBuilder()
-                            .name("progress")
-                            .data(response)
-                            .build());
+            if (eventSink.isClosed()) {
+                return;
+            }
+            try {
+                DownloadProgressResponse response = DownloadProgressResponse.from(progress);
+                eventSink.send(sse.newEventBuilder()
+                        .name("progress")
+                        .data(response)
+                        .build());
 
-                    // Close the sink when the task completes
-                    if (progress.status().isTerminal()) {
-                        LOG.debug("Closing SSE connection for completed task: taskId={}", taskId);
-                        eventSink.close();
-                    }
-                } catch (Exception e) {
-                    LOG.warn("Error sending SSE event: taskId={} error={}", taskId, e.getMessage());
-                    try {
-                        eventSink.close();
-                    } catch (IOException ignored) {
-                        // Ignore close errors
-                    }
+                // Close the sink when the task completes
+                if (progress.status().isTerminal()) {
+                    LOG.debug("Closing SSE connection for completed task: taskId={}", taskId);
+                    eventSink.close();
+                }
+            } catch (Exception e) {
+                LOG.warn("Error sending SSE event: taskId={} error={}", taskId, e.getMessage());
+                try {
+                    eventSink.close();
+                } catch (IOException ignored) {
+                    // Ignore close errors
                 }
             }
         };
 
-        // Register the listener
-        task.addProgressListener(listener);
-
-        // When the sink is closed, remove the listener
+        // Send initial connection comment, then register listener after connection is established
         eventSink.send(sse.newEventBuilder().comment("connected").build())
-                .whenComplete((result, error) -> {
-                    if (error != null || eventSink.isClosed()) {
-                        task.removeProgressListener(listener);
-                        LOG.debug("SSE connection closed for task: taskId={}", taskId);
+                .whenComplete((__, error) -> {
+                    if (error != null) {
+                        LOG.debug("SSE connection failed for task: taskId={}", taskId);
+                        return;
                     }
+
+                    // Register the listener only after connection is confirmed
+                    task.addProgressListener(listener);
                 });
     }
 

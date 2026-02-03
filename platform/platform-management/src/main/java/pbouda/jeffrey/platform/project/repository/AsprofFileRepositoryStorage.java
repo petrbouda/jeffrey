@@ -24,7 +24,6 @@ import pbouda.jeffrey.platform.project.repository.detection.StatusStrategy;
 import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStrategy;
 import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
 import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
-import pbouda.jeffrey.profile.parser.chunk.Recordings;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
@@ -40,8 +39,10 @@ import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Comparator;
@@ -303,15 +304,28 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             throw Exceptions.emptyRecordingSession(sessionId);
         }
 
-        // Create temp file for merged recording
-        Path tempFile = jeffreyDirs.temp().resolve(TARGET_COMPRESSED_TYPE.appendExtension(sessionId));
-        Path merged = Recordings.mergeByStreaming(compressedPaths, tempFile);
+        // Create merged file with .jfr extension (not .jfr.lz4)
+        // because we decompress LZ4 files and concatenate raw JFR content.
+        // JFR format natively supports multiple chunks concatenated.
+        Path tempFile = jeffreyDirs.temp().resolve(SupportedRecordingFile.JFR.appendExtension(sessionId));
 
-        // Fallback for empty merged file (should not happen in normal cases, can happen in some blob storages)
-        if (FileSystemUtils.size(merged) <= 0) {
-            LOG.warn("Merged recording is empty, retrying by copy method: {}", merged);
-            FileSystemUtils.removeFile(merged);
-            Recordings.mergeByCopy(compressedPaths, tempFile);
+        // Decompress each LZ4 file and merge the raw JFR content
+        try (OutputStream out = Files.newOutputStream(tempFile,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            for (Path compressed : compressedPaths) {
+                if (Lz4Compressor.isLz4Compressed(compressed)) {
+                    Lz4Compressor.decompressTo(compressed, out);
+                } else {
+                    Files.copy(compressed, out);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to merge recordings: " + compressedPaths, e);
+        }
+
+        // Fallback for empty merged file
+        if (FileSystemUtils.size(tempFile) <= 0) {
+            LOG.warn("Merged recording is empty: {}", tempFile);
         }
 
         return new MergedRecording(tempFile);

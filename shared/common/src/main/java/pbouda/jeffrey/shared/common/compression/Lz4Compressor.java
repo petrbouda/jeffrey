@@ -145,6 +145,21 @@ public class Lz4Compressor {
     }
 
     /**
+     * Decompresses an LZ4 compressed file and writes the decompressed data to an OutputStream.
+     * Note: This method does NOT close the OutputStream - caller is responsible for closing it.
+     *
+     * @param source the path to the LZ4 compressed file
+     * @param output the OutputStream to write decompressed data to
+     */
+    public static void decompressTo(Path source, OutputStream output) {
+        try (InputStream in = decompressStream(source)) {
+            in.transferTo(output);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to decompress file to stream: source=" + source, e);
+        }
+    }
+
+    /**
      * Checks if a file is LZ4 compressed based on its extension.
      *
      * @param path the file path to check
