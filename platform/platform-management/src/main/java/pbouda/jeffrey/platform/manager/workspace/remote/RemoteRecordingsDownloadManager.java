@@ -27,6 +27,7 @@ import pbouda.jeffrey.platform.manager.download.ProgressTrackingInputStream;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryFileResponse;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs.Directory;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -240,6 +241,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                                 inputStream, recordingPath, mergedFileName, progressCallback);
                     });
 
+            LOG.info("Recording file received: file={} size={}", mergedFileName, FileSystemUtils.size(recordingPath));
             progressCallback.onFileComplete(mergedFileName);
 
             // Download artifact files in parallel with concurrency limit

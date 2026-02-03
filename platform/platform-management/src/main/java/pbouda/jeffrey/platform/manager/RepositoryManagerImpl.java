@@ -75,15 +75,14 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         Path artifactPath = artifactPaths.getFirst();
         String filename = artifactPath.getFileName().toString();
-        long size = artifactPath.toFile().length();
 
-        return new StreamedRecordingFile(filename, size, artifactPath);
+        return new StreamedRecordingFile(filename, artifactPath);
     }
 
     @Override
     public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
         MergedRecording merged = repositoryStorage.mergeRecordings(sessionId, recordingFileIds);
-        return new StreamedRecordingFile(merged.filename(), merged.size(), merged.path(), merged::close);
+        return new StreamedRecordingFile(merged.filename(), merged.path(), merged::close);
     }
 
     @Override

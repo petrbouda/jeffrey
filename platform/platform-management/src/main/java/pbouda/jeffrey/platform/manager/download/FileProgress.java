@@ -41,10 +41,8 @@ public record FileProgress(
 
     /**
      * Creates an updated FileProgress with new downloaded bytes.
-     * Adjusts fileSize upward if downloadedBytes exceeds it to prevent progress exceeding 100%.
      */
     public FileProgress withProgress(long downloadedBytes) {
-        long adjustedSize = Math.max(fileSize, downloadedBytes);
-        return new FileProgress(fileName, adjustedSize, downloadedBytes, status);
+        return new FileProgress(fileName, fileSize, downloadedBytes, status);
     }
 }

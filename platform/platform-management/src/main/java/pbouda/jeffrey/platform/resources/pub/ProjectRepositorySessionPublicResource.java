@@ -101,7 +101,6 @@ public class ProjectRepositorySessionPublicResource {
             }
             return Response.ok(stream)
                     .header("Content-Disposition", "attachment; filename=\"" + recordingFile.fileName() + "\"")
-                    .header("Content-Length", recordingFile.size())
                     .type(MediaType.APPLICATION_OCTET_STREAM)
                     .build();
         } catch (java.io.IOException e) {

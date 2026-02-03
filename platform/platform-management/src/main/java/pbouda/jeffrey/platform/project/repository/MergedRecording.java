@@ -43,15 +43,9 @@ public class MergedRecording implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(MergedRecording.class);
 
     private final Path path;
-    private final long size;
 
     public MergedRecording(Path path) {
         this.path = path;
-        try {
-            this.size = Files.size(path);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to get size of merged recording: " + path, e);
-        }
     }
 
     /**
@@ -66,13 +60,6 @@ public class MergedRecording implements AutoCloseable {
      */
     public String filename() {
         return path.getFileName().toString();
-    }
-
-    /**
-     * @return size of the merged recording file in bytes
-     */
-    public long size() {
-        return size;
     }
 
     @Override

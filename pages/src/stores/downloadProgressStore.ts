@@ -66,10 +66,10 @@ const aggregateProgress = computed(() => {
     const entries = Array.from(downloads.value.values());
     if (entries.length === 0) return 0;
 
-    const totalBytes = entries.reduce((sum, e) => sum + (e.progress.totalBytes || 0), 0);
-    const downloadedBytes = entries.reduce((sum, e) => sum + (e.progress.downloadedBytes || 0), 0);
+    const totalFiles = entries.reduce((sum, e) => sum + (e.progress.totalFiles || 0), 0);
+    const completedFiles = entries.reduce((sum, e) => sum + (e.progress.completedFiles || 0), 0);
 
-    return totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0;
+    return totalFiles > 0 ? Math.min(100, Math.round((completedFiles / totalFiles) * 100)) : 0;
 });
 
 /**

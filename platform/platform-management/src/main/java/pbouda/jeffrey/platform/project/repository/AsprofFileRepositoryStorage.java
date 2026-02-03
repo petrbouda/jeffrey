@@ -304,6 +304,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             throw Exceptions.emptyRecordingSession(sessionId);
         }
 
+        LOG.info("Merging recordings: sessionId={} sourceFiles={} paths={}",
+                sessionId, compressedPaths.size(), compressedPaths);
+
         // Create merged file with .jfr extension (not .jfr.lz4)
         // because we decompress LZ4 files and concatenate raw JFR content.
         // JFR format natively supports multiple chunks concatenated.
@@ -323,9 +326,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             throw new RuntimeException("Failed to merge recordings: " + compressedPaths, e);
         }
 
-        // Fallback for empty merged file
         if (FileSystemUtils.size(tempFile) <= 0) {
-            LOG.warn("Merged recording is empty: {}", tempFile);
+            FileSystemUtils.removeFile(tempFile);
+            throw new RuntimeException("Merged recording is empty: sessionId=" + sessionId
+                    + " sourceFiles=" + compressedPaths.size());
         }
 
         return new MergedRecording(tempFile);

@@ -229,7 +229,7 @@ class AsprofFileRepositoryStorageTest {
             try (MergedRecording merged = storage.mergeRecordings(SESSION_ID)) {
                 assertNotNull(merged.path());
                 assertTrue(Files.exists(merged.path()));
-                assertTrue(merged.size() > 0);
+                assertTrue(Files.size(merged.path()) > 0);
             }
         }
 
@@ -266,13 +266,13 @@ class AsprofFileRepositoryStorageTest {
             // Merge all recordings
             long allSize;
             try (MergedRecording mergedAll = storage.mergeRecordings(SESSION_ID)) {
-                allSize = mergedAll.size();
+                allSize = Files.size(mergedAll.path());
             }
 
             // Merge only one recording using its ID (relative path without extension)
             long oneSize;
             try (MergedRecording mergedOne = storage.mergeRecordings(SESSION_ID, List.of(FILE_ID_1))) {
-                oneSize = mergedOne.size();
+                oneSize = Files.size(mergedOne.path());
             }
 
             // Size of one recording should be smaller than both

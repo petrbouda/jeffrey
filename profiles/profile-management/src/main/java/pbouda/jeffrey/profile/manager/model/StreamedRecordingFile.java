@@ -21,9 +21,9 @@ package pbouda.jeffrey.profile.manager.model;
 import java.io.Closeable;
 import java.nio.file.Path;
 
-public record StreamedRecordingFile(String fileName, long size, Path path, Closeable cleanup) {
+public record StreamedRecordingFile(String fileName, Path path, Closeable cleanup) {
 
-    public StreamedRecordingFile(String fileName, long size, Path path) {
-        this(fileName, size, path, null);
+    public StreamedRecordingFile(String fileName, Path path) {
+        this(fileName, path, null);
     }
 }

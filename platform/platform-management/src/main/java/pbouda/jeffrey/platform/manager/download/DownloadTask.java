@@ -222,14 +222,7 @@ public class DownloadTask implements ProgressCallback {
 
     @Override
     public void onFileProgress(String fileName, long bytesDownloaded) {
-        activeFiles.computeIfPresent(fileName, (k, v) -> {
-            FileProgress updated = v.withProgress(bytesDownloaded);
-            long sizeDiff = updated.fileSize() - v.fileSize();
-            if (sizeDiff > 0) {
-                totalBytes.addAndGet(sizeDiff);
-            }
-            return updated;
-        });
+        activeFiles.computeIfPresent(fileName, (k, v) -> v.withProgress(bytesDownloaded));
         notifyListeners();
     }
 

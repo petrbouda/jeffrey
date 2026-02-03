@@ -58,7 +58,7 @@
                 <span class="session-name">{{ download.sessionName || download.taskId }}</span>
               </div>
               <div class="download-card-actions">
-                <span class="download-percent">{{ download.percentComplete }}%</span>
+                <span class="download-file-count">{{ download.completedFiles }}/{{ download.totalFiles }}</span>
                 <button
                     v-if="isDownloadComplete(download)"
                     class="btn-close-card"
@@ -75,7 +75,7 @@
               <div
                   class="progress-bar progress-bar-striped"
                   :class="[getProgressBarClass(download), { 'progress-bar-animated': !isDownloadComplete(download) }]"
-                  :style="{ width: download.percentComplete + '%' }"
+                  :style="{ width: fileCountPercent(download) + '%' }"
               ></div>
             </div>
 
@@ -95,10 +95,7 @@
                 >
                   <i class="bi bi-file-earmark me-1 text-primary"></i>
                   <span class="file-name">{{ file.fileName }}</span>
-                  <span class="file-meta">
-                    <span class="file-size-muted">{{ formatBytes(file.fileSize) }}</span>
-                    <span class="file-progress">{{ filePercent(file) }}%</span>
-                  </span>
+                  <span class="file-size-muted">{{ formatBytes(file.downloadedBytes) }}</span>
                 </div>
               </div>
 
@@ -191,7 +188,8 @@
       <i :class="aggregateIndicatorIcon" class="indicator-icon"></i>
       <span class="indicator-badge">
         <template v-if="downloads.length > 1">{{ downloads.length }}</template>
-        <template v-else>{{ aggregateProgress }}%</template>
+        <template v-else-if="downloads.length === 1">{{ downloads[0].completedFiles }}/{{ downloads[0].totalFiles }}</template>
+        <template v-else>0</template>
       </span>
     </div>
   </Teleport>
@@ -200,7 +198,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService';
-import DownloadProgress, { FileProgress } from '@/services/api/model/DownloadProgress';
+import DownloadProgress from '@/services/api/model/DownloadProgress';
 import DownloadTaskStatus from '@/services/api/model/DownloadTaskStatus';
 
 interface Props {
@@ -217,9 +215,9 @@ defineEmits(['expand', 'minimize', 'close', 'cancel-download', 'close-download']
 
 const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
 
-const filePercent = (file: FileProgress): number => {
-  if (!file.fileSize) return 0;
-  return Math.round((file.downloadedBytes / file.fileSize) * 100);
+const fileCountPercent = (download: DownloadProgress): number => {
+  if (!download.totalFiles) return 0;
+  return Math.round((download.completedFiles / download.totalFiles) * 100);
 };
 
 const isDownloadComplete = (download: DownloadProgress): boolean => {
@@ -471,7 +469,7 @@ const progressRingStyle = computed(() => {
   gap: 0.5rem;
 }
 
-.download-percent {
+.download-file-count {
   font-size: 0.85rem;
   font-weight: 600;
   color: #6c757d;
@@ -554,21 +552,10 @@ const progressRingStyle = computed(() => {
   text-overflow: ellipsis;
 }
 
-.file-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: 0.5rem;
-}
-
 .file-size-muted {
   color: #6c757d;
   font-size: 0.75rem;
-}
-
-.file-progress {
-  color: #0d6efd;
-  font-weight: 600;
+  margin-left: 0.5rem;
 }
 
 .file-size {

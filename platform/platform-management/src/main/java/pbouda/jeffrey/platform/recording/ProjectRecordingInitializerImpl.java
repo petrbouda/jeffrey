@@ -75,6 +75,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
             try {
                 // Provide information about the Recording file
                 RecordingInformation information = recordingInformationParser.provide(targetPath);
+                validateRecordingInformation(information, newRecording.filename());
 
                 Instant createdAt = clock.instant();
                 Recording recording = new Recording(
@@ -146,6 +147,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
             try {
                 // Provide information about the Recording file
                 RecordingInformation information = recordingInformationParser.provide(targetPath);
+                validateRecordingInformation(information, newRecording.filename());
 
                 Instant createdAt = clock.instant();
                 Recording recording = new Recording(
@@ -201,5 +203,12 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
     @Override
     public ProjectRecordingStorage recordingStorage() {
         return recordingStorage;
+    }
+
+    private static void validateRecordingInformation(RecordingInformation information, String filename) {
+        if (information.recordingStartedAt() == null || information.recordingFinishedAt() == null) {
+            throw new RuntimeException(
+                    "Recording file is empty or corrupt (contains no JFR chunks): " + filename);
+        }
     }
 }
