@@ -20,7 +20,6 @@ package pbouda.jeffrey.platform.project.repository.file;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.nio.file.Path;
@@ -58,8 +57,7 @@ public class AsprofFileInfoProcessor implements FileInfoProcessor {
 
     @Override
     public Comparator<Path> comparator() {
-        return Comparator.comparing(FileSystemUtils::modifiedAt)
-                .thenComparing((Path f) -> f.getFileName().toString()).reversed();
+        return Comparator.comparing((Path f) -> f.getFileName().toString()).reversed();
     }
 
     @Override

@@ -279,6 +279,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         RecordingSession session = resolveSession(sessionId);
 
         return session.files().stream()
+                .filter(file -> Files.isRegularFile(file.filePath()))
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
                 .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
@@ -328,6 +329,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         RecordingSession session = resolveSession(sessionId);
 
         return session.files().stream()
+                .filter(file -> Files.isRegularFile(file.filePath()))
                 .filter(file -> !file.isRecordingFile())
                 .filter(file -> artifactIds == null || artifactIds.contains(file.id()))
                 .map(RepositoryFile::filePath)
@@ -336,28 +338,13 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     // ========== Session Compression ==========
 
-    /**
-     * Number of latest recording files to skip during compression of ACTIVE sessions.
-     * Async-profiler may still be flushing data into the most recent JFR files,
-     * so compressing them could produce corrupted LZ4 files.
-     */
-    private static final int ACTIVE_SESSION_SKIP_LATEST_FILES = 2;
-
     @Override
     public int compressSession(String sessionId) {
         RecordingSession session = resolveSession(sessionId);
 
-        List<RepositoryFile> recordingFiles = session.files().stream()
+        return (int) session.files().stream()
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
-                .toList();
-
-        // In ACTIVE sessions, skip the latest files that async-profiler may still be writing to.
-        // Files are sorted latest-first, so skip() drops the most recent ones.
-        long skipCount = session.status() == RecordingStatus.ACTIVE ? ACTIVE_SESSION_SKIP_LATEST_FILES : 0;
-
-        return (int) recordingFiles.stream()
-                .skip(skipCount)
                 .map(file -> ensureCompressed(sessionId, file))
                 .distinct()
                 .count();
