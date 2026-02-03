@@ -424,6 +424,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         List<RepositoryFile> repositoryFiles = FileSystemUtils.sortedFilesInDirectory(
                         sessionPath, fileInfoProcessor.comparator()).stream()
+                .filter(Files::isRegularFile)
                 .filter(FileSystemUtils::isNotHidden)
                 .map(file -> {
                     String sourceId = FileSystemUtils.removeExtension(
