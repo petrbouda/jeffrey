@@ -64,16 +64,6 @@ public class ProgressTrackingInputStream extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
-        int count = super.read(b);
-        if (count > 0) {
-            bytesRead += count;
-            reportProgressIfNeeded();
-        }
-        return count;
-    }
-
-    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         int count = super.read(b, off, len);
         if (count > 0) {
