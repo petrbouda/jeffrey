@@ -47,6 +47,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -285,6 +286,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
                 .filter(file -> recordingIds == null || recordingIds.contains(file.id()))
                 .map(file -> ensureCompressed(sessionId, file))
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList();
     }
@@ -323,13 +325,14 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to merge recordings: " + compressedPaths, e);
+            FileSystemUtils.removeFile(tempFile);
+            throw Exceptions.compressionError(
+                    "Failed to merge recordings: sessionId=" + sessionId + " sourceFiles=" + compressedPaths);
         }
 
         if (FileSystemUtils.size(tempFile) <= 0) {
             FileSystemUtils.removeFile(tempFile);
-            throw new RuntimeException("Merged recording is empty: sessionId=" + sessionId
-                    + " sourceFiles=" + compressedPaths.size());
+            throw Exceptions.emptyRecordingSession(sessionId);
         }
 
         Path compressedFile = jeffreyDirs.temp().resolve(SupportedRecordingFile.JFR_LZ4.appendExtension(sessionId));
@@ -368,6 +371,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.status() == RecordingStatus.FINISHED)
                 .map(file -> ensureCompressed(sessionId, file))
+                .filter(Objects::nonNull)
                 .distinct()
                 .count();
     }
@@ -415,6 +419,13 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
             // Capture original file size before compression
             long originalSize = Files.size(sourcePath);
+
+            // Skip empty recording files — can happen when JFR streaming-repo
+            // writes a file before any events are recorded
+            if (originalSize == 0) {
+                LOG.warn("Skipping empty recording file: sessionId={} file={}", sessionId, sourcePath);
+                return null;
+            }
 
             // Compress, verify, and delete original
             Lz4Compressor.compress(sourcePath, compressedPath);

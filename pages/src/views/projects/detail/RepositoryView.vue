@@ -15,6 +15,7 @@ import * as bootstrap from 'bootstrap';
 import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
+import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import FormattingService from "@/services/FormattingService.ts";
 import RepositoryDisabledAlert from '@/components/alerts/RepositoryDisabledAlert.vue';
 import RepositoryStatistics from '@/components/RepositoryStatistics.vue';
@@ -106,24 +107,29 @@ const sortedSessions = computed(() => {
   });
 });
 
-// Sort recordings in a session: non-recording files first, then ASPROF_TEMP, then JFR recording files
-// Within each group, sort by creation date (newest first)
+// Sort recordings in a session: non-recording files first, then recording + ASPROF_TEMP files
+// Recording group sorted by filename descending to naturally group ASPROF_TEMP next to parent JFR
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (file.isRecordingFile) return 2;            // JFR files at bottom
-    if (file.fileType === 'ASPROF_TEMP') return 1; // ASPROF_TEMP in the middle
-    return 0;                                      // Other non-recording files at top
+    if (file.isRecordingFile || file.fileType === 'ASPROF_TEMP') return 1;
+    return 0;
   };
 
   return [...session.files].sort((a, b) => {
     const priorityA = getSortPriority(a);
     const priorityB = getSortPriority(b);
 
-    // First sort by priority
     if (priorityA !== priorityB) {
       return priorityA - priorityB;
     }
-    // Then sort by creation date (newest first) within each group
+
+    // Recording files group: sort by filename descending
+    // Groups ASPROF_TEMP (*.jfr.N~) right before its parent JFR file
+    if (priorityA === 1) {
+      return b.name.localeCompare(a.name);
+    }
+
+    // Non-recording files: sort by creation date (newest first)
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 };
@@ -196,6 +202,11 @@ const toggleSession = (sessionId: string) => {
   // Reset visible files count when collapsing a session
   if (!expandedSessions.value[sessionId]) {
     visibleFilesCount.value[sessionId] = DEFAULT_FILES_LIMIT;
+    for (const key of Object.keys(visibleFilesCount.value)) {
+      if (key.startsWith(sessionId + ':')) {
+        visibleFilesCount.value[key] = DEFAULT_FILES_LIMIT;
+      }
+    }
   }
 };
 
@@ -212,61 +223,6 @@ const getSessionStatusClass = (session: RecordingSession) => {
 
   // If none of the above match, return the string value for debugging
   return `status-unknown session-${String(session.status).toLowerCase()}`;
-};
-
-// Helper function to generate source status class including file type
-const getSourceStatusClass = (source: RepositoryFile, sessionId: string) => {
-  const classes = [];
-
-  // Add selection class if selected
-  if (selectedRepositoryFile.value[sessionId] && selectedRepositoryFile.value[sessionId][source.id]) {
-    classes.push('source-selected');
-  }
-
-  // Add status class
-  if (source.status === RecordingStatus.ACTIVE) classes.push('source-active');
-  else if (source.status === RecordingStatus.FINISHED) classes.push('source-finished');
-  else if (source.status === RecordingStatus.UNKNOWN) classes.push('source-unknown');
-  else classes.push(`source-${String(source.status).toLowerCase()}`);
-
-  // Add file type class
-  if (source.isRecordingFile) {
-    classes.push('recording-file');
-  } else {
-    // For non-recording files, distinguish between known and unknown types
-    if (source.fileType === 'UNKNOWN') {
-      classes.push('additional-file-unknown');
-    } else {
-      classes.push('additional-file-known');
-    }
-  }
-
-  // Add temporary file class for ASPROF_TEMP files
-  if (source.fileType === 'ASPROF_TEMP') {
-    classes.push('temporary-file');
-  }
-
-  // Add JVM log file class for JVM_LOG files
-  if (source.fileType === 'JVM_LOG') {
-    classes.push('jvm-log-file');
-  }
-
-  // Add heap dump file class for HEAP_DUMP files
-  if (source.fileType === 'HEAP_DUMP') {
-    classes.push('heap-dump-file');
-  }
-
-  // Add heap dump GZ file class for HEAP_DUMP_GZ files
-  if (source.fileType === 'HEAP_DUMP_GZ') {
-    classes.push('heap-dump-gz-file');
-  }
-
-  // Add perf counters file class for PERF_COUNTERS files
-  if (source.fileType === 'PERF_COUNTERS') {
-    classes.push('perf-counters-file');
-  }
-
-  return classes.join(' ');
 };
 
 const getStatusVariant = (status: RecordingStatus): string => {
@@ -290,28 +246,6 @@ const getStatusDotClass = (status: RecordingStatus): string => {
     case RecordingStatus.UNKNOWN:
     default:
       return 'status-dot-unknown';
-  }
-};
-
-const getFileTypeVariant = (fileType: string): string => {
-  switch (fileType) {
-    case 'JFR':
-      return 'primary';
-    case 'JFR_LZ4':
-      return 'indigo';  // Darker blue to indicate compressed JFR
-    case 'HEAP_DUMP_GZ':
-      return 'violet';
-    case 'HEAP_DUMP':
-      return 'purple';
-    case 'ASPROF_TEMP':
-      return 'orange';
-    case 'PERF_COUNTERS':
-      return 'blue';
-    case 'JVM_LOG':
-      return 'teal';
-    case 'UNKNOWN':
-    default:
-      return 'grey';
   }
 };
 
@@ -588,31 +522,249 @@ const confirmDeleteSession = async () => {
   }
 };
 
-// Get visible files for a session (limited by visibleFilesCount)
-const getVisibleRecordings = (session: RecordingSession) => {
-  const sortedFiles = getSortedRecordings(session);
-  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
-  return sortedFiles.slice(0, limit);
-};
-
-// Check if session has more files than currently visible
-const hasMoreFiles = (session: RecordingSession): boolean => {
-  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
-  return session.files.length > limit;
-};
-
-// Show more files for a session
-const showMoreFiles = (sessionId: string) => {
-  const session = recordingSessions.value.find(s => s.id === sessionId);
-  if (!session) return;
-
-  // Show all files
-  visibleFilesCount.value[sessionId] = session.files.length;
-};
-
 // Check if checkbox should be disabled for a repository file
 const isCheckboxDisabled = (source: RepositoryFile): boolean => {
   return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
+};
+
+// --- Rotation Group Logic ---
+
+interface FileGroupEntry {
+  primary: RepositoryFile;
+  children: RepositoryFile[];
+  totalSize: number;
+}
+
+const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
+
+// --- Artifact Type Grouping ---
+
+type ArtifactTypeGroup = 'JFR_RECORDING' | 'HEAP_DUMP' | 'PERF_COUNTERS' | 'JVM_LOG' | 'HS_JVM_ERROR_LOG' | 'UNKNOWN';
+
+const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
+  'JFR_RECORDING', 'HEAP_DUMP', 'PERF_COUNTERS', 'JVM_LOG', 'HS_JVM_ERROR_LOG', 'UNKNOWN',
+];
+
+const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
+  [RecordingFileType.JFR]: 'JFR_RECORDING',
+  [RecordingFileType.JFR_LZ4]: 'JFR_RECORDING',
+  [RecordingFileType.ASPROF]: 'JFR_RECORDING',
+  [RecordingFileType.HEAP_DUMP]: 'HEAP_DUMP',
+  [RecordingFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
+  [RecordingFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
+  [RecordingFileType.JVM_LOG]: 'JVM_LOG',
+  [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
+  [RecordingFileType.UNKNOWN]: 'UNKNOWN',
+};
+
+const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: string; fileType: string }> = {
+  'JFR_RECORDING':    { name: 'JFR Recordings',     variant: 'primary', fileType: 'JFR' },
+  'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
+  'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },
+  'JVM_LOG':          { name: 'JVM Logs',            variant: 'teal',    fileType: 'JVM_LOG' },
+  'HS_JVM_ERROR_LOG': { name: 'HotSpot Error Logs',  variant: 'red',     fileType: 'HS_JVM_ERROR_LOG' },
+  'UNKNOWN':          { name: 'Other Files',          variant: 'grey',    fileType: 'UNKNOWN' },
+};
+
+interface TypeGroupPanel {
+  groupKey: ArtifactTypeGroup;
+  display: { name: string; variant: string; fileType: string };
+  files: RepositoryFile[];
+  fileCount: number;
+  totalSize: number;
+}
+
+const expandedTypePanels = ref<{ [key: string]: boolean }>({});
+
+const parseRotatedFilename = (filename: string): { baseName: string; suffix: number } | null => {
+  const match = filename.match(/^(.+)\.(\d+)$/);
+  if (!match) return null;
+  return { baseName: match[1], suffix: parseInt(match[2], 10) };
+};
+
+const groupRotatedFiles = (sortedFiles: RepositoryFile[]): FileGroupEntry[] => {
+  const nameSet = new Set(sortedFiles.map(f => f.name));
+  const grouped = new Map<string, FileGroupEntry>();
+  const assigned = new Set<string>();
+
+  // First pass: identify primaries and collect children
+  for (const file of sortedFiles) {
+    const parsed = parseRotatedFilename(file.name);
+    if (parsed && nameSet.has(parsed.baseName)) {
+      // This is a rotated variant — will be added as a child
+      if (!grouped.has(parsed.baseName)) {
+        // Primary hasn't been seen yet, create a placeholder
+        const primary = sortedFiles.find(f => f.name === parsed.baseName);
+        if (primary) {
+          grouped.set(parsed.baseName, { primary, children: [], totalSize: primary.size });
+          assigned.add(primary.id);
+        }
+      }
+      const group = grouped.get(parsed.baseName);
+      if (group) {
+        group.children.push(file);
+        group.totalSize += file.size;
+        assigned.add(file.id);
+      }
+    }
+  }
+
+  // Sort children within each group by suffix ascending
+  for (const group of grouped.values()) {
+    group.children.sort((a, b) => {
+      const pa = parseRotatedFilename(a.name);
+      const pb = parseRotatedFilename(b.name);
+      return (pa?.suffix ?? 0) - (pb?.suffix ?? 0);
+    });
+  }
+
+  // Second pass: build result preserving original order
+  const result: FileGroupEntry[] = [];
+  for (const file of sortedFiles) {
+    if (assigned.has(file.id)) {
+      // If this is a primary, emit the group
+      if (grouped.has(file.name)) {
+        result.push(grouped.get(file.name)!);
+        grouped.delete(file.name); // prevent duplicates
+      }
+      // If it's a child, skip (already in a group)
+    } else {
+      // Standalone file
+      result.push({ primary: file, children: [], totalSize: file.size });
+    }
+  }
+
+  return result;
+};
+
+const isRecordingFileType = (fileType: string): boolean => {
+  return fileType === RecordingFileType.JFR || fileType === RecordingFileType.JFR_LZ4 || fileType === RecordingFileType.ASPROF;
+};
+
+const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] => {
+  const sortedFiles = getSortedRecordings(session);
+  const recordingFiles = sortedFiles.filter(f => isRecordingFileType(f.fileType));
+  return groupRotatedFiles(recordingFiles);
+};
+
+const getVisibleRecordingGroups = (session: RecordingSession): FileGroupEntry[] => {
+  const allGroups = getRecordingGroupedFiles(session);
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return allGroups.slice(0, limit);
+};
+
+const hasMoreRecordingGroups = (session: RecordingSession): boolean => {
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return getRecordingGroupedFiles(session).length > limit;
+};
+
+const showMoreRecordingGroups = (sessionId: string) => {
+  const session = recordingSessions.value.find(s => s.id === sessionId);
+  if (!session) return;
+  visibleFilesCount.value[sessionId] = getRecordingGroupedFiles(session).length;
+};
+
+const getRemainingRecordingGroupCount = (session: RecordingSession): number => {
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return getRecordingGroupedFiles(session).length - limit;
+};
+
+const getArtifactGroupMap = (session: RecordingSession): Map<ArtifactTypeGroup, RepositoryFile[]> => {
+  const sortedFiles = getSortedRecordings(session);
+  const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
+  for (const file of sortedFiles) {
+    if (isRecordingFileType(file.fileType)) continue;
+    const groupKey = FILE_TYPE_TO_GROUP[file.fileType] || 'UNKNOWN';
+    if (!groupMap.has(groupKey)) groupMap.set(groupKey, []);
+    groupMap.get(groupKey)!.push(file);
+  }
+  return groupMap;
+};
+
+const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
+  const groupMap = getArtifactGroupMap(session);
+  const panels: TypeGroupPanel[] = [];
+  for (const groupKey of TYPE_GROUP_ORDER) {
+    if (groupKey === 'JFR_RECORDING') continue;
+    const files = groupMap.get(groupKey);
+    if (!files || files.length <= 1) continue;
+    panels.push({
+      groupKey,
+      display: TYPE_GROUP_DISPLAY[groupKey],
+      files,
+      fileCount: files.length,
+      totalSize: files.reduce((sum, f) => sum + f.size, 0),
+    });
+  }
+  return panels;
+};
+
+const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[] => {
+  const groupMap = getArtifactGroupMap(session);
+  const standalone: RepositoryFile[] = [];
+  for (const groupKey of TYPE_GROUP_ORDER) {
+    if (groupKey === 'JFR_RECORDING') continue;
+    const files = groupMap.get(groupKey);
+    if (files && files.length === 1) {
+      standalone.push(files[0]);
+    }
+  }
+  return standalone;
+};
+
+const toggleTypePanel = (sessionId: string, groupKey: ArtifactTypeGroup) => {
+  const key = `${sessionId}:${groupKey}`;
+  expandedTypePanels.value[key] = !expandedTypePanels.value[key];
+};
+
+const isTypePanelExpanded = (sessionId: string, groupKey: ArtifactTypeGroup): boolean => {
+  return !!expandedTypePanels.value[`${sessionId}:${groupKey}`];
+};
+
+const getVisiblePanelFiles = (panel: TypeGroupPanel, sessionId: string): RepositoryFile[] => {
+  const key = `${sessionId}:${panel.groupKey}`;
+  const limit = visibleFilesCount.value[key] || DEFAULT_FILES_LIMIT;
+  return panel.files.slice(0, limit);
+};
+
+const hasMoreInPanel = (panel: TypeGroupPanel, sessionId: string): boolean => {
+  const key = `${sessionId}:${panel.groupKey}`;
+  const limit = visibleFilesCount.value[key] || DEFAULT_FILES_LIMIT;
+  return panel.files.length > limit;
+};
+
+const showMoreInPanel = (sessionId: string, groupKey: ArtifactTypeGroup, total: number) => {
+  visibleFilesCount.value[`${sessionId}:${groupKey}`] = total;
+};
+
+const getRemainingInPanel = (panel: TypeGroupPanel, sessionId: string): number => {
+  const key = `${sessionId}:${panel.groupKey}`;
+  const limit = visibleFilesCount.value[key] || DEFAULT_FILES_LIMIT;
+  return panel.files.length - limit;
+};
+
+const toggleRotatedGroup = (sessionId: string, primaryName: string) => {
+  const key = `${sessionId}:${primaryName}`;
+  expandedRotatedGroups.value[key] = !expandedRotatedGroups.value[key];
+};
+
+const isRotatedGroupExpanded = (sessionId: string, primaryName: string): boolean => {
+  return !!expandedRotatedGroups.value[`${sessionId}:${primaryName}`];
+};
+
+// Simplified status wrapper — only status classes, no file-type classes
+const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) => {
+  const classes = [];
+
+  if (selectedRepositoryFile.value[sessionId] && selectedRepositoryFile.value[sessionId][source.id]) {
+    classes.push('source-selected');
+  }
+
+  if (source.status === RecordingStatus.ACTIVE) classes.push('source-active');
+  else if (source.status === RecordingStatus.FINISHED) classes.push('source-finished');
+  else if (source.status === RecordingStatus.UNKNOWN) classes.push('source-unknown');
+
+  return classes.join(' ');
 };
 </script>
 
@@ -769,65 +921,192 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
                   </div>
                 </div>
 
-                <!-- Sources list -->
-                <div v-for="source in getVisibleRecordings(session)"
-                     :key="source.id"
-                     class="child-row p-2 mb-2 rounded"
-                     :class="getSourceStatusClass(source, session.id)">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                      <div class="form-check file-form-check me-2" v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(source)">
-                        <input
-                            class="form-check-input file-checkbox"
-                            type="checkbox"
-                            :id="'source-' + source.id"
-                            :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][source.id]"
-                            @change="() => toggleSourceSelection(session.id, source.id)"
-                            @click.stop>
+                <!-- Artifact type panels (non-recording types with > 1 file) -->
+                <div v-for="panel in getTypeGroupPanels(session)" :key="panel.groupKey" class="type-panel mb-2">
+                  <!-- Type panel header -->
+                  <div class="type-panel-header-wrapper" @click="toggleTypePanel(session.id, panel.groupKey)">
+                    <RecordingFileRow
+                      :filename="panel.display.name"
+                      :fileType="panel.display.fileType"
+                      :sizeInBytes="panel.totalSize"
+                    >
+                      <template #before>
+                        <i class="bi me-1 type-panel-chevron"
+                           :class="isTypePanelExpanded(session.id, panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                      </template>
+                      <template #extra-badges>
+                        <span class="recording-file-size ms-2">
+                          <i class="bi bi-files me-1"></i>{{ panel.fileCount }} files
+                        </span>
+                      </template>
+                    </RecordingFileRow>
+                  </div>
+
+                  <!-- Type panel body (flat file list) -->
+                  <div v-if="isTypePanelExpanded(session.id, panel.groupKey)" class="type-panel-body">
+                    <template v-for="file in getVisiblePanelFiles(panel, session.id)" :key="file.id">
+                      <div class="source-status-wrapper mb-2 rounded"
+                           :class="getSourceStatusWrapperClass(file, session.id)">
+                        <RecordingFileRow
+                          :filename="file.name"
+                          :fileType="file.fileType"
+                          :sizeInBytes="file.size"
+                          :timestamp="file.createdAt"
+                          :status="file.status"
+                        >
+                          <template #before>
+                            <div class="form-check file-form-check me-2"
+                                 v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)">
+                              <input
+                                  class="form-check-input file-checkbox"
+                                  type="checkbox"
+                                  :id="'source-' + file.id"
+                                  :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][file.id]"
+                                  @change="() => toggleSourceSelection(session.id, file.id)"
+                                  @click.stop>
+                            </div>
+                          </template>
+                          <template #extra-badges>
+                            <Badge v-if="file.status === RecordingStatus.UNKNOWN"
+                                   :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
+                                   class="ms-1"/>
+                            <Badge v-if="file.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
+                                   title="This file indicates the session is finished"/>
+                          </template>
+                        </RecordingFileRow>
                       </div>
-                      <!-- Different icon based on file type -->
-                      <div class="recording-file-icon-medium me-3">
-                        <i class="bi" :class="{
-                          'bi-file-earmark-code': source.fileType === 'JFR',
-                          'bi-file-earmark-zip': source.fileType === 'JFR_LZ4' || source.fileType === 'HEAP_DUMP_GZ',
-                          'bi-file-earmark-binary': source.fileType === 'HEAP_DUMP',
-                          'bi-hourglass-split': source.fileType === 'ASPROF_TEMP',
-                          'bi-file-earmark-bar-graph': source.fileType === 'PERF_COUNTERS',
-                          'bi-file-earmark-text': source.fileType === 'JVM_LOG',
-                          'bi-file-earmark': source.fileType === 'UNKNOWN'
-                        }"></i>
-                      </div>
-                      <div>
-                        <div class="fw-bold">
-                          {{ source.name }}
-                          <Badge :value="Utils.formatFileType(source.fileType)"
-                                 :variant="getFileTypeVariant(source.fileType)" size="xs" class="ms-2"/>
-                          <Badge v-if="source.status === RecordingStatus.UNKNOWN"
-                                 :value="Utils.capitalize(source.status.toLowerCase())" variant="purple" size="xs"
-                                 class="ms-1"/>
-                          <Badge v-if="source.isFinishingFile" value="Finisher" variant="green" size="xs" class="ms-1"
-                                 title="This file indicates the session is finished"/>
-                          <Badge :value="FormattingService.formatBytes(source.size)" variant="light" size="xs"
-                                 class="ms-1" :uppercase="false"/>
-                          <Badge :value="`${formatDate(source.createdAt)}`"
-                                 variant="light" size="xs" class="ms-1"/>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <!-- Download button removed as requested -->
+                    </template>
+
+                    <!-- Show More per panel -->
+                    <div v-if="hasMoreInPanel(panel, session.id)" class="text-center mt-1 mb-2">
+                      <button class="btn btn-sm btn-outline-primary show-more-btn"
+                              @click.stop="showMoreInPanel(session.id, panel.groupKey, panel.fileCount)">
+                        <i class="bi bi-chevron-down me-1"></i>Show {{ getRemainingInPanel(panel, session.id) }} more
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <!-- Show More button -->
-                <div v-if="hasMoreFiles(session)" class="text-center mt-1">
-                  <button
-                      class="btn btn-sm btn-outline-primary show-more-btn"
-                      @click.stop="showMoreFiles(session.id)"
-                      title="Show all files">
-                    <i class="bi bi-chevron-down me-1"></i>Show
-                    {{ session.files.length - (visibleFilesCount[session.id] || DEFAULT_FILES_LIMIT) }} more files
+                <!-- Standalone artifact files (non-recording types with exactly 1 file) -->
+                <template v-for="file in getStandaloneArtifactFiles(session)" :key="file.id">
+                  <div class="source-status-wrapper mb-2 rounded"
+                       :class="getSourceStatusWrapperClass(file, session.id)">
+                    <RecordingFileRow
+                      :filename="file.name"
+                      :fileType="file.fileType"
+                      :sizeInBytes="file.size"
+                      :timestamp="file.createdAt"
+                      :status="file.status"
+                    >
+                      <template #before>
+                        <div class="form-check file-form-check me-2"
+                             v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)">
+                          <input
+                              class="form-check-input file-checkbox"
+                              type="checkbox"
+                              :id="'source-' + file.id"
+                              :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][file.id]"
+                              @change="() => toggleSourceSelection(session.id, file.id)"
+                              @click.stop>
+                        </div>
+                      </template>
+                      <template #extra-badges>
+                        <Badge v-if="file.status === RecordingStatus.UNKNOWN"
+                               :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
+                               class="ms-1"/>
+                        <Badge v-if="file.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
+                               title="This file indicates the session is finished"/>
+                      </template>
+                    </RecordingFileRow>
+                  </div>
+                </template>
+
+                <!-- Recording files (flat with rotation grouping) -->
+                <template v-for="entry in getVisibleRecordingGroups(session)" :key="entry.primary.id">
+                  <!-- Primary row -->
+                  <div class="source-status-wrapper mb-2 rounded"
+                       :class="getSourceStatusWrapperClass(entry.primary, session.id)">
+                    <RecordingFileRow
+                      :filename="entry.primary.name"
+                      :fileType="entry.primary.fileType"
+                      :sizeInBytes="entry.primary.size"
+                      :timestamp="entry.primary.createdAt"
+                      :status="entry.primary.status"
+                    >
+                      <template #before>
+                        <button
+                          v-if="entry.children.length > 0"
+                          class="rotation-toggle-btn me-1"
+                          @click.stop="toggleRotatedGroup(session.id, entry.primary.name)"
+                          :title="isRotatedGroupExpanded(session.id, entry.primary.name) ? 'Collapse rotated files' : 'Expand rotated files'"
+                        >
+                          <i class="bi" :class="isRotatedGroupExpanded(session.id, entry.primary.name) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                        </button>
+                        <div class="form-check file-form-check me-2"
+                             v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(entry.primary)">
+                          <input
+                              class="form-check-input file-checkbox"
+                              type="checkbox"
+                              :id="'source-' + entry.primary.id"
+                              :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][entry.primary.id]"
+                              @change="() => toggleSourceSelection(session.id, entry.primary.id)"
+                              @click.stop>
+                        </div>
+                      </template>
+                      <template #extra-badges>
+                        <Badge v-if="entry.primary.status === RecordingStatus.UNKNOWN"
+                               :value="Utils.capitalize(entry.primary.status.toLowerCase())" variant="purple" size="xxs"
+                               class="ms-1"/>
+                        <Badge v-if="entry.primary.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
+                               title="This file indicates the session is finished"/>
+                        <Badge v-if="entry.children.length > 0"
+                               :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
+                               variant="grey" size="xxs" class="ms-1" :uppercase="false"/>
+                      </template>
+                    </RecordingFileRow>
+                  </div>
+
+                  <!-- Rotated children (when expanded) -->
+                  <template v-if="entry.children.length > 0 && isRotatedGroupExpanded(session.id, entry.primary.name)">
+                    <div v-for="child in entry.children" :key="child.id"
+                         class="rotated-child-row mb-2 rounded"
+                         :class="getSourceStatusWrapperClass(child, session.id)">
+                      <RecordingFileRow
+                        :filename="child.name"
+                        :fileType="child.fileType"
+                        :sizeInBytes="child.size"
+                        :timestamp="child.createdAt"
+                        :status="child.status"
+                      >
+                        <template #before>
+                          <div class="form-check file-form-check me-2"
+                               v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(child)">
+                            <input
+                                class="form-check-input file-checkbox"
+                                type="checkbox"
+                                :id="'source-' + child.id"
+                                :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][child.id]"
+                                @change="() => toggleSourceSelection(session.id, child.id)"
+                                @click.stop>
+                          </div>
+                        </template>
+                        <template #extra-badges>
+                          <Badge v-if="child.status === RecordingStatus.UNKNOWN"
+                                 :value="Utils.capitalize(child.status.toLowerCase())" variant="purple" size="xxs"
+                                 class="ms-1"/>
+                          <Badge v-if="child.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
+                                 title="This file indicates the session is finished"/>
+                        </template>
+                      </RecordingFileRow>
+                    </div>
+                  </template>
+                </template>
+
+                <!-- Show More for recordings -->
+                <div v-if="hasMoreRecordingGroups(session)" class="text-center mt-1 mb-2">
+                  <button class="btn btn-sm btn-outline-primary show-more-btn"
+                          @click.stop="showMoreRecordingGroups(session.id)">
+                    <i class="bi bi-chevron-down me-1"></i>Show {{ getRemainingRecordingGroupCount(session) }} more files
                   </button>
                 </div>
               </div>
@@ -1037,91 +1316,44 @@ code {
   border-left: 3px solid #6f42c1;
 }
 
-.child-row {
-  background-color: white;
-  border: 1px solid #eee;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
+/* Rotation group styles */
+.rotation-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s ease;
 }
 
-.child-row:hover {
-  background-color: rgba(247, 248, 252, 0.8);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.rotation-toggle-btn:hover {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
 }
 
-/* Active file styling - orange theme with solid borders */
-.child-row.source-active {
-  background-color: rgba(255, 142, 51, 0.08) !important;
-  border-left: 3px solid #ff8e33 !important;
-  border-top: 1px solid rgba(255, 142, 51, 0.25) !important;
-  border-right: 1px solid rgba(255, 142, 51, 0.25) !important;
-  border-bottom: 1px solid rgba(255, 142, 51, 0.25) !important;
-  box-shadow: 0 1px 3px rgba(255, 142, 51, 0.15) !important;
+.rotated-child-row {
+  margin-left: 28px;
+  border-left: 2px solid #dee2e6;
+  padding-left: 10px;
+  position: relative;
 }
 
-.child-row.source-active:hover {
-  background-color: rgba(255, 142, 51, 0.12) !important;
-  box-shadow: 0 2px 5px rgba(255, 142, 51, 0.2) !important;
-}
-
-/* Active file icon styling - orange theme */
-.child-row.source-active .recording-file-icon-medium {
-  background-color: rgba(255, 142, 51, 0.15) !important;
-  color: #ff8e33 !important;
-}
-
-.child-row.source-finished {
-  background-color: rgba(108, 117, 125, 0.05);
-  border-left: 3px solid #6c757d;
-}
-
-.child-row.source-unknown {
-  background-color: rgba(111, 66, 193, 0.05);
-  border-left: 3px solid #6f42c1;
-}
-
-.child-row.source-selected {
-  background-color: rgba(94, 100, 255, 0.08);
-  border-left: 3px solid #5e64ff;
-  box-shadow: 0 2px 4px rgba(94, 100, 255, 0.15);
-}
-
-/* Styling for recording file rows vs non-recording file rows */
-.child-row.recording-file {
-  background-color: #f7faff;
-  border-left: 3px solid #5e64ff;
-  box-shadow: 0 1px 3px rgba(94, 100, 255, 0.15);
-}
-
-/* Non-recording files with known file type */
-.child-row.additional-file-known {
-  background-color: #f0f9ff; /* Light blue background */
-  border-left: 3px solid #0ea5e9; /* Sky blue border */
-  box-shadow: 0 1px 3px rgba(14, 165, 233, 0.15);
-}
-
-/* Non-recording files with unknown file type */
-.child-row.additional-file-unknown {
-  background-color: #f8f9fa; /* Light gray background */
-  border-left: 3px solid #adb5bd; /* Gray border */
-  box-shadow: 0 1px 3px rgba(108, 117, 125, 0.1);
-}
-
-/* Hover states for different file types */
-.child-row.recording-file:hover {
-  background-color: #eef2ff;
-  box-shadow: 0 2px 5px rgba(94, 100, 255, 0.2);
-}
-
-.child-row.additional-file-known:hover {
-  background-color: #e0f2fe; /* Lighter sky blue on hover */
-  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.2);
-}
-
-.child-row.additional-file-unknown:hover {
-  background-color: #f1f3f5;
-  box-shadow: 0 2px 5px rgba(108, 117, 125, 0.15);
+.rotated-child-row::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 10px;
+  height: 0;
+  border-top: 1px solid #dee2e6;
 }
 
 .text-primary {
@@ -1151,140 +1383,6 @@ code {
   margin-bottom: 2rem;
 }
 
-
-/* File icon styling for different file types */
-.recording-file-icon-medium {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 5px;
-  font-size: 1rem;
-}
-
-/* Recording file icons - blue theme */
-.child-row.recording-file .recording-file-icon-medium {
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-}
-
-/* Known non-recording file icons - sky blue theme */
-.child-row.additional-file-known .recording-file-icon-medium {
-  background-color: rgba(14, 165, 233, 0.1);
-  color: #0ea5e9;
-}
-
-/* Unknown non-recording file icons - gray theme */
-.child-row.additional-file-unknown .recording-file-icon-medium {
-  background-color: rgba(108, 117, 125, 0.1);
-  color: #6c757d;
-}
-
-/* Temporary file styling */
-.child-row.temporary-file {
-  background-color: rgba(255, 142, 51, 0.08) !important;
-  border-left: 3px solid #ff8e33 !important;
-  border-top: 1px dashed #ff8e33 !important;
-  border-right: 1px dashed #ff8e33 !important;
-  border-bottom: 1px dashed #ff8e33 !important;
-  box-shadow: 0 1px 3px rgba(255, 142, 51, 0.15) !important;
-}
-
-.child-row.temporary-file:hover {
-  background-color: rgba(255, 142, 51, 0.12) !important;
-  box-shadow: 0 2px 5px rgba(255, 142, 51, 0.2) !important;
-}
-
-/* Temporary file icon styling - orange theme */
-.child-row.temporary-file .recording-file-icon-medium {
-  background-color: rgba(255, 142, 51, 0.15) !important;
-  color: #ff8e33 !important;
-}
-
-/* JVM log file styling - teal theme */
-.child-row.jvm-log-file {
-  background-color: rgba(20, 184, 166, 0.08) !important;
-  border-left: 3px solid #14b8a6 !important;
-  border-top: 1px solid rgba(20, 184, 166, 0.25) !important;
-  border-right: 1px solid rgba(20, 184, 166, 0.25) !important;
-  border-bottom: 1px solid rgba(20, 184, 166, 0.25) !important;
-  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.15) !important;
-}
-
-.child-row.jvm-log-file:hover {
-  background-color: rgba(20, 184, 166, 0.12) !important;
-  box-shadow: 0 2px 5px rgba(20, 184, 166, 0.2) !important;
-}
-
-/* JVM log file icon styling - teal theme */
-.child-row.jvm-log-file .recording-file-icon-medium {
-  background-color: rgba(20, 184, 166, 0.15) !important;
-  color: #14b8a6 !important;
-}
-
-/* Heap dump file styling - purple theme */
-.child-row.heap-dump-file {
-  background-color: rgba(111, 66, 193, 0.08) !important;
-  border-left: 3px solid #6f42c1 !important;
-  border-top: 1px solid rgba(111, 66, 193, 0.2) !important;
-  border-right: 1px solid rgba(111, 66, 193, 0.2) !important;
-  border-bottom: 1px solid rgba(111, 66, 193, 0.2) !important;
-  box-shadow: 0 1px 3px rgba(111, 66, 193, 0.15) !important;
-}
-
-.child-row.heap-dump-file:hover {
-  background-color: rgba(111, 66, 193, 0.12) !important;
-  box-shadow: 0 2px 5px rgba(111, 66, 193, 0.2) !important;
-}
-
-/* Heap dump file icon styling - purple theme */
-.child-row.heap-dump-file .recording-file-icon-medium {
-  background-color: rgba(111, 66, 193, 0.15) !important;
-  color: #6f42c1 !important;
-}
-
-/* Heap dump GZ file styling - deeper purple/violet theme */
-.child-row.heap-dump-gz-file {
-  background-color: rgba(81, 45, 168, 0.08) !important;
-  border-left: 3px solid #512da8 !important;
-  border-top: 1px solid rgba(81, 45, 168, 0.2) !important;
-  border-right: 1px solid rgba(81, 45, 168, 0.2) !important;
-  border-bottom: 1px solid rgba(81, 45, 168, 0.2) !important;
-  box-shadow: 0 1px 3px rgba(81, 45, 168, 0.15) !important;
-}
-
-.child-row.heap-dump-gz-file:hover {
-  background-color: rgba(81, 45, 168, 0.12) !important;
-  box-shadow: 0 2px 5px rgba(81, 45, 168, 0.2) !important;
-}
-
-/* Heap dump GZ file icon styling - deeper purple/violet theme */
-.child-row.heap-dump-gz-file .recording-file-icon-medium {
-  background-color: rgba(81, 45, 168, 0.15) !important;
-  color: #512da8 !important;
-}
-
-/* Perf counters file styling - sky blue theme */
-.child-row.perf-counters-file {
-  background-color: rgba(14, 165, 233, 0.08) !important;
-  border-left: 3px solid #0ea5e9 !important;
-  border-top: 1px solid rgba(14, 165, 233, 0.2) !important;
-  border-right: 1px solid rgba(14, 165, 233, 0.2) !important;
-  border-bottom: 1px solid rgba(14, 165, 233, 0.2) !important;
-  box-shadow: 0 1px 3px rgba(14, 165, 233, 0.15) !important;
-}
-
-.child-row.perf-counters-file:hover {
-  background-color: rgba(14, 165, 233, 0.12) !important;
-  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.2) !important;
-}
-
-/* Perf counters file icon styling - sky blue theme */
-.child-row.perf-counters-file .recording-file-icon-medium {
-  background-color: rgba(14, 165, 233, 0.15) !important;
-  color: #0ea5e9 !important;
-}
 
 /* Action button styling */
 .action-btn {
@@ -1514,5 +1612,24 @@ code {
   box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.1);
 }
 
+/* Artifact type panel styles */
+.type-panel-header-wrapper {
+  cursor: pointer;
+  user-select: none;
+}
+
+.type-panel-chevron {
+  font-size: 0.65rem;
+  color: #6c757d;
+  width: 16px;
+  text-align: center;
+}
+
+.type-panel-body {
+  border-left: 1px solid #e9ecef;
+  margin-left: 32px;
+  padding-left: 20px;
+  padding-top: 6px;
+}
 
 </style>

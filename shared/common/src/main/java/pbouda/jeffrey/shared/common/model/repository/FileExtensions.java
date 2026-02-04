@@ -28,5 +28,6 @@ public abstract class FileExtensions {
     public static final String HPROF = "hprof";
     public static final String PERF_COUNTERS = "hsperfdata";
     public static final String JVM_LOG = "-jvm.log(.[0-9]+)?";
+    public static final String HS_JVM_ERROR_LOG = "hs-jvm-err.log";
 
 }

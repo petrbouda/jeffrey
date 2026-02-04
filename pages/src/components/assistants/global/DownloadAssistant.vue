@@ -113,7 +113,26 @@
               >
                 <i class="bi bi-file-earmark me-1 text-primary"></i>
                 <span class="file-name">{{ file.fileName }}</span>
-                <span class="file-size-muted">{{ formatBytes(file.downloadedBytes) }}</span>
+                <span class="file-size-active">{{ formatBytes(file.downloadedBytes) }}</span>
+                <span class="file-size-muted">/ {{ formatBytes(file.fileSize) }}</span>
+              </div>
+            </div>
+
+            <!-- Pending Downloads -->
+            <div v-if="download.pendingDownloads?.length" class="file-list">
+              <div class="file-divider">
+                <span class="file-divider-text text-muted">
+                  <i class="bi bi-clock me-1"></i>Pending
+                </span>
+              </div>
+              <div
+                  v-for="file in download.pendingDownloads"
+                  :key="file.fileName"
+                  class="file-item"
+              >
+                <i class="bi bi-file-earmark me-1 text-muted"></i>
+                <span class="file-name">{{ file.fileName }}</span>
+                <span class="file-size-pending">{{ formatBytes(file.fileSize) }}</span>
               </div>
             </div>
 
@@ -457,7 +476,20 @@ const getStatusClass = (download: DownloadProgress): string => {
   text-overflow: ellipsis;
 }
 
+.file-size-active {
+  color: #0d6efd;
+  font-weight: 500;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
 .file-size-muted {
+  color: #6c757d;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
+.file-size-pending {
   color: #6c757d;
   font-size: 0.75rem;
   margin-left: 0.5rem;

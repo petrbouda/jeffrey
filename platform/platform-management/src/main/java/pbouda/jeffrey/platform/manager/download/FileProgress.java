@@ -33,6 +33,13 @@ public record FileProgress(
         FileProgressStatus status
 ) {
     /**
+     * Creates a new FileProgress for a file that is pending download.
+     */
+    public static FileProgress pending(String fileName, long fileSize) {
+        return new FileProgress(fileName, fileSize, 0, FileProgressStatus.PENDING);
+    }
+
+    /**
      * Creates a new FileProgress for a file that is starting to download.
      */
     public static FileProgress starting(String fileName, long fileSize) {

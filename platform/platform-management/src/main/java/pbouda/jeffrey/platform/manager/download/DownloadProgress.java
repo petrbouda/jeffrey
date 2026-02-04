@@ -33,6 +33,7 @@ import java.util.List;
  * @param completedFiles     Number of files that have been fully downloaded
  * @param activeDownloads    List of files currently being downloaded (for parallel downloads)
  * @param completedDownloads List of files that have completed downloading
+ * @param pendingDownloads   List of files waiting to be downloaded
  * @param totalBytes         Total bytes to download across all files
  * @param downloadedBytes    Total bytes downloaded so far
  * @param percentComplete    Overall progress percentage (0-100)
@@ -48,6 +49,7 @@ public record DownloadProgress(
         int completedFiles,
         List<FileProgress> activeDownloads,
         List<FileProgress> completedDownloads,
+        List<FileProgress> pendingDownloads,
         long totalBytes,
         long downloadedBytes,
         int percentComplete,

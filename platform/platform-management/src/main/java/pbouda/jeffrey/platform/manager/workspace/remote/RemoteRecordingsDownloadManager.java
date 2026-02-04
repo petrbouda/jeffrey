@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
+import pbouda.jeffrey.platform.manager.download.FileProgress;
 import pbouda.jeffrey.platform.manager.download.ProgressCallback;
 import pbouda.jeffrey.platform.manager.download.ProgressTrackingInputStream;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
@@ -205,14 +206,24 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .toList();
 
         // Calculate total: 1 merged recording + individual artifact files
+        long mergedSizeEstimate = recordingFiles.stream().mapToLong(RepositoryFile::size).sum();
         long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();
         int totalFiles = 1 + artifactFiles.size();
+        String mergedFileName = "merged-recording.jfr.lz4";
 
         LOG.info("Starting parallel download with progress tracking: sessionId={} files={} totalBytes={} maxConcurrent={}",
                 recordingSessionId, totalFiles, totalBytes, MAX_CONCURRENT_DOWNLOADS);
 
         // Notify start
         progressCallback.onStart(totalFiles, totalBytes);
+
+        // Report all files as pending upfront so the UI can show them immediately
+        List<FileProgress> pendingFiles = new ArrayList<>();
+        pendingFiles.add(FileProgress.pending(mergedFileName, mergedSizeEstimate));
+        for (RepositoryFile artifact : artifactFiles) {
+            pendingFiles.add(FileProgress.pending(artifact.name(), artifact.size()));
+        }
+        progressCallback.onFilesDiscovered(pendingFiles);
 
         // Check for cancellation
         if (progressCallback.isCancelled()) {
@@ -224,8 +235,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
             // Download merged recording file with streaming progress
-            String mergedFileName = "merged-recording.jfr.lz4";
-            long mergedSizeEstimate = recordingFiles.stream().mapToLong(RepositoryFile::size).sum();
 
             if (progressCallback.isCancelled()) {
                 throw new CancellationException("Download cancelled");

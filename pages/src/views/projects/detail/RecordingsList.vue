@@ -12,6 +12,7 @@ import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
+import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -73,6 +74,7 @@ const FILE_TYPE_PRIORITY: Record<string, number> = {
   'HEAP_DUMP': 2,
   'PERF_COUNTERS': 3,
   'JVM_LOG': 4,
+  'HS_JVM_ERROR_LOG': 5,
   'UNKNOWN': 99
 };
 
@@ -84,25 +86,6 @@ const getSortedRecordingFiles = (files: any[]) => {
     const priorityB = FILE_TYPE_PRIORITY[b.type] ?? 50;
     return priorityA - priorityB;
   });
-};
-
-// Get CSS class for file type styling
-const getFileTypeClass = (fileType: string): string => {
-  switch (fileType) {
-    case 'JFR':
-    case 'JFR_LZ4':
-      return 'file-type-jfr';
-    case 'HEAP_DUMP_GZ':
-      return 'file-type-heap-dump-gz';
-    case 'HEAP_DUMP':
-      return 'file-type-heap-dump';
-    case 'PERF_COUNTERS':
-      return 'file-type-perf-counters';
-    case 'JVM_LOG':
-      return 'file-type-jvm-log';
-    default:
-      return 'file-type-unknown';
-  }
 };
 
 // Download a recording file
@@ -619,11 +602,11 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                         <div class="fw-bold">
                           <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                           {{ recording.name }}
-                          <Badge 
-                            :value="recording.sourceType || 'Unknown'" 
-                            :variant="recording.sourceType === 'Async-Profiler' ? 'purple' : (recording.sourceType === 'JDK' ? 'info' : 'grey')" 
+                          <Badge
+                            :value="Utils.formatEventSource(recording.sourceType || 'UNKNOWN')"
+                            :variant="Utils.getEventSourceVariant(recording.sourceType || 'UNKNOWN')"
                             size="xs"
-                            class="ms-2" 
+                            class="ms-2"
                           />
                         </div>
                         <div class="d-flex text-muted small mt-1">
@@ -654,41 +637,27 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
-                    <div v-for="file in getSortedRecordingFiles(recording.recordingFiles)" :key="file.id" class="p-2 mb-2 recording-file-row" :class="getFileTypeClass(file.type)" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
-                      <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                          <div class="recording-file-icon-medium me-2">
-                            <i class="bi" :class="{
-                              'bi-file-earmark-code': file.type === 'JFR' || file.type === 'JFR_LZ4',
-                              'bi-file-earmark-zip': file.type === 'HEAP_DUMP_GZ',
-                              'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
-                              'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
-                              'bi-file-earmark-text': file.type === 'JVM_LOG',
-                              'bi-file-earmark': file.type === 'UNKNOWN'
-                            }"></i>
-                          </div>
-                          <div>
-                            <div class="text-dark fw-medium">{{ file.filename }}</div>
-                            <div class="d-flex align-items-center mt-1">
-                              <Badge
-                                :value="Utils.formatFileType(file.type)"
-                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP_GZ' ? 'violet' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))))"
-                                size="xxs"
-                              />
-                              <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
-                              <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          class="btn btn-sm btn-outline-secondary download-file-btn"
-                          @click="downloadFile(recording.id, file.id)"
-                          title="Download file"
-                        >
-                          <i class="bi bi-download"></i>
-                        </button>
-                      </div>
-                    </div>
+                    <template v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
+                      <RecordingFileRow
+                        v-for="file in getSortedRecordingFiles(recording.recordingFiles)"
+                        :key="file.id"
+                        :filename="file.filename"
+                        :fileType="file.type"
+                        :sizeInBytes="file.sizeInBytes"
+                        :description="file.description"
+                        class="mb-2"
+                      >
+                        <template #actions>
+                          <button
+                            class="btn btn-sm btn-outline-secondary download-file-btn"
+                            @click="downloadFile(recording.id, file.id)"
+                            title="Download file"
+                          >
+                            <i class="bi bi-download"></i>
+                          </button>
+                        </template>
+                      </RecordingFileRow>
+                    </template>
                     <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
                       <i class="bi bi-exclamation-circle me-1"></i>
                       No recording files available
@@ -728,11 +697,11 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                         <div class="fw-bold">
                           <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
                           {{ recording.name }}
-                          <Badge 
-                            :value="recording.sourceType || 'Unknown'" 
-                            :variant="recording.sourceType === 'Async-Profiler' ? 'purple' : (recording.sourceType === 'JDK' ? 'info' : 'grey')" 
+                          <Badge
+                            :value="Utils.formatEventSource(recording.sourceType || 'UNKNOWN')"
+                            :variant="Utils.getEventSourceVariant(recording.sourceType || 'UNKNOWN')"
                             size="xs"
-                            class="ms-2" 
+                            class="ms-2"
                           />
                         </div>
                         <div class="d-flex text-muted small mt-1">
@@ -762,41 +731,27 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
-                    <div v-for="file in getSortedRecordingFiles(recording.recordingFiles)" :key="file.id" class="p-2 mb-2 recording-file-row" :class="getFileTypeClass(file.type)" v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
-                      <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                          <div class="recording-file-icon-medium me-2">
-                            <i class="bi" :class="{
-                              'bi-file-earmark-code': file.type === 'JFR' || file.type === 'JFR_LZ4',
-                              'bi-file-earmark-zip': file.type === 'HEAP_DUMP_GZ',
-                              'bi-file-earmark-binary': file.type === 'HEAP_DUMP',
-                              'bi-file-earmark-bar-graph': file.type === 'PERF_COUNTERS',
-                              'bi-file-earmark-text': file.type === 'JVM_LOG',
-                              'bi-file-earmark': file.type === 'UNKNOWN'
-                            }"></i>
-                          </div>
-                          <div>
-                            <div class="text-dark fw-medium">{{ file.filename }}</div>
-                            <div class="d-flex align-items-center mt-1">
-                              <Badge
-                                :value="Utils.formatFileType(file.type)"
-                                :variant="file.type === 'JFR' ? 'primary' : (file.type === 'JFR_LZ4' ? 'indigo' : (file.type === 'HEAP_DUMP_GZ' ? 'violet' : (file.type === 'HEAP_DUMP' ? 'purple' : (file.type === 'PERF_COUNTERS' ? 'green' : (file.type === 'JVM_LOG' ? 'teal' : 'grey')))))"
-                                size="xxs"
-                              />
-                              <span class="recording-file-size ms-2" v-if="file.sizeInBytes !== undefined"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(file.sizeInBytes) }}</span>
-                              <span class="recording-file-description ms-2" v-if="file.description">{{ file.description }}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          class="btn btn-sm btn-outline-secondary download-file-btn"
-                          @click="downloadFile(recording.id, file.id)"
-                          title="Download file"
-                        >
-                          <i class="bi bi-download"></i>
-                        </button>
-                      </div>
-                    </div>
+                    <template v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
+                      <RecordingFileRow
+                        v-for="file in getSortedRecordingFiles(recording.recordingFiles)"
+                        :key="file.id"
+                        :filename="file.filename"
+                        :fileType="file.type"
+                        :sizeInBytes="file.sizeInBytes"
+                        :description="file.description"
+                        class="mb-2"
+                      >
+                        <template #actions>
+                          <button
+                            class="btn btn-sm btn-outline-secondary download-file-btn"
+                            @click="downloadFile(recording.id, file.id)"
+                            title="Download file"
+                          >
+                            <i class="bi bi-download"></i>
+                          </button>
+                        </template>
+                      </RecordingFileRow>
+                    </template>
                     <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
                       <i class="bi bi-exclamation-circle me-1"></i>
                       No recording files available
@@ -1037,145 +992,6 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   margin-bottom: 2rem;
 }
 
-.recording-file-icon-medium {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 5px;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-  font-size: 1rem;
-}
-
-.recording-file-row {
-  background-color: rgba(255, 255, 255, 0.7);
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.15s ease;
-}
-
-.recording-file-row:hover {
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
-}
-
-/* JFR file styling - blue theme */
-.recording-file-row.file-type-jfr {
-  background-color: rgba(94, 100, 255, 0.08);
-  border-left: 3px solid #5e64ff;
-  border-top: 1px solid rgba(94, 100, 255, 0.2);
-  border-right: 1px solid rgba(94, 100, 255, 0.2);
-  border-bottom: 1px solid rgba(94, 100, 255, 0.2);
-}
-
-.recording-file-row.file-type-jfr:hover {
-  background-color: rgba(94, 100, 255, 0.12);
-  box-shadow: 0 2px 5px rgba(94, 100, 255, 0.15);
-}
-
-.recording-file-row.file-type-jfr .recording-file-icon-medium {
-  background-color: rgba(94, 100, 255, 0.15);
-  color: #5e64ff;
-}
-
-/* HEAP_DUMP file styling - purple theme */
-.recording-file-row.file-type-heap-dump {
-  background-color: rgba(111, 66, 193, 0.08);
-  border-left: 3px solid #6f42c1;
-  border-top: 1px solid rgba(111, 66, 193, 0.2);
-  border-right: 1px solid rgba(111, 66, 193, 0.2);
-  border-bottom: 1px solid rgba(111, 66, 193, 0.2);
-}
-
-.recording-file-row.file-type-heap-dump:hover {
-  background-color: rgba(111, 66, 193, 0.12);
-  box-shadow: 0 2px 5px rgba(111, 66, 193, 0.15);
-}
-
-.recording-file-row.file-type-heap-dump .recording-file-icon-medium {
-  background-color: rgba(111, 66, 193, 0.15);
-  color: #6f42c1;
-}
-
-/* HEAP_DUMP_GZ file styling - deeper purple/violet theme */
-.recording-file-row.file-type-heap-dump-gz {
-  background-color: rgba(81, 45, 168, 0.08);
-  border-left: 3px solid #512da8;
-  border-top: 1px solid rgba(81, 45, 168, 0.2);
-  border-right: 1px solid rgba(81, 45, 168, 0.2);
-  border-bottom: 1px solid rgba(81, 45, 168, 0.2);
-}
-
-.recording-file-row.file-type-heap-dump-gz:hover {
-  background-color: rgba(81, 45, 168, 0.12);
-  box-shadow: 0 2px 5px rgba(81, 45, 168, 0.15);
-}
-
-.recording-file-row.file-type-heap-dump-gz .recording-file-icon-medium {
-  background-color: rgba(81, 45, 168, 0.15);
-  color: #512da8;
-}
-
-/* PERF_COUNTERS file styling - sky blue theme */
-.recording-file-row.file-type-perf-counters {
-  background-color: rgba(14, 165, 233, 0.08);
-  border-left: 3px solid #0ea5e9;
-  border-top: 1px solid rgba(14, 165, 233, 0.2);
-  border-right: 1px solid rgba(14, 165, 233, 0.2);
-  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
-}
-
-.recording-file-row.file-type-perf-counters:hover {
-  background-color: rgba(14, 165, 233, 0.12);
-  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.15);
-}
-
-.recording-file-row.file-type-perf-counters .recording-file-icon-medium {
-  background-color: rgba(14, 165, 233, 0.15);
-  color: #0ea5e9;
-}
-
-/* JVM_LOG file styling - teal theme */
-.recording-file-row.file-type-jvm-log {
-  background-color: rgba(20, 184, 166, 0.08);
-  border-left: 3px solid #14b8a6;
-  border-top: 1px solid rgba(20, 184, 166, 0.2);
-  border-right: 1px solid rgba(20, 184, 166, 0.2);
-  border-bottom: 1px solid rgba(20, 184, 166, 0.2);
-}
-
-.recording-file-row.file-type-jvm-log:hover {
-  background-color: rgba(20, 184, 166, 0.12);
-  box-shadow: 0 2px 5px rgba(20, 184, 166, 0.15);
-}
-
-.recording-file-row.file-type-jvm-log .recording-file-icon-medium {
-  background-color: rgba(20, 184, 166, 0.15);
-  color: #14b8a6;
-}
-
-/* UNKNOWN file styling - gray theme */
-.recording-file-row.file-type-unknown {
-  background-color: rgba(108, 117, 125, 0.08);
-  border-left: 3px solid #6c757d;
-  border-top: 1px solid rgba(108, 117, 125, 0.2);
-  border-right: 1px solid rgba(108, 117, 125, 0.2);
-  border-bottom: 1px solid rgba(108, 117, 125, 0.2);
-}
-
-.recording-file-row.file-type-unknown:hover {
-  background-color: rgba(108, 117, 125, 0.12);
-  box-shadow: 0 2px 5px rgba(108, 117, 125, 0.15);
-}
-
-.recording-file-row.file-type-unknown .recording-file-icon-medium {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: #6c757d;
-}
-
 /* Download button styling */
 .download-file-btn {
   padding: 0.25rem 0.5rem;
@@ -1190,23 +1006,6 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
 .recording-file-row:hover .download-file-btn {
   opacity: 0.8;
-}
-
-.recording-file-description {
-  font-size: 0.75rem;
-  color: #5e6e82;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
-}
-
-.recording-file-size {
-  font-size: 0.75rem;
-  color: #5e6e82;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
 }
 
 /* Action info button style */

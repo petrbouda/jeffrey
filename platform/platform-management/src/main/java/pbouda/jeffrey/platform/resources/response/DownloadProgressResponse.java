@@ -55,6 +55,7 @@ public record DownloadProgressResponse(
         int completedFiles,
         List<FileProgressResponse> activeDownloads,
         List<FileProgressResponse> completedDownloads,
+        List<FileProgressResponse> pendingDownloads,
         long totalBytes,
         long downloadedBytes,
         int percentComplete,
@@ -71,6 +72,10 @@ public record DownloadProgressResponse(
                 .map(FileProgressResponse::from)
                 .toList();
 
+        List<FileProgressResponse> pendingDownloads = progress.pendingDownloads().stream()
+                .map(FileProgressResponse::from)
+                .toList();
+
         return new DownloadProgressResponse(
                 progress.taskId(),
                 progress.sessionName(),
@@ -79,6 +84,7 @@ public record DownloadProgressResponse(
                 progress.completedFiles(),
                 activeDownloads,
                 completedDownloads,
+                pendingDownloads,
                 progress.totalBytes(),
                 progress.downloadedBytes(),
                 progress.percentComplete(),

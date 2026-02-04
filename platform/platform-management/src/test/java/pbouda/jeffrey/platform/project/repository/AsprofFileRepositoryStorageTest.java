@@ -19,20 +19,21 @@
 package pbouda.jeffrey.platform.project.repository;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
+import pbouda.jeffrey.shared.common.exception.ErrorCode;
+import pbouda.jeffrey.shared.common.exception.JeffreyClientException;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
 import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
 import java.io.IOException;
@@ -44,11 +45,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -216,6 +212,19 @@ class AsprofFileRepositoryStorageTest {
             assertEquals(1, filtered.size());
             assertTrue(filtered.getFirst().toString().contains("profile-20250101-120000"));
         }
+
+        @Test
+        void filtersOutEmptyRecordingFiles() throws IOException {
+            // Create one valid JFR and one empty JFR
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            Files.createFile(sessionPath.resolve(FORMATTED_FILE_2));
+            createFinishedFile();
+
+            List<Path> recordings = storage.recordings(SESSION_ID);
+
+            assertEquals(1, recordings.size());
+            assertTrue(recordings.getFirst().toString().contains("profile-20250101-120000"));
+        }
     }
 
     @Nested
@@ -277,6 +286,33 @@ class AsprofFileRepositoryStorageTest {
 
             // Size of one recording should be smaller than both
             assertTrue(oneSize < allSize);
+        }
+
+        @Test
+        void throwsEmptyRecordingSession_whenAllFilesAreEmpty() throws IOException {
+            // Create only an empty JFR file
+            Files.createFile(sessionPath.resolve(FORMATTED_FILE_1));
+            createFinishedFile();
+
+            JeffreyClientException exception = assertThrows(
+                    JeffreyClientException.class,
+                    () -> storage.mergeRecordings(SESSION_ID));
+
+            assertEquals(ErrorCode.EMPTY_RECORDING_SESSION, exception.getCode());
+        }
+
+        @Test
+        void mergesSuccessfully_whenSomeFilesAreEmpty() throws IOException {
+            // One valid JFR + one empty JFR
+            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
+            Files.createFile(sessionPath.resolve(FORMATTED_FILE_2));
+            createFinishedFile();
+
+            try (MergedRecording merged = storage.mergeRecordings(SESSION_ID)) {
+                assertNotNull(merged.path());
+                assertTrue(Files.exists(merged.path()));
+                assertTrue(Files.size(merged.path()) > 0);
+            }
         }
     }
 

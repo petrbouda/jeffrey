@@ -7,7 +7,7 @@ This document outlines additional files and diagnostics from HotSpot JVM / OpenJ
 - JFR recordings (alloc, lock, CPU events)
 - Heap dumps (on OOM)
 - Perf counters (hsperfdata)
-- JVM error logs (hs-err.log)
+- JVM error logs (hs-jvm-err.log)
 - Custom JVM logging
 
 ---
@@ -102,7 +102,7 @@ Tracks when JIT-compiled code is invalidated - can explain sudden performance dr
 -XX:+CreateCoredumpOnCrash
 ```
 
-In addition to hs-err.log, a core dump allows post-mortem debugging with gdb/lldb.
+In addition to hs-jvm-err.log, a core dump allows post-mortem debugging with gdb/lldb.
 
 ### 13. TLAB Statistics
 

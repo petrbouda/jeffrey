@@ -24,6 +24,7 @@ enum RecordingFileType {
     ASPROF = "ASPROF_TEMP",
     PERF_COUNTERS = "PERF_COUNTERS",
     JVM_LOG = "JVM_LOG",
+    HS_JVM_ERROR_LOG = "HS_JVM_ERROR_LOG",
     UNKNOWN = "UNKNOWN",
 }
 

@@ -56,8 +56,8 @@
                   <!-- Event source badge -->
                   <Badge
                     class="ms-2"
-                    :value="profile.eventSource || RecordingEventSource.JDK"
-                    :variant="getSourceVariant(profile.eventSource || RecordingEventSource.JDK)"
+                    :value="Utils.formatEventSource(profile.eventSource || RecordingEventSource.JDK)"
+                    :variant="Utils.getEventSourceVariant(profile.eventSource || RecordingEventSource.JDK)"
                     size="xs"
                   />
                   <!-- Status badges -->
@@ -173,6 +173,7 @@ import Profile from "@/services/api/model/Profile.ts";
 import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
+import Utils from "@/services/Utils";
 import FormattingService from "@/services/FormattingService.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
@@ -204,12 +205,6 @@ const getDeletingProfiles = (): Set<string> => {
   return stored ? new Set(JSON.parse(stored)) : new Set();
 };
 
-const getSourceVariant = (eventSource: string) => {
-  if (eventSource === RecordingEventSource.ASYNC_PROFILER) {
-    return 'purple';
-  }
-  return 'info';
-};
 
 const addDeletingProfile = (profileId: string) => {
   const deletingProfiles = getDeletingProfiles();

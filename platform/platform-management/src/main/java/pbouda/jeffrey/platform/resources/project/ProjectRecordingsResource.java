@@ -83,7 +83,7 @@ public class ProjectRecordingsResource {
                             rec.recordingDuration().toMillis(),
                             InstantUtils.formatInstant(rec.createdAt()),
                             rec.folderId(),
-                            rec.eventSource().getLabel(),
+                            rec.eventSource().name(),
                             rec.hasProfile(),
                             recordingFiles);
 

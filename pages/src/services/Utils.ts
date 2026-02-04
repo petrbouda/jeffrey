@@ -73,6 +73,30 @@ export default class Utils {
      * @param fileType The file type string to format
      * @returns Formatted file type string for display
      */
+    static formatEventSource(source: string): string {
+        switch (source) {
+            case 'ASYNC_PROFILER':
+                return 'Async Profiler';
+            case 'HEAP_DUMP':
+                return 'Heap Dump';
+            case 'UNKNOWN':
+                return 'Unknown';
+            default:
+                return source;
+        }
+    }
+
+    static getEventSourceVariant(source: string): string {
+        switch (source) {
+            case 'ASYNC_PROFILER':
+                return 'purple';
+            case 'JDK':
+                return 'info';
+            default:
+                return 'grey';
+        }
+    }
+
     static formatFileType(fileType: string): string {
         switch (fileType) {
             case 'JFR_LZ4':
@@ -89,6 +113,8 @@ export default class Utils {
                 return 'Asprof Temp'
             case 'JVM_LOG':
                 return 'JVM Log'
+            case 'HS_JVM_ERROR_LOG':
+                return 'HotSpot JVM Error Log'
             default:
                 return fileType;
         }

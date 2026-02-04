@@ -122,6 +122,7 @@ const startDownload = async (
             completedFiles: 0,
             activeDownloads: [],
             completedDownloads: [],
+            pendingDownloads: [],
             totalBytes: 0,
             downloadedBytes: 0,
             percentComplete: 0,

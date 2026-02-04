@@ -22,7 +22,7 @@ public class FeatureBuilder {
     /* Heap dump JVM Crash options */
     private static final String HEAP_DUMP_CRASH_OPTIONS = HEAP_DUMP_BASE_OPTIONS
             + "-XX:+CrashOnOutOfMemoryError "
-            + "-XX:ErrorFile=" + Path.of(Replacements.CURRENT_SESSION, "hs-err.log");
+            + "-XX:ErrorFile=" + Path.of(Replacements.CURRENT_SESSION, "hs-jvm-err.log");
 
     /* Heap dump JVM Exit options */
     private static final String HEAP_DUMP_EXIT_OPTIONS = HEAP_DUMP_BASE_OPTIONS

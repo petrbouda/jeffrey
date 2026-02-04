@@ -66,6 +66,9 @@ export default interface DownloadProgress {
     /** Files that have completed downloading */
     completedDownloads: FileProgress[];
 
+    /** Files waiting to be downloaded */
+    pendingDownloads: FileProgress[];
+
     /** Total bytes to download across all files */
     totalBytes: number;
 

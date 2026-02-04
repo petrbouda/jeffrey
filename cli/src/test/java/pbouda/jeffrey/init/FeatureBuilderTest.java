@@ -92,6 +92,7 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:HeapDumpPath="));
             assertTrue(result.contains("-XX:+CrashOnOutOfMemoryError"));
             assertTrue(result.contains("-XX:ErrorFile="));
+            assertTrue(result.contains("hs-jvm-err.log"));
             assertTrue(result.contains(SESSION_PATH.toString()));
             assertFalse(result.contains("-XX:+ExitOnOutOfMemoryError"));
         }

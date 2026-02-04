@@ -70,6 +70,12 @@ public enum SupportedRecordingFile {
             new JvmLogFileMatcher(),
             true
     ),
+    HS_JVM_ERROR_LOG(
+            "HotSpot JVM Error Log",
+            FileExtensions.HS_JVM_ERROR_LOG,
+            filename -> filename.endsWith(FileExtensions.HS_JVM_ERROR_LOG),
+            true
+    ),
     UNKNOWN(
             "Unsupported File Type",
             null,

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.download;
 
+import java.util.List;
+
 /**
  * Callback interface for reporting download progress.
  * Implementations receive progress updates during file downloads from remote servers.
@@ -31,6 +33,14 @@ public interface ProgressCallback {
      * @param totalBytes total bytes to download across all files
      */
     void onStart(int totalFiles, long totalBytes);
+
+    /**
+     * Called after start when all files to be downloaded are known.
+     * Allows the UI to show pending files before downloads begin.
+     *
+     * @param pendingFiles list of files that will be downloaded
+     */
+    void onFilesDiscovered(List<FileProgress> pendingFiles);
 
     /**
      * Called when a new file starts downloading.
