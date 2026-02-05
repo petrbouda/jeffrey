@@ -364,6 +364,25 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
   });
 };
 
+const isAllGroupFilesSelected = (sessionId: string, panel: TypeGroupPanel): boolean => {
+  if (!selectedRepositoryFile.value[sessionId]) return false;
+  const selectableFiles = panel.files.filter(f => !isCheckboxDisabled(f));
+  if (selectableFiles.length === 0) return false;
+  return selectableFiles.every(f => selectedRepositoryFile.value[sessionId][f.id]);
+};
+
+const toggleGroupSelection = (sessionId: string, panel: TypeGroupPanel) => {
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
+  }
+  const allSelected = isAllGroupFilesSelected(sessionId, panel);
+  panel.files.forEach(file => {
+    if (!isCheckboxDisabled(file)) {
+      selectedRepositoryFile.value[sessionId][file.id] = !allSelected;
+    }
+  });
+};
+
 const copyAndMerge = async (sessionId: string) => {
   try {
     const session = recordingSessions.value.find(s => s.id === sessionId);
@@ -933,6 +952,15 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                       <template #before>
                         <i class="bi me-1 type-panel-chevron"
                            :class="isTypePanelExpanded(session.id, panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                        <div class="form-check file-form-check me-2"
+                             v-if="showMultiSelectActions[session.id]">
+                          <input
+                              class="form-check-input file-checkbox"
+                              type="checkbox"
+                              :checked="isAllGroupFilesSelected(session.id, panel)"
+                              @change="toggleGroupSelection(session.id, panel)"
+                              @click.stop>
+                        </div>
                       </template>
                       <template #extra-badges>
                         <span class="recording-file-size ms-2">

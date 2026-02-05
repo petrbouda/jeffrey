@@ -29,7 +29,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
@@ -194,7 +193,7 @@ public class RemoteWorkspaceClientImpl implements RemoteWorkspaceClient {
             return WorkspaceResult.of(toWorkspaceInfo(uri, API_WORKSPACES_ID, entity.getBody()));
         } catch (RemoteJeffreyUnavailableException e) {
             return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
         }
     }

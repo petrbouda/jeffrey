@@ -53,7 +53,11 @@
         <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE" class="workspace-unavailable-info mb-4">
           <div class="alert alert-danger d-flex align-items-center">
             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-            <div>
+            <div v-if="getSelectedWorkspace()?.type === WorkspaceType.REMOTE">
+              <strong>Remote workspace is no longer available</strong><br>
+              <small class="text-muted">The workspace may have been deleted on the remote Jeffrey instance. You can remove this workspace reference.</small>
+            </div>
+            <div v-else>
               <strong>Workspace cannot find the source path with its projects</strong><br>
               <small class="text-muted">The workspace directory may have been moved, deleted, or is no longer accessible. Check the workspace path and file permissions.</small>
             </div>

@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.workspace.remote;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
@@ -31,6 +33,8 @@ import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
@@ -60,13 +64,18 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public WorkspaceInfo resolveInfo() {
-        RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.originId());
-        return switch (result.status()) {
-            case AVAILABLE -> result.info().withId(workspaceInfo.id());
-            case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
-            case OFFLINE -> workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
-            case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
-        };
+        try {
+            RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.originId());
+            return switch (result.status()) {
+                case AVAILABLE -> result.info().withId(workspaceInfo.id());
+                case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
+                case OFFLINE -> workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
+                case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
+            };
+        } catch (Exception e) {
+            LOG.warn("Failed to resolve remote workspace status, marking as unavailable: workspaceId={}", workspaceInfo.id());
+            return workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
+        }
     }
 
     @Override
