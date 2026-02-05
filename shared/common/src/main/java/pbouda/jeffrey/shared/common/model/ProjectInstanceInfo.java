@@ -25,8 +25,8 @@ public record ProjectInstanceInfo(
         String projectId,
         String hostname,
         ProjectInstanceStatus status,
-        Instant lastHeartbeat,
         Instant startedAt,
+        Instant finishedAt,
         int sessionCount,
         String activeSessionId) {
 

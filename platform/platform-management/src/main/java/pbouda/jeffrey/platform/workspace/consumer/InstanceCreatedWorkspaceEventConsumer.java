@@ -71,8 +71,8 @@ public class InstanceCreatedWorkspaceEventConsumer implements WorkspaceEventCons
                 projectManager.info().id(),
                 event.originEventId(), // hostname (same as instanceId for filesystem-based instances)
                 ProjectInstanceStatus.ACTIVE, // Instance is actively running when created via workspace event
-                event.originCreatedAt(), // lastHeartbeat
                 event.originCreatedAt(), // startedAt
+                null, // finishedAt - not finished yet
                 0, // sessionCount - will be calculated dynamically
                 null); // activeSessionId - will be calculated dynamically
 

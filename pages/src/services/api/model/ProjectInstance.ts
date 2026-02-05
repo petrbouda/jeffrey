@@ -27,6 +27,7 @@ export default class ProjectInstance {
         public startedAt: number,
         public sessionCount: number,
         public activeSessionId?: string,
+        public finishedAt?: number,
     ) {
     }
 }

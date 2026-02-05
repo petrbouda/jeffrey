@@ -80,7 +80,7 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
     }
 
     @Override
-    public void updateHeartbeat(String instanceId, Instant timestamp) {
+    public void markFinished(String instanceId, Instant finishedAt) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
@@ -95,8 +95,8 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 projectInfo.originId(),
                 response.hostname(),
                 ProjectInstanceStatus.valueOf(response.status()),
-                null,
                 InstantUtils.fromEpochMilli(response.startedAt()),
+                InstantUtils.fromEpochMilli(response.finishedAt()),
                 response.sessionCount(),
                 response.activeSessionId());
     }

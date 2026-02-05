@@ -45,7 +45,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                     ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
             FROM project_instances i
             WHERE i.project_id = :project_id
-            ORDER BY i.last_heartbeat DESC""";
+            ORDER BY i.started_at DESC""";
 
     //language=SQL
     private static final String SELECT_PROJECT_INSTANCE_BY_ID = """
@@ -65,12 +65,12 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     //language=SQL
     private static final String INSERT_PROJECT_INSTANCE = """
-            INSERT INTO project_instances (instance_id, project_id, hostname, status, last_heartbeat, started_at)
-            VALUES (:instance_id, :project_id, :hostname, :status, :last_heartbeat, :started_at)""";
+            INSERT INTO project_instances (instance_id, project_id, hostname, status, started_at)
+            VALUES (:instance_id, :project_id, :hostname, :status, :started_at)""";
 
     //language=SQL
-    private static final String UPDATE_HEARTBEAT = """
-            UPDATE project_instances SET last_heartbeat = :last_heartbeat
+    private static final String UPDATE_FINISHED = """
+            UPDATE project_instances SET finished_at = :finished_at, status = 'FINISHED'
             WHERE instance_id = :instance_id AND project_id = :project_id""";
 
     //language=SQL
@@ -130,20 +130,19 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 .addValue("project_id", projectId)
                 .addValue("hostname", instance.hostname())
                 .addValue("status", instance.status().name())
-                .addValue("last_heartbeat", instance.lastHeartbeat().atOffset(ZoneOffset.UTC))
                 .addValue("started_at", instance.startedAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT_INSTANCE, INSERT_PROJECT_INSTANCE, paramSource);
     }
 
     @Override
-    public void updateHeartbeat(String instanceId, Instant timestamp) {
+    public void markFinished(String instanceId, Instant finishedAt) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
                 .addValue("instance_id", instanceId)
-                .addValue("last_heartbeat", timestamp.atOffset(ZoneOffset.UTC));
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
 
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_HEARTBEAT, UPDATE_HEARTBEAT, paramSource);
+        databaseClient.update(StatementLabel.MARK_PROJECT_INSTANCE_FINISHED, UPDATE_FINISHED, paramSource);
     }
 
     @Override
@@ -162,8 +161,8 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 rs.getString("project_id"),
                 rs.getString("hostname"),
                 ProjectInstanceStatus.valueOf(rs.getString("status")),
-                Mappers.instant(rs, "last_heartbeat"),
                 Mappers.instant(rs, "started_at"),
+                Mappers.instant(rs, "finished_at"),
                 rs.getInt("session_count"),
                 rs.getString("active_session_id"));
     }

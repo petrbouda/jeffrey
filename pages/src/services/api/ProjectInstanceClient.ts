@@ -67,7 +67,8 @@ export default class ProjectInstanceClient {
             data.status,
             data.startedAt ?? Date.now(),
             data.sessionCount || 0,
-            data.activeSessionId
+            data.activeSessionId,
+            data.finishedAt ?? undefined
         );
     }
 

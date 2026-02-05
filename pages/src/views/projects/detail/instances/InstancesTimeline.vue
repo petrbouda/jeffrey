@@ -130,14 +130,14 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
   const now = Date.now();
   const rangeMs = getRangeMs();
 
-  const startPercent = Math.min((now - instance.startedAt) / rangeMs * 100, 100);
+  const startPercent = Math.max(0, Math.min((now - instance.startedAt) / rangeMs * 100, 100));
 
-  const endPercent = instance.status === 'ACTIVE'
+  const endPercent = (instance.status === 'ACTIVE' || !instance.finishedAt)
     ? 0
-    : Math.min((now - instance.startedAt) / rangeMs * 100, 100);
+    : Math.max(0, Math.min((now - instance.finishedAt) / rangeMs * 100, 100));
 
   const left = endPercent;
-  const width = Math.max(startPercent - endPercent, 2);
+  const width = Math.max(startPercent - endPercent, 0.5);
 
   return {
     left: `${left}%`,

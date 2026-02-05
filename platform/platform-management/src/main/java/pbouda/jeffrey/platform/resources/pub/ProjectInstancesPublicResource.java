@@ -68,6 +68,7 @@ public class ProjectInstancesPublicResource {
                 info.hostname(),
                 info.status().name(),
                 InstantUtils.toEpochMilli(info.startedAt()),
+                InstantUtils.toEpochMilli(info.finishedAt()),
                 info.sessionCount(),
                 info.activeSessionId());
     }

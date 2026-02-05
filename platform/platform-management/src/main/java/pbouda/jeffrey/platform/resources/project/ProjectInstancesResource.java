@@ -36,6 +36,7 @@ public class ProjectInstancesResource {
             String hostname,
             String status,
             Long startedAt,
+            Long finishedAt,
             int sessionCount,
             String activeSessionId) {
     }
@@ -83,6 +84,7 @@ public class ProjectInstancesResource {
                 info.hostname(),
                 info.status().name(),
                 InstantUtils.toEpochMilli(info.startedAt()),
+                InstantUtils.toEpochMilli(info.finishedAt()),
                 info.sessionCount(),
                 info.activeSessionId());
     }

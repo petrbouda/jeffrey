@@ -64,12 +64,12 @@ public interface ProjectInstanceRepository {
     void insert(ProjectInstanceInfo instance);
 
     /**
-     * Update the heartbeat timestamp for a project instance.
+     * Mark a project instance as finished with a timestamp.
      *
      * @param instanceId the instance ID
-     * @param timestamp the new heartbeat timestamp
+     * @param finishedAt the finished timestamp
      */
-    void updateHeartbeat(String instanceId, Instant timestamp);
+    void markFinished(String instanceId, Instant finishedAt);
 
     /**
      * Update the status of a project instance.

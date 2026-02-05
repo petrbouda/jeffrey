@@ -194,8 +194,8 @@ CREATE TABLE IF NOT EXISTS project_instances
     project_id     VARCHAR NOT NULL,
     hostname       VARCHAR NOT NULL,
     status         VARCHAR NOT NULL,
-    last_heartbeat TIMESTAMPTZ NOT NULL,
     started_at     TIMESTAMPTZ NOT NULL,
+    finished_at    TIMESTAMPTZ,
     PRIMARY KEY (instance_id)
 );
 

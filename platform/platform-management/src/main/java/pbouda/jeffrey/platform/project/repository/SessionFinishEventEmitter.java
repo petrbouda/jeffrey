@@ -44,6 +44,25 @@ public class SessionFinishEventEmitter {
         this.compositeWorkspacesManager = compositeWorkspacesManager;
     }
 
+    public void emitInstanceFinished(ProjectInfo projectInfo, String instanceId) {
+        Optional<WorkspaceManager> workspaceOpt =
+                compositeWorkspacesManager.findById(projectInfo.workspaceId());
+
+        if (workspaceOpt.isEmpty()) {
+            LOG.warn("Cannot emit instance finished event, workspace not found: workspaceId={}",
+                    projectInfo.workspaceId());
+            return;
+        }
+
+        WorkspaceEvent event = WorkspaceEventConverter.instanceFinished(
+                clock.instant(),
+                projectInfo,
+                instanceId,
+                WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
+
+        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+    }
+
     public void emitSessionFinished(ProjectInfo projectInfo, ProjectInstanceSessionInfo sessionInfo) {
         Optional<WorkspaceManager> workspaceOpt =
                 compositeWorkspacesManager.findById(projectInfo.workspaceId());

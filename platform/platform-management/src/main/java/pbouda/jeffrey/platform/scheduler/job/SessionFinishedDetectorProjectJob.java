@@ -144,6 +144,8 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
 
                 if (!hasActiveSessions) {
                     projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.FINISHED);
+                    projectInstanceRepository.markFinished(instanceId, clock.instant());
+                    eventEmitter.emitInstanceFinished(projectInfo, instanceId);
                     LOG.info("Instance transitioned to FINISHED, no active sessions remaining: projectId={} instanceId={}",
                             projectInfo.id(), instanceId);
                 }
