@@ -4,30 +4,158 @@
     description="View all instances connected to this project. Filter by status to see active or finished instances."
     icon="bi-box"
   >
-    <!-- Inline Stats Strip -->
-    <div class="inline-stats-strip mb-3" v-if="!loading && instances.length > 0">
-      <div class="stat-item">
-        <i class="bi bi-grid"></i>
-        <span class="stat-label">Total</span>
-        <span class="stat-value">{{ instances.length }}</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <i class="bi bi-broadcast" style="color: #f59e0b;"></i>
-        <span class="stat-label">Active</span>
-        <span class="stat-value">{{ activeCount }}</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <i class="bi bi-check-circle" style="color: #10b981;"></i>
-        <span class="stat-label">Finished</span>
-        <span class="stat-value">{{ finishedCount }}</span>
+    <!-- Stat Cards -->
+    <div class="mb-4" v-if="!loading && instances.length > 0">
+      <div class="row g-3">
+        <!-- Instances -->
+        <div class="col-md-4 col-xl">
+          <div class="compact-stat-card">
+            <div class="compact-stat-header">
+              <i class="bi bi-box text-primary"></i>
+              <span class="compact-stat-title">Instances</span>
+            </div>
+            <div class="compact-stat-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Active Instances</span>
+                <span class="metric-value">{{ activeCount }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Finished Instances</span>
+                <span class="metric-value">{{ finishedCount }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Total Instances</span>
+                <span class="metric-value">{{ instances.length }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="col-md-4 col-xl">
+          <div class="compact-stat-card">
+            <div class="compact-stat-header">
+              <i class="bi bi-collection text-success"></i>
+              <span class="compact-stat-title">Sessions</span>
+            </div>
+            <div class="compact-stat-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Total Sessions</span>
+                <span class="metric-value">{{ totalSessions }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Avg Sessions/Instance</span>
+                <span class="metric-value">{{ avgSessionsPerInstance }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Busiest Instance</span>
+                <span class="metric-value">{{ busiestInstance }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity -->
+        <div class="col-md-4 col-xl">
+          <div class="compact-stat-card">
+            <div class="compact-stat-header">
+              <i class="bi bi-clock-history text-info"></i>
+              <span class="compact-stat-title">Activity</span>
+            </div>
+            <div class="compact-stat-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Latest Started</span>
+                <span class="metric-value">{{ latestStarted }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Latest Finished</span>
+                <span class="metric-value">{{ latestFinished }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Uptime Range</span>
+                <span class="metric-value">{{ uptimeRange }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage -->
+        <div class="col-md-4 col-xl" v-if="repositoryStatistics">
+          <div class="compact-stat-card">
+            <div class="compact-stat-header">
+              <i class="bi bi-hdd text-success"></i>
+              <span class="compact-stat-title">Storage</span>
+            </div>
+            <div class="compact-stat-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Total Size</span>
+                <span class="metric-value">{{ FormattingService.formatBytes(repositoryStatistics.totalSize) }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Total Files</span>
+                <span class="metric-value">{{ repositoryStatistics.totalFiles }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Biggest Session</span>
+                <span class="metric-value">{{ FormattingService.formatBytes(repositoryStatistics.biggestSessionSize) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Types -->
+        <div class="col-md-4 col-xl" v-if="repositoryStatistics">
+          <div class="compact-stat-card">
+            <div class="compact-stat-header">
+              <i class="bi bi-files text-info"></i>
+              <span class="compact-stat-title">File Types</span>
+            </div>
+            <div class="compact-stat-metrics">
+              <div class="metric-item">
+                <span class="metric-label">JFR Files</span>
+                <span class="metric-value" style="color: #5e64ff">{{ repositoryStatistics.jfrFiles ?? 0 }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Heap Dumps</span>
+                <span class="metric-value" style="color: #6f42c1">{{ repositoryStatistics.heapDumpFiles ?? 0 }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">JVM Logs</span>
+                <span class="metric-value" style="color: #14b8a6">{{ repositoryStatistics.logFiles ?? 0 }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">JVM Error Logs</span>
+                <span class="metric-value" style="color: #c62828">{{ repositoryStatistics.errorLogFiles ?? 0 }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Other Files</span>
+                <span class="metric-value" style="color: #6c757d">{{ repositoryStatistics.otherFiles ?? 0 }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Search Box and Filter -->
     <div class="d-flex gap-3 mb-3 align-items-center">
-      <SearchBox v-model="searchQuery" placeholder="Search instances..." class="flex-grow-1" />
+      <div class="input-group search-container flex-grow-1">
+        <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+        <input
+          type="text"
+          class="form-control search-input"
+          placeholder="Search instances..."
+          v-model="searchQuery"
+        />
+        <button
+          v-if="searchQuery"
+          class="btn btn-outline-secondary clear-btn"
+          type="button"
+          @click="searchQuery = ''"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
       <div class="btn-group filter-btn-group" role="group">
         <button
           type="button"
@@ -112,9 +240,10 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
-import SearchBox from '@/components/SearchBox.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
+import type RepositoryStatistics from '@/services/api/model/RepositoryStatistics';
 import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
@@ -125,9 +254,46 @@ const loading = ref(true);
 const searchQuery = ref('');
 const statusFilter = ref('');
 const instances = ref<ProjectInstance[]>([]);
+const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 
 const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
 const finishedCount = computed(() => instances.value.filter(i => i.status === 'FINISHED').length);
+
+const totalSessions = computed(() => instances.value.reduce((sum, i) => sum + i.sessionCount, 0));
+
+const avgSessionsPerInstance = computed(() => {
+  if (instances.value.length === 0) return '0';
+  return (totalSessions.value / instances.value.length).toFixed(1);
+});
+
+const busiestInstance = computed(() => {
+  if (instances.value.length === 0) return '\u2014';
+  const busiest = instances.value.reduce((max, i) => i.sessionCount > max.sessionCount ? i : max, instances.value[0]);
+  return truncateHostname(busiest.hostname, 15);
+});
+
+const latestStarted = computed(() => {
+  if (instances.value.length === 0) return 'Never';
+  const latest = Math.max(...instances.value.map(i => i.startedAt));
+  return FormattingService.formatRelativeTime(latest);
+});
+
+const latestFinished = computed(() => {
+  const finished = instances.value.filter(i => i.finishedAt).map(i => i.finishedAt!);
+  if (finished.length === 0) return '\u2014';
+  return FormattingService.formatRelativeTime(Math.max(...finished));
+});
+
+const uptimeRange = computed(() => {
+  if (instances.value.length === 0) return '\u2014';
+  const oldest = Math.min(...instances.value.map(i => i.startedAt));
+  return FormattingService.formatRelativeTime(oldest);
+});
+
+function truncateHostname(hostname: string, maxLength: number): string {
+  if (hostname.length <= maxLength) return hostname;
+  return hostname.substring(0, maxLength - 1) + '\u2026';
+}
 
 const filteredInstances = computed(() => {
   let result = instances.value;
@@ -150,6 +316,9 @@ onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
   instances.value = await client.list();
   loading.value = false;
+
+  const repositoryClient = new ProjectRepositoryClient(workspaceId.value!, projectId.value!);
+  repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
 });
 </script>
 
@@ -173,47 +342,70 @@ onMounted(async () => {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* Inline stats strip */
-.inline-stats-strip {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+/* Compact Stat Cards (matching RepositoryStatistics.vue) */
+.compact-stat-card {
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 8px;
-  padding: 8px 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 12px 16px;
+  height: 100%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04),
+  0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.stat-item {
+.compact-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06),
+  0 2px 4px rgba(94, 100, 255, 0.1);
+  border-color: rgba(94, 100, 255, 0.15);
+}
+
+.compact-stat-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.stat-item i {
-  font-size: 0.85rem;
-  color: #5e64ff;
+.compact-stat-header i {
+  font-size: 1rem;
 }
 
-.stat-label {
-  font-size: 0.75rem;
+.compact-stat-title {
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #374151;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.stat-value {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #374151;
+.compact-stat-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 18px;
-  background-color: #e2e8f0;
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  text-align: right;
 }
 
 /* Filter button group */
@@ -291,5 +483,43 @@ onMounted(async () => {
 
 .min-width-0 {
   min-width: 0;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .compact-stat-card {
+    padding: 10px 12px;
+  }
+
+  .compact-stat-header {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .compact-stat-title {
+    font-size: 0.75rem;
+  }
+
+  .metric-label {
+    font-size: 0.7rem;
+  }
+
+  .metric-value {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .compact-stat-card {
+    padding: 8px 10px;
+  }
+
+  .compact-stat-metrics {
+    gap: 3px;
+  }
+
+  .metric-item {
+    padding: 1px 0;
+  }
 }
 </style>

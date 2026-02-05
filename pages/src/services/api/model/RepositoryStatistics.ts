@@ -32,5 +32,7 @@ export default interface RepositoryStatistics {
     // File Type Breakdown
     jfrFiles: number; // Number of JFR files
     heapDumpFiles: number; // Number of heap dump files
+    logFiles: number; // Number of JVM log files
+    errorLogFiles: number; // Number of HS JVM error log files
     otherFiles: number; // Number of other/unknown files
 }

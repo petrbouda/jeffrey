@@ -119,6 +119,14 @@ const lastActivityTime = computed(() => {
               <span class="metric-value text-danger">{{ statistics.heapDumpFiles }}</span>
             </div>
             <div class="metric-item">
+              <span class="metric-label">JVM Logs</span>
+              <span class="metric-value text-warning">{{ statistics.logFiles }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">JVM Error Logs</span>
+              <span class="metric-value text-danger-emphasis">{{ statistics.errorLogFiles }}</span>
+            </div>
+            <div class="metric-item">
               <span class="metric-label">Other Files</span>
               <span class="metric-value">{{ statistics.otherFiles }}</span>
             </div>

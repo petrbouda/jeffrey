@@ -101,7 +101,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         if (sessions.isEmpty()) {
             return new RepositoryStatistics(
-                    0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L, 0, 0, 0);
+                    0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L, 0, 0, 0, 0, 0);
         }
 
         // Sessions are already sorted by date (newest first) from listSessions()
@@ -112,6 +112,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
         int totalFiles = 0;
         int jfrFiles = 0;
         int heapDumpFiles = 0;
+        int logFiles = 0;
+        int errorLogFiles = 0;
         int otherFiles = 0;
         long biggestSessionSize = 0;
 
@@ -128,6 +130,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 switch (file.fileType()) {
                     case JFR, JFR_LZ4 -> jfrFiles++;
                     case HEAP_DUMP, HEAP_DUMP_GZ -> heapDumpFiles++;
+                    case JVM_LOG -> logFiles++;
+                    case HS_JVM_ERROR_LOG -> errorLogFiles++;
                     default -> otherFiles++;
                 }
             }
@@ -155,6 +159,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 biggestSessionSize,
                 jfrFiles,
                 heapDumpFiles,
+                logFiles,
+                errorLogFiles,
                 otherFiles
         );
     }

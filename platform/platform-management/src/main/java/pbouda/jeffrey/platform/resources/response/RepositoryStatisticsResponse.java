@@ -30,6 +30,8 @@ public record RepositoryStatisticsResponse(
         long biggestSessionSize,
         int jfrFiles,
         int heapDumpFiles,
+        int logFiles,
+        int errorLogFiles,
         int otherFiles) {
 
     public static RepositoryStatisticsResponse from(RepositoryStatistics stats) {
@@ -42,6 +44,8 @@ public record RepositoryStatisticsResponse(
                 stats.biggestSessionSizeBytes(),
                 stats.jfrFiles(),
                 stats.heapDumpFiles(),
+                stats.logFiles(),
+                stats.errorLogFiles(),
                 stats.otherFiles()
         );
     }
@@ -56,6 +60,8 @@ public record RepositoryStatisticsResponse(
                 response.biggestSessionSize(),
                 response.jfrFiles(),
                 response.heapDumpFiles(),
+                response.logFiles(),
+                response.errorLogFiles(),
                 response.otherFiles()
         );
     }
