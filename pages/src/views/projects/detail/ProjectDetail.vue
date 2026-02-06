@@ -45,21 +45,6 @@
                   <Badge v-if="projectInfo != null && projectInfo.recordingCount > 0" :value="projectInfo.recordingCount.toString()" variant="info" size="xs"
                          class="ms-auto"/>
                 </router-link>
-                <router-link
-                    v-if="!isSandboxWorkspace"
-                    :to="generateProjectUrl('repository')"
-                    class="nav-item"
-                    active-class="active">
-                  <i class="bi bi-folder"></i>
-                  <span>Repository</span>
-                </router-link>
-                <div
-                    v-else
-                    class="nav-item disabled-feature"
-                    title="Repository is not available in Sandbox workspaces">
-                  <i class="bi bi-folder"></i>
-                  <span>Repository</span>
-                </div>
                 <!-- Instances with 2-level submenu -->
                 <div class="nav-item-group">
                   <div class="nav-item nav-item-parent"

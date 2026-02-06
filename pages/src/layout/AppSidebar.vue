@@ -162,8 +162,7 @@ const menuItems = computed(() => [
       : (projectInfo.value && projectInfo.value.profileCount > 0 ? { type: 'primary', text: projectInfo.value.profileCount.toString() } : null) },
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
     badge: projectInfo.value && projectInfo.value.recordingCount > 0 ? { type: 'info', text: projectInfo.value.recordingCount.toString() } : null },
-  { label: 'Remote Repository', icon: 'bi bi-database', path: 'repository' },
-  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
+{ label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
     badge: projectInfo.value && projectInfo.value.jobCount > 0 ? { type: 'warning', text: projectInfo.value.jobCount.toString() } : null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
 ]);

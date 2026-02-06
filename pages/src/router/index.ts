@@ -385,12 +385,6 @@ const router = createRouter({
                   meta: { layout: 'project' }
                 },
                 {
-                  path: 'repository',
-                  name: 'project-repository',
-                  component: () => import('@/views/projects/detail/RepositoryView.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
                   path: 'scheduler',
                   name: 'project-scheduler',
                   component: () => import('@/views/projects/detail/SchedulerList.vue'),

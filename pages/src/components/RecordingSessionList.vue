@@ -699,18 +699,27 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <!-- Timeline section -->
         <div class="session-timeline">
           <div class="session-tl-item">
-            <div class="session-tl-label"><i class="bi bi-play-circle me-1"></i>Started</div>
-            <div class="session-tl-value">{{ FormattingService.formatRelativeTime(session.createdAt) }}</div>
-            <div class="session-tl-timestamp">{{ FormattingService.formatTimestampUTC(session.createdAt) }}</div>
+            <div class="session-tl-value">
+              <i class="bi bi-play-circle"></i>
+              <span class="session-tl-label">Started</span>
+              {{ FormattingService.formatRelativeTime(session.createdAt) }}
+            </div>
+            <div class="session-tl-sub">{{ FormattingService.formatTimestampUTC(session.createdAt) }}</div>
           </div>
           <div class="session-tl-item" v-if="session.finishedAt">
-            <div class="session-tl-label"><i class="bi bi-stop-circle me-1"></i>Finished</div>
-            <div class="session-tl-value">{{ FormattingService.formatRelativeTime(session.finishedAt) }}</div>
-            <div class="session-tl-timestamp">{{ FormattingService.formatTimestampUTC(session.finishedAt) }}</div>
+            <div class="session-tl-value">
+              <i class="bi bi-stop-circle"></i>
+              <span class="session-tl-label">Finished</span>
+              {{ FormattingService.formatRelativeTime(session.finishedAt) }}
+            </div>
+            <div class="session-tl-sub">{{ FormattingService.formatTimestampUTC(session.finishedAt) }}</div>
           </div>
           <div class="session-tl-item" v-if="session.finishedAt">
-            <div class="session-tl-label"><i class="bi bi-hourglass-split me-1"></i>Duration</div>
-            <div class="session-tl-value">{{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</div>
+            <div class="session-tl-value">
+              <i class="bi bi-hourglass-split"></i>
+              <span class="session-tl-label">Duration</span>
+              {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}
+            </div>
           </div>
         </div>
       </div>
@@ -1282,38 +1291,40 @@ code {
 
 .session-tl-item {
   flex: 1;
-  padding: 8px 16px;
+  padding: 10px 18px;
 }
 
 .session-tl-item + .session-tl-item {
   border-left: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.session-tl-label {
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #94a3b8;
-  margin-bottom: 1px;
-}
-
-.session-tl-label i {
-  font-size: 0.55rem;
-}
-
 .session-tl-value {
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: #374151;
-  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.session-tl-timestamp {
-  font-size: 0.65rem;
+.session-tl-value i {
+  font-size: 0.8rem;
   color: #94a3b8;
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-  margin-top: 1px;
+}
+
+.session-tl-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.session-tl-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 2px;
+  padding-left: 22px;
 }
 
 /* Show More button styling */

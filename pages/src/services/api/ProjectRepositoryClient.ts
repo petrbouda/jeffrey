@@ -30,22 +30,6 @@ export default class ProjectRepositoryClient {
         this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/repository'
     }
 
-    create(
-        repositoryPath: string,
-        repositoryType: string,
-        createIfNotExists: boolean,
-        finishedSessionDetectionFile: string | null) {
-        const content = {
-            repositoryPath: repositoryPath,
-            repositoryType: repositoryType,
-            createIfNotExists: createIfNotExists,
-            finishedSessionDetectionFile: finishedSessionDetectionFile,
-        };
-
-        return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
     listRecordingSessions(): Promise<RecordingSession[]> {
         return axios.get<RecordingSession[]>(this.baseUrl + '/sessions', HttpUtils.JSON_ACCEPT_HEADER)
             .then(HttpUtils.RETURN_DATA);
@@ -94,8 +78,4 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
-    delete(): Promise<void> {
-        return axios.delete<void>(this.baseUrl)
-            .then(HttpUtils.RETURN_DATA);
-    }
 }
