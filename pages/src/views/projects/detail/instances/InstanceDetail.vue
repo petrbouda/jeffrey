@@ -43,124 +43,96 @@
         </div>
       </div>
 
-      <!-- Sessions Header Bar -->
-      <div class="d-flex align-items-center mb-3">
-        <div class="sessions-header-bar flex-grow-1 d-flex align-items-center px-3">
-          <span class="header-text">Sessions ({{ sessions.length }})</span>
-        </div>
-      </div>
+      <RecordingSessionList
+        :sessions="sessions"
+        :workspaceId="workspaceId!"
+        :projectId="projectId!"
+        :isRemoteWorkspace="isRemoteWorkspace"
+        :showInstanceLink="false"
+        headerText="Sessions"
+        @refresh="fetchSessions"
+      />
 
-      <!-- Sessions List -->
+      <!-- No Sessions Message -->
       <EmptyState
-        v-if="sessions.length === 0"
+        v-if="!sessionsLoading && sessions.length === 0"
         icon="bi-inbox"
         title="No Sessions"
         description="No recording sessions found for this instance."
       />
-
-      <div v-else class="session-list">
-        <div
-          v-for="(session, index) in sessions"
-          :key="session.id"
-          class="session-list-item"
-        >
-          <div class="session-card" :class="session.isActive ? 'session-card-active' : 'session-card-finished'">
-            <div class="d-flex align-items-center">
-              <span class="fw-bold session-label">Session #{{ sessions.length - index }}</span>
-              <div class="session-times">
-                <div>
-                  <i class="bi bi-calendar me-1"></i>
-                  Started: {{ FormattingService.formatTimestampUTC(session.startedAt) }}
-                </div>
-                <div v-if="session.finishedAt">
-                  <i class="bi bi-calendar-check me-1"></i>
-                  Finished: {{ FormattingService.formatTimestampUTC(session.finishedAt) }}
-                </div>
-                <div v-else-if="session.isActive" class="text-success">
-                  <i class="bi bi-record-circle me-1"></i>
-                  In progress ({{ FormattingService.formatRelativeTime(session.startedAt) }})
-                </div>
-                <div v-if="session.finishedAt">
-                  <i class="bi bi-stopwatch me-1"></i>
-                  Duration: {{ formatSessionDuration(session.startedAt, session.finishedAt) }}
-                </div>
-              </div>
-              <div class="session-id-text">{{ session.id }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </PageHeader>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
+import RecordingSessionList from '@/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
-import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
+import RecordingSession from '@/services/api/model/RecordingSession';
 import FormattingService from '@/services/FormattingService';
-import { useNavigation } from '@/composables/useNavigation';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import Workspace from '@/services/api/model/Workspace';
+import WorkspaceType from '@/services/api/model/WorkspaceType';
+import {useNavigation} from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const { workspaceId, projectId, instanceId } = useNavigation();
+const {workspaceId, projectId, instanceId} = useNavigation();
 
 const loading = ref(true);
+const sessionsLoading = ref(true);
 const instance = ref<ProjectInstance | null>(null);
-const sessions = ref<ProjectInstanceSession[]>([]);
+const sessions = ref<RecordingSession[]>([]);
+const workspaceInfo = ref<Workspace | null>(null);
 
-function formatSessionDuration(startedAt: number, finishedAt: number): string {
-  const diffMs = finishedAt - startedAt;
-  if (diffMs < 1000) return `${diffMs}ms`;
+const isRemoteWorkspace = computed(() => {
+  return workspaceInfo.value?.type === WorkspaceType.REMOTE;
+});
 
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+const fetchSessions = async () => {
+  sessionsLoading.value = true;
+  try {
+    const repositoryService = new ProjectRepositoryClient(workspaceId.value!, projectId.value!);
+    const allSessions = await repositoryService.listRecordingSessions();
+    sessions.value = allSessions.filter(s => s.instanceId === instanceId.value);
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      sessions.value = [];
+    }
+  } finally {
+    sessionsLoading.value = false;
+  }
+};
 
-  if (days > 0) return `${days}d ${hours % 24}h`;
-  if (hours > 0) return `${hours}h ${minutes % 60}m`;
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
-  return `${seconds}s`;
-}
+const fetchWorkspaceInfo = async () => {
+  try {
+    const workspaces = await WorkspaceClient.list();
+    workspaceInfo.value = workspaces.find(w => w.id === workspaceId.value) || null;
+  } catch (error: any) {
+    console.error('Failed to load workspace info:', error);
+  }
+};
 
 onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
-  const [inst, sess] = await Promise.all([
+  const [inst] = await Promise.all([
     client.get(instanceId.value!),
-    client.getSessions(instanceId.value!)
+    fetchSessions(),
+    fetchWorkspaceInfo(),
   ]);
 
   instance.value = inst || null;
-  sessions.value = sess;
   loading.value = false;
 });
 </script>
 
 <style scoped>
-.sessions-header-bar {
-  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
-  border: 1px solid #4a50e2;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
-  height: 31px;
-}
-
-.header-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
 /* Compact metadata bar */
 .instance-metadata-bar {
   background: #f8fafc;
@@ -194,63 +166,5 @@ onMounted(async () => {
 
 .meta-item i {
   color: #94a3b8;
-}
-
-/* Session list */
-.session-list-item {
-  padding-bottom: 12px;
-}
-
-.session-list-item:last-child {
-  padding-bottom: 0;
-}
-
-.session-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px 14px;
-  transition: all 0.2s ease;
-}
-
-.session-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.session-card-active {
-  border-left: 3px solid #f59e0b;
-  background-color: rgba(245, 158, 11, 0.03);
-}
-
-.session-card-finished {
-  border-left: 3px solid #10b981;
-  background-color: rgba(16, 185, 129, 0.03);
-}
-
-.session-label {
-  font-size: 0.9rem;
-  color: #1f2937;
-}
-
-.session-times {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  margin-left: 16px;
-  font-size: 0.78rem;
-  color: #64748b;
-}
-
-.session-times > div {
-  display: flex;
-  align-items: center;
-}
-
-.session-id-text {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  margin-left: auto;
-  white-space: nowrap;
 }
 </style>
