@@ -18,17 +18,18 @@
 
 package pbouda.jeffrey.profile.resources.response;
 
+import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 
-import java.time.Instant;
 import java.util.List;
 
 public record RecordingSessionResponse(
         String id,
         String name,
         String instanceId,
-        Instant createdAt,
+        Long createdAt,
+        Long finishedAt,
         RecordingStatus status,
         String profilerSettings,
         List<RepositoryFileResponse> files) {
@@ -38,7 +39,8 @@ public record RecordingSessionResponse(
                 session.id(),
                 session.name(),
                 session.instanceId(),
-                session.createdAt(),
+                InstantUtils.toEpochMilli(session.createdAt()),
+                InstantUtils.toEpochMilli(session.finishedAt()),
                 session.status(),
                 session.profilerSettings(),
                 session.files().stream()
@@ -51,7 +53,8 @@ public record RecordingSessionResponse(
                 response.id(),
                 response.name(),
                 response.instanceId(),
-                response.createdAt(),
+                InstantUtils.fromEpochMilli(response.createdAt()),
+                InstantUtils.fromEpochMilli(response.finishedAt()),
                 response.status(),
                 response.profilerSettings(),
                 null,

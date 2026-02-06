@@ -12,6 +12,7 @@ import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import RecordingFileRow from '@/components/RecordingFileRow.vue';
+import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {
@@ -43,7 +44,6 @@ const repositoryService = computed(() =>
 const expandedSessions = ref<{ [key: string]: boolean }>({});
 const expandedProfilerSettings = ref<{ [key: string]: boolean }>({});
 const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
-const showActions = ref<{ [sessionId: string]: boolean }>({});
 const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
 const visibleFilesCount = ref<{ [key: string]: number }>({});
 const expandedTypePanels = ref<{ [key: string]: boolean }>({});
@@ -109,21 +109,10 @@ const parseSessionName = (name: string): { hostname: string; sessionId: string }
   return { hostname: name.substring(0, slashIndex), sessionId: name.substring(slashIndex + 1) };
 };
 
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-};
-
 // --- Computed ---
 const sortedSessions = computed(() => {
   return [...props.sessions].sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return b.createdAt - a.createdAt;
   });
 });
 
@@ -146,7 +135,7 @@ const getSortedRecordings = (session: RecordingSession) => {
       return b.name.localeCompare(a.name);
     }
 
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return b.createdAt - a.createdAt;
   });
 };
 
@@ -173,9 +162,6 @@ const initializeExpandedState = () => {
       showMultiSelectActions.value[session.id] = false;
     }
 
-    if (showActions.value[session.id] === undefined) {
-      showActions.value[session.id] = false;
-    }
   });
 };
 
@@ -236,10 +222,6 @@ const toggleSelectionMode = (sessionId: string) => {
   } else {
     clearAllSelections(sessionId);
   }
-};
-
-const toggleActionButtons = (sessionId: string) => {
-  showActions.value[sessionId] = !showActions.value[sessionId];
 };
 
 const clearAllSelections = (sessionId: string) => {
@@ -632,58 +614,51 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 <template>
   <!-- Recording Sessions Header Bar -->
   <div class="col-12" v-if="sessions.length > 0">
-    <div class="d-flex align-items-center mb-3 gap-3">
-      <div class="sessions-header-bar flex-grow-1 d-flex align-items-center px-3">
-        <span class="header-text">{{ headerText }} ({{ sessions.length }})</span>
-      </div>
-    </div>
+    <SectionHeaderBar :text="`${headerText} (${sessions.length})`" />
   </div>
 
   <!-- Recording Sessions List -->
   <div class="col-12" v-if="sessions.length > 0">
     <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
       <!-- Session header -->
-      <div class="folder-row p-3 rounded"
+      <div class="folder-row rounded"
            :class="getSessionStatusClass(session)"
            @click="toggleSession(session.id)">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="d-flex align-items-start">
-            <i class="bi fs-4 me-3 text-primary"
-               :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
-            <div>
-              <div class="d-flex align-items-center gap-2">
-                <template v-if="showInstanceLink">
-                  <span class="session-name-label">Instance:</span>
-                  <router-link
-                      :to="generateInstanceUrl(session.instanceId)"
-                      class="instance-link"
-                      @click.stop>
-                    {{ parseSessionName(session.name).hostname }}
-                  </router-link>
-                  <span class="session-separator">/</span>
-                  <span class="session-name-label">Session:</span>
-                </template>
-                <template v-else>
-                  <span class="session-name-label">Session:</span>
-                </template>
-                <span class="session-id-part">{{ session.id }}</span>
-              </div>
-              <div class="session-metadata">
-                <span class="session-meta-item">
-                  <i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources
-                </span>
-                <span class="session-meta-item">
-                  <i class="bi bi-clock me-1"></i>{{ formatDate(session.createdAt) }}
-                </span>
-                <span class="session-meta-item">
-                  <i class="bi bi-send me-1"></i>origin: {{ parseSessionName(session.name).sessionId }}
-                </span>
+        <!-- Identity section -->
+        <div class="session-identity">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="d-flex align-items-start">
+              <i class="bi fs-4 me-3 text-primary"
+                 :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <template v-if="showInstanceLink">
+                    <span class="session-name-label">Instance:</span>
+                    <router-link
+                        :to="generateInstanceUrl(session.instanceId)"
+                        class="instance-link"
+                        @click.stop>
+                      {{ parseSessionName(session.name).hostname }}
+                    </router-link>
+                    <span class="session-separator">/</span>
+                    <span class="session-name-label">Session:</span>
+                  </template>
+                  <template v-else>
+                    <span class="session-name-label">Session:</span>
+                  </template>
+                  <span class="session-id-part">{{ session.id }}</span>
+                </div>
+                <div class="session-pills">
+                  <span class="session-pill">
+                    <i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources
+                  </span>
+                  <span class="session-pill">
+                    <i class="bi bi-send me-1"></i>{{ parseSessionName(session.name).sessionId }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="d-flex align-items-center gap-1">
-            <div v-if="showActions[session.id]"
-                 class="d-flex align-items-center gap-1 action-buttons-container">
+            <div class="d-flex align-items-center gap-1">
               <button
                   class="btn btn-sm btn-outline-primary"
                   type="button"
@@ -699,33 +674,43 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   @click.stop="deleteAll(session.id)">
                 <i class="bi bi-trash"></i>
               </button>
+              <button
+                  class="action-btn action-menu-btn ms-1"
+                  :class="{'active': showMultiSelectActions[session.id]}"
+                  type="button"
+                  title="Toggle multi-select mode"
+                  @click.stop="toggleSelectionMode(session.id)">
+                <i class="bi"
+                   :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
+              </button>
+              <button
+                  v-if="session.profilerSettings"
+                  class="action-btn action-menu-btn ms-1"
+                  :class="{'active': expandedProfilerSettings[session.id]}"
+                  type="button"
+                  title="Show profiler configuration"
+                  @click.stop="toggleProfilerSettings(session.id)">
+                <i class="bi bi-gear-fill"></i>
+              </button>
             </div>
-            <button
-                class="action-btn action-menu-btn"
-                :class="{'active': showActions[session.id]}"
-                type="button"
-                title="Show/Hide Actions"
-                @click.stop="toggleActionButtons(session.id)">
-              <i class="bi bi-three-dots"></i>
-            </button>
-            <button
-                class="action-btn action-menu-btn ms-1"
-                :class="{'active': showMultiSelectActions[session.id]}"
-                type="button"
-                title="Toggle multi-select mode"
-                @click.stop="toggleSelectionMode(session.id)">
-              <i class="bi"
-                 :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
-            </button>
-            <button
-                v-if="session.profilerSettings"
-                class="action-btn action-menu-btn ms-1"
-                :class="{'active': expandedProfilerSettings[session.id]}"
-                type="button"
-                title="Show profiler configuration"
-                @click.stop="toggleProfilerSettings(session.id)">
-              <i class="bi bi-gear-fill"></i>
-            </button>
+          </div>
+        </div>
+
+        <!-- Timeline section -->
+        <div class="session-timeline">
+          <div class="session-tl-item">
+            <div class="session-tl-label"><i class="bi bi-play-circle me-1"></i>Started</div>
+            <div class="session-tl-value">{{ FormattingService.formatRelativeTime(session.createdAt) }}</div>
+            <div class="session-tl-timestamp">{{ FormattingService.formatTimestampUTC(session.createdAt) }}</div>
+          </div>
+          <div class="session-tl-item" v-if="session.finishedAt">
+            <div class="session-tl-label"><i class="bi bi-stop-circle me-1"></i>Finished</div>
+            <div class="session-tl-value">{{ FormattingService.formatRelativeTime(session.finishedAt) }}</div>
+            <div class="session-tl-timestamp">{{ FormattingService.formatTimestampUTC(session.finishedAt) }}</div>
+          </div>
+          <div class="session-tl-item" v-if="session.finishedAt">
+            <div class="session-tl-label"><i class="bi bi-hourglass-split me-1"></i>Duration</div>
+            <div class="session-tl-value">{{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}</div>
           </div>
         </div>
       </div>
@@ -1013,27 +998,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 </template>
 
 <style scoped>
-/* Sessions header bar styling */
-.sessions-header-bar {
-  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
-  border: 1px solid #4a50e2;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
-  position: relative;
-  height: 31px;
-}
-
-.header-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(1px);
-}
-
 code {
   background-color: #f8f9fa;
   padding: 0.25rem 0.5rem;
@@ -1087,28 +1051,26 @@ code {
   background-color: white;
   cursor: pointer;
   transition: all 0.15s ease;
-  border: 1px solid #eee;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .folder-row:hover {
-  background-color: rgba(94, 100, 255, 0.03);
   transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(94, 100, 255, 0.15);
 }
 
 .folder-row.session-active {
-  background-color: rgba(255, 193, 7, 0.07);
   border-left: 3px solid #ffc107;
 }
 
 .folder-row.session-finished {
-  background-color: rgba(40, 167, 69, 0.05);
   border-left: 3px solid #28a745;
 }
 
 .folder-row.session-unknown {
-  background-color: rgba(111, 66, 193, 0.05);
   border-left: 3px solid #6f42c1;
 }
 
@@ -1238,18 +1200,23 @@ code {
   border-color: rgba(108, 117, 125, 0.3);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* Session identity section */
+.session-identity {
+  padding: 12px 16px;
 }
 
-/* Session header layout */
+.folder-row.session-active .session-identity {
+  background-color: rgba(255, 193, 7, 0.06);
+}
+
+.folder-row.session-finished .session-identity {
+  background-color: rgba(40, 167, 69, 0.04);
+}
+
+.folder-row.session-unknown .session-identity {
+  background-color: rgba(111, 66, 193, 0.04);
+}
+
 .session-name-label {
   font-size: 0.75rem;
   color: #9ca3af;
@@ -1282,29 +1249,71 @@ code {
   font-size: 0.88rem;
 }
 
-.session-metadata {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 2px;
+/* Session pills */
+.session-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
 }
 
-.session-meta-item {
+.session-pill {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 1px 8px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
 }
 
-.session-meta-item + .session-meta-item {
-  margin-left: 12px;
+.session-pill i {
+  color: #94a3b8;
+  font-size: 0.65rem;
 }
 
-.session-meta-item i {
-  color: #9ca3af;
+/* Session timeline section */
+.session-timeline {
+  display: flex;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(248, 250, 252, 0.5);
 }
 
-/* Action buttons animation */
-.action-buttons-container {
-  animation: fadeIn 0.2s ease-in-out;
+.session-tl-item {
+  flex: 1;
+  padding: 8px 16px;
+}
+
+.session-tl-item + .session-tl-item {
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.session-tl-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 1px;
+}
+
+.session-tl-label i {
+  font-size: 0.55rem;
+}
+
+.session-tl-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.session-tl-timestamp {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  margin-top: 1px;
 }
 
 /* Show More button styling */

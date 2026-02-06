@@ -180,11 +180,7 @@
 
     <!-- Instances Header Bar -->
     <div class="col-12">
-      <div class="d-flex align-items-center mb-3 gap-3">
-        <div class="instances-header-bar flex-grow-1 d-flex align-items-center px-3">
-          <span class="header-text">All Instances ({{ filteredInstances.length }})</span>
-        </div>
-      </div>
+      <SectionHeaderBar :text="`All Instances (${filteredInstances.length})`" />
     </div>
 
     <!-- Loading Indicator -->
@@ -240,6 +236,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
+import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
@@ -323,25 +320,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Blue gradient header bar matching RepositoryView */
-.instances-header-bar {
-  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
-  border: 1px solid #4a50e2;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
-  height: 31px;
-}
-
-.header-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
 /* Compact Stat Cards (matching RepositoryStatistics.vue) */
 .compact-stat-card {
   background: linear-gradient(135deg, #f8f9fa, #ffffff);

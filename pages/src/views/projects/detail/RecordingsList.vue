@@ -13,6 +13,7 @@ import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import RecordingFileRow from '@/components/RecordingFileRow.vue';
+import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -525,14 +526,13 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
     <!-- Recordings Header Bar -->
     <div class="col-12">
-      <div class="d-flex align-items-center mb-3 gap-3">
-        <div class="recordings-header-bar flex-grow-1 d-flex align-items-center px-3">
-          <span class="header-text">Recordings ({{ recordings.length }})</span>
-        </div>
-        <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
-          <i class="bi bi-folder-plus me-1"></i>New Folder
-        </button>
-      </div>
+      <SectionHeaderBar :text="`Recordings (${recordings.length})`">
+        <template #actions>
+          <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
+            <i class="bi bi-folder-plus me-1"></i>New Folder
+          </button>
+        </template>
+      </SectionHeaderBar>
     </div>
 
     <!-- Recordings List -->
@@ -1054,28 +1054,6 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   text-align: center;
   font-size: 0.875rem;
 }
-
-/* Recordings header bar styling */
-.recordings-header-bar {
-  background: linear-gradient(135deg, #5e64ff 0%, #4a50e2 100%);
-  border: 1px solid #4a50e2;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
-  position: relative;
-  height: 31px;
-}
-
-.header-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(1px);
-}
-
 
 
 /* Root recordings bar styling */

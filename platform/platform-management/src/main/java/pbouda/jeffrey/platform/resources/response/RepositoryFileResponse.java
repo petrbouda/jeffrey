@@ -18,16 +18,15 @@
 
 package pbouda.jeffrey.platform.resources.response;
 
+import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
-import java.time.Instant;
-
 public record RepositoryFileResponse(
         String id,
         String name,
-        Instant createdAt,
+        Long createdAt,
         Long size,
         SupportedRecordingFile fileType,
         boolean isRecordingFile,
@@ -38,7 +37,7 @@ public record RepositoryFileResponse(
         return new RepositoryFileResponse(
                 file.id(),
                 file.name(),
-                file.createdAt(),
+                InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
                 file.fileType(),
                 file.isRecordingFile(),
@@ -50,7 +49,7 @@ public record RepositoryFileResponse(
         return new RepositoryFile(
                 response.id(),
                 response.name(),
-                response.createdAt(),
+                InstantUtils.fromEpochMilli(response.createdAt()),
                 response.size(),
                 response.fileType(),
                 response.isRecordingFile(),

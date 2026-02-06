@@ -190,6 +190,13 @@ export default class FormattingService {
         return '@' + objectId.toString(16);
     }
 
+    static formatDurationFromMillis(startMs: number, endMs: number | null | undefined): string {
+        if (!startMs || !endMs) return '\u2014';
+        const durationMs = endMs - startMs;
+        if (durationMs <= 0) return '\u2014';
+        return FormattingService.formatDurationInMillis2Units(durationMs);
+    }
+
     static formatObjectParams(params: Record<string, string>): string {
         const entries = Object.entries(params);
         if (entries.length === 0) return '';

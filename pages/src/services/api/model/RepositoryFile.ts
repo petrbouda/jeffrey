@@ -23,7 +23,7 @@ export default class RepositoryFile {
     constructor(
         public id: string,
         public name: string,
-        public createdAt: string,
+        public createdAt: number,
         public status: RecordingStatus,
         public size: number,
         public fileType: RecordingFileType,

@@ -27,6 +27,7 @@ public record RecordingSession(
         String name,
         String instanceId,
         Instant createdAt,
+        Instant finishedAt,
         RecordingStatus status,
         String profilerSettings,
         Path absolutePath,
