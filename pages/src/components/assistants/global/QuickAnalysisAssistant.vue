@@ -32,7 +32,7 @@
   <AssistantPanel
       :is-open="isOpen"
       :is-expanded="isExpanded"
-      width="380px"
+      width="460px"
       header-gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
       :show-backdrop="true"
       @close="$emit('close')"
@@ -207,7 +207,10 @@ const isDragOver = ref(false);
 // Formatting
 const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
 const formatRelativeTime = (dateString: string) => {
-  const timestamp = new Date(dateString).getTime();
+  // Backend sends UTC timestamps without 'Z' suffix (e.g. "2025-02-06 14:30"),
+  // so append 'Z' to ensure the browser parses them as UTC, not local time.
+  const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+  const timestamp = new Date(utcString).getTime();
   return FormattingService.formatRelativeTime(timestamp);
 };
 
@@ -340,13 +343,13 @@ const handleButtonClick = () => {
 }
 
 .dropzone-text {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   color: #495057;
 }
 
 .dropzone-subtext {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: #6c757d;
 }
 
@@ -357,14 +360,14 @@ const handleButtonClick = () => {
 
 .file-name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #495057;
   word-break: break-all;
   text-align: center;
 }
 
 .file-size {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: #6c757d;
 }
 
@@ -375,7 +378,7 @@ const handleButtonClick = () => {
   border: none;
   padding: 8px 20px;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -430,12 +433,12 @@ const handleButtonClick = () => {
 }
 
 .processing-file .file-name {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 500;
 }
 
 .processing-status {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #6c757d;
 }
 
@@ -446,12 +449,12 @@ const handleButtonClick = () => {
   border: 1px solid #fed7d7;
   border-radius: 8px;
   color: #c53030;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 /* Dropzone Note */
 .dropzone-note {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: #9ca3af;
   margin-top: 4px;
 }
@@ -472,7 +475,7 @@ const handleButtonClick = () => {
 }
 
 .recent-title {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #495057;
 }
@@ -482,7 +485,7 @@ const handleButtonClick = () => {
   color: white;
   padding: 2px 10px;
   border-radius: 10px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -520,7 +523,7 @@ const handleButtonClick = () => {
 }
 
 .item-icon {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #667eea;
 }
 
@@ -531,7 +534,7 @@ const handleButtonClick = () => {
 }
 
 .item-name {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: #495057;
   white-space: nowrap;
@@ -540,7 +543,7 @@ const handleButtonClick = () => {
 }
 
 .item-meta {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: #6c757d;
 }
 
@@ -564,14 +567,14 @@ const handleButtonClick = () => {
   background: transparent;
   border: none;
   color: #6c757d;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   transition: all 0.2s ease;
 }
 
@@ -602,6 +605,6 @@ const handleButtonClick = () => {
 }
 
 .empty-state span {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 </style>

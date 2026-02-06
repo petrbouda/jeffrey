@@ -28,7 +28,9 @@ export interface ProfileListResponse {
   id: string;
   name: string;
   projectId: string;
+  projectName: string;
   workspaceId: string;
+  workspaceName: string;
   createdAt: string;
   eventSource: string;
   enabled: boolean;

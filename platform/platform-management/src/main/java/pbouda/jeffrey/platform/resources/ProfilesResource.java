@@ -55,7 +55,9 @@ public class ProfilesResource {
             String id,
             String name,
             String projectId,
+            String projectName,
             String workspaceId,
+            String workspaceName,
             String createdAt,
             RecordingEventSource eventSource,
             boolean enabled,
@@ -93,9 +95,11 @@ public class ProfilesResource {
         List<ProfileResponse> allProfiles = new ArrayList<>();
 
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
+            String workspaceName = workspaceManager.resolveInfo().name();
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
+                String projectName = projectManager.info().name();
                 for (ProfileManager profileManager : projectManager.profilesManager().allProfiles()) {
-                    allProfiles.add(toResponse(profileManager));
+                    allProfiles.add(toResponse(profileManager, workspaceName, projectName));
                 }
             }
         }
@@ -158,13 +162,15 @@ public class ProfilesResource {
         return Optional.empty();
     }
 
-    private static ProfileResponse toResponse(ProfileManager profileManager) {
+    private static ProfileResponse toResponse(ProfileManager profileManager, String workspaceName, String projectName) {
         ProfileInfo profileInfo = profileManager.info();
         return new ProfileResponse(
                 profileInfo.id(),
                 profileInfo.name(),
                 profileInfo.projectId(),
+                projectName,
                 profileInfo.workspaceId(),
+                workspaceName,
                 InstantUtils.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource(),
                 profileInfo.enabled(),
