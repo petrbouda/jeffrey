@@ -18,12 +18,17 @@
 
 package pbouda.jeffrey.init;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.file.Path;
 
 /**
  * Builds the content of the .env file with environment variables for Jeffrey sessions.
  */
 public class EnvFileBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EnvFileBuilder.class);
 
     private static final String DEFAULT_FILE_TEMPLATE = "profile-%t.jfr";
     private static final String JEFFREY_HOME_PROP = "JEFFREY_HOME";
@@ -56,6 +61,7 @@ public class EnvFileBuilder {
      * @return the content of the .env file with export statements
      */
     public String build(Context context) {
+        LOG.debug("Building env file: sessionPath={} useJeffreyHome={}", context.sessionPath(), context.useJeffreyHome());
         StringBuilder output = new StringBuilder();
 
         if (context.useJeffreyHome()) {

@@ -21,6 +21,8 @@ package pbouda.jeffrey.platform.resources.workspace;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
@@ -33,6 +35,8 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import java.util.List;
 
 public class WorkspaceResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceResource.class);
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceManager workspaceManager;
@@ -69,17 +73,20 @@ public class WorkspaceResource {
 
     @DELETE
     public void delete() {
+        LOG.debug("Deleting workspace: workspaceId={}", workspaceInfo.id());
         workspaceManager.delete();
     }
 
     @GET
     public WorkspaceResponse info() {
+        LOG.debug("Fetching workspace info: workspaceId={}", workspaceInfo.id());
         return Mappers.toResponse(workspaceInfo);
     }
 
     @GET
     @Path("/events")
     public List<WorkspaceEventResponse> events() {
+        LOG.debug("Listing workspace events: workspaceId={}", workspaceInfo.id());
         return workspaceManager.workspaceEventManager().findEvents().stream()
                 .map(Mappers::toEventResponse)
                 .toList();

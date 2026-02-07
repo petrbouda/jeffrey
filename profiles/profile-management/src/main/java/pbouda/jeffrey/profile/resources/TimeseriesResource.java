@@ -19,12 +19,16 @@
 package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.POST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.profile.manager.TimeseriesManager;
 import pbouda.jeffrey.profile.resources.request.GenerateTimeseriesRequest;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public class TimeseriesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TimeseriesResource.class);
 
     private final TimeseriesManager timeseriesManager;
 
@@ -34,6 +38,7 @@ public class TimeseriesResource {
 
     @POST
     public TimeseriesData generate(GenerateTimeseriesRequest request) {
+        LOG.debug("Generating timeseries: eventType={}", request.eventType());
         return timeseriesManager.timeseries(mapToGenerateRequest(request));
     }
 

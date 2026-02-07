@@ -72,6 +72,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
     @Override
     public ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath) {
+        LOG.debug("Initializing profile: profileId={} recordingId={}", profileInfo.id(), recordingId);
         Instant startedAt = clock.instant();
 
         // Open database connection for the new profile

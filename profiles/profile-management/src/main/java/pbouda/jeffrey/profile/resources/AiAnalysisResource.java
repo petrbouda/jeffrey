@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrAnalysisRequest;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrAnalysisResponse;
 import pbouda.jeffrey.profile.ai.mcp.model.JfrChatMessage;
@@ -34,6 +36,8 @@ import java.util.List;
  * Provides endpoints for chat-based analysis of JFR events using DuckDB MCP tools.
  */
 public class AiAnalysisResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AiAnalysisResource.class);
 
     private final ProfileInfo profileInfo;
     private final JfrAnalysisAssistantService assistantService;
@@ -53,6 +57,7 @@ public class AiAnalysisResource {
     @GET
     @Path("/status")
     public AiAnalysisStatusResponse status() {
+        LOG.debug("Checking AI analysis status");
         return new AiAnalysisStatusResponse(
                 assistantService.isAvailable(),
                 assistantService.getProviderName(),
@@ -69,6 +74,7 @@ public class AiAnalysisResource {
     @POST
     @Path("/chat")
     public JfrAnalysisResponse chat(AiAnalysisChatRequest request) {
+        LOG.debug("AI analysis chat request");
         JfrAnalysisRequest analysisRequest = new JfrAnalysisRequest(
                 request.message(),
                 request.history() != null ? request.history() : List.of(),

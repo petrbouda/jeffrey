@@ -20,12 +20,16 @@ package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.AdditionalFilesManager;
 import pbouda.jeffrey.profile.manager.model.PerfCounter;
 
 import java.util.List;
 
 public class PerformanceCountersResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PerformanceCountersResource.class);
 
     private final AdditionalFilesManager additionalFilesManager;
 
@@ -36,11 +40,13 @@ public class PerformanceCountersResource {
     @GET
     @Path("/exists")
     public boolean exists() {
+        LOG.debug("Checking performance counters existence");
         return additionalFilesManager.performanceCountersExists();
     }
 
     @GET
     public List<PerfCounter> performanceCounters() {
+        LOG.debug("Fetching performance counters");
         return additionalFilesManager.performanceCounters();
     }
 }

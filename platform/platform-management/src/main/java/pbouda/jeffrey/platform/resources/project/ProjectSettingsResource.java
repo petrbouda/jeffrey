@@ -21,11 +21,15 @@ package pbouda.jeffrey.platform.resources.project;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 
 public class ProjectSettingsResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectSettingsResource.class);
 
     public record SettingsResponse(
             String id,
@@ -49,6 +53,7 @@ public class ProjectSettingsResource {
 
     @POST
     public void update(ProjectSettingsUpdate settings) {
+        LOG.debug("Updating project settings");
         if (settings.name != null) {
             projectRepository.updateProjectName(settings.name);
         }
@@ -56,6 +61,7 @@ public class ProjectSettingsResource {
 
     @GET
     public SettingsResponse settings() {
+        LOG.debug("Fetching project settings");
         return projectRepository.find()
                 .map(SettingsResponse::new)
                 .orElseThrow(NotFoundException::new);

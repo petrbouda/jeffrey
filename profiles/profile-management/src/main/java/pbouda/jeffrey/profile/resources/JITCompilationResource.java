@@ -20,6 +20,8 @@ package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.JITCompilationManager;
 import pbouda.jeffrey.profile.common.event.JITCompilationStats;
 import pbouda.jeffrey.profile.common.event.JITLongCompilation;
@@ -29,6 +31,7 @@ import java.util.List;
 
 public class JITCompilationResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(JITCompilationResource.class);
     private static final int MAX_COMPILATIONS = 20;
 
     private final JITCompilationManager jitCompilationManager;
@@ -40,18 +43,21 @@ public class JITCompilationResource {
     @GET
     @Path("/statistics")
     public JITCompilationStats statistics() {
+        LOG.debug("Fetching JIT compilation statistics");
         return jitCompilationManager.statistics();
     }
 
     @GET
     @Path("/compilations")
     public List<JITLongCompilation> compilations() {
+        LOG.debug("Fetching JIT compilations");
         return jitCompilationManager.compilations(MAX_COMPILATIONS);
     }
 
     @GET
     @Path("/timeseries")
     public SingleSerie timeseries() {
+        LOG.debug("Fetching JIT compilation timeseries");
         return jitCompilationManager.timeseries();
     }
 }

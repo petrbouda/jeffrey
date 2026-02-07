@@ -19,6 +19,8 @@
 package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.ProfilerInfo;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
@@ -26,6 +28,8 @@ import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import java.util.List;
 
 public class ProfilerResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfilerResource.class);
 
     public record ProfilerSettingsEntity(
             String workspaceId,
@@ -42,6 +46,7 @@ public class ProfilerResource {
     @POST
     @Path("settings")
     public void upsertSettings(ProfilerSettingsEntity request) {
+        LOG.debug("Upserting profiler settings: workspaceId={} projectId={}", request.workspaceId(), request.projectId());
         // Validate hierarchy: if projectId is provided, workspaceId must also be provided
         // Valid combinations:
         // - GLOBAL:    workspaceId=null, projectId=null
@@ -65,6 +70,7 @@ public class ProfilerResource {
     @GET
     @Path("settings")
     public List<ProfilerSettingsEntity> findAllSettings() {
+        LOG.debug("Listing profiler settings");
         return profilerRepository.findAllSettings().stream()
                 .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()))
                 .toList();
@@ -75,6 +81,7 @@ public class ProfilerResource {
     public void deleteSettings(
             @QueryParam("workspaceId") String workspaceId,
             @QueryParam("projectId") String projectId) {
+        LOG.debug("Deleting profiler settings: workspaceId={} projectId={}", workspaceId, projectId);
         // Normalize and validate hierarchy
         String wsId = normalizeToNull(workspaceId);
         String projId = normalizeToNull(projectId);

@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
@@ -33,6 +35,8 @@ import java.util.List;
 
 public class ProjectRepositoryResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryResource.class);
+
     private final RepositoryManager repositoryManager;
     private final RecordingsDownloadManager recordingsDownloadManager;
 
@@ -44,6 +48,7 @@ public class ProjectRepositoryResource {
     @GET
     @Path("/sessions")
     public List<RecordingSessionResponse> listRepositorySessions() {
+        LOG.debug("Listing repository sessions");
         return repositoryManager.listRecordingSessions(true).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
@@ -52,6 +57,7 @@ public class ProjectRepositoryResource {
     @GET
     @Path("/statistics")
     public RepositoryStatisticsResponse getRepositoryStatistics() {
+        LOG.debug("Fetching repository statistics");
         RepositoryStatistics stats = repositoryManager.calculateRepositoryStatistics();
         return RepositoryStatisticsResponse.from(stats);
     }
@@ -59,12 +65,14 @@ public class ProjectRepositoryResource {
     @POST
     @Path("/sessions/download")
     public void downloadSession(SelectedRecordingsRequest request) {
+        LOG.debug("Downloading session recordings: sessionId={}", request.sessionId());
         recordingsDownloadManager.mergeAndDownloadSession(request.sessionId());
     }
 
     @DELETE
     @Path("/sessions/{sessionId}")
     public Response deleteSession(@PathParam("sessionId") String sessionId) {
+        LOG.debug("Deleting repository session: sessionId={}", sessionId);
         repositoryManager.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
         return Response.noContent().build();
     }
@@ -72,12 +80,14 @@ public class ProjectRepositoryResource {
     @POST
     @Path("/recordings/download")
     public void downloadSelectedRecordings(SelectedRecordingsRequest request) {
+        LOG.debug("Downloading selected recordings: fileCount={}", request.recordingIds() != null ? request.recordingIds().size() : 0);
         recordingsDownloadManager.mergeAndDownloadRecordings(request.sessionId(), request.recordingIds());
     }
 
     @PUT
     @Path("/recordings/delete")
     public void deleteRecording(SelectedRecordingsRequest request) {
+        LOG.debug("Deleting recording from repository");
         repositoryManager.deleteFilesInSession(request.sessionId(), request.recordingIds());
     }
 }

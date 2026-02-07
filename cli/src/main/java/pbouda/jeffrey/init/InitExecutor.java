@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.init;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
@@ -36,6 +38,8 @@ import java.util.Optional;
  */
 public class InitExecutor {
 
+    private static final Logger LOG = LoggerFactory.getLogger(InitExecutor.class);
+
     private static final Clock CLOCK = Clock.systemUTC();
 
     private static final String ENV_FILE_NAME = ".env";
@@ -50,6 +54,7 @@ public class InitExecutor {
      * @throws Exception if initialization fails
      */
     public void execute(InitConfig config) throws Exception {
+        LOG.debug("Executing CLI init: workspaceId={} projectName={}", config.getWorkspaceId(), config.getProjectName());
         Path jeffreyHome;
         Path workspacesPath;
 
@@ -66,6 +71,7 @@ public class InitExecutor {
         }
 
         Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceId()));
+        LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
 
         FileSystemRepository repository = new FileSystemRepository(CLOCK);
 
@@ -105,6 +111,7 @@ public class InitExecutor {
 
         String sessionId = IDGenerator.generate();
         Path newSessionPath = createDirectories(instancePath.resolve(sessionId));
+        LOG.debug("Session directory created: sessionId={} sessionPath={}", sessionId, newSessionPath);
 
         if (config.isMessagingEnabled()) {
             createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
@@ -158,6 +165,7 @@ public class InitExecutor {
         String variables = envFileBuilder.build(envContext);
 
         Path envFile = createEnvFile(projectPath, variables);
+        LOG.debug("Env file written: envFile={}", envFile);
         if (!config.isSilent()) {
             System.out.println("# ENV file to with variables to source: ");
             System.out.println("# " + envFile);

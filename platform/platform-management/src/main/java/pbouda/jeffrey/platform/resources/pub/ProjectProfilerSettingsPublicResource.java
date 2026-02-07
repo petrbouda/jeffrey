@@ -27,6 +27,8 @@ import pbouda.jeffrey.platform.resources.request.ProfilerSettingsRequest;
 import pbouda.jeffrey.platform.resources.response.ProfilerSettingsResponse;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.shared.common.model.ProfilerInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -35,6 +37,8 @@ import java.util.List;
  * This enables remote workspaces to fetch and manage profiler settings.
  */
 public class ProjectProfilerSettingsPublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectProfilerSettingsPublicResource.class);
 
     private final ProfilerRepository profilerRepository;
     private final String workspaceId;
@@ -56,6 +60,7 @@ public class ProjectProfilerSettingsPublicResource {
      */
     @GET
     public ProfilerSettingsResponse fetchSettings() {
+        LOG.debug("Fetching public profiler settings");
         List<ProfilerInfo> allSettings = profilerRepository.fetchProfilerSettings(workspaceId, projectId);
         return ProfilerSettingsResponse.from(EffectiveSettingsResolver.resolve(allSettings));
     }
@@ -66,6 +71,7 @@ public class ProjectProfilerSettingsPublicResource {
      */
     @POST
     public Response upsertSettings(ProfilerSettingsRequest request) {
+        LOG.debug("Upserting public profiler settings");
         ProfilerInfo profilerInfo = new ProfilerInfo(workspaceId, projectId, request.agentSettings());
         profilerRepository.upsertSettings(profilerInfo);
         return Response.ok().build();
@@ -76,6 +82,7 @@ public class ProjectProfilerSettingsPublicResource {
      */
     @DELETE
     public Response deleteSettings() {
+        LOG.debug("Deleting public profiler settings");
         profilerRepository.deleteSettings(workspaceId, projectId);
         return Response.noContent().build();
     }

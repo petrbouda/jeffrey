@@ -1,11 +1,15 @@
 package pbouda.jeffrey.init;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.init.model.HeapDumpType;
 import pbouda.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 
 public class FeatureBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FeatureBuilder.class);
 
     public static final String PERF_COUNTERS_FILE = "perf-counters.hsperfdata";
     public static final String STREAMING_REPO_DIR = "streaming-repo";
@@ -73,6 +77,7 @@ public class FeatureBuilder {
     }
 
     public String build(Path currentSessionPath) {
+        LOG.debug("Building feature configuration: sessionPath={} perfCounters={} heapDump={} messaging={}", currentSessionPath, perfCountersEnabled, heapDumpType, messagingEnabled);
         StringBuilder options = new StringBuilder();
 
         if (perfCountersEnabled) {

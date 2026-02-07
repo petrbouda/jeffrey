@@ -20,9 +20,13 @@ package pbouda.jeffrey.profile.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.GET;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.ProfileConfigurationManager;
 
 public class ConfigurationResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigurationResource.class);
 
     private final ProfileConfigurationManager configurationManager;
 
@@ -32,6 +36,7 @@ public class ConfigurationResource {
 
     @GET
     public JsonNode list() {
+        LOG.debug("Fetching profile configuration");
         return configurationManager.configuration();
     }
 }

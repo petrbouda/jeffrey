@@ -24,8 +24,12 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkspacePublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspacePublicResource.class);
 
     private final WorkspaceManager workspaceManager;
     private final ProfilerRepository profilerRepository;
@@ -42,6 +46,7 @@ public class WorkspacePublicResource {
 
     @GET
     public WorkspaceResponse info() {
+        LOG.debug("Fetching public workspace info: workspaceId={}", workspaceManager.resolveInfo().id());
         return Mappers.toResponse(workspaceManager.resolveInfo());
     }
 }

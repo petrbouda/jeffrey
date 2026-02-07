@@ -19,6 +19,8 @@
 package pbouda.jeffrey.profile.manager;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.DurationUtils;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.profile.common.event.JITCompilationStats;
@@ -43,6 +45,8 @@ import java.util.Optional;
 
 public class JITCompilationManagerImpl implements JITCompilationManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(JITCompilationManagerImpl.class);
+
     private final ProfileInfo profileInfo;
     private final ProfileEventTypeRepository eventTypeRepository;
     private final ProfileEventRepository eventRepository;
@@ -62,6 +66,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     @Override
     public JITCompilationStats statistics() {
+        LOG.debug("Fetching JIT compilation statistics");
         Optional<ObjectNode> statsOpt = eventRepository.latestJsonFields(Type.COMPILER_STATISTICS);
         if (statsOpt.isEmpty()) {
             return null;
@@ -88,6 +93,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     @Override
     public List<JITLongCompilation> compilations(int limit) {
+        LOG.debug("Fetching JIT compilations: limit={}", limit);
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(Type.COMPILATION)
                 .withJsonFields();
@@ -97,6 +103,7 @@ public class JITCompilationManagerImpl implements JITCompilationManager {
 
     @Override
     public SingleSerie timeseries() {
+        LOG.debug("Fetching JIT compilation timeseries");
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()

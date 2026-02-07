@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
@@ -35,6 +37,8 @@ import java.util.List;
  * REST resource for heap dump analysis operations.
  */
 public class HeapDumpResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpResource.class);
 
     private final HeapDumpManager heapDumpManager;
     private final OqlAssistantService oqlAssistantService;
@@ -74,6 +78,7 @@ public class HeapDumpResource {
     @GET
     @Path("/exists")
     public boolean exists() {
+        LOG.debug("Checking heap dump existence");
         return heapDumpManager.heapDumpExists();
     }
 
@@ -83,6 +88,7 @@ public class HeapDumpResource {
     @GET
     @Path("/cache-ready")
     public boolean cacheReady() {
+        LOG.debug("Checking heap dump cache readiness");
         return heapDumpManager.isCacheReady();
     }
 
@@ -92,6 +98,7 @@ public class HeapDumpResource {
     @GET
     @Path("/summary")
     public HeapSummary summary() {
+        LOG.debug("Fetching heap dump summary");
         return heapDumpManager.getSummary();
     }
 
@@ -106,6 +113,7 @@ public class HeapDumpResource {
     public List<ClassHistogramEntry> histogram(
             @QueryParam("topN") @DefaultValue("100") int topN,
             @QueryParam("sortBy") @DefaultValue("SIZE") SortBy sortBy) {
+        LOG.debug("Fetching class histogram: topN={} sortBy={}", topN, sortBy);
         return heapDumpManager.getClassHistogram(topN, sortBy);
     }
 
@@ -117,6 +125,7 @@ public class HeapDumpResource {
     @POST
     @Path("/query")
     public OQLQueryResult query(OQLQueryRequest request) {
+        LOG.debug("Executing OQL query");
         return heapDumpManager.executeQuery(request);
     }
 
@@ -129,6 +138,7 @@ public class HeapDumpResource {
     @Path("/threads")
     public List<HeapThreadInfo> threads(
             @QueryParam("includeRetained") @DefaultValue("false") boolean includeRetainedSize) {
+        LOG.debug("Fetching heap dump threads: includeRetained={}", includeRetainedSize);
         return heapDumpManager.getThreads(includeRetainedSize);
     }
 
@@ -138,6 +148,7 @@ public class HeapDumpResource {
     @GET
     @Path("/gc-roots")
     public GCRootSummary gcRoots() {
+        LOG.debug("Fetching GC roots summary");
         return heapDumpManager.getGCRootSummary();
     }
 
@@ -147,6 +158,7 @@ public class HeapDumpResource {
     @POST
     @Path("/unload")
     public void unload() {
+        LOG.debug("Unloading heap dump");
         heapDumpManager.unloadHeap();
     }
 
@@ -156,6 +168,7 @@ public class HeapDumpResource {
     @POST
     @Path("/delete-cache")
     public void deleteCache() {
+        LOG.debug("Deleting heap dump cache");
         heapDumpManager.deleteCache();
     }
 
@@ -165,6 +178,7 @@ public class HeapDumpResource {
     @POST
     @Path("/delete")
     public void deleteHeapDump() {
+        LOG.debug("Deleting heap dump");
         heapDumpManager.deleteHeapDump();
     }
 
@@ -180,6 +194,7 @@ public class HeapDumpResource {
     public void uploadHeapDump(
             @FormDataParam("file") InputStream fileInputStream,
             @FormDataParam("file") FormDataContentDisposition cdh) {
+        LOG.debug("Uploading heap dump: filename={}", cdh.getFileName());
         heapDumpManager.uploadHeapDump(fileInputStream, cdh.getFileName());
     }
 
@@ -189,6 +204,7 @@ public class HeapDumpResource {
     @GET
     @Path("/string-analysis/exists")
     public boolean stringAnalysisExists() {
+        LOG.debug("Checking string analysis existence");
         return heapDumpManager.stringAnalysisExists();
     }
 
@@ -198,6 +214,7 @@ public class HeapDumpResource {
     @GET
     @Path("/string-analysis")
     public StringAnalysisReport getStringAnalysis() {
+        LOG.debug("Fetching string analysis");
         return heapDumpManager.getStringAnalysis();
     }
 
@@ -210,6 +227,7 @@ public class HeapDumpResource {
     @Path("/string-analysis/run")
     public void runStringAnalysis(
             @QueryParam("topN") @DefaultValue("100") int topN) {
+        LOG.debug("Running string analysis: topN={}", topN);
         heapDumpManager.runStringAnalysis(topN);
     }
 
@@ -219,6 +237,7 @@ public class HeapDumpResource {
     @GET
     @Path("/thread-analysis/exists")
     public boolean threadAnalysisExists() {
+        LOG.debug("Checking thread analysis existence");
         return heapDumpManager.threadAnalysisExists();
     }
 
@@ -228,6 +247,7 @@ public class HeapDumpResource {
     @GET
     @Path("/thread-analysis")
     public ThreadAnalysisReport getThreadAnalysis() {
+        LOG.debug("Fetching thread analysis");
         return heapDumpManager.getThreadAnalysis();
     }
 
@@ -238,6 +258,7 @@ public class HeapDumpResource {
     @POST
     @Path("/thread-analysis/run")
     public void runThreadAnalysis() {
+        LOG.debug("Running thread analysis");
         heapDumpManager.runThreadAnalysis();
     }
 
@@ -252,6 +273,7 @@ public class HeapDumpResource {
     public InstanceDetail getInstanceDetail(
             @PathParam("objectId") long objectId,
             @QueryParam("includeRetained") @DefaultValue("false") boolean includeRetainedSize) {
+        LOG.debug("Fetching instance detail: objectId={} includeRetained={}", objectId, includeRetainedSize);
         return heapDumpManager.getInstanceDetail(objectId, includeRetainedSize);
     }
 
@@ -268,6 +290,7 @@ public class HeapDumpResource {
             @PathParam("objectId") long objectId,
             @QueryParam("limit") @DefaultValue("50") int limit,
             @QueryParam("offset") @DefaultValue("0") int offset) {
+        LOG.debug("Fetching referrers: objectId={} limit={} offset={}", objectId, limit, offset);
         return heapDumpManager.getReferrers(objectId, limit, offset);
     }
 
@@ -284,6 +307,7 @@ public class HeapDumpResource {
             @PathParam("objectId") long objectId,
             @QueryParam("limit") @DefaultValue("50") int limit,
             @QueryParam("offset") @DefaultValue("0") int offset) {
+        LOG.debug("Fetching reachables: objectId={} limit={} offset={}", objectId, limit, offset);
         return heapDumpManager.getReachables(objectId, limit, offset);
     }
 
@@ -295,6 +319,7 @@ public class HeapDumpResource {
             @PathParam("objectId") long objectId,
             @QueryParam("excludeWeak") @DefaultValue("true") boolean excludeWeakRefs,
             @QueryParam("maxPaths") @DefaultValue("3") int maxPaths) {
+        LOG.debug("Fetching path to GC root: objectId={} excludeWeak={} maxPaths={}", objectId, excludeWeakRefs, maxPaths);
         return heapDumpManager.getPathsToGCRoot(objectId, excludeWeakRefs, maxPaths);
     }
 
@@ -311,6 +336,7 @@ public class HeapDumpResource {
     @Path("/initialize")
     public HeapSummary initialize(
             @QueryParam("compressedOops") Boolean compressedOops) {
+        LOG.debug("Initializing heap dump: compressedOops={}", compressedOops);
         heapDumpManager.resolveAndStoreCompressedOops(compressedOops);
         return heapDumpManager.getSummary();
     }
@@ -321,6 +347,7 @@ public class HeapDumpResource {
     @GET
     @Path("/config")
     public HeapDumpConfig getConfig() {
+        LOG.debug("Fetching heap dump config");
         return heapDumpManager.getHeapDumpConfig().orElse(null);
     }
 
@@ -330,6 +357,7 @@ public class HeapDumpResource {
     @Path("/dominator-tree")
     public DominatorTreeResponse getDominatorTreeRoots(
             @QueryParam("limit") @DefaultValue("50") int limit) {
+        LOG.debug("Fetching dominator tree roots: limit={}", limit);
         return heapDumpManager.getDominatorTreeRoots(limit);
     }
 
@@ -338,6 +366,7 @@ public class HeapDumpResource {
     public DominatorTreeResponse getDominatorTreeChildren(
             @PathParam("objectId") long objectId,
             @QueryParam("limit") @DefaultValue("50") int limit) {
+        LOG.debug("Fetching dominator tree children: objectId={} limit={}", objectId, limit);
         return heapDumpManager.getDominatorTreeChildren(objectId, limit);
     }
 
@@ -346,18 +375,21 @@ public class HeapDumpResource {
     @GET
     @Path("/collection-analysis/exists")
     public boolean collectionAnalysisExists() {
+        LOG.debug("Checking collection analysis existence");
         return heapDumpManager.collectionAnalysisExists();
     }
 
     @GET
     @Path("/collection-analysis")
     public CollectionAnalysisReport getCollectionAnalysis() {
+        LOG.debug("Fetching collection analysis");
         return heapDumpManager.getCollectionAnalysis();
     }
 
     @POST
     @Path("/collection-analysis/run")
     public void runCollectionAnalysis() {
+        LOG.debug("Running collection analysis");
         heapDumpManager.runCollectionAnalysis();
     }
 
@@ -370,6 +402,7 @@ public class HeapDumpResource {
             @QueryParam("limit") @DefaultValue("50") int limit,
             @QueryParam("offset") @DefaultValue("0") int offset,
             @QueryParam("includeRetainedSize") @DefaultValue("false") boolean includeRetainedSize) {
+        LOG.debug("Fetching class instances: className={} limit={} offset={}", className, limit, offset);
         return heapDumpManager.getClassInstances(className, limit, offset, includeRetainedSize);
     }
 
@@ -378,18 +411,21 @@ public class HeapDumpResource {
     @GET
     @Path("/leak-suspects/exists")
     public boolean leakSuspectsExists() {
+        LOG.debug("Checking leak suspects existence");
         return heapDumpManager.leakSuspectsExists();
     }
 
     @GET
     @Path("/leak-suspects")
     public LeakSuspectsReport getLeakSuspects() {
+        LOG.debug("Fetching leak suspects");
         return heapDumpManager.getLeakSuspects();
     }
 
     @POST
     @Path("/leak-suspects/run")
     public void runLeakSuspects() {
+        LOG.debug("Running leak suspects analysis");
         heapDumpManager.runLeakSuspects();
     }
 
@@ -398,18 +434,21 @@ public class HeapDumpResource {
     @GET
     @Path("/biggest-objects/exists")
     public boolean biggestObjectsExists() {
+        LOG.debug("Checking biggest objects existence");
         return heapDumpManager.biggestObjectsExists();
     }
 
     @GET
     @Path("/biggest-objects")
     public BiggestObjectsReport getBiggestObjects() {
+        LOG.debug("Fetching biggest objects");
         return heapDumpManager.getBiggestObjects();
     }
 
     @POST
     @Path("/biggest-objects/run")
     public void runBiggestObjects(@QueryParam("topN") @DefaultValue("20") int topN) {
+        LOG.debug("Running biggest objects analysis: topN={}", topN);
         heapDumpManager.runBiggestObjects(topN);
     }
 

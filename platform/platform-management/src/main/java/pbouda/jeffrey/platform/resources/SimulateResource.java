@@ -20,15 +20,20 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SimulateResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SimulateResource.class);
+
     @GET
     @Path("/oom")
     public void triggerOutOfMemory() {
+        LOG.debug("Triggering simulated OOM");
         List<byte[]> memoryHog = new ArrayList<>();
         while (true) {
             // Allocate 10MB chunks until OOM

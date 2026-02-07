@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import pbouda.jeffrey.platform.manager.*;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
@@ -50,6 +52,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class CommonProjectManager implements ProjectManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CommonProjectManager.class);
 
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
@@ -161,6 +165,7 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public boolean isInitializing() {
+        LOG.debug("Checking initialization state: projectId={}", info().id());
         return profilesManager().allProfiles().stream()
                 .anyMatch(profile -> !profile.info().enabled());
     }
@@ -203,6 +208,7 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public void delete(WorkspaceEventCreator createdBy) {
+        LOG.debug("Deleting project: projectId={}", info().id());
         Optional<WorkspaceManager> workspaceOpt = compositeWorkspacesManager.findById(projectInfo.workspaceId());
         if (workspaceOpt.isEmpty()) {
             throw Exceptions.workspaceNotFound(projectInfo.workspaceId());

@@ -27,10 +27,14 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class WorkspaceProjectsPublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectsPublicResource.class);
 
     private final ProjectsManager projectsManager;
     private final ProfilerRepository profilerRepository;
@@ -50,6 +54,7 @@ public class WorkspaceProjectsPublicResource {
 
     @GET
     public List<ProjectResponse> projects() {
+        LOG.debug("Listing public projects");
         return projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)

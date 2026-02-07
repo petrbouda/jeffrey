@@ -22,6 +22,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
@@ -30,6 +32,8 @@ import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import java.util.List;
 
 public class ProjectInstancesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesResource.class);
 
     public record InstanceResponse(
             String id,
@@ -57,6 +61,7 @@ public class ProjectInstancesResource {
 
     @GET
     public List<InstanceResponse> list() {
+        LOG.debug("Listing project instances");
         return projectInstanceRepository.findAll().stream()
                 .map(ProjectInstancesResource::toResponse)
                 .toList();
@@ -65,6 +70,7 @@ public class ProjectInstancesResource {
     @GET
     @Path("/{instanceId}")
     public InstanceResponse get(@PathParam("instanceId") String instanceId) {
+        LOG.debug("Fetching project instance: instanceId={}", instanceId);
         return projectInstanceRepository.find(instanceId)
                 .map(ProjectInstancesResource::toResponse)
                 .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
@@ -73,6 +79,7 @@ public class ProjectInstancesResource {
     @GET
     @Path("/{instanceId}/sessions")
     public List<InstanceSessionResponse> getSessions(@PathParam("instanceId") String instanceId) {
+        LOG.debug("Listing instance sessions: instanceId={}", instanceId);
         return projectInstanceRepository.findSessions(instanceId).stream()
                 .map(ProjectInstancesResource::toSessionResponse)
                 .toList();

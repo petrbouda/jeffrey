@@ -54,11 +54,13 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public List<Recording> all() {
+        LOG.debug("Listing all recordings: projectId={}", projectInfo.id());
         return projectRecordingRepository.findAllRecordings();
     }
 
     @Override
     public void upload(NewRecording newRecording, InputStream stream) {
+        LOG.debug("Uploading recording: name={} folderId={} projectId={}", newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
         try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording)) {
             holder.transferFrom(stream);
         } catch (Exception e) {
@@ -71,6 +73,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public void createFolder(String folderName) {
+        LOG.debug("Creating recording folder: folderName={} projectId={}", folderName, projectInfo.id());
         projectRecordingRepository.insertFolder(folderName);
     }
 
@@ -88,6 +91,7 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public void delete(String recordingId) {
+        LOG.debug("Deleting recording: recordingId={} projectId={}", recordingId, projectInfo.id());
         // TODO: Remove files as well
         //  Scheduler removes files asynchronously?
         projectRecordingRepository.deleteRecordingWithFiles(recordingId);

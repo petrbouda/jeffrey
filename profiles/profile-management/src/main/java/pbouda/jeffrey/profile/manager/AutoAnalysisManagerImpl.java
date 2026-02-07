@@ -44,6 +44,7 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
 
     @Override
     public List<AutoAnalysisResult> analysisResults() {
+        LOG.debug("Fetching auto analysis results");
         Optional<List<AutoAnalysisResult>> results = cacheRepository.get(
                 CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE);
 

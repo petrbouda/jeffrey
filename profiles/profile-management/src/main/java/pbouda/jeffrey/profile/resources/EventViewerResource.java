@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.common.treetable.EventViewerData;
 import pbouda.jeffrey.profile.manager.EventViewerManager;
@@ -30,6 +32,8 @@ import pbouda.jeffrey.provider.profile.model.FieldDescription;
 import java.util.List;
 
 public class EventViewerResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EventViewerResource.class);
 
     private final EventViewerManager eventViewerManager;
 
@@ -40,24 +44,28 @@ public class EventViewerResource {
     @GET
     @Path("/events/types/tree")
     public JsonNode eventTypesTree() {
+        LOG.debug("Fetching event types tree");
         return eventViewerManager.eventTypesTree();
     }
 
     @GET
     @Path("/events/types")
     public List<EventViewerData> eventTypes() {
+        LOG.debug("Listing event types");
         return eventViewerManager.eventTypes();
     }
 
     @GET
     @Path("/events/{eventType}")
     public List<JsonNode> events(@PathParam("eventType") Type eventType) {
+        LOG.debug("Fetching events: eventType={}", eventType);
         return eventViewerManager.events(eventType);
     }
 
     @GET
     @Path("/events/{eventType}/columns")
     public List<FieldDescription> getEventColumns(@PathParam("eventType") Type eventType) {
+        LOG.debug("Fetching event columns: eventType={}", eventType);
         return eventViewerManager.eventColumns(eventType);
     }
 }

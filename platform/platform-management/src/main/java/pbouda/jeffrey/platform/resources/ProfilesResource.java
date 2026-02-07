@@ -19,6 +19,8 @@
 package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
@@ -47,6 +49,8 @@ import java.util.Optional;
  * instead of /api/internal/workspaces/{wsId}/projects/{pId}/profiles/{profileId}/...
  */
 public class ProfilesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfilesResource.class);
 
     /**
      * Profile response with workspace and project context.
@@ -92,6 +96,7 @@ public class ProfilesResource {
      */
     @GET
     public List<ProfileResponse> listAllProfiles() {
+        LOG.debug("Listing all profiles across workspaces");
         List<ProfileResponse> allProfiles = new ArrayList<>();
 
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {

@@ -20,10 +20,14 @@ package pbouda.jeffrey.profile.resources.custom;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.ContainerManager;
 import pbouda.jeffrey.profile.manager.model.container.ContainerConfigurationData;
 
 public class ContainerOverviewResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ContainerOverviewResource.class);
 
     private final ContainerManager containerManager;
 
@@ -34,6 +38,7 @@ public class ContainerOverviewResource {
     @GET
     @Path("configuration")
     public ContainerConfigurationData configuration() {
+        LOG.debug("Fetching container configuration");
         return containerManager.configuration();
     }
 }

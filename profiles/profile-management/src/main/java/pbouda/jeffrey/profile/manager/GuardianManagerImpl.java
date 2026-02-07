@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.profile.manager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.guardian.GuardianProvider;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
@@ -25,6 +27,8 @@ import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
 import java.util.List;
 
 public class GuardianManagerImpl implements GuardianManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GuardianManagerImpl.class);
 
     private final GuardianProvider guardianProvider;
 
@@ -34,8 +38,12 @@ public class GuardianManagerImpl implements GuardianManager {
 
     @Override
     public List<GuardAnalysisResult> guardResults() {
-        return guardianProvider.get().stream()
+        LOG.debug("Running guardian analysis");
+        long startTime = System.nanoTime();
+        List<GuardAnalysisResult> results = guardianProvider.get().stream()
                 .map(GuardianResult::analysisItem)
                 .toList();
+        LOG.debug("Guardian analysis completed: resultCount={} durationMs={}", results.size(), (System.nanoTime() - startTime) / 1_000_000);
+        return results;
     }
 }

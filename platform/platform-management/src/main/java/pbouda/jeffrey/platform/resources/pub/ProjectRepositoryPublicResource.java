@@ -24,8 +24,12 @@ import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProjectRepositoryPublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryPublicResource.class);
 
     private final RepositoryManager repositoryManager;
 
@@ -41,6 +45,7 @@ public class ProjectRepositoryPublicResource {
     @GET
     @Path("/statistics")
     public RepositoryStatisticsResponse getRepositoryStatistics() {
+        LOG.debug("Fetching public repository statistics");
         RepositoryStatistics stats = repositoryManager.calculateRepositoryStatistics();
         return RepositoryStatisticsResponse.from(stats);
     }

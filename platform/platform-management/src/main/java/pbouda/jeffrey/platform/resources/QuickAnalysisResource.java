@@ -22,6 +22,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.shared.common.InstantUtils;
@@ -44,6 +46,8 @@ import java.util.concurrent.ExecutionException;
  * Allows uploading JFR files and analyzing them without creating workspaces or projects.
  */
 public class QuickAnalysisResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(QuickAnalysisResource.class);
 
     /**
      * Response DTO for profile information.
@@ -98,6 +102,7 @@ public class QuickAnalysisResource {
             throw new BadRequestException("File is required");
         }
 
+        LOG.debug("Uploading JFR for quick analysis: filename={}", cdh.getFileName());
         try {
             String profileId = quickAnalysisManager.uploadAndAnalyze(cdh.getFileName(), fileInputStream).get();
             return Response.ok(new AnalyzeResponse(profileId)).build();
@@ -128,6 +133,7 @@ public class QuickAnalysisResource {
             throw new BadRequestException("Only .hprof and .hprof.gz files are supported");
         }
 
+        LOG.debug("Uploading heap dump for quick analysis: filename={}", cdh.getFileName());
         try {
             String profileId = quickAnalysisManager.uploadHeapDump(cdh.getFileName(), fileInputStream).get();
             return Response.ok(new AnalyzeResponse(profileId)).build();
@@ -144,6 +150,7 @@ public class QuickAnalysisResource {
     @Path("/profiles")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProfileResponse> listProfiles() {
+        LOG.debug("Listing quick analysis profiles");
         return quickAnalysisManager.listProfiles().stream()
                 .sorted(Comparator.comparing(ProfileInfo::createdAt).reversed())
                 .map(this::toResponse)
@@ -171,6 +178,7 @@ public class QuickAnalysisResource {
     @DELETE
     @Path("/profiles/{profileId}")
     public Response deleteProfile(@PathParam("profileId") String profileId) {
+        LOG.debug("Deleting quick analysis profile: profileId={}", profileId);
         quickAnalysisManager.deleteProfile(profileId);
         return Response.noContent().build();
     }
