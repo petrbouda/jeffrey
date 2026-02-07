@@ -79,7 +79,7 @@ public enum SupportedRecordingFile {
     UNKNOWN(
             "Unsupported File Type",
             null,
-            _ -> true,
+            name -> true,
             true
     );
 
