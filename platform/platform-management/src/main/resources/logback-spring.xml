@@ -28,6 +28,10 @@
 
     <logger name="org.flywaydb" level="WARN" />
 
+    <!-- Jeffrey application log level is controlled via Spring property:
+         logging.level.pbouda.jeffrey=DEBUG (in application.properties, env var, or JVM arg)
+         By default INFO, set to DEBUG for detailed request/operation logging -->
+
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
