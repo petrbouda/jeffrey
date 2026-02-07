@@ -46,7 +46,6 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
 
     @Override
     public List<? extends WorkspaceManager> findAll() {
-        LOG.debug("Listing live workspaces");
         return workspacesRepository.findAll().stream()
                 .filter(WorkspaceInfo::isLive)
                 .map(workspaceManagerFactory)
@@ -55,7 +54,6 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
 
     @Override
     public Optional<WorkspaceManager> findById(String workspaceId) {
-        LOG.debug("Looking up live workspace: workspaceId={}", workspaceId);
         return workspacesRepository.find(workspaceId)
                 .map(workspaceManagerFactory);
     }

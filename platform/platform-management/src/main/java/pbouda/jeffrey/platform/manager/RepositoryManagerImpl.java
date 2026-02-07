@@ -100,13 +100,11 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        LOG.debug("Listing recording sessions: withFiles={}", withFiles);
         return repositoryStorage.listSessions(withFiles);
     }
 
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
-        LOG.debug("Calculating repository statistics");
         List<RecordingSession> sessions = this.listRecordingSessions(true);
 
         if (sessions.isEmpty()) {

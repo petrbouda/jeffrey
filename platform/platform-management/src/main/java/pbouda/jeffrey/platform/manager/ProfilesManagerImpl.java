@@ -74,7 +74,6 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public List<? extends ProfileManager> allProfiles() {
-        LOG.debug("Listing all profiles: projectId={}", projectInfo.id());
         return projectRepository.findAllProfiles().stream()
                 .map(profileManagerFactory)
                 .toList();
@@ -129,7 +128,6 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public Optional<ProfileManager> profile(String profileId) {
-        LOG.debug("Looking up profile: profileId={} projectId={}", profileId, projectInfo.id());
         return platformRepositories.newProfileRepository(profileId).find()
                 .map(profileManagerFactory);
     }

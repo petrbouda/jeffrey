@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.profile.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.profile.model.JvmFlagDetail;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventRepository;
 
@@ -32,8 +30,6 @@ import java.util.stream.Collectors;
  * Implementation of the FlagsManager for JVM flags visualization.
  */
 public class FlagsManagerImpl implements FlagsManager {
-
-    private static final Logger LOG = LoggerFactory.getLogger(FlagsManagerImpl.class);
 
     // Origin order for consistent display
     private static final List<String> ORIGIN_ORDER = List.of(
@@ -55,7 +51,6 @@ public class FlagsManagerImpl implements FlagsManager {
 
     @Override
     public FlagsData getAllFlags() {
-        LOG.debug("Fetching all JVM flags");
         List<JvmFlagDetail> allFlags = eventRepository.getAllFlags().stream()
                 .map(flag -> flag.withDescription(descriptionProvider.getDescription(flag.name())))
                 .toList();

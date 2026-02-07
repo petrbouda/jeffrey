@@ -39,7 +39,6 @@ public class GuardianManagerImpl implements GuardianManager {
 
     @Override
     public List<GuardAnalysisResult> guardResults() {
-        LOG.debug("Running guardian analysis");
         long startTime = System.nanoTime();
         List<GuardAnalysisResult> results = guardianProvider.get().stream()
                 .map(GuardianResult::analysisItem)

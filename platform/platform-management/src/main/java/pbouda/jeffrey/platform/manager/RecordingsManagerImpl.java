@@ -54,7 +54,6 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     @Override
     public List<Recording> all() {
-        LOG.debug("Listing all recordings: projectId={}", projectInfo.id());
         return projectRecordingRepository.findAllRecordings();
     }
 

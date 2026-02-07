@@ -63,7 +63,6 @@ public class SchedulerManagerImpl implements SchedulerManager {
 
     @Override
     public List<JobInfo> all() {
-        LOG.debug("Listing all jobs");
         return repository.all();
     }
 

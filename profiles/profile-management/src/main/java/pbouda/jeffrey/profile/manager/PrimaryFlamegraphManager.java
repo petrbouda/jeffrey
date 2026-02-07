@@ -60,7 +60,6 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     @Override
     public List<EventSummaryResult> eventSummaries() {
-        LOG.debug("Fetching flamegraph event summaries");
         return eventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
                 .filter(eventSummary -> eventSummary.samples() > 0)
                 .map(EventSummaryResult::new)

@@ -165,7 +165,6 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public boolean isInitializing() {
-        LOG.debug("Checking initialization state: projectId={}", info().id());
         return profilesManager().allProfiles().stream()
                 .anyMatch(profile -> !profile.info().enabled());
     }

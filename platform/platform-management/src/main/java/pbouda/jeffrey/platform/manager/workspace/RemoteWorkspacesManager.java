@@ -53,7 +53,6 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
 
     @Override
     public List<? extends WorkspaceManager> findAll() {
-        LOG.debug("Listing remote workspaces");
         return workspacesRepository.findAll().stream()
                 .filter(WorkspaceInfo::isRemote)
                 .map(workspaceManagerFactory)
@@ -62,7 +61,6 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
 
     @Override
     public Optional<WorkspaceManager> findById(String workspaceId) {
-        LOG.debug("Looking up remote workspace: workspaceId={}", workspaceId);
         return workspacesRepository.find(workspaceId)
                 .filter(WorkspaceInfo::isRemote)
                 .map(workspaceManagerFactory);

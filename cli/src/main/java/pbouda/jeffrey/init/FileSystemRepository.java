@@ -101,7 +101,6 @@ public class FileSystemRepository {
     }
 
     public Optional<RemoteProjectInstance> findInstance(Path instancePath) {
-        LOG.debug("Finding instance: path={}", instancePath);
         Path instanceInfoFile = instancePath.resolve(INSTANCE_INFO_FILENAME);
         if (Files.exists(instanceInfoFile)) {
             try {
@@ -173,7 +172,6 @@ public class FileSystemRepository {
     }
 
     public Optional<RemoteProject> findProject(Path projectPath) {
-        LOG.debug("Finding project: path={}", projectPath);
         Path projectInfoFile = projectPath.resolve(PROJECT_INFO_FILENAME);
         if (Files.exists(projectInfoFile)) {
             try {
