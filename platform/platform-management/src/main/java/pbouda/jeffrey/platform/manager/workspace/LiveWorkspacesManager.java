@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.workspace;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
@@ -28,6 +30,8 @@ import java.util.List;
 import java.util.Optional;
 
 public final class LiveWorkspacesManager implements WorkspacesManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspacesManager.class);
 
     private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
@@ -61,6 +65,7 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
 
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
+        LOG.debug("Creating live workspace: name={}", request.name());
         if (request.workspaceSourceId() == null || request.workspaceSourceId().isBlank()) {
             throw new IllegalArgumentException("Workspace Source ID cannot be null or empty");
         }

@@ -24,6 +24,8 @@ import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.platform.manager.MessagesManager;
 import pbouda.jeffrey.platform.resources.response.ImportantMessageResponse;
 import pbouda.jeffrey.shared.common.model.time.AbsoluteTimeRange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +35,8 @@ import java.util.List;
  * This enables remote workspaces to fetch messages and alerts.
  */
 public class ProjectMessagesPublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectMessagesPublicResource.class);
 
     private final MessagesManager messagesManager;
 
@@ -52,6 +56,7 @@ public class ProjectMessagesPublicResource {
             @QueryParam("start") Long startTimeMillis,
             @QueryParam("end") Long endTimeMillis) {
 
+        LOG.debug("Fetching project messages: start={} end={}", startTimeMillis, endTimeMillis);
         AbsoluteTimeRange timeRange = toTimeRange(startTimeMillis, endTimeMillis);
         return messagesManager.getMessages(timeRange).stream()
                 .map(ImportantMessageResponse::from)
@@ -71,6 +76,7 @@ public class ProjectMessagesPublicResource {
             @QueryParam("start") Long startTimeMillis,
             @QueryParam("end") Long endTimeMillis) {
 
+        LOG.debug("Fetching project alerts: start={} end={}", startTimeMillis, endTimeMillis);
         AbsoluteTimeRange timeRange = toTimeRange(startTimeMillis, endTimeMillis);
         return messagesManager.getAlerts(timeRange).stream()
                 .map(ImportantMessageResponse::from)

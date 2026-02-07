@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.project.pipeline.Pipeline;
 import pbouda.jeffrey.profile.manager.model.CreateProject;
@@ -29,6 +31,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class CommonProjectsManager implements ProjectsManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CommonProjectsManager.class);
 
     private final WorkspaceInfo workspaceInfo;
     private final Pipeline<CreateProjectContext> createProjectPipeline;
@@ -51,6 +55,7 @@ public class CommonProjectsManager implements ProjectsManager {
 
     @Override
     public ProjectManager create(CreateProject createProject) {
+        LOG.debug("Creating project: name={} templateId={}", createProject.name(), createProject.templateId());
         CreateProjectContext context = new CreateProjectContext(createProject);
         context = createProjectPipeline.execute(context);
         return projectManagerFactory.apply(context.projectInfo());

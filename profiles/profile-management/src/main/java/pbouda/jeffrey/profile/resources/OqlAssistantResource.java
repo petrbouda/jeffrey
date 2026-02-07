@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.ai.model.AiStatusResponse;
 import pbouda.jeffrey.profile.ai.model.HeapDumpContext;
 import pbouda.jeffrey.profile.ai.model.OqlChatRequest;
@@ -36,6 +38,7 @@ import pbouda.jeffrey.profile.manager.HeapDumpManager;
  */
 public class OqlAssistantResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OqlAssistantResource.class);
     private static final int TOP_CLASSES_LIMIT = 50;
 
     private final HeapDumpManager heapDumpManager;
@@ -59,6 +62,7 @@ public class OqlAssistantResource {
     @GET
     @Path("/status")
     public AiStatusResponse status() {
+        LOG.debug("Checking OQL assistant status");
         return assistantService.getStatus();
     }
 
@@ -71,6 +75,7 @@ public class OqlAssistantResource {
     @POST
     @Path("/chat")
     public OqlChatResponse chat(OqlChatRequest request) {
+        LOG.debug("OQL assistant chat request");
         // Extract heap context for the AI
         HeapDumpContext context = contextExtractor.extract(
                 () -> heapDumpManager.getClassHistogram(TOP_CLASSES_LIMIT, SortBy.COUNT),

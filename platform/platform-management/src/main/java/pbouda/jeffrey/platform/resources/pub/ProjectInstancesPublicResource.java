@@ -28,10 +28,14 @@ import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class ProjectInstancesPublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesPublicResource.class);
 
     private final ProjectInstanceRepository projectInstanceRepository;
 
@@ -41,6 +45,7 @@ public class ProjectInstancesPublicResource {
 
     @GET
     public List<InstanceResponse> list() {
+        LOG.debug("Listing public project instances");
         return projectInstanceRepository.findAll().stream()
                 .map(ProjectInstancesPublicResource::toResponse)
                 .toList();
@@ -49,6 +54,7 @@ public class ProjectInstancesPublicResource {
     @GET
     @Path("/{instanceId}")
     public InstanceResponse get(@PathParam("instanceId") String instanceId) {
+        LOG.debug("Fetching public project instance: instanceId={}", instanceId);
         return projectInstanceRepository.find(instanceId)
                 .map(ProjectInstancesPublicResource::toResponse)
                 .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
@@ -57,6 +63,7 @@ public class ProjectInstancesPublicResource {
     @GET
     @Path("/{instanceId}/sessions")
     public List<InstanceSessionResponse> getSessions(@PathParam("instanceId") String instanceId) {
+        LOG.debug("Listing public instance sessions: instanceId={}", instanceId);
         return projectInstanceRepository.findSessions(instanceId).stream()
                 .map(ProjectInstancesPublicResource::toSessionResponse)
                 .toList();

@@ -43,6 +43,7 @@ public class SchedulerManagerImpl implements SchedulerManager {
 
     @Override
     public void create(JobType jobType, Map<String, String> params) {
+        LOG.debug("Creating job: type={}", jobType);
         create(jobDescriptorFactory.create(jobType, params));
     }
 
@@ -74,11 +75,13 @@ public class SchedulerManagerImpl implements SchedulerManager {
 
     @Override
     public void updateEnabled(String id, boolean enabled) {
+        LOG.debug("Updating job enabled: jobId={} enabled={}", id, enabled);
         repository.updateEnabled(id, enabled);
     }
 
     @Override
     public void delete(String id) {
+        LOG.debug("Deleting job: jobId={}", id);
         repository.delete(id);
     }
 }

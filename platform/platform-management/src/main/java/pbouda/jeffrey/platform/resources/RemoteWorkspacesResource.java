@@ -21,6 +21,8 @@ package pbouda.jeffrey.platform.resources;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
@@ -32,6 +34,8 @@ import java.net.URI;
 import java.util.List;
 
 public class RemoteWorkspacesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspacesResource.class);
 
     private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
     private final CompositeWorkspacesManager workspacesManager;
@@ -60,6 +64,7 @@ public class RemoteWorkspacesResource {
     @POST
     @Path("/list")
     public List<WorkspaceResponse> listRemoteWorkspaces(ListRemoteWorkspacesRequest request) {
+        LOG.debug("Listing remote workspaces: url={}", request.remoteUrl());
         if (request.remoteUrl() == null || request.remoteUrl().isBlank()) {
             throw Exceptions.invalidRequest("Remote URL is required");
         }
@@ -73,6 +78,7 @@ public class RemoteWorkspacesResource {
     @POST
     @Path("/create")
     public Response createRemote(RemoteWorkspacesRequest request) {
+        LOG.debug("Creating remote workspace");
         if (request.remoteUrl() == null || request.remoteUrl().isBlank()) {
             throw Exceptions.invalidRequest("Remote URL is required");
         }

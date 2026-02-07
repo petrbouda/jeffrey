@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.platform.manager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.MergedRecording;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
@@ -37,10 +39,13 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
 public class RepositoryManagerImpl implements RepositoryManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RepositoryManagerImpl.class);
 
     private final Clock clock;
     private final ProjectInfo projectInfo;
@@ -81,7 +86,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
+        LOG.debug("Merging and streaming recordings: sessionId={} fileCount={}", sessionId, recordingFileIds.size());
+        long startTime = System.nanoTime();
         MergedRecording merged = repositoryStorage.mergeRecordings(sessionId, recordingFileIds);
+        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}", sessionId, Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return new StreamedRecordingFile(merged.filename(), merged.path(), merged::close);
     }
 
@@ -183,6 +191,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
+        LOG.debug("Deleting recording session: sessionId={}", recordingSessionId);
         WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
                 clock.instant(),
                 projectInfo.workspaceId(),
@@ -205,6 +214,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     @Override
     public void delete() {
+        LOG.debug("Deleting repository");
         repository.deleteAll();
     }
 }

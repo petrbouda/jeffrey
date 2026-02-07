@@ -22,6 +22,8 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
@@ -31,6 +33,8 @@ import pbouda.jeffrey.profile.resources.custom.*;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 public class ProfileResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfileResource.class);
 
     public record UpdateProfile(String name) {
     }
@@ -169,16 +173,19 @@ public class ProfileResource {
 
     @GET
     public ProfileInfo getProfileInfo() {
+        LOG.debug("Fetching profile info: profileId={}", profileManager.info().id());
         return profileManager.info();
     }
 
     @PUT
     public ProfileInfo updateProfile(UpdateProfile updateProfile) {
+        LOG.debug("Updating profile: profileId={} name={}", profileManager.info().id(), updateProfile.name());
         return profileManager.updateName(updateProfile.name());
     }
 
     @DELETE
     public void deleteProfile() {
+        LOG.debug("Deleting profile: profileId={}", profileManager.info().id());
         profileManager.delete();
     }
 }

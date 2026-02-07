@@ -81,6 +81,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public CompletableFuture<ProfileManager> createProfile(String recordingId) {
+        LOG.debug("Creating profile from recording: recordingId={} projectId={}", recordingId, projectInfo.id());
         return CompletableFuture.supplyAsync(() -> createProfileInternal(recordingId), Schedulers.sharedVirtual())
                 .exceptionally(ex -> {
                     LOG.error("Could not create profile for recording: recording_id={} message={}",

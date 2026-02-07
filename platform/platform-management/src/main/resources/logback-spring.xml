@@ -1,0 +1,68 @@
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2024 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<configuration>
+    <appender name="STDOUT"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.flywaydb" level="WARN" />
+
+    <!-- Jeffrey application log level is controlled via Spring property:
+         logging.level.pbouda.jeffrey=DEBUG (in application.properties, env var, or JVM arg)
+         By default INFO, set to DEBUG for detailed request/operation logging -->
+
+    <!-- Debug file logging profile - activated by: spring.profiles.include=debug-log
+         Writes DEBUG-level logs for pbouda.jeffrey to a rolling file.
+         File path controlled by: jeffrey.logging.debug-file.path (default: ${jeffrey.home.dir}/logs/jeffrey-debug.log)
+         To enable, add to application.properties:
+           spring.profiles.include=debug-log
+           jeffrey.logging.debug-file.path=/custom/path/jeffrey-debug.log  (optional)
+         Or via env var:
+           SPRING_PROFILES_INCLUDE=debug-log -->
+    <springProfile name="debug-log">
+        <springProperty scope="context" name="LOG_DIR" source="jeffrey.home.dir" defaultValue="${user.home}/.jeffrey"/>
+        <springProperty scope="context" name="DEBUG_LOG_FILE" source="jeffrey.logging.debug-file.path" defaultValue="${LOG_DIR}/logs/jeffrey-debug.log"/>
+
+        <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${DEBUG_LOG_FILE}</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${DEBUG_LOG_FILE}.%d{yyyy-MM-dd}.%i</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n</pattern>
+            </encoder>
+        </appender>
+
+        <logger name="pbouda.jeffrey" level="DEBUG" additivity="true">
+            <appender-ref ref="DEBUG_FILE" />
+        </logger>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

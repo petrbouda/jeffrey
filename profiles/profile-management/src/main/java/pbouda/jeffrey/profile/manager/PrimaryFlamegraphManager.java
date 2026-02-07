@@ -18,15 +18,20 @@
 
 package pbouda.jeffrey.profile.manager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.profile.model.EventSummaryResult;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
 
+import java.time.Duration;
 import java.util.List;
 
 public class PrimaryFlamegraphManager implements FlamegraphManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PrimaryFlamegraphManager.class);
 
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.NATIVE_LEAK,
@@ -63,7 +68,11 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     @Override
     public byte[] generate(GraphParameters params) {
-        return generator.generate(adjustParams(params));
+        LOG.debug("Generating flamegraph: eventType={} graphType={}", params.eventType(), params.graphType());
+        long startTime = System.nanoTime();
+        byte[] result = generator.generate(adjustParams(params));
+        LOG.debug("Flamegraph generated: eventType={} durationMs={}", params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
+        return result;
     }
 
     private GraphParameters adjustParams(GraphParameters params) {

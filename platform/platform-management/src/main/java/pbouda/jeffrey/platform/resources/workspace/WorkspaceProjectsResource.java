@@ -26,6 +26,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 
 public class WorkspaceProjectsResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectsResource.class);
 
     public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
     }
@@ -98,6 +102,7 @@ public class WorkspaceProjectsResource {
     @GET
     @Path("/profiles")
     public List<ProjectWithProfilesResponse> projectsWithProfiles() {
+        LOG.debug("Listing projects with profiles: workspaceId={}", workspaceInfo.id());
         List<ProjectWithProfilesResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : this.projectsManager.findAll()) {
             ProjectInfo projectInfo = projectManager.info();
@@ -123,6 +128,7 @@ public class WorkspaceProjectsResource {
 
     @GET
     public List<ProjectResponse> projects() {
+        LOG.debug("Listing projects: workspaceId={}", workspaceInfo.id());
         List<ProjectResponse> projects = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
@@ -134,11 +140,13 @@ public class WorkspaceProjectsResource {
     @GET
     @Path("/namespaces")
     public List<String> namespaces() {
+        LOG.debug("Listing namespaces: workspaceId={}", workspaceInfo.id());
         return projectsManager.findAllNamespaces();
     }
 
     @POST
     public Response createProject(CreateProjectRequest request) {
+        LOG.debug("Creating project: workspaceId={} name={} templateId={}", workspaceInfo.id(), request.name(), request.templateId());
         if (this.workspaceInfo.isLive()) {
             throw new BadRequestException("Only Live workspace can be used to create a project");
         }

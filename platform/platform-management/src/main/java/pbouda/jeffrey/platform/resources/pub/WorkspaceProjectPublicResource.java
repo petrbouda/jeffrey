@@ -25,8 +25,12 @@ import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkspaceProjectPublicResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectPublicResource.class);
 
     private final ProjectManager projectManager;
     private final ProfilerRepository profilerRepository;
@@ -38,6 +42,7 @@ public class WorkspaceProjectPublicResource {
 
     @GET
     public ProjectResponse infoResource() {
+        LOG.debug("Fetching public project info: projectId={}", projectManager.info().id());
         ProjectManager.DetailedProjectInfo detail = projectManager.detailedInfo();
         return Mappers.toProjectResponse(detail);
     }

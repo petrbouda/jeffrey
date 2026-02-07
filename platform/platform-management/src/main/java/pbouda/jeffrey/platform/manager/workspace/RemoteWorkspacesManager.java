@@ -19,6 +19,8 @@
 package pbouda.jeffrey.platform.manager.workspace;
 
 import jakarta.ws.rs.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.provider.platform.repository.WorkspacesRepository;
@@ -29,6 +31,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public final class RemoteWorkspacesManager implements WorkspacesManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspacesManager.class);
 
     public interface Factory extends Function<URI, RemoteWorkspacesManager> {
     }
@@ -69,6 +73,7 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
 
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
+        LOG.debug("Creating remote workspace: name={}", request.name());
         RemoteWorkspaceClient remoteWorkspaceClient =
                 remoteWorkspaceClientFactory.apply(request.baseLocation().toUri());
 
