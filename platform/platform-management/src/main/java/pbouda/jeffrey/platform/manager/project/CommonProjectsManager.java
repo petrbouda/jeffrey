@@ -55,7 +55,7 @@ public class CommonProjectsManager implements ProjectsManager {
 
     @Override
     public ProjectManager create(CreateProject createProject) {
-        LOG.debug("Creating project: name={} templateId={}", createProject.name(), createProject.templateId());
+        LOG.debug("Creating project: name={} templateId={}", createProject.projectName(), createProject.templateId());
         CreateProjectContext context = new CreateProjectContext(createProject);
         context = createProjectPipeline.execute(context);
         return projectManagerFactory.apply(context.projectInfo());
