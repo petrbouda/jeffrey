@@ -32,6 +32,35 @@
          logging.level.pbouda.jeffrey=DEBUG (in application.properties, env var, or JVM arg)
          By default INFO, set to DEBUG for detailed request/operation logging -->
 
+    <!-- Debug file logging profile - activated by: spring.profiles.include=debug-log
+         Writes DEBUG-level logs for pbouda.jeffrey to a rolling file in ${jeffrey.home.dir}/logs/
+         To enable, add to application.properties:
+           spring.profiles.include=debug-log
+         Or via env var:
+           SPRING_PROFILES_INCLUDE=debug-log
+         Or via JVM arg:
+           -Dspring.profiles.include=debug-log -->
+    <springProfile name="debug-log">
+        <springProperty scope="context" name="LOG_DIR" source="jeffrey.home.dir" defaultValue="${user.home}/.jeffrey"/>
+
+        <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/logs/jeffrey-debug.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/logs/jeffrey-debug.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n</pattern>
+            </encoder>
+        </appender>
+
+        <logger name="pbouda.jeffrey" level="DEBUG" additivity="true">
+            <appender-ref ref="DEBUG_FILE" />
+        </logger>
+    </springProfile>
+
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
