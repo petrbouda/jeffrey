@@ -111,7 +111,7 @@ public class DownloadTaskManagerImpl implements DownloadTaskManager {
                             task.getFileIds(),
                             task
                     );
-                    LOG.debug("Download completed: taskId={} durationMs={}", taskId, (System.nanoTime() - startTime) / 1_000_000);
+                    LOG.debug("Download completed: taskId={} durationMs={}", taskId, Duration.ofNanos(System.nanoTime() - startTime).toMillis());
                 } catch (Exception e) {
                     LOG.error("Download failed: taskId={} error={}", taskId, e.getMessage(), e);
                     task.onError(e.getMessage());
@@ -131,7 +131,7 @@ public class DownloadTaskManagerImpl implements DownloadTaskManager {
                             task.getFileIds()
                     );
                     task.onComplete();
-                    LOG.debug("Download completed: taskId={} durationMs={}", taskId, (System.nanoTime() - startTime) / 1_000_000);
+                    LOG.debug("Download completed: taskId={} durationMs={}", taskId, Duration.ofNanos(System.nanoTime() - startTime).toMillis());
                 } catch (Exception e) {
                     LOG.error("Download failed: taskId={} error={}", taskId, e.getMessage(), e);
                     task.onError(e.getMessage());

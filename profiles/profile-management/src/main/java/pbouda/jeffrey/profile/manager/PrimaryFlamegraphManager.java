@@ -26,6 +26,7 @@ import pbouda.jeffrey.flamegraph.GraphGenerator;
 import pbouda.jeffrey.profile.model.EventSummaryResult;
 import pbouda.jeffrey.provider.profile.repository.ProfileEventTypeRepository;
 
+import java.time.Duration;
 import java.util.List;
 
 public class PrimaryFlamegraphManager implements FlamegraphManager {
@@ -71,7 +72,7 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
         LOG.debug("Generating flamegraph: eventType={} graphType={}", params.eventType(), params.graphType());
         long startTime = System.nanoTime();
         byte[] result = generator.generate(adjustParams(params));
-        LOG.debug("Flamegraph generated: eventType={} durationMs={}", params.eventType(), (System.nanoTime() - startTime) / 1_000_000);
+        LOG.debug("Flamegraph generated: eventType={} durationMs={}", params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return result;
     }
 

@@ -24,6 +24,7 @@ import pbouda.jeffrey.profile.guardian.GuardianProvider;
 import pbouda.jeffrey.profile.guardian.GuardianResult;
 import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
 
+import java.time.Duration;
 import java.util.List;
 
 public class GuardianManagerImpl implements GuardianManager {
@@ -43,7 +44,7 @@ public class GuardianManagerImpl implements GuardianManager {
         List<GuardAnalysisResult> results = guardianProvider.get().stream()
                 .map(GuardianResult::analysisItem)
                 .toList();
-        LOG.debug("Guardian analysis completed: resultCount={} durationMs={}", results.size(), (System.nanoTime() - startTime) / 1_000_000);
+        LOG.debug("Guardian analysis completed: resultCount={} durationMs={}", results.size(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return results;
     }
 }

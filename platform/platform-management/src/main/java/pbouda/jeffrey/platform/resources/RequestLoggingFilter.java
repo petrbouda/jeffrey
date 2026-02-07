@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Provider
@@ -53,7 +54,7 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
     public void filter(ContainerRequestContext request, ContainerResponseContext response) {
         try {
             Long startTime = (Long) request.getProperty(REQUEST_START_TIME);
-            long durationMs = startTime != null ? (System.nanoTime() - startTime) / 1_000_000 : -1;
+            long durationMs = startTime != null ? Duration.ofNanos(System.nanoTime() - startTime).toMillis() : -1;
 
             LOG.debug("Request completed: method={} path={} status={} durationMs={}",
                     request.getMethod(),

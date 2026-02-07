@@ -39,6 +39,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -88,7 +89,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
         LOG.debug("Merging and streaming recordings: sessionId={} fileCount={}", sessionId, recordingFileIds.size());
         long startTime = System.nanoTime();
         MergedRecording merged = repositoryStorage.mergeRecordings(sessionId, recordingFileIds);
-        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}", sessionId, (System.nanoTime() - startTime) / 1_000_000);
+        LOG.debug("Merging and streaming recordings completed: sessionId={} durationMs={}", sessionId, Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return new StreamedRecordingFile(merged.filename(), merged.path(), merged::close);
     }
 
