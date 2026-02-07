@@ -89,7 +89,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     }
 
     public static <T> RowMapper<T> typedMapper(Class<T> type) {
-        return (rs, _) -> {
+        return (rs, __) -> {
             Blob blob = null;
             try {
                 blob = rs.getBlob("content");
@@ -108,7 +108,7 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     }
 
     public static <T> RowMapper<T> typedMapper(TypeReference<T> type) {
-        return (rs, _) -> {
+        return (rs, __) -> {
             Blob blob = null;
             try {
                 blob = rs.getBlob("content");

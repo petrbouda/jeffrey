@@ -235,7 +235,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new ProjectInstanceSessionInfo(
                     rs.getString("session_id"),
                     rs.getString("repository_id"),

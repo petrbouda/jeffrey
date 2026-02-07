@@ -172,7 +172,7 @@ public class JdbcProjectRecordingRepository implements ProjectRecordingRepositor
         List<String> recordingIds = databaseClient.query(
                 StatementLabel.FIND_RECORDINGS_IN_FOLDER,
                 FIND_RECORDINGS_IN_FOLDER,
-                paramSource, (rs, _) -> rs.getString("id"));
+                paramSource, (rs, __) -> rs.getString("id"));
 
         // Delete all recordings in the folder
         recordingIds.forEach(this::deleteRecordingWithFiles);

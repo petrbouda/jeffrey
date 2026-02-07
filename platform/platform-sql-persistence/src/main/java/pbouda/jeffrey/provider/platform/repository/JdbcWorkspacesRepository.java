@@ -110,14 +110,14 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                 StatementLabel.CHECK_NAME_EXISTS,
                 CHECK_NAME_EXISTS,
                 paramSource,
-                (rs, _) -> rs.getInt(1)
+                (rs, __) -> rs.getInt(1)
         ).orElse(0);
 
         return count > 0;
     }
 
     private static RowMapper<WorkspaceInfo> workspaceMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             String location = rs.getString("location");
             String baseLocation = rs.getString("base_location");
 

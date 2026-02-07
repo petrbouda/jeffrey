@@ -60,7 +60,7 @@ public class JdbcProfileInfoRepository implements ProfileInfoRepository {
                 StatementLabel.FIND_PROFILE_INFO,
                 SELECT_PROFILE_INFO,
                 new MapSqlParameterSource(),
-                (rs, _) -> new ProfileContext(
+                (rs, __) -> new ProfileContext(
                         rs.getString("profile_id"),
                         rs.getString("project_id"),
                         rs.getString("workspace_id")));

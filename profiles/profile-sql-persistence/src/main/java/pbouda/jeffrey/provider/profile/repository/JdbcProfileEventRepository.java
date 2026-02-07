@@ -180,7 +180,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 StatementLabel.FIND_LATEST_JSON,
                 sqlFormatter.formatJson(LATEST_JSON_QUERY),
                 params,
-                (rs, _) -> (ObjectNode) Json.readTree(rs.getString("event_fields")));
+                (rs, __) -> (ObjectNode) Json.readTree(rs.getString("event_fields")));
     }
 
     @Override
@@ -192,7 +192,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 StatementLabel.ALLOCATING_THREADS,
                 ALLOCATING_THREADS_QUERY,
                 params,
-                (rs, _) -> new AllocatingThread(
+                (rs, __) -> new AllocatingThread(
                         new ThreadInfo(
                                 rs.getLong("os_id"),
                                 rs.getLong("java_id"),
@@ -209,7 +209,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 StatementLabel.FIELDS_WITH_EVENT_TYPE,
                 sqlFormatter.formatJson(FIELDS_BY_EVENT),
                 paramSource,
-                (rs, _) -> Json.readTree(rs.getString("event_fields")));
+                (rs, __) -> Json.readTree(rs.getString("event_fields")));
     }
 
     @Override
@@ -230,7 +230,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 StatementLabel.STRING_RELATED_FLAGS,
                 STRING_RELATED_FLAGS_QUERY,
                 paramSource,
-                (rs, _) -> {
+                (rs, __) -> {
                     String eventType = rs.getString("event_type");
                     String flagType = extractFlagType(eventType);
                     return new JvmFlag(
@@ -251,7 +251,7 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                 StatementLabel.ALL_FLAGS,
                 ALL_FLAGS_QUERY,
                 paramSource,
-                (rs, _) -> {
+                (rs, __) -> {
                     String eventType = rs.getString("event_type");
                     String flagType = extractFlagType(eventType);
                     String currentValue = rs.getString("current_value");

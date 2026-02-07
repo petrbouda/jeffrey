@@ -429,7 +429,7 @@ public class ProfileFactoriesConfiguration {
         if (enabled) {
             return new ProfileDataInitializerImpl(blocking, concurrent);
         } else {
-            return _ -> {
+            return __ -> {
             };
         }
     }

@@ -103,7 +103,7 @@ public abstract class JfrParser {
     public static Set<String> eventTypes(Path recording) {
         validateRecording(recording);
         Set<String> eventTypes = new HashSet<>();
-        ChunkIterator.iterate(recording, (_, chunk) -> eventTypes.addAll(chunk.eventTypes()));
+        ChunkIterator.iterate(recording, (__, chunk) -> eventTypes.addAll(chunk.eventTypes()));
         return eventTypes;
     }
 

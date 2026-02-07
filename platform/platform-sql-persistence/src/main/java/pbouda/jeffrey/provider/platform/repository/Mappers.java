@@ -37,7 +37,7 @@ import java.util.List;
 public abstract class Mappers {
 
     static RowMapper<JobInfo> jobInfoMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             String id = rs.getString("id");
             String projectId = rs.getString("project_id");
             String jobType = rs.getString("job_type");
@@ -48,7 +48,7 @@ public abstract class Mappers {
     }
 
     static RowMapper<RepositoryInfo> repositoryInfoMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new RepositoryInfo(
                     rs.getString("repository_id"),
                     RepositoryType.valueOf(rs.getString("repository_type")),
@@ -59,7 +59,7 @@ public abstract class Mappers {
     }
 
     static RowMapper<ProfileInfo> profileInfoMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new ProfileInfo(
                     rs.getString("profile_id"),
                     rs.getString("project_id"),
@@ -74,7 +74,7 @@ public abstract class Mappers {
     }
 
     static RowMapper<ProjectInfo> projectInfoMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new ProjectInfo(
                     rs.getString("project_id"),
                     rs.getString("origin_project_id"),
@@ -104,7 +104,7 @@ public abstract class Mappers {
     }
 
     public static RowMapper<Recording> projectRecordingMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new Recording(
                     rs.getString("id"),
                     rs.getString("recording_name"),
@@ -120,7 +120,7 @@ public abstract class Mappers {
     }
 
     public static RowMapper<RecordingFile> projectRecordingFileMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new RecordingFile(
                     rs.getString("id"),
                     rs.getString("recording_id"),
@@ -132,7 +132,7 @@ public abstract class Mappers {
     }
 
     public static RowMapper<RecordingFolder> projectRecordingFolderMapper() {
-        return (rs, _) -> {
+        return (rs, __) -> {
             return new RecordingFolder(rs.getString("id"), rs.getString("name"));
         };
     }

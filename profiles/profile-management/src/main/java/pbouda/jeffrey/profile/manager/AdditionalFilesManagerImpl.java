@@ -94,7 +94,7 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
                     cacheRepository.put(cacheable.cacheKey(), cacheable.content());
             case ProcessingResult.FileTransferResult fileTransfer ->
                     LOG.debug("File transferred: destination={}", fileTransfer.destinationPath());
-            case ProcessingResult.NoOpResult _ ->
+            case ProcessingResult.NoOpResult __ ->
                     LOG.debug("No operation performed");
         }
     }

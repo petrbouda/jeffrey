@@ -81,7 +81,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 StatementLabel.STREAM_EVENTS,
                 factory.complexQueries().subSecond().simple(configurer.useWeight()),
                 baseParams,
-                (r, _) -> new SubSecondRecord(r.getLong("start_ms_offset"), r.getLong("value")),
+                (r, __) -> new SubSecondRecord(r.getLong("start_ms_offset"), r.getLong("value")),
                 builder::onRecord);
 
         return builder.build();
@@ -98,7 +98,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 StatementLabel.STREAM_EVENTS,
                 timeseries.simple(configurer.useWeight(), configurer.specifiedThread() != null),
                 baseParams,
-                (r, _) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
+                (r, __) -> TimeseriesRecord.secondsAndValues(r.getLong("seconds"), r.getLong("value")),
                 builder::onRecord);
 
         return builder.build();
@@ -115,7 +115,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 StatementLabel.STREAM_EVENTS,
                 timeseries.simpleSearch(configurer.useWeight(), configurer.specifiedThread() != null),
                 baseParams,
-                (r, _) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")),
+                (r, __) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")),
                 builder::onRecord);
 
         return builder.build();

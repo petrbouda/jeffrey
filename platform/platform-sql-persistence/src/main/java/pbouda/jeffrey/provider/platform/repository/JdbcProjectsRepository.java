@@ -132,6 +132,6 @@ public class JdbcProjectsRepository implements ProjectsRepository {
         return databaseClient.query(
                 StatementLabel.FIND_ALL_PROJECT_NAMESPACES,
                 SELECT_ALL_NAMESPACES,
-                (rs, _) -> rs.getString("namespace"));
+                (rs, __) -> rs.getString("namespace"));
     }
 }

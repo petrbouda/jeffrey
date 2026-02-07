@@ -141,14 +141,14 @@ public class DbBasedThreadProvider implements ThreadInfoProvider {
 
             long javaId = threadInfo.javaId();
             if (javaId != -1) {
-                byJavaId.computeIfAbsent(threadInfo.javaId(), _ -> new ArrayList<>())
+                byJavaId.computeIfAbsent(threadInfo.javaId(), __ -> new ArrayList<>())
                         .add(threadRecord);
                 continue;
             }
 
             long osId = threadInfo.osId();
             if (osId != -1) {
-                byOsId.computeIfAbsent(threadInfo.osId(), _ -> new ArrayList<>())
+                byOsId.computeIfAbsent(threadInfo.osId(), __ -> new ArrayList<>())
                         .add(threadRecord);
                 continue;
             }

@@ -103,7 +103,7 @@ public class NativeLeakEventSummaryCalculator implements EventSummaryCalculator 
     }
 
     private RowMapper<SamplesAndWeight> samplesAndWeightMapper() {
-        return (rs, _) -> new SamplesAndWeight(rs.getLong("samples"), rs.getLong("weight"));
+        return (rs, __) -> new SamplesAndWeight(rs.getLong("samples"), rs.getLong("weight"));
     }
 
     private RowMapper<String> mallocColumnsMapper() {
