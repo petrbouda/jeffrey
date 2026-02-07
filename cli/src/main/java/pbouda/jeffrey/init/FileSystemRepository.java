@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.init;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
@@ -34,6 +36,8 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class FileSystemRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FileSystemRepository.class);
 
     private static final String PROJECT_INFO_FILENAME = ".project-info.json";
     private static final String INSTANCE_INFO_FILENAME = ".instance-info.json";
@@ -54,6 +58,7 @@ public class FileSystemRepository {
             RepositoryType repositoryType,
             Map<String, String> attributes,
             Path projectPath) {
+        LOG.debug("Adding project to filesystem repository: projectId={} projectName={} projectPath={}", projectId, projectName, projectPath);
         try {
             RemoteProject project = new RemoteProject(
                     projectId,
@@ -79,6 +84,7 @@ public class FileSystemRepository {
             String projectId,
             String workspaceId,
             Path instancePath) {
+        LOG.debug("Adding instance to filesystem repository: instanceId={} projectId={} instancePath={}", instanceId, projectId, instancePath);
         try {
             RemoteProjectInstance instance = new RemoteProjectInstance(
                     instanceId,
@@ -95,6 +101,7 @@ public class FileSystemRepository {
     }
 
     public Optional<RemoteProjectInstance> findInstance(Path instancePath) {
+        LOG.debug("Finding instance: path={}", instancePath);
         Path instanceInfoFile = instancePath.resolve(INSTANCE_INFO_FILENAME);
         if (Files.exists(instanceInfoFile)) {
             try {
@@ -117,6 +124,7 @@ public class FileSystemRepository {
             String profilerSettings,
             boolean streamingEnabled,
             Path sessionPath) {
+        LOG.debug("Adding session to filesystem repository: sessionId={} projectId={} instanceId={} sessionPath={}", sessionId, projectId, instanceId, sessionPath);
         try {
             // Build relative session path: instanceId/sessionId (instance is always required)
             String relativeSessionPath = instanceId + "/" + sessionId;
@@ -165,6 +173,7 @@ public class FileSystemRepository {
     }
 
     public Optional<RemoteProject> findProject(Path projectPath) {
+        LOG.debug("Finding project: path={}", projectPath);
         Path projectInfoFile = projectPath.resolve(PROJECT_INFO_FILENAME);
         if (Files.exists(projectInfoFile)) {
             try {

@@ -19,12 +19,16 @@
 package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import pbouda.jeffrey.profile.manager.AutoAnalysisManager;
 
 import java.util.List;
 
 public class AutoAnalysisResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisResource.class);
 
     private final AutoAnalysisManager autoAnalysisManager;
 
@@ -34,6 +38,7 @@ public class AutoAnalysisResource {
 
     @GET
     public List<AutoAnalysisResult> list() {
+        LOG.debug("Fetching auto analysis results");
         return autoAnalysisManager.analysisResults();
     }
 }

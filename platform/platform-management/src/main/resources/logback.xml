@@ -21,7 +21,7 @@
               class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                %d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg %X{name}%n
+                %d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n
             </pattern>
         </encoder>
     </appender>

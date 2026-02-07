@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.job.JobInfo;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
@@ -30,6 +32,8 @@ import java.util.Map;
 
 
 public class SchedulerResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SchedulerResource.class);
 
     public record CreateJobRequest(JobType jobType, Map<String, String> params) {
     }
@@ -45,6 +49,7 @@ public class SchedulerResource {
 
     @POST
     public Response createJob(CreateJobRequest request) {
+        LOG.debug("Creating scheduler job: jobType={}", request.jobType());
         if (request.jobType() == null) {
             throw Exceptions.invalidRequest("Job type is required");
         }
@@ -54,12 +59,14 @@ public class SchedulerResource {
 
     @GET
     public List<JobInfo> allJobs() {
+        LOG.debug("Listing scheduler jobs");
         return schedulerManager.all();
     }
 
     @PUT
     @Path("/{jobId}/enabled")
     public void updateEnabled(@PathParam("jobId") String jobId, UpdateEnabledRequest request) {
+        LOG.debug("Updating job enabled state: jobId={} enabled={}", jobId, request.enabled());
         if (jobId == null || jobId.isBlank()) {
             throw Exceptions.invalidRequest("Job ID is required");
         }
@@ -69,6 +76,7 @@ public class SchedulerResource {
     @DELETE
     @Path("/{jobId}")
     public void delete(@PathParam("jobId") String jobId) {
+        LOG.debug("Deleting scheduler job: jobId={}", jobId);
         if (jobId == null || jobId.isBlank()) {
             throw Exceptions.invalidRequest("Job ID is required");
         }

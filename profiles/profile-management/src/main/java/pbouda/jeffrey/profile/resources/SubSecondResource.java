@@ -20,6 +20,8 @@ package pbouda.jeffrey.profile.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.ws.rs.POST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProfilingStartEnd;
 import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
@@ -29,6 +31,8 @@ import pbouda.jeffrey.profile.manager.SubSecondManager;
 import static pbouda.jeffrey.profile.resources.FlamegraphResource.toTimeRange;
 
 public class SubSecondResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SubSecondResource.class);
 
     private final ProfileInfo profileInfo;
     private final SubSecondManager subSecondManager;
@@ -40,6 +44,7 @@ public class SubSecondResource {
 
     @POST
     public JsonNode generate(GetSubSecondRequest request) {
+        LOG.debug("Generating sub-second analysis: eventType={}", request.eventType());
         RelativeTimeRange relativeTimeRange = null;
         if (request.timeRange() != null) {
             ProfilingStartEnd startEnd = new ProfilingStartEnd(

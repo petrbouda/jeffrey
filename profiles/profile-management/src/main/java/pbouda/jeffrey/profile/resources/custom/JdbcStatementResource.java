@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.custom.JdbcStatementManager;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
@@ -33,6 +35,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class JdbcStatementResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcStatementResource.class);
+
     private final JdbcStatementManager jdbcStatementManager;
 
     public JdbcStatementResource(JdbcStatementManager jdbcStatementManager) {
@@ -41,12 +45,14 @@ public class JdbcStatementResource {
 
     @GET
     public JdbcOverviewData overviewData() {
+        LOG.debug("Fetching JDBC statement overview");
         return jdbcStatementManager.overviewData();
     }
 
     @GET
     @Path("single")
     public JdbcOverviewData singleUriData(@QueryParam("group") String group) {
+        LOG.debug("Fetching JDBC statement single group: group={}", group);
         String decoded = URLDecoder.decode(group, UTF_8);
         return jdbcStatementManager.overviewData(decoded);
     }
@@ -57,6 +63,7 @@ public class JdbcStatementResource {
             @QueryParam("group") String group,
             @QueryParam("statementName") String statementName) {
 
+        LOG.debug("Fetching JDBC statement timeseries: group={} statementName={}", group, statementName);
         String decodedGroup = URLDecoder.decode(group, UTF_8);
         String decodedName = URLDecoder.decode(statementName, UTF_8);
         return jdbcStatementManager.timeseries(decodedGroup, decodedName);
@@ -68,6 +75,7 @@ public class JdbcStatementResource {
             @QueryParam("group") String group,
             @QueryParam("statementName") String statementName) {
 
+        LOG.debug("Fetching JDBC slowest statements: group={} statementName={}", group, statementName);
         String decodedGroup = URLDecoder.decode(group, UTF_8);
         String decodedName = URLDecoder.decode(statementName, UTF_8);
         return jdbcStatementManager.slowStatements(decodedGroup, decodedName);

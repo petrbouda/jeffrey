@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
@@ -29,6 +31,8 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 import java.util.List;
 
 public class JdbcPoolResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcPoolResource.class);
 
     public record TimeseriesRequest(String poolName, Type eventType) {
     }
@@ -41,12 +45,14 @@ public class JdbcPoolResource {
 
     @GET
     public List<JdbcPoolData> allPoolsData() {
+        LOG.debug("Fetching JDBC pool data");
         return jdbcPoolManager.allPoolsData();
     }
 
     @POST
     @Path("/timeseries")
     public SingleSerie timeseries(TimeseriesRequest request) {
+        LOG.debug("Fetching JDBC pool timeseries");
         return jdbcPoolManager.timeseries(request.poolName, request.eventType);
     }
 }

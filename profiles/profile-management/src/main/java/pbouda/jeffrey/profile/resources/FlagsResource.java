@@ -19,6 +19,8 @@
 package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.FlagsData;
 import pbouda.jeffrey.profile.manager.FlagsManager;
 
@@ -26,6 +28,8 @@ import pbouda.jeffrey.profile.manager.FlagsManager;
  * REST resource for JVM flags visualization.
  */
 public class FlagsResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FlagsResource.class);
 
     private final FlagsManager flagsManager;
 
@@ -35,6 +39,7 @@ public class FlagsResource {
 
     @GET
     public FlagsData getAllFlags() {
+        LOG.debug("Fetching JVM flags");
         return flagsManager.getAllFlags();
     }
 }

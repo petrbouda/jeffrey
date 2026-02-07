@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
@@ -40,6 +42,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ProjectProfilesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectProfilesResource.class);
 
     public record ProfileResponse(
             String id,
@@ -128,6 +132,7 @@ public class ProjectProfilesResource {
 
     @GET
     public List<ProfileResponse> profiles() {
+        LOG.debug("Listing profiles");
         return profilesManager.allProfiles().stream()
                 .sorted(Comparator.comparing((ProfileManager pm) -> pm.info().createdAt()).reversed())
                 .map(ProjectProfilesResource::toResponse)
@@ -148,6 +153,7 @@ public class ProjectProfilesResource {
 
     @POST
     public Response createProfile(CreateProfileRequest request) {
+        LOG.debug("Creating profile: recordingId={}", request.recordingId());
         profilesManager.createProfile(request.recordingId());
         return Response.accepted().build();
     }

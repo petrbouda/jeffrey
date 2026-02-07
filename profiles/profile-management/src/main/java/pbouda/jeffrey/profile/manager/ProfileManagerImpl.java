@@ -150,6 +150,7 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public ProfileInfo updateName(String name) {
+        LOG.debug("Updating profile name: profileId={} newName={}", profileInfo.id(), name);
         ProfileInfo updatedProfile = this.profileRepository.update(name);
 
         LOG.info("Profile updated: project_id={} profile_id={} old_name={} new_name={}",
@@ -160,12 +161,14 @@ public class ProfileManagerImpl implements ProfileManager {
 
     @Override
     public long sizeInBytes() {
+        LOG.debug("Calculating profile size: profileId={}", profileInfo.id());
         Path profileDirectory = profilesBaseDir.resolve(profileInfo.id());
         return FileSystemUtils.directorySize(profileDirectory);
     }
 
     @Override
     public void delete() {
+        LOG.debug("Deleting profile: profileId={} name={}", profileInfo.id(), profileInfo.name());
         // 1. Delete profile metadata from platform database
         this.profileRepository.delete();
         // 2. Delete profile database and directory

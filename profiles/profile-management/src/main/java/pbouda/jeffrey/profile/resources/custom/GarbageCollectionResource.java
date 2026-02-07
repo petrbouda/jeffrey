@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.GarbageCollectionManager;
 import pbouda.jeffrey.profile.manager.model.gc.GCTimeseriesType;
 import pbouda.jeffrey.profile.manager.model.gc.configuration.GCConfigurationData;
@@ -28,6 +30,8 @@ import pbouda.jeffrey.profile.manager.model.gc.GCOverviewData;
 import pbouda.jeffrey.timeseries.TimeseriesData;
 
 public class GarbageCollectionResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GarbageCollectionResource.class);
 
     private final GarbageCollectionManager garbageCollectionManager;
 
@@ -37,18 +41,21 @@ public class GarbageCollectionResource {
 
     @GET
     public GCOverviewData overviewData() {
+        LOG.debug("Fetching GC overview");
         return garbageCollectionManager.overviewData();
     }
 
     @GET
     @Path("timeseries")
     public TimeseriesData timeseries(@QueryParam("timeseriesType") GCTimeseriesType timeseriesType) {
+        LOG.debug("Fetching GC timeseries: type={}", timeseriesType);
         return garbageCollectionManager.timeseries(timeseriesType);
     }
 
     @GET
     @Path("configuration")
     public GCConfigurationData configuration() {
+        LOG.debug("Fetching GC configuration");
         return garbageCollectionManager.configuration();
     }
 }

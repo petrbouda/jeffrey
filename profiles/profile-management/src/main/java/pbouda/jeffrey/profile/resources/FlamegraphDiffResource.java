@@ -23,6 +23,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.GraphType;
 import pbouda.jeffrey.profile.common.config.GraphParameters;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -39,6 +41,7 @@ import static pbouda.jeffrey.profile.resources.FlamegraphResource.mapToGenerateR
  */
 public class FlamegraphDiffResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(FlamegraphDiffResource.class);
     private static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";
 
     private final ProfileInfo profileInfo;
@@ -52,6 +55,7 @@ public class FlamegraphDiffResource {
     @POST
     @Produces(PROTOBUF_MEDIA_TYPE)
     public byte[] generate(GenerateFlamegraphRequest request) {
+        LOG.debug("Generating diff flamegraph: eventType={}", request.eventType());
         GraphParameters graphParameters = mapToGenerateRequest(profileInfo, request, GraphType.DIFFERENTIAL);
         return diffFlamegraphManager.generate(graphParameters);
     }
@@ -59,6 +63,7 @@ public class FlamegraphDiffResource {
     @GET
     @Path("/events")
     public List<EventSummaryResult> events() {
+        LOG.debug("Listing diff flamegraph event types");
         return diffFlamegraphManager.eventSummaries();
     }
 }

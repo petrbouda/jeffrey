@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.custom.HttpManager;
 import pbouda.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
 import pbouda.jeffrey.profile.manager.custom.model.http.HttpSingleUriData;
@@ -31,6 +33,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class HttpOverviewResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HttpOverviewResource.class);
+
     private final HttpManager httpManager;
 
     public HttpOverviewResource(HttpManager httpManager) {
@@ -39,12 +43,14 @@ public class HttpOverviewResource {
 
     @GET
     public HttpOverviewData overviewData() {
+        LOG.debug("Fetching HTTP overview");
         return httpManager.overviewData();
     }
 
     @GET
     @Path("single")
     public HttpSingleUriData singleUriData(@QueryParam("uri") String uri) {
+        LOG.debug("Fetching HTTP single URI data: uri={}", uri);
         String decoded = URLDecoder.decode(uri, UTF_8);
         HttpOverviewData httpOverviewData = httpManager.overviewData(decoded);
         return toSingleUriData(httpOverviewData);

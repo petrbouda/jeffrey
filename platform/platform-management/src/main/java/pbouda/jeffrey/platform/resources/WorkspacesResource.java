@@ -20,6 +20,8 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
@@ -37,6 +39,8 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import java.util.List;
 
 public class WorkspacesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WorkspacesResource.class);
 
     public record CreateWorkspaceRequest(
             String id,
@@ -89,6 +93,7 @@ public class WorkspacesResource {
 
     @GET
     public List<WorkspaceResponse> workspaces(@QueryParam("type") WorkspaceType type) {
+        LOG.debug("Listing workspaces: type={}", type);
         List<WorkspaceResponse> workspaces = workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
                 .filter(info -> type == null || info.type() == type)
@@ -100,6 +105,7 @@ public class WorkspacesResource {
 
     @POST
     public Response createWorkspace(CreateWorkspaceRequest request) {
+        LOG.debug("Creating workspace: id={} name={} type={}", request.id(), request.name(), request.type());
         if (request.id() == null || request.id().isBlank()) {
             throw Exceptions.invalidRequest("Workspace ID is required");
         }

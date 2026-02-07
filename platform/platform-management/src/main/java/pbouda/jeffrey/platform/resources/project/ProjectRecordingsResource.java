@@ -24,6 +24,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
@@ -37,6 +39,8 @@ import java.nio.file.Files;
 import java.util.List;
 
 public class ProjectRecordingsResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
 
     public record RecordingsResponse(
             String id,
@@ -65,6 +69,7 @@ public class ProjectRecordingsResource {
 
     @GET
     public List<RecordingsResponse> recordings() {
+        LOG.debug("Listing recordings");
         return recordingsManager.all().stream()
                 .map(rec -> {
 
@@ -107,6 +112,7 @@ public class ProjectRecordingsResource {
             @FormDataParam("file") InputStream fileInputStream,
             @FormDataParam("file") FormDataContentDisposition cdh) {
 
+        LOG.debug("Uploading recording: filename={} folderId={}", cdh.getFileName(), folderId);
         String trimmedFolderId = folderId == null || folderId.isBlank() ? null : folderId.trim();
         java.nio.file.Path filename = java.nio.file.Path.of(cdh.getFileName());
         String recordingName = FileSystemUtils.filenameWithoutExtension(filename);
@@ -119,6 +125,7 @@ public class ProjectRecordingsResource {
     @POST
     @Path("/folders")
     public Response create(CreateFolder request) {
+        LOG.debug("Creating recording folder: folderName={}", request.folderName());
         recordingsManager.createFolder(request.folderName());
         return Response.noContent().build();
     }
@@ -126,12 +133,14 @@ public class ProjectRecordingsResource {
     @GET
     @Path("/folders")
     public Response findAllFolders() {
+        LOG.debug("Listing recording folders");
         return Response.ok(recordingsManager.allRecordingFolders()).build();
     }
 
     @DELETE
     @Path("/folders/{folderId}")
     public Response create(@PathParam("folderId") String folderId) {
+        LOG.debug("Deleting recording folder: folderId={}", folderId);
         recordingsManager.deleteFolder(folderId);
         return Response.ok().build();
     }
@@ -139,6 +148,7 @@ public class ProjectRecordingsResource {
     @DELETE
     @Path("/{recordingId}")
     public void deleteRecording(@PathParam("recordingId") String recordingId) {
+        LOG.debug("Deleting recording: recordingId={}", recordingId);
         recordingsManager.delete(recordingId);
     }
 
@@ -149,6 +159,7 @@ public class ProjectRecordingsResource {
             @PathParam("recordingId") String recordingId,
             @PathParam("fileId") String fileId) {
 
+        LOG.debug("Downloading recording file: recordingId={} fileId={}", recordingId, fileId);
         java.nio.file.Path filePath = recordingsManager.findRecordingFile(recordingId, fileId)
                 .orElseThrow(() -> new NotFoundException(
                         "Recording file not found: recordingId=" + recordingId + ", fileId=" + fileId));

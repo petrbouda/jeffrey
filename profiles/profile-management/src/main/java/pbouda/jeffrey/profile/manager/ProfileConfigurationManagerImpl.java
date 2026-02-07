@@ -77,6 +77,7 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
 
     @Override
     public JsonNode configuration() {
+        LOG.debug("Building profile configuration");
         ObjectNode result = Json.createObject();
         for (Type eventType : EVENT_TYPES) {
             Optional<EventTypeWithFields> eventTypeWithFields = eventTypeRepository.singleFieldsByEventType(eventType);

@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.ai.heapmcp.model.HeapDumpAnalysisRequest;
 import pbouda.jeffrey.profile.ai.heapmcp.model.HeapDumpAnalysisResponse;
 import pbouda.jeffrey.profile.ai.heapmcp.model.HeapDumpChatMessage;
@@ -36,6 +38,8 @@ import java.util.List;
  */
 public class HeapDumpAiAnalysisResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpAiAnalysisResource.class);
+
     private final HeapDumpManager heapDumpManager;
     private final HeapDumpAnalysisAssistantService assistantService;
 
@@ -49,6 +53,7 @@ public class HeapDumpAiAnalysisResource {
     @GET
     @Path("/status")
     public StatusResponse status() {
+        LOG.debug("Checking heap dump AI analysis status");
         return new StatusResponse(
                 assistantService.isAvailable(),
                 assistantService.getProviderName(),
@@ -59,6 +64,7 @@ public class HeapDumpAiAnalysisResource {
     @POST
     @Path("/chat")
     public HeapDumpAnalysisResponse chat(ChatRequest request) {
+        LOG.debug("Heap dump AI analysis chat request");
         HeapDumpAnalysisRequest analysisRequest = new HeapDumpAnalysisRequest(
                 request.message(),
                 request.history() != null ? request.history() : List.of()

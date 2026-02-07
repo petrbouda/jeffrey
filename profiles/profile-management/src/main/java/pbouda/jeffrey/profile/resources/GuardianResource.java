@@ -19,6 +19,8 @@
 package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AnalysisResult;
 import pbouda.jeffrey.profile.manager.GuardianManager;
 import pbouda.jeffrey.profile.guardian.guard.Guard.Category;
@@ -31,6 +33,8 @@ public class GuardianResource {
     public record GuardListResponse(String category, List<GuardAnalysisResult> results) {
     }
 
+    private static final Logger LOG = LoggerFactory.getLogger(GuardianResource.class);
+
     private final GuardianManager guardianManager;
 
     public GuardianResource(GuardianManager guardianManager) {
@@ -39,6 +43,7 @@ public class GuardianResource {
 
     @GET
     public List<GuardListResponse> list() {
+        LOG.debug("Listing guardian results");
         List<GuardAnalysisResult> guardAnalysisResults = guardianManager
                 .guardResults()
                 .stream()

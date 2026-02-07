@@ -68,6 +68,9 @@ public class JerseyConfig extends ResourceConfig {
             register(loggingFeature);
         }
 
+        // Register request logging filter (MDC requestId + duration)
+        register(RequestLoggingFilter.class);
+
         // Register JFR HTTP event filter
         register(JfrHttpEventFilter.class);
 

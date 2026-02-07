@@ -21,6 +21,8 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.custom.MethodTracingManager;
 import pbouda.jeffrey.profile.manager.custom.model.method.CumulationMode;
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
@@ -28,6 +30,8 @@ import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewD
 import pbouda.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 
 public class MethodTracingResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MethodTracingResource.class);
 
     private final MethodTracingManager manager;
 
@@ -38,18 +42,21 @@ public class MethodTracingResource {
     @GET
     @Path("/overview")
     public MethodTracingOverviewData overview() {
+        LOG.debug("Fetching method tracing overview");
         return manager.overview();
     }
 
     @GET
     @Path("/slowest")
     public MethodTracingSlowestData slowest() {
+        LOG.debug("Fetching method tracing slowest");
         return manager.slowest();
     }
 
     @GET
     @Path("/cumulated")
     public MethodTracingCumulatedData cumulated(@QueryParam("mode") String mode) {
+        LOG.debug("Fetching method tracing cumulated: mode={}", mode);
         return manager.cumulated(CumulationMode.fromString(mode));
     }
 }

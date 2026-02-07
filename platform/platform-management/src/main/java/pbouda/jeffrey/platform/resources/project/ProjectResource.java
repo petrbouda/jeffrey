@@ -21,6 +21,8 @@ package pbouda.jeffrey.platform.resources.project;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
@@ -34,6 +36,8 @@ import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 public class ProjectResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectResource.class);
 
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
@@ -122,17 +126,20 @@ public class ProjectResource {
     @GET
     @Path("/initializing")
     public boolean initializing() {
+        LOG.debug("Checking initializing state: projectId={}", projectManager.info().id());
         return projectManager.isInitializing();
     }
 
     @GET
     public ProjectResponse infoResource() {
+        LOG.debug("Fetching project info: projectId={}", projectManager.info().id());
         DetailedProjectInfo detail = projectManager.detailedInfo();
         return Mappers.toProjectResponse(detail);
     }
 
     @DELETE
     public void delete() {
+        LOG.debug("Deleting project: projectId={}", projectManager.info().id());
         projectManager.delete(WorkspaceEventCreator.MANUAL);
     }
 }

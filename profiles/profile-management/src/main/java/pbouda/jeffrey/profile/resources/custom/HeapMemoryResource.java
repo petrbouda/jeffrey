@@ -21,12 +21,16 @@ package pbouda.jeffrey.profile.resources.custom;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.HeapMemoryManager;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryOverviewData;
 import pbouda.jeffrey.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import pbouda.jeffrey.timeseries.SingleSerie;
 
 public class HeapMemoryResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HeapMemoryResource.class);
 
     private final HeapMemoryManager heapMemoryManager;
 
@@ -36,12 +40,14 @@ public class HeapMemoryResource {
 
     @GET
     public HeapMemoryOverviewData overviewData() {
+        LOG.debug("Fetching heap memory overview");
         return heapMemoryManager.getOverviewData();
     }
 
     @GET
     @Path("timeseries")
     public SingleSerie timeseries(@QueryParam("timeseriesType") HeapMemoryTimeseriesType timeseriesType) {
+        LOG.debug("Fetching heap memory timeseries: type={}", timeseriesType);
         return heapMemoryManager.timeseries(timeseriesType);
     }
 }

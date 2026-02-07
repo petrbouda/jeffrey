@@ -29,6 +29,8 @@ import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.platform.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -38,6 +40,8 @@ import java.util.Optional;
 
 public class ProjectRepositorySessionPublicResource {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositorySessionPublicResource.class);
+
     private final RepositoryManager repositoryManager;
 
     public ProjectRepositorySessionPublicResource(RepositoryManager repositoryManager) {
@@ -46,6 +50,7 @@ public class ProjectRepositorySessionPublicResource {
 
     @GET
     public List<RecordingSessionResponse> listSessions() {
+        LOG.debug("Listing public repository sessions");
         return repositoryManager.listRecordingSessions(true).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
@@ -54,6 +59,7 @@ public class ProjectRepositorySessionPublicResource {
     @GET
     @Path("/{sessionId}")
     public RecordingSessionResponse singleSession(@PathParam("sessionId") String sessionId) {
+        LOG.debug("Fetching public repository session: sessionId={}", sessionId);
         Optional<RecordingSessionResponse> sessionOpt = repositoryManager.listRecordingSessions(true).stream()
                 .filter(s -> s.id().equals(sessionId))
                 .map(RecordingSessionResponse::from)
@@ -72,6 +78,7 @@ public class ProjectRepositorySessionPublicResource {
     public Response streamAndMergedRecordings(
             @PathParam("sessionId") String sessionId, FilesDownloadRequest request) {
 
+        LOG.debug("Streaming merged recordings: sessionId={}", sessionId);
         StreamedRecordingFile recordingFile = repositoryManager.mergeAndStreamRecordings(sessionId, request.fileIds());
         return streamRecording(recordingFile);
     }
@@ -82,6 +89,7 @@ public class ProjectRepositorySessionPublicResource {
     public Response streamSingleFile(
             @PathParam("sessionId") String sessionId, FileDownloadRequest request) {
 
+        LOG.debug("Streaming single file: sessionId={}", sessionId);
         StreamedRecordingFile file = repositoryManager.streamArtifact(sessionId, request.fileId());
         return streamRecording(file);
     }
@@ -89,6 +97,7 @@ public class ProjectRepositorySessionPublicResource {
     @DELETE
     @Path("/{sessionId}")
     public Response deleteSession(@PathParam("sessionId") String sessionId) {
+        LOG.debug("Deleting public repository session: sessionId={}", sessionId);
         repositoryManager.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
         return Response.noContent().build();
     }

@@ -20,6 +20,8 @@ package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.ThreadManager;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
@@ -32,6 +34,8 @@ import pbouda.jeffrey.timeseries.SingleSerie;
 import java.util.List;
 
 public class ThreadResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ThreadResource.class);
 
     private static final int TOP_ALLOCATING_THREADS = 20;
     private static final int TOP_CPU_LOADS = 10;
@@ -60,12 +64,14 @@ public class ThreadResource {
 
     @GET
     public ThreadRoot list() {
+        LOG.debug("Listing threads");
         return threadManager.threadRows();
     }
 
     @GET
     @Path("/statistics")
     public ThreadStatistics threadStatistics() {
+        LOG.debug("Fetching thread statistics");
         ThreadStats threadStats = threadManager.threadStatistics();
         List<AllocatingThread> threads = threadManager.threadsAllocatingMemory(TOP_ALLOCATING_THREADS);
         ThreadCpuLoads cpuLoads = threadManager.threadCpuLoads(TOP_CPU_LOADS);
@@ -76,6 +82,7 @@ public class ThreadResource {
     @GET
     @Path("/timeseries")
     public SingleSerie activeThreadsSerie() {
+        LOG.debug("Fetching active threads timeseries");
         return threadManager.activeThreadsSerie();
     }
 }

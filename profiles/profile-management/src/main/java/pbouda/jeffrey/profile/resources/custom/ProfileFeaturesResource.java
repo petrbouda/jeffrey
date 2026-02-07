@@ -20,12 +20,16 @@ package pbouda.jeffrey.profile.resources.custom;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.feature.FeatureType;
 import pbouda.jeffrey.profile.manager.ProfileFeaturesManager;
 
 import java.util.List;
 
 public class ProfileFeaturesResource {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProfileFeaturesResource.class);
 
     private final ProfileFeaturesManager featuresManager;
 
@@ -36,6 +40,7 @@ public class ProfileFeaturesResource {
     @GET
     @Path("disabled")
     public List<FeatureType> disabledFeatures() {
+        LOG.debug("Fetching disabled features");
         return featuresManager.getDisabledFeatures();
     }
 }
