@@ -149,7 +149,7 @@ public abstract class FileSystemUtils {
     }
 
     public static Optional<Path> findSupportedFileInDir(Path dir, SupportedRecordingFile recordingFileType) {
-        BiPredicate<Path, BasicFileAttributes> matcher = (path, attrs) -> recordingFileType.matches(path.getFileName());
+        BiPredicate<Path, BasicFileAttributes> matcher = (path, _) -> recordingFileType.matches(path.getFileName());
         try (var stream = Files.find(dir, 1, matcher)) {
             return stream.findFirst();
         } catch (IOException e) {
