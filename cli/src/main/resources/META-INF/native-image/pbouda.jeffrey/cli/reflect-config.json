@@ -1,5 +1,25 @@
 [
   {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "pbouda.jeffrey.init.CliApplication",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "pbouda.jeffrey.init.command.InitCommand",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "picocli.CommandLine"},
+    "name": "pbouda.jeffrey.init.VersionProvider",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
     "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
     "name": "pbouda.jeffrey.init.InitConfig",
     "allDeclaredConstructors": true,
