@@ -88,6 +88,12 @@ jobs:
         name: jeffrey-jar
         path: ./docker-context
 
+    - name: Download jeffrey-cli.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-jar
+        path: ./docker-context
+
     - name: Download native CLI (amd64)
       uses: actions/download-artifact@v4
       with:

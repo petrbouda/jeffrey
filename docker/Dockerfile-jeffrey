@@ -4,11 +4,11 @@ ARG TARGETARCH
 
 RUN mkdir /app /jeffrey-libs
 
-# All arch variants are in the build context; TARGETARCH picks the right one
 COPY jeffrey.jar /app/
-COPY jeffrey-cli-${TARGETARCH} /jeffrey-libs/jeffrey-cli
+COPY jeffrey-cli.jar /jeffrey-libs/jeffrey-cli.jar
+COPY jeffrey-cli-${TARGETARCH} /jeffrey-libs/jeffrey-cli-${TARGETARCH}
 COPY libasyncProfiler-${TARGETARCH}.so /jeffrey-libs/libasyncProfiler.so
 
-RUN chmod +x /jeffrey-libs/jeffrey-cli
+RUN chmod +x /jeffrey-libs/jeffrey-cli-${TARGETARCH}
 
 ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]
