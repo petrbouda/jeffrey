@@ -43,8 +43,8 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: amd64
-          - os: ubuntu-24.04-arm64
-            arch: arm64
+          # - os: ubuntu-24.04-arm64
+          #   arch: arm64
 
     steps:
     - uses: actions/checkout@v4
@@ -94,18 +94,18 @@ jobs:
         name: jeffrey-cli-amd64
         path: ./docker-context/cli-amd64
 
-    - name: Download native CLI (arm64)
-      uses: actions/download-artifact@v4
-      with:
-        name: jeffrey-cli-arm64
-        path: ./docker-context/cli-arm64
+    # - name: Download native CLI (arm64)
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: jeffrey-cli-arm64
+    #     path: ./docker-context/cli-arm64
 
     - name: Download async-profiler
       run: |
         AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest \
           | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
 
-        for arch_pair in "x64:amd64" "arm64:arm64"; do
+        for arch_pair in "x64:amd64"; do
           AP_ARCH="${arch_pair%%:*}"
           DOCKER_ARCH="${arch_pair##*:}"
           curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
@@ -117,8 +117,8 @@ jobs:
     - name: Prepare build context
       run: |
         mv ./docker-context/cli-amd64/jeffrey-cli ./docker-context/jeffrey-cli-amd64
-        mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
-        rm -rf ./docker-context/cli-amd64 ./docker-context/cli-arm64
+        # mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
+        rm -rf ./docker-context/cli-amd64
         cp ./docker/Dockerfile-jeffrey ./docker-context/Dockerfile
         ls -la ./docker-context/
 
@@ -140,7 +140,7 @@ jobs:
         context: ./docker-context
         file: ./docker-context/Dockerfile
         push: true
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         tags: petrbouda/jeffrey:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey:latest
 
   create-release:
@@ -167,17 +167,17 @@ jobs:
         name: jeffrey-cli-amd64
         path: ./artifacts/native-amd64
 
-    - name: Download native CLI (arm64)
-      uses: actions/download-artifact@v4
-      with:
-        name: jeffrey-cli-arm64
-        path: ./artifacts/native-arm64
+    # - name: Download native CLI (arm64)
+    #   uses: actions/download-artifact@v4
+    #   with:
+    #     name: jeffrey-cli-arm64
+    #     path: ./artifacts/native-arm64
 
     - name: Prepare release assets
       run: |
         mv ./artifacts/native-amd64/jeffrey-cli ./artifacts/jeffrey-cli-amd64
-        mv ./artifacts/native-arm64/jeffrey-cli ./artifacts/jeffrey-cli-arm64
-        rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
+        # mv ./artifacts/native-arm64/jeffrey-cli ./artifacts/jeffrey-cli-arm64
+        rm -rf ./artifacts/native-amd64
 
     - name: Extract version
       id: version
@@ -192,6 +192,5 @@ jobs:
           ./artifacts/jeffrey.jar
           ./artifacts/jeffrey-cli.jar
           ./artifacts/jeffrey-cli-amd64
-          ./artifacts/jeffrey-cli-arm64
         draft: false
         prerelease: false

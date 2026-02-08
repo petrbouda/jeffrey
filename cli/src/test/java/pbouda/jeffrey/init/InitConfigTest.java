@@ -59,7 +59,7 @@ class InitConfigTest {
 
         @Test
         void parsesAllFieldsCorrectly() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
             assertEquals("/tmp/asprof/libasyncProfiler.so", config.getProfilerPath());
@@ -73,7 +73,7 @@ class InitConfigTest {
 
         @Test
         void parsesPerfCountersConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNotNull(config.getPerfCounters());
             assertTrue(config.getPerfCounters().isEnabled());
@@ -82,7 +82,7 @@ class InitConfigTest {
 
         @Test
         void parsesHeapDumpConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNotNull(config.getHeapDump());
             assertTrue(config.getHeapDump().isEnabled());
@@ -92,7 +92,7 @@ class InitConfigTest {
 
         @Test
         void parsesJvmLoggingConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNotNull(config.getJvmLogging());
             assertTrue(config.getJvmLogging().isEnabled());
@@ -101,7 +101,7 @@ class InitConfigTest {
 
         @Test
         void parsesMessagingConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNotNull(config.getMessaging());
             assertTrue(config.getMessaging().isEnabled());
@@ -112,7 +112,7 @@ class InitConfigTest {
 
         @Test
         void parsesJdkJavaOptionsConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNotNull(config.getJdkJavaOptions());
             assertTrue(config.getJdkJavaOptions().isEnabled());
@@ -123,7 +123,7 @@ class InitConfigTest {
 
         @Test
         void parsesAttributes() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNotNull(config.getAttributes());
             assertEquals("blue", config.getAttributes().get("cluster"));
@@ -138,7 +138,7 @@ class InitConfigTest {
 
         @Test
         void parsesRequiredFieldsOnly() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
             assertEquals("test-workspace", config.getWorkspaceId());
@@ -147,7 +147,7 @@ class InitConfigTest {
 
         @Test
         void optionalFieldsAreNull() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNull(config.getWorkspacesDir());
             assertNull(config.getProjectLabel());
@@ -159,7 +159,7 @@ class InitConfigTest {
 
         @Test
         void nestedConfigsAreDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             // Nested configs exist but are disabled
             assertNotNull(config.getPerfCounters());
@@ -186,7 +186,7 @@ class InitConfigTest {
 
         @Test
         void parsesWorkspacesDirInsteadOfJeffreyHome() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE);
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
             assertNull(config.getJeffreyHome());
             assertEquals("/tmp/workspaces", config.getWorkspacesDir());
@@ -203,55 +203,55 @@ class InitConfigTest {
 
         @Test
         void useJeffreyHomeReturnsTrueWhenSet() {
-            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG, null);
             assertTrue(config.useJeffreyHome());
         }
 
         @Test
         void useJeffreyHomeReturnsFalseWhenUsingWorkspacesDir() {
-            InitConfig config = InitConfig.fromHoconFile(WORKSPACES_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(WORKSPACES_CONFIG, null);
             assertFalse(config.useJeffreyHome());
         }
 
         @Test
         void isPerfCountersEnabledReturnsFalseWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertFalse(config.isPerfCountersEnabled());
         }
 
         @Test
         void isMessagingEnabledReturnsFalseWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertFalse(config.isMessagingEnabled());
         }
 
         @Test
         void getMessagingMaxAgeReturnsDefaultWhenNotSet() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertEquals("24h", config.getMessagingMaxAge());
         }
 
         @Test
         void isJdkJavaOptionsEnabledReturnsFalseWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertFalse(config.isJdkJavaOptionsEnabled());
         }
 
         @Test
         void getAdditionalJvmOptionsReturnsNullWhenNotSet() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertNull(config.getAdditionalJvmOptions());
         }
 
         @Test
         void getJvmLoggingCommandReturnsNullWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertNull(config.getJvmLoggingCommand());
         }
 
         @Test
         void resolveHeapDumpTypeReturnsNullWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertNull(config.resolveHeapDumpType());
         }
     }
@@ -264,19 +264,19 @@ class InitConfigTest {
 
         @Test
         void resolveRepositoryTypeReturnsDefaultWhenNull() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertEquals(RepositoryType.ASYNC_PROFILER, config.resolveRepositoryType());
         }
 
         @Test
         void resolveRepositoryTypeReturnsSpecifiedValue() {
-            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG, null);
             assertEquals(RepositoryType.ASYNC_PROFILER, config.resolveRepositoryType());
         }
 
         @Test
         void resolveHeapDumpTypeReturnsCrash() {
-            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG);
+            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG, null);
             assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
         }
     }
@@ -293,9 +293,9 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(nonExistent)
+                    () -> InitConfig.fromHoconFile(nonExistent, null)
             );
-            assertTrue(exception.getMessage().contains("Config file does not exist"));
+            assertTrue(exception.getMessage().contains("Base config file does not exist"));
         }
 
         @Test
@@ -307,7 +307,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("Either 'jeffrey-home' or 'workspaces-dir' must be specified", exception.getMessage());
         }
@@ -323,7 +323,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("Cannot specify both 'jeffrey-home' and 'workspaces-dir'", exception.getMessage());
         }
@@ -338,7 +338,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("'project.workspace-id' must be specified", exception.getMessage());
         }
@@ -353,7 +353,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("'project.workspace-id' must be specified", exception.getMessage());
         }
@@ -368,7 +368,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("'project.name' must be specified", exception.getMessage());
         }
@@ -383,7 +383,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("'project.name' must be specified", exception.getMessage());
         }
@@ -398,7 +398,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("Project name can only contain alphanumeric characters, underscores, and dashes", exception.getMessage());
         }
@@ -413,7 +413,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("Project name can only contain alphanumeric characters, underscores, and dashes", exception.getMessage());
         }
@@ -426,7 +426,7 @@ class InitConfigTest {
                     "project { workspace-id = \"test\", name = \"my_project-123\" }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile);
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
             assertEquals("my_project-123", config.getProjectName());
         }
 
@@ -442,7 +442,7 @@ class InitConfigTest {
 
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile)
+                    () -> InitConfig.fromHoconFile(configFile, null)
             );
             assertEquals("Cannot specify both 'messaging.enabled' and 'profiler-config'", exception.getMessage());
         }
@@ -457,7 +457,7 @@ class InitConfigTest {
                     "messaging { enabled = false }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile);
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
             assertFalse(config.isMessagingEnabled());
             assertEquals("some-config", config.getProfilerConfig());
         }

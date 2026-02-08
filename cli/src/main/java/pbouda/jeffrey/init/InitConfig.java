@@ -58,21 +58,34 @@ public class InitConfig {
             """;
 
     /**
-     * Creates an InitConfig from a HOCON configuration file.
+     * Creates an InitConfig from a base HOCON configuration file with an optional override file.
+     * <p>
+     * Priority order (highest to lowest): override config > base config > defaults.
      *
-     * @param configFile path to the HOCON configuration file
+     * @param baseConfigFile     path to the base HOCON configuration file
+     * @param overrideConfigFile path to an override HOCON configuration file (nullable)
      * @return validated InitConfig instance
      */
-    public static InitConfig fromHoconFile(Path configFile) {
-        if (!Files.exists(configFile)) {
-            throw new IllegalArgumentException("Config file does not exist: " + configFile);
+    public static InitConfig fromHoconFile(Path baseConfigFile, Path overrideConfigFile) {
+        if (!Files.exists(baseConfigFile)) {
+            throw new IllegalArgumentException("Base config file does not exist: " + baseConfigFile);
         }
 
         Config defaults = ConfigFactory.parseString(DEFAULTS);
-        Config hoconConfig = ConfigFactory.parseFile(configFile.toFile())
-                .withFallback(defaults)
-                .resolve();
-        InitConfig config = ConfigBeanFactory.create(hoconConfig, InitConfig.class);
+        Config baseConfig = ConfigFactory.parseFile(baseConfigFile.toFile());
+
+        Config resolved;
+        if (overrideConfigFile != null) {
+            if (!Files.exists(overrideConfigFile)) {
+                throw new IllegalArgumentException("Override config file does not exist: " + overrideConfigFile);
+            }
+            Config overrideConfig = ConfigFactory.parseFile(overrideConfigFile.toFile());
+            resolved = overrideConfig.withFallback(baseConfig).withFallback(defaults).resolve();
+        } else {
+            resolved = baseConfig.withFallback(defaults).resolve();
+        }
+
+        InitConfig config = ConfigBeanFactory.create(resolved, InitConfig.class);
         config.validate();
 
         return config;
