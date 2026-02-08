@@ -1,0 +1,197 @@
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+-b[0-9]+'
+
+name: Release Jeffrey
+
+jobs:
+  build-app:
+    runs-on: ubuntu-latest
+    container:
+      image: petrbouda/jeffrey-builder:25
+    permissions: write-all
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Build with Maven
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn clean package
+
+    - name: Upload jeffrey.jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: jeffrey-jar
+        path: ./build/build-app/target/jeffrey.jar
+
+    - name: Upload jeffrey-cli.jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: jeffrey-cli-jar
+        path: ./build/build-cli/target/jeffrey-cli.jar
+
+  build-cli-native:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm64
+            arch: arm64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: '25'
+        distribution: 'graalvm-community'
+        components: 'native-image'
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Build native CLI
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn -pl build/build-cli-native -am -Pnative package -DskipTests
+
+    - name: Upload native CLI
+      uses: actions/upload-artifact@v4
+      with:
+        name: jeffrey-cli-${{ matrix.arch }}
+        path: ./build/build-cli-native/target/jeffrey-cli
+
+  compose-docker:
+    needs: [build-app, build-cli-native]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Download jeffrey.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-jar
+        path: ./docker-context
+
+    - name: Download native CLI (amd64)
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-amd64
+        path: ./docker-context/cli-amd64
+
+    - name: Download native CLI (arm64)
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-arm64
+        path: ./docker-context/cli-arm64
+
+    - name: Download async-profiler
+      run: |
+        AP_VERSION=$(curl -s https://api.github.com/repos/async-profiler/async-profiler/releases/latest \
+          | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
+
+        for arch_pair in "x64:amd64" "arm64:arm64"; do
+          AP_ARCH="${arch_pair%%:*}"
+          DOCKER_ARCH="${arch_pair##*:}"
+          curl -L "https://github.com/async-profiler/async-profiler/releases/download/v${AP_VERSION}/async-profiler-${AP_VERSION}-linux-${AP_ARCH}.tar.gz" \
+            | tar -xz -C /tmp
+          cp /tmp/async-profiler-*/lib/libasyncProfiler.so ./docker-context/libasyncProfiler-${DOCKER_ARCH}.so
+          rm -rf /tmp/async-profiler-*
+        done
+
+    - name: Prepare build context
+      run: |
+        mv ./docker-context/cli-amd64/jeffrey-cli ./docker-context/jeffrey-cli-amd64
+        mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
+        rm -rf ./docker-context/cli-amd64 ./docker-context/cli-arm64
+        cp ./docker/Dockerfile-jeffrey ./docker-context/Dockerfile
+        ls -la ./docker-context/
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: ./docker-context
+        file: ./docker-context/Dockerfile
+        push: true
+        platforms: linux/amd64,linux/arm64
+        tags: petrbouda/jeffrey:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey:latest
+
+  create-release:
+    needs: [build-app, build-cli-native]
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+    - name: Download jeffrey.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-jar
+        path: ./artifacts
+
+    - name: Download jeffrey-cli.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-jar
+        path: ./artifacts
+
+    - name: Download native CLI (amd64)
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-amd64
+        path: ./artifacts/native-amd64
+
+    - name: Download native CLI (arm64)
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-cli-arm64
+        path: ./artifacts/native-arm64
+
+    - name: Prepare release assets
+      run: |
+        mv ./artifacts/native-amd64/jeffrey-cli ./artifacts/jeffrey-cli-amd64
+        mv ./artifacts/native-arm64/jeffrey-cli ./artifacts/jeffrey-cli-arm64
+        rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Jeffrey ${{ steps.version.outputs.VERSION }}
+        body: Release ${{ steps.version.outputs.VERSION }}
+        files: |
+          ./artifacts/jeffrey.jar
+          ./artifacts/jeffrey-cli.jar
+          ./artifacts/jeffrey-cli-amd64
+          ./artifacts/jeffrey-cli-arm64
+        draft: false
+        prerelease: false

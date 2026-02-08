@@ -1,0 +1,149 @@
+[
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$ProjectConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$PerfCountersConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$HeapDumpConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$JvmLoggingConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$MessagingConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$JdkJavaOptionsConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.repository.RemoteProject",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.repository.ProfilerSettings",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.repository.RemoteWorkspaceSettings",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.Type",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.time.RelativeTimeRange",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.RepositoryType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.core.ConsoleAppender",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.DateConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.ThreadConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.LevelConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.LoggerConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.MessageConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
+    "name": "ch.qos.logback.classic.pattern.LineSeparatorConverter",
+    "allDeclaredConstructors": true
+  }
+]

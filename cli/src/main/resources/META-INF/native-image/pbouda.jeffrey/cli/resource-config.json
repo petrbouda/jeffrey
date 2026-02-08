@@ -1,0 +1,9 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "logback\\.xml$"},
+      {"pattern": "jeffrey-tag\\.txt$"},
+      {"pattern": "META-INF/services/.*"}
+    ]
+  }
+}

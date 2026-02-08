@@ -40,7 +40,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <picocli.version>4.7.7</picocli.version>
         <jackson.version>2.19.2</jackson.version>
         <typesafe-config.version>1.4.3</typesafe-config.version>
         <lz4.version>1.10.2</lz4.version>
@@ -134,11 +133,6 @@
 
             <!-- CLI dependencies -->
             <dependency>
-                <groupId>info.picocli</groupId>
-                <artifactId>picocli</artifactId>
-                <version>${picocli.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
@@ -197,6 +191,7 @@
                 <version>3.14.0</version>
                 <configuration>
                     <release>25</release>
+                    <parameters>true</parameters>
                 </configuration>
             </plugin>
         </plugins>

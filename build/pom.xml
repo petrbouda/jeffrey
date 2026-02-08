@@ -34,6 +34,7 @@
     <modules>
         <module>build-app</module>
         <module>build-cli</module>
+        <module>build-cli-native</module>
     </modules>
 
     <build>
