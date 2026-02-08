@@ -221,7 +221,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     private static RowMapper<WorkspaceEvent> workspaceEventMapper() {
-        return (rs, __) -> new WorkspaceEvent(
+        return (rs, _) -> new WorkspaceEvent(
                 rs.getLong("event_id"),
                 rs.getString("origin_event_id"),
                 rs.getString("project_id"),
@@ -235,7 +235,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     private static RowMapper<WorkspaceEventConsumer> workspaceEventConsumerMapper() {
-        return (rs, __) -> {
+        return (rs, _) -> {
             long lastExecutionAt = rs.getLong("last_execution_at");
             long lastOffset = rs.getLong("last_offset");
 

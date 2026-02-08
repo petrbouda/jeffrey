@@ -8,8 +8,8 @@ import javax.sql.DataSource;
 import java.util.List;
 
 public class ManualTimeseriesApplication {
-    public static void main(String[] args) {
-        System.out.println("Manual tests");
+    static void main() {
+        IO.println("Manual tests");
 
         String home = System.getProperty("user.home");
         DataSource datasource = new SimpleJdbcDataSource(
@@ -34,7 +34,7 @@ public class ManualTimeseriesApplication {
         }
         long end = System.nanoTime();
 
-        System.out.println("Total took: " + ((end - start) / 1_000_000) + " ms");
+        IO.println("Total took: " + ((end - start) / 1_000_000) + " ms");
     }
 
     public record TimeseriesSearchRecord(long second, long total, long matched) {
@@ -43,10 +43,10 @@ public class ManualTimeseriesApplication {
     private static void execute(NamedParameterJdbcTemplate client, String flamegraphSql, MapSqlParameterSource params) {
         long start = System.nanoTime();
         List<TimeseriesSearchRecord> records = client.query(
-                flamegraphSql, params, (r, __) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")));
+                flamegraphSql, params, (r, _) -> new TimeseriesSearchRecord(r.getLong("seconds"), r.getLong("total_value"), r.getLong("matched_value")));
         long end = System.nanoTime();
-        System.out.println("Query took: " + ((end - start) / 1_000_000) + " ms");
-        System.out.println("Records: " + records.size());
+        IO.println("Query took: " + ((end - start) / 1_000_000) + " ms");
+        IO.println("Records: " + records.size());
 
         System.out.println(records);
 
@@ -57,14 +57,14 @@ public class ManualTimeseriesApplication {
 //        }
 //        Frame rootFrame = builder.build();
 //        long endBuilding = System.nanoTime();
-//        System.out.println("Building took: " + ((endBuilding - startBuilding) / 1_000_000) + " ms");
-//        System.out.println("Root frame: " + rootFrame);
+//        IO.println("Building took: " + ((endBuilding - startBuilding) / 1_000_000) + " ms");
+//        IO.println("Root frame: " + rootFrame);
 //
 //        long startBuildingJson = System.nanoTime();
 //        FlameGraphBuilder jsonBuilder = new FlameGraphBuilder(false, false, weight -> weight + " millis");
 //        FlamegraphData data = jsonBuilder.build(rootFrame);
 //        System.out.println(data.depth());
 //        long endBuildingJson = System.nanoTime();
-//        System.out.println("JSON Building took: " + ((endBuildingJson - startBuildingJson) / 1_000_000) + " ms");
+//        IO.println("JSON Building took: " + ((endBuildingJson - startBuildingJson) / 1_000_000) + " ms");
     }
 }

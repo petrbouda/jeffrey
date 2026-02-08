@@ -88,9 +88,9 @@ public class JdbcStatementManagerImpl implements JdbcStatementManager {
         if (group != null && statementName != null) {
             statementFilter = (g, s) -> g.equals(group) && s.equalsIgnoreCase(statementName);
         } else if (group != null) {
-            statementFilter = (g, __) -> g.equals(group);
+            statementFilter = (g, _) -> g.equals(group);
         } else if (statementName != null) {
-            statementFilter = (__, s) -> s.equalsIgnoreCase(statementName);
+            statementFilter = (_, s) -> s.equalsIgnoreCase(statementName);
         }
 
         return eventStreamRepository.genericStreaming(

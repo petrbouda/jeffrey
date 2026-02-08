@@ -143,7 +143,7 @@ public class JdbcProfilerRepository implements ProfilerRepository {
     }
 
     private static RowMapper<ProfilerInfo> settingsMapper() {
-        return (rs, __) -> {
+        return (rs, _) -> {
             ProfilerInfo profilerInfo = new ProfilerInfo(
                     rs.getString("workspace_id"),
                     rs.getString("project_id"),

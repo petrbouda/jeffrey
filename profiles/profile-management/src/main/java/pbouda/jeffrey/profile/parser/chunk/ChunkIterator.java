@@ -100,7 +100,7 @@ public abstract class ChunkIterator implements JfrChunkConstants {
      */
     public static List<JfrChunk> collect(Path recording) {
         List<JfrChunk> chunks = new ArrayList<>();
-        iterate(recording, (__, chunk) -> chunks.add(chunk));
+        iterate(recording, (_, chunk) -> chunks.add(chunk));
         return chunks;
     }
 

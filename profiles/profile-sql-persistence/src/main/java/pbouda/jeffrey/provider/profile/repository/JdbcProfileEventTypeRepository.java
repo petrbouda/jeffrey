@@ -55,14 +55,14 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             new TypeReference<List<FieldDescription>>() {
             };
 
-    private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, __) -> {
+    private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, _) -> {
         String name = rs.getString("name");
         String label = rs.getString("label");
         String fields = rs.getString("event_fields");
         return new EventTypeWithFields(name, label, Json.readObjectNode(fields));
     };
 
-    private static final RowMapper<EventSummary> EVENT_SUMMARY_MAPPER = (rs, __) -> {
+    private static final RowMapper<EventSummary> EVENT_SUMMARY_MAPPER = (rs, _) -> {
         return new EventSummary(
                 rs.getString("name"),
                 rs.getString("label"),
@@ -189,7 +189,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("code", type.code());
 
-        RowMapper<List<FieldDescription>> columns = (rs, __) ->
+        RowMapper<List<FieldDescription>> columns = (rs, _) ->
                 Json.read(rs.getString("columns"), FIELD_DESC);
 
         return databaseClient.querySingle(

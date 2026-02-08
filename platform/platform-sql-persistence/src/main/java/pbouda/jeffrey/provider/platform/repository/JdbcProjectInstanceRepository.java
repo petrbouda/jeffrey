@@ -156,7 +156,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     }
 
     private static RowMapper<ProjectInstanceInfo> projectInstanceInfoMapper() {
-        return (rs, __) -> new ProjectInstanceInfo(
+        return (rs, _) -> new ProjectInstanceInfo(
                 rs.getString("instance_id"),
                 rs.getString("project_id"),
                 rs.getString("hostname"),
@@ -168,7 +168,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     }
 
     private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
-        return (rs, __) -> new ProjectInstanceSessionInfo(
+        return (rs, _) -> new ProjectInstanceSessionInfo(
                 rs.getString("session_id"),
                 rs.getString("repository_id"),
                 rs.getString("instance_id"),

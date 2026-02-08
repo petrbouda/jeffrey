@@ -52,7 +52,7 @@ public class CachingDatabaseManager implements DatabaseManager {
         this.clock = clock;
         this.cache = new EvictableCache<>(
                 value -> value.lastAccessed().plus(expiration).isBefore(clock.instant()),
-                (__, value) -> value.forceClose(),
+                (_, value) -> value.forceClose(),
                 checkInterval,
                 scheduler);
     }
