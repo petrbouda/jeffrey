@@ -477,7 +477,7 @@ onMounted(async () => {
 }
 
 .instance-label {
-  width: 160px;
+  width: 170px;
   display: flex;
   align-items: center;
   gap: 0.4rem;
