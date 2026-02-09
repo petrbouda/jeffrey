@@ -75,7 +75,7 @@ public class ApplicationInitializer implements ApplicationListener<ApplicationRe
 
     private void initializeProfilerSettings(ConfigurableEnvironment environment) {
         boolean createGlobalSettings = environment.getProperty(
-                "jeffrey.profiler.global-settings.create-if-not-exists", Boolean.class, false);
+                "jeffrey.profiler.global-settings.create-if-not-exists", Boolean.class, true);
         String globalCommand = environment.getProperty(
                 "jeffrey.profiler.global-settings.command", String.class, "");
 
