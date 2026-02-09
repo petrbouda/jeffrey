@@ -64,6 +64,8 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         // Delete session from remote storage (e.g., S3, filesystem)
         remoteRepositoryStorageFactory.apply(projectManager.info())
                 .deleteSession(event.originEventId());
+
+        LOG.debug("Deleted session from workspace event: project_id={} session_id={}", event.projectId(), event.originEventId());
     }
 
     @Override

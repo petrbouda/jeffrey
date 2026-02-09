@@ -47,6 +47,7 @@ public class LiveWorkspaceEventManager implements WorkspaceEventManager {
 
     @Override
     public void batchInsertEvents(List<WorkspaceEvent> events) {
+        LOG.debug("Batch inserting workspace events: workspace_id={} count={}", workspaceInfo.id(), events.size());
         workspaceRepository.batchInsertEvents(events);
     }
 
@@ -54,7 +55,9 @@ public class LiveWorkspaceEventManager implements WorkspaceEventManager {
     public List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumerType) {
         WorkspaceEventConsumer consumer = getOrCreateConsumer(consumerType);
         long lastOffset = consumer.lastOffset() != null ? consumer.lastOffset() : 0;
-        return workspaceRepository.findEventsFromOffset(lastOffset);
+        List<WorkspaceEvent> events = workspaceRepository.findEventsFromOffset(lastOffset);
+        LOG.debug("Remaining workspace events: workspace_id={} consumer_type={} count={}", workspaceInfo.id(), consumerType, events.size());
+        return events;
     }
 
     private WorkspaceEventConsumer getOrCreateConsumer(WorkspaceEventConsumerType consumerType) {

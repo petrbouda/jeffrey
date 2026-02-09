@@ -157,6 +157,8 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
         long result = databaseClient.batchInsert(StatementLabel.BATCH_INSERT_WORKSPACE_EVENTS, INSERT_WORKSPACE_EVENT, paramSources);
         if (result != workspaceEvents.size()) {
             LOG.warn("Failed to insert all workspace events: expected={} result={}", workspaceEvents.size(), result);
+        } else {
+            LOG.debug("Batch inserted workspace events: workspace_id={} count={}", workspaceId, workspaceEvents.size());
         }
     }
 

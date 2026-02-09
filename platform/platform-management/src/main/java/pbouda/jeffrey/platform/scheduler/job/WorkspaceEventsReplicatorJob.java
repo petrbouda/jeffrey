@@ -121,6 +121,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 })
                 .toList();
 
+        LOG.debug("Replicating project events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), projectWorkspaceEvents.size());
         workspaceManager.workspaceEventManager().batchInsertEvents(projectWorkspaceEvents);
 
         projectWorkspaceEvents.stream()
@@ -146,6 +147,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 })
                 .toList();
 
+        LOG.debug("Replicating instance events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), instanceWorkspaceEvents.size());
         workspaceManager.workspaceEventManager().batchInsertEvents(instanceWorkspaceEvents);
 
         instanceWorkspaceEvents.stream()
@@ -171,6 +173,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 })
                 .toList();
 
+        LOG.debug("Replicating session events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), sessionWorkspaceEvents.size());
         workspaceManager.workspaceEventManager().batchInsertEvents(sessionWorkspaceEvents);
 
         sessionWorkspaceEvents.stream()

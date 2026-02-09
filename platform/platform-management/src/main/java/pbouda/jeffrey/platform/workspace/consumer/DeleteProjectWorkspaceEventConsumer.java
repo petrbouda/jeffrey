@@ -66,6 +66,8 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
 
         platformRepositories.newProjectRepository(projectManager.info().id())
                 .delete();
+
+        LOG.debug("Deleted project from workspace event: project_id={}", event.projectId());
     }
 
     @Override

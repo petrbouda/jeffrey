@@ -90,6 +90,8 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
         projectManager.repositoryManager()
                 .createSession(sessionInfo);
+
+        LOG.debug("Session created from workspace event: project_id={} instance_id={} session_id={}", projectId, instanceId, event.originEventId());
     }
 
     @Override
