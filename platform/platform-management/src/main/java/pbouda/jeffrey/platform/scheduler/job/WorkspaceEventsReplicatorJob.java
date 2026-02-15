@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
@@ -31,7 +32,6 @@ import pbouda.jeffrey.platform.scheduler.job.descriptor.WorkspaceEventsReplicato
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
-import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
@@ -49,6 +49,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
 
     private final Duration period;
     private final Clock clock;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final SchedulerTrigger migrationCallback;
 
     private final Set<String> processedProjects = new HashSet<>();
@@ -61,11 +62,13 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
             JobDescriptorFactory jobDescriptorFactory,
             Duration period,
             Clock clock,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
         this.period = period;
         this.clock = clock;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.migrationCallback = migrationCallback;
     }
 
@@ -122,7 +125,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .toList();
 
         LOG.debug("Replicating project events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), projectWorkspaceEvents.size());
-        workspaceManager.workspaceEventManager().batchInsertEvents(projectWorkspaceEvents);
+        workspaceEventQueue.appendBatch(workspaceManager.resolveInfo().id(), projectWorkspaceEvents);
 
         projectWorkspaceEvents.stream()
                 .map(WorkspaceEvent::projectId)
@@ -148,7 +151,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .toList();
 
         LOG.debug("Replicating instance events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), instanceWorkspaceEvents.size());
-        workspaceManager.workspaceEventManager().batchInsertEvents(instanceWorkspaceEvents);
+        workspaceEventQueue.appendBatch(workspaceManager.resolveInfo().id(), instanceWorkspaceEvents);
 
         instanceWorkspaceEvents.stream()
                 .map(WorkspaceEvent::originEventId)
@@ -174,7 +177,7 @@ public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsRe
                 .toList();
 
         LOG.debug("Replicating session events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), sessionWorkspaceEvents.size());
-        workspaceManager.workspaceEventManager().batchInsertEvents(sessionWorkspaceEvents);
+        workspaceEventQueue.appendBatch(workspaceManager.resolveInfo().id(), sessionWorkspaceEvents);
 
         sessionWorkspaceEvents.stream()
                 .map(WorkspaceEvent::originEventId)

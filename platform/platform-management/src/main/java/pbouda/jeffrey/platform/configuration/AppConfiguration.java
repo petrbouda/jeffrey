@@ -40,6 +40,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManagerImpl;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
@@ -63,6 +64,7 @@ import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
@@ -72,6 +74,7 @@ import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
@@ -153,6 +156,11 @@ public class AppConfiguration {
     }
 
     @Bean
+    public DatabaseClientProvider databaseClientProvider(PlatformPersistenceProvider platformPersistenceProvider) {
+        return platformPersistenceProvider.databaseClientProvider();
+    }
+
+    @Bean
     public JeffreyDirs jeffreyDir(
             @Value("${jeffrey.home.dir:${user.home}/.jeffrey}") String homeDir,
             @Value("${jeffrey.temp.dir:}") String tempDir) {
@@ -211,8 +219,8 @@ public class AppConfiguration {
     @Bean
     public RecordingFileEventEmitter recordingFileEventEmitter(
             Clock clock,
-            CompositeWorkspacesManager compositeWorkspacesManager) {
-        return new RecordingFileEventEmitter(clock, compositeWorkspacesManager);
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
+        return new RecordingFileEventEmitter(clock, workspaceEventQueue);
     }
 
     @Bean
@@ -258,7 +266,7 @@ public class AppConfiguration {
             ProjectRecordingInitializer.Factory projectRecordingInitializerFactory,
             RepositoryStorage.Factory repositoryStorageFactory,
             PlatformRepositories platformRepositories,
-            CompositeWorkspacesManager compositeWorkspacesManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             JobDescriptorFactory jobDescriptorFactory) {
         return projectInfo -> {
             return new CommonProjectManager(
@@ -269,7 +277,7 @@ public class AppConfiguration {
                     profilesManagerFactory,
                     platformRepositories,
                     repositoryStorageFactory.apply(projectInfo),
-                    compositeWorkspacesManager,
+                    workspaceEventQueue,
                     jobDescriptorFactory);
         };
     }

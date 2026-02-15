@@ -21,20 +21,36 @@ package pbouda.jeffrey.platform.configuration.workspace;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.live.LiveWorkspaceManager;
+import pbouda.jeffrey.platform.queue.DuckDBPersistentQueue;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventSerializer;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
 
 @Configuration
 public class LiveWorkspaceConfiguration {
 
+    private static final String WORKSPACE_EVENTS_QUEUE = "workspace_events";
+
     public static final String LIVE_WORKSPACE_TYPE = "LIVE_WORKSPACE_FACTORY_TYPE";
+
+    @Bean
+    public PersistentQueue<WorkspaceEvent> workspaceEventQueue(
+            DatabaseClientProvider databaseClientProvider,
+            Clock applicationClock) {
+
+        return new DuckDBPersistentQueue<>(
+                databaseClientProvider, WORKSPACE_EVENTS_QUEUE, new WorkspaceEventSerializer(), applicationClock);
+    }
 
     @Bean(LIVE_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(
@@ -42,6 +58,7 @@ public class LiveWorkspaceConfiguration {
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
+
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
             return new LiveWorkspaceManager(
@@ -51,9 +68,10 @@ public class LiveWorkspaceConfiguration {
 
     @Bean
     public LiveWorkspacesManager liveWorkspaceManager(
+            Clock applicationClock,
             PlatformRepositories platformRepositories,
             @Qualifier(LIVE_WORKSPACE_TYPE) WorkspaceManager.Factory workspaceManagerFactory) {
 
-        return new LiveWorkspacesManager( platformRepositories.newWorkspacesRepository(), workspaceManagerFactory);
+        return new LiveWorkspacesManager(applicationClock, platformRepositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 }

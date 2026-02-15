@@ -37,6 +37,7 @@
         <module>tools</module>
         <module>providers</module>
         <module>jfr-repository-parser</module>
+        <module>persistent-queue</module>
         <module>platform-persistence-api</module>
         <module>platform-sql-persistence</module>
         <module>platform-management</module>
@@ -63,6 +64,13 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Persistent queue module -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>persistent-queue</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

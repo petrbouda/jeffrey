@@ -27,6 +27,7 @@ import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
@@ -35,6 +36,7 @@ import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
@@ -101,12 +103,14 @@ public class GlobalJobsConfiguration {
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
             PlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
+            JfrStreamingConsumerManager jfrStreamingConsumerManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
 
         return new ProjectsSynchronizerJob(
                 platformRepositories,
                 remoteRepositoryStorageFactory,
                 jfrStreamingConsumerManager,
+                workspaceEventQueue,
                 liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
@@ -116,6 +120,7 @@ public class GlobalJobsConfiguration {
     @Bean
     public WorkspaceEventsReplicatorJob workspaceEventsReplicatorJob(
             Clock clock,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
 
@@ -125,6 +130,7 @@ public class GlobalJobsConfiguration {
                 jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 clock,
+                workspaceEventQueue,
                 projectsSynchronizerTrigger);
     }
 

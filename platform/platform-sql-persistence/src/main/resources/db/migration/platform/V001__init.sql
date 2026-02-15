@@ -153,28 +153,34 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
 CREATE UNIQUE INDEX IF NOT EXISTS idx_project_instance_sessions_session_path ON project_instance_sessions(repository_id, relative_session_path);
 CREATE INDEX IF NOT EXISTS idx_project_instance_sessions_instance_id ON project_instance_sessions(instance_id);
 
-CREATE TABLE IF NOT EXISTS workspace_events
+--
+-- PERSISTENT QUEUE TABLES
+--
+
+CREATE SEQUENCE IF NOT EXISTS persistent_queue_seq START 1;
+
+CREATE TABLE IF NOT EXISTS persistent_queue_events
 (
-    event_id          BIGINT PRIMARY KEY,
-    origin_event_id   VARCHAR NOT NULL,
-    project_id        VARCHAR NOT NULL,
-    workspace_id      VARCHAR NOT NULL,
-    event_type        VARCHAR NOT NULL,
-    content           VARCHAR NOT NULL,
-    origin_created_at TIMESTAMPTZ NOT NULL,
-    created_at        TIMESTAMPTZ NOT NULL,
-    created_by        VARCHAR NOT NULL
+    offset_id  BIGINT DEFAULT nextval('persistent_queue_seq') PRIMARY KEY,
+    queue_name VARCHAR NOT NULL,
+    scope_id   VARCHAR NOT NULL,
+    dedup_key  VARCHAR,
+    payload    VARCHAR NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_events_project_origin ON workspace_events(project_id, origin_event_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_persistent_queue_events_scope ON persistent_queue_events(queue_name, scope_id, offset_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_persistent_queue_events_dedup ON persistent_queue_events(queue_name, scope_id, dedup_key);
 
-CREATE TABLE IF NOT EXISTS workspace_event_consumers
+CREATE TABLE IF NOT EXISTS persistent_queue_consumers
 (
-    consumer_id       VARCHAR PRIMARY KEY,
-    workspace_id      VARCHAR,
-    last_offset       BIGINT,
+    consumer_id       VARCHAR NOT NULL,
+    queue_name        VARCHAR NOT NULL,
+    scope_id          VARCHAR NOT NULL,
+    last_offset       BIGINT DEFAULT 0,
     last_execution_at TIMESTAMPTZ,
-    created_at        TIMESTAMPTZ NOT NULL
+    created_at        TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (consumer_id, queue_name, scope_id)
 );
 
 CREATE TABLE IF NOT EXISTS profiler_settings

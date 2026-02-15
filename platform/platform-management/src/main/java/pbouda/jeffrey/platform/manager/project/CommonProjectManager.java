@@ -22,9 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectFactory;
 import pbouda.jeffrey.platform.manager.*;
-import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
@@ -35,7 +34,6 @@ import pbouda.jeffrey.provider.platform.repository.ProjectRecordingRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.SchedulerRepository;
-import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.Recording;
@@ -49,7 +47,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 public class CommonProjectManager implements ProjectManager {
 
@@ -64,7 +61,7 @@ public class CommonProjectManager implements ProjectManager {
     private final PlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
     private final JobDescriptorFactory jobDescriptorFactory;
-    private final CompositeWorkspacesManager compositeWorkspacesManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final Clock clock;
     private final ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger;
 
@@ -76,7 +73,7 @@ public class CommonProjectManager implements ProjectManager {
             ProfilesManager.Factory profilesManagerFactory,
             PlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
-            CompositeWorkspacesManager compositeWorkspacesManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             JobDescriptorFactory jobDescriptorFactory) {
 
         this.clock = clock;
@@ -90,7 +87,7 @@ public class CommonProjectManager implements ProjectManager {
         this.profilesManagerFactory = profilesManagerFactory;
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
-        this.compositeWorkspacesManager = compositeWorkspacesManager;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.jobDescriptorFactory = jobDescriptorFactory;
     }
 
@@ -121,18 +118,13 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        Optional<WorkspaceManager> workspaceOpt = compositeWorkspacesManager.findById(projectInfo.workspaceId());
-        if (workspaceOpt.isEmpty()) {
-            throw Exceptions.workspaceNotFound(projectInfo.workspaceId());
-        }
-
         return new RepositoryManagerImpl(
                 clock,
                 projectInfo,
                 projectsSynchronizerTrigger.getObject(),
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 repositoryStorage,
-                workspaceOpt.get());
+                workspaceEventQueue);
     }
 
     @Override
@@ -208,10 +200,6 @@ public class CommonProjectManager implements ProjectManager {
     @Override
     public void delete(WorkspaceEventCreator createdBy) {
         LOG.debug("Deleting project: projectId={}", info().id());
-        Optional<WorkspaceManager> workspaceOpt = compositeWorkspacesManager.findById(projectInfo.workspaceId());
-        if (workspaceOpt.isEmpty()) {
-            throw Exceptions.workspaceNotFound(projectInfo.workspaceId());
-        }
 
         WorkspaceEvent workspaceEvent = WorkspaceEventConverter.projectDeleted(
                 clock.instant(),
@@ -219,9 +207,7 @@ public class CommonProjectManager implements ProjectManager {
                 projectInfo.id(),
                 createdBy);
 
-        workspaceOpt.get()
-                .workspaceEventManager()
-                .batchInsertEvents(List.of(workspaceEvent));
+        workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
 
         // Trigger event synchronization
         projectsSynchronizerTrigger.getObject().execute();

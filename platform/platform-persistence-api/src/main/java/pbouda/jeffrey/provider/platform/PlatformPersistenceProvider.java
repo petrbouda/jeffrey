@@ -19,6 +19,7 @@
 package pbouda.jeffrey.provider.platform;
 
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
 
@@ -44,4 +45,12 @@ public interface PlatformPersistenceProvider {
      * @return platform repositories factory
      */
     PlatformRepositories platformRepositories();
+
+    /**
+     * Get the database client provider for direct database access.
+     * Must be called after {@link #initialize(String, Clock)}.
+     *
+     * @return database client provider
+     */
+    DatabaseClientProvider databaseClientProvider();
 }

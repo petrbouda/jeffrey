@@ -20,8 +20,7 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -31,18 +30,17 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
-import java.util.Optional;
 
 public class RecordingFileEventEmitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingFileEventEmitter.class);
 
     private final Clock clock;
-    private final CompositeWorkspacesManager compositeWorkspacesManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
 
-    public RecordingFileEventEmitter(Clock clock, CompositeWorkspacesManager compositeWorkspacesManager) {
+    public RecordingFileEventEmitter(Clock clock, PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
         this.clock = clock;
-        this.compositeWorkspacesManager = compositeWorkspacesManager;
+        this.workspaceEventQueue = workspaceEventQueue;
     }
 
     public void emitRecordingFileCreated(
@@ -52,15 +50,6 @@ public class RecordingFileEventEmitter {
             long originalSize,
             long compressedSize,
             Path compressedPath) {
-
-        Optional<WorkspaceManager> workspaceOpt =
-                compositeWorkspacesManager.findById(projectInfo.workspaceId());
-
-        if (workspaceOpt.isEmpty()) {
-            LOG.warn("Cannot emit event, workspace not found: workspaceId={}",
-                    projectInfo.workspaceId());
-            return;
-        }
 
         WorkspaceEvent event = WorkspaceEventConverter.recordingFileCreated(
                 clock.instant(),
@@ -72,7 +61,7 @@ public class RecordingFileEventEmitter {
                 compressedSize,
                 WorkspaceEventCreator.REPOSITORY_STORAGE);
 
-        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+        workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(event));
         LOG.debug("Emitted recording file created event: project_id={} session_id={}", projectInfo.id(), sessionId);
     }
 }

@@ -29,11 +29,13 @@ import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 
 import static pbouda.jeffrey.platform.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
@@ -46,6 +48,7 @@ public class RootInternalResource {
     private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
     private final ProjectTemplatesResolver projectTemplatesResolver;
     private final CompositeWorkspacesManager workspacesManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfilerRepository profilerRepository;
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
@@ -59,6 +62,7 @@ public class RootInternalResource {
             RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
             ProjectTemplatesResolver projectTemplatesResolver,
             CompositeWorkspacesManager workspacesManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             ProfilerRepository profilerRepository,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
@@ -70,6 +74,7 @@ public class RootInternalResource {
         this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
         this.projectTemplatesResolver = projectTemplatesResolver;
         this.workspacesManager = workspacesManager;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.profilerRepository = profilerRepository;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
@@ -92,6 +97,7 @@ public class RootInternalResource {
     public WorkspacesResource workspaceResource() {
         return new WorkspacesResource(
                 workspacesManager,
+                workspaceEventQueue,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
                 heapDumpContextExtractor,

@@ -63,12 +63,4 @@ public interface WorkspaceManager {
      * @return the remote workspace repository
      */
     RemoteWorkspaceRepository remoteWorkspaceRepository();
-
-    /**
-     * Returns the workspace event manager associated with this workspace.
-     * Contains methods for managing workspace events and sessions.
-     *
-     * @return the workspace event manager
-     */
-    WorkspaceEventManager workspaceEventManager();
 }

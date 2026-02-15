@@ -20,8 +20,7 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -30,57 +29,38 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.time.Clock;
 import java.util.List;
-import java.util.Optional;
 
 public class SessionFinishEventEmitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(SessionFinishEventEmitter.class);
 
     private final Clock clock;
-    private final CompositeWorkspacesManager compositeWorkspacesManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
 
-    public SessionFinishEventEmitter(Clock clock, CompositeWorkspacesManager compositeWorkspacesManager) {
+    public SessionFinishEventEmitter(Clock clock, PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
         this.clock = clock;
-        this.compositeWorkspacesManager = compositeWorkspacesManager;
+        this.workspaceEventQueue = workspaceEventQueue;
     }
 
     public void emitInstanceFinished(ProjectInfo projectInfo, String instanceId) {
-        Optional<WorkspaceManager> workspaceOpt =
-                compositeWorkspacesManager.findById(projectInfo.workspaceId());
-
-        if (workspaceOpt.isEmpty()) {
-            LOG.warn("Cannot emit instance finished event, workspace not found: workspaceId={}",
-                    projectInfo.workspaceId());
-            return;
-        }
-
         WorkspaceEvent event = WorkspaceEventConverter.instanceFinished(
                 clock.instant(),
                 projectInfo,
                 instanceId,
                 WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
 
-        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+        workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(event));
         LOG.debug("Emitted instance finished event: project_id={} instance_id={}", projectInfo.id(), instanceId);
     }
 
     public void emitSessionFinished(ProjectInfo projectInfo, ProjectInstanceSessionInfo sessionInfo) {
-        Optional<WorkspaceManager> workspaceOpt =
-                compositeWorkspacesManager.findById(projectInfo.workspaceId());
-
-        if (workspaceOpt.isEmpty()) {
-            LOG.warn("Cannot emit session finished event, workspace not found: workspaceId={}",
-                    projectInfo.workspaceId());
-            return;
-        }
-
         WorkspaceEvent event = WorkspaceEventConverter.sessionFinished(
                 clock.instant(),
                 projectInfo,
                 sessionInfo,
                 WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
 
-        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+        workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(event));
         LOG.debug("Emitted session finished event: project_id={} session_id={}", projectInfo.id(), sessionInfo.sessionId());
     }
 }

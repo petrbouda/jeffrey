@@ -19,11 +19,8 @@
 package pbouda.jeffrey.provider.platform.repository;
 
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventConsumer;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface WorkspaceRepository {
 
@@ -40,60 +37,4 @@ public interface WorkspaceRepository {
      * @return list of projects in the workspace.
      */
     List<ProjectInfo> findAllProjects();
-
-    // Workspace Events Methods
-
-    /**
-     * Insert a new workspace event.
-     *
-     * @param workspaceEvent the workspace event to insert
-     */
-    void insertEvent(WorkspaceEvent workspaceEvent);
-
-    /**
-     * Insert multiple workspace events in a batch operation.
-     *
-     * @param workspaceEvents the list of workspace events to create
-     */
-    void batchInsertEvents(List<WorkspaceEvent> workspaceEvents);
-
-    /**
-     * Find all workspace events for the workspace.
-     *
-     * @return list of workspace events for the workspace
-     */
-    List<WorkspaceEvent> findEvents();
-
-    /**
-     * Find workspace events for the workspace created after a specific timestamp.
-     *
-     * @param fromOffset the minimum offset (inclusive)
-     * @return list of workspace events created after the specified time
-     */
-    List<WorkspaceEvent> findEventsFromOffset(long fromOffset);
-
-    // Workspace Event Consumer Methods
-
-    /**
-     * Create a new workspace event consumer.
-     *
-     * @param consumerId the consumer ID
-     */
-    void createEventConsumer(String consumerId);
-
-    /**
-     * Update last processed offset for a workspace event consumer.
-     *
-     * @param consumerId the consumer ID
-     * @param lastOffset the last processed event id (offset)
-     */
-    void updateEventConsumerOffset(String consumerId, long lastOffset);
-
-    /**
-     * Find a workspace event consumer by its ID.
-     *
-     * @param consumerId the consumer name
-     * @return the workspace event consumer if it exists, otherwise an empty optional
-     */
-    Optional<WorkspaceEventConsumer> findEventConsumer(String consumerId);
 }

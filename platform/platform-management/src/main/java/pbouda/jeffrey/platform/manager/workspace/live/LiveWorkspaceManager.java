@@ -18,18 +18,17 @@
 
 package pbouda.jeffrey.platform.manager.workspace.live;
 
+import pbouda.jeffrey.platform.manager.project.ProjectsManager;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.repository.FilesystemRemoteWorkspaceRepository;
+import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
+import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
-import pbouda.jeffrey.platform.repository.FilesystemRemoteWorkspaceRepository;
-import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -98,10 +97,5 @@ public class LiveWorkspaceManager implements WorkspaceManager {
             throw new IllegalStateException("Workspace path does not exist or is not a directory: " + workspacePath);
         }
         return new FilesystemRemoteWorkspaceRepository(clock, workspacePath);
-    }
-
-    @Override
-    public WorkspaceEventManager workspaceEventManager() {
-        return new LiveWorkspaceEventManager(workspaceInfo, workspaceRepository);
     }
 }

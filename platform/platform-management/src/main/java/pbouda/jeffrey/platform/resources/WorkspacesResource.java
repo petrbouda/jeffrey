@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.platform.resources.workspace.WorkspaceResource;
@@ -33,6 +34,7 @@ import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
@@ -51,6 +53,7 @@ public class WorkspacesResource {
     }
 
     private final CompositeWorkspacesManager workspacesManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
@@ -58,11 +61,13 @@ public class WorkspacesResource {
 
     public WorkspacesResource(
             CompositeWorkspacesManager workspacesManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor,
             HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.workspacesManager = workspacesManager;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
@@ -85,6 +90,7 @@ public class WorkspacesResource {
         return new WorkspaceResource(
                 workspaceInfo,
                 workspaceManager,
+                workspaceEventQueue,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
                 heapDumpContextExtractor,
