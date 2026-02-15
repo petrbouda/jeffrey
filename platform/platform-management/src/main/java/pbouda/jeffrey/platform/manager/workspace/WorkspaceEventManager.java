@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.platform.manager.workspace;
 
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 
 import java.util.List;
 import java.util.function.Function;
@@ -39,26 +39,17 @@ public interface WorkspaceEventManager {
     void batchInsertEvents(List<WorkspaceEvent> events);
 
     /**
-     * Find workspace events that haven't been processed by a consumer for the given type.
-     * Returns events of the specified type created after the consumer's last processed event timestamp.
-     *
-     * @param consumer the workspace event consumer
-     * @return list of unprocessed workspace events of the specified type
-     */
-    List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumer);
-
-    /**
-     * Update the last processed event timestamp for a workspace event consumer.
-     *
-     * @param consumer   the workspace event consumer type
-     * @param lastOffset the offset of the last processed event
-     */
-    void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset);
-
-    /**
      * Find all workspace events for this workspace.
      *
      * @return list of all workspace events for this workspace
      */
     List<WorkspaceEvent> findEvents();
+
+    /**
+     * Returns the underlying persistent queue for direct consumer operations
+     * such as polling and acknowledging events.
+     *
+     * @return the persistent queue backing this event manager
+     */
+    PersistentQueue<WorkspaceEvent> queue();
 }

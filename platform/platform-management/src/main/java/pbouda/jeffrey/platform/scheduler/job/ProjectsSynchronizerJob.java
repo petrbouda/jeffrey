@@ -20,27 +20,28 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.job.JobType;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.manager.workspace.live.LiveWorkspaceEventManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.scheduler.JobContext;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.platform.workspace.consumer.*;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.model.job.JobType;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJobDescriptor> {
 
@@ -86,41 +87,43 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),
                 new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory));
 
-        List<WorkspaceEvent> workspaceEvents = workspaceManager.workspaceEventManager().remainingEvents(CONSUMER);
-        if (workspaceEvents.isEmpty()) {
+        PersistentQueue<WorkspaceEvent> queue = workspaceManager.workspaceEventManager().queue();
+        List<QueueEntry<WorkspaceEvent>> entries = queue.poll(CONSUMER.name());
+        if (entries.isEmpty()) {
             LOG.debug("No workspace events to process for workspace: {}", workspaceInfo.id());
             return;
         }
 
         LOG.info("Processing workspace events for workspace: workspace_id={} size={}",
-                workspaceInfo.id(), workspaceEvents.size());
+                workspaceInfo.id(), entries.size());
 
-        List<WorkspaceEvent> sortedEvents = workspaceEvents.stream()
-                .sorted(Comparator.comparing(WorkspaceEvent::eventId))
+        List<QueueEntry<WorkspaceEvent>> sortedEntries = entries.stream()
+                .sorted(Comparator.comparingLong(QueueEntry::offset))
                 .toList();
 
         long latestOffset = -1;
 
-        for (WorkspaceEvent event : sortedEvents) {
+        for (QueueEntry<WorkspaceEvent> entry : sortedEntries) {
+            WorkspaceEvent event = LiveWorkspaceEventManager.toWorkspaceEvent(entry);
             try {
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
                         consumer.on(event, jobDescriptor);
-                        LOG.debug("Successfully processed: event_type={} event_id={}", event.eventType(), event.eventId());
+                        LOG.debug("Successfully processed: event_type={} event_id={}", event.eventType(), entry.offset());
                         break;
                     }
                 }
             } catch (Exception e) {
                 LOG.error("Failed to process workspace event, skipping: event_type={} event_id={} project_id={}",
-                        event.eventType(), event.eventId(), event.projectId(), e);
+                        event.eventType(), entry.offset(), event.projectId(), e);
             }
-            latestOffset = event.eventId();
+            latestOffset = entry.offset();
         }
 
-        // Update consumer state with the latest processed event timestamp
+        // Acknowledge the latest processed offset
         if (latestOffset != -1) {
             try {
-                workspaceManager.workspaceEventManager().updateConsumer(CONSUMER, latestOffset);
+                queue.acknowledge(CONSUMER.name(), latestOffset);
 
                 LOG.info("Updated consumer state for workspace: workspace_id={} consumer={} offset={}",
                         workspaceInfo.id(), CONSUMER, latestOffset);
@@ -128,14 +131,6 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 LOG.error("Failed to update consumer state for workspace: {}", workspaceInfo.id(), e);
             }
         }
-    }
-
-    private static List<WorkspaceEvent> eventsList(
-            Map<WorkspaceEventType, List<WorkspaceEvent>> groupedEvents, WorkspaceEventType eventType) {
-
-        return groupedEvents.getOrDefault(eventType, List.of()).stream()
-                .sorted(Comparator.comparing(WorkspaceEvent::eventId))
-                .toList();
     }
 
     @Override

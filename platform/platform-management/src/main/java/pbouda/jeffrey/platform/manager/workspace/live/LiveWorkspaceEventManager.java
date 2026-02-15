@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.queue.QueueEntry;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -51,29 +50,18 @@ public class LiveWorkspaceEventManager implements WorkspaceEventManager {
     }
 
     @Override
-    public List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumerType) {
-        List<QueueEntry<WorkspaceEvent>> entries = queue.poll(consumerType.name());
-        LOG.debug("Remaining workspace events: workspace_id={} consumer_type={} count={}",
-                workspaceInfo.id(), consumerType, entries.size());
-
-        return entries.stream()
-                .map(LiveWorkspaceEventManager::toWorkspaceEvent)
-                .toList();
-    }
-
-    @Override
-    public void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset) {
-        queue.acknowledge(consumer.name(), lastOffset);
-    }
-
-    @Override
     public List<WorkspaceEvent> findEvents() {
         return queue.findAll().stream()
                 .map(LiveWorkspaceEventManager::toWorkspaceEvent)
                 .toList();
     }
 
-    private static WorkspaceEvent toWorkspaceEvent(QueueEntry<WorkspaceEvent> entry) {
+    @Override
+    public PersistentQueue<WorkspaceEvent> queue() {
+        return queue;
+    }
+
+    static WorkspaceEvent toWorkspaceEvent(QueueEntry<WorkspaceEvent> entry) {
         WorkspaceEvent payload = entry.payload();
         return new WorkspaceEvent(
                 entry.offset(),
