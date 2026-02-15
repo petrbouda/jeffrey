@@ -35,7 +35,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
-import java.util.function.Function;
 
 @Configuration
 public class LiveWorkspaceConfiguration {
@@ -44,22 +43,27 @@ public class LiveWorkspaceConfiguration {
 
     public static final String LIVE_WORKSPACE_TYPE = "LIVE_WORKSPACE_FACTORY_TYPE";
 
+    @Bean
+    public PersistentQueue<WorkspaceEvent> workspaceEventQueue(
+            DatabaseClientProvider databaseClientProvider,
+            Clock applicationClock) {
+
+        return new DuckDBPersistentQueue<>(
+                databaseClientProvider, WORKSPACE_EVENTS_QUEUE, new WorkspaceEventSerializer(), applicationClock);
+    }
+
     @Bean(LIVE_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(
             Clock applicationClock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            DatabaseClientProvider databaseClientProvider,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
-
-        WorkspaceEventSerializer serializer = new WorkspaceEventSerializer();
-        Function<String, PersistentQueue<WorkspaceEvent>> queueFactory = scopeId ->
-                new DuckDBPersistentQueue<>(databaseClientProvider, WORKSPACE_EVENTS_QUEUE, scopeId, serializer, applicationClock);
 
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
             return new LiveWorkspaceManager(
-                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, queueFactory, projectsManagerFactory);
+                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, workspaceEventQueue, projectsManagerFactory);
         };
     }
 

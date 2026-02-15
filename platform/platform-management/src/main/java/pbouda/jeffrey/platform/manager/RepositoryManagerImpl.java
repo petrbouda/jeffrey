@@ -20,9 +20,9 @@ package pbouda.jeffrey.platform.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.project.repository.MergedRecording;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
@@ -52,7 +52,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private final SchedulerTrigger projectsSynchronizerTrigger;
     private final ProjectRepositoryRepository repository;
     private final RepositoryStorage repositoryStorage;
-    private final WorkspaceManager workspaceManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
 
     public RepositoryManagerImpl(
             Clock clock,
@@ -60,14 +60,14 @@ public class RepositoryManagerImpl implements RepositoryManager {
             SchedulerTrigger projectsSynchronizerTrigger,
             ProjectRepositoryRepository repository,
             RepositoryStorage repositoryStorage,
-            WorkspaceManager workspaceManager) {
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
 
         this.clock = clock;
         this.projectInfo = projectInfo;
         this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
         this.repository = repository;
         this.repositoryStorage = repositoryStorage;
-        this.workspaceManager = workspaceManager;
+        this.workspaceEventQueue = workspaceEventQueue;
     }
 
     @Override
@@ -199,10 +199,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 recordingSessionId,
                 createdBy);
 
-        workspaceManager
-                .workspaceEventManager()
-                .queue()
-                .appendBatch(List.of(workspaceEvent));
+        workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
 
         // Trigger event synchronization
         projectsSynchronizerTrigger.execute();

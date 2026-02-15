@@ -25,12 +25,14 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
@@ -128,9 +130,9 @@ public class ProjectJobsConfiguration {
     @Bean
     public SessionFinishEventEmitter sessionFinishEventEmitter(
             Clock clock,
-            CompositeWorkspacesManager compositeWorkspacesManager) {
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
 
-        return new SessionFinishEventEmitter(clock, compositeWorkspacesManager);
+        return new SessionFinishEventEmitter(clock, workspaceEventQueue);
     }
 
     @Bean

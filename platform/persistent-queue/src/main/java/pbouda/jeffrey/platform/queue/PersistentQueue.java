@@ -25,52 +25,60 @@ import java.util.List;
  * with auto-generated sequential offsets. Multiple independent consumers
  * can poll and acknowledge events at their own pace.
  *
- * <p>Each queue instance is scoped by a queue name and a scope identifier,
- * allowing multiple logical queues and partitions to coexist in the same
- * storage backend.
+ * <p>The queue is scope-independent: each operation takes a {@code scopeId}
+ * parameter, allowing a single queue instance to serve multiple logical
+ * partitions (e.g. different workspaces) within the same storage backend.
  *
  * @param <T> the type of the event payload
  */
 public interface PersistentQueue<T> {
 
     /**
-     * Appends a single event to the queue.
+     * Appends a single event to the queue within the given scope.
      *
-     * @param event the event to append
+     * @param scopeId the scope identifier (e.g. workspace ID)
+     * @param event   the event to append
      */
-    void append(T event);
+    void append(String scopeId, T event);
 
     /**
-     * Appends multiple events to the queue in a single batch operation.
+     * Appends multiple events to the queue in a single batch operation
+     * within the given scope.
      *
-     * @param events the events to append
+     * @param scopeId the scope identifier (e.g. workspace ID)
+     * @param events  the events to append
      */
-    void appendBatch(List<T> events);
+    void appendBatch(String scopeId, List<T> events);
 
     /**
-     * Polls for unprocessed events for the given consumer. Returns all events
-     * that have an offset greater than the consumer's last acknowledged offset.
-     * If the consumer does not exist yet, it is automatically registered.
+     * Polls for unprocessed events for the given consumer within the given scope.
+     * Returns all events that have an offset greater than the consumer's last
+     * acknowledged offset. If the consumer does not exist yet, it is automatically
+     * registered.
      *
+     * @param scopeId    the scope identifier (e.g. workspace ID)
      * @param consumerId the unique identifier of the consumer
      * @return list of unprocessed queue entries, ordered by offset
      */
-    List<QueueEntry<T>> poll(String consumerId);
+    List<QueueEntry<T>> poll(String scopeId, String consumerId);
 
     /**
      * Acknowledges that a consumer has processed events up to (and including)
-     * the given offset. Subsequent polls will only return events after this offset.
+     * the given offset within the given scope. Subsequent polls will only return
+     * events after this offset.
      *
+     * @param scopeId    the scope identifier (e.g. workspace ID)
      * @param consumerId the unique identifier of the consumer
      * @param offset     the offset of the last successfully processed event
      */
-    void acknowledge(String consumerId, long offset);
+    void acknowledge(String scopeId, String consumerId, long offset);
 
     /**
-     * Returns all events in the queue, regardless of consumer state.
-     * Useful for display, debugging, or administrative purposes.
+     * Returns all events in the queue for the given scope, regardless of consumer
+     * state. Useful for display, debugging, or administrative purposes.
      *
+     * @param scopeId the scope identifier (e.g. workspace ID)
      * @return list of all queue entries, ordered by offset descending
      */
-    List<QueueEntry<T>> findAll();
+    List<QueueEntry<T>> findAll(String scopeId);
 }

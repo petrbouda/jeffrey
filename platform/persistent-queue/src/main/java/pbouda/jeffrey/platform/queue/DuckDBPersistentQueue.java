@@ -38,6 +38,10 @@ import java.util.Optional;
  * ({@code persistent_queue_events} and {@code persistent_queue_consumers}) partitioned
  * by {@code queue_name} and {@code scope_id} columns.
  *
+ * <p>This implementation is scope-independent: the {@code scopeId} is passed as a
+ * parameter to each operation rather than being fixed at construction time. This allows
+ * a single instance to serve multiple logical partitions.
+ *
  * <p>Offsets are generated using a DuckDB sequence ({@code persistent_queue_seq}),
  * guaranteeing monotonically increasing values across all queue partitions.
  *
@@ -83,7 +87,6 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
             WHERE consumer_id = :consumer_id AND queue_name = :queue_name AND scope_id = :scope_id""";
 
     private final String queueName;
-    private final String scopeId;
     private final EventSerializer<T> serializer;
     private final DatabaseClient databaseClient;
     private final Clock clock;
@@ -91,19 +94,17 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     public DuckDBPersistentQueue(
             DatabaseClientProvider databaseClientProvider,
             String queueName,
-            String scopeId,
             EventSerializer<T> serializer,
             Clock clock) {
 
         this.queueName = queueName;
-        this.scopeId = scopeId;
         this.serializer = serializer;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.PERSISTENT_QUEUE);
         this.clock = clock;
     }
 
     @Override
-    public void append(T event) {
+    public void append(String scopeId, T event) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queue_name", queueName)
                 .addValue("scope_id", scopeId)
@@ -115,7 +116,7 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     }
 
     @Override
-    public void appendBatch(List<T> events) {
+    public void appendBatch(String scopeId, List<T> events) {
         if (events.isEmpty()) {
             return;
         }
@@ -143,8 +144,8 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     }
 
     @Override
-    public List<QueueEntry<T>> poll(String consumerId) {
-        long lastOffset = getOrCreateConsumerOffset(consumerId);
+    public List<QueueEntry<T>> poll(String scopeId, String consumerId) {
+        long lastOffset = getOrCreateConsumerOffset(scopeId, consumerId);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queue_name", queueName)
@@ -164,7 +165,7 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     }
 
     @Override
-    public void acknowledge(String consumerId, long offset) {
+    public void acknowledge(String scopeId, String consumerId, long offset) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)
                 .addValue("queue_name", queueName)
@@ -176,7 +177,7 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     }
 
     @Override
-    public List<QueueEntry<T>> findAll() {
+    public List<QueueEntry<T>> findAll(String scopeId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queue_name", queueName)
                 .addValue("scope_id", scopeId);
@@ -188,7 +189,7 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
                 queueEntryMapper());
     }
 
-    private long getOrCreateConsumerOffset(String consumerId) {
+    private long getOrCreateConsumerOffset(String scopeId, String consumerId) {
         // Ensure consumer exists
         MapSqlParameterSource insertParams = new MapSqlParameterSource()
                 .addValue("consumer_id", consumerId)

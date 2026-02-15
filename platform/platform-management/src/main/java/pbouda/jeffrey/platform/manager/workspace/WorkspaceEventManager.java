@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.platform.manager.workspace;
 
-import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -37,12 +36,4 @@ public interface WorkspaceEventManager {
      * @return list of all workspace events for this workspace
      */
     List<WorkspaceEvent> findEvents();
-
-    /**
-     * Returns the underlying persistent queue for direct consumer operations
-     * such as polling and acknowledging events.
-     *
-     * @return the persistent queue backing this event manager
-     */
-    PersistentQueue<WorkspaceEvent> queue();
 }

@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.platform.manager.workspace.live;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.queue.QueueEntry;
@@ -29,8 +27,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import java.util.List;
 
 public class LiveWorkspaceEventManager implements WorkspaceEventManager {
-
-    private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspaceEventManager.class);
 
     private final WorkspaceInfo workspaceInfo;
     private final PersistentQueue<WorkspaceEvent> queue;
@@ -45,17 +41,12 @@ public class LiveWorkspaceEventManager implements WorkspaceEventManager {
 
     @Override
     public List<WorkspaceEvent> findEvents() {
-        return queue.findAll().stream()
+        return queue.findAll(workspaceInfo.id()).stream()
                 .map(LiveWorkspaceEventManager::toWorkspaceEvent)
                 .toList();
     }
 
-    @Override
-    public PersistentQueue<WorkspaceEvent> queue() {
-        return queue;
-    }
-
-    static WorkspaceEvent toWorkspaceEvent(QueueEntry<WorkspaceEvent> entry) {
+    public static WorkspaceEvent toWorkspaceEvent(QueueEntry<WorkspaceEvent> entry) {
         WorkspaceEvent payload = entry.payload();
         return new WorkspaceEvent(
                 entry.offset(),

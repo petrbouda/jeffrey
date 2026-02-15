@@ -52,12 +52,14 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     private final PlatformRepositories platformRepositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
     private final JfrStreamingConsumerManager streamingConsumerManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
             PlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
             JfrStreamingConsumerManager streamingConsumerManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
@@ -67,6 +69,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         this.platformRepositories = platformRepositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
         this.streamingConsumerManager = streamingConsumerManager;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.period = period;
     }
 
@@ -87,15 +90,15 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),
                 new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory));
 
-        PersistentQueue<WorkspaceEvent> queue = workspaceManager.workspaceEventManager().queue();
-        List<QueueEntry<WorkspaceEvent>> entries = queue.poll(CONSUMER.name());
+        String workspaceId = workspaceInfo.id();
+        List<QueueEntry<WorkspaceEvent>> entries = workspaceEventQueue.poll(workspaceId, CONSUMER.name());
         if (entries.isEmpty()) {
-            LOG.debug("No workspace events to process for workspace: {}", workspaceInfo.id());
+            LOG.debug("No workspace events to process for workspace: {}", workspaceId);
             return;
         }
 
         LOG.info("Processing workspace events for workspace: workspace_id={} size={}",
-                workspaceInfo.id(), entries.size());
+                workspaceId, entries.size());
 
         List<QueueEntry<WorkspaceEvent>> sortedEntries = entries.stream()
                 .sorted(Comparator.comparingLong(QueueEntry::offset))
@@ -123,12 +126,12 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         // Acknowledge the latest processed offset
         if (latestOffset != -1) {
             try {
-                queue.acknowledge(CONSUMER.name(), latestOffset);
+                workspaceEventQueue.acknowledge(workspaceId, CONSUMER.name(), latestOffset);
 
                 LOG.info("Updated consumer state for workspace: workspace_id={} consumer={} offset={}",
-                        workspaceInfo.id(), CONSUMER, latestOffset);
+                        workspaceId, CONSUMER, latestOffset);
             } catch (Exception e) {
-                LOG.error("Failed to update consumer state for workspace: {}", workspaceInfo.id(), e);
+                LOG.error("Failed to update consumer state for workspace: {}", workspaceId, e);
             }
         }
     }
