@@ -49,8 +49,9 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
 
     //language=SQL
     private static final String INSERT_EVENT = """
-            INSERT INTO persistent_queue_events (queue_name, scope_id, payload, created_at)
-            VALUES (:queue_name, :scope_id, :payload, :created_at)""";
+            INSERT INTO persistent_queue_events (queue_name, scope_id, dedup_key, payload, created_at)
+            VALUES (:queue_name, :scope_id, :dedup_key, :payload, :created_at)
+            ON CONFLICT DO NOTHING""";
 
     //language=SQL
     private static final String SELECT_EVENTS_FROM_OFFSET = """
@@ -106,6 +107,7 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queue_name", queueName)
                 .addValue("scope_id", scopeId)
+                .addValue("dedup_key", serializer.dedupKey(event))
                 .addValue("payload", serializer.serialize(event))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
 
@@ -120,17 +122,20 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
 
         MapSqlParameterSource[] paramSources = new MapSqlParameterSource[events.size()];
         for (int i = 0; i < events.size(); i++) {
+            T event = events.get(i);
             paramSources[i] = new MapSqlParameterSource()
                     .addValue("queue_name", queueName)
                     .addValue("scope_id", scopeId)
-                    .addValue("payload", serializer.serialize(events.get(i)))
+                    .addValue("dedup_key", serializer.dedupKey(event))
+                    .addValue("payload", serializer.serialize(event))
                     .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
         }
 
         long result = databaseClient.batchInsert(StatementLabel.QUEUE_APPEND_BATCH, INSERT_EVENT, paramSources);
-        if (result != events.size()) {
-            LOG.warn("Failed to insert all queue events: queue_name={} scope_id={} expected={} result={}",
-                    queueName, scopeId, events.size(), result);
+        long skipped = events.size() - result;
+        if (skipped > 0) {
+            LOG.debug("Batch appended queue events with duplicates skipped: queue_name={} scope_id={} inserted={} skipped={}",
+                    queueName, scopeId, result, skipped);
         } else {
             LOG.debug("Batch appended queue events: queue_name={} scope_id={} count={}",
                     queueName, scopeId, events.size());

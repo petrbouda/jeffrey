@@ -41,4 +41,16 @@ public interface EventSerializer<T> {
      * @return the deserialized event
      */
     T deserialize(String payload);
+
+    /**
+     * Extracts a deduplication key from the event. When non-null, the queue uses
+     * this key to prevent duplicate events (via a unique index on queue_name, scope_id, dedup_key).
+     * Duplicate inserts are silently ignored.
+     *
+     * @param event the event to extract the key from
+     * @return the dedup key, or {@code null} if deduplication is not needed
+     */
+    default String dedupKey(T event) {
+        return null;
+    }
 }

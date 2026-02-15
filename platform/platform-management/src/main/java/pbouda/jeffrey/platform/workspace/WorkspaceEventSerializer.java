@@ -38,6 +38,11 @@ public class WorkspaceEventSerializer implements EventSerializer<WorkspaceEvent>
     }
 
     @Override
+    public String dedupKey(WorkspaceEvent event) {
+        return event.projectId() + ":" + event.originEventId() + ":" + event.eventType().name();
+    }
+
+    @Override
     public WorkspaceEvent deserialize(String payload) {
         JsonNode node = Json.readTree(payload);
         return new WorkspaceEvent(
