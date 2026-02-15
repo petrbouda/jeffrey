@@ -47,23 +47,13 @@
 
       <!-- Instance Rows -->
       <div class="timeline-container">
-        <!-- Grid Lines -->
-        <div class="timeline-grid-lines">
-          <div
-            v-for="(_, index) in timelineTicks"
-            :key="'grid-' + index"
-            class="grid-line"
-            :style="{ left: (index / (timelineTicks.length - 1) * 100) + '%' }"
-          ></div>
-        </div>
-
-        <div v-for="instance in instances" :key="instance.id" class="timeline-row">
+<div v-for="instance in instances" :key="instance.id" class="timeline-row">
           <div class="instance-label">
             <span class="status-dot" :class="instance.status === 'ACTIVE' ? 'active' : 'finished'"></span>
             <router-link
               :to="generateInstanceUrl(instance.id)"
               class="hostname-link"
-            >{{ truncateHostname(instance.hostname) }}</router-link>
+            >{{ instance.hostname }}</router-link>
             <Badge
               :value="instance.sessionCount"
               size="xxs"
@@ -296,13 +286,6 @@ const timelineTicks = computed(() => {
   }
 });
 
-function truncateHostname(hostname: string): string {
-  if (hostname.length > 20) {
-    return hostname.substring(0, 17) + '...';
-  }
-  return hostname;
-}
-
 function getBarStyle(instance: ProjectInstance): Record<string, string> {
   const now = Date.now();
   const rangeMs = getRangeMs();
@@ -424,10 +407,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.timeline-header {
-  padding-left: 170px;
-}
-
 .timeline-scale {
   display: flex;
   justify-content: space-between;
@@ -444,32 +423,14 @@ onMounted(async () => {
   position: relative;
 }
 
-.timeline-grid-lines {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 170px;
-  right: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.grid-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(0, 0, 0, 0.06);
-}
-
 .timeline-row {
   display: flex;
-  align-items: center;
-  height: 52px;
+  flex-direction: column;
   border-radius: 4px;
   transition: background-color 0.15s ease;
   position: relative;
   z-index: 1;
+  padding: 0.35rem 0;
 }
 
 .timeline-row:hover {
@@ -477,12 +438,10 @@ onMounted(async () => {
 }
 
 .instance-label {
-  width: 170px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding-right: 0.75rem;
-  flex-shrink: 0;
+  margin-bottom: 0.25rem;
 }
 
 .hostname-link {
@@ -517,7 +476,7 @@ onMounted(async () => {
 }
 
 .instance-bar-container {
-  flex: 1;
+  width: 100%;
   height: 32px;
   background-color: #f1f5f9;
   border-radius: 4px;
@@ -601,7 +560,7 @@ onMounted(async () => {
 .timeline-legend {
   display: flex;
   gap: 1.5rem;
-  padding-left: 170px;
+  padding-left: 0;
   flex-wrap: wrap;
 }
 

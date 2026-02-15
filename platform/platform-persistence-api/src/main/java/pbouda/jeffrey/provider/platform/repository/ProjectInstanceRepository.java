@@ -72,6 +72,14 @@ public interface ProjectInstanceRepository {
     void markFinished(String instanceId, Instant finishedAt);
 
     /**
+     * Re-activate a finished project instance by setting its status back to ACTIVE
+     * and clearing the finished timestamp. This is the inverse of {@link #markFinished}.
+     *
+     * @param instanceId the instance ID
+     */
+    void reactivate(String instanceId);
+
+    /**
      * Update the status of a project instance.
      *
      * @param instanceId the instance ID

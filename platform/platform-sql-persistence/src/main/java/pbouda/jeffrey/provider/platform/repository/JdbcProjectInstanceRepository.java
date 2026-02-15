@@ -74,6 +74,11 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
             WHERE instance_id = :instance_id AND project_id = :project_id""";
 
     //language=SQL
+    private static final String UPDATE_REACTIVATE = """
+            UPDATE project_instances SET status = 'ACTIVE', finished_at = NULL
+            WHERE instance_id = :instance_id AND project_id = :project_id""";
+
+    //language=SQL
     private static final String UPDATE_STATUS = """
             UPDATE project_instances SET status = :status
             WHERE instance_id = :instance_id AND project_id = :project_id""";
@@ -143,6 +148,15 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.MARK_PROJECT_INSTANCE_FINISHED, UPDATE_FINISHED, paramSource);
+    }
+
+    @Override
+    public void reactivate(String instanceId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("instance_id", instanceId);
+
+        databaseClient.update(StatementLabel.REACTIVATE_PROJECT_INSTANCE, UPDATE_REACTIVATE, paramSource);
     }
 
     @Override

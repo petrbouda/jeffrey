@@ -20,17 +20,17 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.shared.common.Json;
-import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import pbouda.jeffrey.shared.common.model.RepositoryInfo;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -90,6 +90,12 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
         projectManager.repositoryManager()
                 .createSession(sessionInfo);
+
+        if (eventContent.order() > 1) {
+            platformRepositories.newProjectInstanceRepository(projectId)
+                    .reactivate(instanceId);
+            LOG.debug("Instance re-activated after new session created: project_id={} instance_id={}", projectId, instanceId);
+        }
 
         LOG.debug("Session created from workspace event: project_id={} instance_id={} session_id={}", projectId, instanceId, event.originEventId());
     }

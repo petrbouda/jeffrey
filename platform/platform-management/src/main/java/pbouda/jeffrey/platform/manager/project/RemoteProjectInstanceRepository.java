@@ -85,6 +85,11 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
     }
 
     @Override
+    public void reactivate(String instanceId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
     public void updateStatus(String instanceId, ProjectInstanceStatus status) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
