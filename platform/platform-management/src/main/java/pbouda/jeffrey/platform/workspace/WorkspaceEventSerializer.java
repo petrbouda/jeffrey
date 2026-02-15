@@ -18,13 +18,9 @@
 
 package pbouda.jeffrey.platform.workspace;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import pbouda.jeffrey.platform.queue.EventSerializer;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
-
-import java.time.Instant;
 
 /**
  * Serializes and deserializes {@link WorkspaceEvent} to/from JSON for persistent queue storage.
@@ -44,18 +40,6 @@ public class WorkspaceEventSerializer implements EventSerializer<WorkspaceEvent>
 
     @Override
     public WorkspaceEvent deserialize(String payload) {
-        JsonNode node = Json.readTree(payload);
-        return new WorkspaceEvent(
-                node.has("eventId") && !node.get("eventId").isNull() ? node.get("eventId").asLong() : null,
-                node.get("originEventId").asText(),
-                node.get("projectId").asText(),
-                node.get("workspaceId").asText(),
-                WorkspaceEventType.valueOf(node.get("eventType").asText()),
-                node.get("content").asText(),
-                Instant.parse(node.get("originCreatedAt").asText()),
-                node.has("createdAt") && !node.get("createdAt").isNull()
-                        ? Instant.parse(node.get("createdAt").asText()) : null,
-                node.get("createdBy").asText()
-        );
+        return Json.read(payload, WorkspaceEvent.class);
     }
 }
