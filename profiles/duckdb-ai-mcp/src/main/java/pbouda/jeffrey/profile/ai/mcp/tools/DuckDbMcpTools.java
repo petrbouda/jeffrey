@@ -119,7 +119,9 @@ public class DuckDbMcpTools {
 
     @Tool(description = "Execute a read-only SQL query on the JFR profile database. " +
             "Only SELECT statements are allowed. Results are limited to " + MAX_ROWS + " rows. " +
-            "The 'events' table contains JFR events with a JSON 'fields' column for event-specific data.")
+            "The 'events' table contains JFR events with a JSON 'fields' column for event-specific data. " +
+            "IMPORTANT: When using aggregate functions (COUNT, SUM, AVG, MIN, MAX), all non-aggregated columns " +
+            "in the SELECT must appear in the GROUP BY clause.")
     public String executeQuery(
             @ToolParam(description = "SQL SELECT query to execute. Must be a read-only query.")
             String query) {
@@ -210,7 +212,9 @@ public class DuckDbMcpTools {
             String eventType,
             @ToolParam(description = "Maximum number of events to return (default: 100, max: " + MAX_ROWS + ")")
             Integer limit,
-            @ToolParam(description = "Optional SQL WHERE clause for filtering (without 'WHERE' keyword)")
+            @ToolParam(description = "Optional SQL WHERE clause for filtering (without 'WHERE' keyword). " +
+                    "Use column names exactly as they exist in the events table (e.g., 'duration', NOT 'duration_ns'). " +
+                    "The duration column stores nanoseconds as BIGINT.")
             String whereClause) {
 
         if (eventType == null || eventType.isBlank()) {

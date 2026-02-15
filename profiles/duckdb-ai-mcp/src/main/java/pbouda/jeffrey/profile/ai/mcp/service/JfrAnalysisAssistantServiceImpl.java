@@ -34,8 +34,13 @@ import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 /**
  * Implementation of JFR Analysis Assistant using Spring AI with DuckDB tools for direct database access.
@@ -54,9 +59,7 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
             DatabaseManagerResolver databaseManagerResolver,
             String modelName,
             String providerName) {
-        this.chatClient = chatClientBuilder
-                .defaultSystem(JfrAnalysisSystemPrompt.SYSTEM_PROMPT)
-                .build();
+        this.chatClient = chatClientBuilder.build();
         this.databaseManagerResolver = databaseManagerResolver;
         this.modelName = modelName;
         this.providerName = providerName;
@@ -91,12 +94,16 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
                 LOG.info("Data modification enabled for analysis: profileId={}", profileInfo.id());
             }
 
+            // Build dynamic system prompt with actual DB schema
+            String eventsSchema = queryEventsTableSchema(dataSource);
+            String systemPrompt = JfrAnalysisSystemPrompt.buildPrompt(eventsSchema);
+
             // Build conversation messages
             List<Message> messages = buildMessages(request, profileInfo);
 
             // Call the AI with tool support
             List<String> toolsUsed = new ArrayList<>();
-            String response = executeWithTools(messages, tools, toolsUsed);
+            String response = executeWithTools(messages, tools, toolsUsed, systemPrompt);
 
             // Generate follow-up suggestions
             List<String> suggestions = generateSuggestions(request.message(), response);
@@ -155,14 +162,49 @@ public class JfrAnalysisAssistantServiceImpl implements JfrAnalysisAssistantServ
         return "unknown";
     }
 
-    private String executeWithTools(List<Message> messages, DuckDbMcpTools tools, List<String> toolsUsed) {
+    private String executeWithTools(
+            List<Message> messages, DuckDbMcpTools tools, List<String> toolsUsed, String systemPrompt) {
+
         ChatResponse response = chatClient.prompt()
+                .system(systemPrompt)
                 .messages(messages)
                 .tools(tools)
                 .call()
                 .chatResponse();
 
         return response.getResult().getOutput().getText();
+    }
+
+    private static final java.util.Map<String, String> COLUMN_ANNOTATIONS = java.util.Map.of(
+            "duration", " (nanoseconds)"
+    );
+
+    private String queryEventsTableSchema(DataSource dataSource) {
+        try (Connection conn = dataSource.getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getColumns(null, null, "events", "%")) {
+                StringJoiner joiner = new StringJoiner(", ");
+                while (rs.next()) {
+                    String columnName = rs.getString("COLUMN_NAME");
+                    String typeName = rs.getString("TYPE_NAME");
+                    String annotation = COLUMN_ANNOTATIONS.getOrDefault(columnName, "");
+                    joiner.add(columnName + " " + typeName + annotation);
+                }
+                String schema = joiner.toString();
+                if (schema.isEmpty()) {
+                    LOG.warn("No columns found for events table, falling back to static schema");
+                    return "event_type VARCHAR, start_timestamp TIMESTAMPTZ, duration BIGINT (nanoseconds), "
+                            + "samples BIGINT, weight BIGINT, weight_entity VARCHAR, "
+                            + "stacktrace_hash BIGINT, thread_hash BIGINT, fields JSON";
+                }
+                return schema;
+            }
+        } catch (SQLException e) {
+            LOG.warn("Failed to query events table schema, falling back to static schema: message={}", e.getMessage());
+            return "event_type VARCHAR, start_timestamp TIMESTAMPTZ, duration BIGINT (nanoseconds), "
+                    + "samples BIGINT, weight BIGINT, weight_entity VARCHAR, "
+                    + "stacktrace_hash BIGINT, thread_hash BIGINT, fields JSON";
+        }
     }
 
     private List<String> generateSuggestions(String question, String response) {

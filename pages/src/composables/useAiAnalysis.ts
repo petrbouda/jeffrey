@@ -25,6 +25,7 @@ import ChatMessage from '@/services/api/model/ChatMessage';
 export interface AiAnalysisChatMessage extends ChatMessage {
     suggestions?: string[];
     toolsUsed?: string[];
+    durationSeconds?: number;
 }
 
 /**

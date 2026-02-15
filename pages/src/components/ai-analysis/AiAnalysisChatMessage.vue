@@ -6,12 +6,18 @@
     <div class="message-content">
       <div class="message-text" v-html="formattedContent"></div>
 
-      <!-- Tools Used Badge -->
-      <div v-if="message.toolsUsed && message.toolsUsed.length > 0" class="tools-used">
-        <span class="tools-label">Tools used:</span>
-        <span v-for="(tool, index) in message.toolsUsed" :key="index" class="tool-badge">
-          {{ formatToolName(tool) }}
-        </span>
+      <!-- Message Metadata (duration + tools) -->
+      <div v-if="(message.toolsUsed?.length) || message.durationSeconds" class="message-metadata">
+        <div v-if="message.durationSeconds" class="response-duration">
+          <i class="bi-clock"></i>
+          <span>{{ message.durationSeconds }}s</span>
+        </div>
+        <div v-if="message.toolsUsed?.length" class="tools-used">
+          <span class="tools-label">Tools used:</span>
+          <span v-for="(tool, index) in message.toolsUsed" :key="index" class="tool-badge">
+            {{ formatToolName(tool) }}
+          </span>
+        </div>
       </div>
 
       <!-- Follow-up Suggestions -->
@@ -246,13 +252,36 @@ const formattedContent = computed(() => {
   margin: 0.75rem 0;
 }
 
+.message-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.response-duration {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.65rem;
+  color: #8c959f;
+  background-color: #f6f8fa;
+  border-radius: 4px;
+  border: 1px solid #e1e4e8;
+}
+
+.response-duration i {
+  font-size: 0.6rem;
+}
+
 .tools-used {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
-  margin-top: 0.75rem;
-  padding-top: 0.5rem;
 }
 
 .tools-label {
