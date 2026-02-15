@@ -19,15 +19,12 @@
 package pbouda.jeffrey.platform.manager.workspace.live;
 
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.repository.FilesystemRemoteWorkspaceRepository;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
@@ -42,7 +39,6 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
-    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProjectsManager.Factory projectsManagerFactory;
 
     public LiveWorkspaceManager(
@@ -50,14 +46,12 @@ public class LiveWorkspaceManager implements WorkspaceManager {
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             ProjectsManager.Factory projectsManagerFactory) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
-        this.workspaceEventQueue = workspaceEventQueue;
         this.projectsManagerFactory = projectsManagerFactory;
     }
 
@@ -103,10 +97,5 @@ public class LiveWorkspaceManager implements WorkspaceManager {
             throw new IllegalStateException("Workspace path does not exist or is not a directory: " + workspacePath);
         }
         return new FilesystemRemoteWorkspaceRepository(clock, workspacePath);
-    }
-
-    @Override
-    public WorkspaceEventManager workspaceEventManager() {
-        return new LiveWorkspaceEventManager(workspaceInfo, workspaceEventQueue);
     }
 }

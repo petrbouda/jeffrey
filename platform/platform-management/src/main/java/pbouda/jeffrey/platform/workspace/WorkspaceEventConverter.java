@@ -1,5 +1,6 @@
 package pbouda.jeffrey.platform.workspace;
 
+import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.workspace.model.InstanceCreatedEventContent;
 import pbouda.jeffrey.platform.workspace.model.ProjectCreatedEventContent;
 import pbouda.jeffrey.platform.workspace.model.RecordingFileCreatedEventContent;
@@ -18,6 +19,24 @@ import java.nio.file.Path;
 import java.time.Instant;
 
 public abstract class WorkspaceEventConverter {
+
+    /**
+     * Maps a queue entry to a workspace event, enriching it with the queue-assigned
+     * offset (as event ID) and creation timestamp.
+     */
+    public static WorkspaceEvent fromQueueEntry(QueueEntry<WorkspaceEvent> entry) {
+        WorkspaceEvent payload = entry.payload();
+        return new WorkspaceEvent(
+                entry.offset(),
+                payload.originEventId(),
+                payload.projectId(),
+                payload.workspaceId(),
+                payload.eventType(),
+                payload.content(),
+                payload.originCreatedAt(),
+                entry.createdAt(),
+                payload.createdBy());
+    }
 
     public static WorkspaceEvent projectCreated(
             Instant currentInstant,

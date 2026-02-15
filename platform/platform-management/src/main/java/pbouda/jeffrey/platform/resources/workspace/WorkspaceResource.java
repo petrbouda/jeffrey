@@ -24,12 +24,15 @@ import jakarta.ws.rs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
@@ -40,6 +43,7 @@ public class WorkspaceResource {
 
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceManager workspaceManager;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
@@ -48,12 +52,14 @@ public class WorkspaceResource {
     public WorkspaceResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor,
             HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
@@ -87,7 +93,8 @@ public class WorkspaceResource {
     @Path("/events")
     public List<WorkspaceEventResponse> events() {
         LOG.debug("Listing workspace events: workspaceId={}", workspaceInfo.id());
-        return workspaceManager.workspaceEventManager().findEvents().stream()
+        return workspaceEventQueue.findAll(workspaceInfo.id()).stream()
+                .map(WorkspaceEventConverter::fromQueueEntry)
                 .map(Mappers::toEventResponse)
                 .toList();
     }

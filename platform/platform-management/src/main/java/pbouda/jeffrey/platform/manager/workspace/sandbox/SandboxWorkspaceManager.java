@@ -22,7 +22,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
 import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
@@ -67,11 +66,6 @@ public class SandboxWorkspaceManager implements WorkspaceManager {
 
     @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
-        throw new UnsupportedOperationException(UNSUPPORTED);
-    }
-
-    @Override
-    public WorkspaceEventManager workspaceEventManager() {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 }

@@ -25,7 +25,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -102,10 +101,5 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
         throw new UnsupportedOperationException("Remote workspace does not support remote repository.");
-    }
-
-    @Override
-    public WorkspaceEventManager workspaceEventManager() {
-        throw new UnsupportedOperationException("Remote workspace does not support workspace events.");
     }
 }

@@ -57,13 +57,12 @@ public class LiveWorkspaceConfiguration {
             Clock applicationClock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE) ProjectsManager.Factory projectsManagerFactory) {
 
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
             return new LiveWorkspaceManager(
-                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, workspaceEventQueue, projectsManagerFactory);
+                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
         };
     }
 

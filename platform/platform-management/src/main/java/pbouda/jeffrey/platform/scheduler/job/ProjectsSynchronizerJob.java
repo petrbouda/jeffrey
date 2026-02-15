@@ -24,7 +24,7 @@ import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.manager.workspace.live.LiveWorkspaceEventManager;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.queue.QueueEntry;
@@ -107,7 +107,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         long latestOffset = -1;
 
         for (QueueEntry<WorkspaceEvent> entry : sortedEntries) {
-            WorkspaceEvent event = LiveWorkspaceEventManager.toWorkspaceEvent(entry);
+            WorkspaceEvent event = WorkspaceEventConverter.fromQueueEntry(entry);
             try {
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
