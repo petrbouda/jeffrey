@@ -68,9 +68,10 @@ public class LiveWorkspaceConfiguration {
 
     @Bean
     public LiveWorkspacesManager liveWorkspaceManager(
+            Clock applicationClock,
             PlatformRepositories platformRepositories,
             @Qualifier(LIVE_WORKSPACE_TYPE) WorkspaceManager.Factory workspaceManagerFactory) {
 
-        return new LiveWorkspacesManager(platformRepositories.newWorkspacesRepository(), workspaceManagerFactory);
+        return new LiveWorkspacesManager(applicationClock, platformRepositories.newWorkspacesRepository(), workspaceManagerFactory);
     }
 }

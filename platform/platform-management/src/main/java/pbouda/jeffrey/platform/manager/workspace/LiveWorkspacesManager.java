@@ -25,7 +25,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.platform.repository.WorkspacesRepository;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,13 +33,16 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspacesManager.class);
 
+    private final Clock clock;
     private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
     public LiveWorkspacesManager(
+            Clock clock,
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
+        this.clock = clock;
         this.workspacesRepository = workspacesRepository;
         this.workspaceManagerFactory = workspaceManagerFactory;
     }
@@ -99,7 +102,7 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
                 description,
                 request.location(),
                 request.baseLocation(),
-                Instant.now(),
+                clock.instant(),
                 WorkspaceType.LIVE,
                 WorkspaceStatus.UNKNOWN,
                 0 // no projects initially
