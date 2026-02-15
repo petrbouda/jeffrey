@@ -221,7 +221,8 @@ public class CommonProjectManager implements ProjectManager {
 
         workspaceOpt.get()
                 .workspaceEventManager()
-                .batchInsertEvents(List.of(workspaceEvent));
+                .queue()
+                .appendBatch(List.of(workspaceEvent));
 
         // Trigger event synchronization
         projectsSynchronizerTrigger.getObject().execute();

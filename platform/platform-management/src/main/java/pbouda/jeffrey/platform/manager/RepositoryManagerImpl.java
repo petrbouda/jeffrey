@@ -201,7 +201,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         workspaceManager
                 .workspaceEventManager()
-                .batchInsertEvents(List.of(workspaceEvent));
+                .queue()
+                .appendBatch(List.of(workspaceEvent));
 
         // Trigger event synchronization
         projectsSynchronizerTrigger.execute();

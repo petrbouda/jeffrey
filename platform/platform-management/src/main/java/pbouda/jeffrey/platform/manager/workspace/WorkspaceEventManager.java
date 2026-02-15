@@ -32,13 +32,6 @@ public interface WorkspaceEventManager {
     }
 
     /**
-     * Batch inserts a list of workspace events into the repository.
-     *
-     * @param events the list of workspace events to insert
-     */
-    void batchInsertEvents(List<WorkspaceEvent> events);
-
-    /**
      * Find all workspace events for this workspace.
      *
      * @return list of all workspace events for this workspace

@@ -60,7 +60,7 @@ public class SessionFinishEventEmitter {
                 instanceId,
                 WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
 
-        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+        workspaceOpt.get().workspaceEventManager().queue().appendBatch(List.of(event));
         LOG.debug("Emitted instance finished event: project_id={} instance_id={}", projectInfo.id(), instanceId);
     }
 
@@ -80,7 +80,7 @@ public class SessionFinishEventEmitter {
                 sessionInfo,
                 WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
 
-        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+        workspaceOpt.get().workspaceEventManager().queue().appendBatch(List.of(event));
         LOG.debug("Emitted session finished event: project_id={} session_id={}", projectInfo.id(), sessionInfo.sessionId());
     }
 }

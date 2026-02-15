@@ -44,12 +44,6 @@ public class LiveWorkspaceEventManager implements WorkspaceEventManager {
     }
 
     @Override
-    public void batchInsertEvents(List<WorkspaceEvent> events) {
-        LOG.debug("Batch inserting workspace events: workspace_id={} count={}", workspaceInfo.id(), events.size());
-        queue.appendBatch(events);
-    }
-
-    @Override
     public List<WorkspaceEvent> findEvents() {
         return queue.findAll().stream()
                 .map(LiveWorkspaceEventManager::toWorkspaceEvent)

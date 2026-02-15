@@ -72,7 +72,7 @@ public class RecordingFileEventEmitter {
                 compressedSize,
                 WorkspaceEventCreator.REPOSITORY_STORAGE);
 
-        workspaceOpt.get().workspaceEventManager().batchInsertEvents(List.of(event));
+        workspaceOpt.get().workspaceEventManager().queue().appendBatch(List.of(event));
         LOG.debug("Emitted recording file created event: project_id={} session_id={}", projectInfo.id(), sessionId);
     }
 }
