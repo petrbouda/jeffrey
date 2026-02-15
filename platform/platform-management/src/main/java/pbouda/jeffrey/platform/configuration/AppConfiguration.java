@@ -63,6 +63,7 @@ import pbouda.jeffrey.provider.platform.DuckDBPlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.PlatformPersistenceProvider;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
@@ -150,6 +151,11 @@ public class AppConfiguration {
     @Bean
     public PlatformRepositories platformRepositories(PlatformPersistenceProvider platformPersistenceProvider) {
         return platformPersistenceProvider.platformRepositories();
+    }
+
+    @Bean
+    public DatabaseClientProvider databaseClientProvider(PlatformPersistenceProvider platformPersistenceProvider) {
+        return platformPersistenceProvider.databaseClientProvider();
     }
 
     @Bean

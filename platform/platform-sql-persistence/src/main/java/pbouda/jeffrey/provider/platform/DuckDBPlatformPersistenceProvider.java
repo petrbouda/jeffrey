@@ -48,4 +48,9 @@ public class DuckDBPlatformPersistenceProvider implements PlatformPersistencePro
     public PlatformRepositories platformRepositories() {
         return new JdbcPlatformRepositories(new DatabaseClientProvider(dataSource), clock);
     }
+
+    @Override
+    public DatabaseClientProvider databaseClientProvider() {
+        return new DatabaseClientProvider(dataSource);
+    }
 }

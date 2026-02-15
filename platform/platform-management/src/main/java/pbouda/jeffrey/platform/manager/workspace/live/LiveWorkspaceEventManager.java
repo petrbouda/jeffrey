@@ -20,73 +20,70 @@ package pbouda.jeffrey.platform.manager.workspace.live;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventConsumer;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
-import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.util.List;
-import java.util.Optional;
 
 public class LiveWorkspaceEventManager implements WorkspaceEventManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspaceEventManager.class);
 
     private final WorkspaceInfo workspaceInfo;
-    private final WorkspaceRepository workspaceRepository;
+    private final PersistentQueue<WorkspaceEvent> queue;
 
     public LiveWorkspaceEventManager(
             WorkspaceInfo workspaceInfo,
-            WorkspaceRepository workspaceRepository) {
+            PersistentQueue<WorkspaceEvent> queue) {
 
         this.workspaceInfo = workspaceInfo;
-        this.workspaceRepository = workspaceRepository;
+        this.queue = queue;
     }
 
     @Override
     public void batchInsertEvents(List<WorkspaceEvent> events) {
         LOG.debug("Batch inserting workspace events: workspace_id={} count={}", workspaceInfo.id(), events.size());
-        workspaceRepository.batchInsertEvents(events);
+        queue.appendBatch(events);
     }
 
     @Override
     public List<WorkspaceEvent> remainingEvents(WorkspaceEventConsumerType consumerType) {
-        WorkspaceEventConsumer consumer = getOrCreateConsumer(consumerType);
-        long lastOffset = consumer.lastOffset() != null ? consumer.lastOffset() : 0;
-        List<WorkspaceEvent> events = workspaceRepository.findEventsFromOffset(lastOffset);
-        LOG.debug("Remaining workspace events: workspace_id={} consumer_type={} count={}", workspaceInfo.id(), consumerType, events.size());
-        return events;
-    }
+        List<QueueEntry<WorkspaceEvent>> entries = queue.poll(consumerType.name());
+        LOG.debug("Remaining workspace events: workspace_id={} consumer_type={} count={}",
+                workspaceInfo.id(), consumerType, entries.size());
 
-    private WorkspaceEventConsumer getOrCreateConsumer(WorkspaceEventConsumerType consumerType) {
-        String workspaceId = workspaceInfo.id();
-        String consumerId = consumerType.name();
-
-        Optional<WorkspaceEventConsumer> consumerOpt =
-                workspaceRepository.findEventConsumer(consumerId);
-
-        if (consumerOpt.isEmpty()) {
-            LOG.info("No consumer found, create a new one: consumer_id={} workspace_id={}",
-                    consumerId, workspaceId);
-            workspaceRepository.createEventConsumer(consumerId);
-            consumerOpt = workspaceRepository.findEventConsumer(consumerId);
-            if (consumerOpt.isEmpty()) {
-                throw new IllegalStateException(
-                        "Failed to create event consumer: consumer_id=" + consumerId + " workspace_id=" + workspaceId);
-            }
-        }
-        return consumerOpt.get();
+        return entries.stream()
+                .map(LiveWorkspaceEventManager::toWorkspaceEvent)
+                .toList();
     }
 
     @Override
     public void updateConsumer(WorkspaceEventConsumerType consumer, long lastOffset) {
-        workspaceRepository.updateEventConsumerOffset(consumer.name(), lastOffset);
+        queue.acknowledge(consumer.name(), lastOffset);
     }
 
     @Override
     public List<WorkspaceEvent> findEvents() {
-        return workspaceRepository.findEvents();
+        return queue.findAll().stream()
+                .map(LiveWorkspaceEventManager::toWorkspaceEvent)
+                .toList();
+    }
+
+    private static WorkspaceEvent toWorkspaceEvent(QueueEntry<WorkspaceEvent> entry) {
+        WorkspaceEvent payload = entry.payload();
+        return new WorkspaceEvent(
+                entry.offset(),
+                payload.originEventId(),
+                payload.projectId(),
+                payload.workspaceId(),
+                payload.eventType(),
+                payload.content(),
+                payload.originCreatedAt(),
+                entry.createdAt(),
+                payload.createdBy());
     }
 }

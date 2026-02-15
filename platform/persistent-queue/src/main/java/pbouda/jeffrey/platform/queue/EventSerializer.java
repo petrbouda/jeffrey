@@ -16,25 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.provider.platform.repository;
+package pbouda.jeffrey.platform.queue;
 
-import pbouda.jeffrey.shared.common.model.ProjectInfo;
-
-import java.util.List;
-
-public interface WorkspaceRepository {
-
-    /**
-     * Delete the workspace.
-     *
-     * @return true if the workspace was deleted, false if it didn't exist
-     */
-    boolean delete();
+/**
+ * Strategy interface for serializing and deserializing event payloads
+ * to and from their string (JSON) representation for queue storage.
+ *
+ * @param <T> the type of the event payload
+ */
+public interface EventSerializer<T> {
 
     /**
-     * Find all projects in the workspace.
+     * Serializes the event payload to a string representation (typically JSON).
      *
-     * @return list of projects in the workspace.
+     * @param event the event to serialize
+     * @return the serialized string representation
      */
-    List<ProjectInfo> findAllProjects();
+    String serialize(T event);
+
+    /**
+     * Deserializes a string representation back into an event payload.
+     *
+     * @param payload the serialized string representation
+     * @return the deserialized event
+     */
+    T deserialize(String payload);
 }

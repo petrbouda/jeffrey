@@ -16,29 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.shared.persistence;
+package pbouda.jeffrey.platform.queue;
 
-public enum GroupLabel {
-    INTERNAL_PROFILES,
-    GLOBAL_SCHEDULERS,
-    PROFILER,
-    PROJECT_RECORDINGS,
-    INTERNAL_RECORDINGS,
-    PROFILE_CACHE,
-    PROFILE_EVENTS,
-    PROFILE_EVENT_TYPES,
-    PROFILE_GRAPHS,
-    PROFILES,
-    PROJECTS,
-    SINGLE_PROJECT,
-    PROJECT_REPOSITORIES,
-    PROJECT_SCHEDULERS,
-    EVENT_WRITERS,
-    NATIVE_LEAK_EVENTS,
-    WORKSPACES,
-    EXTERNAL_WORKSPACES,
-    ALLOCATING_THREADS,
-    INFRASTRUCTURE,
-    PROJECT_INSTANCES,
-    PERSISTENT_QUEUE,
+import java.time.Instant;
+
+/**
+ * Represents a single entry in a persistent queue, wrapping the user-provided
+ * payload with queue-managed metadata.
+ *
+ * @param offset    the sequential offset assigned by the queue (used for consumer tracking)
+ * @param payload   the deserialized event payload
+ * @param createdAt the timestamp when the entry was appended to the queue
+ * @param <T>       the type of the event payload
+ */
+public record QueueEntry<T>(long offset, T payload, Instant createdAt) {
 }

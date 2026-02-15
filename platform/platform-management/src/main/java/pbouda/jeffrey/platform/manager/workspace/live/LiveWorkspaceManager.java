@@ -18,21 +18,24 @@
 
 package pbouda.jeffrey.platform.manager.workspace.live;
 
+import pbouda.jeffrey.platform.manager.project.ProjectsManager;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.repository.FilesystemRemoteWorkspaceRepository;
+import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
+import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceEventManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.provider.platform.repository.WorkspaceRepository;
-import pbouda.jeffrey.platform.repository.FilesystemRemoteWorkspaceRepository;
-import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
 
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.function.Function;
 
 public class LiveWorkspaceManager implements WorkspaceManager {
 
@@ -40,6 +43,7 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
+    private final Function<String, PersistentQueue<WorkspaceEvent>> queueFactory;
     private final ProjectsManager.Factory projectsManagerFactory;
 
     public LiveWorkspaceManager(
@@ -47,12 +51,14 @@ public class LiveWorkspaceManager implements WorkspaceManager {
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
+            Function<String, PersistentQueue<WorkspaceEvent>> queueFactory,
             ProjectsManager.Factory projectsManagerFactory) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
+        this.queueFactory = queueFactory;
         this.projectsManagerFactory = projectsManagerFactory;
     }
 
@@ -102,6 +108,7 @@ public class LiveWorkspaceManager implements WorkspaceManager {
 
     @Override
     public WorkspaceEventManager workspaceEventManager() {
-        return new LiveWorkspaceEventManager(workspaceInfo, workspaceRepository);
+        PersistentQueue<WorkspaceEvent> queue = queueFactory.apply(workspaceInfo.id());
+        return new LiveWorkspaceEventManager(workspaceInfo, queue);
     }
 }
