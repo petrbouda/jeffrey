@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -65,6 +66,7 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
                     eventContent.attributes());
 
             projectManager = projectsManager.create(createProject);
+            JfrEmitter.projectCreated(eventContent.projectName(), projectManager.info().id());
             LOG.info("Project created from workspace event: project_id={} event={}",
                     projectManager.info().id(), event);
         }

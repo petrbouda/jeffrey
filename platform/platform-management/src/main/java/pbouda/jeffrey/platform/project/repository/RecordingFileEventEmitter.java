@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -62,6 +63,7 @@ public class RecordingFileEventEmitter {
                 WorkspaceEventCreator.REPOSITORY_STORAGE);
 
         workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(event));
+        JfrEmitter.recordingFileCreated(projectInfo.id(), sessionId, originalSize, compressedSize);
         LOG.debug("Emitted recording file created event: project_id={} session_id={}", projectInfo.id(), sessionId);
     }
 }

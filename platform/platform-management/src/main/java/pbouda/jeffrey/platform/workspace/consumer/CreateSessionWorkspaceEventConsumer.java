@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
@@ -89,6 +90,8 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
         projectManager.repositoryManager()
                 .createSession(sessionInfo);
+
+        JfrEmitter.sessionCreated(instanceId, eventContent.order(), projectId);
 
         if (eventContent.order() > 1) {
             platformRepositories.newProjectInstanceRepository(projectId)

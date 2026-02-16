@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
@@ -34,6 +35,7 @@ import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
@@ -41,10 +43,14 @@ import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Scheduler job that detects when sessions become FINISHED and emits SESSION_FINISHED events.
@@ -136,6 +142,13 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             // Emit SESSION_FINISHED event
             eventEmitter.emitSessionFinished(projectInfo, sessionInfo);
 
+            // Emit JFR event: session finished or JVM crash detected
+            if (containsHsErrLog(sessionPath)) {
+                JfrEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
+            } else {
+                JfrEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());
+            }
+
             // Check if the instance has any remaining active sessions
             String instanceId = sessionInfo.instanceId();
             if (instanceId != null) {
@@ -146,10 +159,22 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                     projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.FINISHED);
                     projectInstanceRepository.markFinished(instanceId, clock.instant());
                     eventEmitter.emitInstanceFinished(projectInfo, instanceId);
+                    JfrEmitter.instanceAutoFinished(instanceId, projectInfo.id());
                     LOG.info("Instance transitioned to FINISHED, no active sessions remaining: projectId={} instanceId={}",
                             projectInfo.id(), instanceId);
                 }
             }
+        }
+    }
+
+    private static boolean containsHsErrLog(Path sessionPath) {
+        if (!Files.isDirectory(sessionPath)) {
+            return false;
+        }
+        try (Stream<Path> files = Files.list(sessionPath)) {
+            return files.anyMatch(SupportedRecordingFile.HS_JVM_ERROR_LOG::matches);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
