@@ -98,7 +98,7 @@ onMounted(() => {
             <div class="job-icon cyan"><i class="bi bi-check-circle"></i></div>
             <div class="job-content">
               <h4>Session Finished Detector</h4>
-              <p>Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses detection file or timeout-based detection strategy.</p>
+              <p>Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Checks for finisher files (Perf-Counters, HotSpot Error Log) and falls back to timeout-based detection.</p>
             </div>
           </div>
 

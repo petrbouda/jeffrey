@@ -344,6 +344,11 @@ onMounted(() => {
             <td><code>${jeffrey.home.dir}/libs</code></td>
             <td>Target path for copied libraries</td>
           </tr>
+          <tr>
+            <td><code>jeffrey.copy-libs.max-kept-versions</code></td>
+            <td><code>10</code></td>
+            <td>Maximum number of versioned library directories to keep</td>
+          </tr>
         </tbody>
       </table>
 

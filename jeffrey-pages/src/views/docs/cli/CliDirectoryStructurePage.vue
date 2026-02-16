@@ -57,11 +57,13 @@ onMounted(() => {
         │   └── settings-2025-01-15T....json
         └── &lt;project-name&gt;/
             ├── .project-info.json           # Project metadata
-            └── &lt;session-id&gt;/
-                ├── .session-info.json       # Session metadata
-                ├── profile-1704067200.jfr   # Async-Profiler output
-                ├── profile-1704067800.jfr
-                └── ...</code></pre>
+            └── &lt;instance-id&gt;/
+                ├── .instance-info.json      # Instance metadata
+                └── &lt;session-id&gt;/
+                    ├── .session-info.json   # Session metadata
+                    ├── profile-1704067200.jfr # Async-Profiler output
+                    ├── profile-1704067800.jfr
+                    └── ...</code></pre>
         </div>
 
         <DocsCallout type="info">
@@ -78,11 +80,16 @@ onMounted(() => {
 ├── profile-1704068400.jfr       # ... more chunks
 ├── heap-dump.hprof.gz           # Heap dump (if captured)
 ├── jfr-jvm.log                  # JVM log (if enabled)
-├── perf-counters.hsperfdata     # Performance counters
+├── perf-counters.hsperfdata     # Performance counters (finisher file)
+├── hs-jvm-err.log               # HotSpot error log (finisher file)
 └── .session-info.json           # Session metadata</code></pre>
         </div>
 
         <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp.</p>
+
+        <DocsCallout type="info">
+          <strong>Finisher files:</strong> <code>perf-counters.hsperfdata</code> and <code>hs-jvm-err.log</code> are <strong>finisher files</strong> — Jeffrey uses their presence to automatically detect when a session has finished. If neither is found, timeout-based detection is used as a fallback.
+        </DocsCallout>
 
         <h2 id="streaming-repository">Streaming Repository</h2>
         <p>When <code>messaging</code> is enabled, an additional <code>streaming-repo/</code> subdirectory is created for JDK's JFR streaming repository:</p>

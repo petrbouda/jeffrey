@@ -64,7 +64,7 @@ spec:
             - /bin/bash
             - '-c'
             - >-
-              eval "$(java -jar /data/jeffrey/libs/jeffrey-cli.jar
+              eval "$(java -jar /data/jeffrey/libs/current/jeffrey-cli.jar
               init /mnt/config/jeffrey-init.conf)" &&
               exec java -jar /app/my-service.jar
           ports:
@@ -113,7 +113,7 @@ data:
     # Jeffrey CLI configuration for service profiling
 
     jeffrey-home = "/data/jeffrey"
-    profiler-path = "/data/jeffrey/libs/libasyncProfiler.so"
+    profiler-path = "/data/jeffrey/libs/current/libasyncProfiler.so"
 
     workspace-id = "uat"
     project-name = \${SERVICE_NAME}"-"\${ENV_NAME}
@@ -191,7 +191,7 @@ data:
         <h3>Key Points</h3>
         <ul>
           <li><strong>Shared PVC</strong> - Mounts <code>jeffrey-pvc</code> at <code>/data/jeffrey</code> (same as Jeffrey)</li>
-          <li><strong>CLI from shared storage</strong> - Uses <code>/data/jeffrey/libs/jeffrey-cli.jar</code></li>
+          <li><strong>CLI from shared storage</strong> - Uses <code>/data/jeffrey/libs/current/jeffrey-cli.jar</code></li>
           <li><strong>Environment variables</strong> - <code>SERVICE_NAME</code> and <code>ENV_NAME</code> are used in the CLI config</li>
           <li><strong>No special image</strong> - Works with any Java application image</li>
         </ul>
@@ -202,6 +202,10 @@ data:
           language="yaml"
           :code="configMapYaml"
         />
+
+        <DocsCallout type="tip">
+          <strong>Auto-resolved profiler path:</strong> When using <code>jeffrey-home</code> with copy-libs enabled, <code>profiler-path</code> can be omitted. It is automatically resolved from <code>libs/current/libasyncProfiler.so</code>.
+        </DocsCallout>
 
         <h3>CLI Configuration Highlights</h3>
         <ul>

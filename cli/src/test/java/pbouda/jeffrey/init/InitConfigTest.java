@@ -282,6 +282,74 @@ class InitConfigTest {
     }
 
     @Nested
+    class ProfilerPathResolution {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        void returnsExplicitProfilerPathWhenSet() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("libasyncProfiler.so"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "profiler-path = \"/custom/path/libasyncProfiler.so\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertEquals("/custom/path/libasyncProfiler.so", config.getProfilerPath());
+        }
+
+        @Test
+        void autoResolvesFromJeffreyHome() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("libasyncProfiler.so"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertEquals(libsDir.resolve("libasyncProfiler.so").toString(), config.getProfilerPath());
+        }
+
+        @Test
+        void returnsNullWhenAutoResolvePathDoesNotExist() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertNull(config.getProfilerPath());
+        }
+
+        @Test
+        void returnsNullWhenUsingWorkspacesDir() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("libasyncProfiler.so"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "workspaces-dir = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertNull(config.getProfilerPath());
+        }
+    }
+
+    @Nested
     class Validation {
 
         @TempDir

@@ -128,8 +128,10 @@ exec java -jar /app/my-app.jar`;
         <h2 id="recording-sessions">Recording Sessions</h2>
         <p>A <strong>recording session</strong> is created each time the CLI runs - typically when your application is deployed or restarted. Each session gets a unique identifier and its own directory.</p>
 
+        <p>Each application <strong>instance</strong> (identified by hostname or a custom <code>project.instance-id</code>) creates its own directory within the project. Sessions are nested inside instances — each restart creates a new session within the same instance directory.</p>
+
         <DocsCallout type="info">
-          <strong>New deployment = New session:</strong> Every time your container starts or application restarts, Jeffrey CLI creates a fresh session. This keeps recordings organized and makes it easy to correlate profiling data with specific deployments.
+          <strong>New deployment = New session:</strong> Every time your container starts or application restarts, Jeffrey CLI creates a fresh session within the instance directory. The same instance can accumulate multiple sessions over time, making it easy to track the history of a specific application instance.
         </DocsCallout>
 
         <h3>Session Contents</h3>
@@ -173,7 +175,17 @@ exec java -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>perf-counters.hsperfdata</code>
-              <p>JVM performance data captured via <code>-XX:+UsePerfData</code>. Contains low-level metrics about JVM internals.</p>
+              <p>JVM performance data captured via <code>-XX:+UsePerfData</code>. Contains low-level metrics about JVM internals. Also serves as a finisher file.</p>
+            </div>
+          </div>
+          <div class="docs-card session-card hotspot-err">
+            <div class="docs-card-header">
+              <i class="bi bi-exclamation-triangle"></i>
+              <h4>HotSpot Error Log</h4>
+            </div>
+            <div class="docs-card-body">
+              <code>hs-jvm-err.log</code>
+              <p>HotSpot JVM error log captured on JVM crash. Also serves as a finisher file for automatic session completion detection.</p>
             </div>
           </div>
           <div class="docs-card session-card metadata">
@@ -387,6 +399,7 @@ exec java -jar /app/my-app.jar`;
 .session-card.heap .docs-card-header i { color: #ef4444; }
 .session-card.logs .docs-card-header i { color: #10b981; }
 .session-card.perf .docs-card-header i { color: #f59e0b; }
+.session-card.hotspot-err .docs-card-header i { color: #dc2626; }
 .session-card.metadata .docs-card-header i { color: #6366f1; }
 
 /* Responsive */

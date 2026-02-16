@@ -81,31 +81,38 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="session-detection">Session Detection</h2>
-        <p>Jeffrey needs to detect when a recording session has finished. This is configured using <router-link to="/docs/cli/overview">Jeffrey CLI</router-link> when setting up your application.</p>
+        <p>Jeffrey automatically detects when a recording session has finished by looking for <strong>finisher files</strong> in the session directory. If no finisher file is found, it falls back to timeout-based detection.</p>
 
         <div class="detection-methods">
           <div class="detection-card recommended">
             <div class="detection-icon"><i class="bi bi-speedometer2"></i></div>
             <div class="detection-content">
               <h4>Perf-Counters Detection <span class="badge-recommended">Recommended</span></h4>
-              <p>Configure Async-Profiler to dump Perf-Counters when profiling stops. When Jeffrey detects the Perf-Counters file in a session directory, it marks the session as finished.</p>
+              <p>When Perf Counters are enabled, the <code>perf-counters.hsperfdata</code> file is written when profiling stops. Jeffrey automatically recognizes this finisher file and marks the session as finished.</p>
+            </div>
+          </div>
+          <div class="detection-card">
+            <div class="detection-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="detection-content">
+              <h4>HotSpot Error Log Detection</h4>
+              <p>If the JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>) is generated. Jeffrey recognizes this as a finisher file and marks the session as finished.</p>
             </div>
           </div>
           <div class="detection-card">
             <div class="detection-icon"><i class="bi bi-clock-history"></i></div>
             <div class="detection-content">
               <h4>Timeout Detection</h4>
-              <p>Fallback method: if no new files appear within a configured timeout period, Jeffrey assumes the session has finished.</p>
+              <p>Fallback method: if no finisher file is found and no new files appear within a configured timeout period, Jeffrey assumes the session has finished.</p>
             </div>
           </div>
         </div>
 
         <DocsCallout type="tip">
-          <strong>Best practice:</strong> Use Perf-Counters detection for reliable and immediate session completion detection. Configure this through Jeffrey CLI when generating JVM arguments for your application.
+          <strong>Enable Perf Counters via Jeffrey CLI:</strong> Add <code>perf-counters { enabled = true }</code> to your CLI configuration for reliable and immediate session completion detection.
         </DocsCallout>
 
         <DocsCallout type="info">
-          <strong>Scheduler job:</strong> The <router-link to="/docs/concepts/projects/scheduler">Session Finished Detector</router-link> job runs periodically to check for finished sessions and emit workspace events.
+          <strong>Scheduler job:</strong> The <router-link to="/docs/concepts/projects/scheduler">Session Finished Detector</router-link> job runs periodically to check for finisher files and emit workspace events.
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>
@@ -202,8 +209,8 @@ onMounted(() => {
 
 /* Detection Methods */
 .detection-methods {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin: 1.5rem 0;
 }
@@ -272,7 +279,7 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .detection-methods {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 </style>

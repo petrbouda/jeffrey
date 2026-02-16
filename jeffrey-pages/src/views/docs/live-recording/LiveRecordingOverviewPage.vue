@@ -132,7 +132,7 @@ onMounted(() => {
           <code>jeffrey.copy-libs.enabled=true<br/>jeffrey.copy-libs.target=${jeffrey.home.dir}/libs</code>
         </div>
 
-        <p>Jeffrey CLI and Async-Profiler can then be referenced from the target directory by your services.</p>
+        <p>Libraries are copied into a versioned subdirectory (e.g., <code>libs/1.2.3/</code>) based on the Jeffrey version. A <code>current</code> symlink is maintained at <code>libs/current</code> and always points to the latest version. Services should reference <code>libs/current/</code> for transparent version updates. Old version directories are cleaned up automatically based on the <code>jeffrey.copy-libs.max-kept-versions</code> property (default: 10). When copy-libs is enabled with <code>jeffrey-home</code>, the <code>profiler-path</code> is auto-resolved from <code>libs/current/libasyncProfiler.so</code> — no manual configuration needed.</p>
 
         <DocsCallout type="info">
           <strong>Alternative setup:</strong> If you're not using the official Jeffrey container, you'll need to provide the Async-Profiler library and Jeffrey CLI JAR through other means (e.g., baking them into your service images or mounting them separately).

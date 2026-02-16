@@ -119,7 +119,12 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
             <tr>
               <td><code>profiler-path</code></td>
               <td>No</td>
-              <td>Path to libasyncProfiler.so</td>
+              <td>Path to libasyncProfiler.so. Auto-resolved from <code>libs/current/</code> when <code>jeffrey-home</code> is set and copy-libs is enabled.</td>
+            </tr>
+            <tr>
+              <td><code>project.instance-id</code></td>
+              <td>No</td>
+              <td>Instance identifier (defaults to <code>HOSTNAME</code> environment variable or generated UUID)</td>
             </tr>
             <tr>
               <td><code>project.label</code></td>

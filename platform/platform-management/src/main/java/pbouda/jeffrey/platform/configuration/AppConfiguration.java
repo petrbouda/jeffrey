@@ -29,6 +29,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import pbouda.jeffrey.platform.JeffreyVersion;
 import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
@@ -323,13 +324,17 @@ public class AppConfiguration {
     public CopyLibsInitializer copyLibsInitializer(
             JeffreyDirs jeffreyDirs,
             @Value("${jeffrey.copy-libs.source:/jeffrey-libs}") String source,
-            @Value("${jeffrey.copy-libs.target:}") String target) {
+            @Value("${jeffrey.copy-libs.target:}") String target,
+            @Value("${jeffrey.copy-libs.max-kept-versions:10}") int maxKeptVersions) {
 
         String resolvedTarget = StringUtils.isNullOrBlank(target)
                 ? jeffreyDirs.libs().toString()
                 : target;
 
-        return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget));
+        String version = JeffreyVersion.resolveJeffreyVersion();
+        String resolvedVersion = version.startsWith("Cannot") ? null : version;
+
+        return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget), resolvedVersion, maxKeptVersions);
     }
 
     @Bean(destroyMethod = "close")

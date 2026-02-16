@@ -35,6 +35,8 @@ import java.util.Map;
  */
 public class InitConfig {
 
+    private static final String DEFAULT_PROFILER_RELATIVE_PATH = "libs/current/libasyncProfiler.so";
+
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
             silent = false
@@ -170,8 +172,25 @@ public class InitConfig {
         return IDGenerator.generate();
     }
 
+    /**
+     * Returns the profiler path with fallback resolution:
+     * 1. Explicit config value if set
+     * 2. Auto-resolved from jeffrey-home/libs/current/libasyncProfiler.so if it exists
+     */
     public String getProfilerPath() {
-        return nullIfBlank(profilerPath);
+        // 1. Explicit config value
+        String explicit = nullIfBlank(profilerPath);
+        if (explicit != null) {
+            return explicit;
+        }
+        // 2. Auto-resolve from jeffrey-home
+        if (useJeffreyHome()) {
+            Path candidate = Path.of(jeffreyHome).resolve(DEFAULT_PROFILER_RELATIVE_PATH);
+            if (Files.exists(candidate)) {
+                return candidate.toString();
+            }
+        }
+        return null;
     }
 
     public void setProfilerPath(String profilerPath) {
