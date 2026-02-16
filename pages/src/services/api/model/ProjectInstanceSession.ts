@@ -22,6 +22,7 @@ export default class ProjectInstanceSession {
         public repositoryId: string,
         public startedAt: number,
         public finishedAt?: number,
+        public lastHeartbeatAt?: number,
         public isActive?: boolean,
     ) {
     }

@@ -28,6 +28,7 @@ public record RecordingSession(
         String instanceId,
         Instant createdAt,
         Instant finishedAt,
+        Instant lastHeartbeatAt,
         RecordingStatus status,
         String profilerSettings,
         Path absolutePath,

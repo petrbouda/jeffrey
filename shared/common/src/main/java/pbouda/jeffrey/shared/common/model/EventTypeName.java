@@ -97,6 +97,7 @@ public abstract class EventTypeName {
 
     // Streaming events
     public static final String IMPORTANT_MESSAGE = "jeffrey.ImportantMessage";
+    public static final String HEARTBEAT = "jeffrey.Heartbeat";
 
     // Container events
     public static final String CONTAINER_CONFIGURATION = "jdk.ContainerConfiguration";

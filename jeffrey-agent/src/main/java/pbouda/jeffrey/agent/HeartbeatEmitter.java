@@ -16,20 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
+package pbouda.jeffrey.agent;
 
-export default class RecordingSession {
-    constructor(
-        public id: string,
-        public name: string,
-        public instanceId: string,
-        public createdAt: number,
-        public finishedAt: number | null,
-        public lastHeartbeatAt: number | null,
-        public status: RecordingStatus,
-        public profilerSettings: string,
-        public files: RepositoryFile[],
-    ) {
+import cafe.jeffrey.jfr.events.heartbeat.HeartbeatEvent;
+
+/**
+ * Emits periodic heartbeat JFR events.
+ * Thread-safe: {@link jdk.jfr.FlightRecorder#addPeriodicEvent} invokes
+ * the Runnable from JFR's single internal periodic thread.
+ */
+public class HeartbeatEmitter implements Runnable {
+
+    public static final HeartbeatEmitter INSTANCE = new HeartbeatEmitter();
+
+    private long counter;
+
+    @Override
+    public void run() {
+        HeartbeatEvent event = new HeartbeatEvent();
+        event.sequenceNumber = ++counter;
+        event.commit();
     }
 }

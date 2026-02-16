@@ -183,6 +183,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 sessionInfo.instanceId(),
                 sessionInfo.originCreatedAt(),
                 sessionInfo.finishedAt(),
+                sessionInfo.lastHeartbeatAt(),
                 recordingStatus,
                 sessionInfo.profilerSettings(),
                 sessionPath,

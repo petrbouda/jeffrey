@@ -100,6 +100,13 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             WHERE instance_id = :instance_id AND finished_at IS NULL
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
+    //language=SQL
+    private static final String UPDATE_LAST_HEARTBEAT = """
+            UPDATE project_instance_sessions
+            SET last_heartbeat_at = :last_heartbeat_at
+            WHERE session_id = :session_id
+            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
+
     private final String projectId;
     private final DatabaseClient databaseClient;
     private final Clock clock;
@@ -233,6 +240,16 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         databaseClient.update(StatementLabel.MARK_UNFINISHED_SESSIONS_FINISHED, MARK_UNFINISHED_SESSIONS_FINISHED, paramSource);
     }
 
+    @Override
+    public void updateLastHeartbeat(String sessionId, java.time.Instant lastHeartbeatAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("session_id", sessionId)
+                .addValue("last_heartbeat_at", lastHeartbeatAt.atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.UPDATE_LAST_HEARTBEAT, UPDATE_LAST_HEARTBEAT, paramSource);
+    }
+
     private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {
         return (rs, _) -> {
             return new ProjectInstanceSessionInfo(
@@ -245,7 +262,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                     rs.getBoolean("streaming_enabled"),
                     Mappers.instant(rs, "origin_created_at"),
                     Mappers.instant(rs, "created_at"),
-                    Mappers.instant(rs, "finished_at")
+                    Mappers.instant(rs, "finished_at"),
+                    Mappers.instant(rs, "last_heartbeat_at")
             );
         };
     }

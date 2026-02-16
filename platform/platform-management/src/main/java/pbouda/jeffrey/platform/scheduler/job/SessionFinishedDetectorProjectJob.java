@@ -27,21 +27,23 @@ import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.project.repository.detection.FileFinishedDetectionStrategy;
 import pbouda.jeffrey.platform.project.repository.detection.FinishedDetectionStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.HeartbeatBasedFinishedDetectionStrategy;
 import pbouda.jeffrey.platform.project.repository.detection.TimeBasedFinishedDetectionStrategy;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
+import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -72,6 +74,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
     private final JeffreyDirs jeffreyDirs;
     private final PlatformRepositories platformRepositories;
     private final SessionFinishEventEmitter eventEmitter;
+    private final JfrStreamingConsumerManager streamingManager;
 
     public SessionFinishedDetectorProjectJob(
             WorkspacesManager workspacesManager,
@@ -82,7 +85,8 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             Clock clock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            SessionFinishEventEmitter eventEmitter) {
+            SessionFinishEventEmitter eventEmitter,
+            JfrStreamingConsumerManager streamingManager) {
 
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
@@ -91,6 +95,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.eventEmitter = eventEmitter;
+        this.streamingManager = streamingManager;
     }
 
     @Override
@@ -132,7 +137,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             ProjectInstanceSessionInfo sessionInfo) {
 
         Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        FinishedDetectionStrategy strategy = createStatusStrategy();
+        FinishedDetectionStrategy strategy = createStatusStrategy(sessionInfo.sessionId());
         RecordingStatus status = strategy.determineStatus(sessionPath);
 
         if (status == RecordingStatus.FINISHED) {
@@ -187,8 +192,12 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                 .resolve(sessionInfo.relativeSessionPath());
     }
 
-    private FinishedDetectionStrategy createStatusStrategy() {
-        return new FileFinishedDetectionStrategy(new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock));
+    private FinishedDetectionStrategy createStatusStrategy(String sessionId) {
+        FinishedDetectionStrategy timeBased = new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock);
+        FinishedDetectionStrategy heartbeatOrTimeBased = streamingManager != null
+                ? new HeartbeatBasedFinishedDetectionStrategy(sessionId, streamingManager, clock, timeBased)
+                : timeBased;
+        return new FileFinishedDetectionStrategy(heartbeatOrTimeBased);
     }
 
     @Override

@@ -31,5 +31,6 @@ public record ProjectInstanceSessionInfo(
         boolean streamingEnabled,
         Instant originCreatedAt,
         Instant createdAt,
-        Instant finishedAt) {
+        Instant finishedAt,
+        Instant lastHeartbeatAt) {
 }

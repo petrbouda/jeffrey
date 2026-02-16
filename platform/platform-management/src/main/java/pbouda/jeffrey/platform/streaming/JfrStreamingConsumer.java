@@ -41,12 +41,14 @@ public class JfrStreamingConsumer implements Closeable {
 
     private final String sessionId;
     private final Path streamingRepoPath;
+    private final JfrHeartbeatHandler heartbeatHandler;
 
     private EventStream eventStream;
 
-    public JfrStreamingConsumer(String sessionId, Path sessionPath) {
+    public JfrStreamingConsumer(String sessionId, Path sessionPath, JfrHeartbeatHandler heartbeatHandler) {
         this.sessionId = sessionId;
         this.streamingRepoPath = sessionPath.resolve(STREAMING_REPO_DIR);
+        this.heartbeatHandler = heartbeatHandler;
     }
 
     /**
@@ -61,6 +63,7 @@ public class JfrStreamingConsumer implements Closeable {
 
         // Register event handlers for custom application events
         eventStream.onEvent(EventTypeName.IMPORTANT_MESSAGE, this::handleMessage);
+        eventStream.onEvent(EventTypeName.HEARTBEAT, heartbeatHandler::onEvent);
 
         // Log errors from the stream
         eventStream.onError(throwable ->
@@ -72,16 +75,23 @@ public class JfrStreamingConsumer implements Closeable {
     private void handleMessage(RecordedEvent event) {
         String message = event.getString("message");
         String level = event.hasField("level") ? event.getString("level") : "INFO";
-        LOG.info("[JFR] ImportantMessage: sessionId={} level={} message={}", sessionId, level, message);
+        LOG.debug("[JFR] ImportantMessage: sessionId={} level={} message={}", sessionId, level, message);
     }
 
     public String sessionId() {
         return sessionId;
     }
 
+    public java.time.Instant lastHeartbeat() {
+        return heartbeatHandler != null ? heartbeatHandler.lastHeartbeat() : null;
+    }
+
     @Override
     public void close() {
         LOG.debug("Stopping JFR streaming consumer: sessionId={}", sessionId);
+        if (heartbeatHandler != null) {
+            heartbeatHandler.flush();
+        }
         if (eventStream != null) {
             eventStream.close();
         }

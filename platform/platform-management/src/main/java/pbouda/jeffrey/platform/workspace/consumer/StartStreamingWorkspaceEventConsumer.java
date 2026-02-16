@@ -25,6 +25,8 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -44,13 +46,16 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
 
     private final ProjectsManager projectsManager;
     private final JfrStreamingConsumerManager streamingConsumerManager;
+    private final PlatformRepositories platformRepositories;
 
     public StartStreamingWorkspaceEventConsumer(
             ProjectsManager projectsManager,
-            JfrStreamingConsumerManager streamingConsumerManager) {
+            JfrStreamingConsumerManager streamingConsumerManager,
+            PlatformRepositories platformRepositories) {
 
         this.projectsManager = projectsManager;
         this.streamingConsumerManager = streamingConsumerManager;
+        this.platformRepositories = platformRepositories;
     }
 
     @Override
@@ -88,9 +93,12 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
                 eventContent.streamingEnabled(),
                 event.originCreatedAt(),
                 event.createdAt(),
+                null,
                 null);
 
-        streamingConsumerManager.registerConsumer(repositoryInfo, sessionInfo);
+        ProjectRepositoryRepository repoRepository =
+                platformRepositories.newProjectRepositoryRepository(projectManager.info().id());
+        streamingConsumerManager.registerConsumer(repositoryInfo, sessionInfo, repoRepository);
     }
 
     @Override

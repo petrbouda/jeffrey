@@ -90,4 +90,12 @@ public interface ProjectRepositoryRepository {
      * @param finishedAt the timestamp to set as the finished time
      */
     void markUnfinishedSessionsFinished(String instanceId, Instant finishedAt);
+
+    /**
+     * Update the last heartbeat timestamp for a session.
+     *
+     * @param sessionId       the session ID to update
+     * @param lastHeartbeatAt the timestamp of the last heartbeat event
+     */
+    void updateLastHeartbeat(String sessionId, Instant lastHeartbeatAt);
 }

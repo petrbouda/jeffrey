@@ -28,18 +28,21 @@ public class FeatureBuilder {
     private static final String HEAP_DUMP_EXIT_OPTIONS = HEAP_DUMP_BASE_OPTIONS
             + "-XX:+ExitOnOutOfMemoryError ";
 
-    /* Messaging JFR options */
-    private static final String MESSAGING_FLIGHT_RECORDER_OPTIONS =
+    /* Streaming JFR options (shared by messaging and heartbeat) */
+    private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
             "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
-    private static final String MESSAGING_START_RECORDING_TEMPLATE =
-            "-XX:StartFlightRecording=name=jeffrey-streaming,maxage=%s,"
-                    + EventTypeName.IMPORTANT_MESSAGE + "#enabled=true";
+
+    /* Agent JVM option template */
+    private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s";
 
     private boolean perfCountersEnabled;
     private HeapDumpType heapDumpType;
     private String jvmLogging;
     private boolean messagingEnabled;
     private String messagingMaxAge = "24h";
+    private boolean heartbeatEnabled;
+    private String heartbeatPeriod = "5 s";
+    private String agentPath;
     private String additionalJvmOptions;
 
     public FeatureBuilder setPerfCountersEnabled(boolean enabled) {
@@ -64,6 +67,21 @@ public class FeatureBuilder {
 
     public FeatureBuilder setMessagingMaxAge(String maxAge) {
         this.messagingMaxAge = maxAge;
+        return this;
+    }
+
+    public FeatureBuilder setHeartbeatEnabled(boolean enabled) {
+        this.heartbeatEnabled = enabled;
+        return this;
+    }
+
+    public FeatureBuilder setHeartbeatPeriod(String period) {
+        this.heartbeatPeriod = period;
+        return this;
+    }
+
+    public FeatureBuilder setAgentPath(String agentPath) {
+        this.agentPath = agentPath;
         return this;
     }
 
@@ -95,10 +113,25 @@ public class FeatureBuilder {
             options.append(" ");
         }
 
-        if (messagingEnabled) {
-            options.append(MESSAGING_FLIGHT_RECORDER_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+        if (heartbeatEnabled && agentPath != null && !agentPath.isBlank()) {
+            options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath));
             options.append(" ");
-            options.append(String.format(MESSAGING_START_RECORDING_TEMPLATE, messagingMaxAge));
+        }
+
+        if (messagingEnabled || heartbeatEnabled) {
+            options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(" ");
+
+            StringBuilder startRecording = new StringBuilder("-XX:StartFlightRecording=name=jeffrey-streaming");
+            if (messagingEnabled) {
+                startRecording.append(",maxage=").append(messagingMaxAge);
+                startRecording.append(",").append(EventTypeName.IMPORTANT_MESSAGE).append("#enabled=true");
+            }
+            if (heartbeatEnabled) {
+                startRecording.append(",").append(EventTypeName.HEARTBEAT).append("#enabled=true");
+                startRecording.append(",").append(EventTypeName.HEARTBEAT).append("#period=").append(heartbeatPeriod.replace(" ", ""));
+            }
+            options.append(startRecording);
             options.append(" ");
         }
 

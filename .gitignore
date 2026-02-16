@@ -47,7 +47,8 @@ package-lock.json
 /.profileconfig.json
 
 **/.claude/settings.local.json
-
+.claude/**
+**/dependency-reduced-pom.xml
 profile.jfr
 
 .mcp.json

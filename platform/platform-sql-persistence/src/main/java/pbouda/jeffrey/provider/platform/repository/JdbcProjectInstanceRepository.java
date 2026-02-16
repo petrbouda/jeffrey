@@ -192,6 +192,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 rs.getBoolean("streaming_enabled"),
                 Mappers.instant(rs, "origin_created_at"),
                 Mappers.instant(rs, "created_at"),
-                Mappers.instant(rs, "finished_at"));
+                Mappers.instant(rs, "finished_at"),
+                Mappers.instant(rs, "last_heartbeat_at"));
     }
 }

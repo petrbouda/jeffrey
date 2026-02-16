@@ -36,6 +36,7 @@ import java.util.Map;
 public class InitConfig {
 
     private static final String DEFAULT_PROFILER_RELATIVE_PATH = "libs/current/libasyncProfiler.so";
+    private static final String DEFAULT_AGENT_RELATIVE_PATH = "libs/current/jeffrey-agent.jar";
 
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
@@ -56,6 +57,7 @@ public class InitConfig {
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
             messaging { enabled = false, max-age = "24h" }
+            heartbeat { enabled = false, period = "5 s", agent-path = "" }
             jdk-java-options { enabled = false, additional-options = "" }
             """;
 
@@ -104,6 +106,7 @@ public class InitConfig {
     private HeapDumpConfig heapDump;
     private JvmLoggingConfig jvmLogging;
     private MessagingConfig messaging;
+    private HeartbeatConfig heartbeat;
     private JdkJavaOptionsConfig jdkJavaOptions;
     private Map<String, Object> attributes;
 
@@ -249,6 +252,14 @@ public class InitConfig {
         this.messaging = messaging;
     }
 
+    public HeartbeatConfig getHeartbeat() {
+        return heartbeat;
+    }
+
+    public void setHeartbeat(HeartbeatConfig heartbeat) {
+        this.heartbeat = heartbeat;
+    }
+
     public JdkJavaOptionsConfig getJdkJavaOptions() {
         return jdkJavaOptions;
     }
@@ -349,6 +360,36 @@ public class InitConfig {
         }
     }
 
+    public static class HeartbeatConfig {
+        private boolean enabled;
+        private String period = "5 s";
+        private String agentPath;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getPeriod() {
+            return period;
+        }
+
+        public void setPeriod(String period) {
+            this.period = period;
+        }
+
+        public String getAgentPath() {
+            return agentPath;
+        }
+
+        public void setAgentPath(String agentPath) {
+            this.agentPath = agentPath;
+        }
+    }
+
     public static class JdkJavaOptionsConfig {
         private boolean enabled;
         private String additionalOptions;
@@ -400,6 +441,37 @@ public class InitConfig {
             return messaging.getMaxAge();
         }
         return "24h";
+    }
+
+    public boolean isHeartbeatEnabled() {
+        return heartbeat != null && heartbeat.isEnabled();
+    }
+
+    public String getHeartbeatPeriod() {
+        if (heartbeat != null && !isNullOrBlank(heartbeat.getPeriod())) {
+            return heartbeat.getPeriod();
+        }
+        return "5 s";
+    }
+
+    /**
+     * Returns the agent JAR path with fallback resolution:
+     * 1. Explicit config value if set
+     * 2. Auto-resolved from jeffrey-home/libs/current/jeffrey-agent.jar if it exists
+     */
+    public String getAgentPath() {
+        // 1. Explicit config value
+        if (heartbeat != null && !isNullOrBlank(heartbeat.getAgentPath())) {
+            return heartbeat.getAgentPath();
+        }
+        // 2. Auto-resolve from jeffrey-home
+        if (useJeffreyHome()) {
+            Path candidate = Path.of(jeffreyHome).resolve(DEFAULT_AGENT_RELATIVE_PATH);
+            if (Files.exists(candidate)) {
+                return candidate.toString();
+            }
+        }
+        return null;
     }
 
     public boolean isJdkJavaOptionsEnabled() {
@@ -461,6 +533,10 @@ public class InitConfig {
 
         if (isMessagingEnabled() && !isNullOrBlank(profilerConfig)) {
             throw new IllegalArgumentException("Cannot specify both 'messaging.enabled' and 'profiler-config'");
+        }
+
+        if (isHeartbeatEnabled() && !isNullOrBlank(profilerConfig)) {
+            throw new IllegalArgumentException("Cannot specify both 'heartbeat.enabled' and 'profiler-config'");
         }
     }
 

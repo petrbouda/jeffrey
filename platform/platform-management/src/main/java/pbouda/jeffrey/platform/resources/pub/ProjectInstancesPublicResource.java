@@ -86,6 +86,7 @@ public class ProjectInstancesPublicResource {
                 info.repositoryId(),
                 InstantUtils.toEpochMilli(info.createdAt()),
                 InstantUtils.toEpochMilli(info.finishedAt()),
+                InstantUtils.toEpochMilli(info.lastHeartbeatAt()),
                 info.finishedAt() == null);
     }
 }

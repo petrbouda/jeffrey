@@ -16,20 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
+package pbouda.jeffrey.agent;
 
-export default class RecordingSession {
-    constructor(
-        public id: string,
-        public name: string,
-        public instanceId: string,
-        public createdAt: number,
-        public finishedAt: number | null,
-        public lastHeartbeatAt: number | null,
-        public status: RecordingStatus,
-        public profilerSettings: string,
-        public files: RepositoryFile[],
-    ) {
+import cafe.jeffrey.jfr.events.heartbeat.HeartbeatEvent;
+import jdk.jfr.FlightRecorder;
+
+import java.lang.instrument.Instrumentation;
+
+public class JeffreyAgent {
+
+    public static void premain(String args, Instrumentation inst) {
+        FlightRecorder.addPeriodicEvent(HeartbeatEvent.class, HeartbeatEmitter.INSTANCE);
     }
 }

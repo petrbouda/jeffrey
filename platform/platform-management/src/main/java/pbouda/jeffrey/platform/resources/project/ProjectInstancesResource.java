@@ -50,6 +50,7 @@ public class ProjectInstancesResource {
             String repositoryId,
             Long startedAt,
             Long finishedAt,
+            Long lastHeartbeatAt,
             boolean isActive) {
     }
 
@@ -102,6 +103,7 @@ public class ProjectInstancesResource {
                 info.repositoryId(),
                 InstantUtils.toEpochMilli(info.createdAt()),
                 InstantUtils.toEpochMilli(info.finishedAt()),
+                InstantUtils.toEpochMilli(info.lastHeartbeatAt()),
                 info.finishedAt() == null);
     }
 }

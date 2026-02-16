@@ -86,6 +86,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                 eventContent.streamingEnabled(),
                 event.originCreatedAt(),
                 event.createdAt(),
+                null,
                 null);
 
         projectManager.repositoryManager()

@@ -83,7 +83,7 @@ public class JfrStreamingInitializer implements ApplicationListener<ApplicationR
         int count = 0;
         for (ProjectInstanceSessionInfo session : unfinishedSessions) {
             if (session.streamingEnabled()) {
-                consumerManager.registerConsumer(repositoryInfo, session);
+                consumerManager.registerConsumer(repositoryInfo, session, repoRepository);
                 count++;
             }
         }

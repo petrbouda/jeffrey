@@ -112,7 +112,8 @@ class AsprofFileRepositoryStorageTest {
                 false,                // streamingEnabled
                 now,                  // originCreatedAt
                 now,                  // createdAt
-                null);                // finishedAt
+                null,                 // finishedAt
+                null);                // lastHeartbeatAt
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));
 
         // Create ProjectInfo

@@ -113,7 +113,7 @@ public class InitExecutor {
         Path newSessionPath = createDirectories(instancePath.resolve(sessionId));
         LOG.debug("Session directory created: sessionId={} sessionPath={}", sessionId, newSessionPath);
 
-        if (config.isMessagingEnabled()) {
+        if (config.isMessagingEnabled() || config.isHeartbeatEnabled()) {
             createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
         }
 
@@ -123,6 +123,9 @@ public class InitExecutor {
                 .setJvmLogging(config.getJvmLoggingCommand())
                 .setMessagingEnabled(config.isMessagingEnabled())
                 .setMessagingMaxAge(config.getMessagingMaxAge())
+                .setHeartbeatEnabled(config.isHeartbeatEnabled())
+                .setHeartbeatPeriod(config.getHeartbeatPeriod())
+                .setAgentPath(config.getAgentPath())
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
                 .build(newSessionPath);
 
