@@ -188,7 +188,6 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 rs.getString("instance_id"),
                 rs.getInt("session_order"),
                 Path.of(rs.getString("relative_session_path")),
-                rs.getString("finished_file"),
                 rs.getString("profiler_settings"),
                 rs.getBoolean("streaming_enabled"),
                 Mappers.instant(rs, "origin_created_at"),

@@ -18,10 +18,26 @@
 
 package pbouda.jeffrey.platform.project.repository.detection;
 
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 
-public interface StatusStrategy {
-    RecordingStatus determineStatus(Path sessionPath);
+public record TimeBasedFinishedDetectionStrategy(Duration finishedPeriod, Clock clock) implements FinishedDetectionStrategy {
+
+    @Override
+    public RecordingStatus determineStatus(Path sessionPath) {
+        Optional<Instant> modifiedAtOpt = FileSystemUtils.directoryModification(sessionPath);
+        if (modifiedAtOpt.isEmpty()) {
+            return RecordingStatus.UNKNOWN;
+        } else if (clock.instant().isAfter(modifiedAtOpt.get().plus(finishedPeriod))) {
+            return RecordingStatus.FINISHED;
+        } else {
+            return RecordingStatus.ACTIVE;
+        }
+    }
 }

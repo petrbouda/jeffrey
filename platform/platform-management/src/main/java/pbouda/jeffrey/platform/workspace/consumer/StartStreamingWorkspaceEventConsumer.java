@@ -84,7 +84,6 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
                 eventContent.instanceId(),
                 eventContent.order(),
                 Path.of(eventContent.relativeSessionPath()),
-                eventContent.finishedFile(),
                 eventContent.profilerSettings(),
                 eventContent.streamingEnabled(),
                 event.originCreatedAt(),

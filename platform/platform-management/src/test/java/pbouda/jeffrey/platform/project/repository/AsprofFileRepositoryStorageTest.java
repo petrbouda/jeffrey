@@ -108,7 +108,6 @@ class AsprofFileRepositoryStorageTest {
                 null,                 // instanceId
                 1,                    // order
                 Path.of(SESSION_ID),  // relativeSessionPath
-                ".finished",          // finishedFile
                 null,                 // profilerSettings
                 false,                // streamingEnabled
                 now,                  // originCreatedAt
@@ -151,7 +150,7 @@ class AsprofFileRepositoryStorageTest {
     }
 
     private void createFinishedFile() throws IOException {
-        Files.createFile(sessionPath.resolve(".finished"));
+        Files.createFile(sessionPath.resolve("perf-counters.hsperfdata"));
     }
 
     @Nested
@@ -329,9 +328,10 @@ class AsprofFileRepositoryStorageTest {
 
             List<Path> artifacts = storage.artifacts(SESSION_ID);
 
-            // Should only include the heap dump, not the JFR file
-            assertEquals(1, artifacts.size());
-            assertTrue(artifacts.getFirst().toString().endsWith(FileExtensions.HPROF));
+            // Should include the heap dump and the finisher file, but not the JFR file
+            assertEquals(2, artifacts.size());
+            assertTrue(artifacts.stream().anyMatch(p -> p.toString().endsWith(FileExtensions.HPROF)));
+            assertTrue(artifacts.stream().anyMatch(p -> p.toString().endsWith(FileExtensions.PERF_COUNTERS)));
         }
 
         @Test
@@ -352,13 +352,15 @@ class AsprofFileRepositoryStorageTest {
         }
 
         @Test
-        void returnsEmptyList_whenNoArtifacts() throws IOException {
+        void returnsOnlyFinisherFile_whenNoOtherArtifacts() throws IOException {
             copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
             createFinishedFile();
 
             List<Path> artifacts = storage.artifacts(SESSION_ID);
 
-            assertTrue(artifacts.isEmpty());
+            // Only the finisher file (perf-counters.hsperfdata) is an artifact
+            assertEquals(1, artifacts.size());
+            assertTrue(artifacts.getFirst().toString().endsWith(FileExtensions.PERF_COUNTERS));
         }
     }
 

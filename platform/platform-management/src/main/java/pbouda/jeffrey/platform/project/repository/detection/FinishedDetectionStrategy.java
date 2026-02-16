@@ -16,16 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.shared.common.model.repository;
+package pbouda.jeffrey.platform.project.repository.detection;
 
-public record RemoteProjectInstanceSession(
-        String sessionId,
-        String projectId,
-        String workspaceId,
-        String instanceId,
-        long createdAt,
-        int order,
-        String relativeSessionPath,
-        String profilerSettings,
-        boolean streamingEnabled) {
+import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
+
+import java.nio.file.Path;
+
+public interface FinishedDetectionStrategy {
+    RecordingStatus determineStatus(Path sessionPath);
 }

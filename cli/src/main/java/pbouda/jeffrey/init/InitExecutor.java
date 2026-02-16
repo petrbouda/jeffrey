@@ -148,7 +148,6 @@ public class InitExecutor {
                 config.getWorkspaceId(),
                 instanceId,
                 order,
-                config.isPerfCountersEnabled() ? FeatureBuilder.PERF_COUNTERS_FILE : null,
                 profilerSettings,
                 config.isMessagingEnabled(),
                 newSessionPath);

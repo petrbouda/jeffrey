@@ -119,7 +119,6 @@ public class FileSystemRepository {
             String workspaceId,
             String instanceId,
             int order,
-            String finishedFile,
             String profilerSettings,
             boolean streamingEnabled,
             Path sessionPath) {
@@ -135,7 +134,6 @@ public class FileSystemRepository {
                     instanceId,
                     clock.instant().toEpochMilli(),
                     order,
-                    finishedFile,
                     relativeSessionPath,
                     profilerSettings,
                     streamingEnabled);

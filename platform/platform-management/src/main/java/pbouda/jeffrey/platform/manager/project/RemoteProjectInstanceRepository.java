@@ -114,7 +114,6 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 0,
                 null,
                 null,
-                null,
                 false,
                 null,
                 InstantUtils.fromEpochMilli(response.startedAt()),

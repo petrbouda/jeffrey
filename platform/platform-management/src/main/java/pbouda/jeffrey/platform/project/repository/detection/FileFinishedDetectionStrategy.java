@@ -18,29 +18,34 @@
 
 package pbouda.jeffrey.platform.project.repository.detection;
 
-import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Optional;
+import java.util.stream.Stream;
 
-public record WithoutDetectionFileStrategy(Duration finishedPeriod, Clock clock) implements StatusStrategy {
+public record FileFinishedDetectionStrategy(FinishedDetectionStrategy fallback) implements FinishedDetectionStrategy {
 
     @Override
     public RecordingStatus determineStatus(Path sessionPath) {
-        Optional<Instant> modifiedAtOpt = FileSystemUtils.directoryModification(sessionPath);
-        if (modifiedAtOpt.isEmpty()) {
-            // No Raw Recordings in the Recording Session folder
-            return RecordingStatus.UNKNOWN;
-        } else if (clock.instant().isAfter(modifiedAtOpt.get().plus(finishedPeriod))) {
-            // Latest modification with finished-period passed
+        if (hasFinisherFile(sessionPath)) {
             return RecordingStatus.FINISHED;
-        } else {
-            // Finished-period has not passed, but we cannot say it's active because we don't know the detection file
-            return RecordingStatus.UNKNOWN;
+        }
+        return fallback.determineStatus(sessionPath);
+    }
+
+    private static boolean hasFinisherFile(Path sessionPath) {
+        if (!Files.isDirectory(sessionPath)) {
+            return false;
+        }
+        try (Stream<Path> files = Files.list(sessionPath)) {
+            return files
+                    .filter(Files::isRegularFile)
+                    .anyMatch(file -> SupportedRecordingFile.isFinisherFile(file.getFileName().toString()));
+        } catch (IOException e) {
+            return false;
         }
     }
 }

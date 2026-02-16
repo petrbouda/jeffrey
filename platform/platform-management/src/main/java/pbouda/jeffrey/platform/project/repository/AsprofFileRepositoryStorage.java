@@ -20,9 +20,9 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.project.repository.detection.StatusStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.FileFinishedDetectionStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.FinishedDetectionStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.TimeBasedFinishedDetectionStrategy;
 import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
@@ -197,7 +197,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         if (isLatestSession) {
             // For latest session, use the strategy-based logic
-            StatusStrategy strategy = createStatusStrategy(sessionInfo);
+            FinishedDetectionStrategy strategy = createStatusStrategy();
             return strategy.determineStatus(sessionPath);
         } else {
             // For all other sessions, force FINISHED status (business rule)
@@ -262,12 +262,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         return RepositoryType.ASYNC_PROFILER;
     }
 
-    protected StatusStrategy createStatusStrategy(ProjectInstanceSessionInfo sessionInfo) {
-        if (sessionInfo.finishedFile() != null) {
-            return new WithDetectionFileStrategy(sessionInfo.finishedFile(), finishedPeriod, clock);
-        } else {
-            return new WithoutDetectionFileStrategy(finishedPeriod, clock);
-        }
+    protected FinishedDetectionStrategy createStatusStrategy() {
+        return new FileFinishedDetectionStrategy(new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock));
     }
 
     // ========== Recording Files ==========
@@ -475,7 +471,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                             FileSystemUtils.size(file),
                             SupportedRecordingFile.of(sourceName),
                             isRecordingFile,
-                            sourceName.equals(sessionInfo.finishedFile()),
+                            SupportedRecordingFile.of(sourceName).isFinisher(),
                             RecordingStatus.FINISHED,
                             file);
                 })

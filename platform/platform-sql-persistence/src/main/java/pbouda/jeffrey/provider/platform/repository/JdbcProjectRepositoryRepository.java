@@ -55,8 +55,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
             INSERT INTO project_instance_sessions
-            (session_id, repository_id, instance_id, session_order, relative_session_path, profiler_settings, finished_file, streaming_enabled, origin_created_at, created_at)
-            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :profiler_settings, :finished_file, :streaming_enabled, :origin_created_at, :created_at)
+            (session_id, repository_id, instance_id, session_order, relative_session_path, profiler_settings, streaming_enabled, origin_created_at, created_at)
+            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :profiler_settings, :streaming_enabled, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -160,7 +160,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("session_order", session.order())
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
                 .addValue("profiler_settings", session.profilerSettings())
-                .addValue("finished_file", session.finishedFile())
                 .addValue("streaming_enabled", session.streamingEnabled())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));
@@ -242,7 +241,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                     rs.getString("instance_id"),
                     rs.getInt("session_order"),
                     Path.of(rs.getString("relative_session_path")),
-                    rs.getString("finished_file"),
                     rs.getString("profiler_settings"),
                     rs.getBoolean("streaming_enabled"),
                     Mappers.instant(rs, "origin_created_at"),

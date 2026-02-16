@@ -34,9 +34,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record AsprofStatusStrategy(Duration finishedPeriod, Clock clock) implements StatusStrategy {
+public record AsprofFinishedDetectionStrategy(Duration finishedPeriod, Clock clock) implements FinishedDetectionStrategy {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AsprofStatusStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AsprofFinishedDetectionStrategy.class);
 
     @Override
     public RecordingStatus determineStatus(Path sessionPath) {

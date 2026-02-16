@@ -32,62 +32,75 @@ public enum SupportedRecordingFile {
             "LZ4 Compressed JDK Flight Recording",
             FileExtensions.JFR_LZ4,
             filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
+            false,
             false
     ),
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
             filename -> filename.endsWith("." + FileExtensions.JFR),
+            false,
             false
     ),
     ASPROF_TEMP(
             "Async Profiler Cache File",
             FileExtensions.ASPROF_TEMP,
             new AsprofCacheFileMatcher(),
+            false,
             false
     ),
     HEAP_DUMP_GZ(
             "GZ Compressed Heap Dump",
             FileExtensions.HPROF_GZ,
             filename -> filename.endsWith("." + FileExtensions.HPROF_GZ),
-            true
+            true,
+            false
     ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,
             filename -> filename.endsWith("." + FileExtensions.HPROF),
-            true
+            true,
+            false
     ),
     PERF_COUNTERS(
             "HotSpot Performance Counters",
             FileExtensions.PERF_COUNTERS,
             filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
+            true,
             true
     ),
     JVM_LOG(
             "JVM Log",
             FileExtensions.JVM_LOG,
             new JvmLogFileMatcher(),
-            true
+            true,
+            false
     ),
     HS_JVM_ERROR_LOG(
             "HotSpot JVM Error Log",
             FileExtensions.HS_JVM_ERROR_LOG,
             filename -> filename.endsWith(FileExtensions.HS_JVM_ERROR_LOG),
+            true,
             true
     ),
     UNKNOWN(
             "Unsupported File Type",
             null,
             _ -> true,
-            true
+            true,
+            false
     );
 
     private final static List<SupportedRecordingFile> KNOWN_TYPES;
+    private final static List<SupportedRecordingFile> FINISHERS;
 
     static {
         KNOWN_TYPES = Arrays.stream(values())
                 .filter(file -> !(file == UNKNOWN))
+                .toList();
+        FINISHERS = Arrays.stream(values())
+                .filter(SupportedRecordingFile::isFinisher)
                 .toList();
     }
 
@@ -95,17 +108,20 @@ public enum SupportedRecordingFile {
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
     private final boolean isArtifactFile;
+    private final boolean isFinisher;
 
     SupportedRecordingFile(
             String description,
             String fileExtension,
             Predicate<String> filenameMatcher,
-            boolean isArtifactFile) {
+            boolean isArtifactFile,
+            boolean isFinisher) {
 
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
         this.isArtifactFile = isArtifactFile;
+        this.isFinisher = isFinisher;
     }
 
     public static SupportedRecordingFile of(Path path) {
@@ -152,5 +168,13 @@ public enum SupportedRecordingFile {
 
     public boolean isArtifactFile() {
         return isArtifactFile;
+    }
+
+    public boolean isFinisher() {
+        return isFinisher;
+    }
+
+    public static boolean isFinisherFile(String filename) {
+        return FINISHERS.stream().anyMatch(f -> f.matches(filename));
     }
 }

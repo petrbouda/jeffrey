@@ -22,7 +22,6 @@ public record SessionCreatedEventContent(
         String instanceId,
         int order,
         String relativeSessionPath,
-        String finishedFile,
         String profilerSettings,
         boolean streamingEnabled) {
 }

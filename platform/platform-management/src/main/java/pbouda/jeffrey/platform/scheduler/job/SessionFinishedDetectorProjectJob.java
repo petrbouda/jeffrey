@@ -24,9 +24,9 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
-import pbouda.jeffrey.platform.project.repository.detection.StatusStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.WithDetectionFileStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.WithoutDetectionFileStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.FileFinishedDetectionStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.FinishedDetectionStrategy;
+import pbouda.jeffrey.platform.project.repository.detection.TimeBasedFinishedDetectionStrategy;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
@@ -50,7 +50,7 @@ import java.util.List;
  * Scheduler job that detects when sessions become FINISHED and emits SESSION_FINISHED events.
  * <p>
  * This job periodically checks all sessions that have not been marked as finished yet.
- * For each unfinished session, it uses the StatusStrategy to determine if the session
+ * For each unfinished session, it uses the FinishedDetectionStrategy to determine if the session
  * has actually finished (either by detection file or timeout). When a session is detected
  * as finished, it:
  * 1. Updates the finished_at timestamp in the database
@@ -126,7 +126,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             ProjectInstanceSessionInfo sessionInfo) {
 
         Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        StatusStrategy strategy = createStatusStrategy(sessionInfo);
+        FinishedDetectionStrategy strategy = createStatusStrategy();
         RecordingStatus status = strategy.determineStatus(sessionPath);
 
         if (status == RecordingStatus.FINISHED) {
@@ -162,12 +162,8 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                 .resolve(sessionInfo.relativeSessionPath());
     }
 
-    private StatusStrategy createStatusStrategy(ProjectInstanceSessionInfo sessionInfo) {
-        if (sessionInfo.finishedFile() != null) {
-            return new WithDetectionFileStrategy(sessionInfo.finishedFile(), finishedPeriod, clock);
-        } else {
-            return new WithoutDetectionFileStrategy(finishedPeriod, clock);
-        }
+    private FinishedDetectionStrategy createStatusStrategy() {
+        return new FileFinishedDetectionStrategy(new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock));
     }
 
     @Override

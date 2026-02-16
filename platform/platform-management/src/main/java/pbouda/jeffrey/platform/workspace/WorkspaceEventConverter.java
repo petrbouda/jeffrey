@@ -98,7 +98,6 @@ public abstract class WorkspaceEventConverter {
                 event.instanceId(),
                 event.order(),
                 event.relativeSessionPath(),
-                event.finishedFile(),
                 event.profilerSettings(),
                 event.streamingEnabled());
 
