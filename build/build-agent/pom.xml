@@ -23,16 +23,20 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>pbouda.jeffrey</groupId>
-        <artifactId>parent</artifactId>
+        <artifactId>build</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jeffrey-agent</artifactId>
+    <artifactId>build-agent</artifactId>
+
+    <properties>
+        <finalName>jeffrey-agent</finalName>
+    </properties>
 
     <dependencies>
         <dependency>
-            <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-agent</artifactId>
         </dependency>
     </dependencies>
 
@@ -40,10 +44,27 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <release>17</release>
-                </configuration>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${finalName}</finalName>
+                            <archive>
+                                <manifestEntries>
+                                    <Premain-Class>pbouda.jeffrey.agent.JeffreyAgent</Premain-Class>
+                                </manifestEntries>
+                            </archive>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                            <appendAssemblyId>false</appendAssemblyId>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

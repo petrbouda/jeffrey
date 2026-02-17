@@ -40,7 +40,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: jeffrey-agent-jar
-        path: ./jeffrey-agent/target/jeffrey-agent-*.jar
+        path: ./build/build-agent/target/jeffrey-agent.jar
 
   build-cli-native:
     runs-on: ${{ matrix.os }}
@@ -215,7 +215,7 @@ jobs:
         files: |
           ./artifacts/jeffrey.jar
           ./artifacts/jeffrey-cli.jar
-          ./artifacts/jeffrey-agent-*.jar
+          ./artifacts/jeffrey-agent.jar
           ./artifacts/jeffrey-cli-amd64
         draft: false
         prerelease: false
