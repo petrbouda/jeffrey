@@ -19,7 +19,6 @@
 package pbouda.jeffrey.init;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigFactory;
 import pbouda.jeffrey.init.model.HeapDumpType;
 import pbouda.jeffrey.shared.common.IDGenerator;
@@ -90,8 +89,89 @@ public class InitConfig {
             resolved = baseConfig.withFallback(defaults).resolve();
         }
 
-        InitConfig config = ConfigBeanFactory.create(resolved, InitConfig.class);
+        InitConfig config = fromConfig(resolved);
         config.validate();
+
+        return config;
+    }
+
+    /**
+     * Manually creates an InitConfig from a resolved Config object.
+     * Avoids {@link com.typesafe.config.ConfigBeanFactory} which relies on
+     * {@code java.beans.Introspector} from the {@code java.desktop} module,
+     * not available in minimal JDK distributions (e.g. container images).
+     */
+    private static InitConfig fromConfig(Config resolved) {
+        InitConfig config = new InitConfig();
+        config.setSilent(resolved.getBoolean("silent"));
+        config.setJeffreyHome(resolved.getString("jeffrey-home"));
+        config.setWorkspacesDir(resolved.getString("workspaces-dir"));
+        config.setProfilerPath(resolved.getString("profiler-path"));
+        config.setProfilerConfig(resolved.getString("profiler-config"));
+        config.setRepositoryType(resolved.getString("repository-type"));
+
+        Config projectCfg = resolved.getConfig("project");
+        ProjectConfig project = new ProjectConfig();
+        project.setWorkspaceId(projectCfg.getString("workspace-id"));
+        project.setName(projectCfg.getString("name"));
+        project.setLabel(projectCfg.getString("label"));
+        project.setInstanceId(projectCfg.getString("instance-id"));
+        config.setProject(project);
+
+        config.setAttributes(resolved.getObject("attributes").unwrapped());
+
+        Config perfCfg = resolved.getConfig("perf-counters");
+        PerfCountersConfig perfCounters = new PerfCountersConfig();
+        perfCounters.setEnabled(perfCfg.getBoolean("enabled"));
+        config.setPerfCounters(perfCounters);
+
+        Config heapCfg = resolved.getConfig("heap-dump");
+        HeapDumpConfig heapDump = new HeapDumpConfig();
+        heapDump.setEnabled(heapCfg.getBoolean("enabled"));
+        if (heapCfg.hasPath("type")) {
+            heapDump.setType(heapCfg.getString("type"));
+        }
+        config.setHeapDump(heapDump);
+
+        Config jvmLogCfg = resolved.getConfig("jvm-logging");
+        JvmLoggingConfig jvmLogging = new JvmLoggingConfig();
+        jvmLogging.setEnabled(jvmLogCfg.getBoolean("enabled"));
+        if (jvmLogCfg.hasPath("command")) {
+            jvmLogging.setCommand(jvmLogCfg.getString("command"));
+        }
+        config.setJvmLogging(jvmLogging);
+
+        Config msgCfg = resolved.getConfig("messaging");
+        MessagingConfig messaging = new MessagingConfig();
+        messaging.setEnabled(msgCfg.getBoolean("enabled"));
+        if (msgCfg.hasPath("max-age")) {
+            messaging.setMaxAge(msgCfg.getString("max-age"));
+        }
+        config.setMessaging(messaging);
+
+        Config hbCfg = resolved.getConfig("heartbeat");
+        HeartbeatConfig heartbeat = new HeartbeatConfig();
+        heartbeat.setEnabled(hbCfg.getBoolean("enabled"));
+        if (hbCfg.hasPath("period")) {
+            heartbeat.setPeriod(hbCfg.getString("period"));
+        }
+        if (hbCfg.hasPath("agent-path")) {
+            heartbeat.setAgentPath(hbCfg.getString("agent-path"));
+        }
+        config.setHeartbeat(heartbeat);
+
+        Config jdkCfg = resolved.getConfig("jdk-java-options");
+        JdkJavaOptionsConfig jdkJavaOptions = new JdkJavaOptionsConfig();
+        jdkJavaOptions.setEnabled(jdkCfg.getBoolean("enabled"));
+        if (jdkCfg.hasPath("additional-options")) {
+            jdkJavaOptions.setAdditionalOptions(jdkCfg.getString("additional-options"));
+        }
+        config.setJdkJavaOptions(jdkJavaOptions);
+
+        Config dnsCfg = resolved.getConfig("debug-non-safepoints");
+        DebugNonSafepointsConfig debugNonSafepoints = new DebugNonSafepointsConfig();
+        debugNonSafepoints.setEnabled(dnsCfg.getBoolean("enabled"));
+        config.setDebugNonSafepoints(debugNonSafepoints);
 
         return config;
     }
