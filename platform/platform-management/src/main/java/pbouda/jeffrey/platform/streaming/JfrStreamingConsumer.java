@@ -19,19 +19,21 @@
 package pbouda.jeffrey.platform.streaming;
 
 import jdk.jfr.consumer.EventStream;
-import jdk.jfr.consumer.RecordedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.EventTypeName;
+
+import pbouda.jeffrey.shared.common.Schedulers;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Consumes JFR events from a streaming repository for a specific session.
  * Uses {@link EventStream#openRepository(Path)} to open a live JFR repository
- * and processes custom application events (jeffrey.ImportantMessage).
+ * and delegates event processing to pluggable {@link JfrStreamingHandler} instances.
  */
 public class JfrStreamingConsumer implements Closeable {
 
@@ -41,14 +43,22 @@ public class JfrStreamingConsumer implements Closeable {
 
     private final String sessionId;
     private final Path streamingRepoPath;
-    private final JfrHeartbeatHandler heartbeatHandler;
+    private final List<JfrStreamingHandler> handlers;
+    private final Runnable onNaturalClose;
+    private final AtomicBoolean closedExplicitly = new AtomicBoolean(false);
 
     private EventStream eventStream;
 
-    public JfrStreamingConsumer(String sessionId, Path sessionPath, JfrHeartbeatHandler heartbeatHandler) {
+    public JfrStreamingConsumer(
+            String sessionId,
+            Path sessionPath,
+            List<JfrStreamingHandler> handlers,
+            Runnable onNaturalClose) {
+
         this.sessionId = sessionId;
         this.streamingRepoPath = sessionPath.resolve(STREAMING_REPO_DIR);
-        this.heartbeatHandler = heartbeatHandler;
+        this.handlers = handlers;
+        this.onNaturalClose = onNaturalClose;
     }
 
     /**
@@ -61,36 +71,49 @@ public class JfrStreamingConsumer implements Closeable {
 
         this.eventStream = EventStream.openRepository(streamingRepoPath);
 
-        // Register event handlers for custom application events
-        eventStream.onEvent(EventTypeName.IMPORTANT_MESSAGE, this::handleMessage);
-        eventStream.onEvent(EventTypeName.HEARTBEAT, heartbeatHandler::onEvent);
+        for (JfrStreamingHandler handler : handlers) {
+            handler.initialize(this::closeStream);
+        }
 
-        // Log errors from the stream
+        for (JfrStreamingHandler handler : handlers) {
+            eventStream.onEvent(handler.eventType(), handler::onEvent);
+        }
+
         eventStream.onError(throwable ->
                 LOG.error("Error in JFR streaming consumer: sessionId={}", sessionId, throwable));
 
-        eventStream.startAsync();
+        eventStream.onClose(() -> {
+            if (!closedExplicitly.get()) {
+                LOG.info("JFR stream ended naturally (JVM shutdown): sessionId={}", sessionId);
+                for (JfrStreamingHandler handler : handlers) {
+                    handler.close();
+                }
+                if (onNaturalClose != null) {
+                    onNaturalClose.run();
+                }
+            }
+        });
+
+        Schedulers.streamingExecutor()
+                .execute(() -> eventStream.start());
     }
 
-    private void handleMessage(RecordedEvent event) {
-        String message = event.getString("message");
-        String level = event.hasField("level") ? event.getString("level") : "INFO";
-        LOG.debug("[JFR] ImportantMessage: sessionId={} level={} message={}", sessionId, level, message);
-    }
-
-    public String sessionId() {
-        return sessionId;
-    }
-
-    public java.time.Instant lastHeartbeat() {
-        return heartbeatHandler != null ? heartbeatHandler.lastHeartbeat() : null;
+    /**
+     * Closes the event stream without marking as explicitly closed.
+     * This triggers the {@code onClose} callback which handles natural close logic.
+     */
+    public void closeStream() {
+        if (eventStream != null) {
+            eventStream.close();
+        }
     }
 
     @Override
     public void close() {
         LOG.debug("Stopping JFR streaming consumer: sessionId={}", sessionId);
-        if (heartbeatHandler != null) {
-            heartbeatHandler.flush();
+        closedExplicitly.set(true);
+        for (JfrStreamingHandler handler : handlers) {
+            handler.close();
         }
         if (eventStream != null) {
             eventStream.close();

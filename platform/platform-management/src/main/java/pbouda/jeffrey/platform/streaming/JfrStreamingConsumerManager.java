@@ -20,17 +20,21 @@ package pbouda.jeffrey.platform.streaming;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.jfr.JfrEmitter;
+import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Instant;
-import java.util.Optional;
+import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -44,15 +48,23 @@ public class JfrStreamingConsumerManager implements Closeable {
 
     private final ConcurrentHashMap<String, JfrStreamingConsumer> consumers = new ConcurrentHashMap<>();
     private final JeffreyDirs jeffreyDirs;
+    private final SessionFinishEventEmitter eventEmitter;
     private final Clock clock;
+    private final Duration heartbeatTimeout;
+    private final boolean requireInitialHeartbeat;
 
-    public JfrStreamingConsumerManager(JeffreyDirs jeffreyDirs) {
-        this(jeffreyDirs, Clock.systemUTC());
-    }
+    public JfrStreamingConsumerManager(
+            JeffreyDirs jeffreyDirs,
+            SessionFinishEventEmitter eventEmitter,
+            Clock clock,
+            Duration heartbeatTimeout,
+            boolean requireInitialHeartbeat) {
 
-    public JfrStreamingConsumerManager(JeffreyDirs jeffreyDirs, Clock clock) {
         this.jeffreyDirs = jeffreyDirs;
+        this.eventEmitter = eventEmitter;
         this.clock = clock;
+        this.heartbeatTimeout = heartbeatTimeout;
+        this.requireInitialHeartbeat = requireInitialHeartbeat;
     }
 
     /**
@@ -62,11 +74,13 @@ public class JfrStreamingConsumerManager implements Closeable {
      * @param repositoryInfo       information about the repository
      * @param sessionInfo          information about the session
      * @param repositoryRepository project repository for persisting heartbeat data
+     * @param projectInfo          project that owns this session (used for session-finished events)
      */
     public void registerConsumer(
             RepositoryInfo repositoryInfo,
             ProjectInstanceSessionInfo sessionInfo,
-            ProjectRepositoryRepository repositoryRepository) {
+            ProjectRepositoryRepository repositoryRepository,
+            ProjectInfo projectInfo) {
 
         if (!sessionInfo.streamingEnabled()) {
             LOG.debug("Streaming not enabled for session, skipping: sessionId={}", sessionInfo.sessionId());
@@ -80,15 +94,37 @@ public class JfrStreamingConsumerManager implements Closeable {
         }
 
         Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        JfrHeartbeatHandler heartbeatHandler = new JfrHeartbeatHandler(sessionId, repositoryRepository, clock);
-        JfrStreamingConsumer consumer = new JfrStreamingConsumer(sessionId, sessionPath, heartbeatHandler);
+        List<JfrStreamingHandler> handlers = List.of(
+                new JfrHeartbeatHandler(sessionId, repositoryRepository, clock, heartbeatTimeout, requireInitialHeartbeat),
+                new ImportantMessageStreamingHandler(sessionId)
+        );
+
+        Runnable onNaturalClose = () -> {
+            LOG.info("Stream closed naturally, marking session finished: sessionId={} projectId={}",
+                    sessionId, projectInfo.id());
+            repositoryRepository.markSessionFinished(sessionId, clock.instant());
+            eventEmitter.emitSessionFinished(projectInfo, sessionInfo, WorkspaceEventCreator.STREAMING_CONSUMER);
+            JfrEmitter.sessionFinished(sessionId, projectInfo.id());
+            consumers.remove(sessionId);
+        };
+
+        JfrStreamingConsumer consumer = new JfrStreamingConsumer(
+                sessionId, sessionPath, handlers, onNaturalClose);
 
         try {
             consumer.start();
-            consumers.put(sessionId, consumer);
-            LOG.info("Registered JFR streaming consumer: sessionId={}", sessionId);
         } catch (IOException e) {
             LOG.error("Failed to start JFR streaming consumer: sessionId={} path={}", sessionId, sessionPath, e);
+            return;
+        }
+
+        JfrStreamingConsumer existing = consumers.putIfAbsent(sessionId, consumer);
+        if (existing != null) {
+            // Another thread won the race — close the consumer we just created
+            consumer.close();
+            LOG.debug("Consumer already registered by another thread, closing duplicate: sessionId={}", sessionId);
+        } else {
+            LOG.info("Registered JFR streaming consumer: sessionId={}", sessionId);
         }
     }
 
@@ -103,17 +139,6 @@ public class JfrStreamingConsumerManager implements Closeable {
             consumer.close();
             LOG.info("Unregistered JFR streaming consumer: sessionId={}", sessionId);
         }
-    }
-
-    /**
-     * Returns the last heartbeat instant for a given session, if available.
-     *
-     * @param sessionId the session ID
-     * @return the last heartbeat instant, or empty if no heartbeat data
-     */
-    public Optional<Instant> getLastHeartbeat(String sessionId) {
-        JfrStreamingConsumer consumer = consumers.get(sessionId);
-        return consumer != null ? Optional.ofNullable(consumer.lastHeartbeat()) : Optional.empty();
     }
 
     private Path resolveSessionPath(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {

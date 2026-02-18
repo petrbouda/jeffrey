@@ -44,10 +44,16 @@ public abstract class Schedulers {
             Executors.newSingleThreadExecutor(platformThreadfactory("single"));
 
     private static final ExecutorService VIRTUAL =
-            Executors.newThreadPerTaskExecutor(virtualThreadfactory());
+            Executors.newThreadPerTaskExecutor(virtualThreadfactory("virtual"));
 
     private static final ScheduledExecutorService SINGLE_SCHEDULED =
             Executors.newSingleThreadScheduledExecutor(platformThreadfactory("single-scheduled"));
+
+    private static final ScheduledExecutorService WATCHDOG_SCHEDULED =
+            Executors.newSingleThreadScheduledExecutor(virtualThreadfactory("watchdog"));
+
+    private static final ExecutorService STREAMING =
+            Executors.newThreadPerTaskExecutor(virtualThreadfactory("streaming"));
 
     public static ExecutorService sharedParallel() {
         return PARALLEL;
@@ -65,6 +71,14 @@ public abstract class Schedulers {
         return SINGLE_SCHEDULED;
     }
 
+    public static ScheduledExecutorService watchdogScheduled() {
+        return WATCHDOG_SCHEDULED;
+    }
+
+    public static ExecutorService streamingExecutor() {
+        return STREAMING;
+    }
+
     public static ThreadFactory platformThreadfactory(String prefix) {
         return Thread.ofPlatform()
                 .daemon(true)
@@ -73,8 +87,9 @@ public abstract class Schedulers {
                 .factory();
     }
 
-    public static ThreadFactory virtualThreadfactory() {
+    public static ThreadFactory virtualThreadfactory(String prefix) {
         return Thread.ofVirtual()
+                .name(prefix)
                 .uncaughtExceptionHandler(new LoggingUncaughtExceptionHandler())
                 .factory();
     }
@@ -85,6 +100,8 @@ public abstract class Schedulers {
             SINGLE.close();
             VIRTUAL.close();
             SINGLE_SCHEDULED.close();
+            WATCHDOG_SCHEDULED.close();
+            STREAMING.close();
         }));
     }
 }

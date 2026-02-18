@@ -54,13 +54,22 @@ public class SessionFinishEventEmitter {
     }
 
     public void emitSessionFinished(ProjectInfo projectInfo, ProjectInstanceSessionInfo sessionInfo) {
+        emitSessionFinished(projectInfo, sessionInfo, WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
+    }
+
+    public void emitSessionFinished(
+            ProjectInfo projectInfo,
+            ProjectInstanceSessionInfo sessionInfo,
+            WorkspaceEventCreator creator) {
+
         WorkspaceEvent event = WorkspaceEventConverter.sessionFinished(
                 clock.instant(),
                 projectInfo,
                 sessionInfo,
-                WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
+                creator);
 
         workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(event));
-        LOG.debug("Emitted session finished event: project_id={} session_id={}", projectInfo.id(), sessionInfo.sessionId());
+        LOG.debug("Emitted session finished event: projectId={} sessionId={} creator={}",
+                projectInfo.id(), sessionInfo.sessionId(), creator);
     }
 }

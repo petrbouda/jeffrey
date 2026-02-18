@@ -20,9 +20,6 @@ package pbouda.jeffrey.platform.project.repository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.project.repository.detection.FileFinishedDetectionStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.FinishedDetectionStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.TimeBasedFinishedDetectionStrategy;
 import pbouda.jeffrey.platform.project.repository.file.FileInfoProcessor;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
@@ -43,8 +40,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.Clock;
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -70,29 +65,23 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private static final SupportedRecordingFile TARGET_COMPRESSED_TYPE = SupportedRecordingFile.JFR_LZ4;
 
     private final Lock compressionLock = new ReentrantLock();
-    private final Clock clock;
     private final ProjectInfo projectInfo;
     private final JeffreyDirs jeffreyDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
-    private final Duration finishedPeriod;
     private final RecordingFileEventEmitter eventEmitter;
 
     public AsprofFileRepositoryStorage(
-            Clock clock,
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
             ProjectRepositoryRepository projectRepositoryRepository,
             FileInfoProcessor fileInfoProcessor,
-            Duration finishedPeriod,
             RecordingFileEventEmitter eventEmitter) {
 
-        this.clock = clock;
         this.projectInfo = projectInfo;
         this.jeffreyDirs = jeffreyDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
-        this.finishedPeriod = finishedPeriod;
         this.eventEmitter = eventEmitter;
     }
 
@@ -164,7 +153,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 .resolve(sessionInfo.relativeSessionPath());
 
         // Determine status based on business rule: only latest session can be ACTIVE/UNKNOWN
-        RecordingStatus recordingStatus = determineSessionStatus(sessionPath, sessionInfo, isLatestSession);
+        RecordingStatus recordingStatus = determineSessionStatus(sessionInfo, isLatestSession);
 
         List<RepositoryFile> repositoryFiles;
         if (withFiles) {
@@ -191,17 +180,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                 repositoryFiles);
     }
 
-    private RecordingStatus determineSessionStatus(
-            Path sessionPath,
-            ProjectInstanceSessionInfo sessionInfo,
-            boolean isLatestSession) {
-
+    private RecordingStatus determineSessionStatus(ProjectInstanceSessionInfo sessionInfo, boolean isLatestSession) {
         if (isLatestSession) {
-            // For latest session, use the strategy-based logic
-            FinishedDetectionStrategy strategy = createStatusStrategy();
-            return strategy.determineStatus(sessionPath);
+            return sessionInfo.finishedAt() != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         } else {
-            // For all other sessions, force FINISHED status (business rule)
             return RecordingStatus.FINISHED;
         }
     }
@@ -261,10 +243,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     @Override
     public RepositoryType type() {
         return RepositoryType.ASYNC_PROFILER;
-    }
-
-    protected FinishedDetectionStrategy createStatusStrategy() {
-        return new FileFinishedDetectionStrategy(new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock));
     }
 
     // ========== Recording Files ==========

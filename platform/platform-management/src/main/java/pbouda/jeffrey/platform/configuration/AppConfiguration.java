@@ -45,6 +45,7 @@ import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
@@ -54,6 +55,7 @@ import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.streaming.JfrStreamingInitializer;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
 import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
@@ -226,19 +228,15 @@ public class AppConfiguration {
 
     @Bean
     public RepositoryStorage.Factory remoteRepositoryStorage(
-            @Value("${jeffrey.project.repository-storage.detection.finished-period:30m}") Duration finishedPeriod,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            Clock clock,
             RecordingFileEventEmitter recordingFileEventEmitter) {
         return projectId -> {
             return new AsprofFileRepositoryStorage(
-                    clock,
                     projectId,
                     jeffreyDirs,
                     platformRepositories.newProjectRepositoryRepository(projectId.id()),
                     new AsprofFileInfoProcessor(),
-                    finishedPeriod,
                     recordingFileEventEmitter);
         };
     }
@@ -338,18 +336,25 @@ public class AppConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public JfrStreamingConsumerManager jfrStreamingConsumerManager(JeffreyDirs jeffreyDirs) {
-        return new JfrStreamingConsumerManager(jeffreyDirs);
+    public JfrStreamingConsumerManager jfrStreamingConsumerManager(
+            JeffreyDirs jeffreyDirs,
+            SessionFinishEventEmitter sessionFinishEventEmitter,
+            Clock clock,
+            @Value("${jeffrey.platform.streaming.heartbeat-timeout:15s}") Duration heartbeatTimeout,
+            @Value("${jeffrey.platform.streaming.require-initial-heartbeat:true}") boolean requireInitialHeartbeat) {
+
+        return new JfrStreamingConsumerManager(
+                jeffreyDirs, sessionFinishEventEmitter, clock, heartbeatTimeout, requireInitialHeartbeat);
     }
 
-    // @Bean
-    // public JfrStreamingInitializer jfrStreamingInitializer(
-    //         JfrStreamingConsumerManager jfrStreamingConsumerManager,
-    //         CompositeWorkspacesManager compositeWorkspacesManager,
-    //         PlatformRepositories platformRepositories) {
-    //
-    //     return new JfrStreamingInitializer(jfrStreamingConsumerManager, compositeWorkspacesManager, platformRepositories);
-    // }
+    @Bean
+    public JfrStreamingInitializer jfrStreamingInitializer(
+            JfrStreamingConsumerManager jfrStreamingConsumerManager,
+            CompositeWorkspacesManager compositeWorkspacesManager,
+            PlatformRepositories platformRepositories) {
+
+        return new JfrStreamingInitializer(jfrStreamingConsumerManager, compositeWorkspacesManager, platformRepositories);
+    }
 
     @Bean
     public QuickAnalysisManager quickAnalysisManager(

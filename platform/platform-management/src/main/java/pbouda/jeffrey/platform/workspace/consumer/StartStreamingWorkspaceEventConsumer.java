@@ -98,7 +98,7 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
 
         ProjectRepositoryRepository repoRepository =
                 platformRepositories.newProjectRepositoryRepository(projectManager.info().id());
-        streamingConsumerManager.registerConsumer(repositoryInfo, sessionInfo, repoRepository);
+        streamingConsumerManager.registerConsumer(repositoryInfo, sessionInfo, repoRepository, projectManager.info());
     }
 
     @Override

@@ -26,7 +26,6 @@ import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
-import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
@@ -142,7 +141,6 @@ public class ProjectJobsConfiguration {
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
             SessionFinishEventEmitter sessionFinishEventEmitter,
-            JfrStreamingConsumerManager streamingConsumerManager,
             @Value("${jeffrey.job.session-finished-detector.period:10s}") Duration jobPeriod,
             @Value("${jeffrey.project.repository-storage.detection.finished-period:30m}") Duration finishedPeriod) {
 
@@ -155,7 +153,6 @@ public class ProjectJobsConfiguration {
                 clock,
                 jeffreyDirs,
                 platformRepositories,
-                sessionFinishEventEmitter,
-                streamingConsumerManager);
+                sessionFinishEventEmitter);
     }
 }

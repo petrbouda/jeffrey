@@ -54,6 +54,11 @@ project {
 
 # Features
 
+# Debug Non-Safepoints - more precise profiling (enabled by default)
+debug-non-safepoints {
+    enabled = true
+}
+
 # Performance counters - can be used to detect finished session
 perf-counters {
     enabled = true
@@ -100,8 +105,8 @@ export JEFFREY_CURRENT_WORKSPACE=/tmp/jeffrey/workspaces/uat
 export JEFFREY_CURRENT_PROJECT=/tmp/jeffrey/workspaces/uat/jeffrey
 export JEFFREY_CURRENT_SESSION=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560
 export JEFFREY_FILE_PATTERN=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr
-export JEFFREY_PROFILER_CONFIG='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=24h,jeffrey.ImportantMessage#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch'
-export JDK_JAVA_OPTIONS='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=24h,jeffrey.ImportantMessage#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch'`;
+export JEFFREY_PROFILER_CONFIG='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=24h,jeffrey.ImportantMessage#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch'
+export JDK_JAVA_OPTIONS='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=24h,jeffrey.ImportantMessage#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch'`;
 </script>
 
 <template>
@@ -198,6 +203,10 @@ export JDK_JAVA_OPTIONS='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,
             <tr>
               <td><code>-agentpath:...libasyncProfiler.so=...</code></td>
               <td>Core profiler (always included)</td>
+            </tr>
+            <tr>
+              <td><code>-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints</code></td>
+              <td><code>debug-non-safepoints { enabled = true }</code> (enabled by default)</td>
             </tr>
             <tr>
               <td><code>-XX:+UsePerfData -XX:PerfDataSaveFile=...</code></td>

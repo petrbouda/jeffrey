@@ -32,7 +32,6 @@ import pbouda.jeffrey.platform.project.repository.detection.TimeBasedFinishedDet
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
-import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
@@ -51,6 +50,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -74,7 +74,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
     private final JeffreyDirs jeffreyDirs;
     private final PlatformRepositories platformRepositories;
     private final SessionFinishEventEmitter eventEmitter;
-    private final JfrStreamingConsumerManager streamingManager;
 
     public SessionFinishedDetectorProjectJob(
             WorkspacesManager workspacesManager,
@@ -85,8 +84,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             Clock clock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            SessionFinishEventEmitter eventEmitter,
-            JfrStreamingConsumerManager streamingManager) {
+            SessionFinishEventEmitter eventEmitter) {
 
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
@@ -95,7 +93,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.eventEmitter = eventEmitter;
-        this.streamingManager = streamingManager;
     }
 
     @Override
@@ -137,7 +134,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             ProjectInstanceSessionInfo sessionInfo) {
 
         Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        FinishedDetectionStrategy strategy = createStatusStrategy(sessionInfo.sessionId());
+        FinishedDetectionStrategy strategy = createStatusStrategy(sessionInfo.lastHeartbeatAt());
         RecordingStatus status = strategy.determineStatus(sessionPath);
 
         if (status == RecordingStatus.FINISHED) {
@@ -192,12 +189,12 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                 .resolve(sessionInfo.relativeSessionPath());
     }
 
-    private FinishedDetectionStrategy createStatusStrategy(String sessionId) {
+    private FinishedDetectionStrategy createStatusStrategy(Instant lastHeartbeatAt) {
         FinishedDetectionStrategy timeBased = new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock);
-        FinishedDetectionStrategy heartbeatOrTimeBased = streamingManager != null
-                ? new HeartbeatBasedFinishedDetectionStrategy(sessionId, streamingManager, clock, timeBased)
-                : timeBased;
-        return new FileFinishedDetectionStrategy(heartbeatOrTimeBased);
+        FinishedDetectionStrategy fileBased = new FileFinishedDetectionStrategy(timeBased);
+        return lastHeartbeatAt != null
+                ? new HeartbeatBasedFinishedDetectionStrategy(lastHeartbeatAt, clock, fileBased)
+                : fileBased;
     }
 
     @Override

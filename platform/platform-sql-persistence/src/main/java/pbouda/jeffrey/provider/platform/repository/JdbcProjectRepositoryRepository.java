@@ -105,7 +105,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             UPDATE project_instance_sessions
             SET last_heartbeat_at = :last_heartbeat_at
             WHERE session_id = :session_id
-            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
+            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)
+            AND (last_heartbeat_at IS NULL OR last_heartbeat_at < :last_heartbeat_at)""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;

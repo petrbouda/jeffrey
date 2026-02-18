@@ -85,8 +85,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new InstanceCreatedWorkspaceEventConsumer(projectsManager),
                 new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories),
                 new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories),
-                // Not enabled yet
-                // new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager),
+                new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),
                 new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory));

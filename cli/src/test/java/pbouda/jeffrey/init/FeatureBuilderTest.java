@@ -42,6 +42,29 @@ class FeatureBuilderTest {
     }
 
     @Nested
+    class DebugNonSafepoints {
+
+        @Test
+        void enabledProducesCorrectOptions() {
+            String result = new FeatureBuilder()
+                    .setDebugNonSafepointsEnabled(true)
+                    .build(SESSION_PATH);
+
+            assertTrue(result.contains("-XX:+UnlockDiagnosticVMOptions"));
+            assertTrue(result.contains("-XX:+DebugNonSafepoints"));
+        }
+
+        @Test
+        void disabledProducesNoOptions() {
+            String result = new FeatureBuilder()
+                    .setDebugNonSafepointsEnabled(false)
+                    .build(SESSION_PATH);
+
+            assertEquals("", result);
+        }
+    }
+
+    @Nested
     class PerfCounters {
 
         @Test

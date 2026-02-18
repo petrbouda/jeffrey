@@ -18,14 +18,12 @@
 
 package pbouda.jeffrey.platform.project.repository.detection;
 
-import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 
 /**
  * Detection strategy that uses heartbeat events to determine session liveness.
@@ -33,8 +31,7 @@ import java.util.Optional;
  * If no heartbeat data is available: delegates to the fallback strategy.
  */
 public record HeartbeatBasedFinishedDetectionStrategy(
-        String sessionId,
-        JfrStreamingConsumerManager streamingManager,
+        Instant lastHeartbeatAt,
         Clock clock,
         FinishedDetectionStrategy fallback
 ) implements FinishedDetectionStrategy {
@@ -43,10 +40,9 @@ public record HeartbeatBasedFinishedDetectionStrategy(
 
     @Override
     public RecordingStatus determineStatus(Path sessionPath) {
-        Optional<Instant> lastHeartbeat = streamingManager.getLastHeartbeat(sessionId);
-        if (lastHeartbeat.isPresent()) {
+        if (lastHeartbeatAt != null) {
             Instant threshold = clock.instant().minus(HEARTBEAT_THRESHOLD);
-            if (lastHeartbeat.get().isAfter(threshold)) {
+            if (lastHeartbeatAt.isAfter(threshold)) {
                 return RecordingStatus.ACTIVE;
             } else {
                 return RecordingStatus.FINISHED;

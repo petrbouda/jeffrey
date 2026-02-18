@@ -22,61 +22,90 @@ import jdk.jfr.consumer.RecordedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.shared.common.Schedulers;
+import pbouda.jeffrey.shared.common.model.EventTypeName;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles heartbeat JFR events for a specific session.
- * Tracks the last heartbeat timestamp in memory and periodically persists it
- * to the database to avoid per-heartbeat writes.
+ * Persists the last heartbeat timestamp directly to the database on every event.
+ * Owns the heartbeat watchdog that closes the stream when heartbeats stop arriving.
  */
-public class JfrHeartbeatHandler {
+public class JfrHeartbeatHandler implements JfrStreamingHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrHeartbeatHandler.class);
-
-    private static final long PERSIST_INTERVAL_SECONDS = 30;
 
     private final String sessionId;
     private final ProjectRepositoryRepository repository;
     private final Clock clock;
-    private volatile Instant lastHeartbeat;
-    private volatile Instant lastPersistedAt;
+    private final Duration heartbeatTimeout;
+    private final boolean requireInitialHeartbeat;
 
-    public JfrHeartbeatHandler(String sessionId, ProjectRepositoryRepository repository, Clock clock) {
+    private volatile Instant lastHeartbeatAt;
+    private ScheduledFuture<?> watchdogFuture;
+
+    public JfrHeartbeatHandler(
+            String sessionId,
+            ProjectRepositoryRepository repository,
+            Clock clock,
+            Duration heartbeatTimeout,
+            boolean requireInitialHeartbeat) {
+
         this.sessionId = sessionId;
         this.repository = repository;
         this.clock = clock;
+        this.heartbeatTimeout = heartbeatTimeout;
+        this.requireInitialHeartbeat = requireInitialHeartbeat;
     }
 
-    /**
-     * Event handler to register with {@code EventStream.onEvent(HEARTBEAT, handler::onEvent)}.
-     */
+    @Override
+    public String eventType() {
+        return EventTypeName.HEARTBEAT;
+    }
+
+    @Override
     public void onEvent(RecordedEvent event) {
-        lastHeartbeat = event.getEndTime();
-        if (shouldPersist()) {
-            repository.updateLastHeartbeat(sessionId, lastHeartbeat);
-            lastPersistedAt = clock.instant();
-            LOG.debug("Persisted heartbeat: sessionId={} lastHeartbeat={}", sessionId, lastHeartbeat);
-        }
+        lastHeartbeatAt = event.getEndTime();
+        repository.updateLastHeartbeat(sessionId, event.getEndTime());
+        LOG.debug("Persisted heartbeat: sessionId={} lastHeartbeat={}", sessionId, event.getEndTime());
     }
 
-    public Instant lastHeartbeat() {
-        return lastHeartbeat;
+    @Override
+    public void initialize(Runnable streamCloser) {
+        LOG.info("Heartbeat watchdog started: sessionId={} timeout={}", sessionId, heartbeatTimeout);
+
+        long delayMillis = heartbeatTimeout.toMillis();
+        watchdogFuture = Schedulers.watchdogScheduled()
+                .scheduleWithFixedDelay(
+                        () -> checkHeartbeat(streamCloser), delayMillis, delayMillis, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * Force-persist current state (called on consumer shutdown).
-     */
-    public void flush() {
+    private void checkHeartbeat(Runnable streamCloser) {
+        Instant lastHeartbeat = lastHeartbeatAt;
         if (lastHeartbeat != null) {
-            repository.updateLastHeartbeat(sessionId, lastHeartbeat);
-            LOG.debug("Flushed heartbeat on shutdown: sessionId={} lastHeartbeat={}", sessionId, lastHeartbeat);
+            Duration elapsed = Duration.between(lastHeartbeat, clock.instant());
+            if (elapsed.compareTo(heartbeatTimeout) > 0) {
+                LOG.info("Heartbeat timeout, closing stream: sessionId={} lastHeartbeat={} elapsed={}",
+                        sessionId, lastHeartbeat, elapsed);
+                streamCloser.run();
+                close();
+            }
+        } else if (requireInitialHeartbeat) {
+            LOG.info("No initial heartbeat received within timeout, closing stream: sessionId={}", sessionId);
+            streamCloser.run();
+            close();
         }
     }
 
-    private boolean shouldPersist() {
-        return lastPersistedAt == null
-                || clock.instant().isAfter(lastPersistedAt.plusSeconds(PERSIST_INTERVAL_SECONDS));
+    @Override
+    public void close() {
+        if (watchdogFuture != null) {
+            watchdogFuture.cancel(false);
+        }
     }
 }

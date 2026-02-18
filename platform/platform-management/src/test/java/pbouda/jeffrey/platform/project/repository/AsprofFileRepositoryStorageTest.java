@@ -39,10 +39,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -112,7 +109,7 @@ class AsprofFileRepositoryStorageTest {
                 false,                // streamingEnabled
                 now,                  // originCreatedAt
                 now,                  // createdAt
-                null,                 // finishedAt
+                now,                  // finishedAt - set to mark session as FINISHED
                 null);                // lastHeartbeatAt
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));
 
@@ -133,14 +130,11 @@ class AsprofFileRepositoryStorageTest {
         eventEmitter = mock(RecordingFileEventEmitter.class);
 
         // Create storage instance
-        Clock fixedClock = Clock.fixed(now, ZoneId.systemDefault());
         storage = new AsprofFileRepositoryStorage(
-                fixedClock,
                 projectInfo,
                 jeffreyDirs,
                 projectRepositoryRepository,
                 new AsprofFileInfoProcessor(),
-                Duration.ofMinutes(5),
                 eventEmitter);
     }
 

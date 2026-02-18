@@ -51,6 +51,7 @@ project {
 }
 attributes { cluster = "blue", namespace = "production" }
 
+debug-non-safepoints { enabled = true }
 perf-counters { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jvm-logging {
@@ -143,6 +144,12 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
         <p>Jeffrey CLI can enable additional features that capture more diagnostic data alongside JFR recordings:</p>
 
         <div class="features-grid">
+          <div class="feature-card debug-safepoints">
+            <div class="feature-icon"><i class="bi bi-bullseye"></i></div>
+            <h4>Debug Non-Safepoints</h4>
+            <p>Enables precise profiling by recording method information at non-safepoint locations. Provides more accurate stack traces for CPU profiling. Enabled by default.</p>
+            <code>debug-non-safepoints { enabled = true }</code>
+          </div>
           <div class="feature-card perf">
             <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
             <h4>Perf Counters</h4>
@@ -251,6 +258,10 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
 
 .feature-card.messaging .feature-icon {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.feature-card.debug-safepoints .feature-icon {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
 }
 
 .feature-card.jdk-options .feature-icon {

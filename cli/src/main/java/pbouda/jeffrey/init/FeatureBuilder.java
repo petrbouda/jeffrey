@@ -35,6 +35,10 @@ public class FeatureBuilder {
     /* Agent JVM option template */
     private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s";
 
+    /* Debug Non-Safepoints JVM options for more precise profiling */
+    private static final String DEBUG_NON_SAFEPOINTS_OPTIONS = "-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints";
+
+    private boolean debugNonSafepointsEnabled;
     private boolean perfCountersEnabled;
     private HeapDumpType heapDumpType;
     private String jvmLogging;
@@ -44,6 +48,11 @@ public class FeatureBuilder {
     private String heartbeatPeriod = "5 s";
     private String agentPath;
     private String additionalJvmOptions;
+
+    public FeatureBuilder setDebugNonSafepointsEnabled(boolean enabled) {
+        this.debugNonSafepointsEnabled = enabled;
+        return this;
+    }
 
     public FeatureBuilder setPerfCountersEnabled(boolean enabled) {
         this.perfCountersEnabled = enabled;
@@ -92,6 +101,11 @@ public class FeatureBuilder {
 
     public String build(Path currentSessionPath) {
         StringBuilder options = new StringBuilder();
+
+        if (debugNonSafepointsEnabled) {
+            options.append(DEBUG_NON_SAFEPOINTS_OPTIONS);
+            options.append(" ");
+        }
 
         if (perfCountersEnabled) {
             options.append(PERF_DATA_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));

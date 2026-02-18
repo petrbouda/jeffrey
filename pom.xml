@@ -47,7 +47,7 @@
         <lz4.version>1.10.2</lz4.version>
         <junit.version>5.13.4</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
-        <jeffrey-events.version>0.4.0</jeffrey-events.version>
+        <jeffrey-events.version>0.4.1</jeffrey-events.version>
         <spring-boot.version>4.0.0</spring-boot.version>
         <spring-ai.version>2.0.0-M2</spring-ai.version>
         <duckdb.version>1.4.1.0</duckdb.version>

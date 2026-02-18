@@ -118,6 +118,7 @@ public class InitExecutor {
         }
 
         String features = new FeatureBuilder()
+                .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())
                 .setHeapDumpEnabled(config.resolveHeapDumpType())
                 .setPerfCountersEnabled(config.isPerfCountersEnabled())
                 .setJvmLogging(config.getJvmLoggingCommand())

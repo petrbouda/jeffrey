@@ -111,6 +111,15 @@ class InitConfigTest {
         }
 
         @Test
+        void parsesDebugNonSafepointsConfig() {
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
+
+            assertNotNull(config.getDebugNonSafepoints());
+            assertTrue(config.getDebugNonSafepoints().isEnabled());
+            assertTrue(config.isDebugNonSafepointsEnabled());
+        }
+
+        @Test
         void parsesJdkJavaOptionsConfig() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
@@ -176,6 +185,10 @@ class InitConfigTest {
 
             assertNotNull(config.getJdkJavaOptions());
             assertFalse(config.isJdkJavaOptionsEnabled());
+
+            // Debug Non-Safepoints is enabled by default
+            assertNotNull(config.getDebugNonSafepoints());
+            assertTrue(config.isDebugNonSafepointsEnabled());
         }
     }
 
@@ -229,6 +242,12 @@ class InitConfigTest {
         void getMessagingMaxAgeReturnsDefaultWhenNotSet() {
             InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertEquals("24h", config.getMessagingMaxAge());
+        }
+
+        @Test
+        void isDebugNonSafepointsEnabledReturnsTrueByDefault() {
+            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
+            assertTrue(config.isDebugNonSafepointsEnabled());
         }
 
         @Test

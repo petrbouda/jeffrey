@@ -59,6 +59,7 @@ public class InitConfig {
             messaging { enabled = false, max-age = "24h" }
             heartbeat { enabled = false, period = "5 s", agent-path = "" }
             jdk-java-options { enabled = false, additional-options = "" }
+            debug-non-safepoints { enabled = true }
             """;
 
     /**
@@ -108,6 +109,7 @@ public class InitConfig {
     private MessagingConfig messaging;
     private HeartbeatConfig heartbeat;
     private JdkJavaOptionsConfig jdkJavaOptions;
+    private DebugNonSafepointsConfig debugNonSafepoints;
     private Map<String, Object> attributes;
 
     public boolean isSilent() {
@@ -268,6 +270,14 @@ public class InitConfig {
         this.jdkJavaOptions = jdkJavaOptions;
     }
 
+    public DebugNonSafepointsConfig getDebugNonSafepoints() {
+        return debugNonSafepoints;
+    }
+
+    public void setDebugNonSafepoints(DebugNonSafepointsConfig debugNonSafepoints) {
+        this.debugNonSafepoints = debugNonSafepoints;
+    }
+
     public Map<String, String> getAttributes() {
         if (attributes == null || attributes.isEmpty()) {
             return null;
@@ -411,6 +421,18 @@ public class InitConfig {
         }
     }
 
+    public static class DebugNonSafepointsConfig {
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
     // ==================== Helper Methods ====================
 
     private static boolean isNullOrBlank(String value) {
@@ -430,6 +452,10 @@ public class InitConfig {
 
     public boolean isPerfCountersEnabled() {
         return perfCounters != null && perfCounters.isEnabled();
+    }
+
+    public boolean isDebugNonSafepointsEnabled() {
+        return debugNonSafepoints != null && debugNonSafepoints.isEnabled();
     }
 
     public boolean isMessagingEnabled() {
