@@ -58,3 +58,4 @@ jmh-tests/dependency-reduced-pom.xml
 
 # AI Assistant secrets (API keys)
 **/secrets.properties
+.worktrees
