@@ -43,6 +43,25 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Periodically replicates filesystem-based workspace data into the event queue.
+ *
+ * <p>The Jeffrey CLI writes metadata files ({@code .project-info.json}, {@code .instance-info.json},
+ * {@code .session-info.json}) to the workspace filesystem when initializing profiling sessions.
+ * This job reads those files via {@link RemoteWorkspaceRepository}, converts them into
+ * {@link WorkspaceEvent} objects ({@code PROJECT_CREATED}, {@code PROJECT_INSTANCE_CREATED},
+ * {@code PROJECT_INSTANCE_SESSION_CREATED}), and appends them to the {@link PersistentQueue}.
+ *
+ * <p>Downstream consumers (e.g. {@code ProjectsSynchronizerJob}) then process these queued events
+ * to create the corresponding database records (projects, instances, sessions).
+ *
+ * <p>In-memory Sets ({@code processedProjects}, {@code processedInstances}, {@code processedSessions})
+ * prevent re-queueing entities that were already discovered in previous executions within the same
+ * job lifecycle. The queue's dedup key provides an additional layer of idempotency.
+ *
+ * <p>After successful replication, a migration callback is triggered to notify downstream processors
+ * that new events are available for consumption.
+ */
 public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);

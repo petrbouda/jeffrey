@@ -50,7 +50,7 @@ public class FilesystemRemoteWorkspaceRepository implements RemoteWorkspaceRepos
 
     private static final Comparator<Path> TIMESTAMP_FILE_COMPARATOR =
             Comparator.comparing((Path path) -> {
-                String filename = path.toString();
+                String filename = path.getFileName().toString();
                 String substring = filename.substring(filename.indexOf('-') + 1, filename.lastIndexOf('.'));
                 return Instant.from(TIMESTAMP_FORMATTER.parse(substring));
             }).reversed();
