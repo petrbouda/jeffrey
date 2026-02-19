@@ -71,6 +71,8 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private final FileInfoProcessor fileInfoProcessor;
     private final RecordingFileEventEmitter eventEmitter;
 
+    private volatile RepositoryInfo cachedRepositoryInfo;
+
     public AsprofFileRepositoryStorage(
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
@@ -87,11 +89,16 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     @Override
     public RepositoryInfo repositoryInfo() {
-        List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
-        if (repositoryInfos.isEmpty()) {
-            throw new IllegalStateException("No repository info found for project: " + projectInfo.id());
+        RepositoryInfo result = cachedRepositoryInfo;
+        if (result == null) {
+            List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
+            if (repositoryInfos.isEmpty()) {
+                throw new IllegalStateException("No repository info found for project: " + projectInfo.id());
+            }
+            result = repositoryInfos.getFirst();
+            cachedRepositoryInfo = result;
         }
-        return repositoryInfos.getFirst();
+        return result;
     }
 
     private Path resolveWorkspacePath(RepositoryInfo repositoryInfo) {
@@ -109,24 +116,16 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     @Override
     public Optional<RecordingSession> singleSession(String sessionId, boolean withFiles) {
-        List<ProjectInstanceSessionInfo> sessions = projectRepositoryRepository.findAllSessions();
-
-        if (sessions.isEmpty()) {
-            LOG.warn("No sessions found for project: {}", projectInfo.id());
+        Optional<ProjectInstanceSessionInfo> sessionOpt = projectRepositoryRepository.findSessionById(sessionId);
+        if (sessionOpt.isEmpty()) {
             return Optional.empty();
         }
 
-        // is session latest by original creation date?
-        boolean isLatestSession = sessions.stream()
-                .max(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt))
-                .map(latestSession -> latestSession.sessionId().equals(sessionId))
-                .orElse(false);
+        ProjectInstanceSessionInfo session = sessionOpt.get();
+        Optional<String> latestSessionId = projectRepositoryRepository.findLatestSessionId();
+        boolean isLatestSession = latestSessionId.map(id -> id.equals(sessionId)).orElse(false);
 
-        // Find the session with the given sessionId
-        return sessions.stream()
-                .filter(session -> session.sessionId().equals(sessionId))
-                .map(session -> createRecordingSession(withFiles, session, isLatestSession))
-                .findFirst();
+        return Optional.of(createRecordingSession(withFiles, session, isLatestSession));
     }
 
     @Override
@@ -450,7 +449,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                             FileSystemUtils.size(file),
                             SupportedRecordingFile.of(sourceName),
                             isRecordingFile,
-                            SupportedRecordingFile.of(sourceName).isFinisher(),
                             RecordingStatus.FINISHED,
                             file);
                 })

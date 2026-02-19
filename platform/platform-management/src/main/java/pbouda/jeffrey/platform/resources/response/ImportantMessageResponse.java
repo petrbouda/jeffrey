@@ -18,8 +18,8 @@
 
 package pbouda.jeffrey.platform.resources.response;
 
-import pbouda.jeffrey.platform.manager.jfr.model.ImportantMessage;
-import pbouda.jeffrey.platform.manager.jfr.model.Severity;
+import pbouda.jeffrey.shared.common.model.ImportantMessage;
+import pbouda.jeffrey.shared.common.model.Severity;
 
 import java.time.Instant;
 

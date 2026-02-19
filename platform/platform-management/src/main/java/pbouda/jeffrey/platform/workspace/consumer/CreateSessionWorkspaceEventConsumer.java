@@ -20,20 +20,26 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
+import pbouda.jeffrey.platform.streaming.SessionPaths;
 import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 
 public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsumer {
@@ -42,10 +48,19 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
+    private final JeffreyDirs jeffreyDirs;
+    private final Clock clock;
 
-    public CreateSessionWorkspaceEventConsumer(ProjectsManager projectsManager, PlatformRepositories platformRepositories) {
+    public CreateSessionWorkspaceEventConsumer(
+            ProjectsManager projectsManager,
+            PlatformRepositories platformRepositories,
+            JeffreyDirs jeffreyDirs,
+            Clock clock) {
+
         this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
+        this.jeffreyDirs = jeffreyDirs;
+        this.clock = clock;
     }
 
     @Override
@@ -72,12 +87,12 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         String instanceId = eventContent.instanceId();
 
         ProjectRepositoryRepository repositoryRepository = platformRepositories.newProjectRepositoryRepository(projectId);
-        repositoryRepository.markUnfinishedSessionsFinished(instanceId, event.createdAt());
+        closeUnfinishedSessions(repositoryRepository, repositoryInfo.get(), instanceId, event.originCreatedAt());
         LOG.info("Auto-closed unfinished sessions for instance before creating new session: project_id={} instance_id={}",
                 projectId, instanceId);
 
         ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
-                null,
+                event.originEventId(),
                 repositoryInfo.get().id(),
                 instanceId,
                 eventContent.order(),
@@ -92,8 +107,6 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         projectManager.repositoryManager()
                 .createSession(sessionInfo);
 
-        JfrEmitter.sessionCreated(instanceId, eventContent.order(), projectId);
-
         if (eventContent.order() > 1) {
             platformRepositories.newProjectInstanceRepository(projectId)
                     .reactivate(instanceId);
@@ -101,6 +114,51 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         }
 
         LOG.debug("Session created from workspace event: project_id={} instance_id={} session_id={}", projectId, instanceId, event.originEventId());
+    }
+
+    /**
+     * Closes unfinished sessions for an instance, using heartbeat replay for streaming sessions
+     * to get accurate finished_at timestamps. Sessions are processed in chronological order so that
+     * each session's fallback finished_at is the originCreatedAt of the next session in the sequence,
+     * not the new event's timestamp.
+     */
+    private void closeUnfinishedSessions(
+            ProjectRepositoryRepository repositoryRepository,
+            RepositoryInfo repositoryInfo,
+            String instanceId,
+            Instant newSessionCreatedAt) {
+
+        List<ProjectInstanceSessionInfo> unfinished = repositoryRepository.findUnfinishedSessions().stream()
+                .filter(s -> s.instanceId().equals(instanceId))
+                .sorted(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt))
+                .toList();
+
+        for (int i = 0; i < unfinished.size(); i++) {
+            ProjectInstanceSessionInfo session = unfinished.get(i);
+
+            Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, session);
+            Instant replayFrom = session.lastHeartbeatAt() != null
+                    ? session.lastHeartbeatAt()
+                    : session.originCreatedAt();
+            Optional<Instant> lastHeartbeat = HeartbeatReplayReader.readLastHeartbeat(sessionPath, replayFrom, clock);
+
+            if (lastHeartbeat.isPresent()) {
+                Instant hb = lastHeartbeat.get();
+                repositoryRepository.markSessionFinishedWithHeartbeat(session.sessionId(), hb, hb);
+                LOG.debug("Closed session with heartbeat timestamp: sessionId={} lastHeartbeat={}",
+                        session.sessionId(), hb);
+                continue;
+            }
+
+            // Use the next session's originCreatedAt as fallback, or the new session's createdAt for the last one
+            Instant fallback = (i + 1 < unfinished.size())
+                    ? unfinished.get(i + 1).originCreatedAt()
+                    : newSessionCreatedAt;
+
+            repositoryRepository.markSessionFinished(session.sessionId(), fallback);
+            LOG.debug("Closed session with fallback timestamp: sessionId={} finishedAt={}",
+                    session.sessionId(), fallback);
+        }
     }
 
     @Override

@@ -20,16 +20,18 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
-import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
@@ -39,36 +41,62 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
     private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
+    private final JeffreyDirs jeffreyDirs;
 
     public DeleteProjectWorkspaceEventConsumer(
             ProjectsManager projectsManager,
             PlatformRepositories platformRepositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory,
+            JeffreyDirs jeffreyDirs) {
 
         this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
+        this.jeffreyDirs = jeffreyDirs;
     }
 
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         Optional<ProjectManager> project = projectsManager.project(event.projectId());
         if (project.isEmpty()) {
-            LOG.error("Project not found for deleting session: project_id: {}", event.projectId());
+            LOG.error("Project not found for deleting: project_id={}", event.projectId());
             return;
         }
         ProjectManager projectManager = project.get();
 
-        // Delete all profiles
-        projectManager.profilesManager().allProfiles()
-                .forEach(ProfileManager::delete);
+        // 1. Collect profile IDs for filesystem cleanup BEFORE SQL cascade deletes them
+        List<String> profileIds = projectManager.profilesManager().allProfiles().stream()
+                .map(p -> p.info().id())
+                .toList();
 
-        // TODO: Remove sessions from remote storages if any
+        // 2. Delete remote repository storage sessions
+        try {
+            RepositoryStorage remoteStorage = remoteRepositoryStorageFactory.apply(projectManager.info());
+            remoteStorage.listSessions(false).forEach(session -> {
+                try {
+                    remoteStorage.deleteSession(session.id());
+                } catch (Exception e) {
+                    LOG.warn("Failed to delete remote session: sessionId={}", session.id(), e);
+                }
+            });
+        } catch (Exception e) {
+            LOG.warn("Failed to clean up remote storage for project: projectId={}", event.projectId(), e);
+        }
 
+        // 3. SQL cascade deletes ALL metadata (including profiles, instances, sessions, etc.)
         platformRepositories.newProjectRepository(projectManager.info().id())
                 .delete();
 
-        JfrEmitter.projectDeleted(event.projectId());
+        // 4. Best-effort filesystem cleanup for profile directories
+        for (String profileId : profileIds) {
+            try {
+                Path profileDirectory = jeffreyDirs.profileDir(profileId);
+                FileSystemUtils.removeDirectory(profileDirectory);
+            } catch (Exception e) {
+                LOG.warn("Failed to delete profile directory, will be cleaned by orphan job: profileId={}", profileId, e);
+            }
+        }
+
         LOG.debug("Deleted project from workspace event: project_id={}", event.projectId());
     }
 

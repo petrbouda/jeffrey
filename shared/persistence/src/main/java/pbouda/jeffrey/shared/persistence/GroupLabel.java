@@ -41,4 +41,6 @@ public enum GroupLabel {
     INFRASTRUCTURE,
     PROJECT_INSTANCES,
     PERSISTENT_QUEUE,
+    MESSAGES,
+    ALERTS,
 }

@@ -27,6 +27,7 @@ import pbouda.jeffrey.shared.common.Schedulers;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -45,6 +46,7 @@ public class JfrStreamingConsumer implements Closeable {
     private final Path streamingRepoPath;
     private final List<JfrStreamingHandler> handlers;
     private final Runnable onNaturalClose;
+    private final Instant startTime;
     private final AtomicBoolean closedExplicitly = new AtomicBoolean(false);
 
     private EventStream eventStream;
@@ -55,10 +57,21 @@ public class JfrStreamingConsumer implements Closeable {
             List<JfrStreamingHandler> handlers,
             Runnable onNaturalClose) {
 
+        this(sessionId, sessionPath, handlers, onNaturalClose, null);
+    }
+
+    public JfrStreamingConsumer(
+            String sessionId,
+            Path sessionPath,
+            List<JfrStreamingHandler> handlers,
+            Runnable onNaturalClose,
+            Instant startTime) {
+
         this.sessionId = sessionId;
         this.streamingRepoPath = sessionPath.resolve(STREAMING_REPO_DIR);
         this.handlers = handlers;
         this.onNaturalClose = onNaturalClose;
+        this.startTime = startTime;
     }
 
     /**
@@ -70,6 +83,10 @@ public class JfrStreamingConsumer implements Closeable {
         LOG.debug("Starting JFR streaming consumer: sessionId={} path={}", sessionId, streamingRepoPath);
 
         this.eventStream = EventStream.openRepository(streamingRepoPath);
+
+        if (startTime != null) {
+            eventStream.setStartTime(startTime);
+        }
 
         for (JfrStreamingHandler handler : handlers) {
             handler.initialize(this::closeStream);

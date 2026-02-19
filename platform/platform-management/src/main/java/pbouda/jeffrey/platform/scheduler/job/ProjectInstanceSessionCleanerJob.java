@@ -20,7 +20,7 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
@@ -78,7 +78,7 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
         });
 
         if (!candidatesForDeletion.isEmpty()) {
-            JfrEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
+            JfrMessageEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
         }
     }
 

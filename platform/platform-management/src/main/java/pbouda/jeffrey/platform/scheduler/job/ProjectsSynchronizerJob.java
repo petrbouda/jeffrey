@@ -20,7 +20,7 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
@@ -36,10 +36,12 @@ import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.platform.workspace.consumer.*;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
@@ -54,6 +56,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
     private final JfrStreamingConsumerManager streamingConsumerManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
+    private final JeffreyDirs jeffreyDirs;
+    private final Clock clock;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
@@ -64,6 +68,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
+            JeffreyDirs jeffreyDirs,
+            Clock clock,
             Duration period) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
@@ -71,6 +77,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
         this.streamingConsumerManager = streamingConsumerManager;
         this.workspaceEventQueue = workspaceEventQueue;
+        this.jeffreyDirs = jeffreyDirs;
+        this.clock = clock;
         this.period = period;
     }
 
@@ -84,11 +92,11 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new CreateProjectWorkspaceEventConsumer(projectsManager),
                 new InstanceCreatedWorkspaceEventConsumer(projectsManager),
                 new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories),
-                new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories),
+                new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, clock),
                 new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),
-                new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory));
+                new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, jeffreyDirs));
 
         String workspaceId = workspaceInfo.id();
         List<QueueEntry<WorkspaceEvent>> entries = workspaceEventQueue.poll(workspaceId, CONSUMER.name());
@@ -112,12 +120,12 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
                         consumer.on(event, jobDescriptor);
-                        LOG.debug("Successfully processed: event_type={} event_id={}", event.eventType(), entry.offset());
-                        break;
+                        LOG.debug("Successfully processed: event_type={} event_id={} consumer={}",
+                                event.eventType(), entry.offset(), consumer.getClass().getSimpleName());
                     }
                 }
             } catch (Exception e) {
-                JfrEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
+                JfrMessageEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
                 LOG.error("Failed to process workspace event, skipping: event_type={} event_id={} project_id={}",
                         event.eventType(), entry.offset(), event.projectId(), e);
             }
@@ -131,6 +139,13 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
                 LOG.info("Updated consumer state for workspace: workspace_id={} consumer={} offset={}",
                         workspaceId, CONSUMER, latestOffset);
+
+                // TODO: Enable queue compaction after testing in production
+                // try {
+                //     workspaceEventQueue.compact(workspaceId);
+                // } catch (Exception e) {
+                //     LOG.warn("Failed to compact workspace event queue: workspace_id={}", workspaceId, e);
+                // }
             } catch (Exception e) {
                 LOG.error("Failed to update consumer state for workspace: {}", workspaceId, e);
             }

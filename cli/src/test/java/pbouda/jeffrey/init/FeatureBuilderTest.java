@@ -180,7 +180,8 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:StartFlightRecording="));
             assertTrue(result.contains("name=jeffrey-streaming"));
             assertTrue(result.contains("maxage=24h")); // default
-            assertTrue(result.contains(EventTypeName.IMPORTANT_MESSAGE + "#enabled=true"));
+            assertTrue(result.contains(EventTypeName.MESSAGE + "#enabled=true"));
+            assertTrue(result.contains(EventTypeName.ALERT + "#enabled=true"));
         }
 
         @Test

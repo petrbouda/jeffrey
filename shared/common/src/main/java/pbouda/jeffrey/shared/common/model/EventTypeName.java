@@ -96,7 +96,8 @@ public abstract class EventTypeName {
     public static final String HTTP_CLIENT_EXCHANGE = "jeffrey.HttpClientExchange";
 
     // Streaming events
-    public static final String IMPORTANT_MESSAGE = "jeffrey.ImportantMessage";
+    public static final String MESSAGE = "jeffrey.Message";
+    public static final String ALERT = "jeffrey.Alert";
     public static final String HEARTBEAT = "jeffrey.Heartbeat";
 
     // Container events

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.platform.manager.jfr.model.ImportantMessage;
+import pbouda.jeffrey.shared.common.model.ImportantMessage;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.resources.response.ImportantMessageResponse;
 import pbouda.jeffrey.shared.common.model.time.AbsoluteTimeRange;

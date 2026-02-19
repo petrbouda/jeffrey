@@ -45,4 +45,8 @@ public interface PlatformRepositories {
     ProfileRepository newProfileRepository(String profileId);
 
     ProjectInstanceRepository newProjectInstanceRepository(String projectId);
+
+    MessageRepository newMessageRepository(String projectId);
+
+    AlertRepository newAlertRepository(String projectId);
 }

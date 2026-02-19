@@ -249,11 +249,6 @@ onMounted(() => {
             <td><code>${jeffrey.home.dir}/recordings</code></td>
             <td>Directory for storing JFR recordings</td>
           </tr>
-          <tr>
-            <td><code>jeffrey.project.repository-storage.detection.finished-period</code></td>
-            <td><code>30m</code></td>
-            <td>Time after which a repository session is considered finished</td>
-          </tr>
         </tbody>
       </table>
 

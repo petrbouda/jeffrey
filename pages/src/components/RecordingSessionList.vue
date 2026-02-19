@@ -874,8 +874,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                     <Badge v-if="file.status === RecordingStatus.UNKNOWN"
                            :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
                            class="ms-1"/>
-                    <Badge v-if="file.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
-                           title="This file indicates the session is finished"/>
                   </template>
                 </RecordingFileRow>
               </div>
@@ -918,8 +916,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <Badge v-if="file.status === RecordingStatus.UNKNOWN"
                        :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
                        class="ms-1"/>
-                <Badge v-if="file.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
-                       title="This file indicates the session is finished"/>
               </template>
             </RecordingFileRow>
           </div>
@@ -961,8 +957,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <Badge v-if="entry.primary.status === RecordingStatus.UNKNOWN"
                        :value="Utils.capitalize(entry.primary.status.toLowerCase())" variant="purple" size="xxs"
                        class="ms-1"/>
-                <Badge v-if="entry.primary.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
-                       title="This file indicates the session is finished"/>
                 <Badge v-if="entry.children.length > 0"
                        :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
                        variant="grey" size="xxs" class="ms-1" :uppercase="false"/>
@@ -998,8 +992,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <Badge v-if="child.status === RecordingStatus.UNKNOWN"
                          :value="Utils.capitalize(child.status.toLowerCase())" variant="purple" size="xxs"
                          class="ms-1"/>
-                  <Badge v-if="child.isFinishingFile" value="Finisher" variant="green" size="xxs" class="ms-1"
-                         title="This file indicates the session is finished"/>
                 </template>
               </RecordingFileRow>
             </div>

@@ -345,7 +345,7 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
               <JobCard
                   :job-type="JobType.SESSION_FINISHED_DETECTOR"
                   title="Session Finished Detector"
-                  description="Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses detection file or timeout-based detection strategy."
+                  description="Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses heartbeat-based detection strategy."
                   icon="bi-check-circle"
                   icon-color="text-cyan"
                   icon-bg="bg-cyan-soft"

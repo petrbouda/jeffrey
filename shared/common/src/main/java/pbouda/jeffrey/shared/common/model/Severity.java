@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.manager.jfr.model;
+package pbouda.jeffrey.shared.common.model;
 
 /**
  * Severity levels for important messages.
@@ -29,7 +29,7 @@ public enum Severity {
     LOW;
 
     /**
-     * Parses severity from string, defaulting to LOW if unknown.
+     * Parses severity from string, defaulting to MEDIUM if unknown.
      *
      * @param value the string value to parse
      * @return the Severity enum value

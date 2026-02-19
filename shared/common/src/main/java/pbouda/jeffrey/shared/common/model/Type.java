@@ -113,8 +113,9 @@ public record Type(String code, boolean calculated) {
     public static final Type CONTAINER_MEMORY_USAGE = new Type(EventTypeName.CONTAINER_MEMORY_USAGE);
     public static final Type CONTAINER_IO_USAGE = new Type(EventTypeName.CONTAINER_IO_USAGE);
 
-    // ImportantMessage
-    public static final Type IMPORTANT_MESSAGE = new Type(EventTypeName.IMPORTANT_MESSAGE);
+    // Message and Alert
+    public static final Type MESSAGE = new Type(EventTypeName.MESSAGE);
+    public static final Type ALERT = new Type(EventTypeName.ALERT);
 
     private static final Map<String, Type> KNOWN_TYPES;
 

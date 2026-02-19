@@ -87,4 +87,14 @@ public class JdbcPlatformRepositories implements PlatformRepositories {
     public ProjectInstanceRepository newProjectInstanceRepository(String projectId) {
         return new JdbcProjectInstanceRepository(projectId, databaseClientProvider);
     }
+
+    @Override
+    public MessageRepository newMessageRepository(String projectId) {
+        return new JdbcMessageRepository(projectId, databaseClientProvider);
+    }
+
+    @Override
+    public AlertRepository newAlertRepository(String projectId) {
+        return new JdbcAlertRepository(projectId, databaseClientProvider);
+    }
 }

@@ -36,6 +36,7 @@ import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
@@ -101,10 +102,12 @@ public class GlobalJobsConfiguration {
     @Bean
     public ProjectsSynchronizerJob projectsSynchronizerJob(
             @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
+            Clock clock,
             PlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
             JfrStreamingConsumerManager jfrStreamingConsumerManager,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            JeffreyDirs jeffreyDirs) {
 
         return new ProjectsSynchronizerJob(
                 platformRepositories,
@@ -114,6 +117,8 @@ public class GlobalJobsConfiguration {
                 liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
+                jeffreyDirs,
+                clock,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 

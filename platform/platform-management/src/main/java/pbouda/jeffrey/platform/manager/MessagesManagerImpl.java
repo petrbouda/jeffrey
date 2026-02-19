@@ -18,12 +18,9 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.platform.manager.jfr.ImportantMessageCollector;
-import pbouda.jeffrey.platform.manager.jfr.ImportantMessageProcessor;
-import pbouda.jeffrey.platform.manager.jfr.model.ImportantMessage;
-import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.repository.parser.RepositoryIterators;
-import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
+import pbouda.jeffrey.provider.platform.repository.AlertRepository;
+import pbouda.jeffrey.provider.platform.repository.MessageRepository;
+import pbouda.jeffrey.shared.common.model.ImportantMessage;
 import pbouda.jeffrey.shared.common.model.time.AbsoluteTimeRange;
 import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
 import pbouda.jeffrey.shared.common.model.time.TimeRange;
@@ -33,28 +30,34 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Implementation of MessagesManager that parses ImportantMessage events
- * from JFR streaming platformRepositories across all sessions in a project.
+ * Implementation of MessagesManager that queries Message and Alert events from the database.
  */
 public class MessagesManagerImpl implements MessagesManager {
 
     private final Clock clock;
-    private final RepositoryStorage repositoryStorage;
+    private final MessageRepository messageRepository;
+    private final AlertRepository alertRepository;
 
-    public MessagesManagerImpl(Clock clock, RepositoryStorage repositoryStorage) {
+    public MessagesManagerImpl(Clock clock, MessageRepository messageRepository, AlertRepository alertRepository) {
         this.clock = clock;
-        this.repositoryStorage = repositoryStorage;
+        this.messageRepository = messageRepository;
+        this.alertRepository = alertRepository;
     }
 
     @Override
     public List<ImportantMessage> getMessages(TimeRange timeRange) {
-        List<RecordingSession> sessions = repositoryStorage.listSessions(false);
-        if (sessions.isEmpty()) {
-            return List.of();
-        }
+        AbsoluteTimeRange range = resolveTimeRange(timeRange);
+        return messageRepository.findAll(range.start(), range.end());
+    }
 
-        // Convert TimeRange to AbsoluteTimeRange
-        AbsoluteTimeRange absoluteTimeRange = switch (timeRange) {
+    @Override
+    public List<ImportantMessage> getAlerts(TimeRange timeRange) {
+        AbsoluteTimeRange range = resolveTimeRange(timeRange);
+        return alertRepository.findAll(range.start(), range.end());
+    }
+
+    private AbsoluteTimeRange resolveTimeRange(TimeRange timeRange) {
+        return switch (timeRange) {
             case RelativeTimeRange tr -> {
                 Instant now = clock.instant();
                 yield new AbsoluteTimeRange(now.minus(tr.duration()), now);
@@ -62,17 +65,5 @@ public class MessagesManagerImpl implements MessagesManager {
             case AbsoluteTimeRange tr -> tr;
             default -> throw new IllegalStateException("Unexpected value: " + timeRange);
         };
-
-        var iterator = RepositoryIterators.automatic(
-                sessions, ImportantMessageProcessor::new, absoluteTimeRange, clock);
-
-        return iterator.partialCollect(new ImportantMessageCollector());
-    }
-
-    @Override
-    public List<ImportantMessage> getAlerts(TimeRange timeRange) {
-        return getMessages(timeRange).stream()
-                .filter(ImportantMessage::isAlert)
-                .toList();
     }
 }

@@ -88,7 +88,7 @@ onMounted(() => {
           <li><strong>Output directory</strong> - Where session files are written (monitored by Jeffrey)</li>
           <li><strong>Chunk settings</strong> - Duration and size limits for JFR file rotation</li>
           <li><strong>Event configuration</strong> - Which profiling events to capture</li>
-          <li><strong>JFR repository path</strong> - For real-time ImportantMessage consumption</li>
+          <li><strong>JFR repository path</strong> - For real-time streaming of heartbeat, message, and alert events</li>
         </ul>
 
         <DocsLinkCard

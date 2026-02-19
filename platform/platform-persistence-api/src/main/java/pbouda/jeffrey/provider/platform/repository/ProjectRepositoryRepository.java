@@ -83,13 +83,14 @@ public interface ProjectRepositoryRepository {
     void markSessionFinished(String sessionId, Instant finishedAt);
 
     /**
-     * Mark all unfinished sessions for a given instance as finished.
-     * This is used when a new session starts for an instance, to auto-close the previous session.
+     * Mark a session as finished and set the last heartbeat timestamp in a single operation.
+     * Used when closing a streaming session where the heartbeat provides the accurate finish time.
      *
-     * @param instanceId the instance ID whose unfinished sessions should be closed
-     * @param finishedAt the timestamp to set as the finished time
+     * @param sessionId       the session ID to update
+     * @param finishedAt      the timestamp when the session finished
+     * @param lastHeartbeatAt the timestamp of the last heartbeat event
      */
-    void markUnfinishedSessionsFinished(String instanceId, Instant finishedAt);
+    void markSessionFinishedWithHeartbeat(String sessionId, Instant finishedAt, Instant lastHeartbeatAt);
 
     /**
      * Update the last heartbeat timestamp for a session.
@@ -98,4 +99,12 @@ public interface ProjectRepositoryRepository {
      * @param lastHeartbeatAt the timestamp of the last heartbeat event
      */
     void updateLastHeartbeat(String sessionId, Instant lastHeartbeatAt);
+
+
+    /**
+     * Find the session ID of the latest session by original creation date.
+     *
+     * @return the latest session ID if any sessions exist, otherwise empty
+     */
+    Optional<String> findLatestSessionId();
 }

@@ -26,6 +26,7 @@ import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
@@ -136,23 +137,33 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
+    public SessionFinisher sessionFinisher(
+            Clock clock,
+            SessionFinishEventEmitter sessionFinishEventEmitter) {
+
+        return new SessionFinisher(clock, sessionFinishEventEmitter);
+    }
+
+    @Bean
     public SessionFinishedDetectorProjectJob sessionFinishedDetectorProjectJob(
             Clock clock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
+            SessionFinisher sessionFinisher,
             SessionFinishEventEmitter sessionFinishEventEmitter,
             @Value("${jeffrey.job.session-finished-detector.period:10s}") Duration jobPeriod,
-            @Value("${jeffrey.project.repository-storage.detection.finished-period:30m}") Duration finishedPeriod) {
+            @Value("${jeffrey.platform.streaming.heartbeat-timeout:10s}") Duration heartbeatTimeout) {
 
         return new SessionFinishedDetectorProjectJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
                 jobPeriod,
-                finishedPeriod,
+                heartbeatTimeout,
                 clock,
                 jeffreyDirs,
                 platformRepositories,
+                sessionFinisher,
                 sessionFinishEventEmitter);
     }
 }

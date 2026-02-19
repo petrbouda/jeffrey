@@ -81,4 +81,13 @@ public interface PersistentQueue<T> {
      * @return list of all queue entries, ordered by offset descending
      */
     List<QueueEntry<T>> findAll(String scopeId);
+
+    /**
+     * Removes events that have been acknowledged by ALL consumers for the given scope.
+     * Events with offset &lt;= minimum consumer offset are safe to delete.
+     *
+     * @param scopeId the scope identifier (e.g. workspace ID)
+     * @return number of events removed
+     */
+    int compact(String scopeId);
 }

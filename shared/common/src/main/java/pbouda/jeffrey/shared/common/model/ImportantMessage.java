@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.manager.jfr.model;
+package pbouda.jeffrey.shared.common.model;
 
 import java.time.Instant;
 
@@ -32,7 +32,6 @@ import java.time.Instant;
  * @param source      component or service that raised the message
  * @param isAlert     whether the message is intended to be processed as an alert
  * @param sessionId   session ID this message belongs to
- * @param sessionName human-readable session name
  * @param createdAt   when the message was emitted
  */
 public record ImportantMessage(

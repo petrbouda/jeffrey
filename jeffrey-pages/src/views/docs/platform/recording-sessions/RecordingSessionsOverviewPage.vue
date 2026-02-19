@@ -117,6 +117,7 @@ onMounted(() => {
           <li><strong>Start time</strong> - When profiling began</li>
           <li><strong>Duration</strong> - How long the session has been running</li>
           <li><strong>Status</strong> - Active (still recording) or Finished</li>
+          <li><strong>Last Heartbeat</strong> - Timestamp of the most recent heartbeat received from the profiled application</li>
           <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
         </ul>
 

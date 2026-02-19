@@ -52,7 +52,6 @@ const selectedSeverity = ref<Severity | ''>('');
 const selectedCategory = ref('');
 const selectedType = ref('');
 const selectedSession = ref('');
-const alertsOnly = ref(false);
 const searchQuery = ref('');
 
 // Display limit
@@ -153,11 +152,6 @@ const messagesTimeseriesData = computed(() => {
 // Computed: filtered messages (applies all filters on top of time filter)
 const filteredMessages = computed(() => {
   return timeFilteredMessages.value.filter(msg => {
-    // Filter by alerts only
-    if (alertsOnly.value && !msg.isAlert) {
-      return false;
-    }
-
     // Filter by severity
     if (selectedSeverity.value && msg.severity !== selectedSeverity.value) {
       return false;
@@ -208,10 +202,6 @@ const categoryCounts = computed(() => {
   });
   return counts;
 });
-
-// Computed: time-filtered message counts (for filter bar)
-const alertCount = computed(() => timeFilteredMessages.value.filter(m => m.isAlert).length);
-const nonAlertCount = computed(() => timeFilteredMessages.value.filter(m => !m.isAlert).length);
 
 // Computed: severity counts
 const severityCounts = computed(() => ({
@@ -298,16 +288,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
             <option v-for="option in timeRangeOptions" :key="option.minutes" :value="option.minutes">{{ option.label }}</option>
           </select>
         </div>
-        <div class="filter-card alerts" :class="{ active: alertsOnly }" @click="alertsOnly = !alertsOnly">
-          <i class="bi bi-bell-fill"></i>
-          <span class="card-count">{{ alertCount }}</span>
-          <span class="card-label">Alerts</span>
-        </div>
-        <div class="filter-card info">
-          <i class="bi bi-info-circle"></i>
-          <span class="card-count">{{ nonAlertCount }}</span>
-          <span class="card-label">Info</span>
-        </div>
       </div>
 
       <!-- Messages Over Time Chart -->
@@ -315,10 +295,10 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
         <TimeSeriesChart
           v-if="messagesTimeseriesData.length > 0"
           :primary-data="messagesTimeseriesData"
-          :visible-minutes="999999"
+          :visible-minutes="selectedTimeRange || 10080"
           :primary-axis-type="AxisFormatType.COUNT"
           primary-title="Message Count"
-          time-unit="milliseconds"
+          time-unit="absolute-milliseconds"
         />
         <EmptyState
           v-else
@@ -381,7 +361,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
               <thead>
                 <tr>
                   <th class="col-severity"></th>
-                  <th class="col-alert"></th>
                   <th class="col-title">Title</th>
                   <th class="col-category">Category</th>
                   <th class="col-source">Source</th>
@@ -392,9 +371,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
               <tbody>
                 <tr v-for="(msg, index) in displayedMessages" :key="getMessageKey(msg, index)" class="message-row">
                   <td class="severity-cell" :class="getSeverityClass(msg.severity)" :title="msg.severity"></td>
-                  <td class="alert-indicator">
-                    <i v-if="msg.isAlert" class="bi bi-bell-fill alert-icon" title="Alert"></i>
-                  </td>
                   <td class="message-title">
                     <div class="title-text">{{ msg.title }}</div>
                     <div class="message-text">{{ msg.message }}</div>
@@ -453,31 +429,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   color: #475569;
   margin-right: auto;
   cursor: default;
-}
-
-.filter-card.alerts .card-count { color: #7c3aed; }
-.filter-card.info .card-count { color: #0891b2; }
-
-.filter-card.alerts {
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-
-.filter-card.alerts.active {
-  background: rgba(124, 58, 237, 0.1);
-  border-color: #7c3aed;
-}
-
-.filter-card.alerts .bi-bell-fill {
-  color: #7c3aed;
-}
-
-.filter-card.info {
-  cursor: default;
-}
-
-.filter-card.info .bi-info-circle {
-  color: #0891b2;
 }
 
 .card-count {
@@ -551,12 +502,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   padding: 0 !important;
 }
 
-.col-alert {
-  width: 32px;
-  text-align: center;
-  padding: 0.5rem 0.25rem !important;
-}
-
 .col-title {
   min-width: 250px;
   padding-left: 0.75rem !important;
@@ -599,16 +544,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 
 .severity-cell.severity-low {
   background-color: #0891b2;
-}
-
-/* Alert Indicator */
-.alert-indicator {
-  text-align: center;
-}
-
-.alert-icon {
-  color: #dc3545;
-  font-size: 0.9rem;
 }
 
 /* Message cells */

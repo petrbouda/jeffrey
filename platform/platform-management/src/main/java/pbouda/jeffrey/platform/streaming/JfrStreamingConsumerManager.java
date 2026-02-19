@@ -20,8 +20,11 @@ package pbouda.jeffrey.platform.streaming;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
+import pbouda.jeffrey.provider.platform.repository.AlertRepository;
+import pbouda.jeffrey.provider.platform.repository.MessageRepository;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -31,9 +34,11 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,9 +51,12 @@ public class JfrStreamingConsumerManager implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrStreamingConsumerManager.class);
 
+    private static final Duration REPLAY_BUFFER = Duration.ofSeconds(10);
+
     private final ConcurrentHashMap<String, JfrStreamingConsumer> consumers = new ConcurrentHashMap<>();
     private final JeffreyDirs jeffreyDirs;
     private final SessionFinishEventEmitter eventEmitter;
+    private final PlatformRepositories platformRepositories;
     private final Clock clock;
     private final Duration heartbeatTimeout;
     private final boolean requireInitialHeartbeat;
@@ -56,12 +64,14 @@ public class JfrStreamingConsumerManager implements Closeable {
     public JfrStreamingConsumerManager(
             JeffreyDirs jeffreyDirs,
             SessionFinishEventEmitter eventEmitter,
+            PlatformRepositories platformRepositories,
             Clock clock,
             Duration heartbeatTimeout,
             boolean requireInitialHeartbeat) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.eventEmitter = eventEmitter;
+        this.platformRepositories = platformRepositories;
         this.clock = clock;
         this.heartbeatTimeout = heartbeatTimeout;
         this.requireInitialHeartbeat = requireInitialHeartbeat;
@@ -93,23 +103,48 @@ public class JfrStreamingConsumerManager implements Closeable {
             return;
         }
 
-        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
+        Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
+        Path streamingRepoPath = sessionPath.resolve("streaming-repo");
+        if (!Files.isDirectory(streamingRepoPath)) {
+            LOG.warn("Streaming repo directory does not exist, marking session finished: sessionId={} path={}",
+                    sessionId, streamingRepoPath);
+            repositoryRepository.markSessionFinished(sessionId, clock.instant());
+            return;
+        }
+
+        MessageRepository messageRepository =
+                platformRepositories.newMessageRepository(projectInfo.id());
+        AlertRepository alertRepository =
+                platformRepositories.newAlertRepository(projectInfo.id());
+
         List<JfrStreamingHandler> handlers = List.of(
                 new JfrHeartbeatHandler(sessionId, repositoryRepository, clock, heartbeatTimeout, requireInitialHeartbeat),
-                new ImportantMessageStreamingHandler(sessionId)
+                new MessageStreamingHandler(sessionId, messageRepository),
+                new AlertStreamingHandler(sessionId, alertRepository)
         );
 
         Runnable onNaturalClose = () -> {
             LOG.info("Stream closed naturally, marking session finished: sessionId={} projectId={}",
                     sessionId, projectInfo.id());
-            repositoryRepository.markSessionFinished(sessionId, clock.instant());
-            eventEmitter.emitSessionFinished(projectInfo, sessionInfo, WorkspaceEventCreator.STREAMING_CONSUMER);
-            JfrEmitter.sessionFinished(sessionId, projectInfo.id());
-            consumers.remove(sessionId);
+            try {
+                repositoryRepository.markSessionFinished(sessionId, clock.instant());
+                eventEmitter.emitSessionFinished(projectInfo, sessionInfo, WorkspaceEventCreator.STREAMING_CONSUMER);
+                JfrMessageEmitter.sessionFinished(sessionId, projectInfo.id());
+            } catch (Exception e) {
+                LOG.error("Failed to process natural stream close: sessionId={} projectId={}",
+                        sessionId, projectInfo.id(), e);
+            } finally {
+                consumers.remove(sessionId);
+            }
         };
 
+        // Resume from last heartbeat - 10s on restart (null for new sessions → start from beginning)
+        Instant startTime = sessionInfo.lastHeartbeatAt() != null
+                ? sessionInfo.lastHeartbeatAt().minus(REPLAY_BUFFER)
+                : null;
+
         JfrStreamingConsumer consumer = new JfrStreamingConsumer(
-                sessionId, sessionPath, handlers, onNaturalClose);
+                sessionId, sessionPath, handlers, onNaturalClose, startTime);
 
         try {
             consumer.start();
@@ -139,17 +174,6 @@ public class JfrStreamingConsumerManager implements Closeable {
             consumer.close();
             LOG.info("Unregistered JFR streaming consumer: sessionId={}", sessionId);
         }
-    }
-
-    private Path resolveSessionPath(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
-        String workspacesPath = repositoryInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null
-                ? jeffreyDirs.workspaces()
-                : Path.of(workspacesPath);
-        return resolvedWorkspacesPath
-                .resolve(repositoryInfo.relativeWorkspacePath())
-                .resolve(repositoryInfo.relativeProjectPath())
-                .resolve(sessionInfo.relativeSessionPath());
     }
 
     @Override

@@ -112,6 +112,8 @@ class AsprofFileRepositoryStorageTest {
                 now,                  // finishedAt - set to mark session as FINISHED
                 null);                // lastHeartbeatAt
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));
+        when(projectRepositoryRepository.findSessionById(SESSION_ID)).thenReturn(java.util.Optional.of(sessionInfo));
+        when(projectRepositoryRepository.findLatestSessionId()).thenReturn(java.util.Optional.of(SESSION_ID));
 
         // Create ProjectInfo
         projectInfo = new ProjectInfo(
@@ -347,13 +349,13 @@ class AsprofFileRepositoryStorageTest {
         }
 
         @Test
-        void returnsOnlyFinisherFile_whenNoOtherArtifacts() throws IOException {
+        void returnsOnlyPerfCountersFile_whenNoOtherArtifacts() throws IOException {
             copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
             createFinishedFile();
 
             List<Path> artifacts = storage.artifacts(SESSION_ID);
 
-            // Only the finisher file (perf-counters.hsperfdata) is an artifact
+            // Only the perf-counters file (perf-counters.hsperfdata) is an artifact
             assertEquals(1, artifacts.size());
             assertTrue(artifacts.getFirst().toString().endsWith(FileExtensions.PERF_COUNTERS));
         }

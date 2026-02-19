@@ -18,108 +18,120 @@
 
 package pbouda.jeffrey.platform.jfr;
 
-import cafe.jeffrey.jfr.events.message.ImportantMessageEvent;
+import cafe.jeffrey.jfr.events.message.AlertEvent;
+import cafe.jeffrey.jfr.events.message.MessageEvent;
 import cafe.jeffrey.jfr.events.message.Severity;
 
-public abstract class JfrEmitter {
+public abstract class JfrMessageEmitter {
 
     // ==================== PROJECT events (HIGH severity) ====================
 
     public static void projectCreated(String projectName, String projectId) {
-        emit(MessageType.PROJECT_CREATED,
+        emitMessage(MessageType.PROJECT_CREATED,
                 "Project '" + projectName + "' has been created (projectId=" + projectId + ")",
-                Severity.HIGH, MessageCategory.PROJECT, false);
+                Severity.HIGH, MessageCategory.PROJECT);
     }
 
     public static void projectDeleted(String projectId) {
-        emit(MessageType.PROJECT_DELETED,
+        emitMessage(MessageType.PROJECT_DELETED,
                 "Project has been deleted (projectId=" + projectId + ")",
-                Severity.HIGH, MessageCategory.PROJECT, false);
+                Severity.HIGH, MessageCategory.PROJECT);
     }
 
     // ==================== INSTANCE events (MEDIUM severity) ====================
 
     public static void instanceCreated(String instanceId, String projectName, String projectId) {
-        emit(MessageType.INSTANCE_CREATED,
+        emitMessage(MessageType.INSTANCE_CREATED,
                 "New instance '" + instanceId + "' started for project '" + projectName + "' (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.INSTANCE, false);
+                Severity.MEDIUM, MessageCategory.INSTANCE);
     }
 
     public static void instanceFinished(String instanceId, String projectId) {
-        emit(MessageType.INSTANCE_FINISHED,
+        emitMessage(MessageType.INSTANCE_FINISHED,
                 "Instance '" + instanceId + "' finished (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.INSTANCE, false);
+                Severity.MEDIUM, MessageCategory.INSTANCE);
     }
 
     public static void instanceAutoFinished(String instanceId, String projectId) {
-        emit(MessageType.INSTANCE_AUTO_FINISHED,
+        emitMessage(MessageType.INSTANCE_AUTO_FINISHED,
                 "Instance '" + instanceId + "' auto-finished, no active sessions remaining (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.INSTANCE, false);
+                Severity.MEDIUM, MessageCategory.INSTANCE);
     }
 
     // ==================== SESSION events ====================
 
     public static void sessionCreated(String instanceId, int order, String projectId) {
-        emit(MessageType.SESSION_CREATED,
+        emitMessage(MessageType.SESSION_CREATED,
                 "New recording session #" + order + " started for instance '" + instanceId + "' (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.SESSION, false);
+                Severity.MEDIUM, MessageCategory.SESSION);
     }
 
     public static void sessionFinished(String sessionId, String projectId) {
-        emit(MessageType.SESSION_FINISHED,
+        emitMessage(MessageType.SESSION_FINISHED,
                 "Recording session finished (sessionId=" + sessionId + " projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.SESSION, false);
+                Severity.MEDIUM, MessageCategory.SESSION);
     }
 
     public static void sessionDeleted(String sessionId, String projectId) {
-        emit(MessageType.SESSION_DELETED,
+        emitMessage(MessageType.SESSION_DELETED,
                 "Recording session deleted (sessionId=" + sessionId + " projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.SESSION, false);
+                Severity.MEDIUM, MessageCategory.SESSION);
     }
 
     public static void sessionsCleaned(String projectName, int count) {
-        emit(MessageType.SESSIONS_CLEANED,
+        emitMessage(MessageType.SESSIONS_CLEANED,
                 "Cleaned up " + count + " expired recording sessions from project '" + projectName + "'",
-                Severity.LOW, MessageCategory.SESSION, false);
+                Severity.LOW, MessageCategory.SESSION);
     }
 
     // ==================== RECORDING events (LOW severity) ====================
 
     public static void recordingFileCreated(String projectId, String sessionId, long originalSize, long compressedSize) {
-        emit(MessageType.RECORDING_FILE_CREATED,
+        emitMessage(MessageType.RECORDING_FILE_CREATED,
                 "Recording file compressed (original=" + originalSize + " compressed=" + compressedSize +
                         " sessionId=" + sessionId + " projectId=" + projectId + ")",
-                Severity.LOW, MessageCategory.RECORDING, false);
+                Severity.LOW, MessageCategory.RECORDING);
     }
 
-    // ==================== ALERTS (isAlert=true) ====================
+    // ==================== ALERTS ====================
 
     public static void jvmCrashDetected(String sessionId, String instanceId, String projectId) {
-        emit(MessageType.JVM_CRASH_DETECTED,
+        emitAlert(MessageType.JVM_CRASH_DETECTED,
                 "Session finished due to HotSpot JVM error — hs_err log detected" +
                         " (sessionId=" + sessionId + " instanceId=" + instanceId + " projectId=" + projectId + ")",
-                Severity.CRITICAL, MessageCategory.SESSION, true);
+                Severity.CRITICAL, MessageCategory.SESSION);
     }
 
     public static void eventProcessingFailed(String eventType, String projectId, String errorMessage) {
-        emit(MessageType.EVENT_PROCESSING_FAILED,
+        emitAlert(MessageType.EVENT_PROCESSING_FAILED,
                 "Failed to process workspace event: " + errorMessage +
                         " (eventType=" + eventType + " projectId=" + projectId + ")",
-                Severity.HIGH, MessageCategory.SYSTEM, true);
+                Severity.HIGH, MessageCategory.SYSTEM);
     }
 
-    // ==================== Private helper ====================
+    // ==================== Private helpers ====================
 
-    private static void emit(MessageType type, String message,
-                             Severity severity, MessageCategory category, boolean isAlert) {
-        ImportantMessageEvent event = new ImportantMessageEvent();
+    private static void emitMessage(MessageType type, String message,
+                                    Severity severity, MessageCategory category) {
+        MessageEvent event = new MessageEvent();
         event.type = type.name();
         event.title = type.title();
         event.message = message;
         event.severity = severity;
         event.category = category.name();
         event.source = "jeffrey-platform";
-        event.isAlert = isAlert;
+        event.commit();
+    }
+
+    private static void emitAlert(MessageType type, String message,
+                                   Severity severity, MessageCategory category) {
+        AlertEvent event = new AlertEvent();
+        event.type = type.name();
+        event.title = type.title();
+        event.message = message;
+        event.severity = severity;
+        event.category = category.name();
+        event.source = "jeffrey-platform";
         event.commit();
     }
 }

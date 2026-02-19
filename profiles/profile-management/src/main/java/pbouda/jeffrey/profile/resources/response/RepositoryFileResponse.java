@@ -30,7 +30,6 @@ public record RepositoryFileResponse(
         Long size,
         SupportedRecordingFile fileType,
         boolean isRecordingFile,
-        boolean isFinishingFile,
         RecordingStatus status) {
 
     public static RepositoryFileResponse from(RepositoryFile file) {
@@ -41,7 +40,6 @@ public record RepositoryFileResponse(
                 file.size(),
                 file.fileType(),
                 file.isRecordingFile(),
-                file.isFinishingFile(),
                 file.status());
     }
 
@@ -53,7 +51,6 @@ public record RepositoryFileResponse(
                 response.size(),
                 response.fileType(),
                 response.isRecordingFile(),
-                response.isFinishingFile(),
                 response.status(),
                 null);
     }

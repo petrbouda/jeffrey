@@ -20,7 +20,6 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
@@ -79,7 +78,6 @@ public class InstanceCreatedWorkspaceEventConsumer implements WorkspaceEventCons
 
         projectManager.projectInstanceRepository().insert(instanceInfo);
 
-        JfrEmitter.instanceCreated(event.originEventId(), projectManager.info().name(), projectManager.info().id());
         LOG.info("Instance created from workspace event: instance_id={} project_id={}",
                 event.originEventId(), projectManager.info().id());
     }

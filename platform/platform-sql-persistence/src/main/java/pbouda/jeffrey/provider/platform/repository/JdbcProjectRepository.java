@@ -49,15 +49,41 @@ public class JdbcProjectRepository implements ProjectRepository {
             "UPDATE projects SET project_name = :project_name WHERE project_id = :project_id";
 
     //language=SQL
-    private static final String DELETE_PROJECT = """
-            DELETE FROM schedulers WHERE project_id = '%project_id%';
-            DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = '%project_id%');
-            DELETE FROM repositories WHERE project_id = '%project_id%';
-            DELETE FROM recording_folders WHERE project_id = '%project_id%';
-            DELETE FROM recording_files WHERE project_id = '%project_id%';
-            DELETE FROM recordings WHERE project_id = '%project_id%';
-            DELETE FROM profiler_settings WHERE project_id = '%project_id%';
-            DELETE FROM projects WHERE project_id = '%project_id%';""";
+    private static final String DELETE_SCHEDULERS =
+            "DELETE FROM schedulers WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_SESSIONS =
+            "DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)";
+    //language=SQL
+    private static final String DELETE_INSTANCES =
+            "DELETE FROM project_instances WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_REPOSITORIES =
+            "DELETE FROM repositories WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_FOLDERS =
+            "DELETE FROM recording_folders WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_FILES =
+            "DELETE FROM recording_files WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_RECORDINGS =
+            "DELETE FROM recordings WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_PROFILER_SETTINGS =
+            "DELETE FROM profiler_settings WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_MESSAGES =
+            "DELETE FROM messages WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_ALERTS =
+            "DELETE FROM alerts WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_PROFILES =
+            "DELETE FROM profiles WHERE project_id = :project_id";
+    //language=SQL
+    private static final String DELETE_PROJECT_ENTRY =
+            "DELETE FROM projects WHERE project_id = :project_id";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -69,8 +95,22 @@ public class JdbcProjectRepository implements ProjectRepository {
 
     @Override
     public void delete() {
-        databaseClient.delete(
-                StatementLabel.DELETE_PROJECT, DELETE_PROJECT.replaceAll("%project_id%", projectId));
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        // Order matters: children before parents
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_SCHEDULERS, DELETE_SCHEDULERS, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_SESSIONS, DELETE_SESSIONS, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_INSTANCES, DELETE_INSTANCES, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_REPOSITORIES, DELETE_REPOSITORIES, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_FOLDERS, DELETE_FOLDERS, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_FILES, DELETE_FILES, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_RECORDINGS, DELETE_RECORDINGS, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_PROFILER_SETTINGS, DELETE_PROFILER_SETTINGS, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_MESSAGES, DELETE_MESSAGES, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_ALERTS, DELETE_ALERTS, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_PROFILES, DELETE_PROFILES, params);
+        databaseClient.delete(StatementLabel.DELETE_PROJECT, DELETE_PROJECT_ENTRY, params);
     }
 
     @Override

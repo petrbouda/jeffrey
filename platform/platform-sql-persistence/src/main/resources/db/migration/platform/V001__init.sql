@@ -206,3 +206,45 @@ CREATE TABLE IF NOT EXISTS project_instances
 );
 
 CREATE INDEX IF NOT EXISTS idx_project_instances_project_id ON project_instances(project_id);
+
+--
+-- MESSAGES TABLE
+--
+CREATE TABLE IF NOT EXISTS messages
+(
+    id          VARCHAR NOT NULL,
+    project_id  VARCHAR NOT NULL,
+    session_id  VARCHAR NOT NULL,
+    type        VARCHAR NOT NULL,
+    title       VARCHAR NOT NULL,
+    message     VARCHAR NOT NULL,
+    severity    VARCHAR NOT NULL,
+    category    VARCHAR NOT NULL,
+    source      VARCHAR NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_project_created ON messages(project_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_dedup ON messages(session_id, type, created_at);
+
+--
+-- ALERTS TABLE
+--
+CREATE TABLE IF NOT EXISTS alerts
+(
+    id          VARCHAR NOT NULL,
+    project_id  VARCHAR NOT NULL,
+    session_id  VARCHAR NOT NULL,
+    type        VARCHAR NOT NULL,
+    title       VARCHAR NOT NULL,
+    message     VARCHAR NOT NULL,
+    severity    VARCHAR NOT NULL,
+    category    VARCHAR NOT NULL,
+    source      VARCHAR NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_alerts_project_created ON alerts(project_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_dedup ON alerts(session_id, type, created_at);

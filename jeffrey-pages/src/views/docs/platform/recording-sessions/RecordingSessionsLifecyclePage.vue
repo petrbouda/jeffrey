@@ -28,6 +28,10 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'session-states', text: 'Session States', level: 2 },
   { id: 'session-detection', text: 'Session Detection', level: 2 },
+  { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
+  { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
+  { id: 'jvm-crash-detection', text: 'JVM Crash Detection', level: 3 },
+  { id: 'heartbeat-recovery', text: 'Heartbeat Recovery', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 }
 ];
 
@@ -81,38 +85,54 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="session-detection">Session Detection</h2>
-        <p>Jeffrey automatically detects when a recording session has finished by looking for <strong>finisher files</strong> in the session directory. If no finisher file is found, it falls back to timeout-based detection.</p>
+        <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The Jeffrey Agent emits periodic liveness signals that the platform monitors to determine session state.</p>
 
-        <div class="detection-methods">
-          <div class="detection-card recommended">
-            <div class="detection-icon"><i class="bi bi-speedometer2"></i></div>
-            <div class="detection-content">
-              <h4>Perf-Counters Detection <span class="badge-recommended">Recommended</span></h4>
-              <p>When Perf Counters are enabled, the <code>perf-counters.hsperfdata</code> file is written when profiling stops. Jeffrey automatically recognizes this finisher file and marks the session as finished.</p>
+        <h3 id="heartbeat-mechanism">Heartbeat Mechanism</h3>
+        <p>The Jeffrey Agent attaches to the profiled JVM and emits periodic <code>jeffrey.Heartbeat</code> JFR events into a streaming repository (<code>streaming-repo/</code>). Each heartbeat carries a sequence number and timestamp.</p>
+        <p>The Jeffrey platform reads these heartbeat events in real-time via JDK's <code>EventStream</code> API. Each received heartbeat updates the <code>last_heartbeat_at</code> timestamp in the database, providing a continuous liveness signal for the session.</p>
+
+        <h3 id="finish-detection-logic">Finish Detection Logic</h3>
+        <p>A scheduled job periodically evaluates each active session and applies the following rules:</p>
+
+        <div class="detection-cases">
+          <div class="detection-case active-case">
+            <div class="case-indicator"><i class="bi bi-circle-fill"></i></div>
+            <div class="case-content">
+              <h4>Heartbeat is recent</h4>
+              <p>The last heartbeat timestamp exists in the database and is within the staleness threshold (default 10 seconds). The session remains <strong>Active</strong>.</p>
             </div>
           </div>
-          <div class="detection-card">
-            <div class="detection-icon"><i class="bi bi-exclamation-triangle"></i></div>
-            <div class="detection-content">
-              <h4>HotSpot Error Log Detection</h4>
-              <p>If the JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>) is generated. Jeffrey recognizes this as a finisher file and marks the session as finished.</p>
+          <div class="detection-case finished-case">
+            <div class="case-indicator"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="case-content">
+              <h4>Heartbeat is stale</h4>
+              <p>The last heartbeat timestamp exists but is older than the staleness threshold. The session is marked as <strong>Finished</strong>.</p>
             </div>
           </div>
-          <div class="detection-card">
-            <div class="detection-icon"><i class="bi bi-clock-history"></i></div>
-            <div class="detection-content">
-              <h4>Timeout Detection</h4>
-              <p>Fallback method: if no finisher file is found and no new files appear within a configured timeout period, Jeffrey assumes the session has finished.</p>
+          <div class="detection-case skip-case">
+            <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
+            <div class="case-content">
+              <h4>No heartbeat, session is young</h4>
+              <p>No heartbeat has been recorded yet, but the session was created recently. The check is <strong>skipped</strong> because heartbeats may not have arrived yet.</p>
+            </div>
+          </div>
+          <div class="detection-case recovery-case">
+            <div class="case-indicator"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="case-content">
+              <h4>No heartbeat, session is old</h4>
+              <p>No heartbeat has been recorded and the session has been around for a while. Jeffrey attempts <strong>replay recovery</strong> from the streaming repository. If no heartbeats are found, the session is marked as <strong>Finished</strong>.</p>
             </div>
           </div>
         </div>
 
-        <DocsCallout type="tip">
-          <strong>Enable Perf Counters via Jeffrey CLI:</strong> Add <code>perf-counters { enabled = true }</code> to your CLI configuration for reliable and immediate session completion detection.
-        </DocsCallout>
+        <h3 id="jvm-crash-detection">JVM Crash Detection</h3>
+        <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>) is generated in the session directory. After a session finishes, Jeffrey checks for the presence of this file and emits a JVM crash event, providing visibility into abnormal terminations.</p>
+
+        <h3 id="heartbeat-recovery">Heartbeat Recovery</h3>
+        <p>If the Jeffrey platform was down while a session was active, heartbeats written to the streaming repository can be recovered by replaying the repository files. This ensures accurate <code>finished_at</code> timestamps even after Jeffrey restarts, preventing sessions from being incorrectly marked as finished due to missing heartbeat data.</p>
 
         <DocsCallout type="info">
-          <strong>Scheduler job:</strong> The <router-link to="/docs/concepts/projects/scheduler">Session Finished Detector</router-link> job runs periodically to check for finisher files and emit workspace events.
+          <strong>Scheduler job:</strong> The <router-link to="/docs/concepts/projects/scheduler">Session Finished Detector</router-link> job runs periodically to evaluate heartbeat staleness and detect finished sessions.
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>
@@ -207,15 +227,15 @@ onMounted(() => {
   margin-bottom: 0.25rem;
 }
 
-/* Detection Methods */
-.detection-methods {
+/* Detection Cases */
+.detection-cases {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   margin: 1.5rem 0;
 }
 
-.detection-card {
+.detection-case {
   display: flex;
   gap: 1rem;
   padding: 1rem;
@@ -224,62 +244,49 @@ onMounted(() => {
   border: 1px solid #e2e8f0;
 }
 
-.detection-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+.case-indicator {
+  width: 32px;
+  min-width: 32px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
-  border-radius: 10px;
+  align-items: flex-start;
+  padding-top: 0.15rem;
 }
 
-.detection-icon i {
-  font-size: 1.1rem;
-  color: #fff;
+.case-indicator i {
+  font-size: 1rem;
 }
 
-.detection-content {
+.active-case .case-indicator i {
+  color: #ef4444;
+}
+
+.finished-case .case-indicator i {
+  color: #10b981;
+}
+
+.skip-case .case-indicator i {
+  color: #f59e0b;
+}
+
+.recovery-case .case-indicator i {
+  color: #5e64ff;
+}
+
+.case-content {
   flex: 1;
 }
 
-.detection-content h4 {
+.case-content h4 {
   margin: 0 0 0.25rem 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: #343a40;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
-.badge-recommended {
-  display: inline-block;
-  padding: 0.15rem 0.4rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: #10b981;
-  color: #fff;
-  border-radius: 4px;
-}
-
-.detection-card.recommended {
-  border-color: #10b981;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, #f8fafc 100%);
-}
-
-.detection-content p {
+.case-content p {
   margin: 0;
   font-size: 0.85rem;
   color: #5e6e82;
   line-height: 1.4;
-}
-
-@media (max-width: 768px) {
-  .detection-methods {
-    flex-direction: column;
-  }
 }
 </style>

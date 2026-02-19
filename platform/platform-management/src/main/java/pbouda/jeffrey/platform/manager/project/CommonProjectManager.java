@@ -103,7 +103,10 @@ public class CommonProjectManager implements ProjectManager {
 
     @Override
     public MessagesManager messagesManager() {
-        return new MessagesManagerImpl(clock, repositoryStorage);
+        return new MessagesManagerImpl(
+                clock,
+                platformRepositories.newMessageRepository(projectInfo.id()),
+                platformRepositories.newAlertRepository(projectInfo.id()));
     }
 
     @Override

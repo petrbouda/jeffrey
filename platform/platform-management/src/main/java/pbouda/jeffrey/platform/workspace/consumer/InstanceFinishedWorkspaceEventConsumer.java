@@ -20,13 +20,11 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
@@ -60,10 +58,8 @@ public class InstanceFinishedWorkspaceEventConsumer implements WorkspaceEventCon
         ProjectInstanceRepository projectInstanceRepository =
                 platformRepositories.newProjectInstanceRepository(projectId);
 
-        projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.FINISHED);
         projectInstanceRepository.markFinished(instanceId, event.originCreatedAt());
 
-        JfrEmitter.instanceFinished(instanceId, projectId);
         LOG.info("Instance marked as finished from workspace event: instance_id={} project_id={}",
                 instanceId, projectId);
     }

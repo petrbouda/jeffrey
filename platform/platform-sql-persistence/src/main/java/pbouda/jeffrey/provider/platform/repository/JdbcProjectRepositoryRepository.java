@@ -91,13 +91,15 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             UPDATE project_instance_sessions
             SET finished_at = :finished_at
             WHERE session_id = :session_id
+            AND finished_at IS NULL
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
     //language=SQL
-    private static final String MARK_UNFINISHED_SESSIONS_FINISHED = """
+    private static final String MARK_SESSION_FINISHED_WITH_HEARTBEAT = """
             UPDATE project_instance_sessions
-            SET finished_at = :finished_at
-            WHERE instance_id = :instance_id AND finished_at IS NULL
+            SET finished_at = :finished_at, last_heartbeat_at = :last_heartbeat_at
+            WHERE session_id = :session_id
+            AND finished_at IS NULL
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
     //language=SQL
@@ -107,6 +109,13 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             WHERE session_id = :session_id
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)
             AND (last_heartbeat_at IS NULL OR last_heartbeat_at < :last_heartbeat_at)""";
+
+    //language=SQL
+    private static final String SELECT_LATEST_SESSION_ID = """
+            SELECT rs.session_id FROM project_instance_sessions rs
+            JOIN repositories r ON rs.repository_id = r.repository_id
+            WHERE r.project_id = :project_id
+            ORDER BY rs.origin_created_at DESC LIMIT 1""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -162,7 +171,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     @Override
     public void createSession(ProjectInstanceSessionInfo session) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("session_id", IDGenerator.generate())
+                .addValue("session_id", session.sessionId())
                 .addValue("repository_id", session.repositoryId())
                 .addValue("instance_id", session.instanceId())
                 .addValue("session_order", session.order())
@@ -232,13 +241,14 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public void markUnfinishedSessionsFinished(String instanceId, java.time.Instant finishedAt) {
+    public void markSessionFinishedWithHeartbeat(String sessionId, java.time.Instant finishedAt, java.time.Instant lastHeartbeatAt) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
-                .addValue("instance_id", instanceId)
-                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
+                .addValue("session_id", sessionId)
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC))
+                .addValue("last_heartbeat_at", lastHeartbeatAt.atOffset(ZoneOffset.UTC));
 
-        databaseClient.update(StatementLabel.MARK_UNFINISHED_SESSIONS_FINISHED, MARK_UNFINISHED_SESSIONS_FINISHED, paramSource);
+        databaseClient.update(StatementLabel.MARK_SESSION_FINISHED_WITH_HEARTBEAT, MARK_SESSION_FINISHED_WITH_HEARTBEAT, paramSource);
     }
 
     @Override
@@ -249,6 +259,18 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("last_heartbeat_at", lastHeartbeatAt.atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.UPDATE_LAST_HEARTBEAT, UPDATE_LAST_HEARTBEAT, paramSource);
+    }
+
+    @Override
+    public Optional<String> findLatestSessionId() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_LATEST_SESSION_ID,
+                SELECT_LATEST_SESSION_ID,
+                paramSource,
+                (rs, _) -> rs.getString("session_id"));
     }
 
     private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {

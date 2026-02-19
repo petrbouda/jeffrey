@@ -88,7 +88,7 @@ onMounted(() => {
         <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp.</p>
 
         <DocsCallout type="info">
-          <strong>Finisher files:</strong> <code>perf-counters.hsperfdata</code> and <code>hs-jvm-err.log</code> are <strong>finisher files</strong> — Jeffrey uses their presence to automatically detect when a session has finished. If neither is found, timeout-based detection is used as a fallback.
+          <strong>Additional files:</strong> <code>perf-counters.hsperfdata</code> (HotSpot Performance Counters) and <code>hs-jvm-err.log</code> (HotSpot JVM Error Log) are artifact files that can be viewed in the session details. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
         </DocsCallout>
 
         <h2 id="streaming-repository">Streaming Repository</h2>
@@ -107,10 +107,15 @@ onMounted(() => {
 └── .session-info.json</code></pre>
         </div>
 
-        <p>The streaming repository is used for <strong>ImportantMessage</strong> events that require immediate processing. Unlike Async-Profiler files which are written periodically, streaming events are captured in real-time and stored in the JDK's native repository format.</p>
+        <p>The streaming repository serves two purposes:</p>
+        <ul>
+          <li><strong>Heartbeat events</strong> - Periodic liveness signals emitted by the Jeffrey Agent, used by the platform to detect when sessions finish</li>
+          <li><strong>Application events</strong> - Messages and alerts emitted by the application for real-time processing</li>
+        </ul>
+        <p>Unlike Async-Profiler files which are written periodically, streaming events are captured in real-time and stored in the JDK's native repository format.</p>
 
         <DocsCallout type="info">
-          <strong>Two recording mechanisms:</strong> Async-Profiler generates high-performance profiling data (CPU, allocation, lock) while the JDK streaming repository captures ImportantMessage events. Both coexist in the same session directory.
+          <strong>Two recording mechanisms:</strong> Async-Profiler generates high-performance profiling data (CPU, allocation, lock) while the JDK streaming repository captures Heartbeat, Message, and Alert events. Both coexist in the same session directory.
         </DocsCallout>
       </div>
 

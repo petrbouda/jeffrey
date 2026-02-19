@@ -30,7 +30,6 @@ public final class RepositoryFile {
     private final SupportedRecordingFile fileType;
     private final boolean isRecordingFile;
     private final Path filePath;
-    private final boolean isFinishingFile;
     private RecordingStatus status;
 
     public RepositoryFile(
@@ -40,7 +39,6 @@ public final class RepositoryFile {
             Long size,
             SupportedRecordingFile fileType,
             boolean isRecordingFile,
-            boolean isFinishingFile,
             RecordingStatus status,
             Path filePath) {
         this.id = id;
@@ -49,7 +47,6 @@ public final class RepositoryFile {
         this.size = size;
         this.fileType = fileType;
         this.isRecordingFile = isRecordingFile;
-        this.isFinishingFile = isFinishingFile;
         this.status = status;
         this.filePath = filePath;
     }
@@ -66,7 +63,6 @@ public final class RepositoryFile {
                 size,
                 fileType,
                 isRecordingFile,
-                isFinishingFile,
                 status,
                 filePath);
     }
@@ -95,10 +91,6 @@ public final class RepositoryFile {
         return isRecordingFile;
     }
 
-    public boolean isFinishingFile() {
-        return isFinishingFile;
-    }
-
     public boolean isFinished() {
         return status == RecordingStatus.FINISHED;
     }
@@ -119,7 +111,6 @@ public final class RepositoryFile {
     public boolean equals(Object o) {
         if (!(o instanceof RepositoryFile that)) return false;
         return isRecordingFile == that.isRecordingFile
-               && isFinishingFile == that.isFinishingFile
                && Objects.equals(id, that.id)
                && Objects.equals(name, that.name)
                && Objects.equals(createdAt, that.createdAt)
@@ -132,6 +123,6 @@ public final class RepositoryFile {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, name, createdAt, size, fileType, isRecordingFile, isFinishingFile, filePath, status);
+                id, name, createdAt, size, fileType, isRecordingFile, filePath, status);
     }
 }

@@ -20,15 +20,13 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
-import pbouda.jeffrey.platform.project.repository.detection.FileFinishedDetectionStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.FinishedDetectionStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.HeartbeatBasedFinishedDetectionStrategy;
-import pbouda.jeffrey.platform.project.repository.detection.TimeBasedFinishedDetectionStrategy;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
+import pbouda.jeffrey.platform.streaming.SessionPaths;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
@@ -37,11 +35,9 @@ import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.job.JobType;
-import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.IOException;
@@ -50,7 +46,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -58,21 +53,20 @@ import java.util.stream.Stream;
  * Scheduler job that detects when sessions become FINISHED and emits SESSION_FINISHED events.
  * <p>
  * This job periodically checks all sessions that have not been marked as finished yet.
- * For each unfinished session, it uses the FinishedDetectionStrategy to determine if the session
- * has actually finished (either by detection file or timeout). When a session is detected
- * as finished, it:
- * 1. Updates the finished_at timestamp in the database
- * 2. Emits a SESSION_FINISHED workspace event
+ * For each unfinished session, it uses {@link SessionFinisher} to determine if the session
+ * has actually finished based on heartbeat data. When a session is detected as finished, it
+ * also checks if the parent instance should be auto-finished.
  */
 public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<SessionFinishedDetectorProjectJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SessionFinishedDetectorProjectJob.class);
 
     private final Duration period;
-    private final Duration finishedPeriod;
+    private final Duration heartbeatThreshold;
     private final Clock clock;
     private final JeffreyDirs jeffreyDirs;
     private final PlatformRepositories platformRepositories;
+    private final SessionFinisher sessionFinisher;
     private final SessionFinishEventEmitter eventEmitter;
 
     public SessionFinishedDetectorProjectJob(
@@ -80,18 +74,20 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
             Duration period,
-            Duration finishedPeriod,
+            Duration heartbeatThreshold,
             Clock clock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
+            SessionFinisher sessionFinisher,
             SessionFinishEventEmitter eventEmitter) {
 
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
-        this.finishedPeriod = finishedPeriod;
+        this.heartbeatThreshold = heartbeatThreshold;
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
+        this.sessionFinisher = sessionFinisher;
         this.eventEmitter = eventEmitter;
     }
 
@@ -133,22 +129,16 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             RepositoryInfo repositoryInfo,
             ProjectInstanceSessionInfo sessionInfo) {
 
-        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        FinishedDetectionStrategy strategy = createStatusStrategy(sessionInfo.lastHeartbeatAt());
-        RecordingStatus status = strategy.determineStatus(sessionPath);
+        Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, sessionInfo);
 
-        if (status == RecordingStatus.FINISHED) {
-            // Mark session as finished in the database
-            projectRepositoryRepository.markSessionFinished(sessionInfo.sessionId(), clock.instant());
+        boolean finished = sessionFinisher.tryFinishFromHeartbeat(
+                projectRepositoryRepository, projectInfo, sessionInfo,
+                sessionPath, heartbeatThreshold, clock.instant());
 
-            // Emit SESSION_FINISHED event
-            eventEmitter.emitSessionFinished(projectInfo, sessionInfo);
-
-            // Emit JFR event: session finished or JVM crash detected
+        if (finished) {
+            // Check for hs_err log (JVM crash) - emit specific alert
             if (containsHsErrLog(sessionPath)) {
-                JfrEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
-            } else {
-                JfrEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());
+                JfrMessageEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
             }
 
             // Check if the instance has any remaining active sessions
@@ -158,10 +148,9 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
                         .anyMatch(s -> s.finishedAt() == null);
 
                 if (!hasActiveSessions) {
-                    projectInstanceRepository.updateStatus(instanceId, ProjectInstanceStatus.FINISHED);
                     projectInstanceRepository.markFinished(instanceId, clock.instant());
                     eventEmitter.emitInstanceFinished(projectInfo, instanceId);
-                    JfrEmitter.instanceAutoFinished(instanceId, projectInfo.id());
+                    JfrMessageEmitter.instanceAutoFinished(instanceId, projectInfo.id());
                     LOG.info("Instance transitioned to FINISHED, no active sessions remaining: projectId={} instanceId={}",
                             projectInfo.id(), instanceId);
                 }
@@ -178,23 +167,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private Path resolveSessionPath(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
-        String workspacesPath = repositoryInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : Path.of(workspacesPath);
-        return resolvedWorkspacesPath
-                .resolve(repositoryInfo.relativeWorkspacePath())
-                .resolve(repositoryInfo.relativeProjectPath())
-                .resolve(sessionInfo.relativeSessionPath());
-    }
-
-    private FinishedDetectionStrategy createStatusStrategy(Instant lastHeartbeatAt) {
-        FinishedDetectionStrategy timeBased = new TimeBasedFinishedDetectionStrategy(finishedPeriod, clock);
-        FinishedDetectionStrategy fileBased = new FileFinishedDetectionStrategy(timeBased);
-        return lastHeartbeatAt != null
-                ? new HeartbeatBasedFinishedDetectionStrategy(lastHeartbeatAt, clock, fileBased)
-                : fileBased;
     }
 
     @Override

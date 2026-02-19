@@ -20,7 +20,6 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrEmitter;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
@@ -66,7 +65,6 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         remoteRepositoryStorageFactory.apply(projectManager.info())
                 .deleteSession(event.originEventId());
 
-        JfrEmitter.sessionDeleted(event.originEventId(), event.projectId());
         LOG.debug("Deleted session from workspace event: project_id={} session_id={}", event.projectId(), event.originEventId());
     }
 

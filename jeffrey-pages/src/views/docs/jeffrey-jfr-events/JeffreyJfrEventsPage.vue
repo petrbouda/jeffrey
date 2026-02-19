@@ -53,6 +53,13 @@ onMounted(() => {
 
         <div class="event-cards">
           <div class="event-card">
+            <div class="event-icon"><i class="bi bi-heart-pulse"></i></div>
+            <div class="event-content">
+              <h4>Heartbeat</h4>
+              <p>Periodic liveness signal emitted by the Jeffrey Agent. Used by the platform to detect when profiled applications stop running. Each event carries a sequence number for ordering.</p>
+            </div>
+          </div>
+          <div class="event-card">
             <div class="event-icon"><i class="bi bi-globe"></i></div>
             <div class="event-content">
               <h4>HTTP Events</h4>

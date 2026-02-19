@@ -139,7 +139,8 @@ public class FeatureBuilder {
             StringBuilder startRecording = new StringBuilder("-XX:StartFlightRecording=name=jeffrey-streaming");
             if (messagingEnabled) {
                 startRecording.append(",maxage=").append(messagingMaxAge);
-                startRecording.append(",").append(EventTypeName.IMPORTANT_MESSAGE).append("#enabled=true");
+                startRecording.append(",").append(EventTypeName.MESSAGE).append("#enabled=true");
+                startRecording.append(",").append(EventTypeName.ALERT).append("#enabled=true");
             }
             if (heartbeatEnabled) {
                 startRecording.append(",").append(EventTypeName.HEARTBEAT).append("#enabled=true");
