@@ -42,16 +42,21 @@ public class HeartbeatReplayReader {
 
     private static final String STREAMING_REPO_DIR = "streaming-repo";
 
+    private final Clock clock;
+
+    public HeartbeatReplayReader(Clock clock) {
+        this.clock = clock;
+    }
+
     /**
      * Replays the streaming repository from the given start time and returns the last heartbeat
      * timestamp, or empty if no heartbeat events found or the directory doesn't exist.
      *
      * @param sessionPath path to the session directory
      * @param startFrom   the earliest timestamp to replay from (e.g. session's originCreatedAt)
-     * @param clock       the clock to use for the end time
      * @return the last heartbeat timestamp, or empty
      */
-    public static Optional<Instant> readLastHeartbeat(Path sessionPath, Instant startFrom, Clock clock) {
+    public Optional<Instant> readLastHeartbeat(Path sessionPath, Instant startFrom) {
         Path streamingRepoPath = sessionPath.resolve(STREAMING_REPO_DIR);
         if (!Files.isDirectory(streamingRepoPath)) {
             return Optional.empty();

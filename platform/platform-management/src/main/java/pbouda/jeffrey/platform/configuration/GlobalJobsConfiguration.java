@@ -34,6 +34,7 @@ import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.SchedulerTriggerImpl;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
@@ -107,7 +108,8 @@ public class GlobalJobsConfiguration {
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
             JfrStreamingConsumerManager jfrStreamingConsumerManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            JeffreyDirs jeffreyDirs) {
+            JeffreyDirs jeffreyDirs,
+            HeartbeatReplayReader heartbeatReplayReader) {
 
         return new ProjectsSynchronizerJob(
                 platformRepositories,
@@ -119,6 +121,7 @@ public class GlobalJobsConfiguration {
                 jobDescriptorFactory,
                 jeffreyDirs,
                 clock,
+                heartbeatReplayReader,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 

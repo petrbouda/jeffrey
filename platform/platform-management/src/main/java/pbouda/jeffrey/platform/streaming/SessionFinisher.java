@@ -42,10 +42,12 @@ public class SessionFinisher {
 
     private final Clock clock;
     private final SessionFinishEventEmitter eventEmitter;
+    private final HeartbeatReplayReader heartbeatReplayReader;
 
-    public SessionFinisher(Clock clock, SessionFinishEventEmitter eventEmitter) {
+    public SessionFinisher(Clock clock, SessionFinishEventEmitter eventEmitter, HeartbeatReplayReader heartbeatReplayReader) {
         this.clock = clock;
         this.eventEmitter = eventEmitter;
+        this.heartbeatReplayReader = heartbeatReplayReader;
     }
 
     /**
@@ -101,8 +103,8 @@ public class SessionFinisher {
         }
 
         // Case 3: Replay heartbeat from streaming repo
-        Optional<Instant> replayed = HeartbeatReplayReader.readLastHeartbeat(
-                sessionPath, sessionInfo.originCreatedAt(), clock);
+        Optional<Instant> replayed = heartbeatReplayReader.readLastHeartbeat(
+                sessionPath, sessionInfo.originCreatedAt());
 
         if (replayed.isPresent()) {
             repositoryRepository.updateLastHeartbeat(sessionInfo.sessionId(), replayed.get());

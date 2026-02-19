@@ -36,7 +36,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -49,18 +48,18 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
     private final JeffreyDirs jeffreyDirs;
-    private final Clock clock;
+    private final HeartbeatReplayReader heartbeatReplayReader;
 
     public CreateSessionWorkspaceEventConsumer(
             ProjectsManager projectsManager,
             PlatformRepositories platformRepositories,
             JeffreyDirs jeffreyDirs,
-            Clock clock) {
+            HeartbeatReplayReader heartbeatReplayReader) {
 
         this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
         this.jeffreyDirs = jeffreyDirs;
-        this.clock = clock;
+        this.heartbeatReplayReader = heartbeatReplayReader;
     }
 
     @Override
@@ -140,7 +139,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
             Instant replayFrom = session.lastHeartbeatAt() != null
                     ? session.lastHeartbeatAt()
                     : session.originCreatedAt();
-            Optional<Instant> lastHeartbeat = HeartbeatReplayReader.readLastHeartbeat(sessionPath, replayFrom, clock);
+            Optional<Instant> lastHeartbeat = heartbeatReplayReader.readLastHeartbeat(sessionPath, replayFrom);
 
             if (lastHeartbeat.isPresent()) {
                 Instant hb = lastHeartbeat.get();
