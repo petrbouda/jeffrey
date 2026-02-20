@@ -129,8 +129,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
                 List<WorkspaceEventConsumer> consumers = List.of(
                         new CreateProjectWorkspaceEventConsumer(projectsManager),
                         new InstanceCreatedWorkspaceEventConsumer(projectsManager),
-                        new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader),
-                        new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories));
+                        new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader));
 
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
