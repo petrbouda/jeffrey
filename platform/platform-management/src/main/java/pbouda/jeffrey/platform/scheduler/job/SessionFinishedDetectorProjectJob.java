@@ -24,14 +24,12 @@ import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.streaming.SessionPaths;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -67,7 +65,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
     private final JeffreyDirs jeffreyDirs;
     private final PlatformRepositories platformRepositories;
     private final SessionFinisher sessionFinisher;
-    private final SessionFinishEventEmitter eventEmitter;
 
     public SessionFinishedDetectorProjectJob(
             WorkspacesManager workspacesManager,
@@ -78,8 +75,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             Clock clock,
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            SessionFinisher sessionFinisher,
-            SessionFinishEventEmitter eventEmitter) {
+            SessionFinisher sessionFinisher) {
 
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
@@ -88,7 +84,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.sessionFinisher = sessionFinisher;
-        this.eventEmitter = eventEmitter;
     }
 
     @Override
@@ -101,8 +96,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         ProjectInfo projectInfo = manager.info();
         ProjectRepositoryRepository projectRepositoryRepository =
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id());
-        ProjectInstanceRepository projectInstanceRepository =
-                platformRepositories.newProjectInstanceRepository(projectInfo.id());
 
         List<ProjectInstanceSessionInfo> unfinishedSessions = projectRepositoryRepository.findUnfinishedSessions();
 
@@ -118,14 +111,13 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         RepositoryInfo repositoryInfo = repositoryInfos.getFirst();
 
         for (ProjectInstanceSessionInfo sessionInfo : unfinishedSessions) {
-            processSession(projectInfo, projectRepositoryRepository, projectInstanceRepository, repositoryInfo, sessionInfo);
+            processSession(projectInfo, projectRepositoryRepository, repositoryInfo, sessionInfo);
         }
     }
 
     private void processSession(
             ProjectInfo projectInfo,
             ProjectRepositoryRepository projectRepositoryRepository,
-            ProjectInstanceRepository projectInstanceRepository,
             RepositoryInfo repositoryInfo,
             ProjectInstanceSessionInfo sessionInfo) {
 
@@ -139,21 +131,6 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
             // Check for hs_err log (JVM crash) - emit specific alert
             if (containsHsErrLog(sessionPath)) {
                 JfrMessageEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
-            }
-
-            // Check if the instance has any remaining active sessions
-            String instanceId = sessionInfo.instanceId();
-            if (instanceId != null) {
-                boolean hasActiveSessions = projectInstanceRepository.findSessions(instanceId).stream()
-                        .anyMatch(s -> s.finishedAt() == null);
-
-                if (!hasActiveSessions) {
-                    projectInstanceRepository.markFinished(instanceId, clock.instant());
-                    eventEmitter.emitInstanceFinished(projectInfo, instanceId);
-                    JfrMessageEmitter.instanceAutoFinished(instanceId, projectInfo.id());
-                    LOG.info("Instance transitioned to FINISHED, no active sessions remaining: projectId={} instanceId={}",
-                            projectInfo.id(), instanceId);
-                }
             }
         }
     }

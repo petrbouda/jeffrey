@@ -22,10 +22,10 @@
         <!-- Top row: status + key info -->
         <div class="meta-row-top">
           <div class="d-flex align-items-center">
-            <span class="meta-status-dot" :class="instance.status === 'ACTIVE' ? 'active' : 'finished'"></span>
+            <span class="meta-status-dot" :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED' }"></span>
             <Badge
               :value="instance.status"
-              :variant="instance.status === 'ACTIVE' ? 'warning' : 'green'"
+              :variant="instance.status === 'PENDING' ? 'blue' : instance.status === 'ACTIVE' ? 'warning' : 'green'"
               size="xs"
             />
           </div>
@@ -170,6 +170,11 @@ onMounted(async () => {
   border-radius: 50%;
   flex-shrink: 0;
   margin-right: 6px;
+}
+
+.meta-status-dot.pending {
+  background-color: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
 }
 
 .meta-status-dot.active {

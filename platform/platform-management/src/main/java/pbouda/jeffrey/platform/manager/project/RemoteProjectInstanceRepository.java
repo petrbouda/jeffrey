@@ -29,7 +29,6 @@ import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceSta
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -76,21 +75,6 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
 
     @Override
     public void insert(ProjectInstanceInfo instance) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
-    }
-
-    @Override
-    public void markFinished(String instanceId, Instant finishedAt) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
-    }
-
-    @Override
-    public void reactivate(String instanceId) {
-        throw new UnsupportedOperationException(UNSUPPORTED);
-    }
-
-    @Override
-    public void updateStatus(String instanceId, ProjectInstanceStatus status) {
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 

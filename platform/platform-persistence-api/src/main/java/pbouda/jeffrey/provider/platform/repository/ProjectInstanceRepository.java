@@ -19,10 +19,8 @@
 package pbouda.jeffrey.provider.platform.repository;
 
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,28 +60,4 @@ public interface ProjectInstanceRepository {
      * @param instance the project instance to insert
      */
     void insert(ProjectInstanceInfo instance);
-
-    /**
-     * Mark a project instance as finished with a timestamp.
-     *
-     * @param instanceId the instance ID
-     * @param finishedAt the finished timestamp
-     */
-    void markFinished(String instanceId, Instant finishedAt);
-
-    /**
-     * Re-activate a finished project instance by setting its status back to ACTIVE
-     * and clearing the finished timestamp. This is the inverse of {@link #markFinished}.
-     *
-     * @param instanceId the instance ID
-     */
-    void reactivate(String instanceId);
-
-    /**
-     * Update the status of a project instance.
-     *
-     * @param instanceId the instance ID
-     * @param status the new status
-     */
-    void updateStatus(String instanceId, ProjectInstanceStatus status);
 }

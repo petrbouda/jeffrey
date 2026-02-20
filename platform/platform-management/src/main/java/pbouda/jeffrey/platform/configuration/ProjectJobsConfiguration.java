@@ -157,7 +157,6 @@ public class ProjectJobsConfiguration {
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher,
-            SessionFinishEventEmitter sessionFinishEventEmitter,
             @Value("${jeffrey.job.session-finished-detector.period:10s}") Duration jobPeriod,
             @Value("${jeffrey.platform.streaming.heartbeat-timeout:10s}") Duration heartbeatTimeout) {
 
@@ -170,7 +169,6 @@ public class ProjectJobsConfiguration {
                 clock,
                 jeffreyDirs,
                 platformRepositories,
-                sessionFinisher,
-                sessionFinishEventEmitter);
+                sessionFinisher);
     }
 }

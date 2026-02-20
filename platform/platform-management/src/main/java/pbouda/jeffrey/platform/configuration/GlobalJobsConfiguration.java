@@ -42,6 +42,7 @@ import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.folderqueue.FolderQueue;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.time.Clock;
@@ -141,7 +142,7 @@ public class GlobalJobsConfiguration {
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
-                clock,
+                new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 platformRepositories,
                 jeffreyDirs,
                 heartbeatReplayReader,

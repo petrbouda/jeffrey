@@ -253,10 +253,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             List<ProjectInstanceSessionInfo> unfinished = repoRepo.findUnfinishedSessions();
             assertTrue(unfinished.isEmpty());
 
-            // Mark instance finished and verify
-            Instant finishedAt = clock.instant();
-            instanceRepo.markFinished(INSTANCE_ID, finishedAt);
-
+            // Verify instance derives to FINISHED (all sessions are now finished)
             var instance = instanceRepo.find(INSTANCE_ID).orElseThrow();
             assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
         }

@@ -32,6 +32,7 @@ import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
@@ -75,7 +76,7 @@ class InstanceFinishedWorkspaceEventConsumerIntegrationTest {
     }
 
     @Nested
-    class HappyPath {
+    class ClosesUnfinishedSessions {
 
         @Mock
         ProjectsManager projectsManager;
@@ -84,8 +85,8 @@ class InstanceFinishedWorkspaceEventConsumerIntegrationTest {
         ProjectManager projectManager;
 
         @Test
-        void instanceMarkedFinished_withCorrectTimestamp(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-and-instance.sql");
+        void closesUnfinishedSessions_instanceDerivesFinished(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var platformRepositories = new JdbcPlatformRepositories(provider, FIXED_CLOCK);
 
@@ -97,12 +98,23 @@ class InstanceFinishedWorkspaceEventConsumerIntegrationTest {
             var consumer = new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories);
             consumer.on(instanceFinishedEvent(INSTANCE_ID, finishedAt), JOB_DESCRIPTOR);
 
+            // Verify sessions are closed
+            var repoRepo = platformRepositories.newProjectRepositoryRepository(PROJECT_ID);
+            Optional<ProjectInstanceSessionInfo> session1 = repoRepo.findSessionById("session-001");
+            assertTrue(session1.isPresent());
+            assertEquals(finishedAt, session1.get().finishedAt());
+
+            Optional<ProjectInstanceSessionInfo> session2 = repoRepo.findSessionById("session-002");
+            assertTrue(session2.isPresent());
+            assertEquals(finishedAt, session2.get().finishedAt());
+
+            // Verify instance status is derived as FINISHED (all sessions closed)
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertAll(
                     () -> assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status()),
-                    () -> assertEquals(finishedAt, instance.get().finishedAt())
+                    () -> assertNotNull(instance.get().finishedAt())
             );
         }
     }
@@ -117,12 +129,12 @@ class InstanceFinishedWorkspaceEventConsumerIntegrationTest {
         ProjectManager projectManager;
 
         @Test
-        void activeToFinished_statusTransition(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-and-instance.sql");
+        void activeToFinished_viaSessionClosure(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var platformRepositories = new JdbcPlatformRepositories(provider, FIXED_CLOCK);
 
-            // Verify instance is ACTIVE before
+            // Verify instance is ACTIVE before (has unfinished sessions)
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> before = instanceRepo.find(INSTANCE_ID);
             assertTrue(before.isPresent());
@@ -136,7 +148,7 @@ class InstanceFinishedWorkspaceEventConsumerIntegrationTest {
             var consumer = new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories);
             consumer.on(instanceFinishedEvent(INSTANCE_ID, finishedAt), JOB_DESCRIPTOR);
 
-            // Verify instance is FINISHED after
+            // Verify instance derives to FINISHED after sessions are closed
             Optional<ProjectInstanceInfo> after = instanceRepo.find(INSTANCE_ID);
             assertTrue(after.isPresent());
             assertEquals(ProjectInstanceStatus.FINISHED, after.get().status());

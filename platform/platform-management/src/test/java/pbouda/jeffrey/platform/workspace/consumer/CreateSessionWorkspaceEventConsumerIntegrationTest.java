@@ -29,13 +29,11 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
-import pbouda.jeffrey.provider.platform.repository.JdbcProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
@@ -110,10 +108,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var clock = new MutableClock(NOW);
 
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-                var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(realInstanceRepo);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -176,10 +172,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var clock = new MutableClock(NOW);
 
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-                var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(realInstanceRepo);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -234,10 +228,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var clock = new MutableClock(NOW);
 
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-                var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(realInstanceRepo);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -302,10 +294,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var clock = new MutableClock(NOW);
 
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-                var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(realInstanceRepo);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -345,10 +335,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var clock = new MutableClock(NOW);
 
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-                var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(realInstanceRepo);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -379,121 +367,6 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
                 verify(repositoryManager).createSession(any());
             }
-        }
-    }
-
-    @Nested
-    class InstanceReactivation {
-
-        @Mock
-        ProjectsManager projectsManager;
-
-        @Mock
-        ProjectManager projectManager;
-
-        @Mock
-        RepositoryManager repositoryManager;
-
-        @Mock
-        PlatformRepositories platformRepositories;
-
-        @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
-
-        @Test
-        void instanceReactivated_whenSessionOrderGreaterThanOne(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-single-unfinished-session.sql");
-            var provider = new DatabaseClientProvider(dataSource);
-            var clock = new MutableClock(NOW);
-
-            var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-            var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
-
-            // First mark the instance as FINISHED so we can verify reactivation
-            realInstanceRepo.markFinished(INSTANCE_ID, Instant.parse("2025-06-15T09:00:00Z"));
-
-            Optional<ProjectInstanceInfo> beforeInstance = realInstanceRepo.find(INSTANCE_ID);
-            assertTrue(beforeInstance.isPresent());
-            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.FINISHED, beforeInstance.get().status());
-
-            when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-            when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(realInstanceRepo);
-            when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
-            when(projectManager.info()).thenReturn(PROJECT_INFO);
-            when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-            when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-            when(heartbeatReplayReader.readLastHeartbeat(any(), any())).thenReturn(Optional.empty());
-
-            // order=2 triggers reactivation
-            SessionCreatedEventContent content = new SessionCreatedEventContent(
-                    INSTANCE_ID, 2, "session-002", "cpu=true", true);
-            WorkspaceEvent event = new WorkspaceEvent(
-                    null, "session-002", ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
-                    Json.toString(content),
-                    Instant.parse("2025-06-15T10:00:00Z"), NOW, "test");
-
-            var consumer = new CreateSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
-            consumer.on(event, JOB_DESCRIPTOR);
-
-            // Verify the instance was reactivated
-            var verifyInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
-            Optional<ProjectInstanceInfo> afterInstance = verifyInstanceRepo.find(INSTANCE_ID);
-            assertTrue(afterInstance.isPresent());
-            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.ACTIVE, afterInstance.get().status());
-            assertNull(afterInstance.get().finishedAt());
-
-            verify(repositoryManager).createSession(any());
-        }
-
-        @Test
-        void instanceNotReactivated_whenSessionOrderIsOne(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-single-unfinished-session.sql");
-            var provider = new DatabaseClientProvider(dataSource);
-            var clock = new MutableClock(NOW);
-
-            var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-            var realInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
-
-            // Mark the instance as FINISHED
-            Instant finishedAt = Instant.parse("2025-06-15T09:00:00Z");
-            realInstanceRepo.markFinished(INSTANCE_ID, finishedAt);
-
-            Optional<ProjectInstanceInfo> beforeInstance = realInstanceRepo.find(INSTANCE_ID);
-            assertTrue(beforeInstance.isPresent());
-            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.FINISHED, beforeInstance.get().status());
-
-            when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-            when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
-            when(projectManager.info()).thenReturn(PROJECT_INFO);
-            when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-            when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-            when(heartbeatReplayReader.readLastHeartbeat(any(), any())).thenReturn(Optional.empty());
-
-            // order=1 should NOT trigger reactivation (newProjectInstanceRepository not called)
-            SessionCreatedEventContent content = new SessionCreatedEventContent(
-                    INSTANCE_ID, 1, "session-002", "cpu=true", true);
-            WorkspaceEvent event = new WorkspaceEvent(
-                    null, "session-002", ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
-                    Json.toString(content),
-                    Instant.parse("2025-06-15T10:00:00Z"), NOW, "test");
-
-            var consumer = new CreateSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
-            consumer.on(event, JOB_DESCRIPTOR);
-
-            // Verify the instance was NOT reactivated - still FINISHED
-            var verifyInstanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
-            Optional<ProjectInstanceInfo> afterInstance = verifyInstanceRepo.find(INSTANCE_ID);
-            assertTrue(afterInstance.isPresent());
-            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.FINISHED, afterInstance.get().status());
-            assertNotNull(afterInstance.get().finishedAt());
-
-            verify(repositoryManager).createSession(any());
         }
     }
 }

@@ -26,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.SessionFinishedDetectorProjectJobDescriptor;
 import pbouda.jeffrey.platform.streaming.SessionFinisher;
@@ -85,13 +84,12 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
     private static SessionFinishedDetectorProjectJob createJob(
             JeffreyDirs jeffreyDirs,
             JdbcPlatformRepositories platformRepositories,
-            SessionFinisher sessionFinisher,
-            SessionFinishEventEmitter eventEmitter) {
+            SessionFinisher sessionFinisher) {
 
         return new SessionFinishedDetectorProjectJob(
                 null, null, null,
                 Duration.ofSeconds(30), HEARTBEAT_THRESHOLD, FIXED_CLOCK, jeffreyDirs,
-                platformRepositories, sessionFinisher, eventEmitter);
+                platformRepositories, sessionFinisher);
     }
 
     @Nested
@@ -106,11 +104,8 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
         @Mock
         SessionFinisher sessionFinisher;
 
-        @Mock
-        SessionFinishEventEmitter eventEmitter;
-
         @Test
-        void sessionFinished_instanceAutoFinished_noActiveSessionsRemaining(
+        void sessionFinished_instanceDerivesFinished_noActiveSessionsRemaining(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/detector/insert-workspace-project-instance-and-sessions.sql");
@@ -133,17 +128,14 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             }).when(sessionFinisher).tryFinishFromHeartbeat(
                     any(), eq(PROJECT_INFO), any(), any(), eq(HEARTBEAT_THRESHOLD), eq(NOW));
 
-            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher, eventEmitter);
+            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher);
             job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY);
 
-            // Instance should be auto-finished since no active sessions remain
+            // Instance status should derive to FINISHED since all sessions are now finished
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status());
-
-            // Event emitter should have been called for instance finish
-            verify(eventEmitter).emitInstanceFinished(PROJECT_INFO, INSTANCE_ID);
         }
     }
 
@@ -158,9 +150,6 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
 
         @Mock
         SessionFinisher sessionFinisher;
-
-        @Mock
-        SessionFinishEventEmitter eventEmitter;
 
         @Test
         void sessionNotFinished_instanceRemainsActive(
@@ -180,16 +169,14 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             when(sessionFinisher.tryFinishFromHeartbeat(any(), eq(PROJECT_INFO), any(), any(), eq(HEARTBEAT_THRESHOLD), eq(NOW)))
                     .thenReturn(false);
 
-            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher, eventEmitter);
+            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher);
             job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY);
 
-            // Instance should remain ACTIVE
+            // Instance should remain ACTIVE (derived from unfinished sessions)
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.ACTIVE, instance.get().status());
-
-            verifyNoInteractions(eventEmitter);
         }
     }
 
@@ -204,9 +191,6 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
 
         @Mock
         SessionFinisher sessionFinisher;
-
-        @Mock
-        SessionFinishEventEmitter eventEmitter;
 
         @Test
         void hsErrLogPresent_completesWithoutError(
@@ -233,13 +217,13 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             }).when(sessionFinisher).tryFinishFromHeartbeat(
                     any(), eq(PROJECT_INFO), any(), any(), eq(HEARTBEAT_THRESHOLD), eq(NOW));
 
-            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher, eventEmitter);
+            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher);
 
             // Verify the method completes without errors when hs_err log is present
             assertDoesNotThrow(() ->
                     job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY));
 
-            // Instance should be auto-finished
+            // Instance status should derive to FINISHED
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
@@ -259,9 +243,6 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
         @Mock
         SessionFinisher sessionFinisher;
 
-        @Mock
-        SessionFinishEventEmitter eventEmitter;
-
         @Test
         void noUnfinishedSessions_earlyReturn(DataSource dataSource, @TempDir Path tempDir) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-and-project.sql");
@@ -271,12 +252,11 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
 
             when(projectManager.info()).thenReturn(PROJECT_INFO);
 
-            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher, eventEmitter);
+            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher);
             job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY);
 
             // SessionFinisher should never be called
             verifyNoInteractions(sessionFinisher);
-            verifyNoInteractions(eventEmitter);
         }
     }
 
@@ -292,11 +272,8 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
         @Mock
         SessionFinisher sessionFinisher;
 
-        @Mock
-        SessionFinishEventEmitter eventEmitter;
-
         @Test
-        void oneSessionFinished_otherStillActive_instanceNotAutoFinished(
+        void oneSessionFinished_otherStillActive_instanceRemainsActive(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/detector/insert-workspace-project-instance-and-sessions.sql");
@@ -325,17 +302,14 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
                     argThat(s -> s.sessionId().equals("session-002")),
                     any(), eq(HEARTBEAT_THRESHOLD), eq(NOW));
 
-            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher, eventEmitter);
+            var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher);
             job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY);
 
-            // Instance should remain ACTIVE (session-002 still has null finishedAt)
+            // Instance should remain ACTIVE (session-002 still unfinished)
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.ACTIVE, instance.get().status());
-
-            // No instance-finished event should be emitted
-            verify(eventEmitter, never()).emitInstanceFinished(any(), any());
         }
     }
 }

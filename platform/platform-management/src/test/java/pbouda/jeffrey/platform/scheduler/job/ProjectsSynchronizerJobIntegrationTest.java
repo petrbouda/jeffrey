@@ -221,7 +221,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-new-001");
             assertTrue(instance.isPresent());
-            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.ACTIVE, instance.get().status());
+            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.PENDING, instance.get().status());
             assertEquals(NOW.minusSeconds(1800), instance.get().startedAt());
 
             // Verify queue was acknowledged - re-poll returns empty

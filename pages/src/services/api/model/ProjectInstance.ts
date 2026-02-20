@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export type ProjectInstanceStatus = 'ACTIVE' | 'FINISHED';
+export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED';
 
 export default class ProjectInstance {
     constructor(

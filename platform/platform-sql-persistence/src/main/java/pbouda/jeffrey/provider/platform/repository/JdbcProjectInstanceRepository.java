@@ -42,7 +42,9 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                    (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
                    (SELECT rs.session_id FROM project_instance_sessions rs
                     WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
+                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id,
+                   (SELECT MAX(rs.finished_at) FROM project_instance_sessions rs
+                    WHERE rs.instance_id = i.instance_id) as last_session_finished_at
             FROM project_instances i
             WHERE i.project_id = :project_id
             ORDER BY i.started_at DESC""";
@@ -53,7 +55,9 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                    (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
                    (SELECT rs.session_id FROM project_instance_sessions rs
                     WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
+                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id,
+                   (SELECT MAX(rs.finished_at) FROM project_instance_sessions rs
+                    WHERE rs.instance_id = i.instance_id) as last_session_finished_at
             FROM project_instances i
             WHERE i.instance_id = :instance_id AND i.project_id = :project_id""";
 
@@ -65,23 +69,8 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     //language=SQL
     private static final String INSERT_PROJECT_INSTANCE = """
-            INSERT INTO project_instances (instance_id, project_id, hostname, status, started_at)
-            VALUES (:instance_id, :project_id, :hostname, :status, :started_at)""";
-
-    //language=SQL
-    private static final String UPDATE_FINISHED = """
-            UPDATE project_instances SET finished_at = :finished_at, status = 'FINISHED'
-            WHERE instance_id = :instance_id AND project_id = :project_id""";
-
-    //language=SQL
-    private static final String UPDATE_REACTIVATE = """
-            UPDATE project_instances SET status = 'ACTIVE', finished_at = NULL
-            WHERE instance_id = :instance_id AND project_id = :project_id""";
-
-    //language=SQL
-    private static final String UPDATE_STATUS = """
-            UPDATE project_instances SET status = :status
-            WHERE instance_id = :instance_id AND project_id = :project_id""";
+            INSERT INTO project_instances (instance_id, project_id, hostname, started_at)
+            VALUES (:instance_id, :project_id, :hostname, :started_at)""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -134,51 +123,40 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 .addValue("instance_id", instance.id())
                 .addValue("project_id", projectId)
                 .addValue("hostname", instance.hostname())
-                .addValue("status", instance.status().name())
                 .addValue("started_at", instance.startedAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT_INSTANCE, INSERT_PROJECT_INSTANCE, paramSource);
     }
 
-    @Override
-    public void markFinished(String instanceId, Instant finishedAt) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("instance_id", instanceId)
-                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
-
-        databaseClient.update(StatementLabel.MARK_PROJECT_INSTANCE_FINISHED, UPDATE_FINISHED, paramSource);
-    }
-
-    @Override
-    public void reactivate(String instanceId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("instance_id", instanceId);
-
-        databaseClient.update(StatementLabel.REACTIVATE_PROJECT_INSTANCE, UPDATE_REACTIVATE, paramSource);
-    }
-
-    @Override
-    public void updateStatus(String instanceId, ProjectInstanceStatus status) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("instance_id", instanceId)
-                .addValue("status", status.name());
-
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS, UPDATE_STATUS, paramSource);
-    }
-
     private static RowMapper<ProjectInstanceInfo> projectInstanceInfoMapper() {
-        return (rs, _) -> new ProjectInstanceInfo(
-                rs.getString("instance_id"),
-                rs.getString("project_id"),
-                rs.getString("hostname"),
-                ProjectInstanceStatus.valueOf(rs.getString("status")),
-                Mappers.instant(rs, "started_at"),
-                Mappers.instant(rs, "finished_at"),
-                rs.getInt("session_count"),
-                rs.getString("active_session_id"));
+        return (rs, _) -> {
+            String activeSessionId = rs.getString("active_session_id");
+            int sessionCount = rs.getInt("session_count");
+            Instant lastSessionFinishedAt = Mappers.instant(rs, "last_session_finished_at");
+
+            ProjectInstanceStatus status;
+            Instant finishedAt;
+            if (activeSessionId != null) {
+                status = ProjectInstanceStatus.ACTIVE;
+                finishedAt = null;
+            } else if (sessionCount == 0) {
+                status = ProjectInstanceStatus.PENDING;
+                finishedAt = null;
+            } else {
+                status = ProjectInstanceStatus.FINISHED;
+                finishedAt = lastSessionFinishedAt;
+            }
+
+            return new ProjectInstanceInfo(
+                    rs.getString("instance_id"),
+                    rs.getString("project_id"),
+                    rs.getString("hostname"),
+                    status,
+                    Mappers.instant(rs, "started_at"),
+                    finishedAt,
+                    sessionCount,
+                    activeSessionId);
+        };
     }
 
     private static RowMapper<ProjectInstanceSessionInfo> projectInstanceSessionMapper() {

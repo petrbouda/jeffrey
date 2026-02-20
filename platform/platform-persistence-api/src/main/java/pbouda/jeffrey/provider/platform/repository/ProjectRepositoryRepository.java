@@ -75,6 +75,15 @@ public interface ProjectRepositoryRepository {
     List<ProjectInstanceSessionInfo> findUnfinishedSessions();
 
     /**
+     * Find all unfinished sessions for a specific instance.
+     * Filters at the SQL level for efficiency instead of fetching all and filtering in Java.
+     *
+     * @param instanceId the instance ID to filter by
+     * @return list of unfinished sessions for the given instance
+     */
+    List<ProjectInstanceSessionInfo> findUnfinishedSessionsByInstanceId(String instanceId);
+
+    /**
      * Mark a session as finished by setting the finished_at timestamp.
      *
      * @param sessionId  the session ID to mark as finished

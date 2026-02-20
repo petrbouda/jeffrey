@@ -42,17 +42,6 @@ public class SessionFinishEventEmitter {
         this.workspaceEventQueue = workspaceEventQueue;
     }
 
-    public void emitInstanceFinished(ProjectInfo projectInfo, String instanceId) {
-        WorkspaceEvent event = WorkspaceEventConverter.instanceFinished(
-                clock.instant(),
-                projectInfo,
-                instanceId,
-                WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
-
-        workspaceEventQueue.appendBatch(projectInfo.workspaceId(), List.of(event));
-        LOG.debug("Emitted instance finished event: project_id={} instance_id={}", projectInfo.id(), instanceId);
-    }
-
     public void emitSessionFinished(ProjectInfo projectInfo, ProjectInstanceSessionInfo sessionInfo) {
         emitSessionFinished(projectInfo, sessionInfo, WorkspaceEventCreator.SESSION_FINISHED_DETECTOR_JOB);
     }

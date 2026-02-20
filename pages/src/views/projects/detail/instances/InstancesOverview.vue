@@ -15,6 +15,10 @@
               <span class="compact-stat-title">Instances</span>
             </div>
             <div class="compact-stat-metrics">
+              <div class="metric-item" v-if="pendingCount > 0">
+                <span class="metric-label">Pending Instances</span>
+                <span class="metric-value">{{ pendingCount }}</span>
+              </div>
               <div class="metric-item">
                 <span class="metric-label">Active Instances</span>
                 <span class="metric-value">{{ activeCount }}</span>
@@ -166,6 +170,12 @@
         <button
           type="button"
           class="btn btn-sm"
+          :class="statusFilter === 'PENDING' ? 'btn-primary' : 'btn-outline-secondary'"
+          @click="statusFilter = 'PENDING'"
+        >Pending</button>
+        <button
+          type="button"
+          class="btn btn-sm"
           :class="statusFilter === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = 'ACTIVE'"
         >Active</button>
@@ -201,10 +211,10 @@
           :key="instance.id"
           :to="generateInstanceUrl(instance.id)"
           class="instance-card d-block text-decoration-none mb-2"
-          :class="instance.status === 'ACTIVE' ? 'instance-active' : 'instance-finished'"
+          :class="instanceCardClass(instance.status)"
         >
           <div class="d-flex align-items-center">
-            <div class="instance-icon-square me-3" :class="instance.status === 'ACTIVE' ? 'icon-active' : 'icon-finished'">
+            <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
               <i class="bi bi-box"></i>
             </div>
             <div class="flex-grow-1 min-width-0">
@@ -213,7 +223,7 @@
                 <Badge
                   class="ms-2"
                   :value="instance.status"
-                  :variant="instance.status === 'ACTIVE' ? 'warning' : 'green'"
+                  :variant="instanceBadgeVariant(instance.status)"
                   size="xs"
                 />
               </div>
@@ -253,6 +263,7 @@ const statusFilter = ref('');
 const instances = ref<ProjectInstance[]>([]);
 const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 
+const pendingCount = computed(() => instances.value.filter(i => i.status === 'PENDING').length);
 const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
 const finishedCount = computed(() => instances.value.filter(i => i.status === 'FINISHED').length);
 
@@ -290,6 +301,24 @@ const uptimeRange = computed(() => {
 function truncateHostname(hostname: string, maxLength: number): string {
   if (hostname.length <= maxLength) return hostname;
   return hostname.substring(0, maxLength - 1) + '\u2026';
+}
+
+function instanceCardClass(status: string): string {
+  if (status === 'PENDING') return 'instance-pending';
+  if (status === 'ACTIVE') return 'instance-active';
+  return 'instance-finished';
+}
+
+function instanceIconClass(status: string): string {
+  if (status === 'PENDING') return 'icon-pending';
+  if (status === 'ACTIVE') return 'icon-active';
+  return 'icon-finished';
+}
+
+function instanceBadgeVariant(status: string): string {
+  if (status === 'PENDING') return 'blue';
+  if (status === 'ACTIVE') return 'warning';
+  return 'green';
 }
 
 const filteredInstances = computed(() => {
@@ -412,6 +441,15 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+.instance-pending {
+  border-left: 3px solid #3b82f6;
+  background-color: rgba(59, 130, 246, 0.03);
+}
+
+.instance-pending:hover {
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
 .instance-active {
   border-left: 3px solid #f59e0b;
   background-color: rgba(245, 158, 11, 0.03);
@@ -439,6 +477,11 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   font-size: 1rem;
+}
+
+.icon-pending {
+  background-color: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
 }
 
 .icon-active {

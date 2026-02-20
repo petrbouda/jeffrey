@@ -86,9 +86,11 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         String instanceId = eventContent.instanceId();
 
         ProjectRepositoryRepository repositoryRepository = platformRepositories.newProjectRepositoryRepository(projectId);
-        closeUnfinishedSessions(repositoryRepository, repositoryInfo.get(), instanceId, event.originCreatedAt());
-        LOG.info("Auto-closed unfinished sessions for instance before creating new session: project_id={} instance_id={}",
-                projectId, instanceId);
+        int closedCount = closeUnfinishedSessions(repositoryRepository, repositoryInfo.get(), instanceId, event.originCreatedAt());
+        if (closedCount > 0) {
+            LOG.info("Auto-closed unfinished sessions for instance before creating new session: project_id={} instance_id={} closed={}",
+                    projectId, instanceId, closedCount);
+        }
 
         ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                 event.originEventId(),
@@ -106,12 +108,6 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
         projectManager.repositoryManager()
                 .createSession(sessionInfo);
 
-        if (eventContent.order() > 1) {
-            platformRepositories.newProjectInstanceRepository(projectId)
-                    .reactivate(instanceId);
-            LOG.debug("Instance re-activated after new session created: project_id={} instance_id={}", projectId, instanceId);
-        }
-
         LOG.debug("Session created from workspace event: project_id={} instance_id={} session_id={}", projectId, instanceId, event.originEventId());
     }
 
@@ -121,14 +117,13 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
      * each session's fallback finished_at is the originCreatedAt of the next session in the sequence,
      * not the new event's timestamp.
      */
-    private void closeUnfinishedSessions(
+    private int closeUnfinishedSessions(
             ProjectRepositoryRepository repositoryRepository,
             RepositoryInfo repositoryInfo,
             String instanceId,
             Instant newSessionCreatedAt) {
 
-        List<ProjectInstanceSessionInfo> unfinished = repositoryRepository.findUnfinishedSessions().stream()
-                .filter(s -> s.instanceId().equals(instanceId))
+        List<ProjectInstanceSessionInfo> unfinished = repositoryRepository.findUnfinishedSessionsByInstanceId(instanceId).stream()
                 .sorted(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt))
                 .toList();
 
@@ -158,6 +153,8 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
             LOG.debug("Closed session with fallback timestamp: sessionId={} finishedAt={}",
                     session.sessionId(), fallback);
         }
+
+        return unfinished.size();
     }
 
     @Override

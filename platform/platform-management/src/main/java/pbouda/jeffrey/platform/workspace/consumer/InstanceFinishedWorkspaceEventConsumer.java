@@ -24,10 +24,12 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
+import java.util.List;
 import java.util.Optional;
 
 public class InstanceFinishedWorkspaceEventConsumer implements WorkspaceEventConsumer {
@@ -55,13 +57,17 @@ public class InstanceFinishedWorkspaceEventConsumer implements WorkspaceEventCon
         String projectId = projectManager.info().id();
         String instanceId = event.originEventId();
 
-        ProjectInstanceRepository projectInstanceRepository =
-                platformRepositories.newProjectInstanceRepository(projectId);
+        ProjectRepositoryRepository repositoryRepository =
+                platformRepositories.newProjectRepositoryRepository(projectId);
 
-        projectInstanceRepository.markFinished(instanceId, event.originCreatedAt());
+        List<ProjectInstanceSessionInfo> unfinished = repositoryRepository.findUnfinishedSessionsByInstanceId(instanceId);
 
-        LOG.info("Instance marked as finished from workspace event: instance_id={} project_id={}",
-                instanceId, projectId);
+        for (ProjectInstanceSessionInfo session : unfinished) {
+            repositoryRepository.markSessionFinished(session.sessionId(), event.originCreatedAt());
+        }
+
+        LOG.info("Closed {} unfinished sessions for finished instance: instance_id={} project_id={}",
+                unfinished.size(), instanceId, projectId);
     }
 
     @Override

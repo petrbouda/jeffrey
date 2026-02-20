@@ -49,6 +49,7 @@ public class JeffreyDirs {
     private static final String QUICK_PROFILES_DIR = "quick-profiles";
     private static final String QUICK_RECORDINGS_DIR = "quick-recordings";
     private static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump-analysis";
+    private static final String EVENTS_DIR = ".events";
 
     private final Path homeDir;
     private final Path tempDir;
@@ -74,6 +75,10 @@ public class JeffreyDirs {
 
     public Path workspaces() {
         return homeDir.resolve(WORKSPACES_DIR);
+    }
+
+    public Path workspaceEvents() {
+        return homeDir.resolve(EVENTS_DIR);
     }
 
     public Path profiles() {

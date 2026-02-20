@@ -199,9 +199,7 @@ CREATE TABLE IF NOT EXISTS project_instances
     instance_id    VARCHAR NOT NULL,
     project_id     VARCHAR NOT NULL,
     hostname       VARCHAR NOT NULL,
-    status         VARCHAR NOT NULL,
     started_at     TIMESTAMPTZ NOT NULL,
-    finished_at    TIMESTAMPTZ,
     PRIMARY KEY (instance_id)
 );
 

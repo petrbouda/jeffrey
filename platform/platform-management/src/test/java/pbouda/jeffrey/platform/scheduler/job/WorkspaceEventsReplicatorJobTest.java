@@ -46,6 +46,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
+import pbouda.jeffrey.shared.folderqueue.FolderQueue;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
@@ -159,8 +160,9 @@ class WorkspaceEventsReplicatorJobTest {
                     .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -170,7 +172,7 @@ class WorkspaceEventsReplicatorJobTest {
             var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-new-001");
             assertTrue(instance.isPresent());
-            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.ACTIVE, instance.get().status());
+            assertEquals(ProjectInstanceInfo.ProjectInstanceStatus.PENDING, instance.get().status());
 
             // Verify file was acknowledged (moved to .processed)
             assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
@@ -203,8 +205,9 @@ class WorkspaceEventsReplicatorJobTest {
 
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.empty());
 
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -239,8 +242,9 @@ class WorkspaceEventsReplicatorJobTest {
             Path events = eventsDir();
             Files.writeString(events.resolve("20260220120000100_aaaaaaaa.json"), "NOT VALID JSON {{{");
 
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -273,8 +277,9 @@ class WorkspaceEventsReplicatorJobTest {
         void emptyEventsDirectory_completesWithoutErrors(DataSource dataSource) throws Exception {
             eventsDir(); // create empty dir
 
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -286,8 +291,9 @@ class WorkspaceEventsReplicatorJobTest {
         @Test
         void nonExistentEventsDirectory_completesWithoutErrors(DataSource dataSource) {
             // Don't create the events dir at all
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -346,8 +352,9 @@ class WorkspaceEventsReplicatorJobTest {
                     .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -406,8 +413,9 @@ class WorkspaceEventsReplicatorJobTest {
             when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK,
+                    workspacesManager, Duration.ofMinutes(1), folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 

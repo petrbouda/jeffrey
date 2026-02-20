@@ -87,6 +87,13 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             ORDER BY rs.origin_created_at DESC""";
 
     //language=SQL
+    private static final String SELECT_UNFINISHED_SESSIONS_BY_INSTANCE_ID = """
+            SELECT rs.* FROM project_instance_sessions rs
+            JOIN repositories r ON rs.repository_id = r.repository_id
+            WHERE r.project_id = :project_id AND rs.instance_id = :instance_id AND rs.finished_at IS NULL
+            ORDER BY rs.origin_created_at DESC""";
+
+    //language=SQL
     private static final String UPDATE_SESSION_FINISHED = """
             UPDATE project_instance_sessions
             SET finished_at = :finished_at
@@ -226,6 +233,19 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         return databaseClient.query(
                 StatementLabel.FIND_UNFINISHED_SESSIONS,
                 SELECT_UNFINISHED_SESSIONS,
+                paramSource,
+                projectInstanceSessionMapper());
+    }
+
+    @Override
+    public List<ProjectInstanceSessionInfo> findUnfinishedSessionsByInstanceId(String instanceId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("instance_id", instanceId);
+
+        return databaseClient.query(
+                StatementLabel.FIND_UNFINISHED_SESSIONS_BY_INSTANCE_ID,
+                SELECT_UNFINISHED_SESSIONS_BY_INSTANCE_ID,
                 paramSource,
                 projectInstanceSessionMapper());
     }

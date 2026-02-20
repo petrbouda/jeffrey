@@ -28,7 +28,6 @@ import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
@@ -47,14 +46,14 @@ class InstanceLifecycleIntegrationTest {
     class InstanceCreation {
 
         @Test
-        void insertsInstance_withActiveStatus(DataSource dataSource) throws SQLException {
+        void insertsInstance_withPendingStatus(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
             var newInstance = new ProjectInstanceInfo(
                     "inst-new", PROJECT_ID, "new-host.example.com",
-                    ProjectInstanceStatus.ACTIVE,
+                    ProjectInstanceStatus.PENDING,
                     Instant.parse("2025-06-15T12:00:00Z"), null, 0, null);
 
             instanceRepo.insert(newInstance);
@@ -65,7 +64,7 @@ class InstanceLifecycleIntegrationTest {
                     () -> assertEquals("inst-new", found.get().id()),
                     () -> assertEquals(PROJECT_ID, found.get().projectId()),
                     () -> assertEquals("new-host.example.com", found.get().hostname()),
-                    () -> assertEquals(ProjectInstanceStatus.ACTIVE, found.get().status()),
+                    () -> assertEquals(ProjectInstanceStatus.PENDING, found.get().status()),
                     () -> assertNull(found.get().finishedAt())
             );
         }
@@ -82,44 +81,78 @@ class InstanceLifecycleIntegrationTest {
     }
 
     @Nested
-    class InstanceFinishing {
+    class DerivedStatus {
 
         @Test
-        void markFinished_setsStatusAndTimestamp(DataSource dataSource) throws SQLException {
+        void instanceWithNoSessions_isPending(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
-            Instant finishedAt = Instant.parse("2025-06-15T15:00:00Z");
-            instanceRepo.markFinished("inst-001", finishedAt);
+            // Insert an instance with no sessions
+            var newInstance = new ProjectInstanceInfo(
+                    "inst-no-sessions", PROJECT_ID, "no-sessions.example.com",
+                    ProjectInstanceStatus.PENDING,
+                    Instant.parse("2025-06-15T12:00:00Z"), null, 0, null);
+            instanceRepo.insert(newInstance);
 
+            Optional<ProjectInstanceInfo> found = instanceRepo.find("inst-no-sessions");
+            assertTrue(found.isPresent());
+            assertEquals(ProjectInstanceStatus.PENDING, found.get().status());
+            assertNull(found.get().finishedAt());
+            assertEquals(0, found.get().sessionCount());
+        }
+
+        @Test
+        void instanceWithUnfinishedSession_isActive(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            // inst-001 has session-001 with finished_at=NULL → ACTIVE
             Optional<ProjectInstanceInfo> found = instanceRepo.find("inst-001");
             assertTrue(found.isPresent());
-            assertAll(
-                    () -> assertEquals(ProjectInstanceStatus.FINISHED, found.get().status()),
-                    () -> assertEquals(finishedAt, found.get().finishedAt())
-            );
+            assertEquals(ProjectInstanceStatus.ACTIVE, found.get().status());
+            assertNull(found.get().finishedAt());
         }
-    }
-
-    @Nested
-    class InstanceReactivation {
 
         @Test
-        void reactivate_setsStatusBackToActive(DataSource dataSource) throws SQLException {
+        void instanceWithAllSessionsFinished_isFinished(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
-            // inst-002 is FINISHED in fixture
-            instanceRepo.reactivate("inst-002");
-
+            // inst-002 has session-002 with finished_at='2025-01-02T13:00:00Z' → FINISHED
             Optional<ProjectInstanceInfo> found = instanceRepo.find("inst-002");
             assertTrue(found.isPresent());
-            assertAll(
-                    () -> assertEquals(ProjectInstanceStatus.ACTIVE, found.get().status()),
-                    () -> assertNull(found.get().finishedAt())
-            );
+            assertEquals(ProjectInstanceStatus.FINISHED, found.get().status());
+            assertEquals(Instant.parse("2025-01-02T13:00:00Z"), found.get().finishedAt());
+        }
+
+        @Test
+        void allSessionsFinished_statusDerivedCorrectly(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var clock = Clock.fixed(Instant.parse("2025-06-15T12:00:00Z"), ZoneOffset.UTC);
+            var repoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            // inst-001 has one unfinished session → ACTIVE
+            assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find("inst-001").get().status());
+
+            // Finish the unfinished session
+            Instant finishedAt = Instant.parse("2025-06-15T14:00:00Z");
+            repoRepo.markSessionFinished("session-001", finishedAt);
+
+            // Verify no unfinished sessions remain
+            List<ProjectInstanceSessionInfo> unfinished = repoRepo.findUnfinishedSessions();
+            assertTrue(unfinished.isEmpty());
+
+            // Now the instance should derive to FINISHED
+            Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-001");
+            assertTrue(instance.isPresent());
+            assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status());
+            assertEquals(finishedAt, instance.get().finishedAt());
         }
     }
 
@@ -147,30 +180,6 @@ class InstanceLifecycleIntegrationTest {
             List<ProjectInstanceSessionInfo> unfinished = repoRepo.findUnfinishedSessions();
             assertEquals(1, unfinished.size());
             assertEquals("session-001", unfinished.getFirst().sessionId());
-        }
-
-        @Test
-        void allSessionsFinished_instanceCanBeAutoFinished(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
-            var provider = new DatabaseClientProvider(dataSource);
-            var clock = Clock.fixed(Instant.parse("2025-06-15T12:00:00Z"), ZoneOffset.UTC);
-            var repoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
-
-            // Finish the unfinished session
-            Instant finishedAt = Instant.parse("2025-06-15T14:00:00Z");
-            repoRepo.markSessionFinished("session-001", finishedAt);
-
-            // Verify no unfinished sessions remain
-            List<ProjectInstanceSessionInfo> unfinished = repoRepo.findUnfinishedSessions();
-            assertTrue(unfinished.isEmpty());
-
-            // Now the instance can be auto-finished
-            instanceRepo.markFinished("inst-001", finishedAt);
-
-            Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-001");
-            assertTrue(instance.isPresent());
-            assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status());
         }
     }
 }

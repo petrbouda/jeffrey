@@ -39,7 +39,6 @@ import pbouda.jeffrey.shared.folderqueue.FolderQueue;
 import pbouda.jeffrey.shared.folderqueue.FolderQueueEntry;
 import pbouda.jeffrey.shared.folderqueue.FolderQueueEntryParser;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -58,10 +57,8 @@ public class WorkspaceEventsReplicatorJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);
 
-    private static final String EVENTS_DIR = ".events";
-
     private final Duration period;
-    private final Clock clock;
+    private final FolderQueue folderQueue;
     private final PlatformRepositories platformRepositories;
     private final JeffreyDirs jeffreyDirs;
     private final WorkspacesManager workspacesManager;
@@ -72,7 +69,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     public WorkspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
             Duration period,
-            Clock clock,
+            FolderQueue folderQueue,
             PlatformRepositories platformRepositories,
             JeffreyDirs jeffreyDirs,
             HeartbeatReplayReader heartbeatReplayReader,
@@ -81,7 +78,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
 
         this.workspacesManager = workspacesManager;
         this.period = period;
-        this.clock = clock;
+        this.folderQueue = folderQueue;
         this.platformRepositories = platformRepositories;
         this.jeffreyDirs = jeffreyDirs;
         this.heartbeatReplayReader = heartbeatReplayReader;
@@ -92,8 +89,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     @Override
     public void execute(JobContext context) {
         try {
-            FolderQueue folderQueue = new FolderQueue(jeffreyDirs.workspaces().resolve(EVENTS_DIR), clock);
-            long processed = processEvents(folderQueue);
+            long processed = processEvents();
             if (processed > 0) {
                 migrationCallback.execute()
                         .orTimeout(5, TimeUnit.SECONDS);
@@ -103,7 +99,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
         }
     }
 
-    private long processEvents(FolderQueue folderQueue) {
+    private long processEvents() {
         FolderQueueEntryParser<WorkspaceEvent> parser = (filePath, content) -> {
             try {
                 return Optional.of(Json.read(content, WorkspaceEvent.class));
@@ -133,7 +129,8 @@ public class WorkspaceEventsReplicatorJob implements Job {
                 List<WorkspaceEventConsumer> consumers = List.of(
                         new CreateProjectWorkspaceEventConsumer(projectsManager),
                         new InstanceCreatedWorkspaceEventConsumer(projectsManager),
-                        new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader));
+                        new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader),
+                        new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories));
 
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {

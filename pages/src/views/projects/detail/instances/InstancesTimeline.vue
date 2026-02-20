@@ -49,7 +49,7 @@
       <div class="timeline-container">
 <div v-for="instance in instances" :key="instance.id" class="timeline-row">
           <div class="instance-label">
-            <span class="status-dot" :class="instance.status === 'ACTIVE' ? 'active' : 'finished'"></span>
+            <span class="status-dot" :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED' }"></span>
             <router-link
               :to="generateInstanceUrl(instance.id)"
               class="hostname-link"
@@ -70,7 +70,7 @@
             <!-- Instance background bar (faint) -->
             <div
               class="instance-bg-bar"
-              :class="instance.status === 'ACTIVE' ? 'active' : 'finished'"
+              :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED' }"
               :style="getBarStyle(instance)"
             ></div>
 
@@ -100,6 +100,10 @@
 
       <!-- Legend -->
       <div class="timeline-legend mt-4">
+        <div class="legend-item">
+          <span class="legend-bar instance-bg pending"></span>
+          <span>Pending Instance</span>
+        </div>
         <div class="legend-item">
           <span class="legend-bar instance-bg active"></span>
           <span>Active Instance</span>
@@ -135,9 +139,9 @@
         <div class="timeline-tooltip-header">
           <span class="timeline-tooltip-hostname">{{ hoveredInstance.hostname }}</span>
           <Badge
-            :value="hoveredInstance.status === 'ACTIVE' ? 'Active' : 'Finished'"
+            :value="hoveredInstance.status"
             size="xxs"
-            :variant="hoveredInstance.status === 'ACTIVE' ? 'orange' : 'green'"
+            :variant="hoveredInstance.status === 'PENDING' ? 'blue' : hoveredInstance.status === 'ACTIVE' ? 'orange' : 'green'"
           />
         </div>
         <div class="timeline-tooltip-body">
@@ -299,7 +303,7 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
 
   const startPercent = Math.max(0, Math.min((now - instance.startedAt) / rangeMs * 100, 100));
 
-  const endPercent = (instance.status === 'ACTIVE' || !instance.finishedAt)
+  const endPercent = (instance.status === 'ACTIVE' || instance.status === 'PENDING' || !instance.finishedAt)
     ? 0
     : Math.max(0, Math.min((now - instance.finishedAt) / rangeMs * 100, 100));
 
@@ -474,6 +478,10 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.status-dot.pending {
+  background-color: #3b82f6;
+}
+
 .status-dot.active {
   background-color: #f59e0b;
 }
@@ -498,6 +506,12 @@ onMounted(async () => {
   border-radius: 4px;
   min-width: 8px;
   z-index: 1;
+}
+
+.instance-bg-bar.pending {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  animation: instance-pulse-pending 3s ease-in-out infinite;
 }
 
 .instance-bg-bar.active {
@@ -558,6 +572,11 @@ onMounted(async () => {
   50% { box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25); }
 }
 
+@keyframes instance-pulse-pending {
+  0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
+  50% { border-color: rgba(59, 130, 246, 0.55); }
+}
+
 @keyframes instance-pulse-active {
   0%, 100% { border-color: rgba(245, 158, 11, 0.3); }
   50% { border-color: rgba(245, 158, 11, 0.55); }
@@ -583,6 +602,11 @@ onMounted(async () => {
   width: 20px;
   height: 12px;
   border-radius: 3px;
+}
+
+.legend-bar.instance-bg.pending {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
 .legend-bar.instance-bg.active {

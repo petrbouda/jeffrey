@@ -31,6 +31,6 @@ public record ProjectInstanceInfo(
         String activeSessionId) {
 
     public enum ProjectInstanceStatus {
-        ACTIVE, FINISHED
+        PENDING, ACTIVE, FINISHED
     }
 }
