@@ -28,7 +28,7 @@ import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.workspace.model.ProjectCreatedEventContent;
+import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 import pbouda.jeffrey.profile.manager.model.CreateProject;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;

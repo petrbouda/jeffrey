@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.workspace.model.InstanceCreatedEventContent;
+import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;

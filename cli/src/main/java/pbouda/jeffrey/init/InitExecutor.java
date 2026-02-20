@@ -24,6 +24,7 @@ import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import pbouda.jeffrey.shared.folderqueue.FolderQueue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,6 +45,7 @@ public class InitExecutor {
 
     private static final String ENV_FILE_NAME = ".env";
     private static final String WORKSPACES_DIR_NAME = "workspaces";
+    private static final String EVENTS_DIR_NAME = ".events";
 
     private final EnvFileBuilder envFileBuilder = new EnvFileBuilder();
 
@@ -70,6 +72,10 @@ public class InitExecutor {
             throw new RuntimeException("Cannot create parent directories: " + workspacesPath);
         }
 
+        Path eventsDir = workspacesPath.resolve(EVENTS_DIR_NAME);
+        FolderQueue folderQueue = new FolderQueue(eventsDir, CLOCK);
+        EventPublisher eventPublisher = new EventPublisher(folderQueue, CLOCK);
+
         Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceId()));
         LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
 
@@ -94,6 +100,12 @@ public class InitExecutor {
                     config.resolveRepositoryType(),
                     config.getAttributes(),
                     projectPath);
+
+            eventPublisher.publishProjectCreated(
+                    projectId, config.getWorkspaceId(),
+                    config.getProjectName(), config.getProjectLabel(),
+                    config.getWorkspacesDir(), config.resolveRepositoryType(),
+                    config.getAttributes());
         }
 
         // Create instance folder (from config, HOSTNAME env var, or generated UUID)
@@ -107,6 +119,9 @@ public class InitExecutor {
                     projectId,
                     config.getWorkspaceId(),
                     instancePath);
+
+            eventPublisher.publishInstanceCreated(
+                    instanceId, projectId, config.getWorkspaceId());
         }
 
         String sessionId = IDGenerator.generate();
@@ -155,6 +170,10 @@ public class InitExecutor {
                 profilerSettings,
                 config.isMessagingEnabled(),
                 newSessionPath);
+
+        eventPublisher.publishSessionCreated(
+                sessionId, projectId, config.getWorkspaceId(),
+                instanceId, order, profilerSettings, config.isMessagingEnabled());
 
         EnvFileBuilder.Context envContext = new EnvFileBuilder.Context(
                 jeffreyHome,

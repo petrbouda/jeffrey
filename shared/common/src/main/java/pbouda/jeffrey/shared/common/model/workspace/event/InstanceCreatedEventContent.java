@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.workspace.model;
+package pbouda.jeffrey.shared.common.model.workspace.event;
 
-
-import pbouda.jeffrey.shared.common.model.RepositoryType;
-
-import java.util.Map;
-
-public record ProjectCreatedEventContent(
-        String projectName,
-        String projectLabel,
-        String workspacesPath,
-        String relativeWorkspacePath,
-        String relativeProjectPath,
-        RepositoryType repositoryType,
-        Map<String, String> attributes) {
+/**
+ * Content for PROJECT_INSTANCE_CREATED workspace events.
+ *
+ * @param relativeInstancePath relative path from project directory to instance directory
+ */
+public record InstanceCreatedEventContent(
+        String relativeInstancePath) {
 }

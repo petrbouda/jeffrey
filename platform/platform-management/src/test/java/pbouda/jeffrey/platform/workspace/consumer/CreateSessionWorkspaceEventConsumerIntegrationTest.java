@@ -28,7 +28,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
-import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
+import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;

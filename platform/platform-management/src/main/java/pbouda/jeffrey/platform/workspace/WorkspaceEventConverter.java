@@ -1,10 +1,10 @@
 package pbouda.jeffrey.platform.workspace;
 
 import pbouda.jeffrey.platform.queue.QueueEntry;
-import pbouda.jeffrey.platform.workspace.model.InstanceCreatedEventContent;
-import pbouda.jeffrey.platform.workspace.model.ProjectCreatedEventContent;
 import pbouda.jeffrey.platform.workspace.model.RecordingFileCreatedEventContent;
-import pbouda.jeffrey.platform.workspace.model.SessionCreatedEventContent;
+import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
+import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
+import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;

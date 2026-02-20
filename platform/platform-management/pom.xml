@@ -66,6 +66,10 @@
         <!-- Platform modules -->
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>folder-queue</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>persistent-queue</artifactId>
         </dependency>
         <dependency>

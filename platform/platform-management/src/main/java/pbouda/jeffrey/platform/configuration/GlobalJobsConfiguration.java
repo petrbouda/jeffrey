@@ -23,17 +23,20 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.scheduler.Job;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.SchedulerTriggerImpl;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -78,7 +81,7 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean(name = GLOBAL_SCHEDULER, destroyMethod = "close")
-    public Scheduler globalScheduler(List<WorkspaceJob<?>> jobs) {
+    public Scheduler globalScheduler(List<Job> jobs) {
         return new PeriodicalScheduler(jobs);
     }
 
@@ -128,17 +131,21 @@ public class GlobalJobsConfiguration {
     @Bean
     public WorkspaceEventsReplicatorJob workspaceEventsReplicatorJob(
             Clock clock,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            Environment environment,
+            PlatformRepositories platformRepositories,
+            JeffreyDirs jeffreyDirs,
+            HeartbeatReplayReader heartbeatReplayReader,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
             @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
 
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
-                schedulerManager,
-                jobDescriptorFactory,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 clock,
-                workspaceEventQueue,
+                platformRepositories,
+                jeffreyDirs,
+                heartbeatReplayReader,
+                ProjectsSynchronizerJobDescriptor.of(environment),
                 projectsSynchronizerTrigger);
     }
 

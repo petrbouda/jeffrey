@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,191 +20,143 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.manager.SchedulerManager;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
+import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
-import pbouda.jeffrey.platform.queue.PersistentQueue;
-import pbouda.jeffrey.platform.repository.RemoteWorkspaceRepository;
+import pbouda.jeffrey.platform.scheduler.Job;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.WorkspaceEventsReplicatorJobDescriptor;
-import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
+import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
+import pbouda.jeffrey.platform.workspace.consumer.*;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.Json;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.job.JobType;
-import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.folderqueue.FolderQueue;
+import pbouda.jeffrey.shared.folderqueue.FolderQueueEntry;
+import pbouda.jeffrey.shared.folderqueue.FolderQueueEntryParser;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Periodically replicates filesystem-based workspace data into the event queue.
- *
- * <p>The Jeffrey CLI writes metadata files ({@code .project-info.json}, {@code .instance-info.json},
- * {@code .session-info.json}) to the workspace filesystem when initializing profiling sessions.
- * This job reads those files via {@link RemoteWorkspaceRepository}, converts them into
- * {@link WorkspaceEvent} objects ({@code PROJECT_CREATED}, {@code PROJECT_INSTANCE_CREATED},
- * {@code PROJECT_INSTANCE_SESSION_CREATED}), and appends them to the {@link PersistentQueue}.
- *
- * <p>Downstream consumers (e.g. {@code ProjectsSynchronizerJob}) then process these queued events
- * to create the corresponding database records (projects, instances, sessions).
- *
- * <p>In-memory Sets ({@code processedProjects}, {@code processedInstances}, {@code processedSessions})
- * prevent re-queueing entities that were already discovered in previous executions within the same
- * job lifecycle. The queue's dedup key provides an additional layer of idempotency.
- *
- * <p>After successful replication, a migration callback is triggered to notify downstream processors
- * that new events are available for consumption.
+ * Polls the shared {@code workspaces/.events/} folder for event files written by the CLI.
+ * Parses each file as a {@link WorkspaceEvent}, routes it to the appropriate workspace
+ * consumer using the {@code workspaceId} carried in the event payload, and acknowledges
+ * (moves to {@code .processed/}) on success.
+ * <p>
+ * This is a direct {@link Job} — it reads from a single shared event queue instead of
+ * iterating per-workspace directories.
  */
-public class WorkspaceEventsReplicatorJob extends WorkspaceJob<WorkspaceEventsReplicatorJobDescriptor> {
+public class WorkspaceEventsReplicatorJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);
 
+    private static final String EVENTS_DIR = ".events";
+
     private final Duration period;
     private final Clock clock;
-    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
+    private final PlatformRepositories platformRepositories;
+    private final JeffreyDirs jeffreyDirs;
+    private final WorkspacesManager workspacesManager;
+    private final HeartbeatReplayReader heartbeatReplayReader;
+    private final ProjectsSynchronizerJobDescriptor synchronizerJobDescriptor;
     private final SchedulerTrigger migrationCallback;
-
-    private final Set<String> processedProjects = new HashSet<>();
-    private final Set<String> processedInstances = new HashSet<>();
-    private final Set<String> processedSessions = new HashSet<>();
 
     public WorkspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
-            SchedulerManager schedulerManager,
-            JobDescriptorFactory jobDescriptorFactory,
             Duration period,
             Clock clock,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            PlatformRepositories platformRepositories,
+            JeffreyDirs jeffreyDirs,
+            HeartbeatReplayReader heartbeatReplayReader,
+            ProjectsSynchronizerJobDescriptor synchronizerJobDescriptor,
             SchedulerTrigger migrationCallback) {
 
-        super(workspacesManager, schedulerManager, jobDescriptorFactory);
+        this.workspacesManager = workspacesManager;
         this.period = period;
         this.clock = clock;
-        this.workspaceEventQueue = workspaceEventQueue;
+        this.platformRepositories = platformRepositories;
+        this.jeffreyDirs = jeffreyDirs;
+        this.heartbeatReplayReader = heartbeatReplayReader;
+        this.synchronizerJobDescriptor = synchronizerJobDescriptor;
         this.migrationCallback = migrationCallback;
     }
 
     @Override
-    protected void executeOnWorkspace(
-            WorkspaceManager workspaceManager,
-            WorkspaceEventsReplicatorJobDescriptor jobDescriptor,
-            JobContext context) {
-
+    public void execute(JobContext context) {
         try {
-            long migrated = replicateFilesystemEvents(workspaceManager);
-            if (migrated > 0) {
-                // Execute after successful migration
+            FolderQueue folderQueue = new FolderQueue(jeffreyDirs.workspaces().resolve(EVENTS_DIR), clock);
+            long processed = processEvents(folderQueue);
+            if (processed > 0) {
                 migrationCallback.execute()
                         .orTimeout(5, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
-            LOG.error("Failed to replicate filesystem events for workspace: {}",
-                    workspaceManager.resolveInfo().id(), e);
+            LOG.error("Failed to process shared workspace events", e);
         }
     }
 
-    private long replicateFilesystemEvents(WorkspaceManager workspaceManager) {
-        WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
+    private long processEvents(FolderQueue folderQueue) {
+        FolderQueueEntryParser<WorkspaceEvent> parser = (filePath, content) -> {
+            try {
+                return Optional.of(Json.read(content, WorkspaceEvent.class));
+            } catch (Exception e) {
+                LOG.debug("Skipping unreadable event file (may be partially written): {}", filePath);
+                return Optional.empty();
+            }
+        };
 
-        LOG.debug("Starting filesystem events replication for workspace: " +
-                "workspace_id={} repository_id={}", workspaceInfo.id(), workspaceInfo.repositoryId());
-
-        RemoteWorkspaceRepository remoteWorkspaceRepository = workspaceManager.remoteWorkspaceRepository();
-        List<RemoteProject> allProjects = remoteWorkspaceRepository.allProjects();
-
-        List<WorkspaceEvent> projectEvents = replicateProjects(workspaceManager, allProjects);
-        List<WorkspaceEvent> instanceEvents = replicateInstances(workspaceManager, allProjects);
-        List<WorkspaceEvent> sessionEvents = replicateSessions(workspaceManager, allProjects);
-
-        int processedEvents = projectEvents.size() + instanceEvents.size() + sessionEvents.size();
-        if (processedEvents > 0) {
-            LOG.info("Replicated filesystem events for: workspace_id={} repository_id={} projects={} instances={} sessions={}",
-                    workspaceInfo.id(), workspaceInfo.repositoryId(), projectEvents.size(), instanceEvents.size(), sessionEvents.size());
+        List<FolderQueueEntry<WorkspaceEvent>> entries = folderQueue.poll(parser);
+        if (entries.isEmpty()) {
+            return 0;
         }
-        return processedEvents;
+
+        long processedCount = 0;
+        for (FolderQueueEntry<WorkspaceEvent> entry : entries) {
+            WorkspaceEvent event = entry.parsed();
+            try {
+                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findById(event.workspaceId());
+                if (workspaceOpt.isEmpty()) {
+                    LOG.debug("Workspace not found, skipping event for retry: workspace_id={} event_type={}",
+                            event.workspaceId(), event.eventType());
+                    continue;
+                }
+
+                ProjectsManager projectsManager = workspaceOpt.get().projectsManager();
+                List<WorkspaceEventConsumer> consumers = List.of(
+                        new CreateProjectWorkspaceEventConsumer(projectsManager),
+                        new InstanceCreatedWorkspaceEventConsumer(projectsManager),
+                        new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader));
+
+                for (WorkspaceEventConsumer consumer : consumers) {
+                    if (consumer.isApplicable(event)) {
+                        consumer.on(event, synchronizerJobDescriptor);
+                        LOG.debug("Successfully processed folder event: event_type={} file={} consumer={}",
+                                event.eventType(), entry.filename(), consumer.getClass().getSimpleName());
+                    }
+                }
+                folderQueue.acknowledge(entry.filePath());
+                processedCount++;
+            } catch (Exception e) {
+                JfrMessageEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
+                LOG.error("Failed to process folder event, will retry: event_type={} file={} project_id={}",
+                        event.eventType(), entry.filename(), event.projectId(), e);
+            }
+        }
+
+        if (processedCount > 0) {
+            LOG.info("Processed shared workspace events: processed={} total={}", processedCount, entries.size());
+        }
+
+        return processedCount;
     }
-
-    private List<WorkspaceEvent> replicateProjects(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
-        List<WorkspaceEvent> projectWorkspaceEvents = allProjects.stream()
-                .filter(event -> !processedProjects.contains(event.projectId()))
-                .map(event -> {
-                    return WorkspaceEventConverter.projectCreated(
-                            clock.instant(),
-                            event,
-                            workspaceManager.resolveInfo(),
-                            WorkspaceEventCreator.WORKSPACE_EVENTS_REPLICATOR_JOB);
-                })
-                .toList();
-
-        LOG.debug("Replicating project events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), projectWorkspaceEvents.size());
-        workspaceEventQueue.appendBatch(workspaceManager.resolveInfo().id(), projectWorkspaceEvents);
-
-        projectWorkspaceEvents.stream()
-                .map(WorkspaceEvent::projectId)
-                .forEach(processedProjects::add);
-
-        return projectWorkspaceEvents;
-    }
-
-    private List<WorkspaceEvent> replicateInstances(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
-        RemoteWorkspaceRepository remoteWorkspaceRepository = workspaceManager.remoteWorkspaceRepository();
-
-        List<WorkspaceEvent> instanceWorkspaceEvents = allProjects.stream()
-                .map(remoteWorkspaceRepository::allInstances)
-                .flatMap(List::stream)
-                .filter(event -> !processedInstances.contains(event.instanceId()))
-                .map(event -> {
-                    return WorkspaceEventConverter.instanceCreated(
-                            clock.instant(),
-                            event,
-                            workspaceManager.resolveInfo(),
-                            WorkspaceEventCreator.WORKSPACE_EVENTS_REPLICATOR_JOB);
-                })
-                .toList();
-
-        LOG.debug("Replicating instance events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), instanceWorkspaceEvents.size());
-        workspaceEventQueue.appendBatch(workspaceManager.resolveInfo().id(), instanceWorkspaceEvents);
-
-        instanceWorkspaceEvents.stream()
-                .map(WorkspaceEvent::originEventId)
-                .forEach(processedInstances::add);
-
-        return instanceWorkspaceEvents;
-    }
-
-    private List<WorkspaceEvent> replicateSessions(WorkspaceManager workspaceManager, List<RemoteProject> allProjects) {
-        RemoteWorkspaceRepository remoteWorkspaceRepository = workspaceManager.remoteWorkspaceRepository();
-
-        List<WorkspaceEvent> sessionWorkspaceEvents = allProjects.stream()
-                .map(remoteWorkspaceRepository::allSessions)
-                .flatMap(List::stream)
-                .filter(event -> !processedSessions.contains(event.sessionId()))
-                .map(event -> {
-                    return WorkspaceEventConverter.sessionCreated(
-                            clock.instant(),
-                            event,
-                            workspaceManager.resolveInfo(),
-                            WorkspaceEventCreator.WORKSPACE_EVENTS_REPLICATOR_JOB);
-                })
-                .toList();
-
-        LOG.debug("Replicating session events: workspace_id={} count={}", workspaceManager.resolveInfo().id(), sessionWorkspaceEvents.size());
-        workspaceEventQueue.appendBatch(workspaceManager.resolveInfo().id(), sessionWorkspaceEvents);
-
-        sessionWorkspaceEvents.stream()
-                .map(WorkspaceEvent::originEventId)
-                .forEach(processedSessions::add);
-
-        return sessionWorkspaceEvents;
-    }
-
 
     @Override
     public Duration period() {

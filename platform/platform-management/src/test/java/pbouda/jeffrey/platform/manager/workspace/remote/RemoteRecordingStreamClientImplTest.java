@@ -29,7 +29,6 @@ import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClientTestSupport.
 import pbouda.jeffrey.shared.common.exception.RemoteJeffreyUnavailableException;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -80,7 +79,7 @@ class RemoteRecordingStreamClientImplTest {
         void throwsRemoteJeffreyUnavailable_onConnectionError() {
             server.expect(requestTo(RECORDINGS_URL))
                     .andExpect(method(HttpMethod.POST))
-                    .andRespond(request -> {
+                    .andRespond(_ -> {
                         throw new IOException("Connection refused");
                     });
 
@@ -115,7 +114,7 @@ class RemoteRecordingStreamClientImplTest {
     class StreamRecordings {
 
         @Test
-        void invokesConsumer_withInputStream_onSuccess() throws IOException {
+        void invokesConsumer_withInputStream_onSuccess() {
             byte[] data = "streaming-jfr-data".getBytes();
             server.expect(requestTo(RECORDINGS_URL))
                     .andExpect(method(HttpMethod.POST))
@@ -140,13 +139,13 @@ class RemoteRecordingStreamClientImplTest {
         void throwsRemoteJeffreyUnavailable_onConnectionError() {
             server.expect(requestTo(RECORDINGS_URL))
                     .andExpect(method(HttpMethod.POST))
-                    .andRespond(request -> {
+                    .andRespond(_ -> {
                         throw new IOException("Connection refused");
                     });
 
             assertThrows(RemoteJeffreyUnavailableException.class, () ->
                     client.streamRecordings(WORKSPACE_ID, PROJECT_ID, SESSION_ID, List.of("rec-1"),
-                            (inputStream, contentLength) -> {}));
+                            (_, _) -> {}));
         }
     }
 
@@ -154,7 +153,7 @@ class RemoteRecordingStreamClientImplTest {
     class StreamFile {
 
         @Test
-        void invokesConsumer_withInputStream_onSuccess() throws IOException {
+        void invokesConsumer_withInputStream_onSuccess() {
             byte[] data = "streaming-heap-dump".getBytes();
             server.expect(requestTo(ARTIFACT_URL))
                     .andExpect(method(HttpMethod.POST))
@@ -179,13 +178,12 @@ class RemoteRecordingStreamClientImplTest {
         void throwsRemoteJeffreyUnavailable_onConnectionError() {
             server.expect(requestTo(ARTIFACT_URL))
                     .andExpect(method(HttpMethod.POST))
-                    .andRespond(request -> {
+                    .andRespond(_ -> {
                         throw new IOException("Connection refused");
                     });
 
             assertThrows(RemoteJeffreyUnavailableException.class, () ->
-                    client.streamFile(WORKSPACE_ID, PROJECT_ID, SESSION_ID, "file-1",
-                            (inputStream, contentLength) -> {}));
+                    client.streamFile(WORKSPACE_ID, PROJECT_ID, SESSION_ID, "file-1", (_, _) -> {}));
         }
     }
 

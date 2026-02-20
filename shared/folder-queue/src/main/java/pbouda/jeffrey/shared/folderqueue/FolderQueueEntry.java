@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.workspace.model;
+package pbouda.jeffrey.shared.folderqueue;
+
+import java.nio.file.Path;
 
 /**
- * Content for PROJECT_INSTANCE_CREATED workspace events.
+ * A single entry polled from the folder queue, containing the original
+ * file path, its filename, and the parsed value produced by the
+ * {@link FolderQueueEntryParser}.
  *
- * @param relativeInstancePath relative path from project directory to instance directory
+ * @param filePath the absolute path to the event file
+ * @param filename the filename (without directory) of the event file
+ * @param parsed   the parsed value
+ * @param <T>      the type of the parsed value
  */
-public record InstanceCreatedEventContent(
-        String relativeInstancePath) {
+public record FolderQueueEntry<T>(
+        Path filePath,
+        String filename,
+        T parsed) {
 }
