@@ -74,7 +74,7 @@ export default class ProjectRepositoryClient {
             recordingIds: ids,
         }
 
-        return axios.put<void>(this.baseUrl + '/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.post<void>(this.baseUrl + '/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
             .then(HttpUtils.RETURN_DATA);
     }
 

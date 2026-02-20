@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -75,8 +75,9 @@ public class JerseyConfig extends ResourceConfig {
         register(JfrHttpEventFilter.class);
 
         register(ExceptionMappers.JeffreyExceptionMapper.class);
-        register(ExceptionMappers.IllegalArgumentException.class);
-        register(ExceptionMappers.GenericException.class);
+        register(ExceptionMappers.IllegalArgumentExceptionMapper.class);
+        register(ExceptionMappers.WebApplicationExceptionMapper.class);
+        register(ExceptionMappers.GenericExceptionMapper.class);
     }
 
     public static class ProductionCORSFilter implements ContainerResponseFilter {

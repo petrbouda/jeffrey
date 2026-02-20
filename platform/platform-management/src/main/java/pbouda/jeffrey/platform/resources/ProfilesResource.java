@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -25,6 +25,7 @@ import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.resources.response.ProfileWithContextResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
@@ -34,7 +35,6 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileDiffResource;
 import pbouda.jeffrey.profile.resources.ProfileResource;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -51,23 +51,6 @@ import java.util.Optional;
 public class ProfilesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesResource.class);
-
-    /**
-     * Profile response with workspace and project context.
-     */
-    public record ProfileResponse(
-            String id,
-            String name,
-            String projectId,
-            String projectName,
-            String workspaceId,
-            String workspaceName,
-            String createdAt,
-            RecordingEventSource eventSource,
-            boolean enabled,
-            long durationInMillis,
-            long sizeInBytes) {
-    }
 
     private final CompositeWorkspacesManager workspacesManager;
     private final QuickAnalysisManager quickAnalysisManager;
@@ -95,9 +78,9 @@ public class ProfilesResource {
      * Returns all profiles across all workspaces and projects.
      */
     @GET
-    public List<ProfileResponse> listAllProfiles() {
+    public List<ProfileWithContextResponse> listAllProfiles() {
         LOG.debug("Listing all profiles across workspaces");
-        List<ProfileResponse> allProfiles = new ArrayList<>();
+        List<ProfileWithContextResponse> allProfiles = new ArrayList<>();
 
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             String workspaceName = workspaceManager.resolveInfo().name();
@@ -110,7 +93,7 @@ public class ProfilesResource {
         }
 
         return allProfiles.stream()
-                .sorted(Comparator.comparing(ProfileResponse::createdAt).reversed())
+                .sorted(Comparator.comparing(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
     }
 
@@ -167,9 +150,9 @@ public class ProfilesResource {
         return Optional.empty();
     }
 
-    private static ProfileResponse toResponse(ProfileManager profileManager, String workspaceName, String projectName) {
+    private static ProfileWithContextResponse toResponse(ProfileManager profileManager, String workspaceName, String projectName) {
         ProfileInfo profileInfo = profileManager.info();
-        return new ProfileResponse(
+        return new ProfileWithContextResponse(
                 profileInfo.id(),
                 profileInfo.name(),
                 profileInfo.projectId(),

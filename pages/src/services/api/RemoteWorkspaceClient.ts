@@ -26,11 +26,8 @@ export default class RemoteWorkspaceClient {
     private static baseUrl = GlobalVars.internalUrl + '/remote-workspaces';
 
     static async listRemote(remoteUrl: string): Promise<Workspace[]> {
-        const content = {
-            remoteUrl: remoteUrl
-        };
-        return axios.post<Workspace[]>(
-            RemoteWorkspaceClient.baseUrl + "/list", content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
+        return axios.get<Workspace[]>(
+            RemoteWorkspaceClient.baseUrl, { params: { remoteUrl } })
             .then(HttpUtils.RETURN_DATA);
     }
 

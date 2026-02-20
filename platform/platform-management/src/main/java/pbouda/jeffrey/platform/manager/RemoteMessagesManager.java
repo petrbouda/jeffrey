@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@
 package pbouda.jeffrey.platform.manager;
 
 import pbouda.jeffrey.shared.common.model.ImportantMessage;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteMessagesClient;
 import pbouda.jeffrey.platform.resources.response.ImportantMessageResponse;
 import pbouda.jeffrey.shared.common.model.time.AbsoluteTimeRange;
 import pbouda.jeffrey.shared.common.model.time.TimeRange;
@@ -33,16 +33,16 @@ import java.util.List;
  */
 public class RemoteMessagesManager implements MessagesManager {
 
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteMessagesClient messagesClient;
     private final String workspaceId;
     private final String projectId;
 
     public RemoteMessagesManager(
-            RemoteWorkspaceClient remoteWorkspaceClient,
+            RemoteMessagesClient messagesClient,
             String workspaceId,
             String projectId) {
 
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.messagesClient = messagesClient;
         this.workspaceId = workspaceId;
         this.projectId = projectId;
     }
@@ -52,7 +52,7 @@ public class RemoteMessagesManager implements MessagesManager {
         Long start = toStartMillis(timeRange);
         Long end = toEndMillis(timeRange);
 
-        return remoteWorkspaceClient.getMessages(workspaceId, projectId, start, end)
+        return messagesClient.getMessages(workspaceId, projectId, start, end)
                 .stream()
                 .map(ImportantMessageResponse::toModel)
                 .toList();
@@ -63,7 +63,7 @@ public class RemoteMessagesManager implements MessagesManager {
         Long start = toStartMillis(timeRange);
         Long end = toEndMillis(timeRange);
 
-        return remoteWorkspaceClient.getAlerts(workspaceId, projectId, start, end)
+        return messagesClient.getAlerts(workspaceId, projectId, start, end)
                 .stream()
                 .map(ImportantMessageResponse::toModel)
                 .toList();

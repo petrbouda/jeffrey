@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,7 @@ import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.resources.request.CreateProfileRequest;
+import pbouda.jeffrey.platform.resources.response.ProfileSummaryResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
@@ -35,7 +36,6 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileDiffResource;
 import pbouda.jeffrey.profile.resources.ProfileResource;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.util.Comparator;
 import java.util.List;
@@ -44,16 +44,6 @@ import java.util.Optional;
 public class ProjectProfilesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectProfilesResource.class);
-
-    public record ProfileResponse(
-            String id,
-            String name,
-            String createdAt,
-            RecordingEventSource eventSource,
-            boolean enabled,
-            long durationInMillis,
-            long sizeInBytes) {
-    }
 
     private final ProfilesManager profilesManager;
     private final ProjectsManager projectsManager;
@@ -131,7 +121,7 @@ public class ProjectProfilesResource {
     }
 
     @GET
-    public List<ProfileResponse> profiles() {
+    public List<ProfileSummaryResponse> profiles() {
         LOG.debug("Listing profiles");
         return profilesManager.allProfiles().stream()
                 .sorted(Comparator.comparing((ProfileManager pm) -> pm.info().createdAt()).reversed())
@@ -139,9 +129,9 @@ public class ProjectProfilesResource {
                 .toList();
     }
 
-    private static ProfileResponse toResponse(ProfileManager profileManager) {
+    private static ProfileSummaryResponse toResponse(ProfileManager profileManager) {
         ProfileInfo profileInfo = profileManager.info();
-        return new ProfileResponse(
+        return new ProfileSummaryResponse(
                 profileInfo.id(),
                 profileInfo.name(),
                 InstantUtils.formatInstant(profileInfo.createdAt()),

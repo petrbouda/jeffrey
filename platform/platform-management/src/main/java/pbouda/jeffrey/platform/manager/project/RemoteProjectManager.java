@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -33,8 +33,8 @@ import pbouda.jeffrey.platform.manager.RemoteProfilerSettingsManager;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.SchedulerManagerImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRecordingsDownloadManager;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
 import pbouda.jeffrey.platform.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
@@ -50,7 +50,7 @@ public class RemoteProjectManager implements ProjectManager {
     private final WorkspaceInfo workspaceInfo;
     private final DetailedProjectInfo detailedProjectInfo;
     private final Optional<ProjectManager> commonProjectManager;
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteClients remoteClients;
     private final JobDescriptorFactory jobDescriptorFactory;
     private final SchedulerRepository schedulerRepository;
 
@@ -59,7 +59,7 @@ public class RemoteProjectManager implements ProjectManager {
             WorkspaceInfo workspaceInfo,
             DetailedProjectInfo detailedProjectInfo,
             Optional<ProjectManager> commonProjectManager,
-            RemoteWorkspaceClient remoteWorkspaceClient,
+            RemoteClients remoteClients,
             PlatformRepositories platformRepositories,
             JobDescriptorFactory jobDescriptorFactory) {
 
@@ -67,7 +67,7 @@ public class RemoteProjectManager implements ProjectManager {
         this.workspaceInfo = workspaceInfo;
         this.detailedProjectInfo = detailedProjectInfo;
         this.commonProjectManager = commonProjectManager;
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.remoteClients = remoteClients;
         this.jobDescriptorFactory = jobDescriptorFactory;
         this.schedulerRepository = platformRepositories.newProjectSchedulerRepository(detailedProjectInfo.projectInfo().id());
     }
@@ -100,7 +100,7 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public MessagesManager messagesManager() {
         return new RemoteMessagesManager(
-                remoteWorkspaceClient,
+                remoteClients.messages(),
                 workspaceInfo.originId(),
                 detailedProjectInfo.projectInfo().originId());
     }
@@ -112,7 +112,8 @@ public class RemoteProjectManager implements ProjectManager {
                 jeffreyDirs,
                 detailedProjectInfo.projectInfo(),
                 workspaceInfo,
-                remoteWorkspaceClient,
+                remoteClients.recordings(),
+                remoteClients.repository(),
                 recordingsDownloadManager);
     }
 
@@ -124,7 +125,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RemoteRepositoryManager(detailedProjectInfo.projectInfo(), workspaceInfo, remoteWorkspaceClient);
+        return new RemoteRepositoryManager(detailedProjectInfo.projectInfo(), workspaceInfo, remoteClients.repository());
     }
 
     @Override
@@ -135,7 +136,7 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public ProfilerSettingsManager profilerSettingsManager() {
         return new RemoteProfilerSettingsManager(
-                remoteWorkspaceClient,
+                remoteClients.profiler(),
                 workspaceInfo,
                 detailedProjectInfo.projectInfo().originId());
     }
@@ -150,7 +151,7 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteProjectInstanceRepository(
                 detailedProjectInfo.projectInfo(),
                 workspaceInfo,
-                remoteWorkspaceClient);
+                remoteClients.instances());
     }
 
     @Override

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -24,6 +24,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.resources.response.InstanceResponse;
+import pbouda.jeffrey.platform.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
@@ -34,25 +36,6 @@ import java.util.List;
 public class ProjectInstancesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesResource.class);
-
-    public record InstanceResponse(
-            String id,
-            String hostname,
-            String status,
-            Long startedAt,
-            Long finishedAt,
-            int sessionCount,
-            String activeSessionId) {
-    }
-
-    public record InstanceSessionResponse(
-            String id,
-            String repositoryId,
-            Long startedAt,
-            Long finishedAt,
-            Long lastHeartbeatAt,
-            boolean isActive) {
-    }
 
     private final ProjectInstanceRepository projectInstanceRepository;
 

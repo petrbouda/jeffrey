@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,17 +18,21 @@
 
 package pbouda.jeffrey.platform.resources;
 
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
-import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager.CreateWorkspaceRequest;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
+import pbouda.jeffrey.platform.resources.request.RemoteWorkspacesRequest;
+import pbouda.jeffrey.platform.resources.response.RemoteWorkspaceResponse;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
 import java.net.URI;
 import java.util.List;
@@ -37,41 +41,27 @@ public class RemoteWorkspacesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspacesResource.class);
 
-    private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
+    private final RemoteClients.Factory remoteClientsFactory;
     private final CompositeWorkspacesManager workspacesManager;
 
-    public record WorkspaceResponse(
-            String id,
-            String name,
-            String description,
-            int projectCount) {
-    }
-
-    public record RemoteWorkspacesRequest(String remoteUrl, List<String> workspaceIds) {
-    }
-
-    public record ListRemoteWorkspacesRequest(String remoteUrl) {
-    }
-
     public RemoteWorkspacesResource(
-            RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
+            RemoteClients.Factory remoteClientsFactory,
             CompositeWorkspacesManager workspacesManager) {
 
-        this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
+        this.remoteClientsFactory = remoteClientsFactory;
         this.workspacesManager = workspacesManager;
     }
 
-    @POST
-    @Path("/list")
-    public List<WorkspaceResponse> listRemoteWorkspaces(ListRemoteWorkspacesRequest request) {
-        LOG.debug("Listing remote workspaces: url={}", request.remoteUrl());
-        if (request.remoteUrl() == null || request.remoteUrl().isBlank()) {
+    @GET
+    public List<RemoteWorkspaceResponse> listRemoteWorkspaces(@QueryParam("remoteUrl") String remoteUrl) {
+        LOG.debug("Listing remote workspaces: url={}", remoteUrl);
+        if (remoteUrl == null || remoteUrl.isBlank()) {
             throw Exceptions.invalidRequest("Remote URL is required");
         }
-        URI remoteUri = URI.create(request.remoteUrl());
-        RemoteWorkspaceClient remoteWorkspaceClient = remoteWorkspacesManagerFactory.apply(remoteUri);
-        return remoteWorkspaceClient.allWorkspaces().stream()
-                .map(this::toWorkspaceResponse)
+        URI remoteUri = URI.create(remoteUrl);
+        RemoteClients remoteClients = remoteClientsFactory.apply(remoteUri);
+        return remoteClients.discovery().allWorkspaces().stream()
+                .map(this::toRemoteWorkspaceResponse)
                 .toList();
     }
 
@@ -97,8 +87,8 @@ public class RemoteWorkspacesResource {
         return Response.status(Response.Status.CREATED).build();
     }
 
-    private WorkspaceResponse toWorkspaceResponse(pbouda.jeffrey.platform.resources.response.WorkspaceResponse workspaceInfo) {
-        return new WorkspaceResponse(
+    private RemoteWorkspaceResponse toRemoteWorkspaceResponse(pbouda.jeffrey.platform.resources.response.WorkspaceResponse workspaceInfo) {
+        return new RemoteWorkspaceResponse(
                 workspaceInfo.id(),
                 workspaceInfo.name(),
                 workspaceInfo.description(),

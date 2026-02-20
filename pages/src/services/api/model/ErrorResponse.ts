@@ -29,14 +29,17 @@ export type ErrorCode =
   | 'PROJECT_NOT_FOUND'
   | 'RECORDING_SESSION_NOT_FOUND'
   | 'RECORDING_FILE_NOT_FOUND'
+  | 'REPOSITORY_NOT_FOUND'
   | 'UNKNOWN_ERROR_RESPONSE'
   | 'REMOTE_JEFFREY_UNAVAILABLE'
   | 'EMPTY_RECORDING_SESSION'
+  | 'COMPRESSION_ERROR'
   | 'INVALID_REQUEST'
   | 'SCHEDULER_JOB_NOT_FOUND'
   | 'PROFILER_CONFIGURATION_ERROR'
   | 'REMOTE_OPERATION_FAILED'
-  | 'HEAP_DUMP_CORRUPTED';
+  | 'HEAP_DUMP_CORRUPTED'
+  | 'RESOURCE_NOT_FOUND';
 
 /**
  * Error response structure matching the backend ErrorResponse record
@@ -71,7 +74,9 @@ export function isNotFoundError(error: ErrorResponse): boolean {
     error.code === 'PROJECT_NOT_FOUND' ||
     error.code === 'RECORDING_SESSION_NOT_FOUND' ||
     error.code === 'RECORDING_FILE_NOT_FOUND' ||
-    error.code === 'SCHEDULER_JOB_NOT_FOUND'
+    error.code === 'REPOSITORY_NOT_FOUND' ||
+    error.code === 'SCHEDULER_JOB_NOT_FOUND' ||
+    error.code === 'RESOURCE_NOT_FOUND'
   );
 }
 

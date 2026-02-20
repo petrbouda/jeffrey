@@ -160,9 +160,8 @@ const startDownload = async (
                 ToastService.error('Download Failed', error);
             }
         );
-    } catch (e: any) {
-        ToastService.error('Download Failed',
-            e?.response?.data?.message || e.message || 'Failed to start download');
+    } catch {
+        // Toast is shown automatically by HttpInterceptor
     }
 };
 

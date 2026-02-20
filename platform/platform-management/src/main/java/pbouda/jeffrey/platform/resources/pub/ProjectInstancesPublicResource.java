@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,8 +22,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
-import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
-import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
+import pbouda.jeffrey.platform.resources.response.InstanceResponse;
+import pbouda.jeffrey.platform.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;

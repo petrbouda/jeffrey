@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,11 +27,15 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import pbouda.jeffrey.platform.manager.RecordingsManager;
+import pbouda.jeffrey.platform.resources.request.CreateFolderRequest;
+import pbouda.jeffrey.platform.resources.response.RecordingFileResponse;
+import pbouda.jeffrey.platform.resources.response.RecordingsResponse;
+import pbouda.jeffrey.provider.platform.model.NewRecording;
+import pbouda.jeffrey.provider.platform.model.RecordingFolder;
+import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
-import pbouda.jeffrey.platform.manager.RecordingsManager;
-import pbouda.jeffrey.provider.platform.model.NewRecording;
-import pbouda.jeffrey.shared.common.InstantUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,25 +45,6 @@ import java.util.List;
 public class ProjectRecordingsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
-
-    public record RecordingsResponse(
-            String id,
-            String name,
-            long sizeInBytes,
-            long durationInMillis,
-            String uploadedAt,
-            String folderId,
-            String sourceType,
-            boolean hasProfile,
-            List<RecordingFileResponse> recordingFiles) {
-    }
-
-    public record RecordingFileResponse(String id, String filename, long sizeInBytes, String type, String description) {
-    }
-
-
-    public record CreateFolder(String folderName) {
-    }
 
     private final RecordingsManager recordingsManager;
 
@@ -78,7 +63,7 @@ public class ProjectRecordingsResource {
                             .toList();
 
                     long sizeInBytesTotal = recordingFiles.stream()
-                            .mapToLong(file -> file.sizeInBytes)
+                            .mapToLong(RecordingFileResponse::sizeInBytes)
                             .sum();
 
                     return new RecordingsResponse(
@@ -119,30 +104,29 @@ public class ProjectRecordingsResource {
 
         NewRecording recording = new NewRecording(recordingName, cdh.getFileName(), trimmedFolderId);
         recordingsManager.upload(recording, fileInputStream);
-        return Response.noContent().build();
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @POST
     @Path("/folders")
-    public Response create(CreateFolder request) {
+    public Response createFolder(CreateFolderRequest request) {
         LOG.debug("Creating recording folder: folderName={}", request.folderName());
         recordingsManager.createFolder(request.folderName());
-        return Response.noContent().build();
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @GET
     @Path("/folders")
-    public Response findAllFolders() {
+    public List<RecordingFolder> findAllFolders() {
         LOG.debug("Listing recording folders");
-        return Response.ok(recordingsManager.allRecordingFolders()).build();
+        return recordingsManager.allRecordingFolders();
     }
 
     @DELETE
     @Path("/folders/{folderId}")
-    public Response create(@PathParam("folderId") String folderId) {
+    public void deleteFolder(@PathParam("folderId") String folderId) {
         LOG.debug("Deleting recording folder: folderId={}", folderId);
         recordingsManager.deleteFolder(folderId);
-        return Response.ok().build();
     }
 
     @DELETE

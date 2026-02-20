@@ -105,6 +105,12 @@ function getErrorTitle(error: ApiError): string {
         return 'Remote Operation Failed';
       case 'HEAP_DUMP_CORRUPTED':
         return 'Heap Dump Corrupted';
+      case 'REPOSITORY_NOT_FOUND':
+        return 'Repository Not Found';
+      case 'COMPRESSION_ERROR':
+        return 'Compression Error';
+      case 'RESOURCE_NOT_FOUND':
+        return 'Not Found';
       default:
         return 'Error';
     }
@@ -135,9 +141,33 @@ function showErrorToast(error: ApiError): void {
 }
 
 /**
+ * Parse error response from data, handling Blob responses from file downloads
+ */
+async function parseErrorResponse(data: unknown): Promise<ErrorResponse | undefined> {
+  // Blob download returned JSON error — parse it
+  if (data instanceof Blob && data.type === 'application/json') {
+    try {
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      if (isErrorResponse(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // Failed to parse blob as JSON, fall through
+    }
+  }
+
+  if (isErrorResponse(data)) {
+    return data;
+  }
+
+  return undefined;
+}
+
+/**
  * Response error interceptor
  */
-function responseErrorInterceptor(error: AxiosError): Promise<never> {
+async function responseErrorInterceptor(error: AxiosError): Promise<never> {
   const config = error.config as InternalAxiosRequestConfig | undefined;
   const suppressToast = config?.suppressToast ?? false;
 
@@ -148,10 +178,7 @@ function responseErrorInterceptor(error: AxiosError): Promise<never> {
     const statusCode = error.response.status;
     const data = error.response.data;
 
-    let errorResponse: ErrorResponse | undefined;
-    if (isErrorResponse(data)) {
-      errorResponse = data;
-    }
+    const errorResponse = await parseErrorResponse(data);
 
     const message = errorResponse?.message ||
       (typeof data === 'string' ? data : `Request failed with status ${statusCode}`);

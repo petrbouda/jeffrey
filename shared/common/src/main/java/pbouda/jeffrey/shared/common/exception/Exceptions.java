@@ -71,4 +71,12 @@ public abstract class Exceptions {
     public static JeffreyInternalException compressionError(String message) {
         return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message);
     }
+
+    public static RemoteJeffreyException fromRemoteErrorResponse(URI uri, ErrorResponse errorResponse) {
+        if (errorResponse == null) {
+            throw internal("Error response cannot be null");
+        }
+
+        return new RemoteJeffreyException(uri, errorResponse.type(), errorResponse.code(), errorResponse.message());
+    }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,11 +20,14 @@ package pbouda.jeffrey.platform.resources;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import pbouda.jeffrey.platform.JeffreyVersion;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.resources.pub.WorkspacesPublicResource;
+import pbouda.jeffrey.platform.resources.response.PublicApiInfoResponse;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 
 @Path("/public")
@@ -42,6 +45,14 @@ public class RootPublicResource {
 
         this.workspacesManager = workspacesManager;
         this.profilerRepository = profilerRepository;
+    }
+
+    @GET
+    @Path("/info")
+    public PublicApiInfoResponse info() {
+        return new PublicApiInfoResponse(
+                JeffreyVersion.resolveJeffreyVersion(),
+                PublicApiInfoResponse.CURRENT_API_VERSION);
     }
 
     @Path("/workspaces")

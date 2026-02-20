@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.exception;
+package pbouda.jeffrey.platform.resources.response;
 
-public class JeffreyClientException extends JeffreyException {
-
-    public JeffreyClientException(ErrorCode code, String message) {
-        super(ErrorType.CLIENT, code, message);
-    }
-
-    public JeffreyClientException(ErrorCode code, String message, Throwable cause) {
-        super(ErrorType.CLIENT, code, message, cause);
-    }
+public record RemoteWorkspaceResponse(
+        String id,
+        String name,
+        String description,
+        int projectCount) {
 }

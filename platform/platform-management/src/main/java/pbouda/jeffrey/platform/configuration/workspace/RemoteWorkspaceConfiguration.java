@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -29,8 +29,14 @@ import pbouda.jeffrey.platform.configuration.AppConfiguration;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClientImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteDiscoveryClientImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteHttpInvoker;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteInstancesClientImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteMessagesClientImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteProfilerClientImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRecordingStreamClientImpl;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRepositoryClientImpl;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -51,7 +57,7 @@ public class RemoteWorkspaceConfiguration {
     public RemoteWorkspacesManager remoteWorkspacesManager(
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
-            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory,
+            RemoteClients.Factory remoteClientsFactory,
             @Qualifier(WorkspaceConfiguration.COMMON_PROJECTS_TYPE)
             ProjectsManager.Factory commonProjectsManagerFactory,
             JobDescriptorFactory jobDescriptorFactory) {
@@ -62,7 +68,7 @@ public class RemoteWorkspaceConfiguration {
                     jeffreyDirs,
                     workspaceInfo,
                     platformRepositories.newWorkspaceRepository(workspaceInfo.id()),
-                    remoteWorkspaceClientFactory.apply(baseUri),
+                    remoteClientsFactory.apply(baseUri),
                     commonProjectsManagerFactory,
                     platformRepositories,
                     jobDescriptorFactory);
@@ -71,11 +77,11 @@ public class RemoteWorkspaceConfiguration {
         return new RemoteWorkspacesManager(
                 platformRepositories.newWorkspacesRepository(),
                 workspaceManagerFactory,
-                remoteWorkspaceClientFactory);
+                remoteClientsFactory);
     }
 
     @Bean
-    public RemoteWorkspaceClient.Factory mirrorWorkspaceClientFactory() {
+    public RemoteClients.Factory remoteClientsFactory() {
         return remoteUrl -> {
             // Create trust-all TrustManager
             TrustManager[] trustAllCerts = new TrustManager[]{
@@ -104,10 +110,20 @@ public class RemoteWorkspaceConfiguration {
                     .sslContext(sslContext)
                     .build();
 
-            RestClient.Builder clientBuilder = RestClient.builder()
-                    .requestFactory(new JdkClientHttpRequestFactory(httpClient));
+            RestClient restClient = RestClient.builder()
+                    .baseUrl(remoteUrl)
+                    .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+                    .build();
 
-            return new RemoteWorkspaceClientImpl(remoteUrl, clientBuilder);
+            RemoteHttpInvoker invoker = new RemoteHttpInvoker(remoteUrl, restClient);
+
+            return new RemoteClients(
+                    new RemoteDiscoveryClientImpl(invoker),
+                    new RemoteRepositoryClientImpl(invoker),
+                    new RemoteRecordingStreamClientImpl(invoker),
+                    new RemoteProfilerClientImpl(invoker),
+                    new RemoteMessagesClientImpl(invoker),
+                    new RemoteInstancesClientImpl(invoker));
         };
     }
 }

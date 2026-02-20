@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,7 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.resources.request.CreateWorkspaceRequest;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.platform.resources.workspace.WorkspaceResource;
@@ -43,14 +44,6 @@ import java.util.List;
 public class WorkspacesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspacesResource.class);
-
-    public record CreateWorkspaceRequest(
-            String id,
-            String name,
-            String description,
-            String location,
-            WorkspaceType type) {
-    }
 
     private final CompositeWorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;

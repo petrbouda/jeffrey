@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,24 +22,18 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.job.JobInfo;
-import pbouda.jeffrey.shared.common.model.job.JobType;
-import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
+import pbouda.jeffrey.platform.resources.request.CreateJobRequest;
+import pbouda.jeffrey.platform.resources.request.UpdateEnabledRequest;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.model.job.JobInfo;
 
 import java.util.List;
-import java.util.Map;
 
 
 public class SchedulerResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(SchedulerResource.class);
-
-    public record CreateJobRequest(JobType jobType, Map<String, String> params) {
-    }
-
-    public record UpdateEnabledRequest(boolean enabled) {
-    }
 
     private final SchedulerManager schedulerManager;
 
@@ -54,7 +48,7 @@ public class SchedulerResource {
             throw Exceptions.invalidRequest("Job type is required");
         }
         schedulerManager.create(request.jobType(), request.params());
-        return Response.ok().build();
+        return Response.status(Response.Status.CREATED).build();
     }
 
     @GET

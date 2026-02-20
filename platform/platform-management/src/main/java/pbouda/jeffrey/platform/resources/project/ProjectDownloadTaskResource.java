@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,7 +26,7 @@ import jakarta.ws.rs.sse.Sse;
 import jakarta.ws.rs.sse.SseEventSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.exception.Exceptions;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
 import pbouda.jeffrey.platform.manager.download.DownloadProgress;
 import pbouda.jeffrey.platform.manager.download.DownloadTask;
@@ -75,7 +75,7 @@ public class ProjectDownloadTaskResource {
     @Path("/start")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public DownloadTaskResponse startDownload(SelectedRecordingsRequest request) {
+    public Response startDownload(SelectedRecordingsRequest request) {
         LOG.info("Starting download task: sessionId={} fileCount={}",
                 request.sessionId(), request.recordingIds() != null ? request.recordingIds().size() : 0);
 
@@ -104,7 +104,9 @@ public class ProjectDownloadTaskResource {
             }
         });
 
-        return DownloadTaskResponse.from(task);
+        return Response.status(Response.Status.ACCEPTED)
+                .entity(DownloadTaskResponse.from(task))
+                .build();
     }
 
     private CompletableFuture<Void> startDownloadAsync(DownloadTask task) {

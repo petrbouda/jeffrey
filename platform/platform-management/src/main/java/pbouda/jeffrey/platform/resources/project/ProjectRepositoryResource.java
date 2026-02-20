@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,6 @@
 package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
@@ -71,10 +70,9 @@ public class ProjectRepositoryResource {
 
     @DELETE
     @Path("/sessions/{sessionId}")
-    public Response deleteSession(@PathParam("sessionId") String sessionId) {
+    public void deleteSession(@PathParam("sessionId") String sessionId) {
         LOG.debug("Deleting repository session: sessionId={}", sessionId);
         repositoryManager.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
-        return Response.noContent().build();
     }
 
     @POST
@@ -84,7 +82,7 @@ public class ProjectRepositoryResource {
         recordingsDownloadManager.mergeAndDownloadRecordings(request.sessionId(), request.recordingIds());
     }
 
-    @PUT
+    @POST
     @Path("/recordings/delete")
     public void deleteRecording(SelectedRecordingsRequest request) {
         LOG.debug("Deleting recording from repository");

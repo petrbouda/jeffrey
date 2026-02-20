@@ -19,7 +19,7 @@
 import { ref, computed } from 'vue';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import QuickAnalysisProfile from '@/services/api/model/QuickAnalysisProfile';
-import { ToastService } from '@/services/ToastService';
+
 import router from '@/router';
 
 /**
@@ -183,7 +183,7 @@ const startAnalysis = async () => {
         status.value = 'failed';
         const fileTypeLabel = isHeapDump ? 'heap dump' : 'JFR file';
         errorMessage.value = error instanceof Error ? error.message : `Failed to process ${fileTypeLabel}`;
-        ToastService.error('Analysis Failed', errorMessage.value);
+        // Toast is shown automatically by HttpInterceptor
     }
 };
 
@@ -202,8 +202,8 @@ const deleteProfile = async (profileId: string) => {
     try {
         await QuickAnalysisClient.deleteProfile(profileId);
         await loadRecentProfiles();
-    } catch (error) {
-        ToastService.error('Delete Failed', 'Failed to delete the profile.');
+    } catch {
+        // Toast is shown automatically by HttpInterceptor
     }
 };
 

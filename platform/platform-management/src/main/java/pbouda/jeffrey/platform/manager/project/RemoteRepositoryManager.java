@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRepositoryClient;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
 
@@ -41,22 +41,22 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     private final ProjectInfo projectInfo;
     private final WorkspaceInfo workspaceInfo;
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteRepositoryClient repositoryClient;
 
     public RemoteRepositoryManager(
             ProjectInfo projectInfo,
             WorkspaceInfo workspaceInfo,
-            RemoteWorkspaceClient remoteWorkspaceClient) {
+            RemoteRepositoryClient repositoryClient) {
 
         this.projectInfo = projectInfo;
         this.workspaceInfo = workspaceInfo;
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.repositoryClient = repositoryClient;
     }
 
 
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return remoteWorkspaceClient.recordingSessions(workspaceInfo.originId(), projectInfo.originId()).stream()
+        return repositoryClient.recordingSessions(workspaceInfo.originId(), projectInfo.originId()).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }
@@ -64,7 +64,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
         RepositoryStatisticsResponse response =
-                remoteWorkspaceClient.repositoryStatistics(workspaceInfo.originId(), projectInfo.originId());
+                repositoryClient.repositoryStatistics(workspaceInfo.originId(), projectInfo.originId());
         return RepositoryStatisticsResponse.from(response);
     }
 
@@ -100,7 +100,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
-        remoteWorkspaceClient.deleteSession(workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
+        repositoryClient.deleteSession(workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
     }
 
     @Override

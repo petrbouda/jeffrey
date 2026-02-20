@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
-import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceResponse;
-import pbouda.jeffrey.platform.resources.project.ProjectInstancesResource.InstanceSessionResponse;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteInstancesClient;
+import pbouda.jeffrey.platform.resources.response.InstanceResponse;
+import pbouda.jeffrey.platform.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -40,35 +40,35 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
 
     private final ProjectInfo projectInfo;
     private final WorkspaceInfo workspaceInfo;
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteInstancesClient instancesClient;
 
     public RemoteProjectInstanceRepository(
             ProjectInfo projectInfo,
             WorkspaceInfo workspaceInfo,
-            RemoteWorkspaceClient remoteWorkspaceClient) {
+            RemoteInstancesClient instancesClient) {
 
         this.projectInfo = projectInfo;
         this.workspaceInfo = workspaceInfo;
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.instancesClient = instancesClient;
     }
 
     @Override
     public List<ProjectInstanceInfo> findAll() {
-        return remoteWorkspaceClient.projectInstances(workspaceInfo.originId(), projectInfo.originId()).stream()
+        return instancesClient.projectInstances(workspaceInfo.originId(), projectInfo.originId()).stream()
                 .map(this::toProjectInstanceInfo)
                 .toList();
     }
 
     @Override
     public Optional<ProjectInstanceInfo> find(String instanceId) {
-        InstanceResponse response = remoteWorkspaceClient.projectInstance(
+        InstanceResponse response = instancesClient.projectInstance(
                 workspaceInfo.originId(), projectInfo.originId(), instanceId);
         return Optional.ofNullable(response).map(this::toProjectInstanceInfo);
     }
 
     @Override
     public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {
-        return remoteWorkspaceClient.projectInstanceSessions(
+        return instancesClient.projectInstanceSessions(
                         workspaceInfo.originId(), projectInfo.originId(), instanceId).stream()
                 .map(RemoteProjectInstanceRepository::toProjectInstanceSessionInfo)
                 .toList();

@@ -21,7 +21,6 @@ package pbouda.jeffrey.platform.streaming;
 import jdk.jfr.consumer.EventStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import pbouda.jeffrey.shared.common.Schedulers;
 
 import java.io.Closeable;
@@ -50,15 +49,6 @@ public class JfrStreamingConsumer implements Closeable {
     private final AtomicBoolean closedExplicitly = new AtomicBoolean(false);
 
     private EventStream eventStream;
-
-    public JfrStreamingConsumer(
-            String sessionId,
-            Path sessionPath,
-            List<JfrStreamingHandler> handlers,
-            Runnable onNaturalClose) {
-
-        this(sessionId, sessionPath, handlers, onNaturalClose, null);
-    }
 
     public JfrStreamingConsumer(
             String sessionId,

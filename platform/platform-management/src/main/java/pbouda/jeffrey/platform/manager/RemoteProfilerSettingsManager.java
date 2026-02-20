@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.platform.manager;
 
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteProfilerClient;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -28,32 +28,32 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
  */
 public class RemoteProfilerSettingsManager implements ProfilerSettingsManager {
 
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteProfilerClient profilerClient;
     private final WorkspaceInfo workspaceInfo;
     private final String projectId;
 
     public RemoteProfilerSettingsManager(
-            RemoteWorkspaceClient remoteWorkspaceClient,
+            RemoteProfilerClient profilerClient,
             WorkspaceInfo workspaceInfo,
             String projectId) {
 
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.profilerClient = profilerClient;
         this.workspaceInfo = workspaceInfo;
         this.projectId = projectId;
     }
 
     @Override
     public EffectiveProfilerSettings fetchEffectiveSettings() {
-        return remoteWorkspaceClient.fetchProfilerSettings(workspaceInfo.originId(), projectId);
+        return profilerClient.fetchProfilerSettings(workspaceInfo.originId(), projectId);
     }
 
     @Override
     public void upsertSettings(String agentSettings) {
-        remoteWorkspaceClient.upsertProfilerSettings(workspaceInfo.originId(), projectId, agentSettings);
+        profilerClient.upsertProfilerSettings(workspaceInfo.originId(), projectId, agentSettings);
     }
 
     @Override
     public void deleteSettings() {
-        remoteWorkspaceClient.deleteProfilerSettings(workspaceInfo.originId(), projectId);
+        profilerClient.deleteProfilerSettings(workspaceInfo.originId(), projectId);
     }
 }

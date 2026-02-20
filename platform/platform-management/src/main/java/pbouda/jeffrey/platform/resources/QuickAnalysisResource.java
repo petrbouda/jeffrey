@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
+import pbouda.jeffrey.platform.resources.response.AnalyzeResponse;
+import pbouda.jeffrey.platform.resources.response.ProfileSummaryResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
@@ -34,7 +36,6 @@ import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileResource;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
 import java.io.InputStream;
 import java.util.Comparator;
@@ -48,25 +49,6 @@ import java.util.concurrent.ExecutionException;
 public class QuickAnalysisResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(QuickAnalysisResource.class);
-
-    /**
-     * Response DTO for profile information.
-     */
-    public record ProfileResponse(
-            String id,
-            String name,
-            String createdAt,
-            RecordingEventSource eventSource,
-            boolean enabled,
-            long durationInMillis,
-            long sizeInBytes) {
-    }
-
-    /**
-     * Response DTO for analysis result.
-     */
-    public record AnalyzeResponse(String profileId) {
-    }
 
     private final QuickAnalysisManager quickAnalysisManager;
     private final OqlAssistantService oqlAssistantService;
@@ -149,7 +131,7 @@ public class QuickAnalysisResource {
     @GET
     @Path("/profiles")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProfileResponse> listProfiles() {
+    public List<ProfileSummaryResponse> listProfiles() {
         LOG.debug("Listing quick analysis profiles");
         return quickAnalysisManager.listProfiles().stream()
                 .sorted(Comparator.comparing(ProfileInfo::createdAt).reversed())
@@ -183,11 +165,11 @@ public class QuickAnalysisResource {
         return Response.noContent().build();
     }
 
-    private ProfileResponse toResponse(ProfileInfo profileInfo) {
+    private ProfileSummaryResponse toResponse(ProfileInfo profileInfo) {
         ProfileManager profileManager = quickAnalysisManager.profile(profileInfo.id()).orElse(null);
         long sizeInBytes = profileManager != null ? profileManager.sizeInBytes() : 0;
 
-        return new ProfileResponse(
+        return new ProfileSummaryResponse(
                 profileInfo.id(),
                 profileInfo.name(),
                 InstantUtils.formatInstant(profileInfo.createdAt()),

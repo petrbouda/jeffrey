@@ -134,11 +134,11 @@ jeffrey/
 - **Package Structure**: `pbouda.jeffrey.*` with feature-based organization
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Architecture**: Manager pattern with service layer separation
-- **Copyright Headers**: All Java files must include the AGPL license header with the current year (2025):
+- **Copyright Headers**: All Java files must include the AGPL license header with the current year (2026):
   ```java
   /*
    * Jeffrey
-   * Copyright (C) 2025 Petr Bouda
+   * Copyright (C) 2026 Petr Bouda
    *
    * This program is free software: you can redistribute it and/or modify
    * it under the terms of the GNU Affero General Public License as published by

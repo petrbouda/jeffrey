@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.exception;
+package pbouda.jeffrey.platform.resources.response;
 
-public enum ErrorType {
-    CLIENT,
-    INTERNAL
+import java.util.List;
+
+public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfoResponse> profiles) {
 }

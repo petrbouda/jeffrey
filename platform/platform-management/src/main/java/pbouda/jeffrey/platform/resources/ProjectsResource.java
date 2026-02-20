@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,13 +23,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import pbouda.jeffrey.platform.project.template.TemplateTarget;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
+import pbouda.jeffrey.platform.resources.response.ProjectTemplateResponse;
 
 import java.util.List;
 
 public class ProjectsResource {
-
-    public record ProjectTemplateResponse(String id, String name) {
-    }
 
     private final ProjectTemplatesResolver projectTemplatesResolver;
 

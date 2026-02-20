@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -38,7 +38,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteClients remoteClients;
     private final ProjectsManager.Factory commonProjectsManagerFactory;
     private final PlatformRepositories platformRepositories;
     private final JobDescriptorFactory jobDescriptorFactory;
@@ -47,7 +47,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
-            RemoteWorkspaceClient remoteWorkspaceClient,
+            RemoteClients remoteClients,
             ProjectsManager.Factory commonProjectsManagerFactory,
             PlatformRepositories platformRepositories,
             JobDescriptorFactory jobDescriptorFactory) {
@@ -55,7 +55,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.remoteClients = remoteClients;
         this.commonProjectsManagerFactory = commonProjectsManagerFactory;
         this.platformRepositories = platformRepositories;
         this.jobDescriptorFactory = jobDescriptorFactory;
@@ -64,7 +64,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceInfo resolveInfo() {
         try {
-            RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(workspaceInfo.originId());
+            RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.originId());
             return switch (result.status()) {
                 case AVAILABLE -> result.info().withId(workspaceInfo.id());
                 case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
@@ -82,7 +82,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         return new RemoteProjectsManager(
                 jeffreyDirs,
                 workspaceInfo,
-                remoteWorkspaceClient,
+                remoteClients,
                 commonProjectsManagerFactory.apply(workspaceInfo),
                 platformRepositories,
                 jobDescriptorFactory);

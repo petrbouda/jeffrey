@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,21 +21,16 @@ package pbouda.jeffrey.platform.resources;
 import jakarta.ws.rs.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.ProfilerInfo;
-import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.platform.resources.request.ProfilerSettingsRequest;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
+import pbouda.jeffrey.shared.common.exception.Exceptions;
+import pbouda.jeffrey.shared.common.model.ProfilerInfo;
 
 import java.util.List;
 
 public class ProfilerResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilerResource.class);
-
-    public record ProfilerSettingsEntity(
-            String workspaceId,
-            String projectId,
-            String agentSettings) {
-    }
 
     private final ProfilerRepository profilerRepository;
 
@@ -45,7 +40,7 @@ public class ProfilerResource {
 
     @POST
     @Path("settings")
-    public void upsertSettings(ProfilerSettingsEntity request) {
+    public void upsertSettings(ProfilerSettingsRequest request) {
         LOG.debug("Upserting profiler settings: workspaceId={} projectId={}", request.workspaceId(), request.projectId());
         // Validate hierarchy: if projectId is provided, workspaceId must also be provided
         // Valid combinations:
@@ -69,10 +64,10 @@ public class ProfilerResource {
 
     @GET
     @Path("settings")
-    public List<ProfilerSettingsEntity> findAllSettings() {
+    public List<ProfilerSettingsRequest> findAllSettings() {
         LOG.debug("Listing profiler settings");
         return profilerRepository.findAllSettings().stream()
-                .map(it -> new ProfilerSettingsEntity(it.workspaceId(), it.projectId(), it.agentSettings()))
+                .map(it -> new ProfilerSettingsRequest(it.workspaceId(), it.projectId(), it.agentSettings()))
                 .toList();
     }
 

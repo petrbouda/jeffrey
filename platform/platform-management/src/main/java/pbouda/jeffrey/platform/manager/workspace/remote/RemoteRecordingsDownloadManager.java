@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -64,26 +64,29 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private final JeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
     private final WorkspaceInfo workspaceInfo;
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteRecordingStreamClient recordingStreamClient;
+    private final RemoteRepositoryClient repositoryClient;
     private final RecordingsDownloadManager commonDownloadManager;
 
     public RemoteRecordingsDownloadManager(
             JeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
             WorkspaceInfo workspaceInfo,
-            RemoteWorkspaceClient remoteWorkspaceClient,
+            RemoteRecordingStreamClient recordingStreamClient,
+            RemoteRepositoryClient repositoryClient,
             RecordingsDownloadManager commonDownloadManager) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.projectInfo = projectInfo;
         this.workspaceInfo = workspaceInfo;
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.recordingStreamClient = recordingStreamClient;
+        this.repositoryClient = repositoryClient;
         this.commonDownloadManager = commonDownloadManager;
     }
 
     @Override
     public void mergeAndDownloadSession(String recordingSessionId) {
-        RecordingSessionResponse recordingSession = remoteWorkspaceClient.recordingSession(
+        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
@@ -96,7 +99,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     @Override
     public void mergeAndDownloadRecordings(String recordingSessionId, List<String> fileIds) {
-        RecordingSessionResponse recordingSession = remoteWorkspaceClient.recordingSession(
+        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
@@ -124,14 +127,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         try (Directory tempDir = jeffreyDirs.newTempDir()) {
             // Download the merged recording file
-            CompletableFuture<Path> recordingF = remoteWorkspaceClient.downloadRecordings(
+            CompletableFuture<Path> recordingF = recordingStreamClient.downloadRecordings(
                             workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, onlyRecordingFileIds)
                     .thenApply(resource -> copyToTempDir(resource, tempDir));
 
             // Download artifact files (heap dumps, logs, etc.)
             List<CompletableFuture<Path>> artifactsF = files.stream()
                     .filter(RepositoryFile::isArtifactFile)
-                    .map(file -> remoteWorkspaceClient.downloadFile(
+                    .map(file -> recordingStreamClient.downloadFile(
                                     workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id())
                             .thenApply(resource -> copyToTempDir(resource, tempDir)))
                     .toList();
@@ -171,7 +174,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             List<String> fileIds,
             ProgressCallback progressCallback) {
 
-        RecordingSessionResponse recordingSession = remoteWorkspaceClient.recordingSession(
+        RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
@@ -241,7 +244,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             }
 
             Path recordingPath = tempDir.resolve(mergedFileName);
-            remoteWorkspaceClient.streamRecordings(
+            recordingStreamClient.streamRecordings(
                     workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, recordingFileIds,
                     (inputStream, contentLength) -> {
                         long actualSize = contentLength > 0 ? contentLength : mergedSizeEstimate;
@@ -267,7 +270,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                                     }
 
                                     Path artifactPath = tempDir.resolve(artifactFile.name());
-                                    remoteWorkspaceClient.streamFile(
+                                    recordingStreamClient.streamFile(
                                             workspaceInfo.originId(), projectInfo.originId(),
                                             recordingSessionId, artifactFile.id(),
                                             (inputStream, contentLength) -> {

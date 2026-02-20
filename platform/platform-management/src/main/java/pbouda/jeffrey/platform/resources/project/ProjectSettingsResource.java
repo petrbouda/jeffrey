@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -23,27 +23,13 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.InstantUtils;
+import pbouda.jeffrey.platform.resources.request.ProjectSettingsUpdateRequest;
+import pbouda.jeffrey.platform.resources.response.ProjectSettingsResponse;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepository;
 
 public class ProjectSettingsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectSettingsResource.class);
-
-    public record SettingsResponse(
-            String id,
-            String name,
-            String description,
-            String createdAt) {
-
-        public SettingsResponse(ProjectInfo projectInfo) {
-            this(projectInfo.id(), projectInfo.name(), null, InstantUtils.formatInstant(projectInfo.createdAt()));
-        }
-    }
-
-    public record ProjectSettingsUpdate(String name) {
-    }
 
     private final ProjectRepository projectRepository;
 
@@ -52,18 +38,18 @@ public class ProjectSettingsResource {
     }
 
     @POST
-    public void update(ProjectSettingsUpdate settings) {
+    public void update(ProjectSettingsUpdateRequest settings) {
         LOG.debug("Updating project settings");
-        if (settings.name != null) {
-            projectRepository.updateProjectName(settings.name);
+        if (settings.name() != null) {
+            projectRepository.updateProjectName(settings.name());
         }
     }
 
     @GET
-    public SettingsResponse settings() {
+    public ProjectSettingsResponse settings() {
         LOG.debug("Fetching project settings");
         return projectRepository.find()
-                .map(SettingsResponse::new)
+                .map(ProjectSettingsResponse::new)
                 .orElseThrow(NotFoundException::new);
     }
 }

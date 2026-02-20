@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
@@ -45,7 +45,7 @@ import static pbouda.jeffrey.platform.configuration.AppConfiguration.GLOBAL_SCHE
 public class RootInternalResource {
 
     private final SchedulerManager globalSchedulerManager;
-    private final RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory;
+    private final RemoteClients.Factory remoteClientsFactory;
     private final ProjectTemplatesResolver projectTemplatesResolver;
     private final CompositeWorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
@@ -59,7 +59,7 @@ public class RootInternalResource {
     @Inject
     public RootInternalResource(
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager globalSchedulerManager,
-            RemoteWorkspaceClient.Factory remoteWorkspacesManagerFactory,
+            RemoteClients.Factory remoteClientsFactory,
             ProjectTemplatesResolver projectTemplatesResolver,
             CompositeWorkspacesManager workspacesManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
@@ -71,7 +71,7 @@ public class RootInternalResource {
             QuickAnalysisManager quickAnalysisManager) {
 
         this.globalSchedulerManager = globalSchedulerManager;
-        this.remoteWorkspacesManagerFactory = remoteWorkspacesManagerFactory;
+        this.remoteClientsFactory = remoteClientsFactory;
         this.projectTemplatesResolver = projectTemplatesResolver;
         this.workspacesManager = workspacesManager;
         this.workspaceEventQueue = workspaceEventQueue;
@@ -106,7 +106,7 @@ public class RootInternalResource {
 
     @Path("/remote-workspaces")
     public RemoteWorkspacesResource remoteWorkspaceResource() {
-        return new RemoteWorkspacesResource(remoteWorkspacesManagerFactory, workspacesManager);
+        return new RemoteWorkspacesResource(remoteClientsFactory, workspacesManager);
     }
 
     @Path("/profiler")

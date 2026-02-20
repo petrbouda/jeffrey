@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -42,7 +42,10 @@ public enum ErrorCode {
     REMOTE_OPERATION_FAILED,
 
     // Heap dump errors
-    HEAP_DUMP_CORRUPTED;
+    HEAP_DUMP_CORRUPTED,
+
+    // Generic not-found error for Jersey WebApplicationExceptions
+    RESOURCE_NOT_FOUND;
 
     public boolean isNotFound() {
         return this == WORKSPACE_NOT_FOUND
@@ -50,6 +53,7 @@ public enum ErrorCode {
                || this == RECORDING_SESSION_NOT_FOUND
                || this == RECORDING_FILE_NOT_FOUND
                || this == REPOSITORY_NOT_FOUND
-               || this == SCHEDULER_JOB_NOT_FOUND;
+               || this == SCHEDULER_JOB_NOT_FOUND
+               || this == RESOURCE_NOT_FOUND;
     }
 }

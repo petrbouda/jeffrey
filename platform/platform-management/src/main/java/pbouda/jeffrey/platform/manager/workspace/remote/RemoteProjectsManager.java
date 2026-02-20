@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -43,7 +43,7 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private final JeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
-    private final RemoteWorkspaceClient remoteWorkspaceClient;
+    private final RemoteClients remoteClients;
     private final ProjectsManager commonProjectsManager;
     private final PlatformRepositories platformRepositories;
     private final JobDescriptorFactory jobDescriptorFactory;
@@ -51,14 +51,14 @@ public class RemoteProjectsManager implements ProjectsManager {
     public RemoteProjectsManager(
             JeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
-            RemoteWorkspaceClient remoteWorkspaceClient,
+            RemoteClients remoteClients,
             ProjectsManager commonProjectsManager,
             PlatformRepositories platformRepositories,
             JobDescriptorFactory jobDescriptorFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
-        this.remoteWorkspaceClient = remoteWorkspaceClient;
+        this.remoteClients = remoteClients;
         this.commonProjectsManager = commonProjectsManager;
         this.platformRepositories = platformRepositories;
         this.jobDescriptorFactory = jobDescriptorFactory;
@@ -68,7 +68,7 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<ProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteWorkspaceClient.allProjects(workspaceInfo.originId());
+            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.originId());
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
@@ -115,7 +115,7 @@ public class RemoteProjectsManager implements ProjectsManager {
                         workspaceInfo,
                         it.detailedInfo(),
                         Optional.of(it),
-                        remoteWorkspaceClient,
+                        remoteClients,
                         platformRepositories,
                         jobDescriptorFactory));
     }
@@ -127,7 +127,7 @@ public class RemoteProjectsManager implements ProjectsManager {
                 workspaceInfo,
                 projectInfo,
                 projectOpt,
-                remoteWorkspaceClient,
+                remoteClients,
                 platformRepositories,
                 jobDescriptorFactory);
     }

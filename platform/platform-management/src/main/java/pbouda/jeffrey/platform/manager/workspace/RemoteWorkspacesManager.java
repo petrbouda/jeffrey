@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +22,9 @@ import jakarta.ws.rs.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteWorkspaceClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteDiscoveryClient;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteDiscoveryClient.WorkspaceResult;
 import pbouda.jeffrey.provider.platform.repository.WorkspacesRepository;
 
 import java.net.URI;
@@ -39,16 +41,16 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
 
     private final WorkspacesRepository workspacesRepository;
     private final WorkspaceManager.Factory workspaceManagerFactory;
-    private final RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory;
+    private final RemoteClients.Factory remoteClientsFactory;
 
     public RemoteWorkspacesManager(
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory,
-            RemoteWorkspaceClient.Factory remoteWorkspaceClientFactory) {
+            RemoteClients.Factory remoteClientsFactory) {
 
         this.workspacesRepository = workspacesRepository;
         this.workspaceManagerFactory = workspaceManagerFactory;
-        this.remoteWorkspaceClientFactory = remoteWorkspaceClientFactory;
+        this.remoteClientsFactory = remoteClientsFactory;
     }
 
     @Override
@@ -74,10 +76,10 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
         LOG.debug("Creating remote workspace: name={}", request.name());
-        RemoteWorkspaceClient remoteWorkspaceClient =
-                remoteWorkspaceClientFactory.apply(request.baseLocation().toUri());
+        RemoteClients remoteClients =
+                remoteClientsFactory.apply(request.baseLocation().toUri());
 
-        RemoteWorkspaceClient.WorkspaceResult result = remoteWorkspaceClient.workspace(request.workspaceId());
+        WorkspaceResult result = remoteClients.discovery().workspace(request.workspaceId());
         return switch (result.status()) {
             case AVAILABLE -> workspacesRepository.create(result.info());
             case UNAVAILABLE -> throw new NotFoundException("Remote workspace not found");

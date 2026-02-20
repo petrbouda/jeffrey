@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -33,7 +33,9 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.project.ProjectResource;
 import pbouda.jeffrey.platform.resources.request.CreateProjectRequest;
+import pbouda.jeffrey.platform.resources.response.ProfileInfoResponse;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
+import pbouda.jeffrey.platform.resources.response.ProjectWithProfilesResponse;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
@@ -43,7 +45,6 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,12 +52,6 @@ import java.util.Map;
 public class WorkspaceProjectsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectsResource.class);
-
-    public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
-    }
-
-    public record ProjectWithProfilesResponse(String id, String name, List<ProfileInfoResponse> profiles) {
-    }
 
     private final WorkspaceInfo workspaceInfo;
     private final ProjectsManager projectsManager;
