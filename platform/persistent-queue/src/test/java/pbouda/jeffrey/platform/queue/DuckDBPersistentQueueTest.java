@@ -23,11 +23,14 @@ import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
 
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 import javax.sql.DataSource;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -315,84 +318,6 @@ class DuckDBPersistentQueueTest {
     }
 
     @Nested
-    class Compact {
-
-        @Test
-        void compact_removesEventsBeforeMinConsumerOffset(DataSource dataSource) {
-            var provider = new DatabaseClientProvider(dataSource);
-            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
-
-            queue.append("scope-1", "event-A");
-            queue.append("scope-1", "event-B");
-            queue.append("scope-1", "event-C");
-
-            // Both consumers acknowledge up to event-B
-            List<QueueEntry<String>> entries = queue.poll("scope-1", "consumer-1");
-            long offsetB = entries.get(1).offset();
-            queue.acknowledge("scope-1", "consumer-1", offsetB);
-
-            queue.poll("scope-1", "consumer-2");
-            queue.acknowledge("scope-1", "consumer-2", offsetB);
-
-            int removed = queue.compact("scope-1");
-
-            List<QueueEntry<String>> remaining = queue.findAll("scope-1");
-
-            assertAll(
-                    () -> assertEquals(2, removed),
-                    () -> assertEquals(1, remaining.size()),
-                    () -> assertEquals("event-C", remaining.getFirst().payload())
-            );
-        }
-
-        @Test
-        void compact_keepsEvents_whenSlowConsumerBehind(DataSource dataSource) {
-            var provider = new DatabaseClientProvider(dataSource);
-            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
-
-            queue.append("scope-1", "event-A");
-            queue.append("scope-1", "event-B");
-            queue.append("scope-1", "event-C");
-
-            List<QueueEntry<String>> entries = queue.poll("scope-1", "fast-consumer");
-            long offsetC = entries.get(2).offset();
-            queue.acknowledge("scope-1", "fast-consumer", offsetC);
-
-            // Slow consumer only acknowledges event-A
-            queue.poll("scope-1", "slow-consumer");
-            long offsetA = entries.get(0).offset();
-            queue.acknowledge("scope-1", "slow-consumer", offsetA);
-
-            int removed = queue.compact("scope-1");
-
-            List<QueueEntry<String>> remaining = queue.findAll("scope-1");
-
-            assertAll(
-                    () -> assertEquals(1, removed),
-                    () -> assertEquals(2, remaining.size())
-            );
-        }
-
-        @Test
-        void compact_returnsCountOfRemoved(DataSource dataSource) {
-            var provider = new DatabaseClientProvider(dataSource);
-            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
-
-            queue.append("scope-1", "event-A");
-            queue.append("scope-1", "event-B");
-            queue.append("scope-1", "event-C");
-
-            List<QueueEntry<String>> entries = queue.poll("scope-1", "consumer-1");
-            long offsetB = entries.get(1).offset();
-            queue.acknowledge("scope-1", "consumer-1", offsetB);
-
-            int removed = queue.compact("scope-1");
-
-            assertEquals(2, removed);
-        }
-    }
-
-    @Nested
     class Deduplication {
 
         @Test
@@ -444,6 +369,64 @@ class DuckDBPersistentQueueTest {
                     () -> assertEquals(1, queue1Scope2.size()),
                     () -> assertEquals(1, queue2Scope1.size())
             );
+        }
+    }
+
+    @Nested
+    class DeleteEventsOlderThan {
+
+        private static final Instant OLD_TIME = Instant.parse("2025-05-01T10:00:00Z");
+        private static final Clock OLD_CLOCK = Clock.fixed(OLD_TIME, ZoneOffset.UTC);
+        private static final Instant RECENT_TIME = Instant.parse("2025-06-25T10:00:00Z");
+        private static final Clock RECENT_CLOCK = Clock.fixed(RECENT_TIME, ZoneOffset.UTC);
+        private static final Instant CUTOFF = Instant.parse("2025-05-30T00:00:00Z");
+
+        private static long countQueueEvents(DataSource dataSource) {
+            var jdbc = new NamedParameterJdbcTemplate(dataSource);
+            Long count = jdbc.queryForObject("SELECT COUNT(*) FROM persistent_queue_events", Map.of(), Long.class);
+            return count != null ? count : 0;
+        }
+
+        @Test
+        void deletesOldEvents_andReturnsCount(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+
+            // Insert 2 old events
+            var oldQueue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), OLD_CLOCK);
+            oldQueue.append("scope-1", "old-event-1");
+            oldQueue.append("scope-1", "old-event-2");
+
+            // Insert 1 recent event
+            var recentQueue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), RECENT_CLOCK);
+            recentQueue.append("scope-1", "recent-event");
+
+            assertEquals(3, countQueueEvents(dataSource));
+
+            int deleted = recentQueue.deleteEventsOlderThan(CUTOFF);
+
+            assertEquals(2, deleted);
+            assertEquals(1, countQueueEvents(dataSource));
+        }
+
+        @Test
+        void returnsZero_whenNoOldEvents(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), RECENT_CLOCK);
+            queue.append("scope-1", "recent-event");
+
+            int deleted = queue.deleteEventsOlderThan(CUTOFF);
+
+            assertEquals(0, deleted);
+        }
+
+        @Test
+        void returnsZero_whenTableEmpty(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var queue = new DuckDBPersistentQueue<>(provider, "test-queue", new StringSerializer(false), FIXED_CLOCK);
+
+            int deleted = queue.deleteEventsOlderThan(CUTOFF);
+
+            assertEquals(0, deleted);
         }
     }
 }

@@ -26,12 +26,15 @@ import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
 import pbouda.jeffrey.test.TestUtils;
 
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -252,6 +255,53 @@ class JdbcMessageRepositoryTest {
             List<ImportantMessage> result2 = repo2.findAll(T1.minusSeconds(1), T2.plusSeconds(1));
             assertEquals(1, result2.size());
             assertEquals("TYPE_B", result2.getFirst().type());
+        }
+    }
+
+    @Nested
+    class DeleteOlderThanMethod {
+
+        private static final Instant CUTOFF = Instant.parse("2025-05-30T00:00:00Z");
+
+        private static long countMessages(DataSource dataSource) {
+            var jdbc = new NamedParameterJdbcTemplate(dataSource);
+            Long count = jdbc.queryForObject("SELECT COUNT(*) FROM messages", Map.of(), Long.class);
+            return count != null ? count : 0;
+        }
+
+        @Test
+        void deletesOldMessages_andReturnsCount(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/retention/insert-retention-test-data.sql");
+            var repository = new JdbcMessageRepository("", provider);
+
+            int deleted = repository.deleteOlderThan(CUTOFF);
+
+            assertEquals(2, deleted);
+            assertEquals(1, countMessages(dataSource));
+        }
+
+        @Test
+        void returnsZero_whenNoOldMessages(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
+            var msgRepo = new JdbcMessageRepository("proj-001", provider);
+            msgRepo.insert(message("TYPE_A", "session-1", Instant.parse("2025-06-25T10:00:00Z")));
+
+            var repository = new JdbcMessageRepository("", provider);
+            int deleted = repository.deleteOlderThan(CUTOFF);
+
+            assertEquals(0, deleted);
+        }
+
+        @Test
+        void returnsZero_whenTableEmpty(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            var repository = new JdbcMessageRepository("", provider);
+
+            int deleted = repository.deleteOlderThan(CUTOFF);
+
+            assertEquals(0, deleted);
         }
     }
 }

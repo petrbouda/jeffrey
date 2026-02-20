@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.platform.queue;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -83,11 +84,11 @@ public interface PersistentQueue<T> {
     List<QueueEntry<T>> findAll(String scopeId);
 
     /**
-     * Removes events that have been acknowledged by ALL consumers for the given scope.
-     * Events with offset &lt;= minimum consumer offset are safe to delete.
+     * Deletes all events older than the given cutoff timestamp across all scopes.
+     * Used for data retention cleanup.
      *
-     * @param scopeId the scope identifier (e.g. workspace ID)
-     * @return number of events removed
+     * @param cutoff events with {@code created_at} before this instant are deleted
+     * @return the number of deleted events
      */
-    int compact(String scopeId);
+    int deleteEventsOlderThan(Instant cutoff);
 }

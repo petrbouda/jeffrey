@@ -178,5 +178,84 @@ class JdbcProjectRepositoryRepositoryTest {
             Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-001");
             assertTrue(result.isEmpty());
         }
+
+        @Test
+        void findsUnfinishedSessionsByInstanceId_returnsMatchingSessions(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            // inst-002 has session-002 which is unfinished (finished_at IS NULL)
+            List<ProjectInstanceSessionInfo> result = repository.findUnfinishedSessionsByInstanceId("inst-002");
+
+            assertEquals(1, result.size());
+            assertEquals("session-002", result.getFirst().sessionId());
+        }
+
+        @Test
+        void findsUnfinishedSessionsByInstanceId_returnsEmpty_whenInstanceHasNoUnfinished(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            // inst-001 has session-001 which is finished
+            List<ProjectInstanceSessionInfo> result = repository.findUnfinishedSessionsByInstanceId("inst-001");
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void markSessionFinishedWithHeartbeat_setsFinishedAtAndLastHeartbeat(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            Instant finishedAt = Instant.parse("2025-01-15T14:00:00Z");
+            Instant heartbeat = Instant.parse("2025-01-15T13:55:00Z");
+            repository.markSessionFinishedWithHeartbeat("session-002", finishedAt, heartbeat);
+
+            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-002");
+            assertTrue(result.isPresent());
+            assertEquals(finishedAt, result.get().finishedAt());
+            assertEquals(heartbeat, result.get().lastHeartbeatAt());
+        }
+
+        @Test
+        void updateLastHeartbeat_updatesHeartbeatTimestamp(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            Instant heartbeat = Instant.parse("2025-01-15T13:00:00Z");
+            repository.updateLastHeartbeat("session-002", heartbeat);
+
+            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-002");
+            assertTrue(result.isPresent());
+            assertEquals(heartbeat, result.get().lastHeartbeatAt());
+        }
+
+        @Test
+        void findLatestSessionId_returnsLatestSession(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            // session-002 has origin_created_at 2025-01-02 > session-001's 2025-01-01
+            Optional<String> result = repository.findLatestSessionId();
+
+            assertTrue(result.isPresent());
+            assertEquals("session-002", result.get());
+        }
+
+        @Test
+        void findLatestSessionId_returnsEmpty_whenNoSessions(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository.sql");
+            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
+
+            Optional<String> result = repository.findLatestSessionId();
+
+            assertTrue(result.isEmpty());
+        }
     }
 }

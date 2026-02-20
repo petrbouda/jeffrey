@@ -209,30 +209,6 @@ class WorkspaceEventConverterTest {
     }
 
     @Nested
-    class InstanceFinished {
-
-        @Test
-        void createsEventWithEmptyContentAndCorrectType() {
-            ProjectInfo projectInfo = new ProjectInfo(
-                    PROJECT_ID, "origin-proj-001", "Test", "Label", null,
-                    WORKSPACE_ID, WorkspaceType.LIVE, NOW, null, Map.of());
-
-            WorkspaceEvent result = WorkspaceEventConverter.instanceFinished(
-                    NOW, projectInfo, "inst-001", CREATOR);
-
-            assertAll(
-                    () -> assertEquals("inst-001", result.originEventId()),
-                    () -> assertEquals(PROJECT_ID, result.projectId()),
-                    () -> assertEquals(WORKSPACE_ID, result.workspaceId()),
-                    () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_FINISHED, result.eventType()),
-                    () -> assertEquals(Json.EMPTY, result.content()),
-                    () -> assertEquals(NOW, result.originCreatedAt()),
-                    () -> assertEquals(NOW, result.createdAt())
-            );
-        }
-    }
-
-    @Nested
     class SessionFinished {
 
         @Test

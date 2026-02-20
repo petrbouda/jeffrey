@@ -71,8 +71,6 @@ export class EventContentParser {
                 return `Project "${content.projectName}" deleted`;
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return `Session "${content.sessionId}" deleted`;
-            case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
-                return 'Instance finished';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'Session finished';
             case WorkspaceEventType.RECORDING_FILE_CREATED:
@@ -94,8 +92,6 @@ export class EventContentParser {
                 return 'bi-play-circle';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return 'bi-stop-circle';
-            case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
-                return 'bi-box-arrow-right';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'bi-stop-circle-fill';
             case WorkspaceEventType.RECORDING_FILE_CREATED:
@@ -116,8 +112,6 @@ export class EventContentParser {
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
                 return 'primary';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-                return 'warning';
-            case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
                 return 'warning';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'info';
@@ -140,8 +134,6 @@ export class EventContentParser {
                 return 'Session Created';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
                 return 'Session Deleted';
-            case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
-                return 'Instance Finished';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'Session Finished';
             case WorkspaceEventType.RECORDING_FILE_CREATED:

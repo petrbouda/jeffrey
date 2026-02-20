@@ -70,6 +70,10 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
             ORDER BY created_at DESC""";
 
     //language=SQL
+    private static final String DELETE_OLD_EVENTS =
+            "DELETE FROM persistent_queue_events WHERE created_at < :cutoff";
+
+    //language=SQL
     private static final String INSERT_CONSUMER = """
             INSERT INTO persistent_queue_consumers (consumer_id, queue_name, scope_id, last_offset, created_at)
             VALUES (:consumer_id, :queue_name, :scope_id, 0, :created_at)
@@ -85,17 +89,6 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     private static final String SELECT_CONSUMER = """
             SELECT * FROM persistent_queue_consumers
             WHERE consumer_id = :consumer_id AND queue_name = :queue_name AND scope_id = :scope_id""";
-
-    //language=SQL
-    private static final String COMPACT_EVENTS = """
-            DELETE FROM persistent_queue_events
-            WHERE queue_name = :queue_name
-              AND scope_id = :scope_id
-              AND offset_id <= (
-                  SELECT COALESCE(MIN(last_offset), 0)
-                  FROM persistent_queue_consumers
-                  WHERE queue_name = :queue_name AND scope_id = :scope_id
-              )""";
 
     private final String queueName;
     private final EventSerializer<T> serializer;
@@ -201,16 +194,11 @@ public class DuckDBPersistentQueue<T> implements PersistentQueue<T> {
     }
 
     @Override
-    public int compact(String scopeId) {
+    public int deleteEventsOlderThan(Instant cutoff) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("queue_name", queueName)
-                .addValue("scope_id", scopeId);
+                .addValue("cutoff", cutoff.atOffset(ZoneOffset.UTC));
 
-        int removed = databaseClient.delete(StatementLabel.QUEUE_COMPACT, COMPACT_EVENTS, params);
-        if (removed > 0) {
-            LOG.debug("Compacted queue events: queue_name={} scope_id={} removed={}", queueName, scopeId, removed);
-        }
-        return removed;
+        return databaseClient.delete(StatementLabel.DELETE_OLD_QUEUE_EVENTS, DELETE_OLD_EVENTS, params);
     }
 
     private long getOrCreateConsumerOffset(String scopeId, String consumerId) {

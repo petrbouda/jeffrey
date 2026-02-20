@@ -171,6 +171,7 @@ CREATE TABLE IF NOT EXISTS persistent_queue_events
 
 CREATE INDEX IF NOT EXISTS idx_persistent_queue_events_scope ON persistent_queue_events(queue_name, scope_id, offset_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_persistent_queue_events_dedup ON persistent_queue_events(queue_name, scope_id, dedup_key);
+CREATE INDEX IF NOT EXISTS idx_persistent_queue_events_created_at ON persistent_queue_events(created_at);
 
 CREATE TABLE IF NOT EXISTS persistent_queue_consumers
 (
@@ -224,6 +225,7 @@ CREATE TABLE IF NOT EXISTS messages
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_project_created ON messages(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_dedup ON messages(session_id, type, created_at);
 
 --
@@ -245,4 +247,5 @@ CREATE TABLE IF NOT EXISTS alerts
 );
 
 CREATE INDEX IF NOT EXISTS idx_alerts_project_created ON alerts(project_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts(created_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_dedup ON alerts(session_id, type, created_at);

@@ -46,12 +46,6 @@ public abstract class JfrMessageEmitter {
                 Severity.MEDIUM, MessageCategory.INSTANCE);
     }
 
-    public static void instanceFinished(String instanceId, String projectId) {
-        emitMessage(MessageType.INSTANCE_FINISHED,
-                "Instance '" + instanceId + "' finished (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.INSTANCE);
-    }
-
     public static void instanceAutoFinished(String instanceId, String projectId) {
         emitMessage(MessageType.INSTANCE_AUTO_FINISHED,
                 "Instance '" + instanceId + "' auto-finished, no active sessions remaining (projectId=" + projectId + ")",

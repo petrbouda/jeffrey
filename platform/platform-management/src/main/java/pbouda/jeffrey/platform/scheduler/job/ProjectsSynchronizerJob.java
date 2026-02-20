@@ -95,7 +95,6 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         List<WorkspaceEventConsumer> consumers = List.of(
                 new CreateProjectWorkspaceEventConsumer(projectsManager),
                 new InstanceCreatedWorkspaceEventConsumer(projectsManager),
-                new InstanceFinishedWorkspaceEventConsumer(projectsManager, platformRepositories),
                 new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader),
                 new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
@@ -144,12 +143,6 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 LOG.info("Updated consumer state for workspace: workspace_id={} consumer={} offset={}",
                         workspaceId, CONSUMER, latestOffset);
 
-                // TODO: Enable queue compaction after testing in production
-                // try {
-                //     workspaceEventQueue.compact(workspaceId);
-                // } catch (Exception e) {
-                //     LOG.warn("Failed to compact workspace event queue: workspace_id={}", workspaceId, e);
-                // }
             } catch (Exception e) {
                 LOG.error("Failed to update consumer state for workspace: {}", workspaceId, e);
             }

@@ -45,7 +45,6 @@
               <option value="PROJECT_INSTANCE_CREATED">Instance Created</option>
               <option value="PROJECT_INSTANCE_SESSION_CREATED">Session Created</option>
               <option value="PROJECT_INSTANCE_SESSION_DELETED">Session Deleted</option>
-              <option value="PROJECT_INSTANCE_FINISHED">Instance Finished</option>
               <option value="PROJECT_INSTANCE_SESSION_FINISHED">Session Finished</option>
               <option value="RECORDING_FILE_CREATED">Recording Created</option>
             </select>
@@ -355,8 +354,7 @@ const getMainContentPairs = (event: WorkspaceEvent) => {
     if (content.compressedSize != null) {
       pairs['compressedSize'] = FormattingService.formatBytes(content.compressedSize);
     }
-  } else if (event.eventType === WorkspaceEventType.PROJECT_INSTANCE_FINISHED
-      || event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED) {
+  } else if (event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED) {
     // These events have empty content (Json.EMPTY)
   } else {
     // For other event types (PROJECT_DELETED, SESSION_DELETED), show all top-level properties
@@ -409,8 +407,6 @@ const getEventBadgeVariant = (eventType: WorkspaceEventType) => {
       return 'primary';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
       return 'warning';
-    case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
-      return 'warning';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
       return 'info';
     case WorkspaceEventType.RECORDING_FILE_CREATED:
@@ -443,8 +439,6 @@ const getEventIconColor = (eventType: WorkspaceEventType) => {
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
       return 'text-primary';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-      return 'text-warning';
-    case WorkspaceEventType.PROJECT_INSTANCE_FINISHED:
       return 'text-warning';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
       return 'text-info';

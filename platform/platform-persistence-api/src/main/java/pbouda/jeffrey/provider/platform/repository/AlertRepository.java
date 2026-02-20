@@ -52,4 +52,13 @@ public interface AlertRepository {
      * Used during project deletion cleanup.
      */
     void deleteByProject();
+
+    /**
+     * Deletes all alerts older than the cutoff across all projects.
+     * Used for data retention cleanup.
+     *
+     * @param cutoff alerts with {@code created_at} before this instant are deleted
+     * @return the number of deleted alerts
+     */
+    int deleteOlderThan(Instant cutoff);
 }

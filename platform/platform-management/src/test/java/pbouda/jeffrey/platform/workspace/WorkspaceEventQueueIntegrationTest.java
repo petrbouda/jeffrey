@@ -128,25 +128,7 @@ class WorkspaceEventQueueIntegrationTest {
             );
         }
 
-        @Test
-        void instanceFinishedEvent_roundTripsCorrectly(DataSource dataSource) {
-            var queue = createQueue(dataSource);
-            WorkspaceEvent original = event("evt-004", "proj-001", WorkspaceEventType.PROJECT_INSTANCE_FINISHED);
-
-            queue.append(SCOPE_ID, original);
-            List<QueueEntry<WorkspaceEvent>> entries = queue.poll(SCOPE_ID, CONSUMER_ID);
-
-            assertEquals(1, entries.size());
-            WorkspaceEvent polled = entries.getFirst().payload();
-
-            assertAll(
-                    () -> assertEquals(original.originEventId(), polled.originEventId()),
-                    () -> assertEquals(original.projectId(), polled.projectId()),
-                    () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_FINISHED, polled.eventType()),
-                    () -> assertEquals(original.createdBy(), polled.createdBy())
-            );
-        }
-    }
+}
 
     @Nested
     class EventDeduplication {

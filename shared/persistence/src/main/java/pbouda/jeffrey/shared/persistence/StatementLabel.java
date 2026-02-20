@@ -225,7 +225,7 @@ public enum StatementLabel {
     QUEUE_FIND_ALL,
     QUEUE_REGISTER_CONSUMER,
     QUEUE_FIND_CONSUMER,
-    QUEUE_COMPACT,
+    DELETE_OLD_QUEUE_EVENTS,
 
     /**
      * {@link GroupLabel#MESSAGES}
@@ -233,6 +233,7 @@ public enum StatementLabel {
     INSERT_MESSAGE,
     FIND_ALL_MESSAGES,
     DELETE_MESSAGES_BY_PROJECT,
+    DELETE_OLD_MESSAGES,
 
     /**
      * {@link GroupLabel#ALERTS}
@@ -240,4 +241,5 @@ public enum StatementLabel {
     INSERT_ALERT,
     FIND_ALL_ALERTS,
     DELETE_ALERTS_BY_PROJECT,
+    DELETE_OLD_ALERTS,
 }

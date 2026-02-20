@@ -50,6 +50,10 @@ public class JdbcMessageRepository implements MessageRepository {
     private static final String DELETE_BY_PROJECT =
             "DELETE FROM messages WHERE project_id = :project_id";
 
+    //language=SQL
+    private static final String DELETE_OLDER_THAN =
+            "DELETE FROM messages WHERE created_at < :cutoff";
+
     private final String projectId;
     private final DatabaseClient databaseClient;
 
@@ -92,6 +96,14 @@ public class JdbcMessageRepository implements MessageRepository {
                 .addValue("project_id", projectId);
 
         databaseClient.delete(StatementLabel.DELETE_MESSAGES_BY_PROJECT, DELETE_BY_PROJECT, paramSource);
+    }
+
+    @Override
+    public int deleteOlderThan(Instant cutoff) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("cutoff", cutoff.atOffset(ZoneOffset.UTC));
+
+        return databaseClient.delete(StatementLabel.DELETE_OLD_MESSAGES, DELETE_OLDER_THAN, paramSource);
     }
 
     private static RowMapper<ImportantMessage> messageMapper() {

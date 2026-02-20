@@ -175,6 +175,34 @@ class JdbcProjectsRepositoryTest {
     }
 
     @Nested
+    class FindAllNamespacesMethod {
+
+        @Test
+        void returnsDistinctNamespaces_excludingNull(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-projects-with-namespaces.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            List<String> result = repository.findAllNamespaces();
+
+            assertEquals(2, result.size());
+            assertEquals(List.of("backend", "frontend"), result);
+        }
+
+        @Test
+        void returnsEmpty_whenAllNamespacesAreNull(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
+
+            // Both projects in this fixture have NULL namespace
+            List<String> result = repository.findAllNamespaces();
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
     class FindByOriginProjectIdMethod {
 
         @Test

@@ -150,6 +150,54 @@ class JdbcProjectRecordingRepositoryTest {
     }
 
     @Nested
+    class InsertRecordingFileMethod {
+
+        @Test
+        void insertsAdditionalFile_toExistingRecording(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
+            JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
+
+            RecordingFile additionalFile = new RecordingFile(
+                    "file-003", "rec-001", "recording1-extra.jfr",
+                    SupportedRecordingFile.JFR, Instant.parse("2025-01-15T14:00:00Z"), 512);
+
+            repository.insertRecordingFile(additionalFile);
+
+            Optional<Recording> result = repository.findRecording("rec-001");
+            assertTrue(result.isPresent());
+            assertEquals(2, result.get().files().size());
+        }
+    }
+
+    @Nested
+    class FindByIdMethod {
+
+        @Test
+        void returnsRecording_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
+            JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
+
+            Optional<Recording> result = repository.findById("rec-001");
+
+            assertTrue(result.isPresent());
+            assertEquals("Recording One", result.get().recordingName());
+        }
+
+        @Test
+        void returnsEmpty_whenNotExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
+            JdbcProjectRecordingRepository repository = new JdbcProjectRecordingRepository("proj-001", provider);
+
+            Optional<Recording> result = repository.findById("non-existent");
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
     class DeleteRecordingMethod {
 
         @Test

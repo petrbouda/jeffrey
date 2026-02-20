@@ -50,6 +50,10 @@ public class JdbcAlertRepository implements AlertRepository {
     private static final String DELETE_BY_PROJECT =
             "DELETE FROM alerts WHERE project_id = :project_id";
 
+    //language=SQL
+    private static final String DELETE_OLDER_THAN =
+            "DELETE FROM alerts WHERE created_at < :cutoff";
+
     private final String projectId;
     private final DatabaseClient databaseClient;
 
@@ -92,6 +96,14 @@ public class JdbcAlertRepository implements AlertRepository {
                 .addValue("project_id", projectId);
 
         databaseClient.delete(StatementLabel.DELETE_ALERTS_BY_PROJECT, DELETE_BY_PROJECT, paramSource);
+    }
+
+    @Override
+    public int deleteOlderThan(Instant cutoff) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("cutoff", cutoff.atOffset(ZoneOffset.UTC));
+
+        return databaseClient.delete(StatementLabel.DELETE_OLD_ALERTS, DELETE_OLDER_THAN, paramSource);
     }
 
     private static RowMapper<ImportantMessage> alertMapper() {

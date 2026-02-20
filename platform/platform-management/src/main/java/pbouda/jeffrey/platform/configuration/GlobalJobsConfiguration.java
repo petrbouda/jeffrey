@@ -164,6 +164,27 @@ public class GlobalJobsConfiguration {
                 jobDescriptorFactory);
     }
 
+    @Bean
+    public DataRetentionJob dataRetentionJob(
+            PlatformRepositories platformRepositories,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            Clock clock,
+            @Value("${jeffrey.job.data-retention.period:}") Duration jobPeriod,
+            @Value("${jeffrey.platform.retention.queue-events:P31D}") Duration queueEventsRetention,
+            @Value("${jeffrey.platform.retention.messages:P31D}") Duration messagesRetention,
+            @Value("${jeffrey.platform.retention.alerts:P31D}") Duration alertsRetention) {
+
+        return new DataRetentionJob(
+                platformRepositories.newMessageRepository(""),
+                platformRepositories.newAlertRepository(""),
+                workspaceEventQueue,
+                clock,
+                jobPeriod == null ? Duration.ofDays(1) : jobPeriod,
+                queueEventsRetention,
+                messagesRetention,
+                alertsRetention);
+    }
+
     @Bean(PROJECTS_SYNCHRONIZER_TRIGGER)
     public SchedulerTrigger projectsSynchronizerTrigger(
             @Qualifier(GLOBAL_SCHEDULER) ObjectFactory<Scheduler> scheduler,
