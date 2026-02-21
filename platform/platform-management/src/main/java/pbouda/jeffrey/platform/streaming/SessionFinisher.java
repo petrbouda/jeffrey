@@ -68,6 +68,9 @@ public class SessionFinisher {
             repositoryRepository.markSessionFinished(sessionInfo.sessionId(), finishedAt);
         }
 
+        LOG.info("Session marked as FINISHED: sessionId={} projectId={} finishedAt={} lastHeartbeatAt={}",
+                sessionInfo.sessionId(), projectInfo.id(), finishedAt, lastHeartbeatAt);
+
         eventEmitter.emitSessionFinished(projectInfo, sessionInfo);
         JfrMessageEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());
     }
@@ -88,17 +91,24 @@ public class SessionFinisher {
 
         Instant lastHeartbeat = sessionInfo.lastHeartbeatAt();
 
+        LOG.trace("tryFinishFromHeartbeat: sessionId={} lastHeartbeatAt={} heartbeatThreshold={}",
+                sessionInfo.sessionId(), lastHeartbeat, heartbeatThreshold);
+
         // Case 1: Heartbeat exists in DB
         if (lastHeartbeat != null) {
             if (lastHeartbeat.isBefore(clock.instant().minus(heartbeatThreshold))) {
+                LOG.trace("Case 1 stale heartbeat, marking finished: sessionId={}", sessionInfo.sessionId());
                 markFinished(repositoryRepository, projectInfo, sessionInfo, lastHeartbeat, lastHeartbeat);
                 return true;
             }
+            LOG.trace("Case 1 fresh heartbeat, skipping: sessionId={}", sessionInfo.sessionId());
             return false;
         }
 
         // Case 2: Session too young, heartbeats may not have arrived
         if (sessionInfo.originCreatedAt().isAfter(clock.instant().minus(heartbeatThreshold))) {
+            LOG.trace("Case 2 session too young, skipping: sessionId={} originCreatedAt={}",
+                    sessionInfo.sessionId(), sessionInfo.originCreatedAt());
             return false;
         }
 
@@ -109,13 +119,19 @@ public class SessionFinisher {
         if (replayed.isPresent()) {
             repositoryRepository.updateLastHeartbeat(sessionInfo.sessionId(), replayed.get());
             if (replayed.get().isBefore(clock.instant().minus(heartbeatThreshold))) {
+                LOG.trace("Case 3 replayed heartbeat stale, marking finished: sessionId={} replayedAt={}",
+                        sessionInfo.sessionId(), replayed.get());
                 markFinished(repositoryRepository, projectInfo, sessionInfo, replayed.get(), replayed.get());
                 return true;
             }
+            LOG.trace("Case 3 replayed heartbeat fresh, skipping: sessionId={} replayedAt={}",
+                    sessionInfo.sessionId(), replayed.get());
             return false;
         }
 
         // Case 4: No heartbeat anywhere -- use fallback
+        LOG.trace("Case 4 no heartbeat found, using fallback: sessionId={} fallbackFinishedAt={}",
+                sessionInfo.sessionId(), fallbackFinishedAt);
         markFinished(repositoryRepository, projectInfo, sessionInfo, fallbackFinishedAt, null);
         return true;
     }

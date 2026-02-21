@@ -19,8 +19,8 @@
 <configuration>
     <logger name="org.flywaydb" level="WARN" />
 
-    <!-- Without debug-file-log: standard console, level controlled by logging.level property -->
-    <springProfile name="!debug-file-log">
+    <!-- Without debug-file-log/trace-file-log: standard console, level controlled by logging.level property -->
+    <springProfile name="!debug-file-log & !trace-file-log">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n</pattern>
@@ -59,6 +59,40 @@
 
         <logger name="pbouda.jeffrey" level="DEBUG" additivity="true">
             <appender-ref ref="DEBUG_FILE" />
+        </logger>
+    </springProfile>
+
+    <!-- With trace-file-log: console capped at INFO, file gets TRACE -->
+    <springProfile name="trace-file-log">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n</pattern>
+            </encoder>
+        </appender>
+
+        <springProperty scope="context" name="TRACE_LOG_DIR" source="jeffrey.home.dir"
+                        defaultValue="${user.home}/.jeffrey"/>
+        <springProperty scope="context" name="TRACE_LOG_FILE" source="jeffrey.logging.trace-file.path"
+                        defaultValue="${TRACE_LOG_DIR}/logs/jeffrey-trace.log"/>
+
+        <appender name="TRACE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${TRACE_LOG_FILE}</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${TRACE_LOG_FILE}.%d{yyyy-MM-dd}.%i</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n</pattern>
+            </encoder>
+        </appender>
+
+        <logger name="pbouda.jeffrey" level="TRACE" additivity="true">
+            <appender-ref ref="TRACE_FILE" />
         </logger>
     </springProfile>
 

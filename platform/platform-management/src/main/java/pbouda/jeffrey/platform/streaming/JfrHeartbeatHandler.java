@@ -76,7 +76,7 @@ public class JfrHeartbeatHandler implements JfrStreamingHandler {
         } catch (Exception e) {
             LOG.warn("Failed to persist heartbeat to DB: sessionId={} lastHeartbeat={}", sessionId, event.getEndTime(), e);
         }
-        LOG.debug("Persisted heartbeat: sessionId={} lastHeartbeat={}", sessionId, event.getEndTime());
+        LOG.trace("Persisted heartbeat: sessionId={} lastHeartbeat={}", sessionId, event.getEndTime());
     }
 
     @Override
@@ -91,8 +91,10 @@ public class JfrHeartbeatHandler implements JfrStreamingHandler {
 
     private void checkHeartbeat(Runnable streamCloser) {
         Instant lastHeartbeat = lastHeartbeatAt;
+        Duration elapsed = lastHeartbeat != null ? Duration.between(lastHeartbeat, clock.instant()) : null;
+        LOG.trace("Heartbeat check: sessionId={} lastHeartbeatAt={} elapsed={} timeout={}",
+                sessionId, lastHeartbeat, elapsed, heartbeatTimeout);
         if (lastHeartbeat != null) {
-            Duration elapsed = Duration.between(lastHeartbeat, clock.instant());
             if (elapsed.compareTo(heartbeatTimeout) > 0) {
                 LOG.info("Heartbeat timeout, closing stream: sessionId={} lastHeartbeat={} elapsed={}",
                         sessionId, lastHeartbeat, elapsed);
