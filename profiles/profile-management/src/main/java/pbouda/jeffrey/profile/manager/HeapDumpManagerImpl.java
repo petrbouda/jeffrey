@@ -23,6 +23,7 @@ import org.netbeans.lib.profiler.heap.Heap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.HeapLoader;
+import pbouda.jeffrey.profile.heapdump.SimpleHeapLoader;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer;
@@ -194,10 +195,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
         Optional<Heap> heap = heapLoader.load(heapPath.get());
         if (heap.isEmpty()) {
-            // Heap exists but can't be loaded - corrupted
-            deleteCorruptedHeapDump(heapPath.get());
-            throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_CORRUPTED,
-                    "The heap dump file could not be loaded. The file may be corrupted or truncated.");
+            // Heap exists but can't be loaded - offer sanitization instead of deleting
+            throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_NEEDS_SANITIZATION,
+                    "The heap dump file appears to be corrupted and needs repair before it can be analyzed.");
         }
 
         OopsConfig oops = resolveOopsConfig(heap.get());
@@ -403,6 +403,30 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         } catch (IOException e) {
             LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
             throw new RuntimeException("Failed to upload heap dump: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void sanitizeHeapDump() {
+        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
+        if (heapPath.isEmpty()) {
+            throw new JeffreyException(ErrorType.CLIENT, ErrorCode.HEAP_DUMP_CORRUPTED,
+                    "No heap dump file found to sanitize.");
+        }
+
+        if (!(heapLoader instanceof SimpleHeapLoader simpleLoader)) {
+            throw new JeffreyException(ErrorType.INTERNAL, ErrorCode.HEAP_DUMP_CORRUPTED,
+                    "Sanitization is not supported with the current heap loader.");
+        }
+
+        try {
+            var result = simpleLoader.sanitize(heapPath.get());
+            LOG.info("Heap dump sanitized: profileId={} wasModified={} summary={}",
+                    profileInfo.id(), result.wasModified(), result.summaryMessage());
+        } catch (IOException e) {
+            LOG.error("Failed to sanitize heap dump: profileId={} path={}", profileInfo.id(), heapPath.get(), e);
+            throw new JeffreyException(ErrorType.INTERNAL, ErrorCode.HEAP_DUMP_CORRUPTED,
+                    "Failed to sanitize heap dump: " + e.getMessage(), e);
         }
     }
 

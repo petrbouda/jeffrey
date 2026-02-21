@@ -140,8 +140,51 @@
     <!-- Summary Stats -->
     <StatsTable v-if="lastSummary" :metrics="summaryMetrics" class="mb-4" />
 
+    <!-- Heap Dump Corruption Recovery Panel -->
+    <transition name="slide-fade">
+      <div v-if="needsSanitization && !processing" class="sanitize-panel">
+        <div class="sanitize-panel-content">
+          <div class="sanitize-icon-wrapper">
+            <i class="bi bi-wrench-adjustable"></i>
+          </div>
+          <div class="sanitize-details">
+            <h5 class="sanitize-title">Heap Dump Needs Repair</h5>
+            <p class="sanitize-message">
+              The heap dump file appears to be corrupted, likely due to an ungraceful JVM shutdown
+              (OOMKill, SIGKILL, or crash). The file structure is incomplete but may be recoverable.
+            </p>
+            <div class="sanitize-info">
+              <h6><i class="bi bi-info-circle me-2"></i>What will happen</h6>
+              <ul>
+                <li>The repair tool will scan the binary file and fix structural issues</li>
+                <li>Missing end markers and truncated records will be corrected</li>
+                <li>A repaired copy will be created (original is preserved)</li>
+                <li>Some objects near the end of the file may be lost</li>
+              </ul>
+            </div>
+            <div class="sanitize-actions">
+              <button class="btn btn-warning-gradient" @click="sanitizeHeapDump" :disabled="sanitizing">
+                <span v-if="sanitizing">
+                  <span class="spinner-border spinner-border-sm me-2"></span>Repairing...
+                </span>
+                <span v-else>
+                  <i class="bi bi-wrench me-2"></i>Repair &amp; Initialize
+                </span>
+              </button>
+              <button class="btn btn-outline-secondary btn-sm ms-2" @click="deleteHeapDump">
+                <i class="bi bi-trash me-1"></i>Delete Instead
+              </button>
+            </div>
+          </div>
+          <button class="sanitize-dismiss-btn" @click="dismissSanitize" title="Dismiss">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+    </transition>
+
     <!-- Initialize Card - Not Processed State -->
-    <div v-if="!cacheReady && !processing && !lastSummary" class="init-section">
+    <div v-if="!cacheReady && !processing && !lastSummary && !needsSanitization" class="init-section">
       <div class="init-main-card">
         <div class="init-header">
           <div class="init-header-icon">
@@ -298,6 +341,10 @@ const heapConfig = ref<HeapDumpConfig | null>(null);
 // Processing state
 const processing = ref(false);
 const initError = ref<string | null>(null);
+
+// Sanitization state
+const needsSanitization = ref(false);
+const sanitizing = ref(false);
 
 // Compressed oops choice: 'auto' | 'enabled' | 'disabled'
 const compressedOopsChoice = ref<string>('auto');
@@ -459,8 +506,11 @@ const processHeapDump = async () => {
     cacheReady.value = true;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
   } catch (err) {
-    // Check if this is a heap dump corruption error
-    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
+    // Check if this is a heap dump corruption error that can be repaired
+    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
+      needsSanitization.value = true;
+      // File still exists - don't set heapExists to false
+    } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
       initError.value = err.errorResponse.message;
       heapExists.value = false; // File was deleted by backend
     } else {
@@ -607,6 +657,26 @@ const dismissInitError = () => {
   initError.value = null;
 };
 
+const sanitizeHeapDump = async () => {
+  sanitizing.value = true;
+  try {
+    await client.sanitize();
+    needsSanitization.value = false;
+    // Now proceed with normal initialization
+    await processHeapDump();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Repair failed';
+    initError.value = msg;
+    needsSanitization.value = false;
+  } finally {
+    sanitizing.value = false;
+  }
+};
+
+const dismissSanitize = () => {
+  needsSanitization.value = false;
+};
+
 const scrollToTop = () => {
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
@@ -639,8 +709,11 @@ const loadData = async () => {
       heapConfig.value = await client.getConfig();
     }
   } catch (err) {
-    // Check if this is a heap dump corruption error
-    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
+    // Check if this is a heap dump corruption error that can be repaired
+    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
+      needsSanitization.value = true;
+      // File still exists - keep heapExists as true
+    } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
       initError.value = err.errorResponse.message;
       heapExists.value = false; // File was deleted by backend
     } else {
@@ -1269,5 +1342,149 @@ onMounted(() => {
   .init-header-card {
     padding: 2rem 1.5rem;
   }
+}
+
+/* Sanitize Recovery Panel */
+.sanitize-panel {
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fcd34d;
+  border-left: 4px solid #f59e0b;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.sanitize-panel-content {
+  display: flex;
+  padding: 1.25rem;
+  gap: 1rem;
+  position: relative;
+}
+
+.sanitize-icon-wrapper {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+.sanitize-icon-wrapper i {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.sanitize-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.sanitize-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 0.5rem 0;
+}
+
+.sanitize-message {
+  font-size: 0.875rem;
+  color: #a16207;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.sanitize-info {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sanitize-info h6 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #92400e;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.sanitize-info h6 i {
+  color: #f59e0b;
+}
+
+.sanitize-info ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  color: #78350f;
+}
+
+.sanitize-info li {
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.sanitize-info li:last-child {
+  margin-bottom: 0;
+}
+
+.sanitize-actions {
+  display: flex;
+  align-items: center;
+}
+
+.btn-warning-gradient {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+}
+
+.btn-warning-gradient:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+  color: white;
+}
+
+.btn-warning-gradient:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sanitize-dismiss-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 6px;
+  color: #d97706;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.sanitize-dismiss-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #92400e;
+}
+
+.sanitize-dismiss-btn i {
+  font-size: 0.875rem;
 }
 </style>

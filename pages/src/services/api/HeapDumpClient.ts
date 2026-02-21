@@ -82,6 +82,10 @@ export default class HeapDumpClient extends BaseProfileClient {
         return this.post<void>('/delete', {});
     }
 
+    public sanitize(): Promise<void> {
+        return this.post<void>('/sanitize', {});
+    }
+
     public initialize(compressedOops?: boolean): Promise<HeapSummary> {
         const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
         return this.post<HeapSummary>(`/initialize${params}`, {});

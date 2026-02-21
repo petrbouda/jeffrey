@@ -132,6 +132,41 @@
     "allDeclaredFields": true
   },
   {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
+    "name": "pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
     "name": "ch.qos.logback.core.ConsoleAppender",
     "allDeclaredConstructors": true,

@@ -141,6 +141,12 @@ public interface HeapDumpManager {
     void deleteHeapDump();
 
     /**
+     * Sanitize a corrupted heap dump file by creating a repaired copy.
+     * The original file is preserved and a sanitized version is created alongside it.
+     */
+    void sanitizeHeapDump();
+
+    /**
      * Upload a heap dump file.
      *
      * @param inputStream the input stream of the heap dump file

@@ -183,6 +183,17 @@ public class HeapDumpResource {
     }
 
     /**
+     * Sanitize a corrupted heap dump file.
+     * Creates a repaired copy while preserving the original.
+     */
+    @POST
+    @Path("/sanitize")
+    public void sanitize() {
+        LOG.debug("Sanitizing heap dump");
+        heapDumpManager.sanitizeHeapDump();
+    }
+
+    /**
      * Upload a heap dump file.
      *
      * @param fileInputStream the input stream of the uploaded file
