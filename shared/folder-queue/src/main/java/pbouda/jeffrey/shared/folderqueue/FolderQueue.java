@@ -62,12 +62,13 @@ public class FolderQueue {
 
     /**
      * Publishes a new event to the queue directory. Generates a timestamp-sortable
-     * filename automatically and writes the content as a single file.
+     * filename using the provided ID and writes the content as a single file.
      *
+     * @param id       the caller-provided identifier to embed in the filename
      * @param content  the raw string content to write
      */
-    public void publish(String content) {
-        String filename = FolderQueueFilename.generate(clock);
+    public void publish(String id, String content) {
+        String filename = FolderQueueFilename.generate(clock, id);
         Path filePath = queueDir.resolve(filename);
 
         try {

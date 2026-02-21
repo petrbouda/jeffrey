@@ -50,15 +50,14 @@ class FolderQueueTest {
             Path queueDir = tempDir.resolve(".events");
             FolderQueue queue = new FolderQueue(queueDir, FIXED_CLOCK);
 
-            queue.publish("{\"eventType\":\"PROJECT_CREATED\"}");
+            queue.publish("my-event-id", "{\"eventType\":\"PROJECT_CREATED\"}");
 
             assertTrue(Files.isDirectory(queueDir));
             List<Path> files = listFiles(queueDir);
             assertEquals(1, files.size());
 
             String filename = files.getFirst().getFileName().toString();
-            assertTrue(filename.startsWith("20260220153045123_"));
-            assertTrue(filename.endsWith(".json"));
+            assertEquals("20260220153045123_my-event-id.json", filename);
         }
 
         @Test
@@ -66,7 +65,7 @@ class FolderQueueTest {
             Path queueDir = tempDir.resolve("nested").resolve(".events");
             FolderQueue queue = new FolderQueue(queueDir, FIXED_CLOCK);
 
-            queue.publish("content");
+            queue.publish("test-id", "content");
 
             assertTrue(Files.isDirectory(queueDir));
             assertEquals(1, listFiles(queueDir).size());
@@ -78,7 +77,7 @@ class FolderQueueTest {
             String expected = "{\"key\":\"value\"}";
             FolderQueue queue = new FolderQueue(queueDir, FIXED_CLOCK);
 
-            queue.publish(expected);
+            queue.publish("content-id", expected);
 
             Path file = listFiles(queueDir).getFirst();
             assertEquals(expected, Files.readString(file));
@@ -252,11 +251,9 @@ class FolderQueueTest {
 
         @Test
         void generateProducesSortableFilename() {
-            String filename = FolderQueueFilename.generate(FIXED_CLOCK);
+            String filename = FolderQueueFilename.generate(FIXED_CLOCK, "my-id");
 
-            assertTrue(filename.startsWith("20260220153045123_"));
-            assertTrue(filename.endsWith(".json"));
-            assertEquals(31, filename.length()); // 17 timestamp + 1 underscore + 8 uuid + 5 ".json"
+            assertEquals("20260220153045123_my-id.json", filename);
         }
 
         @Test
@@ -264,8 +261,8 @@ class FolderQueueTest {
             // Different instants produce different filenames
             Clock clock1 = Clock.fixed(Instant.parse("2026-02-20T15:30:45.100Z"), ZoneOffset.UTC);
             Clock clock2 = Clock.fixed(Instant.parse("2026-02-20T15:30:45.200Z"), ZoneOffset.UTC);
-            String f1 = FolderQueueFilename.generate(clock1);
-            String f2 = FolderQueueFilename.generate(clock2);
+            String f1 = FolderQueueFilename.generate(clock1, "id-1");
+            String f2 = FolderQueueFilename.generate(clock2, "id-2");
 
             assertNotEquals(f1, f2);
         }
@@ -279,7 +276,7 @@ class FolderQueueTest {
 
         @Test
         void generateAndParseRoundTrip() {
-            String filename = FolderQueueFilename.generate(FIXED_CLOCK);
+            String filename = FolderQueueFilename.generate(FIXED_CLOCK, "round-trip-id");
             Instant parsed = FolderQueueFilename.parseTimestamp(filename);
 
             assertEquals(FIXED_INSTANT, parsed);

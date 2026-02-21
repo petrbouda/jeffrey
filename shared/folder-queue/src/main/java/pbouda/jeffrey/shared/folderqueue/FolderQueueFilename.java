@@ -18,8 +18,6 @@
 
 package pbouda.jeffrey.shared.folderqueue;
 
-import pbouda.jeffrey.shared.common.IDGenerator;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -28,13 +26,12 @@ import java.time.format.DateTimeFormatter;
 /**
  * Utility for generating and parsing folder queue filenames.
  * <p>
- * Format: {@code <yyyyMMddHHmmssSSS>_<uuid-v7-short>.json}
+ * Format: {@code <yyyyMMddHHmmssSSS>_<uuid-v7>.json}
  * <p>
- * Example: {@code 20260220153045123_019505a1.json}
+ * Example: {@code 20260220153045123_019505a1-2b3c-7def-8abc-1234567890ab.json}
  * <p>
  * The timestamp prefix ensures lexicographic sort equals chronological order.
- * The UUID suffix (first 8 chars of a UUIDv7) prevents collisions between
- * concurrent CLI processes.
+ * The full UUIDv7 suffix prevents collisions between concurrent CLI processes.
  */
 public abstract class FolderQueueFilename {
 
@@ -47,12 +44,12 @@ public abstract class FolderQueueFilename {
      * Generates a sortable, collision-free filename.
      *
      * @param clock the clock to use for the timestamp
-     * @return a filename like {@code 20260220153045123_019505a1.json}
+     * @param id    the caller-provided identifier to embed in the filename
+     * @return a filename like {@code 20260220153045123_019505a1-2b3c-7def-8abc-1234567890ab.json}
      */
-    public static String generate(Clock clock) {
+    public static String generate(Clock clock, String id) {
         String timestamp = TIMESTAMP_FORMATTER.format(clock.instant());
-        String uuid = IDGenerator.generate().substring(0, 8);
-        return timestamp + "_" + uuid + ".json";
+        return timestamp + "_" + id + ".json";
     }
 
     /**

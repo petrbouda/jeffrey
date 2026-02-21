@@ -154,7 +154,7 @@
   },
   {
     "condition": {"typeReachable": "com.fasterxml.jackson.databind.ObjectMapper"},
-    "name": "pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent",
+    "name": "pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true

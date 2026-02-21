@@ -29,16 +29,19 @@ import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
+import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.platform.workspace.consumer.*;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.job.JobType;
+import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.folderqueue.FolderQueue;
 import pbouda.jeffrey.shared.folderqueue.FolderQueueEntry;
 import pbouda.jeffrey.shared.folderqueue.FolderQueueEntryParser;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +61,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceEventsReplicatorJob.class);
 
     private final Duration period;
+    private final Clock clock;
     private final FolderQueue folderQueue;
     private final PlatformRepositories platformRepositories;
     private final JeffreyDirs jeffreyDirs;
@@ -69,6 +73,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     public WorkspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
             Duration period,
+            Clock clock,
             FolderQueue folderQueue,
             PlatformRepositories platformRepositories,
             JeffreyDirs jeffreyDirs,
@@ -78,6 +83,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
 
         this.workspacesManager = workspacesManager;
         this.period = period;
+        this.clock = clock;
         this.folderQueue = folderQueue;
         this.platformRepositories = platformRepositories;
         this.jeffreyDirs = jeffreyDirs;
@@ -100,23 +106,23 @@ public class WorkspaceEventsReplicatorJob implements Job {
     }
 
     private long processEvents() {
-        FolderQueueEntryParser<WorkspaceEvent> parser = (filePath, content) -> {
+        FolderQueueEntryParser<CLIWorkspaceEvent> parser = (filePath, content) -> {
             try {
-                return Optional.of(Json.read(content, WorkspaceEvent.class));
+                return Optional.of(Json.read(content, CLIWorkspaceEvent.class));
             } catch (Exception e) {
                 LOG.debug("Skipping unreadable event file (may be partially written): {}", filePath);
                 return Optional.empty();
             }
         };
 
-        List<FolderQueueEntry<WorkspaceEvent>> entries = folderQueue.poll(parser);
+        List<FolderQueueEntry<CLIWorkspaceEvent>> entries = folderQueue.poll(parser);
         if (entries.isEmpty()) {
             return 0;
         }
 
         long processedCount = 0;
-        for (FolderQueueEntry<WorkspaceEvent> entry : entries) {
-            WorkspaceEvent event = entry.parsed();
+        for (FolderQueueEntry<CLIWorkspaceEvent> entry : entries) {
+            WorkspaceEvent event = WorkspaceEventConverter.fromCLIEvent(entry.parsed(), clock.instant());
             try {
                 Optional<WorkspaceManager> workspaceOpt = workspacesManager.findById(event.workspaceId());
                 if (workspaceOpt.isEmpty()) {

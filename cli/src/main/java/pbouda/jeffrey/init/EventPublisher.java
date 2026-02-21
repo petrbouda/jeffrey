@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
@@ -34,7 +34,7 @@ import java.util.Map;
 
 /**
  * Publishes workspace events to the folder-based event queue. Converts domain
- * objects into {@link WorkspaceEvent} JSON files that Jeffrey's
+ * objects into {@link CLIWorkspaceEvent} JSON files that Jeffrey's
  * {@code WorkspaceEventsReplicatorJob} will pick up and process.
  */
 public class EventPublisher {
@@ -104,11 +104,11 @@ public class EventPublisher {
             WorkspaceEventType eventType,
             String content) {
 
-        WorkspaceEvent event = new WorkspaceEvent(
-                null, originEventId, projectId, workspaceId,
-                eventType, content, clock.instant(), null, CREATED_BY);
+        CLIWorkspaceEvent event = new CLIWorkspaceEvent(
+                originEventId, projectId, workspaceId,
+                eventType, content, clock.instant(), CREATED_BY);
 
-        folderQueue.publish(Json.toString(event));
+        folderQueue.publish(originEventId, Json.toString(event));
         LOG.debug("Published workspace event: eventType={} originEventId={}", eventType, originEventId);
     }
 }

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
@@ -55,7 +55,7 @@ class EventPublisherTest {
         return new EventPublisher(folderQueue, FIXED_CLOCK);
     }
 
-    private WorkspaceEvent readSingleEvent() throws IOException {
+    private CLIWorkspaceEvent readSingleEvent() throws IOException {
         Path queueDir = tempDir.resolve(".events");
         List<Path> files;
         try (var stream = Files.list(queueDir)) {
@@ -63,7 +63,7 @@ class EventPublisherTest {
         }
         assertEquals(1, files.size());
         String content = Files.readString(files.getFirst());
-        return Json.read(content, WorkspaceEvent.class);
+        return Json.read(content, CLIWorkspaceEvent.class);
     }
 
     @Nested
@@ -78,16 +78,14 @@ class EventPublisherTest {
                     "/workspaces", RepositoryType.ASYNC_PROFILER,
                     Map.of("env", "prod", "region", "us-east"));
 
-            WorkspaceEvent event = readSingleEvent();
+            CLIWorkspaceEvent event = readSingleEvent();
 
             assertAll(
-                    () -> assertNull(event.eventId()),
                     () -> assertEquals("proj-001", event.originEventId()),
                     () -> assertEquals("proj-001", event.projectId()),
                     () -> assertEquals("ws-001", event.workspaceId()),
                     () -> assertEquals(WorkspaceEventType.PROJECT_CREATED, event.eventType()),
                     () -> assertEquals(FIXED_INSTANT, event.originCreatedAt()),
-                    () -> assertNull(event.createdAt()),
                     () -> assertEquals("CLI", event.createdBy())
             );
 
@@ -113,7 +111,7 @@ class EventPublisherTest {
 
             publisher.publishInstanceCreated("inst-001", "proj-001", "ws-001");
 
-            WorkspaceEvent event = readSingleEvent();
+            CLIWorkspaceEvent event = readSingleEvent();
 
             assertAll(
                     () -> assertEquals("inst-001", event.originEventId()),
@@ -140,7 +138,7 @@ class EventPublisherTest {
                     "session-001", "proj-001", "ws-001",
                     "inst-001", 3, "cpu=true", true);
 
-            WorkspaceEvent event = readSingleEvent();
+            CLIWorkspaceEvent event = readSingleEvent();
 
             assertAll(
                     () -> assertEquals("session-001", event.originEventId()),
@@ -169,7 +167,7 @@ class EventPublisherTest {
                     "sess-xyz", "proj-001", "ws-001",
                     "host-abc", 1, null, false);
 
-            WorkspaceEvent event = readSingleEvent();
+            CLIWorkspaceEvent event = readSingleEvent();
             SessionCreatedEventContent content = Json.read(event.content(), SessionCreatedEventContent.class);
 
             assertEquals("host-abc/sess-xyz", content.relativeSessionPath());

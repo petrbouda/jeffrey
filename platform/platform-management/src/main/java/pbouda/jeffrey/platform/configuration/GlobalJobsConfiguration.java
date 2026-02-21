@@ -142,6 +142,7 @@ public class GlobalJobsConfiguration {
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
+                clock,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 platformRepositories,
                 jeffreyDirs,

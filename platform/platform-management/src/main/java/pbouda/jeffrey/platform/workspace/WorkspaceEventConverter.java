@@ -13,7 +13,11 @@ import pbouda.jeffrey.shared.common.model.repository.RemoteProject;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import pbouda.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.shared.common.model.workspace.*;
+import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -36,6 +40,24 @@ public abstract class WorkspaceEventConverter {
                 payload.originCreatedAt(),
                 entry.createdAt(),
                 payload.createdBy());
+    }
+
+    /**
+     * Converts a CLI wire-format event into the internal {@link WorkspaceEvent},
+     * supplying the queue-infrastructure {@code createdAt} timestamp that the CLI
+     * cannot meaningfully provide.
+     */
+    public static WorkspaceEvent fromCLIEvent(CLIWorkspaceEvent message, Instant createdAt) {
+        return new WorkspaceEvent(
+                null,
+                message.originEventId(),
+                message.projectId(),
+                message.workspaceId(),
+                message.eventType(),
+                message.content(),
+                message.originCreatedAt(),
+                createdAt,
+                message.createdBy());
     }
 
     public static WorkspaceEvent projectCreated(
