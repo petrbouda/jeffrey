@@ -78,7 +78,7 @@ public class JeffreyDirs {
     }
 
     public Path workspaceEvents() {
-        return homeDir.resolve(EVENTS_DIR);
+        return workspaces().resolve(EVENTS_DIR);
     }
 
     public Path profiles() {
