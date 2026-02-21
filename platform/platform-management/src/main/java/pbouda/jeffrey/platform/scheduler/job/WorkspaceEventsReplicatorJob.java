@@ -124,7 +124,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
         for (FolderQueueEntry<CLIWorkspaceEvent> entry : entries) {
             WorkspaceEvent event = WorkspaceEventConverter.fromCLIEvent(entry.parsed(), clock.instant());
             try {
-                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findById(event.workspaceId());
+                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByOriginId(event.workspaceId());
                 if (workspaceOpt.isEmpty()) {
                     LOG.debug("Workspace not found, skipping event for retry: workspace_id={} event_type={}",
                             event.workspaceId(), event.eventType());

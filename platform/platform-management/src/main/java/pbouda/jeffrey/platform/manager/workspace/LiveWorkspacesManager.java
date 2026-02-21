@@ -62,6 +62,12 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
     }
 
     @Override
+    public Optional<WorkspaceManager> findByOriginId(String originId) {
+        return workspacesRepository.findByOriginId(originId)
+                .map(workspaceManagerFactory);
+    }
+
+    @Override
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
         return workspaceManagerFactory.apply(info);
     }
@@ -96,7 +102,7 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
 
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 null,
-                null,
+                trimmedSourceId,
                 trimmedSourceId,
                 trimmedName,
                 description,

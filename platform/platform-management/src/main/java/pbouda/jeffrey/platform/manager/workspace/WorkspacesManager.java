@@ -144,6 +144,14 @@ public sealed interface WorkspacesManager
     Optional<WorkspaceManager> findById(String workspaceId);
 
     /**
+     * Get a workspace by its origin ID.
+     *
+     * @param originId the workspace origin ID
+     * @return the workspace if it exists, otherwise an empty optional
+     */
+    Optional<WorkspaceManager> findByOriginId(String originId);
+
+    /**
      * Map WorkspaceInfo to WorkspaceManager.
      *
      * @param info the workspace info.

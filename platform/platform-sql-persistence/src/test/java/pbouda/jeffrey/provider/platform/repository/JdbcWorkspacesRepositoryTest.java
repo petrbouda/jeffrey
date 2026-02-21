@@ -119,6 +119,44 @@ class JdbcWorkspacesRepositoryTest {
     }
 
     @Nested
+    class FindByOriginIdMethod {
+
+        @Test
+        void returnsWorkspace_whenOriginIdExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace.sql");
+            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
+
+            Optional<WorkspaceInfo> result = repository.findByOriginId("origin-ws-001");
+
+            assertTrue(result.isPresent());
+            assertEquals("Test Workspace", result.get().name());
+            assertEquals("origin-ws-001", result.get().originId());
+        }
+
+        @Test
+        void returnsEmpty_whenOriginIdNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
+
+            Optional<WorkspaceInfo> result = repository.findByOriginId("non-existent-origin");
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void returnsEmpty_whenWorkspaceIsDeleted(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace-with-origin-deleted.sql");
+            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
+
+            Optional<WorkspaceInfo> result = repository.findByOriginId("origin-ws-deleted");
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
     class CreateMethod {
 
         @Test

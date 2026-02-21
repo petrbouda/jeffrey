@@ -69,6 +69,13 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     }
 
     @Override
+    public Optional<WorkspaceManager> findByOriginId(String originId) {
+        return workspacesRepository.findByOriginId(originId)
+                .filter(WorkspaceInfo::isRemote)
+                .map(workspaceManagerFactory);
+    }
+
+    @Override
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
         return workspaceManagerFactory.apply(info);
     }

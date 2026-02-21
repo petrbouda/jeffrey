@@ -65,6 +65,11 @@ public final class CompositeWorkspacesManager implements WorkspacesManager {
                 .map(this::mapToWorkspaceManager);
     }
 
+    public Optional<WorkspaceManager> findByOriginId(String originId) {
+        return workspacesRepository.findByOriginId(originId)
+                .map(this::mapToWorkspaceManager);
+    }
+
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
         return switch (info.type()) {
             case SANDBOX -> sandboxWorkspacesManager.getObject().mapToWorkspaceManager(info);

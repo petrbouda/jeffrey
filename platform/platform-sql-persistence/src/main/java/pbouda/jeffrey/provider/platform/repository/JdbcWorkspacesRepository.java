@@ -47,6 +47,11 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
             FROM workspaces w WHERE w.workspace_id = :workspace_id AND w.deleted = false""";
 
     //language=SQL
+    private static final String SELECT_WORKSPACE_BY_ORIGIN_ID = """
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
+            FROM workspaces w WHERE w.workspace_origin_id = :workspace_origin_id AND w.deleted = false""";
+
+    //language=SQL
     private static final String INSERT_WORKSPACE = """
             INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location, deleted, created_at, type)
             VALUES (:workspace_id, :workspace_origin_id, :repository_id, :name, :description, :location, :base_location, :deleted, :created_at, :type)""";
@@ -78,6 +83,18 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
         return databaseClient.querySingle(
                 StatementLabel.FIND_WORKSPACE_BY_ID,
                 SELECT_WORKSPACE_BY_ID,
+                paramSource,
+                workspaceMapper());
+    }
+
+    @Override
+    public Optional<WorkspaceInfo> findByOriginId(String originId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_origin_id", originId);
+
+        return databaseClient.querySingle(
+                StatementLabel.FIND_WORKSPACE_BY_ORIGIN_ID,
+                SELECT_WORKSPACE_BY_ORIGIN_ID,
                 paramSource,
                 workspaceMapper());
     }

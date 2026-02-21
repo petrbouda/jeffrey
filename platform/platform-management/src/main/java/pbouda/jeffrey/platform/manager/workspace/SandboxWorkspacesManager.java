@@ -58,6 +58,12 @@ public final class SandboxWorkspacesManager implements WorkspacesManager {
     }
 
     @Override
+    public Optional<WorkspaceManager> findByOriginId(String originId) {
+        return workspacesRepository.findByOriginId(originId)
+                .map(workspaceManagerFactory);
+    }
+
+    @Override
     public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
         return workspaceManagerFactory.apply(info);
     }

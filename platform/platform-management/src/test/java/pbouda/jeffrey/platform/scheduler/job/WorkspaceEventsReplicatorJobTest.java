@@ -152,7 +152,7 @@ class WorkspaceEventsReplicatorJobTest {
             Path events = eventsDir();
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-new-001"));
 
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+            when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
             when(projectManager.info()).thenReturn(PROJECT_INFO);
@@ -203,7 +203,7 @@ class WorkspaceEventsReplicatorJobTest {
             Path events = eventsDir();
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-001"));
 
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.empty());
+            when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.empty());
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
@@ -343,8 +343,8 @@ class WorkspaceEventsReplicatorJobTest {
             // Second event: known workspace
             writeEventFile(events, "20260220120000200_bbbbbbbb.json", instanceCreatedEvent("inst-new-001"));
 
-            when(workspacesManager.findById("ws-unknown")).thenReturn(Optional.empty());
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+            when(workspacesManager.findByOriginId("ws-unknown")).thenReturn(Optional.empty());
+            when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
             when(projectManager.info()).thenReturn(PROJECT_INFO);
@@ -405,7 +405,7 @@ class WorkspaceEventsReplicatorJobTest {
             Path events = eventsDir();
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", projectCreatedEvent());
 
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+            when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
             when(projectManager.info()).thenReturn(PROJECT_INFO);
