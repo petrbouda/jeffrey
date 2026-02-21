@@ -20,7 +20,7 @@
     <logger name="org.flywaydb" level="WARN" />
 
     <!-- Without debug-file-log/trace-file-log: standard console, level controlled by logging.level property -->
-    <springProfile name="!debug-file-log & !trace-file-log">
+    <springProfile name="!debug-file-log &amp; !trace-file-log">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-no-req}] %logger{36} - %msg %X{name}%n</pattern>
