@@ -41,7 +41,7 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
@@ -102,24 +102,24 @@ class WorkspaceEventsReplicatorJobTest {
         return new JeffreyDirs(tempDir);
     }
 
-    private void writeEventFile(Path eventsDir, String filename, WorkspaceEvent event) throws IOException {
+    private void writeEventFile(Path eventsDir, String filename, CLIWorkspaceEvent event) throws IOException {
         Files.writeString(eventsDir.resolve(filename), Json.toString(event));
     }
 
-    private static WorkspaceEvent instanceCreatedEvent(String instanceId) {
+    private static CLIWorkspaceEvent instanceCreatedEvent(String instanceId) {
         InstanceCreatedEventContent content = new InstanceCreatedEventContent("inst-dir-001");
-        return new WorkspaceEvent(null, instanceId, ORIGIN_PROJECT_ID, WORKSPACE_ID,
+        return new CLIWorkspaceEvent(instanceId, ORIGIN_PROJECT_ID, WORKSPACE_ID,
                 WorkspaceEventType.PROJECT_INSTANCE_CREATED, Json.toString(content),
-                Instant.parse("2026-02-20T10:00:00Z"), NOW, "CLI");
+                Instant.parse("2026-02-20T10:00:00Z"), "CLI");
     }
 
-    private static WorkspaceEvent projectCreatedEvent() {
+    private static CLIWorkspaceEvent projectCreatedEvent() {
         ProjectCreatedEventContent content = new ProjectCreatedEventContent(
                 "project-alpha", "Alpha", "/workspaces", "ws-001", "proj-001",
                 RepositoryType.ASYNC_PROFILER, Map.of());
-        return new WorkspaceEvent(null, ORIGIN_PROJECT_ID, ORIGIN_PROJECT_ID, WORKSPACE_ID,
+        return new CLIWorkspaceEvent(ORIGIN_PROJECT_ID, ORIGIN_PROJECT_ID, WORKSPACE_ID,
                 WorkspaceEventType.PROJECT_CREATED, Json.toString(content),
-                NOW.minusSeconds(3600), NOW, "CLI");
+                NOW.minusSeconds(3600), "CLI");
     }
 
     @Nested
@@ -162,7 +162,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -207,7 +207,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -244,7 +244,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -279,7 +279,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -293,7 +293,7 @@ class WorkspaceEventsReplicatorJobTest {
             // Don't create the events dir at all
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -333,11 +333,11 @@ class WorkspaceEventsReplicatorJobTest {
             Path events = eventsDir();
 
             // First event: unknown workspace
-            WorkspaceEvent unknownWsEvent = new WorkspaceEvent(
-                    null, "inst-unknown", "proj-unknown", "ws-unknown",
+            CLIWorkspaceEvent unknownWsEvent = new CLIWorkspaceEvent(
+                    "inst-unknown", "proj-unknown", "ws-unknown",
                     WorkspaceEventType.PROJECT_INSTANCE_CREATED,
                     Json.toString(new InstanceCreatedEventContent("dir")),
-                    NOW, NOW, "CLI");
+                    NOW, "CLI");
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", unknownWsEvent);
 
             // Second event: known workspace
@@ -354,7 +354,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
@@ -415,7 +415,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
             var job = new WorkspaceEventsReplicatorJob(
-                    workspacesManager, Duration.ofMinutes(1), folderQueue,
+                    workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
                     platformRepositories, jeffreyDirs(), heartbeatReplayReader,
                     JOB_DESCRIPTOR, migrationCallback);
 
