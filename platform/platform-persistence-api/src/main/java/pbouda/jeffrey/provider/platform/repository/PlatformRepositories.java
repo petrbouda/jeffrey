@@ -49,4 +49,8 @@ public interface PlatformRepositories {
     MessageRepository newMessageRepository(String projectId);
 
     AlertRepository newAlertRepository(String projectId);
+
+    RetentionCleanup newMessageRetentionCleanup();
+
+    RetentionCleanup newAlertRetentionCleanup();
 }

@@ -23,8 +23,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.scheduler.Job;
 import pbouda.jeffrey.platform.scheduler.JobContext;
-import pbouda.jeffrey.provider.platform.repository.AlertRepository;
-import pbouda.jeffrey.provider.platform.repository.MessageRepository;
+import pbouda.jeffrey.provider.platform.repository.RetentionCleanup;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 
 import java.time.Clock;
@@ -35,8 +34,8 @@ public class DataRetentionJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataRetentionJob.class);
 
-    private final MessageRepository messageRepository;
-    private final AlertRepository alertRepository;
+    private final RetentionCleanup messageRetention;
+    private final RetentionCleanup alertRetention;
     private final PersistentQueue<?> persistentQueue;
     private final Clock clock;
     private final Duration period;
@@ -45,8 +44,8 @@ public class DataRetentionJob implements Job {
     private final Duration alertsRetention;
 
     public DataRetentionJob(
-            MessageRepository messageRepository,
-            AlertRepository alertRepository,
+            RetentionCleanup messageRetention,
+            RetentionCleanup alertRetention,
             PersistentQueue<?> persistentQueue,
             Clock clock,
             Duration period,
@@ -54,8 +53,8 @@ public class DataRetentionJob implements Job {
             Duration messagesRetention,
             Duration alertsRetention) {
 
-        this.messageRepository = messageRepository;
-        this.alertRepository = alertRepository;
+        this.messageRetention = messageRetention;
+        this.alertRetention = alertRetention;
         this.persistentQueue = persistentQueue;
         this.clock = clock;
         this.period = period;
@@ -80,14 +79,14 @@ public class DataRetentionJob implements Job {
     }
 
     private void deleteOldMessages(Instant now) {
-        int deleted = messageRepository.deleteOlderThan(now.minus(messagesRetention));
+        int deleted = messageRetention.deleteOlderThan(now.minus(messagesRetention));
         if (deleted > 0) {
             LOG.info("Deleted old messages: count={} retention={}", deleted, messagesRetention);
         }
     }
 
     private void deleteOldAlerts(Instant now) {
-        int deleted = alertRepository.deleteOlderThan(now.minus(alertsRetention));
+        int deleted = alertRetention.deleteOlderThan(now.minus(alertsRetention));
         if (deleted > 0) {
             LOG.info("Deleted old alerts: count={} retention={}", deleted, alertsRetention);
         }

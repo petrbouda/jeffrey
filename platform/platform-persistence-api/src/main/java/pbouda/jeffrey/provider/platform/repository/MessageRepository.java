@@ -27,7 +27,7 @@ import java.util.List;
  * Repository for persisting and querying Message events.
  * Scoped to a specific project.
  */
-public interface MessageRepository {
+public interface MessageRepository extends RetentionCleanup {
 
     /**
      * Inserts a message. Uses ON CONFLICT DO NOTHING on the dedup index
@@ -52,13 +52,4 @@ public interface MessageRepository {
      * Used during project deletion cleanup.
      */
     void deleteByProject();
-
-    /**
-     * Deletes all messages older than the cutoff across all projects.
-     * Used for data retention cleanup.
-     *
-     * @param cutoff messages with {@code created_at} before this instant are deleted
-     * @return the number of deleted messages
-     */
-    int deleteOlderThan(Instant cutoff);
 }

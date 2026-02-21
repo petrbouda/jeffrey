@@ -71,8 +71,8 @@ class DataRetentionJobTest {
                 }, FIXED_CLOCK);
 
         return new DataRetentionJob(
-                platformRepositories.newMessageRepository(""),
-                platformRepositories.newAlertRepository(""),
+                platformRepositories.newMessageRetentionCleanup(),
+                platformRepositories.newAlertRetentionCleanup(),
                 queue,
                 FIXED_CLOCK,
                 PERIOD,

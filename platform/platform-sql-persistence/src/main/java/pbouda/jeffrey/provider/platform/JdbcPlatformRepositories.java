@@ -97,4 +97,14 @@ public class JdbcPlatformRepositories implements PlatformRepositories {
     public AlertRepository newAlertRepository(String projectId) {
         return new JdbcAlertRepository(projectId, databaseClientProvider);
     }
+
+    @Override
+    public RetentionCleanup newMessageRetentionCleanup() {
+        return new JdbcMessageRepository(null, databaseClientProvider);
+    }
+
+    @Override
+    public RetentionCleanup newAlertRetentionCleanup() {
+        return new JdbcAlertRepository(null, databaseClientProvider);
+    }
 }

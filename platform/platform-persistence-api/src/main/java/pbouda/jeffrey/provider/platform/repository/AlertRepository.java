@@ -27,7 +27,7 @@ import java.util.List;
  * Repository for persisting and querying Alert events.
  * Scoped to a specific project.
  */
-public interface AlertRepository {
+public interface AlertRepository extends RetentionCleanup {
 
     /**
      * Inserts an alert. Uses ON CONFLICT DO NOTHING on the dedup index
@@ -52,13 +52,4 @@ public interface AlertRepository {
      * Used during project deletion cleanup.
      */
     void deleteByProject();
-
-    /**
-     * Deletes all alerts older than the cutoff across all projects.
-     * Used for data retention cleanup.
-     *
-     * @param cutoff alerts with {@code created_at} before this instant are deleted
-     * @return the number of deleted alerts
-     */
-    int deleteOlderThan(Instant cutoff);
 }

@@ -176,8 +176,8 @@ public class GlobalJobsConfiguration {
             @Value("${jeffrey.platform.retention.alerts:31d}") Duration alertsRetention) {
 
         return new DataRetentionJob(
-                platformRepositories.newMessageRepository(""),
-                platformRepositories.newAlertRepository(""),
+                platformRepositories.newMessageRetentionCleanup(),
+                platformRepositories.newAlertRetentionCleanup(),
                 workspaceEventQueue,
                 clock,
                 jobPeriod == null ? Duration.ofDays(1) : jobPeriod,
