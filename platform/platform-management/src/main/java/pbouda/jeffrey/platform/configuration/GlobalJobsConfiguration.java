@@ -137,7 +137,7 @@ public class GlobalJobsConfiguration {
             JeffreyDirs jeffreyDirs,
             HeartbeatReplayReader heartbeatReplayReader,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
-            @Value("${jeffrey.job.workspace-events-replicator.period:}") Duration jobPeriod) {
+            @Value("${jeffrey.job.workspace-events-replicator.period:5s}") Duration jobPeriod) {
 
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
@@ -171,9 +171,9 @@ public class GlobalJobsConfiguration {
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             Clock clock,
             @Value("${jeffrey.job.data-retention.period:}") Duration jobPeriod,
-            @Value("${jeffrey.platform.retention.queue-events:P31D}") Duration queueEventsRetention,
-            @Value("${jeffrey.platform.retention.messages:P31D}") Duration messagesRetention,
-            @Value("${jeffrey.platform.retention.alerts:P31D}") Duration alertsRetention) {
+            @Value("${jeffrey.platform.retention.queue-events:31d}") Duration queueEventsRetention,
+            @Value("${jeffrey.platform.retention.messages:31d}") Duration messagesRetention,
+            @Value("${jeffrey.platform.retention.alerts:31d}") Duration alertsRetention) {
 
         return new DataRetentionJob(
                 platformRepositories.newMessageRepository(""),

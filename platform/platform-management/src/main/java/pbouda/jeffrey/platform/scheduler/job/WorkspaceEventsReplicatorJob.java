@@ -70,6 +70,15 @@ public class WorkspaceEventsReplicatorJob implements Job {
     private final ProjectsSynchronizerJobDescriptor synchronizerJobDescriptor;
     private final SchedulerTrigger migrationCallback;
 
+    private static final FolderQueueEntryParser<CLIWorkspaceEvent> JSON_EVENT_PARSER = (filePath, content) -> {
+        try {
+            return Optional.of(Json.read(content, CLIWorkspaceEvent.class));
+        } catch (Exception e) {
+            LOG.debug("Skipping unreadable event file (may be partially written): {}", filePath);
+            return Optional.empty();
+        }
+    };
+
     public WorkspaceEventsReplicatorJob(
             WorkspacesManager workspacesManager,
             Duration period,
@@ -106,16 +115,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
     }
 
     private long processEvents() {
-        FolderQueueEntryParser<CLIWorkspaceEvent> parser = (filePath, content) -> {
-            try {
-                return Optional.of(Json.read(content, CLIWorkspaceEvent.class));
-            } catch (Exception e) {
-                LOG.debug("Skipping unreadable event file (may be partially written): {}", filePath);
-                return Optional.empty();
-            }
-        };
-
-        List<FolderQueueEntry<CLIWorkspaceEvent>> entries = folderQueue.poll(parser);
+        List<FolderQueueEntry<CLIWorkspaceEvent>> entries = folderQueue.poll(JSON_EVENT_PARSER);
         if (entries.isEmpty()) {
             return 0;
         }
