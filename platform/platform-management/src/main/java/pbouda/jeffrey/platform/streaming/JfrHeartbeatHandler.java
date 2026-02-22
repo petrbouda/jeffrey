@@ -70,13 +70,15 @@ public class JfrHeartbeatHandler implements JfrStreamingHandler {
 
     @Override
     public void onEvent(RecordedEvent event) {
-        lastHeartbeatAt = event.getEndTime();
+        LOG.trace("Received Heartbeat: sessionId={} event_timestamp={}", sessionId, event.getStartTime());
+        lastHeartbeatAt = event.getStartTime();
         try {
-            repository.updateLastHeartbeat(sessionId, event.getEndTime());
+            repository.updateLastHeartbeat(sessionId, event.getStartTime());
         } catch (Exception e) {
-            LOG.warn("Failed to persist heartbeat to DB: sessionId={} lastHeartbeat={}", sessionId, event.getEndTime(), e);
+            LOG.warn("Failed to persist heartbeat to DB: sessionId={} lastHeartbeat={}",
+                    sessionId, event.getStartTime(), e);
         }
-        LOG.trace("Persisted heartbeat: sessionId={} lastHeartbeat={}", sessionId, event.getEndTime());
+        LOG.trace("Persisted heartbeat: sessionId={} lastHeartbeat={}", sessionId, event.getStartTime());
     }
 
     @Override
