@@ -77,21 +77,18 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
     private static final ProjectsSynchronizerJobDescriptor JOB_DESCRIPTOR =
             new ProjectsSynchronizerJobDescriptor("test-template");
 
-    private static String sessionCreatedContent(boolean streamingEnabled) {
-        return """
+    private static final String SESSION_CREATED_CONTENT = """
                 {
                     "instanceId": "%s",
                     "order": 1,
                     "relativeSessionPath": "session-001",
-                    "profilerSettings": "cpu=true",
-                    "streamingEnabled": %s
+                    "profilerSettings": "cpu=true"
                 }
-                """.formatted(INSTANCE_ID, streamingEnabled);
-    }
+                """.formatted(INSTANCE_ID);
 
-    private static WorkspaceEvent sessionCreatedEvent(boolean streamingEnabled) {
+    private static WorkspaceEvent sessionCreatedEvent() {
         return new WorkspaceEvent(null, SESSION_ID, ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, sessionCreatedContent(streamingEnabled),
+                WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, SESSION_CREATED_CONTENT,
                 NOW, NOW, "test");
     }
 
@@ -111,7 +108,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
         JfrStreamingConsumerManager streamingConsumerManager;
 
         @Test
-        void streamingEnabled_registersConsumer(DataSource dataSource) throws SQLException {
+        void sessionCreated_registersConsumer(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var platformRepositories = new JdbcPlatformRepositories(provider, FIXED_CLOCK);
@@ -123,7 +120,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
 
             var consumer = new StartStreamingWorkspaceEventConsumer(
                     projectsManager, streamingConsumerManager, platformRepositories);
-            consumer.on(sessionCreatedEvent(true), JOB_DESCRIPTOR);
+            consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR);
 
             // Verify registerConsumer was called with correct arguments
             ArgumentCaptor<ProjectInstanceSessionInfo> sessionCaptor =
@@ -138,30 +135,6 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
             assertEquals(1, captured.order());
             assertEquals(Path.of("session-001"), captured.relativeSessionPath());
             assertEquals("cpu=true", captured.profilerSettings());
-            assertTrue(captured.streamingEnabled());
-        }
-    }
-
-    @Nested
-    class StreamingNotEnabled {
-
-        @Mock
-        ProjectsManager projectsManager;
-
-        @Mock
-        JfrStreamingConsumerManager streamingConsumerManager;
-
-        @Mock
-        PlatformRepositories platformRepositories;
-
-        @Test
-        void streamingDisabled_skipped() {
-            var consumer = new StartStreamingWorkspaceEventConsumer(
-                    projectsManager, streamingConsumerManager, platformRepositories);
-            consumer.on(sessionCreatedEvent(false), JOB_DESCRIPTOR);
-
-            verifyNoInteractions(projectsManager);
-            verifyNoInteractions(streamingConsumerManager);
         }
     }
 
@@ -185,7 +158,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
                     projectsManager, streamingConsumerManager, platformRepositories);
 
             assertDoesNotThrow(() ->
-                    consumer.on(sessionCreatedEvent(true), JOB_DESCRIPTOR));
+                    consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR));
 
             verifyNoInteractions(streamingConsumerManager);
         }
@@ -220,7 +193,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
                     projectsManager, streamingConsumerManager, platformRepositories);
 
             assertDoesNotThrow(() ->
-                    consumer.on(sessionCreatedEvent(true), JOB_DESCRIPTOR));
+                    consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR));
 
             verifyNoInteractions(streamingConsumerManager);
         }

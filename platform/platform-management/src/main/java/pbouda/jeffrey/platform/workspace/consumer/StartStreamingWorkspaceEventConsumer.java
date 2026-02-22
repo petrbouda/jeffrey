@@ -37,8 +37,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 /**
- * Workspace event consumer that starts JFR streaming when a new session is created
- * with streaming enabled.
+ * Workspace event consumer that starts JFR streaming when a new session is created.
  */
 public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsumer {
 
@@ -61,11 +60,6 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
     @Override
     public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
         SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
-
-        if (!eventContent.streamingEnabled()) {
-            LOG.debug("Streaming not enabled for session, skipping: sessionId={}", event.originEventId());
-            return;
-        }
 
         Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());
         if (projectOpt.isEmpty()) {
@@ -90,7 +84,6 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
                 eventContent.order(),
                 Path.of(eventContent.relativeSessionPath()),
                 eventContent.profilerSettings(),
-                eventContent.streamingEnabled(),
                 event.originCreatedAt(),
                 event.createdAt(),
                 null,

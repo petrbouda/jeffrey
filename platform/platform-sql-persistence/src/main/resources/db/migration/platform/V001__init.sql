@@ -142,7 +142,6 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     session_order         INTEGER NOT NULL DEFAULT 1,
     relative_session_path VARCHAR NOT NULL,
     profiler_settings     VARCHAR,
-    streaming_enabled     BOOLEAN NOT NULL DEFAULT FALSE,
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     finished_at           TIMESTAMPTZ,

@@ -21,7 +21,6 @@ package pbouda.jeffrey.init;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 
@@ -166,88 +165,27 @@ class FeatureBuilderTest {
     }
 
     @Nested
-    class Messaging {
+    class Agent {
 
         @Test
-        void enabledProducesCorrectOptions() {
+        void agentPathProducesAgentAndStreamingOptions() {
             String result = new FeatureBuilder()
-                    .setMessagingEnabled(true)
+                    .setAgentPath("/path/to/jeffrey-agent.jar")
                     .build(SESSION_PATH);
 
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
             assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
             assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
             assertTrue(result.contains("preserve-repository=true"));
-            assertTrue(result.contains("-XX:StartFlightRecording="));
-            assertTrue(result.contains("name=jeffrey-streaming"));
-            assertTrue(result.contains("maxage=24h")); // default
-            assertFalse(result.contains(EventTypeName.MESSAGE + "#enabled=false"));
         }
 
         @Test
-        void disabledProducesSuppressedEvent() {
+        void noAgentPathProducesNoOptions() {
             String result = new FeatureBuilder()
-                    .setMessagingEnabled(false)
-                    .setAlertingEnabled(true)
                     .build(SESSION_PATH);
 
-            assertTrue(result.contains(EventTypeName.MESSAGE + "#enabled=false"));
-        }
-
-        @Test
-        void customMaxAgeProducesCorrectOptions() {
-            String result = new FeatureBuilder()
-                    .setMessagingEnabled(true)
-                    .setStreamingMaxAge("12h")
-                    .build(SESSION_PATH);
-
-            assertTrue(result.contains("maxage=12h"));
-        }
-
-        @Test
-        void disabledAloneProducesNoOptions() {
-            String result = new FeatureBuilder()
-                    .setMessagingEnabled(false)
-                    .build(SESSION_PATH);
-
-            assertEquals("", result);
-        }
-    }
-
-    @Nested
-    class Alerting {
-
-        @Test
-        void enabledProducesCorrectOptions() {
-            String result = new FeatureBuilder()
-                    .setAlertingEnabled(true)
-                    .build(SESSION_PATH);
-
-            assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
-            assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
-            assertTrue(result.contains("preserve-repository=true"));
-            assertTrue(result.contains("-XX:StartFlightRecording="));
-            assertTrue(result.contains("name=jeffrey-streaming"));
-            assertTrue(result.contains("maxage=24h")); // default
-            assertFalse(result.contains(EventTypeName.ALERT + "#enabled=false"));
-        }
-
-        @Test
-        void disabledProducesSuppressedEvent() {
-            String result = new FeatureBuilder()
-                    .setAlertingEnabled(false)
-                    .setMessagingEnabled(true)
-                    .build(SESSION_PATH);
-
-            assertTrue(result.contains(EventTypeName.ALERT + "#enabled=false"));
-        }
-
-        @Test
-        void disabledAloneProducesNoOptions() {
-            String result = new FeatureBuilder()
-                    .setAlertingEnabled(false)
-                    .build(SESSION_PATH);
-
-            assertEquals("", result);
+            assertFalse(result.contains("-javaagent:"));
+            assertFalse(result.contains("-XX:FlightRecorderOptions:repository="));
         }
     }
 
@@ -292,9 +230,7 @@ class FeatureBuilderTest {
                     .setPerfCountersEnabled(true)
                     .setHeapDumpEnabled(HeapDumpType.CRASH)
                     .setJvmLogging("jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log")
-                    .setMessagingEnabled(true)
-                    .setAlertingEnabled(true)
-                    .setStreamingMaxAge("6h")
+                    .setAgentPath("/path/to/jeffrey-agent.jar")
                     .setAdditionalJvmOptions("-Xmx1200m")
                     .build(SESSION_PATH);
 
@@ -302,8 +238,8 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:+UsePerfData"));
             assertTrue(result.contains("-XX:+CrashOnOutOfMemoryError"));
             assertTrue(result.contains("-Xlog:"));
-            assertTrue(result.contains("jeffrey-streaming"));
-            assertTrue(result.contains("maxage=6h"));
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
             assertTrue(result.contains("-Xmx1200m"));
         }
 

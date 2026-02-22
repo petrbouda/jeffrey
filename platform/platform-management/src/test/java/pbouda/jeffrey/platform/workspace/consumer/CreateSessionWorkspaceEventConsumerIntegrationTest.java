@@ -130,7 +130,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         .thenReturn(Optional.of(hb3));
 
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 4, "session-004", "cpu=true", true);
+                        INSTANCE_ID, 4, "session-004", "cpu=true");
                 WorkspaceEvent event = new WorkspaceEvent(
                         null, "session-004", ORIGIN_PROJECT_ID, WORKSPACE_ID,
                         WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
@@ -183,7 +183,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
                 Instant newSessionOriginCreatedAt = Instant.parse("2025-06-15T11:00:00Z");
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 4, "session-004", "cpu=true", true);
+                        INSTANCE_ID, 4, "session-004", "cpu=true");
                 WorkspaceEvent event = new WorkspaceEvent(
                         null, "session-004", ORIGIN_PROJECT_ID, WORKSPACE_ID,
                         WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
@@ -249,7 +249,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         .thenReturn(Optional.of(hb3));
 
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 4, "session-004", "cpu=true", true);
+                        INSTANCE_ID, 4, "session-004", "cpu=true");
                 WorkspaceEvent event = new WorkspaceEvent(
                         null, "session-004", ORIGIN_PROJECT_ID, WORKSPACE_ID,
                         WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
@@ -307,7 +307,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         .thenReturn(Optional.of(hb));
 
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 2, "session-002", "cpu=true", true);
+                        INSTANCE_ID, 2, "session-002", "cpu=true");
                 WorkspaceEvent event = new WorkspaceEvent(
                         null, "session-002", ORIGIN_PROJECT_ID, WORKSPACE_ID,
                         WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
@@ -346,7 +346,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
                 Instant newSessionOriginCreatedAt = Instant.parse("2025-06-15T09:00:00Z");
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 2, "session-002", "cpu=true", true);
+                        INSTANCE_ID, 2, "session-002", "cpu=true");
                 WorkspaceEvent event = new WorkspaceEvent(
                         null, "session-002", ORIGIN_PROJECT_ID, WORKSPACE_ID,
                         WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,

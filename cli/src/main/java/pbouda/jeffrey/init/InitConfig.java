@@ -55,11 +55,7 @@ public class InitConfig {
             perf-counters { enabled = false }
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
-            messaging { enabled = true }
-            alerting { enabled = true }
-            streaming { max-age = "2d" }
             agent-path = ""
-            heartbeat { enabled = true }
             jdk-java-options { enabled = false, additional-options = "" }
             debug-non-safepoints { enabled = true }
             """;
@@ -145,28 +141,6 @@ public class InitConfig {
         }
         config.setJvmLogging(jvmLogging);
 
-        Config msgCfg = resolved.getConfig("messaging");
-        MessagingConfig messaging = new MessagingConfig();
-        messaging.setEnabled(msgCfg.getBoolean("enabled"));
-        config.setMessaging(messaging);
-
-        Config alertCfg = resolved.getConfig("alerting");
-        AlertingConfig alerting = new AlertingConfig();
-        alerting.setEnabled(alertCfg.getBoolean("enabled"));
-        config.setAlerting(alerting);
-
-        Config streamCfg = resolved.getConfig("streaming");
-        StreamingConfig streaming = new StreamingConfig();
-        if (streamCfg.hasPath("max-age")) {
-            streaming.setMaxAge(streamCfg.getString("max-age"));
-        }
-        config.setStreaming(streaming);
-
-        Config hbCfg = resolved.getConfig("heartbeat");
-        HeartbeatConfig heartbeat = new HeartbeatConfig();
-        heartbeat.setEnabled(hbCfg.getBoolean("enabled"));
-        config.setHeartbeat(heartbeat);
-
         Config jdkCfg = resolved.getConfig("jdk-java-options");
         JdkJavaOptionsConfig jdkJavaOptions = new JdkJavaOptionsConfig();
         jdkJavaOptions.setEnabled(jdkCfg.getBoolean("enabled"));
@@ -194,10 +168,6 @@ public class InitConfig {
     private PerfCountersConfig perfCounters;
     private HeapDumpConfig heapDump;
     private JvmLoggingConfig jvmLogging;
-    private MessagingConfig messaging;
-    private AlertingConfig alerting;
-    private StreamingConfig streaming;
-    private HeartbeatConfig heartbeat;
     private JdkJavaOptionsConfig jdkJavaOptions;
     private DebugNonSafepointsConfig debugNonSafepoints;
     private Map<String, Object> attributes;
@@ -340,38 +310,6 @@ public class InitConfig {
         this.jvmLogging = jvmLogging;
     }
 
-    public MessagingConfig getMessaging() {
-        return messaging;
-    }
-
-    public void setMessaging(MessagingConfig messaging) {
-        this.messaging = messaging;
-    }
-
-    public AlertingConfig getAlerting() {
-        return alerting;
-    }
-
-    public void setAlerting(AlertingConfig alerting) {
-        this.alerting = alerting;
-    }
-
-    public StreamingConfig getStreaming() {
-        return streaming;
-    }
-
-    public void setStreaming(StreamingConfig streaming) {
-        this.streaming = streaming;
-    }
-
-    public HeartbeatConfig getHeartbeat() {
-        return heartbeat;
-    }
-
-    public void setHeartbeat(HeartbeatConfig heartbeat) {
-        this.heartbeat = heartbeat;
-    }
-
     public JdkJavaOptionsConfig getJdkJavaOptions() {
         return jdkJavaOptions;
     }
@@ -459,54 +397,6 @@ public class InitConfig {
         }
     }
 
-    public static class MessagingConfig {
-        private boolean enabled;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-    }
-
-    public static class AlertingConfig {
-        private boolean enabled;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-    }
-
-    public static class StreamingConfig {
-        private String maxAge = "24h";
-
-        public String getMaxAge() {
-            return maxAge;
-        }
-
-        public void setMaxAge(String maxAge) {
-            this.maxAge = maxAge;
-        }
-    }
-
-    public static class HeartbeatConfig {
-        private boolean enabled;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-    }
-
     public static class JdkJavaOptionsConfig {
         private boolean enabled;
         private String additionalOptions;
@@ -563,25 +453,6 @@ public class InitConfig {
 
     public boolean isDebugNonSafepointsEnabled() {
         return debugNonSafepoints != null && debugNonSafepoints.isEnabled();
-    }
-
-    public boolean isMessagingEnabled() {
-        return messaging != null && messaging.isEnabled();
-    }
-
-    public boolean isAlertingEnabled() {
-        return alerting != null && alerting.isEnabled();
-    }
-
-    public String getStreamingMaxAge() {
-        if (streaming != null && !isNullOrBlank(streaming.getMaxAge())) {
-            return streaming.getMaxAge();
-        }
-        return "24h";
-    }
-
-    public boolean isHeartbeatEnabled() {
-        return heartbeat != null && heartbeat.isEnabled();
     }
 
     /**
@@ -663,17 +534,6 @@ public class InitConfig {
             throw new IllegalArgumentException("Project name can only contain alphanumeric characters, underscores, and dashes");
         }
 
-        if (isMessagingEnabled() && !isNullOrBlank(profilerConfig)) {
-            throw new IllegalArgumentException("Cannot specify both 'messaging.enabled' and 'profiler-config'");
-        }
-
-        if (isAlertingEnabled() && !isNullOrBlank(profilerConfig)) {
-            throw new IllegalArgumentException("Cannot specify both 'alerting.enabled' and 'profiler-config'");
-        }
-
-        if (isHeartbeatEnabled() && !isNullOrBlank(profilerConfig)) {
-            throw new IllegalArgumentException("Cannot specify both 'heartbeat.enabled' and 'profiler-config'");
-        }
     }
 
     // ==================== Project Config ====================

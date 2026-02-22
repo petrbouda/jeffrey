@@ -108,7 +108,7 @@ class JdbcProjectRepositoryRepositoryTest {
 
             ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                     "session-new-001", "repo-001", "inst-001", 1, Path.of("session-test"), "cpu=true",
-                    false, Instant.parse("2025-01-15T10:00:00Z"), null, null, null);
+                    Instant.parse("2025-01-15T10:00:00Z"), null, null, null);
 
             repository.createSession(sessionInfo);
 

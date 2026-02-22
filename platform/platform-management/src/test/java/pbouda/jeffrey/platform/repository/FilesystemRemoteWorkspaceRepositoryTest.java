@@ -82,7 +82,7 @@ class FilesystemRemoteWorkspaceRepositoryTest {
                 sessionId, projectId, "ws-001", instanceId,
                 1718452800000L, 1,
                 "ws-001/my-project/" + instanceId + "/" + sessionId,
-                "cpu=10ms", true);
+                "cpu=10ms");
     }
 
     @Nested

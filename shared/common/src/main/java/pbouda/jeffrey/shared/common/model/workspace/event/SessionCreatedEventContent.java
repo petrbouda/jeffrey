@@ -22,6 +22,5 @@ public record SessionCreatedEventContent(
         String instanceId,
         int order,
         String relativeSessionPath,
-        String profilerSettings,
-        boolean streamingEnabled) {
+        String profilerSettings) {
 }

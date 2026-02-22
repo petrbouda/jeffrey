@@ -106,7 +106,6 @@ class AsprofFileRepositoryStorageTest {
                 1,                    // order
                 Path.of(SESSION_ID),  // relativeSessionPath
                 null,                 // profilerSettings
-                false,                // streamingEnabled
                 now,                  // originCreatedAt
                 now,                  // createdAt
                 now,                  // finishedAt - set to mark session as FINISHED

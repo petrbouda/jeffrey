@@ -159,7 +159,7 @@ class WorkspaceEventConverterTest {
             RemoteProjectInstanceSession remoteSession = new RemoteProjectInstanceSession(
                     "session-001", "origin-proj-001", WORKSPACE_ID,
                     "inst-001", createdAtMillis, 3,
-                    "inst-001/session-001", "cpu=true", true);
+                    "inst-001/session-001", "cpu=true");
 
             WorkspaceEvent result = WorkspaceEventConverter.sessionCreated(
                     NOW, remoteSession, WORKSPACE_INFO, CREATOR);
@@ -180,8 +180,7 @@ class WorkspaceEventConverterTest {
                     () -> assertEquals("inst-001", content.instanceId()),
                     () -> assertEquals(3, content.order()),
                     () -> assertEquals("inst-001/session-001", content.relativeSessionPath()),
-                    () -> assertEquals("cpu=true", content.profilerSettings()),
-                    () -> assertTrue(content.streamingEnabled())
+                    () -> assertEquals("cpu=true", content.profilerSettings())
             );
         }
     }
@@ -219,7 +218,7 @@ class WorkspaceEventConverterTest {
 
             ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                     "session-001", "repo-001", "inst-001", 1,
-                    Path.of("inst-001/session-001"), "cpu=true", true,
+                    Path.of("inst-001/session-001"), "cpu=true",
                     NOW, NOW, null, null);
 
             WorkspaceEvent result = WorkspaceEventConverter.sessionFinished(

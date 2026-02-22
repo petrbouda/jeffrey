@@ -120,7 +120,6 @@ public class FileSystemRepository {
             String instanceId,
             int order,
             String profilerSettings,
-            boolean streamingEnabled,
             Path sessionPath) {
         LOG.debug("Adding session to filesystem repository: sessionId={} projectId={} instanceId={} sessionPath={}", sessionId, projectId, instanceId, sessionPath);
         try {
@@ -135,8 +134,7 @@ public class FileSystemRepository {
                     clock.instant().toEpochMilli(),
                     order,
                     relativeSessionPath,
-                    profilerSettings,
-                    streamingEnabled);
+                    profilerSettings);
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             Files.writeString(sessionInfoFile, Json.toString(session));

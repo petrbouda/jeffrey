@@ -128,19 +128,13 @@ public class InitExecutor {
         Path newSessionPath = createDirectories(instancePath.resolve(sessionId));
         LOG.debug("Session directory created: sessionId={} sessionPath={}", sessionId, newSessionPath);
 
-        if (config.isMessagingEnabled() || config.isAlertingEnabled() || config.isHeartbeatEnabled()) {
-            createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
-        }
+        createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
 
         String features = new FeatureBuilder()
                 .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())
                 .setHeapDumpEnabled(config.resolveHeapDumpType())
                 .setPerfCountersEnabled(config.isPerfCountersEnabled())
                 .setJvmLogging(config.getJvmLoggingCommand())
-                .setMessagingEnabled(config.isMessagingEnabled())
-                .setAlertingEnabled(config.isAlertingEnabled())
-                .setStreamingMaxAge(config.getStreamingMaxAge())
-                .setHeartbeatEnabled(config.isHeartbeatEnabled())
                 .setAgentPath(config.getAgentPath())
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
                 .build(newSessionPath);
@@ -168,12 +162,11 @@ public class InitExecutor {
                 instanceId,
                 order,
                 profilerSettings,
-                config.isMessagingEnabled() || config.isAlertingEnabled(),
                 newSessionPath);
 
         eventPublisher.publishSessionCreated(
                 sessionId, projectId, config.getWorkspaceId(),
-                instanceId, order, profilerSettings, config.isMessagingEnabled() || config.isAlertingEnabled());
+                instanceId, order, profilerSettings);
 
         EnvFileBuilder.Context envContext = new EnvFileBuilder.Context(
                 jeffreyHome,

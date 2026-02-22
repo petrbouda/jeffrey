@@ -26,6 +26,5 @@ public record RemoteProjectInstanceSession(
         long createdAt,
         int order,
         String relativeSessionPath,
-        String profilerSettings,
-        boolean streamingEnabled) {
+        String profilerSettings) {
 }

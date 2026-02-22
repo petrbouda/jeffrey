@@ -13,7 +13,7 @@ VALUES
     ('inst-001', 'proj-001', 'host-1.example.com', '2025-01-01T12:00:00Z'),
     ('inst-002', 'proj-001', 'host-2.example.com', '2025-01-01T12:00:00Z');
 
-INSERT INTO project_instance_sessions (session_id, repository_id, instance_id, session_order, relative_session_path, profiler_settings, streaming_enabled, origin_created_at, created_at, finished_at)
+INSERT INTO project_instance_sessions (session_id, repository_id, instance_id, session_order, relative_session_path, profiler_settings, origin_created_at, created_at, finished_at)
 VALUES
-    ('session-001', 'repo-001', 'inst-001', 1, 'session-2025-01-01', 'cpu=true', true, '2025-01-01T12:00:00Z', '2025-01-01T12:00:01Z', NULL),
-    ('session-002', 'repo-001', 'inst-002', 1, 'session-2025-01-02', 'cpu=true', false, '2025-01-02T12:00:00Z', '2025-01-02T12:00:01Z', '2025-01-02T13:00:00Z');
+    ('session-001', 'repo-001', 'inst-001', 1, 'session-2025-01-01', 'cpu=true', '2025-01-01T12:00:00Z', '2025-01-01T12:00:01Z', NULL),
+    ('session-002', 'repo-001', 'inst-002', 1, 'session-2025-01-02', 'cpu=true', '2025-01-02T12:00:00Z', '2025-01-02T12:00:01Z', '2025-01-02T13:00:00Z');

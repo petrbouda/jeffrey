@@ -40,8 +40,6 @@ class InitConfigTest {
             perf-counters { enabled = false }
             heap-dump { enabled = false }
             jvm-logging { enabled = false }
-            messaging { enabled = false }
-            alerting { enabled = false }
             jdk-java-options { enabled = false }
             """;
 
@@ -98,33 +96,6 @@ class InitConfigTest {
             assertNotNull(config.getJvmLogging());
             assertTrue(config.getJvmLogging().isEnabled());
             assertTrue(config.getJvmLoggingCommand().contains("jfr*=trace"));
-        }
-
-        @Test
-        void parsesMessagingConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
-
-            assertNotNull(config.getMessaging());
-            assertTrue(config.getMessaging().isEnabled());
-            assertTrue(config.isMessagingEnabled());
-        }
-
-        @Test
-        void parsesAlertingConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
-
-            assertNotNull(config.getAlerting());
-            assertTrue(config.getAlerting().isEnabled());
-            assertTrue(config.isAlertingEnabled());
-        }
-
-        @Test
-        void parsesStreamingConfig() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
-
-            assertNotNull(config.getStreaming());
-            assertEquals("12h", config.getStreaming().getMaxAge());
-            assertEquals("12h", config.getStreamingMaxAge());
         }
 
         @Test
@@ -197,12 +168,6 @@ class InitConfigTest {
             assertNotNull(config.getJvmLogging());
             assertNull(config.getJvmLoggingCommand());
 
-            assertNotNull(config.getMessaging());
-            assertFalse(config.isMessagingEnabled());
-
-            assertNotNull(config.getAlerting());
-            assertFalse(config.isAlertingEnabled());
-
             assertNotNull(config.getJdkJavaOptions());
             assertFalse(config.isJdkJavaOptionsEnabled());
 
@@ -250,18 +215,6 @@ class InitConfigTest {
         void isPerfCountersEnabledReturnsFalseWhenDisabled() {
             InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
             assertFalse(config.isPerfCountersEnabled());
-        }
-
-        @Test
-        void isMessagingEnabledReturnsFalseWhenDisabled() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
-            assertFalse(config.isMessagingEnabled());
-        }
-
-        @Test
-        void getStreamingMaxAgeReturnsDefaultWhenNotSet() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
-            assertEquals("2d", config.getStreamingMaxAge());
         }
 
         @Test
@@ -610,61 +563,5 @@ class InitConfigTest {
             assertEquals("my_project-123", config.getProjectName());
         }
 
-        @Test
-        void throwsExceptionWhenMessagingEnabledWithProfilerConfig() throws IOException {
-            Path configFile = tempDir.resolve("invalid.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"test\" }",
-                    "profiler-config = \"some-config\"",
-                    "messaging { enabled = true }",
-                    "alerting { enabled = false }",
-                    "heartbeat { enabled = false }"
-            ));
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile, null)
-            );
-            assertEquals("Cannot specify both 'messaging.enabled' and 'profiler-config'", exception.getMessage());
-        }
-
-        @Test
-        void allowsMessagingDisabledWithProfilerConfig() throws IOException {
-            Path configFile = tempDir.resolve("valid.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"test\" }",
-                    "profiler-config = \"some-config\"",
-                    "messaging { enabled = false }",
-                    "alerting { enabled = false }",
-                    "heartbeat { enabled = false }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null);
-            assertFalse(config.isMessagingEnabled());
-            assertFalse(config.isAlertingEnabled());
-            assertFalse(config.isHeartbeatEnabled());
-            assertEquals("some-config", config.getProfilerConfig());
-        }
-
-        @Test
-        void throwsExceptionWhenAlertingEnabledWithProfilerConfig() throws IOException {
-            Path configFile = tempDir.resolve("invalid.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"/tmp/jeffrey\"",
-                    "project { workspace-id = \"test\", name = \"test\" }",
-                    "profiler-config = \"some-config\"",
-                    "messaging { enabled = false }",
-                    "alerting { enabled = true }",
-                    "heartbeat { enabled = false }"
-            ));
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile, null)
-            );
-            assertEquals("Cannot specify both 'alerting.enabled' and 'profiler-config'", exception.getMessage());
-        }
     }
 }

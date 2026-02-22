@@ -18,14 +18,44 @@
 
 package pbouda.jeffrey.agent;
 
+import cafe.jeffrey.jfr.events.JeffreyEventRegistry;
 import cafe.jeffrey.jfr.events.heartbeat.HeartbeatEvent;
+import cafe.jeffrey.jfr.events.message.AlertEvent;
+import cafe.jeffrey.jfr.events.message.MessageEvent;
 import jdk.jfr.FlightRecorder;
+import jdk.jfr.Recording;
 
 import java.lang.instrument.Instrumentation;
+import java.time.Duration;
 
 public class JeffreyAgent {
 
+    private static final String RECORDING_NAME = "jeffrey-streaming";
+    private static final Duration RECORDING_MAX_AGE = Duration.ofDays(2);
+
     public static void premain(String args, Instrumentation inst) {
+        // Create a new recording with custom settings
+        Recording recording = new Recording();
+        Runtime.getRuntime().addShutdownHook(
+                Thread.ofPlatform()
+                        .name("jeffrey-agent-shutdown")
+                        .unstarted(recording::close)
+        );
+
+        recording.setName(RECORDING_NAME);
+
+        // Disable ALL registered events (including custom @Enabled(true) ones)
+        for (var et : JeffreyEventRegistry.all()) {
+            recording.disable(et);
+        }
+
+        recording.enable(AlertEvent.class);
+        recording.enable(MessageEvent.class);
+        recording.enable(HeartbeatEvent.class);
+        recording.setMaxAge(RECORDING_MAX_AGE);
+        recording.start();
+
+        // Add a periodic event that emits a HeartbeatEvent every second
         FlightRecorder.addPeriodicEvent(HeartbeatEvent.class, HeartbeatEmitter.INSTANCE);
     }
 }

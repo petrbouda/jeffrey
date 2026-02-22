@@ -79,7 +79,7 @@ public class JfrStreamingConsumerManager implements Closeable {
 
     /**
      * Registers a new streaming consumer for the given session.
-     * Only registers if streaming is enabled for the session and no consumer already exists.
+     * Only registers if no consumer already exists for this session.
      *
      * @param repositoryInfo       information about the repository
      * @param sessionInfo          information about the session
@@ -91,11 +91,6 @@ public class JfrStreamingConsumerManager implements Closeable {
             ProjectInstanceSessionInfo sessionInfo,
             ProjectRepositoryRepository repositoryRepository,
             ProjectInfo projectInfo) {
-
-        if (!sessionInfo.streamingEnabled()) {
-            LOG.debug("Streaming not enabled for session, skipping: sessionId={}", sessionInfo.sessionId());
-            return;
-        }
 
         String sessionId = sessionInfo.sessionId();
         if (consumers.containsKey(sessionId)) {

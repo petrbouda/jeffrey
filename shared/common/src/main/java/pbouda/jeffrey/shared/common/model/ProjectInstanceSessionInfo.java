@@ -28,7 +28,6 @@ public record ProjectInstanceSessionInfo(
         int order,
         Path relativeSessionPath,
         String profilerSettings,
-        boolean streamingEnabled,
         Instant originCreatedAt,
         Instant createdAt,
         Instant finishedAt,

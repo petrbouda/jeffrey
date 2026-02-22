@@ -34,7 +34,7 @@ import java.util.List;
 
 /**
  * Initializes JFR streaming consumers for existing active sessions on application startup.
- * Queries all unfinished sessions with streaming enabled and registers consumers for them.
+ * Queries all unfinished sessions and registers consumers for them.
  */
 public class JfrStreamingInitializer implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -82,10 +82,8 @@ public class JfrStreamingInitializer implements ApplicationListener<ApplicationR
 
         int count = 0;
         for (ProjectInstanceSessionInfo session : unfinishedSessions) {
-            if (session.streamingEnabled()) {
-                consumerManager.registerConsumer(repositoryInfo, session, repoRepository, project.info());
-                count++;
-            }
+            consumerManager.registerConsumer(repositoryInfo, session, repoRepository, project.info());
+            count++;
         }
 
         return count;

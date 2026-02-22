@@ -1,7 +1,6 @@
 package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.init.model.HeapDumpType;
-import pbouda.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 
@@ -28,7 +27,7 @@ public class FeatureBuilder {
     private static final String HEAP_DUMP_EXIT_OPTIONS = HEAP_DUMP_BASE_OPTIONS
             + "-XX:+ExitOnOutOfMemoryError ";
 
-    /* Streaming JFR options (shared by messaging and heartbeat) */
+    /* Streaming JFR options (used by Jeffrey Agent for repository location) */
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
             "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
 
@@ -42,10 +41,6 @@ public class FeatureBuilder {
     private boolean perfCountersEnabled;
     private HeapDumpType heapDumpType;
     private String jvmLogging;
-    private boolean messagingEnabled;
-    private boolean alertingEnabled;
-    private String streamingMaxAge = "24h";
-    private boolean heartbeatEnabled;
     private String agentPath;
     private String additionalJvmOptions;
 
@@ -66,26 +61,6 @@ public class FeatureBuilder {
 
     public FeatureBuilder setJvmLogging(String jvmLogging) {
         this.jvmLogging = jvmLogging;
-        return this;
-    }
-
-    public FeatureBuilder setMessagingEnabled(boolean enabled) {
-        this.messagingEnabled = enabled;
-        return this;
-    }
-
-    public FeatureBuilder setAlertingEnabled(boolean enabled) {
-        this.alertingEnabled = enabled;
-        return this;
-    }
-
-    public FeatureBuilder setStreamingMaxAge(String maxAge) {
-        this.streamingMaxAge = maxAge;
-        return this;
-    }
-
-    public FeatureBuilder setHeartbeatEnabled(boolean enabled) {
-        this.heartbeatEnabled = enabled;
         return this;
     }
 
@@ -130,21 +105,7 @@ public class FeatureBuilder {
         if (agentPath != null && !agentPath.isBlank()) {
             options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath));
             options.append(" ");
-        }
-
-        if (messagingEnabled || alertingEnabled || heartbeatEnabled) {
             options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
-            options.append(" ");
-
-            StringBuilder startRecording = new StringBuilder("-XX:StartFlightRecording=name=jeffrey-streaming");
-            startRecording.append(",maxage=").append(streamingMaxAge);
-            if (!messagingEnabled) {
-                startRecording.append(",").append(EventTypeName.MESSAGE).append("#enabled=false");
-            }
-            if (!alertingEnabled) {
-                startRecording.append(",").append(EventTypeName.ALERT).append("#enabled=false");
-            }
-            options.append(startRecording);
             options.append(" ");
         }
 
