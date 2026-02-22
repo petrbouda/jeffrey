@@ -180,24 +180,71 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:StartFlightRecording="));
             assertTrue(result.contains("name=jeffrey-streaming"));
             assertTrue(result.contains("maxage=24h")); // default
-            assertTrue(result.contains(EventTypeName.MESSAGE + "#enabled=true"));
-            assertTrue(result.contains(EventTypeName.ALERT + "#enabled=true"));
+            assertFalse(result.contains(EventTypeName.MESSAGE + "#enabled=false"));
+        }
+
+        @Test
+        void disabledProducesSuppressedEvent() {
+            String result = new FeatureBuilder()
+                    .setMessagingEnabled(false)
+                    .setAlertingEnabled(true)
+                    .build(SESSION_PATH);
+
+            assertTrue(result.contains(EventTypeName.MESSAGE + "#enabled=false"));
         }
 
         @Test
         void customMaxAgeProducesCorrectOptions() {
             String result = new FeatureBuilder()
                     .setMessagingEnabled(true)
-                    .setMessagingMaxAge("12h")
+                    .setStreamingMaxAge("12h")
                     .build(SESSION_PATH);
 
             assertTrue(result.contains("maxage=12h"));
         }
 
         @Test
-        void disabledProducesNoOptions() {
+        void disabledAloneProducesNoOptions() {
             String result = new FeatureBuilder()
                     .setMessagingEnabled(false)
+                    .build(SESSION_PATH);
+
+            assertEquals("", result);
+        }
+    }
+
+    @Nested
+    class Alerting {
+
+        @Test
+        void enabledProducesCorrectOptions() {
+            String result = new FeatureBuilder()
+                    .setAlertingEnabled(true)
+                    .build(SESSION_PATH);
+
+            assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
+            assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
+            assertTrue(result.contains("preserve-repository=true"));
+            assertTrue(result.contains("-XX:StartFlightRecording="));
+            assertTrue(result.contains("name=jeffrey-streaming"));
+            assertTrue(result.contains("maxage=24h")); // default
+            assertFalse(result.contains(EventTypeName.ALERT + "#enabled=false"));
+        }
+
+        @Test
+        void disabledProducesSuppressedEvent() {
+            String result = new FeatureBuilder()
+                    .setAlertingEnabled(false)
+                    .setMessagingEnabled(true)
+                    .build(SESSION_PATH);
+
+            assertTrue(result.contains(EventTypeName.ALERT + "#enabled=false"));
+        }
+
+        @Test
+        void disabledAloneProducesNoOptions() {
+            String result = new FeatureBuilder()
+                    .setAlertingEnabled(false)
                     .build(SESSION_PATH);
 
             assertEquals("", result);
@@ -246,7 +293,8 @@ class FeatureBuilderTest {
                     .setHeapDumpEnabled(HeapDumpType.CRASH)
                     .setJvmLogging("jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log")
                     .setMessagingEnabled(true)
-                    .setMessagingMaxAge("6h")
+                    .setAlertingEnabled(true)
+                    .setStreamingMaxAge("6h")
                     .setAdditionalJvmOptions("-Xmx1200m")
                     .build(SESSION_PATH);
 

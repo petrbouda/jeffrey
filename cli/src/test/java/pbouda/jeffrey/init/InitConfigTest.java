@@ -41,6 +41,7 @@ class InitConfigTest {
             heap-dump { enabled = false }
             jvm-logging { enabled = false }
             messaging { enabled = false }
+            alerting { enabled = false }
             jdk-java-options { enabled = false }
             """;
 
@@ -105,9 +106,25 @@ class InitConfigTest {
 
             assertNotNull(config.getMessaging());
             assertTrue(config.getMessaging().isEnabled());
-            assertEquals("12h", config.getMessaging().getMaxAge());
             assertTrue(config.isMessagingEnabled());
-            assertEquals("12h", config.getMessagingMaxAge());
+        }
+
+        @Test
+        void parsesAlertingConfig() {
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
+
+            assertNotNull(config.getAlerting());
+            assertTrue(config.getAlerting().isEnabled());
+            assertTrue(config.isAlertingEnabled());
+        }
+
+        @Test
+        void parsesStreamingConfig() {
+            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
+
+            assertNotNull(config.getStreaming());
+            assertEquals("12h", config.getStreaming().getMaxAge());
+            assertEquals("12h", config.getStreamingMaxAge());
         }
 
         @Test
@@ -183,6 +200,9 @@ class InitConfigTest {
             assertNotNull(config.getMessaging());
             assertFalse(config.isMessagingEnabled());
 
+            assertNotNull(config.getAlerting());
+            assertFalse(config.isAlertingEnabled());
+
             assertNotNull(config.getJdkJavaOptions());
             assertFalse(config.isJdkJavaOptionsEnabled());
 
@@ -239,9 +259,9 @@ class InitConfigTest {
         }
 
         @Test
-        void getMessagingMaxAgeReturnsDefaultWhenNotSet() {
+        void getStreamingMaxAgeReturnsDefaultWhenNotSet() {
             InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
-            assertEquals("24h", config.getMessagingMaxAge());
+            assertEquals("2d", config.getStreamingMaxAge());
         }
 
         @Test
@@ -524,7 +544,9 @@ class InitConfigTest {
                     "jeffrey-home = \"/tmp/jeffrey\"",
                     "project { workspace-id = \"test\", name = \"test\" }",
                     "profiler-config = \"some-config\"",
-                    "messaging { enabled = true }"
+                    "messaging { enabled = true }",
+                    "alerting { enabled = false }",
+                    "heartbeat { enabled = false }"
             ));
 
             IllegalArgumentException exception = assertThrows(
@@ -541,12 +563,35 @@ class InitConfigTest {
                     "jeffrey-home = \"/tmp/jeffrey\"",
                     "project { workspace-id = \"test\", name = \"test\" }",
                     "profiler-config = \"some-config\"",
-                    "messaging { enabled = false }"
+                    "messaging { enabled = false }",
+                    "alerting { enabled = false }",
+                    "heartbeat { enabled = false }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null);
             assertFalse(config.isMessagingEnabled());
+            assertFalse(config.isAlertingEnabled());
+            assertFalse(config.isHeartbeatEnabled());
             assertEquals("some-config", config.getProfilerConfig());
+        }
+
+        @Test
+        void throwsExceptionWhenAlertingEnabledWithProfilerConfig() throws IOException {
+            Path configFile = tempDir.resolve("invalid.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { workspace-id = \"test\", name = \"test\" }",
+                    "profiler-config = \"some-config\"",
+                    "messaging { enabled = false }",
+                    "alerting { enabled = true }",
+                    "heartbeat { enabled = false }"
+            ));
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> InitConfig.fromHoconFile(configFile, null)
+            );
+            assertEquals("Cannot specify both 'alerting.enabled' and 'profiler-config'", exception.getMessage());
         }
     }
 }

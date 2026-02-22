@@ -43,9 +43,9 @@ public class FeatureBuilder {
     private HeapDumpType heapDumpType;
     private String jvmLogging;
     private boolean messagingEnabled;
-    private String messagingMaxAge = "24h";
+    private boolean alertingEnabled;
+    private String streamingMaxAge = "24h";
     private boolean heartbeatEnabled;
-    private String heartbeatPeriod = "5 s";
     private String agentPath;
     private String additionalJvmOptions;
 
@@ -74,18 +74,18 @@ public class FeatureBuilder {
         return this;
     }
 
-    public FeatureBuilder setMessagingMaxAge(String maxAge) {
-        this.messagingMaxAge = maxAge;
+    public FeatureBuilder setAlertingEnabled(boolean enabled) {
+        this.alertingEnabled = enabled;
+        return this;
+    }
+
+    public FeatureBuilder setStreamingMaxAge(String maxAge) {
+        this.streamingMaxAge = maxAge;
         return this;
     }
 
     public FeatureBuilder setHeartbeatEnabled(boolean enabled) {
         this.heartbeatEnabled = enabled;
-        return this;
-    }
-
-    public FeatureBuilder setHeartbeatPeriod(String period) {
-        this.heartbeatPeriod = period;
         return this;
     }
 
@@ -132,19 +132,17 @@ public class FeatureBuilder {
             options.append(" ");
         }
 
-        if (messagingEnabled || heartbeatEnabled) {
+        if (messagingEnabled || alertingEnabled || heartbeatEnabled) {
             options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
 
             StringBuilder startRecording = new StringBuilder("-XX:StartFlightRecording=name=jeffrey-streaming");
-            if (messagingEnabled) {
-                startRecording.append(",maxage=").append(messagingMaxAge);
-                startRecording.append(",").append(EventTypeName.MESSAGE).append("#enabled=true");
-                startRecording.append(",").append(EventTypeName.ALERT).append("#enabled=true");
+            startRecording.append(",maxage=").append(streamingMaxAge);
+            if (!messagingEnabled) {
+                startRecording.append(",").append(EventTypeName.MESSAGE).append("#enabled=false");
             }
-            if (heartbeatEnabled) {
-                startRecording.append(",").append(EventTypeName.HEARTBEAT).append("#enabled=true");
-                startRecording.append(",").append(EventTypeName.HEARTBEAT).append("#period=").append(heartbeatPeriod.replace(" ", ""));
+            if (!alertingEnabled) {
+                startRecording.append(",").append(EventTypeName.ALERT).append("#enabled=false");
             }
             options.append(startRecording);
             options.append(" ");

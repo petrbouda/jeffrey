@@ -70,6 +70,27 @@
   },
   {
     "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$AlertingConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$HeartbeatConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
+    "name": "pbouda.jeffrey.init.InitConfig$StreamingConfig",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
     "name": "pbouda.jeffrey.init.InitConfig$JdkJavaOptionsConfig",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,

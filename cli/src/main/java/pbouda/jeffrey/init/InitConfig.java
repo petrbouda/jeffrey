@@ -55,8 +55,11 @@ public class InitConfig {
             perf-counters { enabled = false }
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
-            messaging { enabled = false, max-age = "24h" }
-            heartbeat { enabled = false, period = "5 s", agent-path = "" }
+            messaging { enabled = true }
+            alerting { enabled = true }
+            streaming { max-age = "2d" }
+            agent-path = ""
+            heartbeat { enabled = true }
             jdk-java-options { enabled = false, additional-options = "" }
             debug-non-safepoints { enabled = true }
             """;
@@ -109,6 +112,7 @@ public class InitConfig {
         config.setProfilerPath(resolved.getString("profiler-path"));
         config.setProfilerConfig(resolved.getString("profiler-config"));
         config.setRepositoryType(resolved.getString("repository-type"));
+        config.setAgentPath(resolved.getString("agent-path"));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
@@ -144,20 +148,23 @@ public class InitConfig {
         Config msgCfg = resolved.getConfig("messaging");
         MessagingConfig messaging = new MessagingConfig();
         messaging.setEnabled(msgCfg.getBoolean("enabled"));
-        if (msgCfg.hasPath("max-age")) {
-            messaging.setMaxAge(msgCfg.getString("max-age"));
-        }
         config.setMessaging(messaging);
+
+        Config alertCfg = resolved.getConfig("alerting");
+        AlertingConfig alerting = new AlertingConfig();
+        alerting.setEnabled(alertCfg.getBoolean("enabled"));
+        config.setAlerting(alerting);
+
+        Config streamCfg = resolved.getConfig("streaming");
+        StreamingConfig streaming = new StreamingConfig();
+        if (streamCfg.hasPath("max-age")) {
+            streaming.setMaxAge(streamCfg.getString("max-age"));
+        }
+        config.setStreaming(streaming);
 
         Config hbCfg = resolved.getConfig("heartbeat");
         HeartbeatConfig heartbeat = new HeartbeatConfig();
         heartbeat.setEnabled(hbCfg.getBoolean("enabled"));
-        if (hbCfg.hasPath("period")) {
-            heartbeat.setPeriod(hbCfg.getString("period"));
-        }
-        if (hbCfg.hasPath("agent-path")) {
-            heartbeat.setAgentPath(hbCfg.getString("agent-path"));
-        }
         config.setHeartbeat(heartbeat);
 
         Config jdkCfg = resolved.getConfig("jdk-java-options");
@@ -182,11 +189,14 @@ public class InitConfig {
     private String profilerPath;
     private String profilerConfig;
     private String repositoryType;
+    private String agentPath;
     private ProjectConfig project;
     private PerfCountersConfig perfCounters;
     private HeapDumpConfig heapDump;
     private JvmLoggingConfig jvmLogging;
     private MessagingConfig messaging;
+    private AlertingConfig alerting;
+    private StreamingConfig streaming;
     private HeartbeatConfig heartbeat;
     private JdkJavaOptionsConfig jdkJavaOptions;
     private DebugNonSafepointsConfig debugNonSafepoints;
@@ -298,6 +308,10 @@ public class InitConfig {
         this.repositoryType = repositoryType;
     }
 
+    public void setAgentPath(String agentPath) {
+        this.agentPath = agentPath;
+    }
+
     private static String nullIfBlank(String value) {
         return (value == null || value.isBlank()) ? null : value;
     }
@@ -332,6 +346,22 @@ public class InitConfig {
 
     public void setMessaging(MessagingConfig messaging) {
         this.messaging = messaging;
+    }
+
+    public AlertingConfig getAlerting() {
+        return alerting;
+    }
+
+    public void setAlerting(AlertingConfig alerting) {
+        this.alerting = alerting;
+    }
+
+    public StreamingConfig getStreaming() {
+        return streaming;
+    }
+
+    public void setStreaming(StreamingConfig streaming) {
+        this.streaming = streaming;
     }
 
     public HeartbeatConfig getHeartbeat() {
@@ -431,7 +461,6 @@ public class InitConfig {
 
     public static class MessagingConfig {
         private boolean enabled;
-        private String maxAge = "24h";
 
         public boolean isEnabled() {
             return enabled;
@@ -440,6 +469,22 @@ public class InitConfig {
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
         }
+    }
+
+    public static class AlertingConfig {
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    public static class StreamingConfig {
+        private String maxAge = "24h";
 
         public String getMaxAge() {
             return maxAge;
@@ -452,8 +497,6 @@ public class InitConfig {
 
     public static class HeartbeatConfig {
         private boolean enabled;
-        private String period = "5 s";
-        private String agentPath;
 
         public boolean isEnabled() {
             return enabled;
@@ -461,22 +504,6 @@ public class InitConfig {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
-        }
-
-        public String getPeriod() {
-            return period;
-        }
-
-        public void setPeriod(String period) {
-            this.period = period;
-        }
-
-        public String getAgentPath() {
-            return agentPath;
-        }
-
-        public void setAgentPath(String agentPath) {
-            this.agentPath = agentPath;
         }
     }
 
@@ -542,22 +569,19 @@ public class InitConfig {
         return messaging != null && messaging.isEnabled();
     }
 
-    public String getMessagingMaxAge() {
-        if (messaging != null && !isNullOrBlank(messaging.getMaxAge())) {
-            return messaging.getMaxAge();
+    public boolean isAlertingEnabled() {
+        return alerting != null && alerting.isEnabled();
+    }
+
+    public String getStreamingMaxAge() {
+        if (streaming != null && !isNullOrBlank(streaming.getMaxAge())) {
+            return streaming.getMaxAge();
         }
         return "24h";
     }
 
     public boolean isHeartbeatEnabled() {
         return heartbeat != null && heartbeat.isEnabled();
-    }
-
-    public String getHeartbeatPeriod() {
-        if (heartbeat != null && !isNullOrBlank(heartbeat.getPeriod())) {
-            return heartbeat.getPeriod();
-        }
-        return "5 s";
     }
 
     /**
@@ -567,8 +591,8 @@ public class InitConfig {
      */
     public String getAgentPath() {
         // 1. Explicit config value
-        if (heartbeat != null && !isNullOrBlank(heartbeat.getAgentPath())) {
-            return heartbeat.getAgentPath();
+        if (!isNullOrBlank(agentPath)) {
+            return agentPath;
         }
         // 2. Auto-resolve from jeffrey-home
         if (useJeffreyHome()) {
@@ -624,11 +648,11 @@ public class InitConfig {
             throw new IllegalArgumentException("Cannot specify both 'jeffrey-home' and 'workspaces-dir'");
         }
 
-        if (project == null || isNullOrBlank(project.getWorkspaceId())) {
+        if (isNullOrBlank(project.getWorkspaceId())) {
             throw new IllegalArgumentException("'project.workspace-id' must be specified");
         }
 
-        if (project == null || isNullOrBlank(project.getName())) {
+        if (isNullOrBlank(project.getName())) {
             throw new IllegalArgumentException("'project.name' must be specified");
         }
 
@@ -639,6 +663,10 @@ public class InitConfig {
 
         if (isMessagingEnabled() && !isNullOrBlank(profilerConfig)) {
             throw new IllegalArgumentException("Cannot specify both 'messaging.enabled' and 'profiler-config'");
+        }
+
+        if (isAlertingEnabled() && !isNullOrBlank(profilerConfig)) {
+            throw new IllegalArgumentException("Cannot specify both 'alerting.enabled' and 'profiler-config'");
         }
 
         if (isHeartbeatEnabled() && !isNullOrBlank(profilerConfig)) {
