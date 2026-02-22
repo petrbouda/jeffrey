@@ -601,7 +601,9 @@ public class InitConfig {
                 return candidate.toString();
             }
         }
-        return null;
+        throw new IllegalArgumentException(
+                "Agent path could not be resolved. Set 'agent-path' explicitly or ensure '"
+                        + DEFAULT_AGENT_RELATIVE_PATH + "' exists under JEFFREY_HOME: " + jeffreyHome);
     }
 
     public boolean isJdkJavaOptionsEnabled() {

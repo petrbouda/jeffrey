@@ -127,7 +127,7 @@ public class FeatureBuilder {
             options.append(" ");
         }
 
-        if (heartbeatEnabled && agentPath != null && !agentPath.isBlank()) {
+        if (agentPath != null && !agentPath.isBlank()) {
             options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath));
             options.append(" ");
         }

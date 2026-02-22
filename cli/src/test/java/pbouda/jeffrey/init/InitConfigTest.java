@@ -389,6 +389,79 @@ class InitConfigTest {
     }
 
     @Nested
+    class AgentPathResolution {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        void returnsExplicitAgentPathWhenSet() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "agent-path = \"/custom/path/jeffrey-agent.jar\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertEquals("/custom/path/jeffrey-agent.jar", config.getAgentPath());
+        }
+
+        @Test
+        void autoResolvesFromJeffreyHome() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("jeffrey-agent.jar"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertEquals(libsDir.resolve("jeffrey-agent.jar").toString(), config.getAgentPath());
+        }
+
+        @Test
+        void throwsWhenAutoResolvePathDoesNotExist() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    config::getAgentPath
+            );
+            assertTrue(exception.getMessage().contains("Agent path could not be resolved"));
+            assertTrue(exception.getMessage().contains(tempDir.toString()));
+        }
+
+        @Test
+        void throwsWhenUsingWorkspacesDir() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("jeffrey-agent.jar"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "workspaces-dir = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    config::getAgentPath
+            );
+            assertTrue(exception.getMessage().contains("Agent path could not be resolved"));
+        }
+    }
+
+    @Nested
     class Validation {
 
         @TempDir

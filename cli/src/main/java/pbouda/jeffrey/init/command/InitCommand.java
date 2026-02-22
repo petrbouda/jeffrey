@@ -32,7 +32,7 @@ public class InitCommand implements Runnable {
             InitConfig config = InitConfig.fromHoconFile(baseConfigFile, overrideConfigFile);
             new InitExecutor().execute(config);
         } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
+            LOG.error(e.getMessage());
         }
     }
 }
