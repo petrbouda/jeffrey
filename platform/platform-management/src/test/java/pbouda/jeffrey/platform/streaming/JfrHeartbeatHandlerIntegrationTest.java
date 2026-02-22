@@ -67,7 +67,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
-            when(mockEvent.getEndTime()).thenReturn(heartbeatTime);
+            when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
 
             handler.onEvent(mockEvent);
 
@@ -88,10 +88,10 @@ class JfrHeartbeatHandlerIntegrationTest {
             Instant first = Instant.parse("2025-06-15T11:50:00Z");
             Instant second = Instant.parse("2025-06-15T11:55:00Z");
 
-            when(mockEvent.getEndTime()).thenReturn(first);
+            when(mockEvent.getStartTime()).thenReturn(first);
             handler.onEvent(mockEvent);
 
-            when(mockEvent.getEndTime()).thenReturn(second);
+            when(mockEvent.getStartTime()).thenReturn(second);
             handler.onEvent(mockEvent);
 
             Optional<ProjectInstanceSessionInfo> session = repository.findSessionById(SESSION_ID);
@@ -117,7 +117,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), false);
 
             // Send one heartbeat
-            when(mockEvent.getEndTime()).thenReturn(NOW);
+            when(mockEvent.getStartTime()).thenReturn(NOW);
             handler.onEvent(mockEvent);
 
             // Advance clock well past the timeout
@@ -141,7 +141,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(200), false);
 
             // Send heartbeat right at clock time
-            when(mockEvent.getEndTime()).thenReturn(NOW);
+            when(mockEvent.getStartTime()).thenReturn(NOW);
             handler.onEvent(mockEvent);
 
             CountDownLatch closedLatch = new CountDownLatch(1);

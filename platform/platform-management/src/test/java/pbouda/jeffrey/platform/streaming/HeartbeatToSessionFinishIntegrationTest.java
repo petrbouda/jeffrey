@@ -111,7 +111,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
-            when(mockEvent.getEndTime()).thenReturn(heartbeatTime);
+            when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
             handler.onEvent(mockEvent);
 
             // Step 2: Verify heartbeat persisted to DB
@@ -175,7 +175,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
-            when(mockEvent.getEndTime()).thenReturn(heartbeatTime);
+            when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
             handler.onEvent(mockEvent);
 
             // Advance clock past threshold
@@ -222,11 +222,11 @@ class HeartbeatToSessionFinishIntegrationTest {
             Instant heartbeat2 = Instant.parse("2025-06-15T11:51:00Z");
 
             var handler1 = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
-            when(mockEvent.getEndTime()).thenReturn(heartbeat1);
+            when(mockEvent.getStartTime()).thenReturn(heartbeat1);
             handler1.onEvent(mockEvent);
 
             var handler2 = new JfrHeartbeatHandler(SESSION_ID_2, repoRepo, clock, Duration.ofMinutes(5), false);
-            when(mockEvent.getEndTime()).thenReturn(heartbeat2);
+            when(mockEvent.getStartTime()).thenReturn(heartbeat2);
             handler2.onEvent(mockEvent);
 
             // Advance clock past threshold for both
@@ -380,7 +380,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:55:00Z");
-            when(mockEvent.getEndTime()).thenReturn(heartbeatTime);
+            when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
             handler.onEvent(mockEvent);
 
             // Verify heartbeat was persisted
