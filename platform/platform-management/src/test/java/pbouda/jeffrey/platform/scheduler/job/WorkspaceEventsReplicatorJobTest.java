@@ -27,7 +27,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.shared.common.Json;
@@ -35,6 +37,8 @@ import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
@@ -63,6 +67,7 @@ class WorkspaceEventsReplicatorJobTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private static final String WORKSPACE_ID = "ws-001";
+    private static final String INTERNAL_WORKSPACE_ID = "ws-internal-001";
     private static final String PROJECT_ID = "proj-001";
     private static final String ORIGIN_PROJECT_ID = "origin-proj-001";
 
@@ -105,8 +110,18 @@ class WorkspaceEventsReplicatorJobTest {
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
 
+        return createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, true);
+    }
+
+    private WorkspaceEventsReplicatorJob createJob(
+            LiveWorkspacesManager workspacesManager,
+            FolderQueue folderQueue,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
+            SchedulerTrigger migrationCallback,
+            boolean autoCreateWorkspaces) {
+
         return new WorkspaceEventsReplicatorJob(
-                workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, folderQueue,
+                workspacesManager, Duration.ofMinutes(1), FIXED_CLOCK, autoCreateWorkspaces, folderQueue,
                 workspaceEventQueue, migrationCallback);
     }
 
@@ -126,12 +141,17 @@ class WorkspaceEventsReplicatorJobTest {
         @Mock
         SchedulerTrigger migrationCallback;
 
+        private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
+                INTERNAL_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Test Workspace", null,
+                null, null, NOW, WorkspaceType.LIVE, WorkspaceStatus.UNKNOWN, 0);
+
         @Test
-        void instanceCreatedEvent_replicatedToQueueAndAcknowledged() throws Exception {
+        void instanceCreatedEvent_replicatedWithInternalWorkspaceId() throws Exception {
             Path events = eventsDir();
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-new-001"));
 
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+            when(workspaceManager.resolveInfo()).thenReturn(WORKSPACE_INFO);
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
@@ -139,9 +159,9 @@ class WorkspaceEventsReplicatorJobTest {
 
             job.execute(JobContext.EMPTY);
 
-            // Verify event was appended to persistent queue
+            // Verify event was appended with the INTERNAL workspace ID, not the origin ID
             ArgumentCaptor<WorkspaceEvent> eventCaptor = ArgumentCaptor.forClass(WorkspaceEvent.class);
-            verify(workspaceEventQueue).append(eq(WORKSPACE_ID), eventCaptor.capture());
+            verify(workspaceEventQueue).append(eq(INTERNAL_WORKSPACE_ID), eventCaptor.capture());
             WorkspaceEvent capturedEvent = eventCaptor.getValue();
             assertEquals(WorkspaceEventType.PROJECT_INSTANCE_CREATED, capturedEvent.eventType());
             assertEquals(WORKSPACE_ID, capturedEvent.workspaceId());
@@ -155,11 +175,12 @@ class WorkspaceEventsReplicatorJobTest {
         }
 
         @Test
-        void projectCreatedEvent_replicatedToQueue() throws Exception {
+        void projectCreatedEvent_replicatedWithInternalWorkspaceId() throws Exception {
             Path events = eventsDir();
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", projectCreatedEvent());
 
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+            when(workspaceManager.resolveInfo()).thenReturn(WORKSPACE_INFO);
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
@@ -168,7 +189,7 @@ class WorkspaceEventsReplicatorJobTest {
             job.execute(JobContext.EMPTY);
 
             ArgumentCaptor<WorkspaceEvent> eventCaptor = ArgumentCaptor.forClass(WorkspaceEvent.class);
-            verify(workspaceEventQueue).append(eq(WORKSPACE_ID), eventCaptor.capture());
+            verify(workspaceEventQueue).append(eq(INTERNAL_WORKSPACE_ID), eventCaptor.capture());
             assertEquals(WorkspaceEventType.PROJECT_CREATED, eventCaptor.getValue().eventType());
 
             // File acknowledged
@@ -177,7 +198,7 @@ class WorkspaceEventsReplicatorJobTest {
     }
 
     @Nested
-    class SkipsUnknownWorkspace {
+    class AutoCreatesWorkspace {
 
         @Mock
         LiveWorkspacesManager workspacesManager;
@@ -189,26 +210,66 @@ class WorkspaceEventsReplicatorJobTest {
         @SuppressWarnings("unchecked")
         PersistentQueue<WorkspaceEvent> workspaceEventQueue;
 
+        private static final String AUTO_CREATED_WORKSPACE_ID = "auto-created-uuid-001";
+        private static final WorkspaceInfo AUTO_CREATED_INFO = new WorkspaceInfo(
+                AUTO_CREATED_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, null,
+                null, null, NOW, WorkspaceType.LIVE, WorkspaceStatus.UNKNOWN, 0);
+
         @Test
-        void eventForUnknownWorkspace_remainsInQueue() throws Exception {
+        void unknownWorkspace_autoCreateEnabled_workspaceCreatedAndEventReplicated() throws Exception {
+            Path events = eventsDir();
+            writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-001"));
+
+            when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.empty());
+            when(workspacesManager.create(any(WorkspacesManager.CreateWorkspaceRequest.class)))
+                    .thenReturn(AUTO_CREATED_INFO);
+            when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
+
+            var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, true);
+
+            job.execute(JobContext.EMPTY);
+
+            // Workspace was auto-created
+            ArgumentCaptor<WorkspacesManager.CreateWorkspaceRequest> requestCaptor =
+                    ArgumentCaptor.forClass(WorkspacesManager.CreateWorkspaceRequest.class);
+            verify(workspacesManager).create(requestCaptor.capture());
+            assertEquals(WORKSPACE_ID, requestCaptor.getValue().workspaceSourceId());
+            assertEquals(WORKSPACE_ID, requestCaptor.getValue().name());
+
+            // Event was appended with the auto-created internal UUID
+            verify(workspaceEventQueue).append(eq(AUTO_CREATED_WORKSPACE_ID), any(WorkspaceEvent.class));
+
+            // File was acknowledged
+            assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
+            assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
+
+            verify(migrationCallback).execute();
+        }
+
+        @Test
+        void unknownWorkspace_autoCreateDisabled_eventDiscarded() throws Exception {
             Path events = eventsDir();
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-001"));
 
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.empty());
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
-            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, false);
 
             job.execute(JobContext.EMPTY);
 
-            // File should still be in the events dir (not acknowledged)
-            assertTrue(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
-            assertFalse(Files.isDirectory(events.resolve(".processed")));
+            // Workspace was NOT created
+            verify(workspacesManager, never()).create(any());
 
             // Nothing appended to persistent queue
             verify(workspaceEventQueue, never()).append(any(), any());
 
-            // Migration callback should NOT be triggered
+            // File was acknowledged (discarded)
+            assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
+            assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000100_aaaaaaaa.json")));
+
+            // Migration callback should NOT be triggered (no events replicated)
             verify(migrationCallback, never()).execute();
         }
     }
@@ -300,8 +361,12 @@ class WorkspaceEventsReplicatorJobTest {
         @Mock
         SchedulerTrigger migrationCallback;
 
+        private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
+                INTERNAL_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Test Workspace", null,
+                null, null, NOW, WorkspaceType.LIVE, WorkspaceStatus.UNKNOWN, 0);
+
         @Test
-        void mixedWorkspaces_onlyKnownWorkspaceEventsAcknowledged() throws Exception {
+        void mixedWorkspaces_autoCreateDisabled_onlyKnownWorkspaceEventsReplicated() throws Exception {
             Path events = eventsDir();
 
             // First event: unknown workspace
@@ -317,22 +382,23 @@ class WorkspaceEventsReplicatorJobTest {
 
             when(workspacesManager.findByOriginId("ws-unknown")).thenReturn(Optional.empty());
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+            when(workspaceManager.resolveInfo()).thenReturn(WORKSPACE_INFO);
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
-            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback);
+            var job = createJob(workspacesManager, folderQueue, workspaceEventQueue, migrationCallback, false);
 
             job.execute(JobContext.EMPTY);
 
-            // Unknown workspace event still in queue
-            assertTrue(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
+            // Unknown workspace event was discarded (acknowledged but not appended)
+            assertFalse(Files.exists(events.resolve("20260220120000100_aaaaaaaa.json")));
 
             // Known workspace event acknowledged
             assertFalse(Files.exists(events.resolve("20260220120000200_bbbbbbbb.json")));
             assertTrue(Files.exists(events.resolve(".processed").resolve("20260220120000200_bbbbbbbb.json")));
 
-            // Only the known workspace event was appended to persistent queue
-            verify(workspaceEventQueue).append(eq(WORKSPACE_ID), any(WorkspaceEvent.class));
+            // Only the known workspace event was appended with internal UUID
+            verify(workspaceEventQueue).append(eq(INTERNAL_WORKSPACE_ID), any(WorkspaceEvent.class));
             verify(workspaceEventQueue, never()).append(eq("ws-unknown"), any());
 
             // Successful event was replicated, so callback triggered

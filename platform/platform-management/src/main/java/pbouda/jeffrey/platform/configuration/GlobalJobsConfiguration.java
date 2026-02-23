@@ -134,12 +134,14 @@ public class GlobalJobsConfiguration {
             JeffreyDirs jeffreyDirs,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
-            @Value("${jeffrey.job.workspace-events-replicator.period:5s}") Duration jobPeriod) {
+            @Value("${jeffrey.job.workspace-events-replicator.period:5s}") Duration jobPeriod,
+            @Value("${jeffrey.platform.workspace.auto-create-from-events:true}") boolean autoCreateWorkspaces) {
 
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 clock,
+                autoCreateWorkspaces,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
                 workspaceEventQueue,
                 projectsSynchronizerTrigger);

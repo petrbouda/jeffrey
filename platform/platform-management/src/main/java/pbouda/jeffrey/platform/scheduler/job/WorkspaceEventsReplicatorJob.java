@@ -20,8 +20,10 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.scheduler.Job;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
@@ -55,6 +57,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
 
     private final Duration period;
     private final Clock clock;
+    private final boolean autoCreateWorkspaces;
     private final FolderQueue folderQueue;
     private final WorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
@@ -73,6 +76,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
             WorkspacesManager workspacesManager,
             Duration period,
             Clock clock,
+            boolean autoCreateWorkspaces,
             FolderQueue folderQueue,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
@@ -80,6 +84,7 @@ public class WorkspaceEventsReplicatorJob implements Job {
         this.workspacesManager = workspacesManager;
         this.period = period;
         this.clock = clock;
+        this.autoCreateWorkspaces = autoCreateWorkspaces;
         this.folderQueue = folderQueue;
         this.workspaceEventQueue = workspaceEventQueue;
         this.migrationCallback = migrationCallback;
@@ -108,18 +113,35 @@ public class WorkspaceEventsReplicatorJob implements Job {
         for (FolderQueueEntry<CLIWorkspaceEvent> entry : entries) {
             WorkspaceEvent event = WorkspaceEventConverter.fromCLIEvent(entry.parsed(), clock.instant());
             try {
-                if (workspacesManager.findByOriginId(event.workspaceId()).isEmpty()) {
-                    LOG.debug("Workspace not found, skipping event for retry: workspace_id={} event_type={}",
-                            event.workspaceId(), event.eventType());
-                    continue;
+                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByOriginId(event.workspaceId());
+                String internalWorkspaceId;
+
+                if (workspaceOpt.isEmpty()) {
+                    if (!autoCreateWorkspaces) {
+                        LOG.warn("Workspace not found and auto-creation disabled, discarding event: workspace_id={} event_type={}",
+                                event.workspaceId(), event.eventType());
+                        folderQueue.acknowledge(entry.filePath());
+                        continue;
+                    }
+
+                    WorkspaceInfo created = workspacesManager.create(
+                            WorkspacesManager.CreateWorkspaceRequest.builder()
+                                    .workspaceSourceId(event.workspaceId())
+                                    .name(event.workspaceId())
+                                    .build());
+                    internalWorkspaceId = created.id();
+                    LOG.info("Auto-created workspace for CLI event: origin_id={} workspace_id={}",
+                            event.workspaceId(), internalWorkspaceId);
+                } else {
+                    internalWorkspaceId = workspaceOpt.get().resolveInfo().id();
                 }
 
-                workspaceEventQueue.append(event.workspaceId(), event);
+                workspaceEventQueue.append(internalWorkspaceId, event);
                 folderQueue.acknowledge(entry.filePath());
                 replicatedCount++;
 
                 LOG.debug("Replicated folder event to persistent queue: event_type={} file={} workspace_id={}",
-                        event.eventType(), entry.filename(), event.workspaceId());
+                        event.eventType(), entry.filename(), internalWorkspaceId);
             } catch (Exception e) {
                 LOG.error("Failed to replicate folder event, will retry: event_type={} file={} workspace_id={}",
                         event.eventType(), entry.filename(), event.workspaceId(), e);

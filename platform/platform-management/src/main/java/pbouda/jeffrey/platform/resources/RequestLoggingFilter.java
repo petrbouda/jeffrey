@@ -45,7 +45,7 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
 
         request.setProperty(REQUEST_START_TIME, System.nanoTime());
 
-        LOG.debug("Request started: method={} path={}",
+        LOG.debug("HTTP_REQ: method={} path={}",
                 request.getMethod(),
                 request.getUriInfo().getPath());
     }
@@ -56,7 +56,7 @@ public class RequestLoggingFilter implements ContainerRequestFilter, ContainerRe
             Long startTime = (Long) request.getProperty(REQUEST_START_TIME);
             long durationMs = startTime != null ? Duration.ofNanos(System.nanoTime() - startTime).toMillis() : -1;
 
-            LOG.debug("Request completed: method={} path={} status={} durationMs={}",
+            LOG.debug("HTTP_RESP: method={} path={} status={} durationMs={}",
                     request.getMethod(),
                     request.getUriInfo().getPath(),
                     response.getStatus(),
