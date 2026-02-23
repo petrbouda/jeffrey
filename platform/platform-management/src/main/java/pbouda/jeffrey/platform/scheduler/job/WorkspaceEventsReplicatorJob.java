@@ -20,20 +20,13 @@ package pbouda.jeffrey.platform.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
-import pbouda.jeffrey.platform.manager.project.ProjectsManager;
-import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.scheduler.Job;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
-import pbouda.jeffrey.platform.workspace.consumer.*;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.Json;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -48,10 +41,10 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Polls the shared {@code workspaces/.events/} folder for event files written by the CLI.
- * Parses each file as a {@link WorkspaceEvent}, routes it to the appropriate workspace
- * consumer using the {@code workspaceId} carried in the event payload, and acknowledges
- * (moves to {@code .processed/}) on success.
+ * Polls the shared {@code workspaces/.events/} folder for event files written by the CLI
+ * and replicates them into the persistent DB queue. Events are NOT processed here — they
+ * are picked up by {@code ProjectsSynchronizerJob} which owns the complete consumer chain
+ * including streaming setup.
  * <p>
  * This is a direct {@link Job} — it reads from a single shared event queue instead of
  * iterating per-workspace directories.
@@ -63,11 +56,8 @@ public class WorkspaceEventsReplicatorJob implements Job {
     private final Duration period;
     private final Clock clock;
     private final FolderQueue folderQueue;
-    private final PlatformRepositories platformRepositories;
-    private final JeffreyDirs jeffreyDirs;
     private final WorkspacesManager workspacesManager;
-    private final HeartbeatReplayReader heartbeatReplayReader;
-    private final ProjectsSynchronizerJobDescriptor synchronizerJobDescriptor;
+    private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final SchedulerTrigger migrationCallback;
 
     private static final FolderQueueEntryParser<CLIWorkspaceEvent> JSON_EVENT_PARSER = (filePath, content) -> {
@@ -84,20 +74,14 @@ public class WorkspaceEventsReplicatorJob implements Job {
             Duration period,
             Clock clock,
             FolderQueue folderQueue,
-            PlatformRepositories platformRepositories,
-            JeffreyDirs jeffreyDirs,
-            HeartbeatReplayReader heartbeatReplayReader,
-            ProjectsSynchronizerJobDescriptor synchronizerJobDescriptor,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             SchedulerTrigger migrationCallback) {
 
         this.workspacesManager = workspacesManager;
         this.period = period;
         this.clock = clock;
         this.folderQueue = folderQueue;
-        this.platformRepositories = platformRepositories;
-        this.jeffreyDirs = jeffreyDirs;
-        this.heartbeatReplayReader = heartbeatReplayReader;
-        this.synchronizerJobDescriptor = synchronizerJobDescriptor;
+        this.workspaceEventQueue = workspaceEventQueue;
         this.migrationCallback = migrationCallback;
     }
 
@@ -120,44 +104,33 @@ public class WorkspaceEventsReplicatorJob implements Job {
             return 0;
         }
 
-        long processedCount = 0;
+        long replicatedCount = 0;
         for (FolderQueueEntry<CLIWorkspaceEvent> entry : entries) {
             WorkspaceEvent event = WorkspaceEventConverter.fromCLIEvent(entry.parsed(), clock.instant());
             try {
-                Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByOriginId(event.workspaceId());
-                if (workspaceOpt.isEmpty()) {
+                if (workspacesManager.findByOriginId(event.workspaceId()).isEmpty()) {
                     LOG.debug("Workspace not found, skipping event for retry: workspace_id={} event_type={}",
                             event.workspaceId(), event.eventType());
                     continue;
                 }
 
-                ProjectsManager projectsManager = workspaceOpt.get().projectsManager();
-                List<WorkspaceEventConsumer> consumers = List.of(
-                        new CreateProjectWorkspaceEventConsumer(projectsManager),
-                        new InstanceCreatedWorkspaceEventConsumer(projectsManager),
-                        new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader));
-
-                for (WorkspaceEventConsumer consumer : consumers) {
-                    if (consumer.isApplicable(event)) {
-                        consumer.on(event, synchronizerJobDescriptor);
-                        LOG.debug("Successfully processed folder event: event_type={} file={} consumer={}",
-                                event.eventType(), entry.filename(), consumer.getClass().getSimpleName());
-                    }
-                }
+                workspaceEventQueue.append(event.workspaceId(), event);
                 folderQueue.acknowledge(entry.filePath());
-                processedCount++;
+                replicatedCount++;
+
+                LOG.debug("Replicated folder event to persistent queue: event_type={} file={} workspace_id={}",
+                        event.eventType(), entry.filename(), event.workspaceId());
             } catch (Exception e) {
-                JfrMessageEmitter.eventProcessingFailed(event.eventType().name(), event.projectId(), e.getMessage());
-                LOG.error("Failed to process folder event, will retry: event_type={} file={} project_id={}",
-                        event.eventType(), entry.filename(), event.projectId(), e);
+                LOG.error("Failed to replicate folder event, will retry: event_type={} file={} workspace_id={}",
+                        event.eventType(), entry.filename(), event.workspaceId(), e);
             }
         }
 
-        if (processedCount > 0) {
-            LOG.info("Processed shared workspace events: processed={} total={}", processedCount, entries.size());
+        if (replicatedCount > 0) {
+            LOG.info("Replicated shared workspace events to persistent queue: replicated={} total={}", replicatedCount, entries.size());
         }
 
-        return processedCount;
+        return replicatedCount;
     }
 
     @Override

@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
@@ -132,10 +131,8 @@ public class GlobalJobsConfiguration {
     @Bean
     public WorkspaceEventsReplicatorJob workspaceEventsReplicatorJob(
             Clock clock,
-            Environment environment,
-            PlatformRepositories platformRepositories,
             JeffreyDirs jeffreyDirs,
-            HeartbeatReplayReader heartbeatReplayReader,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
             @Value("${jeffrey.job.workspace-events-replicator.period:5s}") Duration jobPeriod) {
 
@@ -144,10 +141,7 @@ public class GlobalJobsConfiguration {
                 jobPeriod == null ? defaultPeriod : jobPeriod,
                 clock,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
-                platformRepositories,
-                jeffreyDirs,
-                heartbeatReplayReader,
-                ProjectsSynchronizerJobDescriptor.of(environment),
+                workspaceEventQueue,
                 projectsSynchronizerTrigger);
     }
 
