@@ -31,49 +31,9 @@
                 <span class="metric-label">Total Instances</span>
                 <span class="metric-value">{{ instances.length }}</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sessions -->
-        <div class="col-md-4 col-xl">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-collection text-success"></i>
-              <span class="compact-stat-title">Sessions</span>
-            </div>
-            <div class="compact-stat-metrics">
               <div class="metric-item">
                 <span class="metric-label">Total Sessions</span>
                 <span class="metric-value">{{ totalSessions }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Avg Sessions/Instance</span>
-                <span class="metric-value">{{ avgSessionsPerInstance }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Busiest Instance</span>
-                <span class="metric-value">{{ busiestInstance }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Activity -->
-        <div class="col-md-4 col-xl">
-          <div class="compact-stat-card">
-            <div class="compact-stat-header">
-              <i class="bi bi-clock-history text-info"></i>
-              <span class="compact-stat-title">Activity</span>
-            </div>
-            <div class="compact-stat-metrics">
-              <div class="metric-item">
-                <span class="metric-label">Latest Started</span>
-                <span class="metric-value">{{ latestStarted }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">Latest Finished</span>
-                <span class="metric-value">{{ latestFinished }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Uptime Range</span>
@@ -269,39 +229,11 @@ const finishedCount = computed(() => instances.value.filter(i => i.status === 'F
 
 const totalSessions = computed(() => instances.value.reduce((sum, i) => sum + i.sessionCount, 0));
 
-const avgSessionsPerInstance = computed(() => {
-  if (instances.value.length === 0) return '0';
-  return (totalSessions.value / instances.value.length).toFixed(1);
-});
-
-const busiestInstance = computed(() => {
-  if (instances.value.length === 0) return '\u2014';
-  const busiest = instances.value.reduce((max, i) => i.sessionCount > max.sessionCount ? i : max, instances.value[0]);
-  return truncateHostname(busiest.hostname, 15);
-});
-
-const latestStarted = computed(() => {
-  if (instances.value.length === 0) return 'Never';
-  const latest = Math.max(...instances.value.map(i => i.startedAt));
-  return FormattingService.formatRelativeTime(latest);
-});
-
-const latestFinished = computed(() => {
-  const finished = instances.value.filter(i => i.finishedAt).map(i => i.finishedAt!);
-  if (finished.length === 0) return '\u2014';
-  return FormattingService.formatRelativeTime(Math.max(...finished));
-});
-
 const uptimeRange = computed(() => {
   if (instances.value.length === 0) return '\u2014';
   const oldest = Math.min(...instances.value.map(i => i.startedAt));
   return FormattingService.formatRelativeTime(oldest);
 });
-
-function truncateHostname(hostname: string, maxLength: number): string {
-  if (hostname.length <= maxLength) return hostname;
-  return hostname.substring(0, maxLength - 1) + '\u2026';
-}
 
 function instanceCardClass(status: string): string {
   if (status === 'PENDING') return 'instance-pending';

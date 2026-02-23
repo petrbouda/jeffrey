@@ -26,7 +26,6 @@ export default class RecordingSession {
         public instanceId: string,
         public createdAt: number,
         public finishedAt: number | null,
-        public lastHeartbeatAt: number | null,
         public status: RecordingStatus,
         public profilerSettings: string,
         public files: RepositoryFile[],

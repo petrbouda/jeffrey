@@ -76,7 +76,7 @@ final class RemoteClientTestSupport {
     static RecordingSessionResponse sampleSessionResponse() {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-one", INSTANCE_ID,
-                1700000000000L, 1700003600000L, 1700003000000L,
+                1700000000000L, 1700003600000L,
                 RecordingStatus.FINISHED, "cpu=true",
                 List.of(sampleFileResponse()));
     }

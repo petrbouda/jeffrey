@@ -30,7 +30,6 @@ public record RecordingSessionResponse(
         String instanceId,
         Long createdAt,
         Long finishedAt,
-        Long lastHeartbeatAt,
         RecordingStatus status,
         String profilerSettings,
         List<RepositoryFileResponse> files) {
@@ -42,7 +41,6 @@ public record RecordingSessionResponse(
                 session.instanceId(),
                 InstantUtils.toEpochMilli(session.createdAt()),
                 InstantUtils.toEpochMilli(session.finishedAt()),
-                InstantUtils.toEpochMilli(session.lastHeartbeatAt()),
                 session.status(),
                 session.profilerSettings(),
                 session.files().stream()
@@ -57,7 +55,7 @@ public record RecordingSessionResponse(
                 response.instanceId(),
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),
-                InstantUtils.fromEpochMilli(response.lastHeartbeatAt()),
+                null,
                 response.status(),
                 response.profilerSettings(),
                 null,

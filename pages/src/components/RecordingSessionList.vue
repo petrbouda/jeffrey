@@ -14,7 +14,6 @@ import Badge from '@/components/Badge.vue';
 import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import FormattingService from "@/services/FormattingService.ts";
-import type { Variant } from "@/types/ui.ts";
 
 interface Props {
   sessions: RecordingSession[]
@@ -198,36 +197,6 @@ const copyProfilerSettings = async (settings: string) => {
     toast.success('Copied', 'Profiler settings copied to clipboard');
   } catch (error) {
     toast.error('Copy Failed', 'Failed to copy to clipboard');
-  }
-};
-
-// --- Heartbeat helpers ---
-type HeartbeatStatus = 'ALIVE' | 'STALE' | 'UNKNOWN';
-const HEARTBEAT_ALIVE_THRESHOLD_MS = 30_000;  // 30 seconds
-const HEARTBEAT_STALE_THRESHOLD_MS = 120_000; // 2 minutes
-
-const getHeartbeatStatus = (session: RecordingSession): HeartbeatStatus | null => {
-  if (!session.lastHeartbeatAt) return null;
-  if (session.status === RecordingStatus.FINISHED) return null;
-  const elapsed = Date.now() - session.lastHeartbeatAt;
-  if (elapsed <= HEARTBEAT_ALIVE_THRESHOLD_MS) return 'ALIVE';
-  if (elapsed <= HEARTBEAT_STALE_THRESHOLD_MS) return 'STALE';
-  return 'UNKNOWN';
-};
-
-const heartbeatVariant = (status: HeartbeatStatus): Variant => {
-  switch (status) {
-    case 'ALIVE': return 'green';
-    case 'STALE': return 'orange';
-    default: return 'grey';
-  }
-};
-
-const heartbeatIcon = (status: HeartbeatStatus): string => {
-  switch (status) {
-    case 'ALIVE': return 'bi bi-heart-pulse-fill';
-    case 'STALE': return 'bi bi-heart-pulse';
-    default: return 'bi bi-heart';
   }
 };
 
@@ -686,13 +655,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <span class="session-pill">
                     <i class="bi bi-send me-1"></i>{{ parseSessionName(session.name).sessionId }}
                   </span>
-                  <Badge
-                    v-if="getHeartbeatStatus(session)"
-                    :value="getHeartbeatStatus(session)!"
-                    :variant="heartbeatVariant(getHeartbeatStatus(session)!)"
-                    :icon="heartbeatIcon(getHeartbeatStatus(session)!)"
-                    size="xxs"
-                  />
                 </div>
               </div>
             </div>
