@@ -995,11 +995,11 @@ onUnmounted(() => {
 }
 
 .compact-card.primary {
-  border-left: 3px solid #ffc107;
+  border-left: 3px solid #2E93fA;
 }
 
 .compact-card.secondary:not(.empty) {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid #E53935;
 }
 
 .compact-card.secondary.empty {

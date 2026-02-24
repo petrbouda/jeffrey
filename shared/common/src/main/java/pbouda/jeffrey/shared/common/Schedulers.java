@@ -55,6 +55,9 @@ public abstract class Schedulers {
     private static final ExecutorService STREAMING =
             Executors.newThreadPerTaskExecutor(virtualThreadfactory("streaming"));
 
+    private static final ExecutorService DB_WRITER =
+            Executors.newFixedThreadPool(20, platformThreadfactory("db-writer"));
+
     public static ExecutorService sharedParallel() {
         return PARALLEL;
     }
@@ -77,6 +80,10 @@ public abstract class Schedulers {
 
     public static ExecutorService streamingExecutor() {
         return STREAMING;
+    }
+
+    public static ExecutorService sharedDbWriter() {
+        return DB_WRITER;
     }
 
     public static ThreadFactory platformThreadfactory(String prefix) {
@@ -102,6 +109,7 @@ public abstract class Schedulers {
             SINGLE_SCHEDULED.close();
             WATCHDOG_SCHEDULED.close();
             STREAMING.close();
+            DB_WRITER.close();
         }));
     }
 }

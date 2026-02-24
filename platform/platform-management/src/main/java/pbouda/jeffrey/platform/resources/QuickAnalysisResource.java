@@ -154,17 +154,6 @@ public class QuickAnalysisResource {
                 heapDumpAnalysisAssistantService);
     }
 
-    /**
-     * Delete a quick analysis profile.
-     */
-    @DELETE
-    @Path("/profiles/{profileId}")
-    public Response deleteProfile(@PathParam("profileId") String profileId) {
-        LOG.debug("Deleting quick analysis profile: profileId={}", profileId);
-        quickAnalysisManager.deleteProfile(profileId);
-        return Response.noContent().build();
-    }
-
     private ProfileSummaryResponse toResponse(ProfileInfo profileInfo) {
         ProfileManager profileManager = quickAnalysisManager.profile(profileInfo.id()).orElse(null);
         long sizeInBytes = profileManager != null ? profileManager.sizeInBytes() : 0;

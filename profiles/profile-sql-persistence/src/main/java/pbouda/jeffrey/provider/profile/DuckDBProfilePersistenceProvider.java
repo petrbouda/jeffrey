@@ -24,6 +24,7 @@ import pbouda.jeffrey.provider.profile.query.builder.QueryBuilderFactoryResolver
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
 import pbouda.jeffrey.provider.profile.writer.SQLEventWriter;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
+import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.shared.persistence.CachingDatabaseManager;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
 
@@ -55,7 +56,8 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     @Override
     public EventWriter.Factory eventWriterFactory() {
-        return dataSource -> new SQLEventWriter(() -> new DuckDBEventWriters(dataSource, batchSize));
+        return dataSource -> new SQLEventWriter(
+                () -> new DuckDBEventWriters(Schedulers.sharedDbWriter(), dataSource, batchSize));
     }
 
     @Override

@@ -104,7 +104,7 @@ public class ProjectRepositoryResource {
         StreamedRecordingFile file = repositoryManager.streamFile(sessionId, fileId);
         try {
             return Response.ok(file.openStream())
-                    .header("Content-Disposition", "attachment; filename=\"" + file.fileName() + "\"")
+                    .header("Content-Disposition", "attachment; filename=\"" + sessionId + "-" + file.fileName() + "\"")
                     .type(MediaType.APPLICATION_OCTET_STREAM)
                     .build();
         } catch (IOException e) {

@@ -35,7 +35,7 @@ public abstract class JeffreyVersion {
 
     public static String resolveJeffreyVersion() {
         try {
-            String version = FileSystemUtils.readFromClasspath("classpath:" + JEFFREY_VERSION);
+            String version = FileSystemUtils.readFromClasspath("classpath:" + JEFFREY_VERSION).strip();
             if (version.isBlank()) {
                 return NO_VERSION;
             } else {

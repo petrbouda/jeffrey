@@ -256,7 +256,10 @@ const severityCounts = computed(() => ({
 const chartOptions = computed(() => ({
   chart: {
     type: 'donut' as const,
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
+    animations: {
+      enabled: false
+    }
   },
   labels: ['Passed', 'Warnings', 'Info', 'N/A'],
   colors: ['#28a745', '#dc3545', '#0d6efd', '#6c757d'],

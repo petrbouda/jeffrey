@@ -31,17 +31,17 @@ public class SQLEventWriter implements EventWriter {
 
     private final List<SQLSingleThreadedEventWriter> writers = new CopyOnWriteArrayList<>();
 
-    private final Supplier<EventWriters> eventWriters;
+    private final Supplier<EventWriters> eventWritersFactory;
     private final EventDeduplicator deduplicator;
 
-    public SQLEventWriter(Supplier<EventWriters> eventWriters) {
-        this.eventWriters = eventWriters;
+    public SQLEventWriter(Supplier<EventWriters> eventWritersFactory) {
+        this.eventWritersFactory = eventWritersFactory;
         this.deduplicator = new EventDeduplicator();
     }
 
     @Override
     public SingleThreadedEventWriter newSingleThreadedWriter() {
-        EventWriters writersProvider = eventWriters.get();
+        EventWriters writersProvider = eventWritersFactory.get();
         SQLSingleThreadedEventWriter eventWriter =
                 new SQLSingleThreadedEventWriter(writersProvider, deduplicator);
         writers.add(eventWriter);
@@ -50,7 +50,7 @@ public class SQLEventWriter implements EventWriter {
 
     @Override
     public void onComplete() {
-        try (EventWriters writersProvider = eventWriters.get()) {
+        try (EventWriters writersProvider = eventWritersFactory.get()) {
             WriterResultCollector collector = new WriterResultCollector(writersProvider.eventTypes(), writersProvider.threads());
 
             for (SQLSingleThreadedEventWriter writer : writers) {

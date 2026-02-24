@@ -18,21 +18,13 @@
 
 package pbouda.jeffrey.provider.profile;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.profile.model.writer.EventFrameWithHash;
 import pbouda.jeffrey.provider.profile.writer.*;
 
 import javax.sql.DataSource;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class DuckDBEventWriters implements EventWriters {
-
-    private static final Logger LOG = LoggerFactory.getLogger(DuckDBEventWriters.class);
-
-    private final ExecutorService executor = Executors.newFixedThreadPool(20);
 
     private final DuckDBEventWriter eventWriter;
     private final DuckDBEventTypeWriter eventTypeWriter;
@@ -40,7 +32,7 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBThreadWriter threadWriter;
     private final DuckDBFrameWriter frameWriter;
 
-    public DuckDBEventWriters(DataSource dataSource, int batchSize) {
+    public DuckDBEventWriters(ExecutorService executor, DataSource dataSource, int batchSize) {
         this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize);
         this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
         this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
@@ -80,16 +72,5 @@ public class DuckDBEventWriters implements EventWriters {
         stacktraceWriter.close();
         threadWriter.close();
         frameWriter.close();
-
-        executor.shutdown();
-        try {
-            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
-                LOG.warn("Executor did not terminate in time, forcing shutdown");
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
     }
 }

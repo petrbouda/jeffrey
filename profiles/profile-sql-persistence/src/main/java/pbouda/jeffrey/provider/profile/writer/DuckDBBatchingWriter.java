@@ -79,7 +79,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
 
     private void sendBatch(List<T> batch) {
         if (batch.isEmpty()) {
-            LOG.info("Batch of items is empty: type={}", tableName);
+            LOG.debug("Batch of items is empty: type={}", tableName);
             return;
         }
 
@@ -96,7 +96,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             }
 
             long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-            LOG.info("Batch of items has been flushed: type={} size={} elapsed_ms={}",
+            LOG.debug("Batch of items has been flushed: type={} size={} elapsed_ms={}",
                     tableName, copiedBatch.size(), millis);
         });
 

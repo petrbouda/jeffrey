@@ -226,10 +226,11 @@ import Workspace from "@/services/api/model/Workspace.ts";
 import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
 import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
 import CreateWorkspaceRequest from "@/services/api/model/CreateWorkspaceRequest.ts";
-import {useNavigation} from '@/composables/useNavigation';
+import {useRoute} from 'vue-router';
 
-// Get workspace context from route
-const {workspaceId} = useNavigation();
+// Get workspace context directly from route params (not useNavigation, which has a profileStore fallback)
+const route = useRoute();
+const workspaceId = computed(() => route.params.workspaceId as string);
 
 // Determine if we're in workspace-scoped mode
 const isWorkspaceScoped = computed(() => !!workspaceId.value);
@@ -424,6 +425,7 @@ const handleCreateSandboxWorkspace = async () => {
 
     // Refresh workspaces to get the updated list
     await refreshWorkspaces();
+    resolveWorkspaceStatuses();
 
     // Select the newly created workspace using the ID from the backend response
     selectedWorkspace.value = createdWorkspace.id;
