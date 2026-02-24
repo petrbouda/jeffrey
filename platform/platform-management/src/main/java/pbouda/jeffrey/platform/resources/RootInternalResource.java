@@ -34,6 +34,7 @@ import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantServic
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 
@@ -50,6 +51,7 @@ public class RootInternalResource {
     private final CompositeWorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfilerRepository profilerRepository;
+    private final PlatformRepositories platformRepositories;
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
@@ -64,6 +66,7 @@ public class RootInternalResource {
             CompositeWorkspacesManager workspacesManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             ProfilerRepository profilerRepository,
+            PlatformRepositories platformRepositories,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor,
@@ -76,6 +79,7 @@ public class RootInternalResource {
         this.workspacesManager = workspacesManager;
         this.workspaceEventQueue = workspaceEventQueue;
         this.profilerRepository = profilerRepository;
+        this.platformRepositories = platformRepositories;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
@@ -124,6 +128,7 @@ public class RootInternalResource {
         return new ProfilesResource(
                 workspacesManager,
                 quickAnalysisManager,
+                platformRepositories,
                 oqlAssistantService,
                 jfrAnalysisAssistantService,
                 heapDumpContextExtractor,

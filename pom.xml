@@ -36,7 +36,7 @@
         <module>jeffrey-agent</module>
         <module>build</module>
         <module>manual-tests</module>
-        <module>jmh-tests</module>
+<!--        <module>jmh-tests</module>-->
     </modules>
 
     <properties>

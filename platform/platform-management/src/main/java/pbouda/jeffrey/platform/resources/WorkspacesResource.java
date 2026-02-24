@@ -75,7 +75,7 @@ public class WorkspacesResource {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
 
-        WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
+        WorkspaceInfo workspaceInfo = workspaceManager.localInfo();
         if (type != null && workspaceInfo.type() != type) {
             throw Exceptions.invalidRequest("Invalid workspace type: expected " + type + " but found " + workspaceInfo.type());
         }
@@ -94,7 +94,7 @@ public class WorkspacesResource {
     public List<WorkspaceResponse> workspaces(@QueryParam("type") WorkspaceType type) {
         LOG.debug("Listing workspaces: type={}", type);
         List<WorkspaceResponse> workspaces = workspacesManager.findAll().stream()
-                .map(WorkspaceManager::resolveInfo)
+                .map(WorkspaceManager::localInfo)
                 .filter(info -> type == null || info.type() == type)
                 .map(Mappers::toResponse)
                 .toList();

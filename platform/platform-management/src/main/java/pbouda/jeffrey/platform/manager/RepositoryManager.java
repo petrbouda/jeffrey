@@ -98,5 +98,16 @@ public interface RepositoryManager {
 
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 
+    /**
+     * Streams a single file (recording or artifact) from the repository for direct download.
+     * Only FINISHED files can be streamed.
+     *
+     * @param sessionId the session containing the file
+     * @param fileId    the unique file ID
+     * @return entity for file information and streaming
+     * @throws IllegalArgumentException if the file is not found or is still ACTIVE
+     */
+    StreamedRecordingFile streamFile(String sessionId, String fileId);
+
     void delete();
 }

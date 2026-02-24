@@ -21,6 +21,7 @@ package pbouda.jeffrey.platform.appinitializer;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
+import pbouda.jeffrey.shared.common.AgentConstants;
 import pbouda.jeffrey.shared.common.model.ProfilerInfo;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.OrphanedProjectRecordingStorageCleanerJobDescriptor;
@@ -77,7 +78,7 @@ public class ApplicationInitializer implements ApplicationListener<ApplicationRe
         boolean createGlobalSettings = environment.getProperty(
                 "jeffrey.profiler.global-settings.create-if-not-exists", Boolean.class, true);
         String globalCommand = environment.getProperty(
-                "jeffrey.profiler.global-settings.command", String.class, "");
+                "jeffrey.profiler.global-settings.command", String.class, AgentConstants.DEFAULT_PROFILER_CONFIG);
 
         if (createGlobalSettings && !globalCommand.isBlank()) {
             profilerRepository.upsertSettings(new ProfilerInfo(null, null, globalCommand));

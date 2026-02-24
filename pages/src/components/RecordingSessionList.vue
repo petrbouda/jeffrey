@@ -287,6 +287,18 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
   return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
 };
 
+const isDownloadAllowed = (file: RepositoryFile): boolean => {
+  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
+};
+
+const downloadFile = async (sessionId: string, fileId: string) => {
+  try {
+    await repositoryService.value.downloadFile(sessionId, fileId);
+  } catch (error: any) {
+    toast.error('Download File', error.message || 'Failed to download file');
+  }
+};
+
 // --- Operations ---
 const copyAndMerge = async (sessionId: string) => {
   try {
@@ -837,6 +849,16 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                            :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
                            class="ms-1"/>
                   </template>
+                  <template #actions>
+                    <button
+                      v-if="isDownloadAllowed(file)"
+                      class="btn btn-sm btn-outline-secondary download-file-btn"
+                      @click.stop="downloadFile(session.id, file.id)"
+                      title="Download file"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </template>
                 </RecordingFileRow>
               </div>
             </template>
@@ -878,6 +900,16 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <Badge v-if="file.status === RecordingStatus.UNKNOWN"
                        :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
                        class="ms-1"/>
+              </template>
+              <template #actions>
+                <button
+                  v-if="isDownloadAllowed(file)"
+                  class="btn btn-sm btn-outline-secondary download-file-btn"
+                  @click.stop="downloadFile(session.id, file.id)"
+                  title="Download file"
+                >
+                  <i class="bi bi-download"></i>
+                </button>
               </template>
             </RecordingFileRow>
           </div>
@@ -923,6 +955,16 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                        :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
                        variant="grey" size="xxs" class="ms-1" :uppercase="false"/>
               </template>
+              <template #actions>
+                <button
+                  v-if="isDownloadAllowed(entry.primary)"
+                  class="btn btn-sm btn-outline-secondary download-file-btn"
+                  @click.stop="downloadFile(session.id, entry.primary.id)"
+                  title="Download file"
+                >
+                  <i class="bi bi-download"></i>
+                </button>
+              </template>
             </RecordingFileRow>
           </div>
 
@@ -954,6 +996,16 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <Badge v-if="child.status === RecordingStatus.UNKNOWN"
                          :value="Utils.capitalize(child.status.toLowerCase())" variant="purple" size="xxs"
                          class="ms-1"/>
+                </template>
+                <template #actions>
+                  <button
+                    v-if="isDownloadAllowed(child)"
+                    class="btn btn-sm btn-outline-secondary download-file-btn"
+                    @click.stop="downloadFile(session.id, child.id)"
+                    title="Download file"
+                  >
+                    <i class="bi bi-download"></i>
+                  </button>
                 </template>
               </RecordingFileRow>
             </div>
@@ -1391,5 +1443,16 @@ code {
   margin-left: 32px;
   padding-left: 20px;
   padding-top: 6px;
+}
+
+.download-file-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.download-file-btn:hover {
+  opacity: 1;
 }
 </style>

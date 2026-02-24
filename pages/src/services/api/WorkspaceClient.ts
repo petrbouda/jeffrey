@@ -39,6 +39,16 @@ export default class WorkspaceClient {
     }
 
     /**
+     * Get a single workspace by ID
+     * GET /api/workspaces/{workspaceId}
+     */
+    static async get(workspaceId: string): Promise<Workspace> {
+        const url = `${WorkspaceClient.baseUrl}/${workspaceId}`;
+        return axios.get<Workspace>(url, HttpUtils.JSON_ACCEPT_HEADER)
+            .then(HttpUtils.RETURN_DATA);
+    }
+
+    /**
      * Create a new workspace
      * POST /api/workspaces
      */

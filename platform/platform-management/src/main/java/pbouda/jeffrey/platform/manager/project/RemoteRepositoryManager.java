@@ -18,19 +18,26 @@
 
 package pbouda.jeffrey.platform.manager.project;
 
-import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
-import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
-import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRecordingStreamClient;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteRepositoryClient;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
+import pbouda.jeffrey.platform.resources.response.RepositoryFileResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
+import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs.Directory;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import pbouda.jeffrey.shared.common.model.RepositoryInfo;
+import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,18 +46,24 @@ public class RemoteRepositoryManager implements RepositoryManager {
     private static final String UNSUPPORTED =
             "Not supported operation in " + RemoteRepositoryManager.class.getSimpleName();
 
+    private final JeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
     private final WorkspaceInfo workspaceInfo;
     private final RemoteRepositoryClient repositoryClient;
+    private final RemoteRecordingStreamClient recordingStreamClient;
 
     public RemoteRepositoryManager(
+            JeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
             WorkspaceInfo workspaceInfo,
-            RemoteRepositoryClient repositoryClient) {
+            RemoteRepositoryClient repositoryClient,
+            RemoteRecordingStreamClient recordingStreamClient) {
 
+        this.jeffreyDirs = jeffreyDirs;
         this.projectInfo = projectInfo;
         this.workspaceInfo = workspaceInfo;
         this.repositoryClient = repositoryClient;
+        this.recordingStreamClient = recordingStreamClient;
     }
 
 
@@ -76,6 +89,33 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public StreamedRecordingFile mergeAndStreamRecordings(String sessionId, List<String> recordingFileIds) {
         throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public StreamedRecordingFile streamFile(String sessionId, String fileId) {
+        RecordingSessionResponse session = repositoryClient.recordingSession(
+                workspaceInfo.originId(), projectInfo.originId(), sessionId);
+
+        RepositoryFileResponse fileResponse = session.files().stream()
+                .filter(f -> f.id().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("File not found: " + fileId));
+
+        Directory tempDir = jeffreyDirs.newTempDir();
+        Path tempFile = tempDir.resolve(fileResponse.name());
+
+        try {
+            recordingStreamClient.streamSingleFile(
+                    workspaceInfo.originId(), projectInfo.originId(), sessionId, fileId,
+                    (inputStream, _) -> {
+                        Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+                    });
+        } catch (Exception e) {
+            tempDir.close();
+            throw e;
+        }
+
+        return new StreamedRecordingFile(fileResponse.name(), tempFile, tempDir::close);
     }
 
     @Override

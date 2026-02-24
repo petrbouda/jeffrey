@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {AxiosResponse} from "axios";
+import axios, {AxiosResponse} from "axios";
 
 export default class HttpUtils {
     static JSON_HEADERS = {
@@ -71,5 +71,30 @@ export default class HttpUtils {
 
     static RETURN_DATA(response: AxiosResponse): any {
         return response.data;
+    }
+
+    static async downloadFile(url: string, fallbackFilename: string): Promise<void> {
+        const response = await axios.get(url, {
+            responseType: 'blob'
+        });
+
+        const contentDisposition = response.headers['content-disposition'];
+        let filename = fallbackFilename;
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (match) {
+                filename = match[1];
+            }
+        }
+
+        const blob = new Blob([response.data]);
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
     }
 }

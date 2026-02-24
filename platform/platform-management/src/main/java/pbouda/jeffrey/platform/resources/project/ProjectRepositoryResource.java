@@ -19,6 +19,8 @@
 package pbouda.jeffrey.platform.resources.project;
 
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.RecordingsDownloadManager;
@@ -28,8 +30,10 @@ import pbouda.jeffrey.platform.resources.request.SelectedRecordingsRequest;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
+import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
+import java.io.IOException;
 import java.util.List;
 
 public class ProjectRepositoryResource {
@@ -87,5 +91,24 @@ public class ProjectRepositoryResource {
     public void deleteRecording(SelectedRecordingsRequest request) {
         LOG.debug("Deleting recording from repository");
         repositoryManager.deleteFilesInSession(request.sessionId(), request.recordingIds());
+    }
+
+    @GET
+    @Path("/sessions/{sessionId}/files/{fileId}/download")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response downloadFile(
+            @PathParam("sessionId") String sessionId,
+            @PathParam("fileId") String fileId) {
+
+        LOG.debug("Downloading session file: sessionId={} fileId={}", sessionId, fileId);
+        StreamedRecordingFile file = repositoryManager.streamFile(sessionId, fileId);
+        try {
+            return Response.ok(file.openStream())
+                    .header("Content-Disposition", "attachment; filename=\"" + file.fileName() + "\"")
+                    .type(MediaType.APPLICATION_OCTET_STREAM)
+                    .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to open file: " + file.fileName(), e);
+        }
     }
 }

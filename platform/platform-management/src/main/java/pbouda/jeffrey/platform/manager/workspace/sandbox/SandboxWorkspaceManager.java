@@ -45,6 +45,11 @@ public class SandboxWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public WorkspaceInfo localInfo() {
+        return workspaceInfo;
+    }
+
+    @Override
     public WorkspaceInfo resolveInfo() {
         return workspaceInfo.withStatus(WorkspaceStatus.AVAILABLE);
     }

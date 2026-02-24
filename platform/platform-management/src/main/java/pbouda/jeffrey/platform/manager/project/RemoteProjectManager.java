@@ -125,7 +125,12 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return new RemoteRepositoryManager(detailedProjectInfo.projectInfo(), workspaceInfo, remoteClients.repository());
+        return new RemoteRepositoryManager(
+                jeffreyDirs,
+                detailedProjectInfo.projectInfo(),
+                workspaceInfo,
+                remoteClients.repository(),
+                remoteClients.recordings());
     }
 
     @Override

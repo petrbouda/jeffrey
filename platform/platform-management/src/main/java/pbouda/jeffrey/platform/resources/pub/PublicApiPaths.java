@@ -44,6 +44,7 @@ public abstract class PublicApiPaths {
     // Downloads
     public static final String SESSION_RECORDINGS = SESSION + "/recordings";
     public static final String SESSION_ARTIFACT = SESSION + "/artifact";
+    public static final String SESSION_FILE_DOWNLOAD = SESSION + "/files/{fileId}/download";
 
     // Profiler settings
     public static final String PROFILER_SETTINGS = PROJECTS + "/{projectId}/profiler/settings";

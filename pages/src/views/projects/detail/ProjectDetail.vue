@@ -13,11 +13,6 @@
           <!-- Sidebar Header -->
           <div class="sidebar-header" :class="workspaceTypeClass" v-if="!sidebarCollapsed">
             <h5 class="project-name">{{ projectInfo?.name || 'Loading...' }}</h5>
-            <div class="header-badges" v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE || workspaceInfo?.status === WorkspaceStatus.OFFLINE || workspaceInfo?.status === WorkspaceStatus.UNKNOWN">
-              <Badge v-if="workspaceInfo?.status === WorkspaceStatus.UNAVAILABLE" value="UNAVAILABLE" variant="red" size="xs"/>
-              <Badge v-else-if="workspaceInfo?.status === WorkspaceStatus.OFFLINE" value="OFFLINE" variant="red" size="xs"/>
-              <Badge v-else-if="workspaceInfo?.status === WorkspaceStatus.UNKNOWN" value="UNKNOWN" variant="yellow" size="xs"/>
-            </div>
           </div>
 
           <div class="sidebar-menu" v-if="!sidebarCollapsed">
@@ -171,17 +166,16 @@ import Badge from '@/components/Badge.vue';
 import ProjectClient from "@/services/api/ProjectClient.ts";
 import Project from "@/services/api/model/Project.ts";
 import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
-import WorkspaceClient from "@/services/api/WorkspaceClient.ts";
-import Workspace from "@/services/api/model/Workspace.ts";
-import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
 import { useNavigation } from '@/composables/useNavigation';
+import { useWorkspaceType } from '@/composables/useWorkspaceType';
 
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
+const { workspaceType, setWorkspaceType } = useWorkspaceType();
+
 const projectInfo = ref<Project | null>(null);
-const workspaceInfo = ref<Workspace | null>(null);
 const sidebarCollapsed = ref(false);
 
 // Submenu expansion state
@@ -198,20 +192,19 @@ const pollInterval = ref<number | null>(null);
 
 // Computed property to check if project is in SANDBOX workspace
 const isSandboxWorkspace = computed(() => {
-  return workspaceInfo.value?.type === WorkspaceType.SANDBOX;
+  return workspaceType.value === WorkspaceType.SANDBOX;
 });
 
 // Computed property to check if Scheduler should be disabled
 const isSchedulerDisabled = computed(() => {
-  return workspaceInfo.value?.type === WorkspaceType.SANDBOX ||
-         workspaceInfo.value?.type === WorkspaceType.REMOTE;
+  return workspaceType.value === WorkspaceType.SANDBOX ||
+         workspaceType.value === WorkspaceType.REMOTE;
 });
 
 // Computed property for sidebar header styling
 const workspaceTypeClass = computed(() => {
-  const type = workspaceInfo.value?.type;
-  if (type === WorkspaceType.SANDBOX) return 'avatar-sandbox';
-  if (type === WorkspaceType.REMOTE) return 'avatar-remote';
+  if (workspaceType.value === WorkspaceType.SANDBOX) return 'avatar-sandbox';
+  if (workspaceType.value === WorkspaceType.REMOTE) return 'avatar-remote';
   return 'avatar-live';
 });
 
@@ -292,15 +285,9 @@ async function initializeProject() {
     // Initialize project client with both workspace ID and project ID
     projectClient = new ProjectClient(workspaceId.value, projectId.value);
 
-    // Fetch project data and workspace list in parallel
-    const [workspaces, project] = await Promise.all([
-      WorkspaceClient.list(),
-      projectClient.get()
-    ]);
-
-    // Find the current workspace from the list
-    workspaceInfo.value = workspaces.find(w => w.id === workspaceId.value) || null;
-    projectInfo.value = project;
+    // Fetch project data
+    projectInfo.value = await projectClient.get();
+    setWorkspaceType(workspaceId.value, projectInfo.value.workspaceType);
 
     // Check for initializing profiles
     await checkInitializingProfiles();
@@ -325,17 +312,12 @@ watch(() => route.path, (newPath) => {
   }
 }, { immediate: true });
 
-onMounted(async () => {
+onMounted(() => {
   // Set up message bus listeners
   MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
   MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
   MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
-
-  // Initialize project if both IDs are already available
-  if (projectId.value && workspaceId.value) {
-    await initializeProject();
-  }
 });
 
 onUnmounted(() => {
@@ -389,11 +371,5 @@ const toggleSidebar = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.header-badges {
-  display: flex;
-  gap: 0.375rem;
-  margin-top: 0.5rem;
 }
 </style>

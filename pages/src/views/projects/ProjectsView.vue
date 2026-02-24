@@ -326,6 +326,19 @@ const refreshWorkspaces = async () => {
   }
 };
 
+// Resolve actual workspace statuses by calling the single-workspace endpoint in parallel
+const resolveWorkspaceStatuses = async () => {
+  const resolvePromises = workspaces.value.map(async (workspace, index) => {
+    try {
+      const resolved = await WorkspaceClient.get(workspace.id);
+      workspaces.value[index] = resolved;
+    } catch (error) {
+      console.error('Failed to resolve workspace status:', error);
+    }
+  });
+  await Promise.all(resolvePromises);
+};
+
 // Fetch projects function
 const refreshProjects = async () => {
   loading.value = true;
@@ -366,11 +379,6 @@ const refreshProjects = async () => {
         filteredProjects.value = [];
         errorMessage.value = 'Workspace is unavailable. It may have been deleted from the server.';
         return;
-      } else if (workspace.status === WorkspaceStatus.UNKNOWN) {
-        projects.value = [];
-        filteredProjects.value = [];
-        errorMessage.value = 'Workspace status is unknown. Cannot load projects at this time.';
-        return;
       }
 
       // For offline remote workspaces, still try to load existing projects
@@ -401,6 +409,7 @@ const selectWorkspace = (workspaceId: string) => {
 const handleWorkspaceCreated = async () => {
   // Refresh workspaces to get updated list
   await refreshWorkspaces();
+  resolveWorkspaceStatuses();
   filterProjects();
 };
 
@@ -432,6 +441,7 @@ const handleCreateSandboxWorkspace = async () => {
 const handleWorkspaceAdded = async () => {
   // Refresh workspaces to get updated list including the new remote workspace
   await refreshWorkspaces();
+  resolveWorkspaceStatuses();
   filterProjects();
 };
 
@@ -472,6 +482,8 @@ onMounted(async () => {
     // In workspace selection mode, load workspaces first, then projects
     await refreshWorkspaces();
     await refreshProjects();
+    // Resolve actual workspace statuses in parallel (non-blocking for UI)
+    resolveWorkspaceStatuses();
   }
 });
 
@@ -586,6 +598,7 @@ const confirmDeleteWorkspace = async () => {
 
     // Refresh workspaces and select a new one
     await refreshWorkspaces();
+    resolveWorkspaceStatuses();
 
     const actionText = workspace.type === WorkspaceType.SANDBOX ? 'deleted' : 'removed';
     ToastService.success('Workspace ' + actionText.charAt(0).toUpperCase() + actionText.slice(1), `Workspace "${workspace.name}" has been ${actionText} successfully.`);

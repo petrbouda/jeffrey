@@ -1,6 +1,7 @@
 package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.init.model.HeapDumpType;
+import pbouda.jeffrey.shared.common.AgentConstants;
 
 import java.nio.file.Path;
 
@@ -11,17 +12,17 @@ public class FeatureBuilder {
 
     /* Performance data JVM options */
     private static final String PERF_DATA_OPTIONS = "-XX:+UsePerfData -XX:PerfDataSaveFile="
-            + Path.of(Replacements.CURRENT_SESSION, PERF_COUNTERS_FILE);
+            + Path.of(AgentConstants.CURRENT_SESSION, PERF_COUNTERS_FILE);
 
     /* Heap dump JVM Base options */
     private static final String HEAP_DUMP_BASE_OPTIONS = "-XX:+HeapDumpOnOutOfMemoryError "
             + "-XX:HeapDumpGzipLevel=1 "
-            + "-XX:HeapDumpPath=" + Path.of(Replacements.CURRENT_SESSION, "heap-dump.hprof.gz") + " ";
+            + "-XX:HeapDumpPath=" + Path.of(AgentConstants.CURRENT_SESSION, "heap-dump.hprof.gz") + " ";
 
     /* Heap dump JVM Crash options */
     private static final String HEAP_DUMP_CRASH_OPTIONS = HEAP_DUMP_BASE_OPTIONS
             + "-XX:+CrashOnOutOfMemoryError "
-            + "-XX:ErrorFile=" + Path.of(Replacements.CURRENT_SESSION, "hs-jvm-err.log");
+            + "-XX:ErrorFile=" + Path.of(AgentConstants.CURRENT_SESSION, "hs-jvm-err.log");
 
     /* Heap dump JVM Exit options */
     private static final String HEAP_DUMP_EXIT_OPTIONS = HEAP_DUMP_BASE_OPTIONS
@@ -29,7 +30,7 @@ public class FeatureBuilder {
 
     /* Streaming JFR options (used by Jeffrey Agent for repository location) */
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
-            "-XX:FlightRecorderOptions:repository=" + Replacements.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
+            "-XX:FlightRecorderOptions:repository=" + AgentConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
 
     /* Agent JVM option template */
     private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s";
@@ -83,7 +84,7 @@ public class FeatureBuilder {
         }
 
         if (perfCountersEnabled) {
-            options.append(PERF_DATA_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(PERF_DATA_OPTIONS.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
@@ -92,20 +93,20 @@ public class FeatureBuilder {
                 case CRASH -> HEAP_DUMP_CRASH_OPTIONS;
                 case EXIT -> HEAP_DUMP_EXIT_OPTIONS;
             };
-            options.append(heapDumpOptions.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(heapDumpOptions.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
         if (jvmLogging != null && !jvmLogging.isBlank()) {
             options.append("-Xlog:");
-            options.append(jvmLogging.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(jvmLogging.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 
         if (agentPath != null && !agentPath.isBlank()) {
             options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath));
             options.append(" ");
-            options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(Replacements.CURRENT_SESSION, currentSessionPath.toString()));
+            options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 

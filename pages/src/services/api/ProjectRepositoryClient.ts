@@ -78,4 +78,10 @@ export default class ProjectRepositoryClient {
             .then(HttpUtils.RETURN_DATA);
     }
 
+    async downloadFile(sessionId: string, fileId: string): Promise<void> {
+        const downloadUrl = this.baseUrl + '/sessions/' + sessionId + '/files/'
+            + encodeURIComponent(fileId) + '/download';
+        return HttpUtils.downloadFile(downloadUrl, fileId);
+    }
+
 }

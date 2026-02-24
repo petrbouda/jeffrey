@@ -22,9 +22,12 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.feature.FeatureType;
+import pbouda.jeffrey.profile.manager.HeapDumpManager;
 import pbouda.jeffrey.profile.manager.ProfileFeaturesManager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProfileFeaturesResource {
@@ -32,15 +35,29 @@ public class ProfileFeaturesResource {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileFeaturesResource.class);
 
     private final ProfileFeaturesManager featuresManager;
+    private final JfrAnalysisAssistantService assistantService;
+    private final HeapDumpManager heapDumpManager;
 
-    public ProfileFeaturesResource(ProfileFeaturesManager featuresManager) {
+    public ProfileFeaturesResource(
+            ProfileFeaturesManager featuresManager,
+            JfrAnalysisAssistantService assistantService,
+            HeapDumpManager heapDumpManager) {
         this.featuresManager = featuresManager;
+        this.assistantService = assistantService;
+        this.heapDumpManager = heapDumpManager;
     }
 
     @GET
     @Path("disabled")
     public List<FeatureType> disabledFeatures() {
         LOG.debug("Fetching disabled features");
-        return featuresManager.getDisabledFeatures();
+        List<FeatureType> disabled = new ArrayList<>(featuresManager.getDisabledFeatures());
+        if (!assistantService.isAvailable()) {
+            disabled.add(FeatureType.AI_ANALYSIS);
+        }
+        if (!heapDumpManager.heapDumpExists() || !heapDumpManager.isCacheReady()) {
+            disabled.add(FeatureType.HEAP_DUMP);
+        }
+        return disabled;
     }
 }

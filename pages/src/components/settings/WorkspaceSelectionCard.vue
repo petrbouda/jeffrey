@@ -29,7 +29,7 @@
         />
         <Badge
           v-else-if="showStatusBadges && status === 'UNKNOWN'"
-          :value="'UNKNOWN'"
+          :value="'?'"
           variant="yellow"
           size="s"
         />

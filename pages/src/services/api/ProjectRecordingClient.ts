@@ -52,30 +52,6 @@ export default class ProjectRecordingClient {
 
     async downloadFile(recordingId: string, fileId: string): Promise<void> {
         const downloadUrl = this.baseUrl + "/" + recordingId + "/files/" + encodeURIComponent(fileId) + "/download";
-
-        const response = await axios.get(downloadUrl, {
-            responseType: 'blob'
-        });
-
-        // Extract filename from Content-Disposition header or use fileId as fallback
-        const contentDisposition = response.headers['content-disposition'];
-        let filename = fileId;
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename="?([^"]+)"?/);
-            if (match) {
-                filename = match[1];
-            }
-        }
-
-        // Create blob URL and trigger download
-        const blob = new Blob([response.data]);
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        return HttpUtils.downloadFile(downloadUrl, fileId);
     }
 }

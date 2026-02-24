@@ -19,11 +19,26 @@
 package pbouda.jeffrey.profile.manager.model;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public record StreamedRecordingFile(String fileName, Path path, Closeable cleanup) {
 
     public StreamedRecordingFile(String fileName, Path path) {
         this(fileName, path, null);
+    }
+
+    /**
+     * Opens an InputStream for the file. If a cleanup action is present,
+     * it will be executed when the stream is closed.
+     */
+    public InputStream openStream() throws IOException {
+        InputStream stream = Files.newInputStream(path);
+        if (cleanup != null) {
+            stream = new CleanupInputStream(stream, cleanup);
+        }
+        return stream;
     }
 }

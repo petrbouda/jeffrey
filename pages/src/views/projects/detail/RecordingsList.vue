@@ -12,7 +12,7 @@ import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
-import RecordingFileRow from '@/components/RecordingFileRow.vue';
+import RecordingFileGroupList from '@/components/RecordingFileGroupList.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -65,28 +65,6 @@ const toggleRecordingFiles = (recording: Recording) => {
   } else {
     expandedRecordingFiles.value.add(recording.id);
   }
-};
-
-// File type priority for sorting (lower number = higher priority)
-const FILE_TYPE_PRIORITY: Record<string, number> = {
-  'JFR': 1,
-  'JFR_LZ4': 1,
-  'HEAP_DUMP_GZ': 2,
-  'HEAP_DUMP': 2,
-  'PERF_COUNTERS': 3,
-  'JVM_LOG': 4,
-  'HS_JVM_ERROR_LOG': 5,
-  'UNKNOWN': 99
-};
-
-// Sort recording files by type
-const getSortedRecordingFiles = (files: any[]) => {
-  if (!files) return [];
-  return [...files].sort((a, b) => {
-    const priorityA = FILE_TYPE_PRIORITY[a.type] ?? 50;
-    const priorityB = FILE_TYPE_PRIORITY[b.type] ?? 50;
-    return priorityA - priorityB;
-  });
 };
 
 // Download a recording file
@@ -637,28 +615,13 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
-                    <template v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
-                      <RecordingFileRow
-                        v-for="file in getSortedRecordingFiles(recording.recordingFiles)"
-                        :key="file.id"
-                        :filename="file.filename"
-                        :fileType="file.type"
-                        :sizeInBytes="file.sizeInBytes"
-                        :description="file.description"
-                        class="mb-2"
-                      >
-                        <template #actions>
-                          <button
-                            class="btn btn-sm btn-outline-secondary download-file-btn"
-                            @click="downloadFile(recording.id, file.id)"
-                            title="Download file"
-                          >
-                            <i class="bi bi-download"></i>
-                          </button>
-                        </template>
-                      </RecordingFileRow>
-                    </template>
-                    <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
+                    <RecordingFileGroupList
+                      v-if="recording.recordingFiles && recording.recordingFiles.length > 0"
+                      :recording-id="recording.id"
+                      :files="recording.recordingFiles"
+                      @download="downloadFile"
+                    />
+                    <div v-else class="small py-1 text-muted">
                       <i class="bi bi-exclamation-circle me-1"></i>
                       No recording files available
                     </div>
@@ -731,28 +694,13 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
                   <!-- Recording Files (Expanded) -->
                   <div v-if="expandedRecordingFiles.has(recording.id)" class="ps-3 mt-2 mb-1 border-start border-2 ms-2">
-                    <template v-if="recording.recordingFiles && recording.recordingFiles.length > 0">
-                      <RecordingFileRow
-                        v-for="file in getSortedRecordingFiles(recording.recordingFiles)"
-                        :key="file.id"
-                        :filename="file.filename"
-                        :fileType="file.type"
-                        :sizeInBytes="file.sizeInBytes"
-                        :description="file.description"
-                        class="mb-2"
-                      >
-                        <template #actions>
-                          <button
-                            class="btn btn-sm btn-outline-secondary download-file-btn"
-                            @click="downloadFile(recording.id, file.id)"
-                            title="Download file"
-                          >
-                            <i class="bi bi-download"></i>
-                          </button>
-                        </template>
-                      </RecordingFileRow>
-                    </template>
-                    <div v-if="!recording.recordingFiles || recording.recordingFiles.length === 0" class="small py-1 text-muted">
+                    <RecordingFileGroupList
+                      v-if="recording.recordingFiles && recording.recordingFiles.length > 0"
+                      :recording-id="recording.id"
+                      :files="recording.recordingFiles"
+                      @download="downloadFile"
+                    />
+                    <div v-else class="small py-1 text-muted">
                       <i class="bi bi-exclamation-circle me-1"></i>
                       No recording files available
                     </div>

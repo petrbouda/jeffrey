@@ -211,6 +211,36 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
+    public StreamedRecordingFile streamFile(String sessionId, String fileId) {
+        RecordingSession session = repositoryStorage.singleSession(sessionId, true)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        RepositoryFile file = session.files().stream()
+                .filter(f -> f.id().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("File not found: fileId=" + fileId));
+
+        if (file.status() == RecordingStatus.ACTIVE) {
+            throw new IllegalArgumentException("Cannot download ACTIVE file: fileId=" + fileId);
+        }
+
+        List<Path> paths;
+        if (file.isRecordingFile()) {
+            paths = repositoryStorage.recordings(sessionId, List.of(fileId));
+        } else {
+            paths = repositoryStorage.artifacts(sessionId, List.of(fileId));
+        }
+
+        if (paths.isEmpty()) {
+            throw new IllegalArgumentException("File path not found: fileId=" + fileId);
+        }
+
+        Path filePath = paths.getFirst();
+        String filename = filePath.getFileName().toString();
+        return new StreamedRecordingFile(filename, filePath);
+    }
+
+    @Override
     public void delete() {
         LOG.debug("Deleting repository");
         repository.deleteAll();

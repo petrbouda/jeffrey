@@ -104,4 +104,23 @@ public class RemoteRecordingStreamClientImpl implements RemoteRecordingStreamCli
                     });
         });
     }
+
+    @Override
+    public void streamSingleFile(
+            String workspaceId, String projectId, String sessionId,
+            String fileId, InputStreamConsumer consumer) {
+
+        invoker.streaming(() -> {
+            return invoker.restClient().get()
+                    .uri(PublicApiPaths.SESSION_FILE_DOWNLOAD, workspaceId, projectId, sessionId, fileId)
+                    .exchange((request, response) -> {
+                        if (response.getStatusCode().isError()) {
+                            throw invoker.toRemoteError(response.getStatusCode().value(),
+                                    () -> response.bodyTo(ErrorResponse.class));
+                        }
+                        consumer.accept(response.getBody(), response.getHeaders().getContentLength());
+                        return response.getStatusCode().value();
+                    });
+        });
+    }
 }

@@ -86,7 +86,7 @@ public class WorkspaceResource {
     @GET
     public WorkspaceResponse info() {
         LOG.debug("Fetching workspace info: workspaceId={}", workspaceInfo.id());
-        return Mappers.toResponse(workspaceInfo);
+        return Mappers.toResponse(workspaceManager.resolveInfo());
     }
 
     @GET

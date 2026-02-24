@@ -62,6 +62,11 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public WorkspaceInfo localInfo() {
+        return workspaceInfo;
+    }
+
+    @Override
     public WorkspaceInfo resolveInfo() {
         try {
             RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.originId());

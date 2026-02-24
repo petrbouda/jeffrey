@@ -51,4 +51,8 @@ public interface RemoteRecordingStreamClient {
     void streamFile(
             String workspaceId, String projectId, String sessionId,
             String fileId, InputStreamConsumer consumer);
+
+    void streamSingleFile(
+            String workspaceId, String projectId, String sessionId,
+            String fileId, InputStreamConsumer consumer);
 }

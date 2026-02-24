@@ -24,7 +24,6 @@ import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
-import pbouda.jeffrey.profile.manager.model.CleanupInputStream;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.platform.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.FilesDownloadRequest;
@@ -32,9 +31,7 @@ import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
@@ -94,6 +91,18 @@ public class ProjectRepositorySessionPublicResource {
         return streamRecording(file);
     }
 
+    @GET
+    @Path("/{sessionId}/files/{fileId}/download")
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    public Response downloadFile(
+            @PathParam("sessionId") String sessionId,
+            @PathParam("fileId") String fileId) {
+
+        LOG.debug("Downloading single session file (public): sessionId={} fileId={}", sessionId, fileId);
+        StreamedRecordingFile file = repositoryManager.streamFile(sessionId, fileId);
+        return streamRecording(file);
+    }
+
     @DELETE
     @Path("/{sessionId}")
     public Response deleteSession(@PathParam("sessionId") String sessionId) {
@@ -104,11 +113,7 @@ public class ProjectRepositorySessionPublicResource {
 
     private static Response streamRecording(StreamedRecordingFile recordingFile) {
         try {
-            InputStream stream = Files.newInputStream(recordingFile.path());
-            if (recordingFile.cleanup() != null) {
-                stream = new CleanupInputStream(stream, recordingFile.cleanup());
-            }
-            return Response.ok(stream)
+            return Response.ok(recordingFile.openStream())
                     .header("Content-Disposition", "attachment; filename=\"" + recordingFile.fileName() + "\"")
                     .type(MediaType.APPLICATION_OCTET_STREAM)
                     .build();

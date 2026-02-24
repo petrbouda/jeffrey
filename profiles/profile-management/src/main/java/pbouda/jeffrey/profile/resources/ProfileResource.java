@@ -161,7 +161,7 @@ public class ProfileResource {
 
     @Path("/features")
     public ProfileFeaturesResource featuresResource() {
-        return new ProfileFeaturesResource(profileManager.featuresManager());
+        return new ProfileFeaturesResource(profileManager.featuresManager(), jfrAnalysisAssistantService, profileManager.heapDumpManager());
     }
 
     @Path("/ai-analysis")

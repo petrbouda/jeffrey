@@ -32,7 +32,16 @@ public interface WorkspaceManager {
     }
 
     /**
+     * Returns the locally stored workspace information without remote resolution.
+     * Unlike {@link #resolveInfo()}, this never makes network calls.
+     *
+     * @return the locally stored workspace information
+     */
+    WorkspaceInfo localInfo();
+
+    /**
      * Returns the workspace information associated with this manager.
+     * For remote workspaces, this may involve network calls to check availability.
      *
      * @return the workspace information
      */

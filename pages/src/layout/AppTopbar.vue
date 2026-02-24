@@ -29,9 +29,9 @@
         <button v-if="isProjectPage"
                 class="back-to-workspace-btn me-2"
                 :class="{
-                  'btn-sandbox': workspaceInfo?.type === WorkspaceType.SANDBOX,
-                  'btn-remote': workspaceInfo?.type === WorkspaceType.REMOTE,
-                  'btn-live': workspaceInfo?.type === WorkspaceType.LIVE
+                  'btn-sandbox': workspaceType === WorkspaceType.SANDBOX,
+                  'btn-remote': workspaceType === WorkspaceType.REMOTE,
+                  'btn-live': workspaceType === WorkspaceType.LIVE
                 }"
                 @click="$router.push('/workspaces')"
                 title="Back to workspaces">
@@ -44,18 +44,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
-import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceType from '@/services/api/model/WorkspaceType';
-import Workspace from '@/services/api/model/Workspace';
+import { useWorkspaceType } from '@/composables/useWorkspaceType';
 
 const route = useRoute();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
+const { workspaceType, activateWorkspaceType } = useWorkspaceType();
 
-// Workspace info for styling the button
-const workspaceInfo = ref<Workspace | null>(null);
+// Restore workspace type from cache on page refresh or workspace navigation
+watch(workspaceId, (newId) => {
+  if (newId) {
+    activateWorkspaceType(newId);
+  }
+}, { immediate: true });
 
 // Check if current route is a profile detail page
 const isProfilePage = computed(() => {
@@ -71,18 +75,6 @@ const isQuickAnalysisProfile = computed(() => {
 const isProjectPage = computed(() => {
   return route.meta.layout === 'project' || route.path.includes('/projects/');
 });
-
-// Load workspace info when workspaceId changes
-watch(workspaceId, async (newWorkspaceId) => {
-  if (newWorkspaceId) {
-    try {
-      const workspaces = await WorkspaceClient.list();
-      workspaceInfo.value = workspaces.find(w => w.id === newWorkspaceId) || null;
-    } catch (error) {
-      console.error('Failed to load workspace info:', error);
-    }
-  }
-}, { immediate: true });
 
 const toggleSidebar = () => {
   if (window.toggleSidebar) {

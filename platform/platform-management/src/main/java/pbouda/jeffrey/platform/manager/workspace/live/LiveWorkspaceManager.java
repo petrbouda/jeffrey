@@ -56,6 +56,11 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public WorkspaceInfo localInfo() {
+        return workspaceInfo;
+    }
+
+    @Override
     public WorkspaceInfo resolveInfo() {
         /*
          * For regular workspaces, if the location is not set, we default it to a path under the home directory.

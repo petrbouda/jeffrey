@@ -26,6 +26,7 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.response.ProfileWithContextResponse;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
@@ -54,6 +55,7 @@ public class ProfilesResource {
 
     private final CompositeWorkspacesManager workspacesManager;
     private final QuickAnalysisManager quickAnalysisManager;
+    private final PlatformRepositories platformRepositories;
     private final OqlAssistantService oqlAssistantService;
     private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
     private final HeapDumpContextExtractor heapDumpContextExtractor;
@@ -62,12 +64,14 @@ public class ProfilesResource {
     public ProfilesResource(
             CompositeWorkspacesManager workspacesManager,
             QuickAnalysisManager quickAnalysisManager,
+            PlatformRepositories platformRepositories,
             OqlAssistantService oqlAssistantService,
             JfrAnalysisAssistantService jfrAnalysisAssistantService,
             HeapDumpContextExtractor heapDumpContextExtractor,
             HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
         this.workspacesManager = workspacesManager;
         this.quickAnalysisManager = quickAnalysisManager;
+        this.platformRepositories = platformRepositories;
         this.oqlAssistantService = oqlAssistantService;
         this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
         this.heapDumpContextExtractor = heapDumpContextExtractor;
@@ -129,7 +133,9 @@ public class ProfilesResource {
     }
 
     /**
-     * Finds a profile manager by profile ID across all workspaces, projects, and quick analysis profiles.
+     * Finds a profile manager by profile ID using direct DB lookup.
+     * Profiles are always stored locally, so we avoid iterating all workspaces/projects
+     * (which would trigger HTTP calls for remote workspaces).
      */
     private Optional<ProfileManager> findProfileManager(String profileId) {
         // First check quick analysis profiles
@@ -138,16 +144,18 @@ public class ProfilesResource {
             return quickProfile;
         }
 
-        // Then check regular workspace/project profiles
-        for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
-            for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
-                Optional<ProfileManager> profileManager = projectManager.profilesManager().profile(profileId);
-                if (profileManager.isPresent()) {
-                    return profileManager;
-                }
-            }
+        // Direct DB lookup — profiles are always stored locally
+        Optional<ProfileInfo> profileInfoOpt = platformRepositories.newProfileRepository(profileId).find();
+        if (profileInfoOpt.isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+
+        ProfileInfo profileInfo = profileInfoOpt.get();
+
+        // Navigate directly to the right workspace and project (no iteration, no HTTP calls)
+        return workspacesManager.findById(profileInfo.workspaceId())
+                .flatMap(ws -> ws.projectsManager().project(profileInfo.projectId()))
+                .flatMap(pm -> pm.profilesManager().profile(profileId));
     }
 
     private static ProfileWithContextResponse toResponse(ProfileManager profileManager, String workspaceName, String projectName) {

@@ -2,6 +2,7 @@ package pbouda.jeffrey.init;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.shared.common.AgentConstants;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.ProfilerSettings;
@@ -22,10 +23,6 @@ public class ProfilerSettingsResolver {
 
     private static final String WORKSPACE_SETTINGS_PREFIX = "settings-";
     private static final String WORKSPACE_SETTINGS_DIR = ".settings";
-
-    private static final String DEFAULT_PROFILER_CONFIG =
-            "-agentpath:" + Replacements.PROFILER_PATH + "=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file="
-                    + Replacements.CURRENT_SESSION + "/profile-%t.jfr";
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmssSSSSSS").withZone(ZoneOffset.UTC);
@@ -63,8 +60,8 @@ public class ProfilerSettingsResolver {
         }
 
         return config
-                .replace(Replacements.PROFILER_PATH, profilerPath == null ? "" : profilerPath)
-                .replace(Replacements.CURRENT_SESSION, sessionPath.toString());
+                .replace(AgentConstants.PROFILER_PATH, profilerPath == null ? "" : profilerPath)
+                .replace(AgentConstants.CURRENT_SESSION, sessionPath.toString());
     }
 
     private String resolveJeffreyProfilerConfig(Path workspacePath, String projectName) {
@@ -85,11 +82,11 @@ public class ProfilerSettingsResolver {
                     return profilerSettings.defaultSettings();
                 } else {
                     LOG.info("Profiler config resolved from: built-in default configuration (settings file had no applicable config)");
-                    return DEFAULT_PROFILER_CONFIG;
+                    return AgentConstants.DEFAULT_PROFILER_CONFIG;
                 }
             } else {
                 LOG.info("Profiler config resolved from: built-in default configuration");
-                return DEFAULT_PROFILER_CONFIG;
+                return AgentConstants.DEFAULT_PROFILER_CONFIG;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

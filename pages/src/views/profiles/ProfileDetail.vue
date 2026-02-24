@@ -106,7 +106,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/ai-analysis`"
                       class="nav-item nav-item-ai"
-                      :class="{ 'disabled-feature': !aiAvailable }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('ai-analysis') }"
                       active-class="active"
                   >
                     <i class="bi bi-stars"></i>
@@ -119,8 +119,6 @@
                   >
                     <i class="bi bi-shield-check"></i>
                     <span>Guardian Analysis</span>
-                    <Badge v-if="warningCount > 0" :value="warningCount.toString()" variant="danger" size="xs"
-                           class="ms-auto"/>
                   </router-link>
                   <router-link
                       :to="`/profiles/${profileId}/auto-analysis`"
@@ -129,8 +127,6 @@
                   >
                     <i class="bi bi-robot"></i>
                     <span>Auto Analysis</span>
-                    <Badge v-if="autoAnalysisWarningCount > 0" :value="autoAnalysisWarningCount.toString()"
-                           variant="danger" size="xs" class="ms-auto"/>
                   </router-link>
                   <router-link
                       :to="`/profiles/${profileId}/performance-counters`"
@@ -478,7 +474,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/ai-analysis`"
                       class="nav-item nav-item-ai"
-                      :class="{ 'disabled-feature': !heapDumpReady || !aiAvailable }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') || isFeatureDisabled('ai-analysis') }"
                       active-class="active"
                   >
                     <i class="bi bi-stars"></i>
@@ -493,7 +489,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/histogram`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-list-ol"></i>
@@ -502,7 +498,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/dominator-tree`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-diagram-2"></i>
@@ -511,7 +507,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/gc-root-path`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-signpost-2"></i>
@@ -520,7 +516,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/collection-analysis`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-collection"></i>
@@ -529,7 +525,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/string-analysis`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-fonts"></i>
@@ -538,7 +534,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/leak-suspects`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-bug"></i>
@@ -547,7 +543,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/oql`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-terminal"></i>
@@ -556,7 +552,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/gc-roots`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-diagram-3"></i>
@@ -565,7 +561,7 @@
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/threads`"
                       class="nav-item"
-                      :class="{ 'disabled-feature': !heapDumpReady }"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
                     <i class="bi bi-cpu"></i>
@@ -680,15 +676,10 @@ import DirectProfileClient from "@/services/api/DirectProfileClient.ts";
 import ProfileInfo from "@/services/api/model/ProfileInfo.ts";
 import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
-import Badge from '@/components/Badge.vue';
 import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelectionModal.vue';
 import MessageBus from "@/services/MessageBus.ts";
-import GuardianClient from "@/services/api/GuardianClient";
-import AutoAnalysisClient from "@/services/api/AutoAnalysisClient";
 import ProfileFeaturesClient from "@/services/api/ProfileFeaturesClient";
 import FeatureType from "@/services/api/model/FeatureType";
-import HeapDumpClient from "@/services/api/HeapDumpClient";
-import AiAnalysisClient from "@/services/api/AiAnalysisClient";
 import { profileStore, ProfileWithContext } from "@/stores/profileStore";
 import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 
@@ -705,11 +696,7 @@ const loadingProfiles = ref(false);
 const loading = ref(true);
 const sidebarCollapsed = ref(false);
 const showSecondaryProfileSelectionModal = ref(false);
-const warningCount = ref<number>(0);
-const autoAnalysisWarningCount = ref<number>(0);
 const disabledFeatures = ref<FeatureType[]>([]);
-const heapDumpReady = ref(false);
-const aiAvailable = ref(false);
 const isHeapDumpOnlyProfile = ref(false);
 
 /**
@@ -730,6 +717,8 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
     'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,
     'method-tracing': FeatureType.TRACING_DASHBOARD,
+    'ai-analysis': FeatureType.AI_ANALYSIS,
+    'heap-dump': FeatureType.HEAP_DUMP,
   };
   return featureMapping[menuItem] || null;
 };
@@ -807,58 +796,11 @@ onMounted(async () => {
       selectedMode.value = 'HeapDump';
     }
 
-    // Load guardian warning count
+    // Load disabled features (includes heap dump status)
     try {
-      const guardData = await GuardianClient.list(profileId);
-      // Count WARNING severity items across all categories
-      let count = 0;
-      guardData.forEach(category => {
-        count += category.results.filter(result => result.severity === "WARNING").length;
-      });
-      warningCount.value = count;
-    } catch (error) {
-      console.error('Failed to load guardian data:', error);
-      warningCount.value = 0;
-    }
-
-    // Load auto analysis warning count
-    try {
-      const analysisData = await AutoAnalysisClient.rules(profileId);
-      // Count WARNING severity items
-      autoAnalysisWarningCount.value = analysisData.filter(rule => rule.severity === "WARNING").length;
-    } catch (error) {
-      console.error('Failed to load auto analysis data:', error);
-      autoAnalysisWarningCount.value = 0;
-    }
-
-    // Load disabled features from API
-    try {
-      const profileFeaturesClient = new ProfileFeaturesClient(profileId);
-      disabledFeatures.value = await profileFeaturesClient.getDisabledFeatures();
+      disabledFeatures.value = await new ProfileFeaturesClient(profileId).getDisabledFeatures();
     } catch (error) {
       console.error('Failed to load disabled features:', error);
-    }
-
-    // Check if heap dump is ready (cache initialized)
-    try {
-      const heapDumpClient = new HeapDumpClient(profileId);
-      const exists = await heapDumpClient.exists();
-      if (exists) {
-        heapDumpReady.value = await heapDumpClient.isCacheReady();
-      }
-    } catch (error) {
-      console.error('Failed to check heap dump status:', error);
-      heapDumpReady.value = false;
-    }
-
-    // Check if AI is available
-    try {
-      const aiClient = new AiAnalysisClient(profileId);
-      const status = await aiClient.getStatus();
-      aiAvailable.value = status.available;
-    } catch (error) {
-      console.error('Failed to check AI availability:', error);
-      aiAvailable.value = false;
     }
 
     // Check if there's a previously selected secondary profile in SecondaryProfileService
@@ -992,7 +934,13 @@ const handleSecondaryProfileCleared = () => {
 
 // Handle heap dump status changes
 const handleHeapDumpStatusChanged = (ready: boolean) => {
-  heapDumpReady.value = ready;
+  if (ready) {
+    disabledFeatures.value = disabledFeatures.value.filter(f => f !== FeatureType.HEAP_DUMP);
+  } else {
+    if (!disabledFeatures.value.includes(FeatureType.HEAP_DUMP)) {
+      disabledFeatures.value.push(FeatureType.HEAP_DUMP);
+    }
+  }
 };
 
 // Set up message bus listener
