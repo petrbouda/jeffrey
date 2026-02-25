@@ -59,6 +59,7 @@ public class JfrStreamingConsumerManager implements Closeable {
     private final PlatformRepositories platformRepositories;
     private final Clock clock;
     private final Duration heartbeatTimeout;
+    private final Duration heartbeatStartupTimeout;
     private final boolean requireInitialHeartbeat;
 
     public JfrStreamingConsumerManager(
@@ -67,6 +68,7 @@ public class JfrStreamingConsumerManager implements Closeable {
             PlatformRepositories platformRepositories,
             Clock clock,
             Duration heartbeatTimeout,
+            Duration heartbeatStartupTimeout,
             boolean requireInitialHeartbeat) {
 
         this.jeffreyDirs = jeffreyDirs;
@@ -74,6 +76,7 @@ public class JfrStreamingConsumerManager implements Closeable {
         this.platformRepositories = platformRepositories;
         this.clock = clock;
         this.heartbeatTimeout = heartbeatTimeout;
+        this.heartbeatStartupTimeout = heartbeatStartupTimeout;
         this.requireInitialHeartbeat = requireInitialHeartbeat;
     }
 
@@ -113,7 +116,7 @@ public class JfrStreamingConsumerManager implements Closeable {
                 platformRepositories.newAlertRepository(projectInfo.id());
 
         List<JfrStreamingHandler> handlers = List.of(
-                new JfrHeartbeatHandler(sessionId, repositoryRepository, clock, heartbeatTimeout, requireInitialHeartbeat),
+                new JfrHeartbeatHandler(sessionId, repositoryRepository, clock, heartbeatTimeout, heartbeatStartupTimeout, requireInitialHeartbeat),
                 new MessageStreamingHandler(sessionId, messageRepository),
                 new AlertStreamingHandler(sessionId, alertRepository)
         );

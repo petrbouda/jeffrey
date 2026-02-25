@@ -64,7 +64,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var clock = new MutableClock(NOW);
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMinutes(5), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
             when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
@@ -83,7 +83,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var clock = new MutableClock(NOW);
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMinutes(5), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
 
             Instant first = Instant.parse("2025-06-15T11:50:00Z");
             Instant second = Instant.parse("2025-06-15T11:55:00Z");
@@ -114,7 +114,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
             // Use a short timeout so the watchdog fires quickly
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), Duration.ofMillis(50), false);
 
             // Send one heartbeat
             when(mockEvent.getStartTime()).thenReturn(NOW);
@@ -138,7 +138,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var clock = new MutableClock(NOW);
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(200), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(200), Duration.ofMillis(200), false);
 
             // Send heartbeat right at clock time
             when(mockEvent.getStartTime()).thenReturn(NOW);
@@ -164,7 +164,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
             // requireInitialHeartbeat=true, no heartbeat ever sent
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), true);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), Duration.ofMillis(50), true);
 
             CountDownLatch closedLatch = new CountDownLatch(1);
             handler.initialize(closedLatch::countDown);
@@ -181,12 +181,57 @@ class JfrHeartbeatHandlerIntegrationTest {
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
             // requireInitialHeartbeat=false, no heartbeat sent
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(100), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(100), Duration.ofMillis(100), false);
 
             CountDownLatch closedLatch = new CountDownLatch(1);
             handler.initialize(closedLatch::countDown);
 
             assertFalse(closedLatch.await(300, TimeUnit.MILLISECONDS), "Stream closer should NOT have been called");
+            handler.close();
+        }
+    }
+
+    @Nested
+    class StartupGracePeriod {
+
+        @Test
+        void watchdog_doesNotClose_duringGracePeriod_evenWithoutHeartbeat(DataSource dataSource) throws Exception {
+            TestUtils.executeSql(dataSource, "sql/heartbeat/insert-project-with-session.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var clock = new MutableClock(NOW);
+            var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
+
+            // Grace period (500ms) is much longer than heartbeat timeout (50ms)
+            // The first watchdog check fires after 500ms, not 50ms
+            var handler = new JfrHeartbeatHandler(
+                    SESSION_ID, repository, clock, Duration.ofMillis(50), Duration.ofMillis(500), true);
+
+            CountDownLatch closedLatch = new CountDownLatch(1);
+            handler.initialize(closedLatch::countDown);
+
+            // Wait longer than heartbeatTimeout but shorter than startupGracePeriod
+            assertFalse(closedLatch.await(200, TimeUnit.MILLISECONDS),
+                    "Stream closer should NOT fire during startup grace period");
+            handler.close();
+        }
+
+        @Test
+        void watchdog_closesStream_afterGracePeriod_whenNoHeartbeatReceived(DataSource dataSource) throws Exception {
+            TestUtils.executeSql(dataSource, "sql/heartbeat/insert-project-with-session.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var clock = new MutableClock(NOW);
+            var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
+
+            // Grace period 100ms, heartbeat timeout 50ms
+            var handler = new JfrHeartbeatHandler(
+                    SESSION_ID, repository, clock, Duration.ofMillis(50), Duration.ofMillis(100), true);
+
+            CountDownLatch closedLatch = new CountDownLatch(1);
+            handler.initialize(closedLatch::countDown);
+
+            // After the grace period, the watchdog should fire and close the stream
+            assertTrue(closedLatch.await(2, TimeUnit.SECONDS),
+                    "Stream closer should fire after startup grace period with no heartbeat");
             handler.close();
         }
     }
@@ -201,7 +246,7 @@ class JfrHeartbeatHandlerIntegrationTest {
             var clock = new MutableClock(NOW);
             var repository = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), true);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repository, clock, Duration.ofMillis(50), Duration.ofMillis(50), true);
 
             CountDownLatch closedLatch = new CountDownLatch(1);
             handler.initialize(closedLatch::countDown);

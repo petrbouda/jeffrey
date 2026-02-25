@@ -342,10 +342,12 @@ public class AppConfiguration {
             PlatformRepositories platformRepositories,
             Clock clock,
             @Value("${jeffrey.platform.streaming.heartbeat-timeout:10s}") Duration heartbeatTimeout,
+            @Value("${jeffrey.platform.streaming.heartbeat-startup-timeout:60s}") Duration heartbeatStartupTimeout,
             @Value("${jeffrey.platform.streaming.require-initial-heartbeat:true}") boolean requireInitialHeartbeat) {
 
         return new JfrStreamingConsumerManager(
-                jeffreyDirs, sessionFinishEventEmitter, platformRepositories, clock, heartbeatTimeout, requireInitialHeartbeat);
+                jeffreyDirs, sessionFinishEventEmitter, platformRepositories, clock,
+                heartbeatTimeout, heartbeatStartupTimeout, requireInitialHeartbeat);
     }
 
     @Bean

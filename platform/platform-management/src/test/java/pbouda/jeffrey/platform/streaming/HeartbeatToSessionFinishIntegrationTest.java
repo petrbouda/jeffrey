@@ -108,7 +108,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
 
             // Step 1: Send a heartbeat via JfrHeartbeatHandler
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
             when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
@@ -172,7 +172,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
 
             // Send a heartbeat to session-001, making it stale
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:50:00Z");
             when(mockEvent.getStartTime()).thenReturn(heartbeatTime);
@@ -221,11 +221,11 @@ class HeartbeatToSessionFinishIntegrationTest {
             Instant heartbeat1 = Instant.parse("2025-06-15T11:50:00Z");
             Instant heartbeat2 = Instant.parse("2025-06-15T11:51:00Z");
 
-            var handler1 = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
+            var handler1 = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
             when(mockEvent.getStartTime()).thenReturn(heartbeat1);
             handler1.onEvent(mockEvent);
 
-            var handler2 = new JfrHeartbeatHandler(SESSION_ID_2, repoRepo, clock, Duration.ofMinutes(5), false);
+            var handler2 = new JfrHeartbeatHandler(SESSION_ID_2, repoRepo, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
             when(mockEvent.getStartTime()).thenReturn(heartbeat2);
             handler2.onEvent(mockEvent);
 
@@ -377,7 +377,7 @@ class HeartbeatToSessionFinishIntegrationTest {
             var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
 
             // Step 1: JfrHeartbeatHandler.onEvent() persists heartbeat
-            var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), false);
+            var handler = new JfrHeartbeatHandler(SESSION_ID, repoRepo, clock, Duration.ofMinutes(5), Duration.ofMinutes(5), false);
 
             Instant heartbeatTime = Instant.parse("2025-06-15T11:55:00Z");
             when(mockEvent.getStartTime()).thenReturn(heartbeatTime);

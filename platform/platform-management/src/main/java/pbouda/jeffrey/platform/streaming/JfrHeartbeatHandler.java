@@ -44,6 +44,7 @@ public class JfrHeartbeatHandler implements JfrStreamingHandler {
     private final ProjectRepositoryRepository repository;
     private final Clock clock;
     private final Duration heartbeatTimeout;
+    private final Duration heartbeatStartupTimeout;
     private final boolean requireInitialHeartbeat;
 
     private volatile Instant lastHeartbeatAt;
@@ -54,12 +55,14 @@ public class JfrHeartbeatHandler implements JfrStreamingHandler {
             ProjectRepositoryRepository repository,
             Clock clock,
             Duration heartbeatTimeout,
+            Duration heartbeatStartupTimeout,
             boolean requireInitialHeartbeat) {
 
         this.sessionId = sessionId;
         this.repository = repository;
         this.clock = clock;
         this.heartbeatTimeout = heartbeatTimeout;
+        this.heartbeatStartupTimeout = heartbeatStartupTimeout;
         this.requireInitialHeartbeat = requireInitialHeartbeat;
     }
 
@@ -83,12 +86,14 @@ public class JfrHeartbeatHandler implements JfrStreamingHandler {
 
     @Override
     public void initialize(Runnable streamCloser) {
-        LOG.info("Heartbeat watchdog started: sessionId={} timeout={}", sessionId, heartbeatTimeout);
+        LOG.info("Heartbeat watchdog started: sessionId={} timeout={} heartbeatStartupTimeout={}",
+                sessionId, heartbeatTimeout, heartbeatStartupTimeout);
 
+        long gracePeriodMillis = heartbeatStartupTimeout.toMillis();
         long delayMillis = heartbeatTimeout.toMillis();
         watchdogFuture = Schedulers.watchdogScheduled()
                 .scheduleWithFixedDelay(
-                        () -> checkHeartbeat(streamCloser), delayMillis, delayMillis, TimeUnit.MILLISECONDS);
+                        () -> checkHeartbeat(streamCloser), gracePeriodMillis, delayMillis, TimeUnit.MILLISECONDS);
     }
 
     private void checkHeartbeat(Runnable streamCloser) {
