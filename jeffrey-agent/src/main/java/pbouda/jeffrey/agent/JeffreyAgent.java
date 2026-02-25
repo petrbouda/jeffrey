@@ -22,6 +22,7 @@ import cafe.jeffrey.jfr.events.JeffreyEventRegistry;
 import cafe.jeffrey.jfr.events.heartbeat.HeartbeatEvent;
 import cafe.jeffrey.jfr.events.message.AlertEvent;
 import cafe.jeffrey.jfr.events.message.MessageEvent;
+import jdk.jfr.EventType;
 import jdk.jfr.FlightRecorder;
 import jdk.jfr.Recording;
 
@@ -44,9 +45,14 @@ public class JeffreyAgent {
 
         recording.setName(RECORDING_NAME);
 
-        // Disable ALL registered events (including custom @Enabled(true) ones)
+        // Disable ALL registered events (Jeffrey custom events)
         for (var et : JeffreyEventRegistry.all()) {
             recording.disable(et);
+        }
+
+        // Disable ALL registered events (JDK built-in)
+        for (EventType eventType : FlightRecorder.getFlightRecorder().getEventTypes()) {
+            recording.disable(eventType.getName());
         }
 
         recording.enable(AlertEvent.class);
