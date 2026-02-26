@@ -20,8 +20,12 @@ package pbouda.jeffrey.agent;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 
 public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean heartbeatEnabled) {
+
+    private record KeyValue(String key, String value) {
+    }
 
     // Duplicated from HeartbeatConstants — agent must stay zero-dependency for minimal JAR size
     private static final String PARAM_DIR = "heartbeat.dir";
@@ -39,21 +43,29 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
         boolean enabled = true;
 
         for (String part : args.split(",")) {
-            String trimmed = part.trim();
-            int eq = trimmed.indexOf('=');
-            if (eq < 0) {
+            Optional<KeyValue> kvOpt = parseKeyValue(part);
+            if (kvOpt.isEmpty()) {
                 continue;
             }
-            String key = trimmed.substring(0, eq).trim();
-            String value = trimmed.substring(eq + 1).trim();
-
-            switch (key) {
-                case PARAM_DIR -> heartbeatDir = Path.of(value);
-                case PARAM_INTERVAL -> interval = Duration.ofMillis(Long.parseLong(value));
-                case PARAM_ENABLED -> enabled = Boolean.parseBoolean(value);
+            KeyValue kv = kvOpt.get();
+            switch (kv.key) {
+                case PARAM_DIR -> heartbeatDir = Path.of(kv.value);
+                case PARAM_INTERVAL -> interval = Duration.ofMillis(Long.parseLong(kv.value));
+                case PARAM_ENABLED -> enabled = Boolean.parseBoolean(kv.value);
             }
         }
 
         return new AgentArgs(heartbeatDir, interval, enabled);
+    }
+
+    private static Optional<KeyValue> parseKeyValue(String part) {
+        String trimmed = part.trim();
+        int eq = trimmed.indexOf('=');
+        if (eq < 0) {
+            return Optional.empty();
+        }
+        String key = trimmed.substring(0, eq).trim();
+        String value = trimmed.substring(eq + 1).trim();
+        return Optional.of(new KeyValue(key, value));
     }
 }
