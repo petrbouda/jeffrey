@@ -45,7 +45,6 @@ import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
@@ -339,13 +338,12 @@ public class AppConfiguration {
     @Bean(destroyMethod = "close")
     public JfrStreamingConsumerManager jfrStreamingConsumerManager(
             JeffreyDirs jeffreyDirs,
-            SessionFinishEventEmitter sessionFinishEventEmitter,
             PlatformRepositories platformRepositories,
             Clock clock,
             FileHeartbeatReader fileHeartbeatReader) {
 
         return new JfrStreamingConsumerManager(
-                jeffreyDirs, sessionFinishEventEmitter, platformRepositories, clock, fileHeartbeatReader);
+                jeffreyDirs, platformRepositories, clock, fileHeartbeatReader);
     }
 
     @Bean

@@ -20,8 +20,6 @@ package pbouda.jeffrey.platform.streaming;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
-import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.provider.platform.repository.AlertRepository;
 import pbouda.jeffrey.provider.platform.repository.MessageRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -30,7 +28,6 @@ import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -55,20 +52,17 @@ public class JfrStreamingConsumerManager implements Closeable {
 
     private final ConcurrentHashMap<String, JfrStreamingConsumer> consumers = new ConcurrentHashMap<>();
     private final JeffreyDirs jeffreyDirs;
-    private final SessionFinishEventEmitter eventEmitter;
     private final PlatformRepositories platformRepositories;
     private final Clock clock;
     private final FileHeartbeatReader fileHeartbeatReader;
 
     public JfrStreamingConsumerManager(
             JeffreyDirs jeffreyDirs,
-            SessionFinishEventEmitter eventEmitter,
             PlatformRepositories platformRepositories,
             Clock clock,
             FileHeartbeatReader fileHeartbeatReader) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.eventEmitter = eventEmitter;
         this.platformRepositories = platformRepositories;
         this.clock = clock;
         this.fileHeartbeatReader = fileHeartbeatReader;
@@ -115,18 +109,11 @@ public class JfrStreamingConsumerManager implements Closeable {
         );
 
         Runnable onNaturalClose = () -> {
-            LOG.info("Stream closed naturally, marking session finished: sessionId={} projectId={}",
-                    sessionId, projectInfo.id());
-            try {
-                repositoryRepository.markSessionFinished(sessionId, clock.instant());
-                eventEmitter.emitSessionFinished(projectInfo, sessionInfo, WorkspaceEventCreator.STREAMING_CONSUMER);
-                JfrMessageEmitter.sessionFinished(sessionId, projectInfo.id());
-            } catch (Exception e) {
-                LOG.error("Failed to process natural stream close: sessionId={} projectId={}",
-                        sessionId, projectInfo.id(), e);
-            } finally {
-                consumers.remove(sessionId);
+            if (consumers.remove(sessionId) == null) {
+                LOG.debug("Stream closed but consumer already unregistered: sessionId={}", sessionId);
+                return;
             }
+            LOG.info("Streaming closed naturally: sessionId={} projectId={}", sessionId, projectInfo.id());
         };
 
         // Resume from last heartbeat file - 10s on restart (null for new sessions → start from beginning)
