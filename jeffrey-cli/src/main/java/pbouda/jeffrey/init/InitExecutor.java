@@ -136,6 +136,7 @@ public class InitExecutor {
                 .setPerfCountersEnabled(config.isPerfCountersEnabled())
                 .setJvmLogging(config.getJvmLoggingCommand())
                 .setAgentPath(config.getAgentPath())
+                .setJfcSettingsPath(config.getJfcSettingsPath())
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
                 .build(newSessionPath);
 

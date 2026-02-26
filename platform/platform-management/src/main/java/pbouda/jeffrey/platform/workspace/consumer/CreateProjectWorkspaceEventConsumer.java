@@ -25,6 +25,7 @@ import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.profile.manager.model.CreateProject;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
@@ -67,6 +68,7 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
             projectManager = projectsManager.create(createProject);
             LOG.info("Project created from workspace event: project_id={} event={}",
                     projectManager.info().id(), event);
+            JfrMessageEmitter.projectCreated(eventContent.projectName(), projectManager.info().id());
         }
 
         if (projectManager.repositoryManager().info().isEmpty()) {

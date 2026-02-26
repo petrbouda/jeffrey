@@ -9,6 +9,7 @@ COPY jeffrey-cli.jar /jeffrey-libs/jeffrey-cli.jar
 COPY jeffrey-cli-${TARGETARCH} /jeffrey-libs/jeffrey-cli-${TARGETARCH}
 COPY libasyncProfiler-${TARGETARCH}.so /jeffrey-libs/libasyncProfiler.so
 COPY jeffrey-agent.jar /jeffrey-libs/jeffrey-agent.jar
+COPY jeffrey-streaming.jfc /jeffrey-libs/jeffrey-streaming.jfc
 
 RUN chmod +x /jeffrey-libs/jeffrey-cli-${TARGETARCH}
 

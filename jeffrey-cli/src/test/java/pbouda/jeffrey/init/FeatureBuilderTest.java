@@ -187,6 +187,27 @@ class FeatureBuilderTest {
             assertFalse(result.contains("-javaagent:"));
             assertFalse(result.contains("-XX:FlightRecorderOptions:repository="));
         }
+
+        @Test
+        void agentWithJfcSettingsProducesStartFlightRecordingOption() {
+            String result = new FeatureBuilder()
+                    .setAgentPath("/path/to/jeffrey-agent.jar")
+                    .setJfcSettingsPath("/path/to/jeffrey-streaming.jfc")
+                    .build(SESSION_PATH);
+
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertTrue(result.contains("-XX:StartFlightRecording=settings=/path/to/jeffrey-streaming.jfc,maxage=2d,name=jeffrey-streaming"));
+        }
+
+        @Test
+        void agentWithoutJfcSettingsProducesNoStartFlightRecordingOption() {
+            String result = new FeatureBuilder()
+                    .setAgentPath("/path/to/jeffrey-agent.jar")
+                    .build(SESSION_PATH);
+
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertFalse(result.contains("-XX:StartFlightRecording"));
+        }
     }
 
     @Nested

@@ -46,12 +46,6 @@ public abstract class JfrMessageEmitter {
                 Severity.MEDIUM, MessageCategory.INSTANCE);
     }
 
-    public static void instanceAutoFinished(String instanceId, String projectId) {
-        emitMessage(MessageType.INSTANCE_AUTO_FINISHED,
-                "Instance '" + instanceId + "' auto-finished, no active sessions remaining (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.INSTANCE);
-    }
-
     // ==================== SESSION events ====================
 
     public static void sessionCreated(String instanceId, int order, String projectId) {
@@ -105,8 +99,7 @@ public abstract class JfrMessageEmitter {
 
     // ==================== Private helpers ====================
 
-    private static void emitMessage(MessageType type, String message,
-                                    Severity severity, MessageCategory category) {
+    private static void emitMessage(MessageType type, String message, Severity severity, MessageCategory category) {
         MessageEvent event = new MessageEvent();
         event.type = type.name();
         event.title = type.title();
@@ -117,8 +110,7 @@ public abstract class JfrMessageEmitter {
         event.commit();
     }
 
-    private static void emitAlert(MessageType type, String message,
-                                   Severity severity, MessageCategory category) {
+    private static void emitAlert(MessageType type, String message, Severity severity, MessageCategory category) {
         AlertEvent event = new AlertEvent();
         event.type = type.name();
         event.title = type.title();

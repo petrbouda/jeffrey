@@ -35,6 +35,9 @@ public class FeatureBuilder {
     /* Agent JVM option template */
     private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s";
 
+    /* Start Flight Recording with JFC settings template */
+    private static final String START_FLIGHT_RECORDING_TEMPLATE = "-XX:StartFlightRecording=settings=%s,maxage=2d,name=jeffrey-streaming";
+
     /* Debug Non-Safepoints JVM options for more precise profiling */
     private static final String DEBUG_NON_SAFEPOINTS_OPTIONS = "-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints";
 
@@ -43,6 +46,7 @@ public class FeatureBuilder {
     private HeapDumpType heapDumpType;
     private String jvmLogging;
     private String agentPath;
+    private String jfcSettingsPath;
     private String additionalJvmOptions;
 
     public FeatureBuilder setDebugNonSafepointsEnabled(boolean enabled) {
@@ -67,6 +71,11 @@ public class FeatureBuilder {
 
     public FeatureBuilder setAgentPath(String agentPath) {
         this.agentPath = agentPath;
+        return this;
+    }
+
+    public FeatureBuilder setJfcSettingsPath(String jfcSettingsPath) {
+        this.jfcSettingsPath = jfcSettingsPath;
         return this;
     }
 
@@ -108,6 +117,10 @@ public class FeatureBuilder {
             options.append(" ");
             options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
+            if (jfcSettingsPath != null && !jfcSettingsPath.isBlank()) {
+                options.append(String.format(START_FLIGHT_RECORDING_TEMPLATE, jfcSettingsPath));
+                options.append(" ");
+            }
         }
 
         if (additionalJvmOptions != null && !additionalJvmOptions.isBlank()) {

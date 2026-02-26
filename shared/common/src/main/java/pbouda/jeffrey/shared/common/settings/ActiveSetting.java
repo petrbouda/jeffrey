@@ -31,6 +31,11 @@ import java.util.Optional;
 
 public record ActiveSetting(String event, Map<String, String> params) {
 
+    public ActiveSetting(String event, Map<String, String> params) {
+        this.event = event;
+        this.params = params != null ? params : new HashMap<>();
+    }
+
     /**
      * Creates a new instance of ActiveSetting.
      *

@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
@@ -66,6 +67,7 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                 .deleteSession(event.originEventId());
 
         LOG.debug("Deleted session from workspace event: project_id={} session_id={}", event.projectId(), event.originEventId());
+        JfrMessageEmitter.sessionDeleted(event.originEventId(), projectManager.info().id());
     }
 
     @Override

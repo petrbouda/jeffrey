@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
@@ -98,6 +99,7 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
         }
 
         LOG.debug("Deleted project from workspace event: project_id={}", event.projectId());
+        JfrMessageEmitter.projectDeleted(event.projectId());
     }
 
     @Override

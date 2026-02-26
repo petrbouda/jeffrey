@@ -22,7 +22,6 @@ public enum MessageType {
     PROJECT_CREATED("Project Created"),
     PROJECT_DELETED("Project Deleted"),
     INSTANCE_CREATED("Instance Started"),
-    INSTANCE_AUTO_FINISHED("Instance Auto-Finished"),
     SESSION_CREATED("Recording Session Started"),
     SESSION_FINISHED("Recording Session Finished"),
     SESSION_DELETED("Recording Session Deleted"),

@@ -36,6 +36,7 @@ public class InitConfig {
 
     private static final String DEFAULT_PROFILER_RELATIVE_PATH = "libs/current/libasyncProfiler.so";
     private static final String DEFAULT_AGENT_RELATIVE_PATH = "libs/current/jeffrey-agent.jar";
+    private static final String DEFAULT_JFC_SETTINGS_RELATIVE_PATH = "libs/current/jeffrey-streaming.jfc";
 
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
@@ -56,6 +57,7 @@ public class InitConfig {
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
             agent-path = ""
+            jfc-settings-path = ""
             jdk-java-options { enabled = false, additional-options = "" }
             debug-non-safepoints { enabled = true }
             """;
@@ -109,6 +111,7 @@ public class InitConfig {
         config.setProfilerConfig(resolved.getString("profiler-config"));
         config.setRepositoryType(resolved.getString("repository-type"));
         config.setAgentPath(resolved.getString("agent-path"));
+        config.setJfcSettingsPath(resolved.getString("jfc-settings-path"));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
@@ -164,6 +167,7 @@ public class InitConfig {
     private String profilerConfig;
     private String repositoryType;
     private String agentPath;
+    private String jfcSettingsPath;
     private ProjectConfig project;
     private PerfCountersConfig perfCounters;
     private HeapDumpConfig heapDump;
@@ -280,6 +284,10 @@ public class InitConfig {
 
     public void setAgentPath(String agentPath) {
         this.agentPath = agentPath;
+    }
+
+    public void setJfcSettingsPath(String jfcSettingsPath) {
+        this.jfcSettingsPath = jfcSettingsPath;
     }
 
     private static String nullIfBlank(String value) {
@@ -475,6 +483,28 @@ public class InitConfig {
         throw new IllegalArgumentException(
                 "Agent path could not be resolved. Set 'agent-path' explicitly or ensure '"
                         + DEFAULT_AGENT_RELATIVE_PATH + "' exists under JEFFREY_HOME: " + jeffreyHome);
+    }
+
+    /**
+     * Returns the JFC settings path with fallback resolution:
+     * 1. Explicit config value if set
+     * 2. Auto-resolved from jeffrey-home/libs/current/jeffrey-streaming.jfc if it exists
+     */
+    public String getJfcSettingsPath() {
+        // 1. Explicit config value
+        if (!isNullOrBlank(jfcSettingsPath)) {
+            return jfcSettingsPath;
+        }
+        // 2. Auto-resolve from jeffrey-home
+        if (useJeffreyHome()) {
+            Path candidate = Path.of(jeffreyHome).resolve(DEFAULT_JFC_SETTINGS_RELATIVE_PATH);
+            if (Files.exists(candidate)) {
+                return candidate.toString();
+            }
+        }
+        throw new IllegalArgumentException(
+                "JFC settings path could not be resolved. Set 'jfc-settings-path' explicitly or ensure '"
+                        + DEFAULT_JFC_SETTINGS_RELATIVE_PATH + "' exists under JEFFREY_HOME: " + jeffreyHome);
     }
 
     public boolean isJdkJavaOptionsEnabled() {

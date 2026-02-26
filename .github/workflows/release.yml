@@ -137,6 +137,7 @@ jobs:
         mv ./docker-context/cli-amd64/jeffrey-cli ./docker-context/jeffrey-cli-amd64
         # mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
         rm -rf ./docker-context/cli-amd64
+        cp ./docker/libs/jeffrey-streaming.jfc ./docker-context/jeffrey-streaming.jfc
         cp ./docker/Dockerfile-jeffrey ./docker-context/Dockerfile
         ls -la ./docker-context/
 

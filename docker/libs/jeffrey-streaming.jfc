@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration version="2.0" label="Jeffrey Streaming" description="Real-time streamed data to Jeffrey Platform"
+               provider="Jeffrey">
+    <event name="jeffrey.Heartbeat">
+        <setting name="enabled">true</setting>
+    </event>
+    <event name="jeffrey.Alert">
+        <setting name="enabled">true</setting>
+    </event>
+    <event name="jeffrey.Message">
+        <setting name="enabled">true</setting>
+    </event>
+
+    <!--  Disable other Jeffrey events  -->
+    <event name="jeffrey.HttpClientExchange">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.HttpServerExchange">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.HttpServerExchange">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.AcquiringPooledJdbcConnectionTimeout">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcPoolStatistics">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.PooledJdbcConnectionAcquired">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.PooledJdbcConnectionBorrowed">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.PooledJdbcConnectionCreated">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcDelete">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcExecute">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcInsert">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcQuery">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcStream">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcUpdate">
+        <setting name="enabled">false</setting>
+    </event>
+</configuration>

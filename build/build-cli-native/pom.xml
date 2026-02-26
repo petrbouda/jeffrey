@@ -37,7 +37,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>cli</artifactId>
+            <artifactId>jeffrey-cli</artifactId>
         </dependency>
     </dependencies>
 

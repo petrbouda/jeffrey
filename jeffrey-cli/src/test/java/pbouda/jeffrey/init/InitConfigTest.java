@@ -342,6 +342,79 @@ class InitConfigTest {
     }
 
     @Nested
+    class JfcSettingsPathResolution {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        void returnsExplicitJfcSettingsPathWhenSet() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "jfc-settings-path = \"/custom/path/jeffrey-streaming.jfc\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertEquals("/custom/path/jeffrey-streaming.jfc", config.getJfcSettingsPath());
+        }
+
+        @Test
+        void autoResolvesFromJeffreyHome() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("jeffrey-streaming.jfc"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            assertEquals(libsDir.resolve("jeffrey-streaming.jfc").toString(), config.getJfcSettingsPath());
+        }
+
+        @Test
+        void throwsWhenAutoResolvePathDoesNotExist() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    config::getJfcSettingsPath
+            );
+            assertTrue(exception.getMessage().contains("JFC settings path could not be resolved"));
+            assertTrue(exception.getMessage().contains(tempDir.toString()));
+        }
+
+        @Test
+        void throwsWhenUsingWorkspacesDir() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path libsDir = tempDir.resolve("libs/current");
+            Files.createDirectories(libsDir);
+            Files.createFile(libsDir.resolve("jeffrey-streaming.jfc"));
+
+            Files.writeString(configFile, configWithOverrides(
+                    "workspaces-dir = \"" + tempDir + "\"",
+                    "project { workspace-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null);
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    config::getJfcSettingsPath
+            );
+            assertTrue(exception.getMessage().contains("JFC settings path could not be resolved"));
+        }
+    }
+
+    @Nested
     class AgentPathResolution {
 
         @TempDir
