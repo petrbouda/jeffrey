@@ -59,7 +59,7 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             JobContext context) {
 
         String projectName = manager.info().name();
-        LOG.info("Cleaning the project instance sessions: project='{}'", projectName);
+        LOG.debug("Cleaning the project instance sessions: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
         Instant currentTime = Instant.now();

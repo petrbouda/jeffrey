@@ -59,7 +59,7 @@ public class ProjectInstanceRecordingCleanerJob extends RepositoryProjectJob<Pro
             JobContext context) {
 
         String projectName = manager.info().name();
-        LOG.info("Cleaning the project instance recordings: project='{}'", projectName);
+        LOG.debug("Cleaning the project instance recordings: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
         // Find the active session (newest one with ACTIVE status, or just the newest)
