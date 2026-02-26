@@ -231,13 +231,6 @@
               }}
             </span>
           </div>
-          <div class="timeline-tooltip-row" v-if="hoveredSession.session.lastHeartbeatAt">
-            <span class="timeline-tooltip-label">Heartbeat</span>
-            <span class="timeline-tooltip-value">
-              {{ FormattingService.formatRelativeTime(hoveredSession.session.lastHeartbeatAt) }}
-              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredSession.session.lastHeartbeatAt) }}</span>
-            </span>
-          </div>
         </div>
       </div>
     </Teleport>

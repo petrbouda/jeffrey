@@ -26,12 +26,13 @@ import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
-import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
 import pbouda.jeffrey.platform.scheduler.Scheduler;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.streaming.FileHeartbeatReader;
+import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -130,8 +131,8 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public HeartbeatReplayReader heartbeatReplayReader(Clock clock) {
-        return new HeartbeatReplayReader(clock);
+    public FileHeartbeatReader fileHeartbeatReader() {
+        return new FileHeartbeatReader();
     }
 
     @Bean
@@ -146,9 +147,10 @@ public class ProjectJobsConfiguration {
     public SessionFinisher sessionFinisher(
             Clock clock,
             SessionFinishEventEmitter sessionFinishEventEmitter,
-            HeartbeatReplayReader heartbeatReplayReader) {
+            FileHeartbeatReader fileHeartbeatReader,
+            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
 
-        return new SessionFinisher(clock, sessionFinishEventEmitter, heartbeatReplayReader);
+        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, jfrStreamingConsumerManager);
     }
 
     @Bean

@@ -173,7 +173,8 @@ class FeatureBuilderTest {
                     .setAgentPath("/path/to/jeffrey-agent.jar")
                     .build(SESSION_PATH);
 
-            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
+            assertTrue(result.contains(SESSION_PATH.resolve(FeatureBuilder.HEARTBEAT_DIR).toString()));
             assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
             assertTrue(result.contains(FeatureBuilder.STREAMING_REPO_DIR));
             assertTrue(result.contains("preserve-repository=true"));
@@ -195,7 +196,7 @@ class FeatureBuilderTest {
                     .setJfcSettingsPath("/path/to/jeffrey-streaming.jfc")
                     .build(SESSION_PATH);
 
-            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
             assertTrue(result.contains("-XX:StartFlightRecording=settings=/path/to/jeffrey-streaming.jfc,maxage=2d,name=jeffrey-streaming"));
         }
 
@@ -205,7 +206,7 @@ class FeatureBuilderTest {
                     .setAgentPath("/path/to/jeffrey-agent.jar")
                     .build(SESSION_PATH);
 
-            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
             assertFalse(result.contains("-XX:StartFlightRecording"));
         }
     }
@@ -259,7 +260,7 @@ class FeatureBuilderTest {
             assertTrue(result.contains("-XX:+UsePerfData"));
             assertTrue(result.contains("-XX:+CrashOnOutOfMemoryError"));
             assertTrue(result.contains("-Xlog:"));
-            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar"));
+            assertTrue(result.contains("-javaagent:/path/to/jeffrey-agent.jar=heartbeat.dir="));
             assertTrue(result.contains("-XX:FlightRecorderOptions:repository="));
             assertTrue(result.contains("-Xmx1200m"));
         }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -58,26 +58,20 @@ public class JfrStreamingConsumerManager implements Closeable {
     private final SessionFinishEventEmitter eventEmitter;
     private final PlatformRepositories platformRepositories;
     private final Clock clock;
-    private final Duration heartbeatTimeout;
-    private final Duration heartbeatStartupTimeout;
-    private final boolean requireInitialHeartbeat;
+    private final FileHeartbeatReader fileHeartbeatReader;
 
     public JfrStreamingConsumerManager(
             JeffreyDirs jeffreyDirs,
             SessionFinishEventEmitter eventEmitter,
             PlatformRepositories platformRepositories,
             Clock clock,
-            Duration heartbeatTimeout,
-            Duration heartbeatStartupTimeout,
-            boolean requireInitialHeartbeat) {
+            FileHeartbeatReader fileHeartbeatReader) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.eventEmitter = eventEmitter;
         this.platformRepositories = platformRepositories;
         this.clock = clock;
-        this.heartbeatTimeout = heartbeatTimeout;
-        this.heartbeatStartupTimeout = heartbeatStartupTimeout;
-        this.requireInitialHeartbeat = requireInitialHeartbeat;
+        this.fileHeartbeatReader = fileHeartbeatReader;
     }
 
     /**
@@ -116,7 +110,6 @@ public class JfrStreamingConsumerManager implements Closeable {
                 platformRepositories.newAlertRepository(projectInfo.id());
 
         List<JfrStreamingHandler> handlers = List.of(
-                new JfrHeartbeatHandler(sessionId, repositoryRepository, clock, heartbeatTimeout, heartbeatStartupTimeout, requireInitialHeartbeat),
                 new MessageStreamingHandler(sessionId, messageRepository),
                 new AlertStreamingHandler(sessionId, alertRepository)
         );
@@ -136,10 +129,10 @@ public class JfrStreamingConsumerManager implements Closeable {
             }
         };
 
-        // Resume from last heartbeat - 10s on restart (null for new sessions → start from beginning)
-        Instant startTime = sessionInfo.lastHeartbeatAt() != null
-                ? sessionInfo.lastHeartbeatAt().minus(REPLAY_BUFFER)
-                : null;
+        // Resume from last heartbeat file - 10s on restart (null for new sessions → start from beginning)
+        Instant startTime = fileHeartbeatReader.readLastHeartbeat(sessionPath)
+                .map(hb -> hb.minus(REPLAY_BUFFER))
+                .orElse(null);
 
         JfrStreamingConsumer consumer = new JfrStreamingConsumer(
                 sessionId, sessionPath, handlers, onNaturalClose, startTime);

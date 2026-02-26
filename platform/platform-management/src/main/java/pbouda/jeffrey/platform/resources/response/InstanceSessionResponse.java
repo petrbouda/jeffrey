@@ -23,6 +23,5 @@ public record InstanceSessionResponse(
         String repositoryId,
         Long startedAt,
         Long finishedAt,
-        Long lastHeartbeatAt,
         boolean isActive) {
 }

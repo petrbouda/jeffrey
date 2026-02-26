@@ -129,6 +129,7 @@ public class InitExecutor {
         LOG.debug("Session directory created: sessionId={} sessionPath={}", sessionId, newSessionPath);
 
         createDirectories(newSessionPath.resolve(FeatureBuilder.STREAMING_REPO_DIR));
+        createDirectories(newSessionPath.resolve(FeatureBuilder.HEARTBEAT_DIR));
 
         String features = new FeatureBuilder()
                 .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())

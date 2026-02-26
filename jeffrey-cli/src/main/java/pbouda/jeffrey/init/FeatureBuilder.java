@@ -2,6 +2,7 @@ package pbouda.jeffrey.init;
 
 import pbouda.jeffrey.init.model.HeapDumpType;
 import pbouda.jeffrey.shared.common.AgentConstants;
+import pbouda.jeffrey.shared.common.HeartbeatConstants;
 
 import java.nio.file.Path;
 
@@ -9,6 +10,7 @@ public class FeatureBuilder {
 
     public static final String PERF_COUNTERS_FILE = "perf-counters.hsperfdata";
     public static final String STREAMING_REPO_DIR = "streaming-repo";
+    public static final String HEARTBEAT_DIR = HeartbeatConstants.HEARTBEAT_DIR;
 
     /* Performance data JVM options */
     private static final String PERF_DATA_OPTIONS = "-XX:+UsePerfData -XX:PerfDataSaveFile="
@@ -32,8 +34,8 @@ public class FeatureBuilder {
     private static final String STREAMING_FLIGHT_RECORDER_OPTIONS =
             "-XX:FlightRecorderOptions:repository=" + AgentConstants.CURRENT_SESSION + "/" + STREAMING_REPO_DIR + ",preserve-repository=true";
 
-    /* Agent JVM option template */
-    private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s";
+    /* Agent JVM option template (passes heartbeat directory as agent argument) */
+    private static final String AGENT_OPTION_TEMPLATE = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";
 
     /* Start Flight Recording with JFC settings template */
     private static final String START_FLIGHT_RECORDING_TEMPLATE = "-XX:StartFlightRecording=settings=%s,maxage=2d,name=jeffrey-streaming";
@@ -113,7 +115,8 @@ public class FeatureBuilder {
         }
 
         if (agentPath != null && !agentPath.isBlank()) {
-            options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath));
+            String heartbeatDirPath = currentSessionPath.resolve(HEARTBEAT_DIR).toString();
+            options.append(String.format(AGENT_OPTION_TEMPLATE, agentPath, heartbeatDirPath));
             options.append(" ");
             options.append(STREAMING_FLIGHT_RECORDER_OPTIONS.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");

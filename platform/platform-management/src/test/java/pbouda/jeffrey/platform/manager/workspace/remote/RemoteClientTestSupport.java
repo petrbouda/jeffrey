@@ -120,7 +120,7 @@ final class RemoteClientTestSupport {
     static InstanceSessionResponse sampleInstanceSessionResponse() {
         return new InstanceSessionResponse(
                 SESSION_ID, "repo-1",
-                1700000000000L, null, 1700003000000L, true);
+                1700000000000L, null, true);
     }
 
     private RemoteClientTestSupport() {

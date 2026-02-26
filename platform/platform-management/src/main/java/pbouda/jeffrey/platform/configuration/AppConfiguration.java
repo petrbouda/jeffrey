@@ -54,6 +54,7 @@ import pbouda.jeffrey.platform.recording.ProjectRecordingInitializerImpl;
 import pbouda.jeffrey.platform.scheduler.JobDefinitionLoader;
 import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
+import pbouda.jeffrey.platform.streaming.FileHeartbeatReader;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.streaming.JfrStreamingInitializer;
 import pbouda.jeffrey.profile.ProfileInitializer;
@@ -341,13 +342,10 @@ public class AppConfiguration {
             SessionFinishEventEmitter sessionFinishEventEmitter,
             PlatformRepositories platformRepositories,
             Clock clock,
-            @Value("${jeffrey.platform.streaming.heartbeat-timeout:10s}") Duration heartbeatTimeout,
-            @Value("${jeffrey.platform.streaming.heartbeat-startup-timeout:60s}") Duration heartbeatStartupTimeout,
-            @Value("${jeffrey.platform.streaming.require-initial-heartbeat:true}") boolean requireInitialHeartbeat) {
+            FileHeartbeatReader fileHeartbeatReader) {
 
         return new JfrStreamingConsumerManager(
-                jeffreyDirs, sessionFinishEventEmitter, platformRepositories, clock,
-                heartbeatTimeout, heartbeatStartupTimeout, requireInitialHeartbeat);
+                jeffreyDirs, sessionFinishEventEmitter, platformRepositories, clock, fileHeartbeatReader);
     }
 
     @Bean

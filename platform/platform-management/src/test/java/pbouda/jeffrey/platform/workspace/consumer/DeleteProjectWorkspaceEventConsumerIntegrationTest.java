@@ -132,9 +132,9 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
 
             // Mock remote storage - return sessions to delete
             RecordingSession session1 = new RecordingSession("session-001", "session-001", "inst-001",
-                    NOW, null, null, null, null, null, null, List.of());
+                    NOW, null, null, null, null, null, List.of());
             RecordingSession session2 = new RecordingSession("session-002", "session-002", "inst-001",
-                    NOW, null, null, null, null, null, null, List.of());
+                    NOW, null, null, null, null, null, List.of());
             when(repositoryStorageFactory.apply(PROJECT_INFO)).thenReturn(repositoryStorage);
             when(repositoryStorage.listSessions(false)).thenReturn(List.of(session1, session2));
 

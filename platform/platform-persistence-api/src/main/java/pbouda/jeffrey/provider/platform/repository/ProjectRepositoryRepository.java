@@ -92,25 +92,6 @@ public interface ProjectRepositoryRepository {
     void markSessionFinished(String sessionId, Instant finishedAt);
 
     /**
-     * Mark a session as finished and set the last heartbeat timestamp in a single operation.
-     * Used when closing a streaming session where the heartbeat provides the accurate finish time.
-     *
-     * @param sessionId       the session ID to update
-     * @param finishedAt      the timestamp when the session finished
-     * @param lastHeartbeatAt the timestamp of the last heartbeat event
-     */
-    void markSessionFinishedWithHeartbeat(String sessionId, Instant finishedAt, Instant lastHeartbeatAt);
-
-    /**
-     * Update the last heartbeat timestamp for a session.
-     *
-     * @param sessionId       the session ID to update
-     * @param lastHeartbeatAt the timestamp of the last heartbeat event
-     */
-    void updateLastHeartbeat(String sessionId, Instant lastHeartbeatAt);
-
-
-    /**
      * Find the session ID of the latest session by original creation date.
      *
      * @return the latest session ID if any sessions exist, otherwise empty

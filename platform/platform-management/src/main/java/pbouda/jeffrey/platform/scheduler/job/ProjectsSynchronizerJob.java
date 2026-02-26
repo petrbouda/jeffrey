@@ -32,8 +32,8 @@ import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.platform.workspace.consumer.*;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
@@ -59,7 +59,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final JeffreyDirs jeffreyDirs;
     private final Clock clock;
-    private final HeartbeatReplayReader heartbeatReplayReader;
+    private final SessionFinisher sessionFinisher;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
@@ -72,7 +72,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
             JobDescriptorFactory jobDescriptorFactory,
             JeffreyDirs jeffreyDirs,
             Clock clock,
-            HeartbeatReplayReader heartbeatReplayReader,
+            SessionFinisher sessionFinisher,
             Duration period) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
@@ -82,7 +82,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         this.workspaceEventQueue = workspaceEventQueue;
         this.jeffreyDirs = jeffreyDirs;
         this.clock = clock;
-        this.heartbeatReplayReader = heartbeatReplayReader;
+        this.sessionFinisher = sessionFinisher;
         this.period = period;
     }
 
@@ -95,7 +95,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         List<WorkspaceEventConsumer> consumers = List.of(
                 new CreateProjectWorkspaceEventConsumer(projectsManager),
                 new InstanceCreatedWorkspaceEventConsumer(projectsManager),
-                new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, heartbeatReplayReader),
+                new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, sessionFinisher),
                 new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),

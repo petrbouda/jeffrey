@@ -24,17 +24,18 @@ import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.streaming.SessionPaths;
-import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
+import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -49,18 +50,18 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
     private final JeffreyDirs jeffreyDirs;
-    private final HeartbeatReplayReader heartbeatReplayReader;
+    private final SessionFinisher sessionFinisher;
 
     public CreateSessionWorkspaceEventConsumer(
             ProjectsManager projectsManager,
             PlatformRepositories platformRepositories,
             JeffreyDirs jeffreyDirs,
-            HeartbeatReplayReader heartbeatReplayReader) {
+            SessionFinisher sessionFinisher) {
 
         this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
         this.jeffreyDirs = jeffreyDirs;
-        this.heartbeatReplayReader = heartbeatReplayReader;
+        this.sessionFinisher = sessionFinisher;
     }
 
     @Override
@@ -83,11 +84,12 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
             return;
         }
 
-        String projectId = projectManager.info().id();
+        ProjectInfo projectInfo = projectManager.info();
+        String projectId = projectInfo.id();
         String instanceId = eventContent.instanceId();
 
         ProjectRepositoryRepository repositoryRepository = platformRepositories.newProjectRepositoryRepository(projectId);
-        int closedCount = closeUnfinishedSessions(repositoryRepository, repositoryInfo.get(), instanceId, event.originCreatedAt());
+        int closedCount = closeUnfinishedSessions(repositoryRepository, projectInfo, repositoryInfo.get(), instanceId, event.originCreatedAt());
         if (closedCount > 0) {
             LOG.info("Auto-closed unfinished sessions for instance before creating new session: project_id={} instance_id={} closed={}",
                     projectId, instanceId, closedCount);
@@ -102,7 +104,6 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                 eventContent.profilerSettings(),
                 event.originCreatedAt(),
                 event.createdAt(),
-                null,
                 null);
 
         projectManager.repositoryManager()
@@ -113,46 +114,32 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     }
 
     /**
-     * Closes unfinished sessions for an instance, using heartbeat replay for streaming sessions
-     * to get accurate finished_at timestamps. Sessions are processed in chronological order so that
-     * each session's fallback finished_at is the originCreatedAt of the next session in the sequence,
-     * not the new event's timestamp.
+     * Closes unfinished sessions for an instance by delegating to {@link SessionFinisher#forceFinish}.
+     * Sessions are processed in chronological order so that each session's fallback finished_at
+     * is the originCreatedAt of the next session in the sequence, not the new event's timestamp.
      */
     private int closeUnfinishedSessions(
             ProjectRepositoryRepository repositoryRepository,
+            ProjectInfo projectInfo,
             RepositoryInfo repositoryInfo,
             String instanceId,
             Instant newSessionCreatedAt) {
 
-        List<ProjectInstanceSessionInfo> unfinished = repositoryRepository.findUnfinishedSessionsByInstanceId(instanceId).stream()
-                .sorted(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt))
-                .toList();
+        List<ProjectInstanceSessionInfo> unfinished =
+                repositoryRepository.findUnfinishedSessionsByInstanceId(instanceId).stream()
+                        .sorted(Comparator.comparing(ProjectInstanceSessionInfo::originCreatedAt))
+                        .toList();
 
         for (int i = 0; i < unfinished.size(); i++) {
             ProjectInstanceSessionInfo session = unfinished.get(i);
-
             Path sessionPath = SessionPaths.resolve(jeffreyDirs, repositoryInfo, session);
-            Instant replayFrom = session.lastHeartbeatAt() != null
-                    ? session.lastHeartbeatAt()
-                    : session.originCreatedAt();
-            Optional<Instant> lastHeartbeat = heartbeatReplayReader.readLastHeartbeat(sessionPath, replayFrom);
-
-            if (lastHeartbeat.isPresent()) {
-                Instant hb = lastHeartbeat.get();
-                repositoryRepository.markSessionFinishedWithHeartbeat(session.sessionId(), hb, hb);
-                LOG.debug("Closed session with heartbeat timestamp: sessionId={} lastHeartbeat={}",
-                        session.sessionId(), hb);
-                continue;
-            }
 
             // Use the next session's originCreatedAt as fallback, or the new session's createdAt for the last one
             Instant fallback = (i + 1 < unfinished.size())
                     ? unfinished.get(i + 1).originCreatedAt()
                     : newSessionCreatedAt;
 
-            repositoryRepository.markSessionFinished(session.sessionId(), fallback);
-            LOG.debug("Closed session with fallback timestamp: sessionId={} finishedAt={}",
-                    session.sessionId(), fallback);
+            sessionFinisher.forceFinish(repositoryRepository, projectInfo, session, sessionPath, fallback);
         }
 
         return unfinished.size();

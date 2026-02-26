@@ -102,22 +102,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
     //language=SQL
-    private static final String MARK_SESSION_FINISHED_WITH_HEARTBEAT = """
-            UPDATE project_instance_sessions
-            SET finished_at = :finished_at, last_heartbeat_at = :last_heartbeat_at
-            WHERE session_id = :session_id
-            AND finished_at IS NULL
-            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
-
-    //language=SQL
-    private static final String UPDATE_LAST_HEARTBEAT = """
-            UPDATE project_instance_sessions
-            SET last_heartbeat_at = :last_heartbeat_at
-            WHERE session_id = :session_id
-            AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)
-            AND (last_heartbeat_at IS NULL OR last_heartbeat_at < :last_heartbeat_at)""";
-
-    //language=SQL
     private static final String SELECT_LATEST_SESSION_ID = """
             SELECT rs.session_id FROM project_instance_sessions rs
             JOIN repositories r ON rs.repository_id = r.repository_id
@@ -260,27 +244,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public void markSessionFinishedWithHeartbeat(String sessionId, java.time.Instant finishedAt, java.time.Instant lastHeartbeatAt) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("session_id", sessionId)
-                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC))
-                .addValue("last_heartbeat_at", lastHeartbeatAt.atOffset(ZoneOffset.UTC));
-
-        databaseClient.update(StatementLabel.MARK_SESSION_FINISHED_WITH_HEARTBEAT, MARK_SESSION_FINISHED_WITH_HEARTBEAT, paramSource);
-    }
-
-    @Override
-    public void updateLastHeartbeat(String sessionId, java.time.Instant lastHeartbeatAt) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("session_id", sessionId)
-                .addValue("last_heartbeat_at", lastHeartbeatAt.atOffset(ZoneOffset.UTC));
-
-        databaseClient.update(StatementLabel.UPDATE_LAST_HEARTBEAT, UPDATE_LAST_HEARTBEAT, paramSource);
-    }
-
-    @Override
     public Optional<String> findLatestSessionId() {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId);
@@ -303,8 +266,7 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                     rs.getString("profiler_settings"),
                     Mappers.instant(rs, "origin_created_at"),
                     Mappers.instant(rs, "created_at"),
-                    Mappers.instant(rs, "finished_at"),
-                    Mappers.instant(rs, "last_heartbeat_at")
+                    Mappers.instant(rs, "finished_at")
             );
         };
     }

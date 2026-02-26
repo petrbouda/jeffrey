@@ -145,7 +145,6 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     finished_at           TIMESTAMPTZ,
-    last_heartbeat_at     TIMESTAMPTZ,
     PRIMARY KEY (repository_id, session_id)
 );
 

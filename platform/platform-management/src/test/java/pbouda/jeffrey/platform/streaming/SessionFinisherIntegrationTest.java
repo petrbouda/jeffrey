@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @DuckDBTest(migration = "classpath:db/migration/platform")
@@ -85,49 +84,27 @@ class SessionFinisherIntegrationTest {
     class MarkFinished {
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        FileHeartbeatReader fileHeartbeatReader;
+
+        @Mock
+        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Test
-        void setsFinishedAt_andLastHeartbeat(DataSource dataSource) throws SQLException {
+        void setsFinishedAt(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
             var clock = new MutableClock(NOW);
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
-            var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
-            Instant lastHeartbeatAt = Instant.parse("2025-06-15T11:49:00Z");
 
-            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt, lastHeartbeatAt);
-
-            ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-            assertAll(
-                    () -> assertEquals(finishedAt, updated.finishedAt()),
-                    () -> assertEquals(lastHeartbeatAt, updated.lastHeartbeatAt())
-            );
-        }
-
-        @Test
-        void setsFinishedAt_withoutLastHeartbeat_whenNull(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-            var clock = new MutableClock(NOW);
-            var repository = createRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, queue);
-            var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
-
-            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-            Instant finishedAt = Instant.parse("2025-06-15T11:55:00Z");
-
-            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt, null);
+            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
 
             ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-            assertAll(
-                    () -> assertEquals(finishedAt, updated.finishedAt()),
-                    () -> assertNull(updated.lastHeartbeatAt())
-            );
+            assertEquals(finishedAt, updated.finishedAt());
         }
 
         @Test
@@ -137,12 +114,12 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
-            var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
 
-            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt, finishedAt);
+            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
 
             List<QueueEntry<WorkspaceEvent>> entries = queue.poll(WORKSPACE_ID, "test-consumer");
             assertEquals(1, entries.size());
@@ -158,26 +135,83 @@ class SessionFinisherIntegrationTest {
     }
 
     @Nested
+    class ForceFinish {
+
+        @Mock
+        FileHeartbeatReader fileHeartbeatReader;
+
+        @Mock
+        JfrStreamingConsumerManager streamingConsumerManager;
+
+        @Test
+        void usesHeartbeatTimestamp_whenHeartbeatPresent(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+            var clock = new MutableClock(NOW);
+            var repository = createRepository(clock, dataSource);
+            var queue = createQueue(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, queue);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+
+            Instant heartbeatTimestamp = Instant.parse("2025-06-15T11:30:00Z");
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                    .thenReturn(Optional.of(heartbeatTimestamp));
+
+            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
+            Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
+
+            finisher.forceFinish(repository, PROJECT_INFO, sessionInfo, SESSION_PATH, fallback);
+
+            ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
+            assertEquals(heartbeatTimestamp, updated.finishedAt());
+        }
+
+        @Test
+        void usesFallbackTimestamp_whenNoHeartbeat(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+            var clock = new MutableClock(NOW);
+            var repository = createRepository(clock, dataSource);
+            var queue = createQueue(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, queue);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                    .thenReturn(Optional.empty());
+
+            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
+            Instant fallback = Instant.parse("2025-06-15T11:00:00Z");
+
+            finisher.forceFinish(repository, PROJECT_INFO, sessionInfo, SESSION_PATH, fallback);
+
+            ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
+            assertEquals(fallback, updated.finishedAt());
+        }
+    }
+
+    @Nested
     class TryFinishFromHeartbeat {
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        FileHeartbeatReader fileHeartbeatReader;
+
+        @Mock
+        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Nested
-        class HeartbeatInDb_GracefulOrSigkill {
+        class HeartbeatFileExists {
 
             @Test
-            void marksFinished_whenHeartbeatOlderThanThreshold(DataSource dataSource) throws SQLException {
+            void marksFinished_whenHeartbeatStale(DataSource dataSource) throws SQLException {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, queue);
-                var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
-                // Set a stale heartbeat: 10 minutes before NOW, threshold is 5 minutes
+                // Heartbeat file returns a stale heartbeat: 10 minutes before NOW, threshold is 5 minutes
                 Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
-                repository.updateLastHeartbeat(SESSION_ID, staleHeartbeat);
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(Optional.of(staleHeartbeat));
 
                 ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
 
@@ -187,24 +221,22 @@ class SessionFinisherIntegrationTest {
                 assertTrue(result);
 
                 ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertAll(
-                        () -> assertEquals(staleHeartbeat, updated.finishedAt()),
-                        () -> assertEquals(staleHeartbeat, updated.lastHeartbeatAt())
-                );
+                assertEquals(staleHeartbeat, updated.finishedAt());
             }
 
             @Test
-            void doesNotFinish_whenHeartbeatRecent(DataSource dataSource) throws SQLException {
+            void doesNotFinish_whenHeartbeatFresh(DataSource dataSource) throws SQLException {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, queue);
-                var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
-                // Set a fresh heartbeat: 2 minutes before NOW, threshold is 5 minutes
+                // Heartbeat file returns a fresh heartbeat: 2 minutes before NOW, threshold is 5 minutes
                 Instant freshHeartbeat = NOW.minus(Duration.ofMinutes(2));
-                repository.updateLastHeartbeat(SESSION_ID, freshHeartbeat);
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(Optional.of(freshHeartbeat));
 
                 ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
 
@@ -214,75 +246,12 @@ class SessionFinisherIntegrationTest {
                 assertFalse(result);
 
                 ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertAll(
-                        () -> assertNull(updated.finishedAt()),
-                        () -> assertEquals(freshHeartbeat, updated.lastHeartbeatAt())
-                );
+                assertNull(updated.finishedAt());
             }
         }
 
         @Nested
-        class NoDbHeartbeat_ReplaySucceeds {
-
-            @Test
-            void replaysHeartbeat_andMarksFinished_whenStale(DataSource dataSource) throws SQLException {
-                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-                var clock = new MutableClock(NOW);
-                var repository = createRepository(clock, dataSource);
-                var queue = createQueue(clock, dataSource);
-                var emitter = new SessionFinishEventEmitter(clock, queue);
-                var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
-
-                // No heartbeat in DB (fixture default). Replay returns a stale heartbeat.
-                Instant replayedHeartbeat = NOW.minus(Duration.ofMinutes(10));
-                when(heartbeatReplayReader.readLastHeartbeat(any(), any()))
-                        .thenReturn(Optional.of(replayedHeartbeat));
-
-                ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-
-                boolean result = finisher.tryFinishFromHeartbeat(
-                        repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD, NOW);
-
-                assertTrue(result);
-
-                ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertAll(
-                        () -> assertEquals(replayedHeartbeat, updated.finishedAt()),
-                        () -> assertEquals(replayedHeartbeat, updated.lastHeartbeatAt())
-                );
-            }
-
-            @Test
-            void replaysHeartbeat_butDoesNotFinish_whenFresh(DataSource dataSource) throws SQLException {
-                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-                var clock = new MutableClock(NOW);
-                var repository = createRepository(clock, dataSource);
-                var queue = createQueue(clock, dataSource);
-                var emitter = new SessionFinishEventEmitter(clock, queue);
-                var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
-
-                // No heartbeat in DB. Replay returns a fresh heartbeat (2 min ago).
-                Instant replayedHeartbeat = NOW.minus(Duration.ofMinutes(2));
-                when(heartbeatReplayReader.readLastHeartbeat(any(), any()))
-                        .thenReturn(Optional.of(replayedHeartbeat));
-
-                ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-
-                boolean result = finisher.tryFinishFromHeartbeat(
-                        repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD, NOW);
-
-                assertFalse(result);
-
-                ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertAll(
-                        () -> assertNull(updated.finishedAt()),
-                        () -> assertEquals(replayedHeartbeat, updated.lastHeartbeatAt())
-                );
-            }
-        }
-
-        @Nested
-        class NoDbHeartbeat_ReplayFails {
+        class NoHeartbeatFile {
 
             @Test
             void marksFinished_withFallbackTimestamp(DataSource dataSource) throws SQLException {
@@ -291,10 +260,10 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, queue);
-                var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
-                // No heartbeat in DB. Replay returns empty.
-                when(heartbeatReplayReader.readLastHeartbeat(any(), any()))
+                // Heartbeat file does not exist
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(Optional.empty());
 
                 ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
@@ -306,10 +275,7 @@ class SessionFinisherIntegrationTest {
                 assertTrue(result);
 
                 ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertAll(
-                        () -> assertEquals(fallback, updated.finishedAt()),
-                        () -> assertNull(updated.lastHeartbeatAt())
-                );
+                assertEquals(fallback, updated.finishedAt());
             }
         }
 
@@ -326,7 +292,11 @@ class SessionFinisherIntegrationTest {
                 var repository = createRepository(clock, dataSource);
                 var queue = createQueue(clock, dataSource);
                 var emitter = new SessionFinishEventEmitter(clock, queue);
-                var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+                var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+
+                // No heartbeat file
+                when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                        .thenReturn(Optional.empty());
 
                 ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
 
@@ -339,10 +309,7 @@ class SessionFinisherIntegrationTest {
                 assertFalse(result);
 
                 ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
-                assertAll(
-                        () -> assertNull(updated.finishedAt()),
-                        () -> assertNull(updated.lastHeartbeatAt())
-                );
+                assertNull(updated.finishedAt());
             }
         }
     }
@@ -351,7 +318,10 @@ class SessionFinisherIntegrationTest {
     class EventEmission {
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        FileHeartbeatReader fileHeartbeatReader;
+
+        @Mock
+        JfrStreamingConsumerManager streamingConsumerManager;
 
         @Test
         void emitsSessionFinished_toWorkspaceQueue(DataSource dataSource) throws SQLException {
@@ -360,11 +330,12 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
-            var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
-            // Set a stale heartbeat so tryFinishFromHeartbeat marks it finished and emits event
+            // Heartbeat file returns a stale heartbeat so tryFinishFromHeartbeat marks it finished and emits event
             Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
-            repository.updateLastHeartbeat(SESSION_ID, staleHeartbeat);
+            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
+                    .thenReturn(Optional.of(staleHeartbeat));
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
 
@@ -385,12 +356,12 @@ class SessionFinisherIntegrationTest {
             var repository = createRepository(clock, dataSource);
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
-            var finisher = new SessionFinisher(clock, emitter, heartbeatReplayReader);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
 
-            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt, finishedAt);
+            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
 
             List<QueueEntry<WorkspaceEvent>> entries = queue.poll(WORKSPACE_ID, "test-consumer");
             assertEquals(1, entries.size());

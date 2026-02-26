@@ -21,16 +21,18 @@ package pbouda.jeffrey.platform.workspace.consumer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
@@ -49,14 +51,16 @@ import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
+
 
 @DuckDBTest(migration = "classpath:db/migration/platform")
 @ExtendWith(MockitoExtension.class)
@@ -96,13 +100,13 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
         PlatformRepositories platformRepositories;
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        SessionFinisher sessionFinisher;
 
         @Nested
-        class AllSessionsHaveHeartbeats {
+        class MultipleUnfinishedSessions {
 
             @Test
-            void allThreeSessions_closedWithAccurateHeartbeatTimestamps(DataSource dataSource) throws SQLException {
+            void allThreeSessions_forceFinishedWithCorrectFallbacks(DataSource dataSource) throws SQLException {
                 TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-multiple-unfinished-sessions.sql");
                 var provider = new DatabaseClientProvider(dataSource);
                 var clock = new MutableClock(NOW);
@@ -114,72 +118,6 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
                 when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-                Instant hb1 = Instant.parse("2025-06-15T08:30:00Z");
-                Instant hb2 = Instant.parse("2025-06-15T09:45:00Z");
-                Instant hb3 = Instant.parse("2025-06-15T10:15:00Z");
-
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-001")), any()))
-                        .thenReturn(Optional.of(hb1));
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-002")), any()))
-                        .thenReturn(Optional.of(hb2));
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-003")), any()))
-                        .thenReturn(Optional.of(hb3));
-
-                SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 4, "session-004", "cpu=true");
-                WorkspaceEvent event = new WorkspaceEvent(
-                        null, "session-004", ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                        WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
-                        Json.toString(content),
-                        Instant.parse("2025-06-15T11:00:00Z"), NOW, "test");
-
-                var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
-                consumer.on(event, JOB_DESCRIPTOR);
-
-                var verifyRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                Optional<ProjectInstanceSessionInfo> session1 = verifyRepo.findSessionById("session-001");
-                assertTrue(session1.isPresent());
-                assertEquals(hb1, session1.get().finishedAt());
-                assertEquals(hb1, session1.get().lastHeartbeatAt());
-
-                Optional<ProjectInstanceSessionInfo> session2 = verifyRepo.findSessionById("session-002");
-                assertTrue(session2.isPresent());
-                assertEquals(hb2, session2.get().finishedAt());
-                assertEquals(hb2, session2.get().lastHeartbeatAt());
-
-                Optional<ProjectInstanceSessionInfo> session3 = verifyRepo.findSessionById("session-003");
-                assertTrue(session3.isPresent());
-                assertEquals(hb3, session3.get().finishedAt());
-                assertEquals(hb3, session3.get().lastHeartbeatAt());
-
-                verify(repositoryManager).createSession(any());
-            }
-        }
-
-        @Nested
-        class NoSessionsHaveHeartbeats {
-
-            @Test
-            void allThreeSessions_closedWithFallbackTimestamps(DataSource dataSource) throws SQLException {
-                TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-multiple-unfinished-sessions.sql");
-                var provider = new DatabaseClientProvider(dataSource);
-                var clock = new MutableClock(NOW);
-
-                var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
-                when(projectManager.info()).thenReturn(PROJECT_INFO);
-                when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-                when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-                when(heartbeatReplayReader.readLastHeartbeat(any(), any())).thenReturn(Optional.empty());
 
                 Instant newSessionOriginCreatedAt = Instant.parse("2025-06-15T11:00:00Z");
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
@@ -191,94 +129,36 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         newSessionOriginCreatedAt, NOW, "test");
 
                 var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
+                        projectsManager, platformRepositories, JEFFREY_DIRS, sessionFinisher);
                 consumer.on(event, JOB_DESCRIPTOR);
 
-                var verifyRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
+                var pathCaptor = ArgumentCaptor.forClass(Path.class);
+                var fallbackCaptor = ArgumentCaptor.forClass(Instant.class);
+                var sessionCaptor = ArgumentCaptor.forClass(ProjectInstanceSessionInfo.class);
+
+                verify(sessionFinisher, times(3)).forceFinish(
+                        any(ProjectRepositoryRepository.class),
+                        eq(PROJECT_INFO),
+                        sessionCaptor.capture(),
+                        pathCaptor.capture(),
+                        fallbackCaptor.capture());
+
+                List<String> sessionIds = sessionCaptor.getAllValues().stream()
+                        .map(ProjectInstanceSessionInfo::sessionId).toList();
+                assertEquals(List.of("session-001", "session-002", "session-003"), sessionIds);
+
+                List<Path> paths = pathCaptor.getAllValues();
+                assertEquals(Path.of("/workspaces/ws-001/proj-001/session-001"), paths.get(0));
+                assertEquals(Path.of("/workspaces/ws-001/proj-001/session-002"), paths.get(1));
+                assertEquals(Path.of("/workspaces/ws-001/proj-001/session-003"), paths.get(2));
 
                 // session-001 fallback = session-002.originCreatedAt
-                Optional<ProjectInstanceSessionInfo> session1 = verifyRepo.findSessionById("session-001");
-                assertTrue(session1.isPresent());
-                assertEquals(Instant.parse("2025-06-15T09:00:00Z"), session1.get().finishedAt());
-                assertNull(session1.get().lastHeartbeatAt());
-
                 // session-002 fallback = session-003.originCreatedAt
-                Optional<ProjectInstanceSessionInfo> session2 = verifyRepo.findSessionById("session-002");
-                assertTrue(session2.isPresent());
-                assertEquals(Instant.parse("2025-06-15T10:00:00Z"), session2.get().finishedAt());
-                assertNull(session2.get().lastHeartbeatAt());
-
                 // session-003 fallback = newSessionEvent.originCreatedAt
-                Optional<ProjectInstanceSessionInfo> session3 = verifyRepo.findSessionById("session-003");
-                assertTrue(session3.isPresent());
-                assertEquals(newSessionOriginCreatedAt, session3.get().finishedAt());
-                assertNull(session3.get().lastHeartbeatAt());
-
-                verify(repositoryManager).createSession(any());
-            }
-        }
-
-        @Nested
-        class MixedHeartbeatAvailability {
-
-            @Test
-            void mixOfHeartbeatsAndFallbacks(DataSource dataSource) throws SQLException {
-                TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-multiple-unfinished-sessions.sql");
-                var provider = new DatabaseClientProvider(dataSource);
-                var clock = new MutableClock(NOW);
-
-                var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
-                when(projectManager.info()).thenReturn(PROJECT_INFO);
-                when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-                when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-                Instant hb1 = Instant.parse("2025-06-15T08:30:00Z");
-                Instant hb3 = Instant.parse("2025-06-15T10:15:00Z");
-
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-001")), any()))
-                        .thenReturn(Optional.of(hb1));
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-002")), any()))
-                        .thenReturn(Optional.empty());
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-003")), any()))
-                        .thenReturn(Optional.of(hb3));
-
-                SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 4, "session-004", "cpu=true");
-                WorkspaceEvent event = new WorkspaceEvent(
-                        null, "session-004", ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                        WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
-                        Json.toString(content),
-                        Instant.parse("2025-06-15T11:00:00Z"), NOW, "test");
-
-                var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
-                consumer.on(event, JOB_DESCRIPTOR);
-
-                var verifyRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                // session-001: has heartbeat
-                Optional<ProjectInstanceSessionInfo> session1 = verifyRepo.findSessionById("session-001");
-                assertTrue(session1.isPresent());
-                assertEquals(hb1, session1.get().finishedAt());
-                assertEquals(hb1, session1.get().lastHeartbeatAt());
-
-                // session-002: no heartbeat, fallback = session-003.originCreatedAt
-                Optional<ProjectInstanceSessionInfo> session2 = verifyRepo.findSessionById("session-002");
-                assertTrue(session2.isPresent());
-                assertEquals(Instant.parse("2025-06-15T10:00:00Z"), session2.get().finishedAt());
-                assertNull(session2.get().lastHeartbeatAt());
-
-                // session-003: has heartbeat
-                Optional<ProjectInstanceSessionInfo> session3 = verifyRepo.findSessionById("session-003");
-                assertTrue(session3.isPresent());
-                assertEquals(hb3, session3.get().finishedAt());
-                assertEquals(hb3, session3.get().lastHeartbeatAt());
+                List<Instant> fallbacks = fallbackCaptor.getAllValues();
+                assertEquals(Instant.parse("2025-06-15T09:00:00Z"), fallbacks.get(0));
+                assertEquals(Instant.parse("2025-06-15T10:00:00Z"), fallbacks.get(1));
+                assertEquals(newSessionOriginCreatedAt, fallbacks.get(2));
 
                 verify(repositoryManager).createSession(any());
             }
@@ -288,7 +168,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
         class SingleUnfinishedSession {
 
             @Test
-            void singleSession_closedWithHeartbeat(DataSource dataSource) throws SQLException {
+            void singleSession_forceFinishedWithNewSessionTimestampAsFallback(DataSource dataSource) throws SQLException {
                 TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-single-unfinished-session.sql");
                 var provider = new DatabaseClientProvider(dataSource);
                 var clock = new MutableClock(NOW);
@@ -300,49 +180,6 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
                 when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-                Instant hb = Instant.parse("2025-06-15T08:45:00Z");
-                when(heartbeatReplayReader.readLastHeartbeat(
-                        eq(Path.of("/workspaces/ws-001/proj-001/session-001")), any()))
-                        .thenReturn(Optional.of(hb));
-
-                SessionCreatedEventContent content = new SessionCreatedEventContent(
-                        INSTANCE_ID, 2, "session-002", "cpu=true");
-                WorkspaceEvent event = new WorkspaceEvent(
-                        null, "session-002", ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                        WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
-                        Json.toString(content),
-                        Instant.parse("2025-06-15T09:00:00Z"), NOW, "test");
-
-                var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
-                consumer.on(event, JOB_DESCRIPTOR);
-
-                var verifyRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                Optional<ProjectInstanceSessionInfo> session1 = verifyRepo.findSessionById("session-001");
-                assertTrue(session1.isPresent());
-                assertEquals(hb, session1.get().finishedAt());
-                assertEquals(hb, session1.get().lastHeartbeatAt());
-
-                verify(repositoryManager).createSession(any());
-            }
-
-            @Test
-            void singleSession_closedWithFallback_newSessionTimestamp(DataSource dataSource) throws SQLException {
-                TestUtils.executeSql(dataSource, "sql/reconciliation/insert-project-with-single-unfinished-session.sql");
-                var provider = new DatabaseClientProvider(dataSource);
-                var clock = new MutableClock(NOW);
-
-                var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
-                when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
-                when(projectManager.info()).thenReturn(PROJECT_INFO);
-                when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-                when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
-
-                when(heartbeatReplayReader.readLastHeartbeat(any(), any())).thenReturn(Optional.empty());
 
                 Instant newSessionOriginCreatedAt = Instant.parse("2025-06-15T09:00:00Z");
                 SessionCreatedEventContent content = new SessionCreatedEventContent(
@@ -354,16 +191,15 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         newSessionOriginCreatedAt, NOW, "test");
 
                 var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, heartbeatReplayReader);
+                        projectsManager, platformRepositories, JEFFREY_DIRS, sessionFinisher);
                 consumer.on(event, JOB_DESCRIPTOR);
 
-                var verifyRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
-
-                // Single session fallback = newSessionEvent.originCreatedAt
-                Optional<ProjectInstanceSessionInfo> session1 = verifyRepo.findSessionById("session-001");
-                assertTrue(session1.isPresent());
-                assertEquals(newSessionOriginCreatedAt, session1.get().finishedAt());
-                assertNull(session1.get().lastHeartbeatAt());
+                verify(sessionFinisher).forceFinish(
+                        any(ProjectRepositoryRepository.class),
+                        eq(PROJECT_INFO),
+                        argThat(s -> "session-001".equals(s.sessionId())),
+                        eq(Path.of("/workspaces/ws-001/proj-001/session-001")),
+                        eq(newSessionOriginCreatedAt));
 
                 verify(repositoryManager).createSession(any());
             }

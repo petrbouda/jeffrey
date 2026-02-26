@@ -100,7 +100,6 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 null,
                 null,
                 InstantUtils.fromEpochMilli(response.startedAt()),
-                InstantUtils.fromEpochMilli(response.finishedAt()),
-                null);
+                InstantUtils.fromEpochMilli(response.finishedAt()));
     }
 }

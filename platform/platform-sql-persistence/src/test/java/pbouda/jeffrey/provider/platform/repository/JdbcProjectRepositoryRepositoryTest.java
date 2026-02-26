@@ -108,7 +108,7 @@ class JdbcProjectRepositoryRepositoryTest {
 
             ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                     "session-new-001", "repo-001", "inst-001", 1, Path.of("session-test"), "cpu=true",
-                    Instant.parse("2025-01-15T10:00:00Z"), null, null, null);
+                    Instant.parse("2025-01-15T10:00:00Z"), null, null);
 
             repository.createSession(sessionInfo);
 
@@ -202,36 +202,6 @@ class JdbcProjectRepositoryRepositoryTest {
             List<ProjectInstanceSessionInfo> result = repository.findUnfinishedSessionsByInstanceId("inst-001");
 
             assertTrue(result.isEmpty());
-        }
-
-        @Test
-        void markSessionFinishedWithHeartbeat_setsFinishedAtAndLastHeartbeat(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
-            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
-
-            Instant finishedAt = Instant.parse("2025-01-15T14:00:00Z");
-            Instant heartbeat = Instant.parse("2025-01-15T13:55:00Z");
-            repository.markSessionFinishedWithHeartbeat("session-002", finishedAt, heartbeat);
-
-            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-002");
-            assertTrue(result.isPresent());
-            assertEquals(finishedAt, result.get().finishedAt());
-            assertEquals(heartbeat, result.get().lastHeartbeatAt());
-        }
-
-        @Test
-        void updateLastHeartbeat_updatesHeartbeatTimestamp(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/repository/insert-project-with-repository-and-sessions.sql");
-            JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
-
-            Instant heartbeat = Instant.parse("2025-01-15T13:00:00Z");
-            repository.updateLastHeartbeat("session-002", heartbeat);
-
-            Optional<ProjectInstanceSessionInfo> result = repository.findSessionById("session-002");
-            assertTrue(result.isPresent());
-            assertEquals(heartbeat, result.get().lastHeartbeatAt());
         }
 
         @Test

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -33,7 +33,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Centralizes the logic for marking sessions as finished. Consolidates the 3 scattered
+ * Centralizes the logic for marking sessions as finished. Consolidates the scattered
  * "mark session finished" code paths (polling detector, stream close, session auto-close).
  */
 public class SessionFinisher {
@@ -42,41 +42,60 @@ public class SessionFinisher {
 
     private final Clock clock;
     private final SessionFinishEventEmitter eventEmitter;
-    private final HeartbeatReplayReader heartbeatReplayReader;
+    private final FileHeartbeatReader fileHeartbeatReader;
+    private final JfrStreamingConsumerManager streamingConsumerManager;
 
-    public SessionFinisher(Clock clock, SessionFinishEventEmitter eventEmitter, HeartbeatReplayReader heartbeatReplayReader) {
+    public SessionFinisher(
+            Clock clock,
+            SessionFinishEventEmitter eventEmitter,
+            FileHeartbeatReader fileHeartbeatReader,
+            JfrStreamingConsumerManager streamingConsumerManager) {
+
         this.clock = clock;
         this.eventEmitter = eventEmitter;
-        this.heartbeatReplayReader = heartbeatReplayReader;
+        this.fileHeartbeatReader = fileHeartbeatReader;
+        this.streamingConsumerManager = streamingConsumerManager;
     }
 
     /**
      * Marks a session as finished with an explicit finish time.
-     * Used when the exact finish time is known (e.g., from heartbeat or stream close).
+     * Also unregisters the streaming consumer for this session.
      */
     public void markFinished(
             ProjectRepositoryRepository repositoryRepository,
             ProjectInfo projectInfo,
             ProjectInstanceSessionInfo sessionInfo,
-            Instant finishedAt,
-            Instant lastHeartbeatAt) {
+            Instant finishedAt) {
 
-        if (lastHeartbeatAt != null) {
-            repositoryRepository.markSessionFinishedWithHeartbeat(
-                    sessionInfo.sessionId(), finishedAt, lastHeartbeatAt);
-        } else {
-            repositoryRepository.markSessionFinished(sessionInfo.sessionId(), finishedAt);
-        }
+        repositoryRepository.markSessionFinished(sessionInfo.sessionId(), finishedAt);
+        streamingConsumerManager.unregisterConsumer(sessionInfo.sessionId());
 
-        LOG.info("Session marked as FINISHED: sessionId={} projectId={} finishedAt={} lastHeartbeatAt={}",
-                sessionInfo.sessionId(), projectInfo.id(), finishedAt, lastHeartbeatAt);
+        LOG.info("Session marked as FINISHED: sessionId={} projectId={} finishedAt={}",
+                sessionInfo.sessionId(), projectInfo.id(), finishedAt);
 
         eventEmitter.emitSessionFinished(projectInfo, sessionInfo);
         JfrMessageEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());
     }
 
     /**
-     * Determines the finish time from heartbeat data and marks session finished.
+     * Unconditionally finishes a session using the heartbeat file for the finish timestamp,
+     * or the provided fallback if no heartbeat is available. No staleness check is performed.
+     * Used when closing previous sessions before creating a new one.
+     */
+    public void forceFinish(
+            ProjectRepositoryRepository repositoryRepository,
+            ProjectInfo projectInfo,
+            ProjectInstanceSessionInfo sessionInfo,
+            Path sessionPath,
+            Instant fallbackFinishedAt) {
+
+        Optional<Instant> lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
+        Instant finishedAt = lastHeartbeat.orElse(fallbackFinishedAt);
+        markFinished(repositoryRepository, projectInfo, sessionInfo, finishedAt);
+    }
+
+    /**
+     * Determines the finish time from heartbeat file and marks session finished.
      * Used by polling-based detection and auto-close of previous sessions.
      *
      * @return true if session was marked finished
@@ -89,50 +108,34 @@ public class SessionFinisher {
             Duration heartbeatThreshold,
             Instant fallbackFinishedAt) {
 
-        Instant lastHeartbeat = sessionInfo.lastHeartbeatAt();
+        Optional<Instant> lastHeartbeat = fileHeartbeatReader.readLastHeartbeat(sessionPath);
 
-        LOG.trace("tryFinishFromHeartbeat: sessionId={} lastHeartbeatAt={} heartbeatThreshold={}",
-                sessionInfo.sessionId(), lastHeartbeat, heartbeatThreshold);
+        LOG.trace("tryFinishFromHeartbeat: sessionId={} heartbeatPresent={} heartbeatThreshold={}",
+                sessionInfo.sessionId(), lastHeartbeat.isPresent(), heartbeatThreshold);
 
-        // Case 1: Heartbeat exists in DB
-        if (lastHeartbeat != null) {
-            if (lastHeartbeat.isBefore(clock.instant().minus(heartbeatThreshold))) {
+        // Case 1: Heartbeat file exists
+        if (lastHeartbeat.isPresent()) {
+            Instant hb = lastHeartbeat.get();
+            if (hb.isBefore(clock.instant().minus(heartbeatThreshold))) {
                 LOG.trace("Case 1 stale heartbeat, marking finished: sessionId={}", sessionInfo.sessionId());
-                markFinished(repositoryRepository, projectInfo, sessionInfo, lastHeartbeat, lastHeartbeat);
+                markFinished(repositoryRepository, projectInfo, sessionInfo, hb);
                 return true;
             }
             LOG.trace("Case 1 fresh heartbeat, skipping: sessionId={}", sessionInfo.sessionId());
             return false;
         }
 
-        // Case 2: Session too young, heartbeats may not have arrived
+        // Case 2: No heartbeat file, session too young — heartbeats may not have arrived
         if (sessionInfo.originCreatedAt().isAfter(clock.instant().minus(heartbeatThreshold))) {
             LOG.trace("Case 2 session too young, skipping: sessionId={} originCreatedAt={}",
                     sessionInfo.sessionId(), sessionInfo.originCreatedAt());
             return false;
         }
 
-        // Case 3: Replay heartbeat from streaming repo
-        Optional<Instant> replayed = heartbeatReplayReader.readLastHeartbeat(
-                sessionPath, sessionInfo.originCreatedAt());
-
-        if (replayed.isPresent()) {
-            repositoryRepository.updateLastHeartbeat(sessionInfo.sessionId(), replayed.get());
-            if (replayed.get().isBefore(clock.instant().minus(heartbeatThreshold))) {
-                LOG.trace("Case 3 replayed heartbeat stale, marking finished: sessionId={} replayedAt={}",
-                        sessionInfo.sessionId(), replayed.get());
-                markFinished(repositoryRepository, projectInfo, sessionInfo, replayed.get(), replayed.get());
-                return true;
-            }
-            LOG.trace("Case 3 replayed heartbeat fresh, skipping: sessionId={} replayedAt={}",
-                    sessionInfo.sessionId(), replayed.get());
-            return false;
-        }
-
-        // Case 4: No heartbeat anywhere -- use fallback
-        LOG.trace("Case 4 no heartbeat found, using fallback: sessionId={} fallbackFinishedAt={}",
+        // Case 3: No heartbeat file, session old enough — use fallback
+        LOG.trace("Case 3 no heartbeat found, using fallback: sessionId={} fallbackFinishedAt={}",
                 sessionInfo.sessionId(), fallbackFinishedAt);
-        markFinished(repositoryRepository, projectInfo, sessionInfo, fallbackFinishedAt, null);
+        markFinished(repositoryRepository, projectInfo, sessionInfo, fallbackFinishedAt);
         return true;
     }
 }

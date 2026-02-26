@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,14 +18,33 @@
 
 package pbouda.jeffrey.agent;
 
-import cafe.jeffrey.jfr.events.heartbeat.HeartbeatEmitter;
-
+import java.lang.System.Logger.Level;
 import java.lang.instrument.Instrumentation;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class JeffreyAgent {
 
+    private static final System.Logger LOG = System.getLogger(JeffreyAgent.class.getName());
+
     public static void premain(String args, Instrumentation inst) {
-        // Add a periodic event that emits a HeartbeatEvent every second
-        HeartbeatEmitter.start();
+        AgentArgs agentArgs = AgentArgs.parse(args);
+
+        Path heartbeatDir = agentArgs.heartbeatDir();
+        if (!agentArgs.heartbeatEnabled() || heartbeatDir == null) {
+            LOG.log(Level.INFO, "Heartbeat is disabled or no heartbeat directory configured");
+            return;
+        }
+
+        if (!Files.isDirectory(heartbeatDir)) {
+            LOG.log(Level.WARNING, "Heartbeat directory does not exist: " + heartbeatDir);
+            return;
+        }
+
+        HeartbeatProducer producer = new HeartbeatProducer(heartbeatDir, agentArgs.heartbeatInterval());
+        Runtime.getRuntime().addShutdownHook(new Thread(producer::close, "jeffrey-heartbeat-shutdown"));
+        producer.start();
+
+        LOG.log(Level.INFO, "Heartbeat started: dir=" + heartbeatDir + " interval=" + agentArgs.heartbeatInterval());
     }
 }

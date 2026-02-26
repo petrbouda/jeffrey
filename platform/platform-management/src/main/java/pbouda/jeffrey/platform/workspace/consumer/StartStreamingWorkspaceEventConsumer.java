@@ -86,7 +86,6 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
                 eventContent.profilerSettings(),
                 event.originCreatedAt(),
                 event.createdAt(),
-                null,
                 null);
 
         ProjectRepositoryRepository repoRepository =

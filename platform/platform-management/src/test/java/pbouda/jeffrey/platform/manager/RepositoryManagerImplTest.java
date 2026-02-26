@@ -84,7 +84,7 @@ class RepositoryManagerImplTest {
     }
 
     private static RecordingSession session(String id, RecordingStatus status, List<RepositoryFile> files) {
-        return new RecordingSession(id, id, null, Instant.now(), null, null, status, null, null, null, files);
+        return new RecordingSession(id, id, null, Instant.now(), null, status, null, null, null, files);
     }
 
     @Nested

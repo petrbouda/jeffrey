@@ -32,8 +32,8 @@ import pbouda.jeffrey.platform.queue.DuckDBPersistentQueue;
 import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventSerializer;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
@@ -133,7 +133,7 @@ class ProjectsSynchronizerJobIntegrationTest {
         JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        SessionFinisher sessionFinisher;
 
         @Mock
         RepositoryStorage.Factory remoteRepositoryStorageFactory;
@@ -155,7 +155,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var job = new ProjectsSynchronizerJob(
                     platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, heartbeatReplayReader,
+                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
@@ -177,7 +177,7 @@ class ProjectsSynchronizerJobIntegrationTest {
         JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        SessionFinisher sessionFinisher;
 
         @Mock
         RepositoryStorage.Factory remoteRepositoryStorageFactory;
@@ -212,7 +212,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var job = new ProjectsSynchronizerJob(
                     platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, heartbeatReplayReader,
+                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
@@ -241,7 +241,7 @@ class ProjectsSynchronizerJobIntegrationTest {
         JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        SessionFinisher sessionFinisher;
 
         @Mock
         RepositoryStorage.Factory remoteRepositoryStorageFactory;
@@ -284,7 +284,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var job = new ProjectsSynchronizerJob(
                     platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, heartbeatReplayReader,
+                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
@@ -306,7 +306,7 @@ class ProjectsSynchronizerJobIntegrationTest {
         JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        SessionFinisher sessionFinisher;
 
         @Mock
         RepositoryStorage.Factory remoteRepositoryStorageFactory;
@@ -350,7 +350,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var job = new ProjectsSynchronizerJob(
                     platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, heartbeatReplayReader,
+                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
                     Duration.ofMinutes(5));
 
             // Should NOT throw even though first event fails
@@ -379,7 +379,7 @@ class ProjectsSynchronizerJobIntegrationTest {
         JfrStreamingConsumerManager streamingConsumerManager;
 
         @Mock
-        HeartbeatReplayReader heartbeatReplayReader;
+        SessionFinisher sessionFinisher;
 
         @Mock
         RepositoryStorage.Factory remoteRepositoryStorageFactory;
@@ -419,7 +419,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             var job = new ProjectsSynchronizerJob(
                     platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, heartbeatReplayReader,
+                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);

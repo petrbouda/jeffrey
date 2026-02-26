@@ -219,7 +219,7 @@ class WorkspaceEventConverterTest {
             ProjectInstanceSessionInfo sessionInfo = new ProjectInstanceSessionInfo(
                     "session-001", "repo-001", "inst-001", 1,
                     Path.of("inst-001/session-001"), "cpu=true",
-                    NOW, NOW, null, null);
+                    NOW, NOW, null);
 
             WorkspaceEvent result = WorkspaceEventConverter.sessionFinished(
                     NOW, projectInfo, sessionInfo, CREATOR);

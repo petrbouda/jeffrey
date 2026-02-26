@@ -169,7 +169,6 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 rs.getString("profiler_settings"),
                 Mappers.instant(rs, "origin_created_at"),
                 Mappers.instant(rs, "created_at"),
-                Mappers.instant(rs, "finished_at"),
-                Mappers.instant(rs, "last_heartbeat_at"));
+                Mappers.instant(rs, "finished_at"));
     }
 }

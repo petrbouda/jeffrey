@@ -55,7 +55,6 @@ public record RecordingSessionResponse(
                 response.instanceId(),
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),
-                null,
                 response.status(),
                 response.profilerSettings(),
                 null,

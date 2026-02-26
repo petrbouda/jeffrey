@@ -108,8 +108,7 @@ class AsprofFileRepositoryStorageTest {
                 null,                 // profilerSettings
                 now,                  // originCreatedAt
                 now,                  // createdAt
-                now,                  // finishedAt - set to mark session as FINISHED
-                null);                // lastHeartbeatAt
+                now);                 // finishedAt - set to mark session as FINISHED
         when(projectRepositoryRepository.findAllSessions()).thenReturn(List.of(sessionInfo));
         when(projectRepositoryRepository.findSessionById(SESSION_ID)).thenReturn(java.util.Optional.of(sessionInfo));
         when(projectRepositoryRepository.findLatestSessionId()).thenReturn(java.util.Optional.of(SESSION_ID));

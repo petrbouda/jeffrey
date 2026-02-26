@@ -28,16 +28,11 @@ import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
-import pbouda.jeffrey.platform.scheduler.Job;
-import pbouda.jeffrey.platform.scheduler.PeriodicalScheduler;
-import pbouda.jeffrey.platform.scheduler.Scheduler;
-import pbouda.jeffrey.platform.scheduler.SchedulerTrigger;
-import pbouda.jeffrey.platform.scheduler.SchedulerTriggerImpl;
+import pbouda.jeffrey.platform.scheduler.*;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.HeartbeatReplayReader;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -112,7 +107,7 @@ public class GlobalJobsConfiguration {
             JfrStreamingConsumerManager jfrStreamingConsumerManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             JeffreyDirs jeffreyDirs,
-            HeartbeatReplayReader heartbeatReplayReader) {
+            SessionFinisher sessionFinisher) {
 
         return new ProjectsSynchronizerJob(
                 platformRepositories,
@@ -124,7 +119,7 @@ public class GlobalJobsConfiguration {
                 jobDescriptorFactory,
                 jeffreyDirs,
                 clock,
-                heartbeatReplayReader,
+                sessionFinisher,
                 jobPeriod == null ? defaultPeriod : jobPeriod);
     }
 

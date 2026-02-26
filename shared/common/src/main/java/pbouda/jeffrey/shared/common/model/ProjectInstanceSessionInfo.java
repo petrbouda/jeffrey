@@ -30,6 +30,5 @@ public record ProjectInstanceSessionInfo(
         String profilerSettings,
         Instant originCreatedAt,
         Instant createdAt,
-        Instant finishedAt,
-        Instant lastHeartbeatAt) {
+        Instant finishedAt) {
 }

@@ -78,7 +78,6 @@ export default class ProjectInstanceClient {
             data.repositoryId,
             data.startedAt ?? Date.now(),
             data.finishedAt ?? undefined,
-            data.lastHeartbeatAt ?? undefined,
             data.isActive
         );
     }
