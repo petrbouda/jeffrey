@@ -84,7 +84,7 @@ final class RemoteClientTestSupport {
     static RepositoryFileResponse sampleFileResponse() {
         return new RepositoryFileResponse(
                 "file-1", "recording.jfr", 1700000000000L, 1024L,
-                SupportedRecordingFile.JFR, true, RecordingStatus.FINISHED);
+                SupportedRecordingFile.JFR, RecordingStatus.FINISHED);
     }
 
     static RepositoryStatisticsResponse sampleStatisticsResponse() {

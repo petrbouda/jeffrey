@@ -28,7 +28,6 @@ public final class RepositoryFile {
     private final Instant createdAt;
     private final Long size;
     private final SupportedRecordingFile fileType;
-    private final boolean isRecordingFile;
     private final Path filePath;
     private RecordingStatus status;
 
@@ -38,7 +37,6 @@ public final class RepositoryFile {
             Instant createdAt,
             Long size,
             SupportedRecordingFile fileType,
-            boolean isRecordingFile,
             RecordingStatus status,
             Path filePath) {
         this.id = id;
@@ -46,7 +44,6 @@ public final class RepositoryFile {
         this.createdAt = createdAt;
         this.size = size;
         this.fileType = fileType;
-        this.isRecordingFile = isRecordingFile;
         this.status = status;
         this.filePath = filePath;
     }
@@ -62,7 +59,6 @@ public final class RepositoryFile {
                 createdAt,
                 size,
                 fileType,
-                isRecordingFile,
                 status,
                 filePath);
     }
@@ -88,7 +84,11 @@ public final class RepositoryFile {
     }
 
     public boolean isRecordingFile() {
-        return isRecordingFile;
+        return fileType.fileCategory() == FileCategory.RECORDING;
+    }
+
+    public boolean isArtifactFile() {
+        return fileType.fileCategory() == FileCategory.ARTIFACT;
     }
 
     public boolean isFinished() {
@@ -103,15 +103,10 @@ public final class RepositoryFile {
         return filePath;
     }
 
-    public boolean isArtifactFile() {
-        return !isRecordingFile && fileType.isArtifactFile();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof RepositoryFile that)) return false;
-        return isRecordingFile == that.isRecordingFile
-               && Objects.equals(id, that.id)
+        return Objects.equals(id, that.id)
                && Objects.equals(name, that.name)
                && Objects.equals(createdAt, that.createdAt)
                && Objects.equals(size, that.size)
@@ -123,6 +118,6 @@ public final class RepositoryFile {
     @Override
     public int hashCode() {
         return Objects.hash(
-                id, name, createdAt, size, fileType, isRecordingFile, filePath, status);
+                id, name, createdAt, size, fileType, filePath, status);
     }
 }

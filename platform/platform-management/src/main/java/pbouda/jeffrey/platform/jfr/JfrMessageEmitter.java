@@ -76,7 +76,7 @@ public abstract class JfrMessageEmitter {
 
     public static void recordingFileCreated(String projectId, String sessionId, long originalSize, long compressedSize) {
         emitMessage(MessageType.RECORDING_FILE_CREATED,
-                "Recording file compressed (original=" + originalSize + " compressed=" + compressedSize +
+                "Recording file Created (original=" + originalSize + " compressed=" + compressedSize +
                         " sessionId=" + sessionId + " projectId=" + projectId + ")",
                 Severity.LOW, MessageCategory.RECORDING);
     }

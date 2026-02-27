@@ -29,6 +29,7 @@ import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
+import pbouda.jeffrey.shared.common.model.repository.FileCategory;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -329,7 +330,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         return session.files().stream()
                 .filter(file -> Files.isRegularFile(file.filePath()))
-                .filter(file -> !file.isRecordingFile())
+                .filter(RepositoryFile::isArtifactFile)
                 .filter(file -> artifactIds == null || artifactIds.contains(file.id()))
                 .map(RepositoryFile::filePath)
                 .toList();
@@ -438,8 +439,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                             workspacePath.relativize(file), RECORDING_EXTENSIONS);
 
                     String sourceName = sessionPath.relativize(file).toString();
-                    boolean isRecordingFile = RECORDING_FILE_TYPES.stream()
-                            .anyMatch(type -> type.matches(sourceName));
 
                     return new RepositoryFile(
                             sourceId,
@@ -447,7 +446,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
                             fileInfoProcessor.createdAt(file),
                             FileSystemUtils.size(file),
                             SupportedRecordingFile.of(sourceName),
-                            isRecordingFile,
                             RecordingStatus.FINISHED,
                             file);
                 })

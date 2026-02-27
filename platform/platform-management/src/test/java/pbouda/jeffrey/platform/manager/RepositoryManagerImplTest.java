@@ -80,7 +80,7 @@ class RepositoryManagerImplTest {
     }
 
     private static RepositoryFile file(String id, SupportedRecordingFile type, Long size, Instant createdAt) {
-        return new RepositoryFile(id, id + ".jfr", createdAt, size, type, true, RecordingStatus.FINISHED, null);
+        return new RepositoryFile(id, id + ".jfr", createdAt, size, type, RecordingStatus.FINISHED, null);
     }
 
     private static RecordingSession session(String id, RecordingStatus status, List<RepositoryFile> files) {

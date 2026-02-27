@@ -33,55 +33,55 @@ public enum SupportedRecordingFile {
             "LZ4 Compressed JDK Flight Recording",
             FileExtensions.JFR_LZ4,
             filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
-            false
+            FileCategory.RECORDING
     ),
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
             filename -> filename.endsWith("." + FileExtensions.JFR),
-            false
+            FileCategory.RECORDING
     ),
     ASPROF_TEMP(
             "Async Profiler Cache File",
             FileExtensions.ASPROF_TEMP,
             new AsprofCacheFileMatcher(),
-            false
+            FileCategory.TEMPORARY
     ),
     HEAP_DUMP_GZ(
-            "GZ Compressed Heap Dump",
+            "GZ Compressed  Heap Dump",
             FileExtensions.HPROF_GZ,
             filename -> filename.endsWith("." + FileExtensions.HPROF_GZ),
-            true
+            FileCategory.ARTIFACT
     ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,
             filename -> filename.endsWith("." + FileExtensions.HPROF),
-            true
+            FileCategory.ARTIFACT
     ),
     PERF_COUNTERS(
             "HotSpot Performance Counters",
             FileExtensions.PERF_COUNTERS,
             filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
-            true
+            FileCategory.ARTIFACT
     ),
     JVM_LOG(
             "JVM Log",
             FileExtensions.JVM_LOG,
             new JvmLogFileMatcher(),
-            true
+            FileCategory.ARTIFACT
     ),
     HS_JVM_ERROR_LOG(
             "HotSpot JVM Error Log",
             FileExtensions.HS_JVM_ERROR_LOG,
             filename -> filename.endsWith(FileExtensions.HS_JVM_ERROR_LOG),
-            true
+            FileCategory.ARTIFACT
     ),
     UNKNOWN(
             "Unsupported File Type",
             null,
             _ -> true,
-            true
+            FileCategory.UNRECOGNIZED
     );
 
     private final static List<SupportedRecordingFile> KNOWN_TYPES;
@@ -95,18 +95,18 @@ public enum SupportedRecordingFile {
     private final String description;
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
-    private final boolean isArtifactFile;
+    private final FileCategory fileCategory;
 
     SupportedRecordingFile(
             String description,
             String fileExtension,
             Predicate<String> filenameMatcher,
-            boolean isArtifactFile) {
+            FileCategory fileCategory) {
 
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
-        this.isArtifactFile = isArtifactFile;
+        this.fileCategory = fileCategory;
     }
 
     public static SupportedRecordingFile of(Path path) {
@@ -151,7 +151,7 @@ public enum SupportedRecordingFile {
         return description;
     }
 
-    public boolean isArtifactFile() {
-        return isArtifactFile;
+    public FileCategory fileCategory() {
+        return fileCategory;
     }
 }

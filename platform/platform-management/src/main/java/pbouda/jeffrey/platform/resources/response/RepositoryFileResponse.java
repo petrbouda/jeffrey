@@ -29,7 +29,6 @@ public record RepositoryFileResponse(
         Long createdAt,
         Long size,
         SupportedRecordingFile fileType,
-        boolean isRecordingFile,
         RecordingStatus status) {
 
     public static RepositoryFileResponse from(RepositoryFile file) {
@@ -39,7 +38,6 @@ public record RepositoryFileResponse(
                 InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
                 file.fileType(),
-                file.isRecordingFile(),
                 file.status());
     }
 
@@ -50,7 +48,6 @@ public record RepositoryFileResponse(
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 response.size(),
                 response.fileType(),
-                response.isRecordingFile(),
                 response.status(),
                 null);
     }

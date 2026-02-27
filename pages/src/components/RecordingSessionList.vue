@@ -119,7 +119,7 @@ const sortedSessions = computed(() => {
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (file.isRecordingFile || file.fileType === 'ASPROF_TEMP') return 1;
+    if (file.fileType === RecordingFileType.JFR || file.fileType === RecordingFileType.JFR_LZ4 || file.fileType === RecordingFileType.ASPROF) return 1;
     return 0;
   };
 

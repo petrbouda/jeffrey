@@ -30,6 +30,7 @@ import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
+import pbouda.jeffrey.shared.common.model.repository.FileCategory;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
@@ -222,6 +223,10 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         if (file.status() == RecordingStatus.ACTIVE) {
             throw new IllegalArgumentException("Cannot download ACTIVE file: fileId=" + fileId);
+        }
+
+        if (file.fileType().fileCategory() == FileCategory.TEMPORARY) {
+            throw new IllegalArgumentException("Cannot download temporary file: fileId=" + fileId);
         }
 
         List<Path> paths;

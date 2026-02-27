@@ -271,7 +271,7 @@ class WorkspaceEventConverterTest {
             Instant fileCreatedAt = Instant.parse("2026-02-20T10:00:00Z");
             RepositoryFile originalFile = new RepositoryFile(
                     "file-001", "recording.jfr", fileCreatedAt, 1024L,
-                    SupportedRecordingFile.JFR, true, RecordingStatus.FINISHED,
+                    SupportedRecordingFile.JFR, RecordingStatus.FINISHED,
                     Path.of("/workspaces/ws-001/proj-001/recording.jfr"));
 
             Path compressedPath = recordingTempDir.resolve("recording.jfr.lz4");
