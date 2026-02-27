@@ -131,4 +131,24 @@ public abstract class JfrUtils {
             return defaultValue;
         }
     }
+
+    /**
+     * Gets a JFR enum field as a string from a recorded event, returning a default value if not present or on error.
+     * <p>
+     * JFR enum fields cannot be read with {@code event.getString()} — that throws an exception.
+     * Use {@code event.getValue()} which returns the enum value, then convert via {@code toString()}.
+     *
+     * @param event        the recorded event
+     * @param field        the field name to retrieve
+     * @param defaultValue the default value if field is missing or null
+     * @return the enum value as a string or defaultValue
+     */
+    public static String parseEnumAsString(RecordedEvent event, String field, String defaultValue) {
+        try {
+            Object value = event.getValue(field);
+            return value != null ? value.toString() : defaultValue;
+        } catch (Exception e) {
+            return defaultValue;
+        }
+    }
 }

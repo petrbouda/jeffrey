@@ -26,7 +26,7 @@ public enum MessageType {
     SESSION_FINISHED("Recording Session Finished"),
     SESSION_DELETED("Recording Session Deleted"),
     SESSIONS_CLEANED("Sessions Cleaned Up"),
-    RECORDING_FILE_CREATED("Recording File Compressed"),
+    RECORDING_FILE_CREATED("Recording File Created"),
     JVM_CRASH_DETECTED("JVM Crash Detected"),
     EVENT_PROCESSING_FAILED("Event Processing Failed");
 
