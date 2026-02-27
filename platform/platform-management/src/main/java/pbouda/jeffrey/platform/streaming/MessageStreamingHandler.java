@@ -26,7 +26,6 @@ import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.ImportantMessage;
 import pbouda.jeffrey.shared.common.model.Severity;
 
-import static pbouda.jeffrey.platform.manager.jfr.JfrUtils.parseEnumAsString;
 import static pbouda.jeffrey.platform.manager.jfr.JfrUtils.parseString;
 
 /**
@@ -57,7 +56,7 @@ public class MessageStreamingHandler implements JfrStreamingHandler {
                 parseString(event, "type"),
                 parseString(event, "title"),
                 parseString(event, "message"),
-                Severity.fromString(parseEnumAsString(event, "severity", Severity.MEDIUM.name())),
+                Severity.fromString(parseString(event, "severity", Severity.MEDIUM.name())),
                 parseString(event, "category"),
                 parseString(event, "source"),
                 false,

@@ -104,7 +104,7 @@ public abstract class JfrMessageEmitter {
         event.type = type.name();
         event.title = type.title();
         event.message = message;
-        event.severity = severity;
+        event.severity = severity.name();
         event.category = category.name();
         event.source = "jeffrey-platform";
         event.commit();
@@ -115,7 +115,7 @@ public abstract class JfrMessageEmitter {
         event.type = type.name();
         event.title = type.title();
         event.message = message;
-        event.severity = severity;
+        event.severity = severity.name();
         event.category = category.name();
         event.source = "jeffrey-platform";
         event.commit();
