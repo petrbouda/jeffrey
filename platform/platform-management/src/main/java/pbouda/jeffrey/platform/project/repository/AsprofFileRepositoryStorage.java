@@ -372,6 +372,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      */
     private Path ensureCompressed(String sessionId, RepositoryFile file) {
         if (file.fileType() == TARGET_COMPRESSED_TYPE) {
+            // Already compressed — emit event, queue dedup prevents duplicates
+            eventEmitter.emitRecordingFileCreated(
+                    projectInfo, sessionId, file, file.size(), file.size(), file.filePath());
             return file.filePath();
         }
 
@@ -380,7 +383,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         // Fast path: check if already compressed by another thread
         if (Files.exists(compressedPath)) {
+            long originalSize = FileSystemUtils.size(sourcePath);
             FileSystemUtils.removeFile(sourcePath);
+            // Emit event — queue dedup prevents duplicates
+            emitForCompressedFile(sessionId, file, originalSize, compressedPath);
             return compressedPath;
         }
 
@@ -388,7 +394,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         try {
             // Double-check after acquiring lock
             if (Files.exists(compressedPath)) {
+                long originalSize = FileSystemUtils.size(sourcePath);
                 FileSystemUtils.removeFile(sourcePath);
+                // Emit event — queue dedup prevents duplicates
+                emitForCompressedFile(sessionId, file, originalSize, compressedPath);
                 return compressedPath;
             }
 
@@ -417,6 +426,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         } finally {
             compressionLock.unlock();
         }
+    }
+
+    private void emitForCompressedFile(String sessionId, RepositoryFile file, long originalSize, Path compressedPath) {
+        long compressedSize = FileSystemUtils.size(compressedPath);
+        eventEmitter.emitRecordingFileCreated(
+                projectInfo, sessionId, file, originalSize, compressedSize, compressedPath);
     }
 
     private List<RepositoryFile> _listRepositoryFiles(

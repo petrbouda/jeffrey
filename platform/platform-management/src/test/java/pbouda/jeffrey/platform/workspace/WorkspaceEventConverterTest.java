@@ -282,7 +282,7 @@ class WorkspaceEventConverterTest {
                     compressedPath, 1024L, 512L, CREATOR);
 
             assertAll(
-                    () -> assertEquals("session-001", result.originEventId()),
+                    () -> assertEquals("session-001:file-001", result.originEventId()),
                     () -> assertEquals(PROJECT_ID, result.projectId()),
                     () -> assertEquals(WORKSPACE_ID, result.workspaceId()),
                     () -> assertEquals(WorkspaceEventType.RECORDING_FILE_CREATED, result.eventType()),

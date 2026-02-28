@@ -99,7 +99,8 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),
-                new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, jeffreyDirs));
+                new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, jeffreyDirs),
+                new RecordingFileCreatedWorkspaceEventConsumer());
 
         String workspaceId = workspaceInfo.id();
         List<QueueEntry<WorkspaceEvent>> entries = workspaceEventQueue.poll(workspaceId, CONSUMER.name());

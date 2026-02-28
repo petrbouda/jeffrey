@@ -470,7 +470,7 @@ class AsprofFileRepositoryStorageTest {
         }
 
         @Test
-        void doesNotEmitEvent_whenFileAlreadyCompressed() throws IOException {
+        void emitsEvent_whenFileAlreadyCompressed() throws IOException {
             // Create and compress file first
             copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
             Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
@@ -480,35 +480,36 @@ class AsprofFileRepositoryStorageTest {
 
             storage.recordings(SESSION_ID);
 
-            // Verify event emitter was never called (file was already compressed)
-            verify(eventEmitter, never()).emitRecordingFileCreated(
-                    any(),
-                    any(),
+            // Event is emitted even for already-compressed files — queue dedup prevents duplicates
+            verify(eventEmitter, times(1)).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
                     any(),
                     anyLong(),
                     anyLong(),
-                    any(Path.class));
+                    eq(compressedFile));
         }
 
         @Test
-        void doesNotEmitEvent_whenCompressedVersionAlreadyExists() throws IOException {
+        void emitsEvent_whenCompressedVersionAlreadyExists() throws IOException {
             // Create both original and compressed file (simulating interrupted compression)
             copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
             Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
+            long originalSize = Files.size(sessionPath.resolve(FORMATTED_FILE_1));
             Lz4Compressor.compress(sessionPath.resolve(FORMATTED_FILE_1), compressedFile);
             // Keep original file (simulating race condition)
             createFinishedFile();
 
             storage.recordings(SESSION_ID);
 
-            // Verify event emitter was not called (fast path - compressed file exists)
-            verify(eventEmitter, never()).emitRecordingFileCreated(
+            // Event is emitted even when compressed version exists — queue dedup prevents duplicates
+            verify(eventEmitter, times(1)).emitRecordingFileCreated(
+                    eq(projectInfo),
+                    eq(SESSION_ID),
                     any(),
-                    any(),
-                    any(),
+                    eq(originalSize),
                     anyLong(),
-                    anyLong(),
-                    any(Path.class));
+                    eq(compressedFile));
         }
 
         @Test
