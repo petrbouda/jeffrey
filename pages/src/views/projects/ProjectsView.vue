@@ -444,7 +444,7 @@ const handleWorkspaceAdded = async () => {
   // Refresh workspaces to get updated list including the new remote workspace
   await refreshWorkspaces();
   resolveWorkspaceStatuses();
-  filterProjects();
+  await refreshProjects();
 };
 
 
