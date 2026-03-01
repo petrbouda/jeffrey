@@ -70,7 +70,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     private final JeffreyDirs jeffreyDirs;
     private final ProjectRepositoryRepository projectRepositoryRepository;
     private final FileInfoProcessor fileInfoProcessor;
-    private final RecordingFileEventEmitter eventEmitter;
 
     private volatile RepositoryInfo cachedRepositoryInfo;
 
@@ -78,14 +77,12 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             ProjectInfo projectInfo,
             JeffreyDirs jeffreyDirs,
             ProjectRepositoryRepository projectRepositoryRepository,
-            FileInfoProcessor fileInfoProcessor,
-            RecordingFileEventEmitter eventEmitter) {
+            FileInfoProcessor fileInfoProcessor) {
 
         this.projectInfo = projectInfo;
         this.jeffreyDirs = jeffreyDirs;
         this.projectRepositoryRepository = projectRepositoryRepository;
         this.fileInfoProcessor = fileInfoProcessor;
-        this.eventEmitter = eventEmitter;
     }
 
     @Override
@@ -367,14 +364,10 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
      * If already compressed, returns the original path. Otherwise, compresses the file
      * and stores the compressed version persistently in the same directory.
      * Uses double-check locking pattern for thread safety.
-     * Emits RECORDING_FILE_CREATED event when actual compression happens.
      * </p>
      */
     private Path ensureCompressed(String sessionId, RepositoryFile file) {
         if (file.fileType() == TARGET_COMPRESSED_TYPE) {
-            // Already compressed — emit event, queue dedup prevents duplicates
-            eventEmitter.emitRecordingFileCreated(
-                    projectInfo, sessionId, file, file.size(), file.size(), file.filePath());
             return file.filePath();
         }
 
@@ -383,10 +376,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         // Fast path: check if already compressed by another thread
         if (Files.exists(compressedPath)) {
-            long originalSize = Files.exists(sourcePath) ? FileSystemUtils.size(sourcePath) : -1;
             FileSystemUtils.removeFile(sourcePath);
-            // Emit event — queue dedup prevents duplicates
-            emitForCompressedFile(sessionId, file, originalSize, compressedPath);
             return compressedPath;
         }
 
@@ -394,10 +384,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         try {
             // Double-check after acquiring lock
             if (Files.exists(compressedPath)) {
-                long originalSize = Files.exists(sourcePath) ? FileSystemUtils.size(sourcePath) : -1;
                 FileSystemUtils.removeFile(sourcePath);
-                // Emit event — queue dedup prevents duplicates
-                emitForCompressedFile(sessionId, file, originalSize, compressedPath);
                 return compressedPath;
             }
 
@@ -416,9 +403,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
             long compressedSize = Files.size(compressedPath);
             if (Files.exists(compressedPath) && compressedSize > 0) {
                 FileSystemUtils.removeFile(sourcePath);
-
-                // Emit event - only when actual compression happened and file stored
-                eventEmitter.emitRecordingFileCreated(projectInfo, sessionId, file, originalSize, compressedSize, compressedPath);
             }
             return compressedPath;
         } catch (IOException e) {
@@ -426,13 +410,6 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         } finally {
             compressionLock.unlock();
         }
-    }
-
-    private void emitForCompressedFile(String sessionId, RepositoryFile file, long originalSize, Path compressedPath) {
-        long compressedSize = FileSystemUtils.size(compressedPath);
-        long resolvedOriginalSize = originalSize >= 0 ? originalSize : compressedSize;
-        eventEmitter.emitRecordingFileCreated(
-                projectInfo, sessionId, file, resolvedOriginalSize, compressedSize, compressedPath);
     }
 
     private List<RepositoryFile> _listRepositoryFiles(

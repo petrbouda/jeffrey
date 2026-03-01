@@ -46,7 +46,6 @@
               <option value="PROJECT_INSTANCE_SESSION_CREATED">Session Created</option>
               <option value="PROJECT_INSTANCE_SESSION_DELETED">Session Deleted</option>
               <option value="PROJECT_INSTANCE_SESSION_FINISHED">Session Finished</option>
-              <option value="RECORDING_FILE_CREATED">Recording Created</option>
             </select>
           </div>
         </div>
@@ -344,16 +343,6 @@ const getMainContentPairs = (event: WorkspaceEvent) => {
     if (content.workspacesPath && content.workspacesPath.trim()) {
       pairs['workspacesPath'] = content.workspacesPath;
     }
-  } else if (event.eventType === WorkspaceEventType.RECORDING_FILE_CREATED) {
-    if (content.fileName && content.fileName.trim()) {
-      pairs['fileName'] = content.fileName;
-    }
-    if (content.originalSize != null) {
-      pairs['originalSize'] = FormattingService.formatBytes(content.originalSize);
-    }
-    if (content.compressedSize != null) {
-      pairs['compressedSize'] = FormattingService.formatBytes(content.compressedSize);
-    }
   } else if (event.eventType === WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED) {
     // These events have empty content (Json.EMPTY)
   } else {
@@ -409,8 +398,6 @@ const getEventBadgeVariant = (eventType: WorkspaceEventType) => {
       return 'warning';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
       return 'info';
-    case WorkspaceEventType.RECORDING_FILE_CREATED:
-      return 'green';
     default:
       return 'secondary';
   }
@@ -442,8 +429,6 @@ const getEventIconColor = (eventType: WorkspaceEventType) => {
       return 'text-warning';
     case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
       return 'text-info';
-    case WorkspaceEventType.RECORDING_FILE_CREATED:
-      return 'text-success';
     default:
       return 'text-secondary';
   }

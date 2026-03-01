@@ -20,9 +20,7 @@ package pbouda.jeffrey.platform.workspace;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import pbouda.jeffrey.platform.queue.QueueEntry;
-import pbouda.jeffrey.platform.workspace.model.RecordingFileCreatedEventContent;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -33,8 +31,6 @@ import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventCo
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
@@ -256,51 +252,4 @@ class WorkspaceEventConverterTest {
         }
     }
 
-    @Nested
-    class RecordingFileCreated {
-
-        @TempDir
-        Path recordingTempDir;
-
-        @Test
-        void createsEventWithRecordingFileContent() throws IOException {
-            ProjectInfo projectInfo = new ProjectInfo(
-                    PROJECT_ID, "origin-proj-001", "Test", "Label", null,
-                    WORKSPACE_ID, WorkspaceType.LIVE, NOW, null, Map.of());
-
-            Instant fileCreatedAt = Instant.parse("2026-02-20T10:00:00Z");
-            RepositoryFile originalFile = new RepositoryFile(
-                    "file-001", "recording.jfr", fileCreatedAt, 1024L,
-                    SupportedRecordingFile.JFR, RecordingStatus.FINISHED,
-                    Path.of("/workspaces/ws-001/proj-001/recording.jfr"));
-
-            Path compressedPath = recordingTempDir.resolve("recording.jfr.lz4");
-            Files.writeString(compressedPath, "compressed-content");
-
-            WorkspaceEvent result = WorkspaceEventConverter.recordingFileCreated(
-                    NOW, projectInfo, "session-001", originalFile,
-                    compressedPath, 1024L, 512L, CREATOR);
-
-            assertAll(
-                    () -> assertEquals("session-001:file-001", result.originEventId()),
-                    () -> assertEquals(PROJECT_ID, result.projectId()),
-                    () -> assertEquals(WORKSPACE_ID, result.workspaceId()),
-                    () -> assertEquals(WorkspaceEventType.RECORDING_FILE_CREATED, result.eventType()),
-                    () -> assertEquals(fileCreatedAt, result.originCreatedAt()),
-                    () -> assertEquals(NOW, result.createdAt()),
-                    () -> assertEquals(CREATOR.name(), result.createdBy())
-            );
-
-            RecordingFileCreatedEventContent content = Json.read(
-                    result.content(), RecordingFileCreatedEventContent.class);
-            assertAll(
-                    () -> assertEquals(compressedPath.toString(), content.filePath()),
-                    () -> assertEquals("recording.jfr.lz4", content.fileName()),
-                    () -> assertEquals(1024L, content.originalSize()),
-                    () -> assertEquals(512L, content.compressedSize()),
-                    () -> assertEquals(fileCreatedAt, content.originalFileCreatedAt()),
-                    () -> assertNotNull(content.originalFileModifiedAt())
-            );
-        }
-    }
 }

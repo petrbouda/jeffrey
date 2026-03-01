@@ -43,7 +43,6 @@ import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManagerImpl;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.project.repository.AsprofFileRepositoryStorage;
-import pbouda.jeffrey.platform.project.repository.RecordingFileEventEmitter;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.project.repository.file.AsprofFileInfoProcessor;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesLoader;
@@ -220,24 +219,15 @@ public class AppConfiguration {
     }
 
     @Bean
-    public RecordingFileEventEmitter recordingFileEventEmitter(
-            Clock clock,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
-        return new RecordingFileEventEmitter(clock, workspaceEventQueue);
-    }
-
-    @Bean
     public RepositoryStorage.Factory remoteRepositoryStorage(
             JeffreyDirs jeffreyDirs,
-            PlatformRepositories platformRepositories,
-            RecordingFileEventEmitter recordingFileEventEmitter) {
+            PlatformRepositories platformRepositories) {
         return projectId -> {
             return new AsprofFileRepositoryStorage(
                     projectId,
                     jeffreyDirs,
                     platformRepositories.newProjectRepositoryRepository(projectId.id()),
-                    new AsprofFileInfoProcessor(),
-                    recordingFileEventEmitter);
+                    new AsprofFileInfoProcessor());
         };
     }
 

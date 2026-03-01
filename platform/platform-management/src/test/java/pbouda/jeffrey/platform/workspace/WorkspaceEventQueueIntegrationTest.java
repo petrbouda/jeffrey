@@ -228,7 +228,7 @@ class WorkspaceEventQueueIntegrationTest {
             queue.acknowledge(SCOPE_ID, CONSUMER_ID, lastOffset);
 
             // Append a new event after acknowledgement
-            WorkspaceEvent third = event("evt-003", "proj-001", WorkspaceEventType.RECORDING_FILE_CREATED);
+            WorkspaceEvent third = event("evt-003", "proj-001", WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED);
             queue.append(SCOPE_ID, third);
 
             // Second poll should only return the new event
@@ -237,7 +237,7 @@ class WorkspaceEventQueueIntegrationTest {
             assertAll(
                     () -> assertEquals(1, secondPoll.size()),
                     () -> assertEquals("evt-003", secondPoll.getFirst().payload().originEventId()),
-                    () -> assertEquals(WorkspaceEventType.RECORDING_FILE_CREATED, secondPoll.getFirst().payload().eventType())
+                    () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, secondPoll.getFirst().payload().eventType())
             );
         }
     }

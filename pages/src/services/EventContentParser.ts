@@ -73,8 +73,6 @@ export class EventContentParser {
                 return `Session "${content.sessionId}" deleted`;
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'Session finished';
-            case WorkspaceEventType.RECORDING_FILE_CREATED:
-                return `Recording "${content.fileName}" created`;
             default:
                 return 'Unknown event type';
         }
@@ -94,8 +92,6 @@ export class EventContentParser {
                 return 'bi-stop-circle';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'bi-stop-circle-fill';
-            case WorkspaceEventType.RECORDING_FILE_CREATED:
-                return 'bi-file-earmark-plus';
             default:
                 return 'bi-question-circle';
         }
@@ -115,8 +111,6 @@ export class EventContentParser {
                 return 'warning';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'info';
-            case WorkspaceEventType.RECORDING_FILE_CREATED:
-                return 'success';
             default:
                 return 'secondary';
         }
@@ -136,8 +130,6 @@ export class EventContentParser {
                 return 'Session Deleted';
             case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
                 return 'Session Finished';
-            case WorkspaceEventType.RECORDING_FILE_CREATED:
-                return 'Recording Created';
             default:
                 return 'Unknown Event';
         }

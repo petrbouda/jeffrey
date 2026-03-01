@@ -67,8 +67,6 @@ class AsprofFileRepositoryStorageTest {
     private Path sessionPath;
     private Path jeffreyTemp;
     private AsprofFileRepositoryStorage storage;
-    private RecordingFileEventEmitter eventEmitter;
-    private ProjectInfo projectInfo;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -114,7 +112,7 @@ class AsprofFileRepositoryStorageTest {
         when(projectRepositoryRepository.findLatestSessionId()).thenReturn(java.util.Optional.of(SESSION_ID));
 
         // Create ProjectInfo
-        projectInfo = new ProjectInfo(
+        ProjectInfo projectInfo = new ProjectInfo(
                 PROJECT_ID,
                 PROJECT_ID,
                 "Test Project",
@@ -126,16 +124,12 @@ class AsprofFileRepositoryStorageTest {
                 now,
                 Map.of());
 
-        // Create mock event emitter
-        eventEmitter = mock(RecordingFileEventEmitter.class);
-
         // Create storage instance
         storage = new AsprofFileRepositoryStorage(
                 projectInfo,
                 jeffreyDirs,
                 projectRepositoryRepository,
-                new AsprofFileInfoProcessor(),
-                eventEmitter);
+                new AsprofFileInfoProcessor());
     }
 
     private void copyJfrToSession(String sourceFileName, String targetFileName) throws IOException {
@@ -431,124 +425,4 @@ class AsprofFileRepositoryStorageTest {
         }
     }
 
-    @Nested
-    class EventEmission {
-
-        @Test
-        void emitsEvent_whenFileIsCompressed() throws IOException {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            createFinishedFile();
-
-            storage.recordings(SESSION_ID);
-
-            // Verify event emitter was called once with correct parameters
-            verify(eventEmitter, times(1)).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    anyLong(),
-                    anyLong(),
-                    any(Path.class));
-        }
-
-        @Test
-        void emitsEventForEachFile_whenMultipleFilesAreCompressed() throws IOException {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            copyJfrToSession("profile-2.jfr", FORMATTED_FILE_2);
-            createFinishedFile();
-
-            storage.recordings(SESSION_ID);
-
-            // Verify event emitter was called twice (once per file)
-            verify(eventEmitter, times(2)).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    anyLong(),
-                    anyLong(),
-                    any(Path.class));
-        }
-
-        @Test
-        void emitsEvent_whenFileAlreadyCompressed() throws IOException {
-            // Create and compress file first
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
-            Lz4Compressor.compress(sessionPath.resolve(FORMATTED_FILE_1), compressedFile);
-            Files.delete(sessionPath.resolve(FORMATTED_FILE_1)); // Remove original
-            createFinishedFile();
-
-            storage.recordings(SESSION_ID);
-
-            // Event is emitted even for already-compressed files — queue dedup prevents duplicates
-            verify(eventEmitter, times(1)).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    anyLong(),
-                    anyLong(),
-                    eq(compressedFile));
-        }
-
-        @Test
-        void emitsEvent_whenCompressedVersionAlreadyExists() throws IOException {
-            // Create both original and compressed file (simulating interrupted compression)
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            Path compressedFile = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
-            long originalSize = Files.size(sessionPath.resolve(FORMATTED_FILE_1));
-            Lz4Compressor.compress(sessionPath.resolve(FORMATTED_FILE_1), compressedFile);
-            // Keep original file (simulating race condition)
-            createFinishedFile();
-
-            storage.recordings(SESSION_ID);
-
-            // Event is emitted even when compressed version exists — queue dedup prevents duplicates
-            verify(eventEmitter, times(1)).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    eq(originalSize),
-                    anyLong(),
-                    eq(compressedFile));
-        }
-
-        @Test
-        void emitsEventWithCorrectSizes() throws IOException {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            createFinishedFile();
-
-            // Capture the original file size before compression
-            long originalSize = Files.size(sessionPath.resolve(FORMATTED_FILE_1));
-
-            storage.recordings(SESSION_ID);
-
-            // Verify event was emitted with correct original size
-            // Note: LZ4 compression has overhead, so compressed size can be larger for very small files
-            verify(eventEmitter).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    eq(originalSize),
-                    longThat(compressedSize -> compressedSize > 0),
-                    any(Path.class));
-        }
-
-        @Test
-        void emitsEventWithCorrectPath() throws IOException {
-            copyJfrToSession("profile-1.jfr", FORMATTED_FILE_1);
-            createFinishedFile();
-
-            storage.recordings(SESSION_ID);
-
-            Path expectedCompressedPath = sessionPath.resolve(FORMATTED_FILE_1 + ".lz4");
-
-            verify(eventEmitter).emitRecordingFileCreated(
-                    eq(projectInfo),
-                    eq(SESSION_ID),
-                    any(),
-                    anyLong(),
-                    anyLong(),
-                    eq(expectedCompressedPath));
-        }
-    }
 }

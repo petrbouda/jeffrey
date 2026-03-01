@@ -22,6 +22,5 @@ public enum MessageCategory {
     PROJECT,
     INSTANCE,
     SESSION,
-    RECORDING,
     SYSTEM
 }

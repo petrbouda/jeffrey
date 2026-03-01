@@ -72,15 +72,6 @@ public abstract class JfrMessageEmitter {
                 Severity.LOW, MessageCategory.SESSION);
     }
 
-    // ==================== RECORDING events (LOW severity) ====================
-
-    public static void recordingFileCreated(String projectId, String sessionId, long originalSize, long compressedSize) {
-        emitMessage(MessageType.RECORDING_FILE_CREATED,
-                "Recording file created (original=" + originalSize + " compressed=" + compressedSize +
-                        " sessionId=" + sessionId + " projectId=" + projectId + ")",
-                Severity.LOW, MessageCategory.RECORDING);
-    }
-
     // ==================== ALERTS ====================
 
     public static void jvmCrashDetected(String sessionId, String instanceId, String projectId) {
