@@ -383,7 +383,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
         // Fast path: check if already compressed by another thread
         if (Files.exists(compressedPath)) {
-            long originalSize = FileSystemUtils.size(sourcePath);
+            long originalSize = Files.exists(sourcePath) ? FileSystemUtils.size(sourcePath) : -1;
             FileSystemUtils.removeFile(sourcePath);
             // Emit event — queue dedup prevents duplicates
             emitForCompressedFile(sessionId, file, originalSize, compressedPath);
@@ -394,7 +394,7 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
         try {
             // Double-check after acquiring lock
             if (Files.exists(compressedPath)) {
-                long originalSize = FileSystemUtils.size(sourcePath);
+                long originalSize = Files.exists(sourcePath) ? FileSystemUtils.size(sourcePath) : -1;
                 FileSystemUtils.removeFile(sourcePath);
                 // Emit event — queue dedup prevents duplicates
                 emitForCompressedFile(sessionId, file, originalSize, compressedPath);
@@ -430,8 +430,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private void emitForCompressedFile(String sessionId, RepositoryFile file, long originalSize, Path compressedPath) {
         long compressedSize = FileSystemUtils.size(compressedPath);
+        long resolvedOriginalSize = originalSize >= 0 ? originalSize : compressedSize;
         eventEmitter.emitRecordingFileCreated(
-                projectInfo, sessionId, file, originalSize, compressedSize, compressedPath);
+                projectInfo, sessionId, file, resolvedOriginalSize, compressedSize, compressedPath);
     }
 
     private List<RepositoryFile> _listRepositoryFiles(
