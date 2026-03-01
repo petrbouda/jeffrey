@@ -51,19 +51,19 @@ public abstract class JfrMessageEmitter {
     public static void sessionCreated(String instanceId, int order, String projectId) {
         emitMessage(MessageType.SESSION_CREATED,
                 "New recording session #" + order + " started for instance '" + instanceId + "' (projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.SESSION);
+                Severity.LOW, MessageCategory.SESSION);
     }
 
     public static void sessionFinished(String sessionId, String projectId) {
         emitMessage(MessageType.SESSION_FINISHED,
                 "Recording session finished (sessionId=" + sessionId + " projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.SESSION);
+                Severity.LOW, MessageCategory.SESSION);
     }
 
     public static void sessionDeleted(String sessionId, String projectId) {
         emitMessage(MessageType.SESSION_DELETED,
                 "Recording session deleted (sessionId=" + sessionId + " projectId=" + projectId + ")",
-                Severity.MEDIUM, MessageCategory.SESSION);
+                Severity.LOW, MessageCategory.SESSION);
     }
 
     public static void sessionsCleaned(String projectName, int count) {
