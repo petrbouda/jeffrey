@@ -22,6 +22,7 @@ import jdk.jfr.consumer.RecordedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.platform.repository.AlertRepository;
+import pbouda.jeffrey.platform.jfr.MessageCategory;
 import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.ImportantMessage;
 import pbouda.jeffrey.shared.common.model.Severity;
@@ -52,15 +53,18 @@ public class AlertStreamingHandler implements JfrStreamingHandler {
 
     @Override
     public void onEvent(RecordedEvent event) {
+        String category = parseString(event, "category");
+        String resolvedSessionId = MessageCategory.SESSION.name().equals(category) ? sessionId : null;
+
         ImportantMessage message = new ImportantMessage(
                 parseString(event, "type"),
                 parseString(event, "title"),
                 parseString(event, "message"),
                 Severity.fromString(parseString(event, "severity", Severity.MEDIUM.name())),
-                parseString(event, "category"),
+                category,
                 parseString(event, "source"),
                 true,
-                sessionId,
+                resolvedSessionId,
                 event.getStartTime()
         );
 

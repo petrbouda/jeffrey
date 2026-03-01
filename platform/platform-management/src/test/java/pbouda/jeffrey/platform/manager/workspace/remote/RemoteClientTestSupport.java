@@ -33,6 +33,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 
 final class RemoteClientTestSupport {
@@ -101,14 +102,14 @@ final class RemoteClientTestSupport {
         return new ImportantMessageResponse(
                 "MESSAGE", "Test Title", "Test message body",
                 "INFO", "system", "test-source",
-                false, SESSION_ID, "2025-06-01T12:00:00Z");
+                false, SESSION_ID, Instant.parse("2025-06-01T12:00:00Z").toEpochMilli());
     }
 
     static ImportantMessageResponse sampleAlertResponse() {
         return new ImportantMessageResponse(
                 "ALERT", "Alert Title", "Alert message body",
                 "WARNING", "profiler", "profiler-source",
-                true, SESSION_ID, "2025-06-01T13:00:00Z");
+                true, SESSION_ID, Instant.parse("2025-06-01T13:00:00Z").toEpochMilli());
     }
 
     static InstanceResponse sampleInstanceResponse() {

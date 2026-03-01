@@ -23,7 +23,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import FormattingService from '@/services/FormattingService';
+import MessageCard from '@/components/MessageCard.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { ImportantMessage, Severity } from '@/services/api/model/ImportantMessage';
 import ProjectMessagesClient from '@/services/api/ProjectMessagesClient';
@@ -49,18 +49,15 @@ const selectedTimeRange = ref<number>(1440); // Default: Last 24 hours
 
 // Filter state
 const selectedSeverity = ref<Severity | ''>('');
-const selectedSession = ref('');
 const searchQuery = ref('');
 
 // Display limit
-const displayLimit = 50;
+const pageSize = 50;
+const displayLimit = ref(pageSize);
 
-// Get unique sessions from alerts
-const sessions = computed(() => {
-  const sessionSet = new Map<string, string>();
-  alerts.value.forEach(a => sessionSet.set(a.sessionId, a.sessionId));
-  return Array.from(sessionSet.entries()).map(([id]) => ({ id, name: id }));
-});
+function loadMore() {
+  displayLimit.value += pageSize;
+}
 
 async function loadAlerts() {
   if (!workspaceId.value || !projectId.value) return;
@@ -120,7 +117,7 @@ const alertsTimeseriesData = computed(() => {
 
   // Count alerts per bucket
   filteredAlerts.forEach(alert => {
-    const alertTime = new Date(alert.createdAt).getTime();
+    const alertTime = alert.createdAt;
     // Find the bucket this alert belongs to
     const bucketIndex = Math.floor((alertTime - startTime) / bucketDurationMs);
     if (bucketIndex >= 0 && bucketIndex < 20) {
@@ -143,11 +140,6 @@ const filteredAlerts = computed(() => {
       return false;
     }
 
-    // Filter by session
-    if (selectedSession.value && alert.sessionId !== selectedSession.value) {
-      return false;
-    }
-
     // Filter by search query
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
@@ -163,8 +155,10 @@ const filteredAlerts = computed(() => {
 
 // Computed: limited alerts for display
 const displayedAlerts = computed(() => {
-  return filteredAlerts.value.slice(0, displayLimit);
+  return filteredAlerts.value.slice(0, displayLimit.value);
 });
+
+const hasMore = computed(() => filteredAlerts.value.length > displayLimit.value);
 
 // Computed: TOTAL alert counts by severity (all alerts, for StatsTable)
 const totalCriticalCount = computed(() => alerts.value.filter(a => a.severity === 'CRITICAL').length);
@@ -202,31 +196,9 @@ const alertMetrics = computed(() => [
   }
 ]);
 
-// Get badge class for severity
-const getSeverityBadgeClass = (severity: Severity): string => {
-  switch (severity) {
-    case 'CRITICAL':
-      return 'badge-critical';
-    case 'HIGH':
-      return 'badge-high';
-    case 'MEDIUM':
-      return 'badge-medium';
-    case 'LOW':
-      return 'badge-low';
-    default:
-      return '';
-  }
-};
-
-// Format createdAt to relative time
-const formatTimeAgo = (createdAt: string): string => {
-  const ts = new Date(createdAt).getTime();
-  return FormattingService.formatRelativeTime(ts);
-};
-
-// Generate a unique key for table rows
+// Generate a unique key for list items
 const getAlertKey = (alert: ImportantMessage, index: number): string => {
-  return `${alert.sessionId}-${alert.type}-${alert.createdAt}-${index}`;
+  return `${alert.type}-${alert.createdAt}-${index}`;
 };
 
 </script>
@@ -304,15 +276,6 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
               <option value="MEDIUM">Medium</option>
               <option value="LOW">Low</option>
             </select>
-            <select
-              v-model="selectedSession"
-              class="form-select form-select-sm filter-select"
-            >
-              <option value="">All Sessions</option>
-              <option v-for="session in sessions" :key="session.id" :value="session.id">
-                {{ session.name }}
-              </option>
-            </select>
             <input
               v-model="searchQuery"
               type="text"
@@ -322,41 +285,19 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
           </div>
           <div class="d-flex align-items-center">
             <span class="badge bg-info">
-              <i class="bi bi-info-circle me-1"></i>Showing {{ Math.min(displayLimit, filteredAlerts.length) }} of {{ filteredAlerts.length }} alerts
+              <i class="bi bi-info-circle me-1"></i>Showing {{ displayedAlerts.length }} of {{ filteredAlerts.length }} alerts
             </span>
           </div>
         </div>
         <div class="card-body p-0">
 
-          <!-- Alerts Table -->
-          <div v-if="filteredAlerts.length > 0" class="table-responsive">
-            <table class="table table-hover mb-0 alerts-table">
-              <thead>
-                <tr>
-                  <th class="col-severity"></th>
-                  <th class="col-title">Title</th>
-                  <th class="col-category">Category</th>
-                  <th class="col-source">Source</th>
-                  <th class="col-session">Session</th>
-                  <th class="col-time">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(alert, index) in displayedAlerts" :key="getAlertKey(alert, index)" class="alert-row">
-                  <td class="severity-cell" :class="getSeverityBadgeClass(alert.severity)" :title="alert.severity"></td>
-                  <td class="alert-title">
-                    <div class="title-text">{{ alert.title }}</div>
-                    <div class="message-text">{{ alert.message }}</div>
-                  </td>
-                  <td class="alert-category">
-                    <span class="category-badge">{{ alert.category }}</span>
-                  </td>
-                  <td class="alert-source">{{ alert.source }}</td>
-                  <td class="alert-session">{{ alert.sessionId }}</td>
-                  <td class="alert-time">{{ formatTimeAgo(alert.createdAt) }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Alerts List -->
+          <div v-if="filteredAlerts.length > 0" class="alert-list">
+            <MessageCard
+              v-for="(alert, index) in displayedAlerts"
+              :key="getAlertKey(alert, index)"
+              :message="alert"
+            />
           </div>
 
           <!-- Empty State -->
@@ -366,6 +307,12 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
             title="No Alerts"
             description="No alerts match your current filters."
           />
+
+          <!-- Load More Footer -->
+          <div v-if="filteredAlerts.length > 0" class="load-more-footer">
+            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">Load More</button>
+            <span class="load-more-count">Showing {{ displayedAlerts.length }} of {{ filteredAlerts.length }} alerts</span>
+          </div>
         </div>
       </div>
     </template>
@@ -447,159 +394,35 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   max-width: 300px;
 }
 
-/* Alerts Table */
-.alerts-table {
-  font-size: 0.875rem;
+/* Alert List */
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem;
 }
 
-.alerts-table th {
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #6b7280;
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
-  padding: 0.5rem 0.5rem;
+/* Load More Footer */
+.load-more-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.alerts-table td {
-  padding: 0.4rem 0.5rem;
-  vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.alerts-table tbody tr:hover {
-  background-color: rgba(94, 100, 255, 0.04);
-}
-
-/* Column widths */
-.col-severity {
-  width: 6px;
-  padding: 0 !important;
-}
-
-.col-title {
-  min-width: 250px;
-  padding-left: 0.75rem !important;
-}
-
-.col-category {
-  width: 110px;
-}
-
-.col-source {
-  width: 140px;
-}
-
-.col-session {
-  width: 150px;
-}
-
-.col-time {
-  width: 100px;
-}
-
-/* Alert cells */
-.alert-title {
-  padding-left: 0.75rem !important;
-}
-
-.title-text {
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.message-text {
-  font-size: 0.8rem;
-  color: #6b7280;
-  line-height: 1.4;
-}
-
-.alert-category {
-  vertical-align: middle;
-}
-
-.category-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border-radius: 4px;
-}
-
-.alert-source {
-  font-weight: 500;
-  color: #4b5563;
-  font-size: 0.8rem;
-}
-
-.alert-session {
-  color: #6b7280;
-  font-size: 0.8rem;
-}
-
-.alert-time {
+.load-more-count {
+  font-size: 0.78rem;
   color: #9ca3af;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
-/* Severity Cell */
-.severity-cell {
-  width: 6px;
-  padding: 0 !important;
-  border-bottom: none !important;
-}
-
-.severity-cell.badge-critical {
-  background-color: #dc3545;
-}
-
-.severity-cell.badge-high {
-  background-color: #fd7e14;
-}
-
-.severity-cell.badge-medium {
-  background-color: #eab308;
-}
-
-.severity-cell.badge-low {
-  background-color: #0891b2;
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
-  .col-source,
-  .col-session {
-    display: none;
-  }
-}
-
 @media (max-width: 768px) {
-  .filters-row {
-    flex-direction: column;
-  }
-
   .filter-select,
   .search-input {
     width: 100%;
     max-width: none;
-  }
-
-  .alerts-table {
-    font-size: 0.8rem;
-  }
-
-  .col-category {
-    display: none;
-  }
-
-  .message-text {
-    display: none;
   }
 }
 </style>

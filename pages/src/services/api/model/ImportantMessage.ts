@@ -41,6 +41,6 @@ export interface ImportantMessage {
   isAlert: boolean;
   /** Session ID this message belongs to */
   sessionId: string;
-  /** ISO timestamp when the message was created */
-  createdAt: string;
+  /** Epoch milliseconds when the message was created */
+  createdAt: number;
 }

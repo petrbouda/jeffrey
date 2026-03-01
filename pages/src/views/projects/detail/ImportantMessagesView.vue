@@ -23,7 +23,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import FormattingService from '@/services/FormattingService';
+import MessageCard from '@/components/MessageCard.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { ImportantMessage, Severity } from '@/services/api/model/ImportantMessage';
 import ProjectMessagesClient from '@/services/api/ProjectMessagesClient';
@@ -51,18 +51,15 @@ const selectedTimeRange = ref<number>(1440); // Default: Last 24 hours
 const selectedSeverity = ref<Severity | ''>('');
 const selectedCategory = ref('');
 const selectedType = ref('');
-const selectedSession = ref('');
 const searchQuery = ref('');
 
 // Display limit
-const displayLimit = 50;
+const pageSize = 50;
+const displayLimit = ref(pageSize);
 
-// Get unique sessions from messages
-const sessions = computed(() => {
-  const sessionSet = new Map<string, string>();
-  messages.value.forEach(m => sessionSet.set(m.sessionId, m.sessionId));
-  return Array.from(sessionSet.entries()).map(([id]) => ({ id, name: id }));
-});
+function loadMore() {
+  displayLimit.value += pageSize;
+}
 
 async function loadMessages() {
   if (!workspaceId.value || !projectId.value) return;
@@ -134,7 +131,7 @@ const messagesTimeseriesData = computed(() => {
 
   // Count messages per bucket
   filteredMessages.forEach(msg => {
-    const msgTime = new Date(msg.createdAt).getTime();
+    const msgTime = msg.createdAt;
     // Find the bucket this message belongs to
     const bucketIndex = Math.floor((msgTime - startTime) / bucketDurationMs);
     if (bucketIndex >= 0 && bucketIndex < 20) {
@@ -167,11 +164,6 @@ const filteredMessages = computed(() => {
       return false;
     }
 
-    // Filter by session
-    if (selectedSession.value && msg.sessionId !== selectedSession.value) {
-      return false;
-    }
-
     // Filter by search query
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
@@ -188,8 +180,10 @@ const filteredMessages = computed(() => {
 
 // Computed: limited messages for display
 const displayedMessages = computed(() => {
-  return filteredMessages.value.slice(0, displayLimit);
+  return filteredMessages.value.slice(0, displayLimit.value);
 });
+
+const hasMore = computed(() => filteredMessages.value.length > displayLimit.value);
 
 // Computed: TOTAL message counts (for StatsTable)
 const totalMessagesCount = computed(() => messages.value.length);
@@ -237,31 +231,9 @@ const messageMetrics = computed(() => [
   }
 ]);
 
-// Get badge class for severity
-const getSeverityClass = (severity: Severity): string => {
-  switch (severity) {
-    case 'CRITICAL':
-      return 'severity-critical';
-    case 'HIGH':
-      return 'severity-high';
-    case 'MEDIUM':
-      return 'severity-medium';
-    case 'LOW':
-      return 'severity-low';
-    default:
-      return '';
-  }
-};
-
-// Format createdAt to relative time
-const formatTimeAgo = (createdAt: string): string => {
-  const ts = new Date(createdAt).getTime();
-  return FormattingService.formatRelativeTime(ts);
-};
-
-// Generate a unique key for table rows
+// Generate a unique key for list items
 const getMessageKey = (msg: ImportantMessage, index: number): string => {
-  return `${msg.sessionId}-${msg.type}-${msg.createdAt}-${index}`;
+  return `${msg.type}-${msg.createdAt}-${index}`;
 };
 </script>
 
@@ -331,15 +303,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
                 {{ type.replace(/_/g, ' ') }}
               </option>
             </select>
-            <select
-              v-model="selectedSession"
-              class="form-select form-select-sm filter-select"
-            >
-              <option value="">All Sessions</option>
-              <option v-for="session in sessions" :key="session.id" :value="session.id">
-                {{ session.name }}
-              </option>
-            </select>
             <input
               v-model="searchQuery"
               type="text"
@@ -349,41 +312,19 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
           </div>
           <div class="d-flex align-items-center">
             <span class="badge bg-info">
-              <i class="bi bi-info-circle me-1"></i>Showing {{ Math.min(displayLimit, filteredMessages.length) }} of {{ filteredMessages.length }} messages
+              <i class="bi bi-info-circle me-1"></i>Showing {{ displayedMessages.length }} of {{ filteredMessages.length }} messages
             </span>
           </div>
         </div>
         <div class="card-body p-0">
 
-          <!-- Messages Table -->
-          <div v-if="filteredMessages.length > 0" class="table-responsive">
-            <table class="table table-hover mb-0 messages-table">
-              <thead>
-                <tr>
-                  <th class="col-severity"></th>
-                  <th class="col-title">Title</th>
-                  <th class="col-category">Category</th>
-                  <th class="col-source">Source</th>
-                  <th class="col-session">Session</th>
-                  <th class="col-time">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(msg, index) in displayedMessages" :key="getMessageKey(msg, index)" class="message-row">
-                  <td class="severity-cell" :class="getSeverityClass(msg.severity)" :title="msg.severity"></td>
-                  <td class="message-title">
-                    <div class="title-text">{{ msg.title }}</div>
-                    <div class="message-text">{{ msg.message }}</div>
-                  </td>
-                  <td class="message-category">
-                    <span class="category-badge">{{ msg.category }}</span>
-                  </td>
-                  <td class="message-source">{{ msg.source }}</td>
-                  <td class="message-session">{{ msg.sessionId }}</td>
-                  <td class="message-time">{{ formatTimeAgo(msg.createdAt) }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Messages List -->
+          <div v-if="filteredMessages.length > 0" class="message-list">
+            <MessageCard
+              v-for="(msg, index) in displayedMessages"
+              :key="getMessageKey(msg, index)"
+              :message="msg"
+            />
           </div>
 
           <!-- Empty State -->
@@ -393,6 +334,12 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
             title="No Messages"
             description="No messages match your current filters."
           />
+
+          <!-- Load More Footer -->
+          <div v-if="filteredMessages.length > 0" class="load-more-footer">
+            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">Load More</button>
+            <span class="load-more-count">Showing {{ displayedMessages.length }} of {{ filteredMessages.length }} messages</span>
+          </div>
         </div>
       </div>
     </template>
@@ -471,138 +418,30 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   max-width: 300px;
 }
 
-/* Messages Table */
-.messages-table {
-  font-size: 0.875rem;
+/* Message List */
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem;
 }
 
-.messages-table th {
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #6b7280;
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
-  padding: 0.5rem 0.5rem;
+/* Load More Footer */
+.load-more-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.messages-table td {
-  padding: 0.4rem 0.5rem;
-  vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.messages-table tbody tr:hover {
-  background-color: rgba(94, 100, 255, 0.04);
-}
-
-/* Column widths */
-.col-severity {
-  width: 6px;
-  padding: 0 !important;
-}
-
-.col-title {
-  min-width: 250px;
-  padding-left: 0.75rem !important;
-}
-
-.col-category {
-  width: 110px;
-}
-
-.col-source {
-  width: 140px;
-}
-
-.col-session {
-  width: 150px;
-}
-
-.col-time {
-  width: 100px;
-}
-
-/* Severity Cell */
-.severity-cell {
-  width: 6px;
-  padding: 0 !important;
-  border-bottom: none !important;
-}
-
-.severity-cell.severity-critical {
-  background-color: #dc3545;
-}
-
-.severity-cell.severity-high {
-  background-color: #fd7e14;
-}
-
-.severity-cell.severity-medium {
-  background-color: #eab308;
-}
-
-.severity-cell.severity-low {
-  background-color: #0891b2;
-}
-
-/* Message cells */
-.message-title {
-  padding-left: 0.75rem !important;
-}
-
-.title-text {
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.message-text {
-  font-size: 0.8rem;
-  color: #6b7280;
-  line-height: 1.4;
-}
-
-.message-category {
-  vertical-align: middle;
-}
-
-.category-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border-radius: 4px;
-}
-
-.message-source {
-  font-weight: 500;
-  color: #4b5563;
-  font-size: 0.8rem;
-}
-
-.message-session {
-  color: #6b7280;
-  font-size: 0.8rem;
-}
-
-.message-time {
+.load-more-count {
+  font-size: 0.78rem;
   color: #9ca3af;
-  font-size: 0.8rem;
-  white-space: nowrap;
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
-  .col-source,
-  .col-session {
-    display: none;
-  }
-}
-
 @media (max-width: 768px) {
   .filter-bar {
     flex-wrap: wrap;
@@ -612,18 +451,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   .search-input {
     width: 100%;
     max-width: none;
-  }
-
-  .messages-table {
-    font-size: 0.8rem;
-  }
-
-  .col-category {
-    display: none;
-  }
-
-  .message-text {
-    display: none;
   }
 }
 </style>
