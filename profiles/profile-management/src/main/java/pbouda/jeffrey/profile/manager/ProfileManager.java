@@ -66,6 +66,8 @@ public interface ProfileManager {
 
     ProfileFeaturesManager featuresManager();
 
+    ProfileToolsManager toolsManager();
+
     ProfileCustomManager custom();
 
     ProfileInfo updateName(String name);

@@ -104,8 +104,8 @@ public class JfrStreamingConsumerManager implements Closeable {
                 platformRepositories.newAlertRepository(projectInfo.id());
 
         List<JfrStreamingHandler> handlers = List.of(
-                new MessageStreamingHandler(sessionId, messageRepository),
-                new AlertStreamingHandler(sessionId, alertRepository)
+                new MessageStreamingHandler(messageRepository),
+                new AlertStreamingHandler(alertRepository)
         );
 
         Runnable onNaturalClose = () -> {

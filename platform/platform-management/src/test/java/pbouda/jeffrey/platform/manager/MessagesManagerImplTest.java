@@ -49,12 +49,12 @@ class MessagesManagerImplTest {
 
     private static final Instant NOW = Instant.parse("2025-06-01T15:00:00Z");
 
-    private static ImportantMessage message(String type, String sessionId, Instant createdAt) {
-        return new ImportantMessage(type, "Title", "Message text", Severity.MEDIUM, "PERFORMANCE", "test", false, sessionId, createdAt);
+    private static ImportantMessage message(String type, Instant createdAtUs) {
+        return new ImportantMessage(type, "Title", "Message text", Severity.MEDIUM, "PERFORMANCE", "test", false, createdAtUs);
     }
 
-    private static ImportantMessage alert(String type, String sessionId, Instant createdAt) {
-        return new ImportantMessage(type, "Alert Title", "Alert text", Severity.HIGH, "RESOURCE", "monitor", true, sessionId, createdAt);
+    private static ImportantMessage alert(String type, Instant createdAtUs) {
+        return new ImportantMessage(type, "Alert Title", "Alert text", Severity.HIGH, "RESOURCE", "monitor", true, createdAtUs);
     }
 
     @Nested
@@ -69,9 +69,9 @@ class MessagesManagerImplTest {
             var clock = Clock.fixed(NOW, ZoneOffset.UTC);
             var manager = new MessagesManagerImpl(clock, messageRepo, alertRepo);
 
-            messageRepo.insert(message("TYPE_A", "session-1", T1));
-            messageRepo.insert(message("TYPE_B", "session-1", T2));
-            messageRepo.insert(message("TYPE_C", "session-1", T3));
+            messageRepo.insert(message("TYPE_A", T1));
+            messageRepo.insert(message("TYPE_B", T2));
+            messageRepo.insert(message("TYPE_C", T3));
 
             List<ImportantMessage> result = manager.getMessages(new AbsoluteTimeRange(T1, T3));
 
@@ -96,9 +96,9 @@ class MessagesManagerImplTest {
             Instant msgAt1hAgo = NOW.minus(Duration.ofHours(1));   // 14:00
             Instant msgAt30mAgo = NOW.minus(Duration.ofMinutes(30)); // 14:30
 
-            messageRepo.insert(message("TYPE_A", "session-1", msgAt2hAgo));
-            messageRepo.insert(message("TYPE_B", "session-1", msgAt1hAgo));
-            messageRepo.insert(message("TYPE_C", "session-1", msgAt30mAgo));
+            messageRepo.insert(message("TYPE_A", msgAt2hAgo));
+            messageRepo.insert(message("TYPE_B", msgAt1hAgo));
+            messageRepo.insert(message("TYPE_C", msgAt30mAgo));
 
             // RelativeTimeRange(ZERO, 3h) => duration = 3h => range = [NOW-3h, NOW]
             List<ImportantMessage> result = manager.getMessages(
@@ -121,10 +121,10 @@ class MessagesManagerImplTest {
 
             // Insert messages near the fixed clock time
             Instant nearFixedTime = fixedTime.minus(Duration.ofMinutes(30));
-            messageRepo.insert(message("TYPE_NEAR", "session-1", nearFixedTime));
+            messageRepo.insert(message("TYPE_NEAR", nearFixedTime));
 
             // Insert message near the real system time (should NOT be found)
-            messageRepo.insert(message("TYPE_FAR", "session-2", Instant.now()));
+            messageRepo.insert(message("TYPE_FAR", Instant.now()));
 
             // Query with relative range of 1h from clock time
             // Should resolve to [fixedTime-1h, fixedTime] = [2020-01-15T11:00:00Z, 2020-01-15T12:00:00Z]
@@ -163,12 +163,12 @@ class MessagesManagerImplTest {
             var manager = new MessagesManagerImpl(clock, messageRepo, alertRepo);
 
             // Insert messages via messageRepo
-            messageRepo.insert(message("MSG_TYPE", "session-1", T1));
-            messageRepo.insert(message("MSG_TYPE_2", "session-1", T2));
+            messageRepo.insert(message("MSG_TYPE", T1));
+            messageRepo.insert(message("MSG_TYPE_2", T2));
 
             // Insert alerts via alertRepo
-            alertRepo.insert(alert("ALERT_TYPE", "session-1", T1));
-            alertRepo.insert(alert("ALERT_TYPE_2", "session-1", T2));
+            alertRepo.insert(alert("ALERT_TYPE", T1));
+            alertRepo.insert(alert("ALERT_TYPE_2", T2));
 
             List<ImportantMessage> alerts = manager.getAlerts(new AbsoluteTimeRange(T1, T3));
 
@@ -191,8 +191,8 @@ class MessagesManagerImplTest {
             Instant alertAt1hAgo = NOW.minus(Duration.ofHours(1));   // 14:00
             Instant alertAt30mAgo = NOW.minus(Duration.ofMinutes(30)); // 14:30
 
-            alertRepo.insert(alert("ALERT_A", "session-1", alertAt1hAgo));
-            alertRepo.insert(alert("ALERT_B", "session-1", alertAt30mAgo));
+            alertRepo.insert(alert("ALERT_A", alertAt1hAgo));
+            alertRepo.insert(alert("ALERT_B", alertAt30mAgo));
 
             // RelativeTimeRange(ZERO, 2h) => duration = 2h => range = [NOW-2h, NOW]
             List<ImportantMessage> result = manager.getAlerts(

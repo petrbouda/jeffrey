@@ -31,7 +31,7 @@ public interface AlertRepository extends RetentionCleanup {
 
     /**
      * Inserts an alert. Uses ON CONFLICT DO NOTHING on the dedup index
-     * (session_id, type, created_at) for idempotent inserts during replay.
+     * (project_id, type, created_at_us) for idempotent inserts during replay.
      *
      * @param message the alert to insert
      */

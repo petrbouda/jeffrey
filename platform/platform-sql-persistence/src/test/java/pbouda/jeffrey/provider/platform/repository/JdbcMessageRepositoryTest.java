@@ -45,8 +45,8 @@ class JdbcMessageRepositoryTest {
     private static final Instant T2 = Instant.parse("2025-06-01T11:00:00Z");
     private static final Instant T3 = Instant.parse("2025-06-01T12:00:00Z");
 
-    private static ImportantMessage message(String type, String sessionId, Instant createdAt) {
-        return new ImportantMessage(type, "Title", "Message text", Severity.MEDIUM, "PERFORMANCE", "test", false, sessionId, createdAt);
+    private static ImportantMessage message(String type, Instant createdAtUs) {
+        return new ImportantMessage(type, "Title", "Message text", Severity.MEDIUM, "PERFORMANCE", "test", false, createdAtUs);
     }
 
     @Nested
@@ -58,7 +58,7 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("HIGH_CPU_USAGE", "session-1", T1));
+            repository.insert(message("HIGH_CPU_USAGE", T1));
 
             List<ImportantMessage> result = repository.findAll(T1.minusSeconds(1), T1.plusSeconds(1));
             assertEquals(1, result.size());
@@ -70,8 +70,7 @@ class JdbcMessageRepositoryTest {
             assertEquals("PERFORMANCE", msg.category());
             assertEquals("test", msg.source());
             assertFalse(msg.isAlert());
-            assertEquals("session-1", msg.sessionId());
-            assertEquals(T1, msg.createdAt());
+            assertEquals(T1, msg.createdAtUs());
         }
 
         @Test
@@ -80,8 +79,8 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("HIGH_CPU_USAGE", "session-1", T1));
-            repository.insert(message("HIGH_CPU_USAGE", "session-1", T1));
+            repository.insert(message("HIGH_CPU_USAGE", T1));
+            repository.insert(message("HIGH_CPU_USAGE", T1));
 
             List<ImportantMessage> result = repository.findAll(T1.minusSeconds(1), T1.plusSeconds(1));
             assertEquals(1, result.size());
@@ -93,8 +92,8 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("HIGH_CPU_USAGE", "session-1", T1));
-            repository.insert(message("LOW_MEMORY", "session-1", T1));
+            repository.insert(message("HIGH_CPU_USAGE", T1));
+            repository.insert(message("LOW_MEMORY", T1));
 
             List<ImportantMessage> result = repository.findAll(T1.minusSeconds(1), T1.plusSeconds(1));
             assertEquals(2, result.size());
@@ -106,8 +105,8 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("HIGH_CPU_USAGE", "session-1", T1));
-            repository.insert(message("HIGH_CPU_USAGE", "session-1", T2));
+            repository.insert(message("HIGH_CPU_USAGE", T1));
+            repository.insert(message("HIGH_CPU_USAGE", T2));
 
             List<ImportantMessage> result = repository.findAll(T1.minusSeconds(1), T2.plusSeconds(1));
             assertEquals(2, result.size());
@@ -123,15 +122,15 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("TYPE_A", "session-1", T1));
-            repository.insert(message("TYPE_B", "session-1", T2));
-            repository.insert(message("TYPE_C", "session-1", T3));
+            repository.insert(message("TYPE_A", T1));
+            repository.insert(message("TYPE_B", T2));
+            repository.insert(message("TYPE_C", T3));
 
             List<ImportantMessage> result = repository.findAll(T1, T3);
             assertEquals(3, result.size());
-            assertEquals(T3, result.get(0).createdAt());
-            assertEquals(T2, result.get(1).createdAt());
-            assertEquals(T1, result.get(2).createdAt());
+            assertEquals(T3, result.get(0).createdAtUs());
+            assertEquals(T2, result.get(1).createdAtUs());
+            assertEquals(T1, result.get(2).createdAtUs());
         }
 
         @Test
@@ -140,7 +139,7 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("TYPE_A", "session-1", T1));
+            repository.insert(message("TYPE_A", T1));
 
             Instant rangeBefore = Instant.parse("2025-01-01T00:00:00Z");
             Instant rangeAfter = Instant.parse("2025-01-01T01:00:00Z");
@@ -154,16 +153,16 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("TYPE_A", "session-1", T1));
-            repository.insert(message("TYPE_B", "session-1", T2));
-            repository.insert(message("TYPE_C", "session-1", T3));
+            repository.insert(message("TYPE_A", T1));
+            repository.insert(message("TYPE_B", T2));
+            repository.insert(message("TYPE_C", T3));
 
             List<ImportantMessage> result = repository.findAll(T1, T3);
             assertEquals(3, result.size());
 
             List<ImportantMessage> boundaryResult = repository.findAll(T2, T2);
             assertEquals(1, boundaryResult.size());
-            assertEquals(T2, boundaryResult.getFirst().createdAt());
+            assertEquals(T2, boundaryResult.getFirst().createdAtUs());
         }
 
         @Test
@@ -172,9 +171,9 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("TYPE_A", "session-1", T1));
-            repository.insert(message("TYPE_B", "session-1", T2));
-            repository.insert(message("TYPE_C", "session-1", T3));
+            repository.insert(message("TYPE_A", T1));
+            repository.insert(message("TYPE_B", T2));
+            repository.insert(message("TYPE_C", T3));
 
             List<ImportantMessage> result = repository.findAll(T2, T2);
             assertEquals(1, result.size());
@@ -197,8 +196,8 @@ class JdbcMessageRepositoryTest {
             var repo1 = new JdbcMessageRepository("proj-001", provider);
             var repo2 = new JdbcMessageRepository("proj-002", provider);
 
-            repo1.insert(message("TYPE_A", "session-1", T1));
-            repo2.insert(message("TYPE_B", "session-2", T2));
+            repo1.insert(message("TYPE_A", T1));
+            repo2.insert(message("TYPE_B", T2));
 
             List<ImportantMessage> result1 = repo1.findAll(T1.minusSeconds(1), T2.plusSeconds(1));
             assertEquals(1, result1.size());
@@ -219,8 +218,8 @@ class JdbcMessageRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var repository = new JdbcMessageRepository("proj-001", provider);
 
-            repository.insert(message("TYPE_A", "session-1", T1));
-            repository.insert(message("TYPE_B", "session-1", T2));
+            repository.insert(message("TYPE_A", T1));
+            repository.insert(message("TYPE_B", T2));
 
             repository.deleteByProject();
 
@@ -244,8 +243,8 @@ class JdbcMessageRepositoryTest {
             var repo1 = new JdbcMessageRepository("proj-001", provider);
             var repo2 = new JdbcMessageRepository("proj-002", provider);
 
-            repo1.insert(message("TYPE_A", "session-1", T1));
-            repo2.insert(message("TYPE_B", "session-2", T2));
+            repo1.insert(message("TYPE_A", T1));
+            repo2.insert(message("TYPE_B", T2));
 
             repo1.deleteByProject();
 
@@ -286,7 +285,7 @@ class JdbcMessageRepositoryTest {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/messages/insert-project-for-messages.sql");
             var msgRepo = new JdbcMessageRepository("proj-001", provider);
-            msgRepo.insert(message("TYPE_A", "session-1", Instant.parse("2025-06-25T10:00:00Z")));
+            msgRepo.insert(message("TYPE_A", Instant.parse("2025-06-25T10:00:00Z")));
 
             var repository = new JdbcMessageRepository("", provider);
             int deleted = repository.deleteOlderThan(CUTOFF);

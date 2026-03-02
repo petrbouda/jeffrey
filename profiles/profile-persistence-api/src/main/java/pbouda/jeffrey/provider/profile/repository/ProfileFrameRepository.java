@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,19 +18,16 @@
 
 package pbouda.jeffrey.provider.profile.repository;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.List;
 
-import java.util.Optional;
+public interface ProfileFrameRepository {
 
-public interface ProfileCacheRepository {
+    record FrameRenamePreview(String originalClassName, String renamedClassName, String methodName) {
+    }
 
-    void put(String key, Object content);
+    int countFramesByClassNameContaining(String search);
 
-    boolean contains(String key);
+    List<FrameRenamePreview> previewRename(String search, String replacement, int limit);
 
-    <T> Optional<T> get(String key, Class<T> type);
-
-    <T> Optional<T> get(String key, TypeReference<T> type);
-
-    void clearAll();
+    int renameClassNames(String search, String replacement);
 }

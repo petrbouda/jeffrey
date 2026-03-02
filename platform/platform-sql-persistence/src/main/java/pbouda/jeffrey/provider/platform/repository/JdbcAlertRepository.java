@@ -36,15 +36,15 @@ public class JdbcAlertRepository implements AlertRepository {
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO alerts (id, project_id, session_id, type, title, message, severity, category, source, created_at)
-            VALUES (:id, :project_id, :session_id, :type, :title, :message, :severity, :category, :source, :created_at)
-            ON CONFLICT (session_id, type, created_at) DO NOTHING""";
+            INSERT INTO alerts (id, project_id, type, title, message, severity, category, source, created_at_us)
+            VALUES (:id, :project_id, :type, :title, :message, :severity, :category, :source, :created_at_us)
+            ON CONFLICT (project_id, type, created_at_us) DO NOTHING""";
 
     //language=SQL
     private static final String SELECT_ALL = """
             SELECT * FROM alerts
-            WHERE project_id = :project_id AND created_at >= :from AND created_at <= :to
-            ORDER BY created_at DESC""";
+            WHERE project_id = :project_id AND created_at_us >= :from AND created_at_us <= :to
+            ORDER BY created_at_us DESC""";
 
     //language=SQL
     private static final String DELETE_BY_PROJECT =
@@ -52,7 +52,7 @@ public class JdbcAlertRepository implements AlertRepository {
 
     //language=SQL
     private static final String DELETE_OLDER_THAN =
-            "DELETE FROM alerts WHERE created_at < :cutoff";
+            "DELETE FROM alerts WHERE created_at_us < :cutoff";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -67,14 +67,13 @@ public class JdbcAlertRepository implements AlertRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("id", UUID.randomUUID().toString())
                 .addValue("project_id", projectId)
-                .addValue("session_id", message.sessionId())
                 .addValue("type", message.type())
                 .addValue("title", message.title())
                 .addValue("message", message.message())
                 .addValue("severity", message.severity().name())
                 .addValue("category", message.category())
                 .addValue("source", message.source())
-                .addValue("created_at", message.createdAt().atOffset(ZoneOffset.UTC));
+                .addValue("created_at_us", message.createdAtUs().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_ALERT, INSERT, paramSource);
     }
@@ -115,7 +114,6 @@ public class JdbcAlertRepository implements AlertRepository {
                 rs.getString("category"),
                 rs.getString("source"),
                 true,
-                rs.getString("session_id"),
-                Mappers.instant(rs, "created_at"));
+                Mappers.instant(rs, "created_at_us"));
     }
 }

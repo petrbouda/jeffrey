@@ -209,41 +209,39 @@ CREATE INDEX IF NOT EXISTS idx_project_instances_project_id ON project_instances
 --
 CREATE TABLE IF NOT EXISTS messages
 (
-    id          VARCHAR NOT NULL,
-    project_id  VARCHAR NOT NULL,
-    session_id  VARCHAR NOT NULL,
-    type        VARCHAR NOT NULL,
-    title       VARCHAR NOT NULL,
-    message     VARCHAR NOT NULL,
-    severity    VARCHAR NOT NULL,
-    category    VARCHAR NOT NULL,
-    source      VARCHAR NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL,
+    id             VARCHAR NOT NULL,
+    project_id     VARCHAR NOT NULL,
+    type           VARCHAR NOT NULL,
+    title          VARCHAR NOT NULL,
+    message        VARCHAR NOT NULL,
+    severity       VARCHAR NOT NULL,
+    category       VARCHAR NOT NULL,
+    source         VARCHAR NOT NULL,
+    created_at_us  TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_messages_project_created ON messages(project_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_dedup ON messages(session_id, type, created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_project_created ON messages(project_id, created_at_us);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at_us);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_dedup ON messages(project_id, type, created_at_us);
 
 --
 -- ALERTS TABLE
 --
 CREATE TABLE IF NOT EXISTS alerts
 (
-    id          VARCHAR NOT NULL,
-    project_id  VARCHAR NOT NULL,
-    session_id  VARCHAR NOT NULL,
-    type        VARCHAR NOT NULL,
-    title       VARCHAR NOT NULL,
-    message     VARCHAR NOT NULL,
-    severity    VARCHAR NOT NULL,
-    category    VARCHAR NOT NULL,
-    source      VARCHAR NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL,
+    id             VARCHAR NOT NULL,
+    project_id     VARCHAR NOT NULL,
+    type           VARCHAR NOT NULL,
+    title          VARCHAR NOT NULL,
+    message        VARCHAR NOT NULL,
+    severity       VARCHAR NOT NULL,
+    category       VARCHAR NOT NULL,
+    source         VARCHAR NOT NULL,
+    created_at_us  TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_alerts_project_created ON alerts(project_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts(created_at);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_dedup ON alerts(session_id, type, created_at);
+CREATE INDEX IF NOT EXISTS idx_alerts_project_created ON alerts(project_id, created_at_us);
+CREATE INDEX IF NOT EXISTS idx_alerts_created_at ON alerts(created_at_us);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alerts_dedup ON alerts(project_id, type, created_at_us);

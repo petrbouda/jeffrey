@@ -164,6 +164,11 @@ public class ProfileResource {
         return new ProfileFeaturesResource(profileManager.featuresManager(), jfrAnalysisAssistantService, profileManager.heapDumpManager());
     }
 
+    @Path("/tools")
+    public ToolsResource toolsResource() {
+        return new ToolsResource(profileManager.toolsManager());
+    }
+
     @Path("/ai-analysis")
     public AiAnalysisResource aiAnalysisResource() {
         return new AiAnalysisResource(

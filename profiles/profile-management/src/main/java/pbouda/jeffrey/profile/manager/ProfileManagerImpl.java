@@ -144,6 +144,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public ProfileToolsManager toolsManager() {
+        return registry.tools().apply(profileInfo);
+    }
+
+    @Override
     public ProfileCustomManager custom() {
         return registry.custom().apply(this);
     }

@@ -22,7 +22,6 @@ import jdk.jfr.consumer.RecordedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.provider.platform.repository.MessageRepository;
-import pbouda.jeffrey.platform.jfr.MessageCategory;
 import pbouda.jeffrey.shared.common.model.EventTypeName;
 import pbouda.jeffrey.shared.common.model.ImportantMessage;
 import pbouda.jeffrey.shared.common.model.Severity;
@@ -38,11 +37,9 @@ public class MessageStreamingHandler implements JfrStreamingHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageStreamingHandler.class);
 
-    private final String sessionId;
     private final MessageRepository messageRepository;
 
-    public MessageStreamingHandler(String sessionId, MessageRepository messageRepository) {
-        this.sessionId = sessionId;
+    public MessageStreamingHandler(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
     }
 
@@ -53,24 +50,19 @@ public class MessageStreamingHandler implements JfrStreamingHandler {
 
     @Override
     public void onEvent(RecordedEvent event) {
-        String category = parseString(event, "category");
-        String resolvedSessionId = MessageCategory.SESSION.name().equals(category) ? sessionId : null;
-
         ImportantMessage message = new ImportantMessage(
                 parseString(event, "type"),
                 parseString(event, "title"),
                 parseString(event, "message"),
                 Severity.fromString(parseString(event, "severity", Severity.MEDIUM.name())),
-                category,
+                parseString(event, "category"),
                 parseString(event, "source"),
                 false,
-                resolvedSessionId,
                 event.getStartTime()
         );
 
         messageRepository.insert(message);
 
-        LOG.debug("Persisted Message: sessionId={} type={} title={}",
-                sessionId, message.type(), message.title());
+        LOG.debug("Persisted Message: type={} title={}", message.type(), message.title());
     }
 }

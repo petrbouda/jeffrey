@@ -43,4 +43,5 @@ public enum GroupLabel {
     PERSISTENT_QUEUE,
     MESSAGES,
     ALERTS,
+    PROFILE_FRAMES,
 }

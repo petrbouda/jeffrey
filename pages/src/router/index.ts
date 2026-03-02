@@ -200,6 +200,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'tools/rename-frames',
+    name: 'profile-tools-rename-frames',
+    component: () => import('@/views/profiles/detail/ProfileToolsRenameFrames.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'container/configuration',
     name: 'profile-container-configuration',
     component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),

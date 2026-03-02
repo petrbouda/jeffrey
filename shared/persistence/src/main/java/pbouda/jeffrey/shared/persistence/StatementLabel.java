@@ -241,4 +241,16 @@ public enum StatementLabel {
     FIND_ALL_ALERTS,
     DELETE_ALERTS_BY_PROJECT,
     DELETE_OLD_ALERTS,
+
+    /**
+     * {@link GroupLabel#PROFILE_FRAMES}
+     */
+    COUNT_FRAMES_BY_CLASS_NAME,
+    PREVIEW_RENAME_FRAMES,
+    RENAME_FRAME_CLASS_NAMES,
+
+    /**
+     * {@link GroupLabel#PROFILE_CACHE}
+     */
+    DELETE_ALL_CACHE,
 }

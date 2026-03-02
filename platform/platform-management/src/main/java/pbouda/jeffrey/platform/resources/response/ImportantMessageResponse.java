@@ -34,7 +34,6 @@ public record ImportantMessageResponse(
         String category,
         String source,
         boolean isAlert,
-        String sessionId,
         long createdAt
 ) {
 
@@ -47,8 +46,7 @@ public record ImportantMessageResponse(
                 msg.category(),
                 msg.source(),
                 msg.isAlert(),
-                msg.sessionId(),
-                msg.createdAt().toEpochMilli()
+                msg.createdAtUs().toEpochMilli()
         );
     }
 
@@ -61,7 +59,6 @@ public record ImportantMessageResponse(
                 category,
                 source,
                 isAlert,
-                sessionId,
                 Instant.ofEpochMilli(createdAt));
     }
 }

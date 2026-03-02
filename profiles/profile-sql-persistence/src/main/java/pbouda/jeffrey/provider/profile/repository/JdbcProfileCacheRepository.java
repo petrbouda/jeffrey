@@ -49,6 +49,9 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     //language=SQL
     private static final String KEY_EXISTS = "SELECT count(*) FROM cache WHERE key = :key";
 
+    //language=SQL
+    private static final String DELETE_ALL = "DELETE FROM cache";
+
     private final DatabaseClient databaseClient;
 
     public JdbcProfileCacheRepository(DatabaseClientProvider databaseClientProvider) {
@@ -124,6 +127,11 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
                 }
             }
         };
+    }
+
+    @Override
+    public void clearAll() {
+        databaseClient.delete(StatementLabel.DELETE_ALL_CACHE, DELETE_ALL);
     }
 
     private static String streamToString(InputStream stream) {

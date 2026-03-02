@@ -22,6 +22,7 @@ import pbouda.jeffrey.profile.manager.AdditionalFilesManager;
 import pbouda.jeffrey.profile.manager.ProfileConfigurationManager;
 import pbouda.jeffrey.profile.manager.ProfileCustomManager;
 import pbouda.jeffrey.profile.manager.ProfileFeaturesManager;
+import pbouda.jeffrey.profile.manager.ProfileToolsManager;
 
 public record ProfileManagerFactoryRegistry(
         VisualizationFactories visualization,
@@ -30,5 +31,6 @@ public record ProfileManagerFactoryRegistry(
         ProfileConfigurationManager.Factory configuration,
         ProfileFeaturesManager.Factory features,
         AdditionalFilesManager.Factory additionalFiles,
+        ProfileToolsManager.Factory tools,
         ProfileCustomManager.Factory custom) {
 }

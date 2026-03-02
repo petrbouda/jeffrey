@@ -39,8 +39,6 @@ export interface ImportantMessage {
   source: string;
   /** The message is intended to be processed as an alert */
   isAlert: boolean;
-  /** Session ID this message belongs to */
-  sessionId: string;
   /** Epoch milliseconds when the message was created */
   createdAt: number;
 }

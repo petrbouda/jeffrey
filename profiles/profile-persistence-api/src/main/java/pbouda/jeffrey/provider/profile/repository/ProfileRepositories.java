@@ -76,4 +76,12 @@ public interface ProfileRepositories {
      * @return a new profile info repository for the profile
      */
     ProfileInfoRepository newProfileInfoRepository(DataSource dataSource);
+
+    /**
+     * Creates a frame repository for accessing and manipulating profile frame data.
+     *
+     * @param dataSource the profile database connection
+     * @return a new frame repository for the profile
+     */
+    ProfileFrameRepository newFrameRepository(DataSource dataSource);
 }

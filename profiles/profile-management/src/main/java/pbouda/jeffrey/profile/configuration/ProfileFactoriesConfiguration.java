@@ -129,6 +129,16 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
+    public ProfileToolsManager.Factory toolsManagerFactory() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new ProfileToolsManagerImpl(
+                    profileRepositories.newFrameRepository(profileDb),
+                    profileRepositories.newProfileCacheRepository(profileDb));
+        };
+    }
+
+    @Bean
     public ProfileManagerFactoryRegistry profileManagerFactoryRegistry(
             VisualizationFactories visualizationFactories,
             AnalysisFactories analysisFactories,
@@ -136,6 +146,7 @@ public class ProfileFactoriesConfiguration {
             ProfileConfigurationManager.Factory configurationFactory,
             ProfileFeaturesManager.Factory featuresFactory,
             AdditionalFilesManager.Factory additionalFilesFactory,
+            ProfileToolsManager.Factory toolsFactory,
             ProfileCustomManager.Factory customFactory) {
 
         return new ProfileManagerFactoryRegistry(
@@ -145,6 +156,7 @@ public class ProfileFactoriesConfiguration {
                 configurationFactory,
                 featuresFactory,
                 additionalFilesFactory,
+                toolsFactory,
                 customFactory);
     }
 

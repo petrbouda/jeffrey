@@ -57,8 +57,23 @@
           <small>Memory analysis from heap dumps</small>
         </div>
       </div>
+      <!-- Tools mode (hidden for heap-dump-only profiles) -->
+      <div v-if="!isHeapDumpOnlyProfile"
+           class="nav-pill"
+           :class="{ 'active': selectedMode === 'Tools' }"
+           @click="selectMode('Tools')"
+           title="Profile data transformations">
+        <div class="pill-content">
+          <div class="title-row">
+            <i class="bi bi-tools"></i>
+            <span>Tools</span>
+          </div>
+          <small>Profile data transformations</small>
+        </div>
+      </div>
+
       <!-- Comparison Panel Toggle (hidden for heap-dump-only profiles) -->
-      <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper ms-auto">
+      <div v-if="!isHeapDumpOnlyProfile" class="comparison-toggle-wrapper">
         <button
           class="comparison-toggle-btn"
           :class="{ 'active': comparisonPanelVisible, 'has-profile': secondaryProfile }"
@@ -571,6 +586,23 @@
               </div>
             </template>
 
+            <!-- Tools Mode Menu -->
+            <template v-else-if="selectedMode === 'Tools'">
+              <div class="nav-section">
+                <div class="nav-section-title">FRAME DATA</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/profiles/${profileId}/tools/rename-frames`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Rename Frames</span>
+                  </router-link>
+                </div>
+              </div>
+            </template>
+
           </div>
         </div>
       </div>
@@ -646,7 +678,6 @@
           @profile-selected="handleSecondaryProfileSelected"
           @profile-cleared="handleSecondaryProfileCleared"
       />
-
 
       <!-- Content Area without tabs -->
       <div class="detail-content-container mb-4">
@@ -729,16 +760,16 @@ const isFeatureDisabled = (menuItem: string): boolean => {
   return featureType ? disabledFeatures.value.includes(featureType) : false;
 };
 // Initialize mode from sessionStorage or default to 'JVM'
-const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' | 'HeapDump' => {
+const getStoredMode = (): 'JVM' | 'Application' | 'Visualization' | 'HeapDump' | 'Tools' => {
   const stored = sessionStorage.getItem('profile-sidebar-mode');
   // Handle backward compatibility: 'JDK' -> 'JVM', 'Custom' -> 'Application'
   if (stored === 'JDK') return 'JVM';
   if (stored === 'Custom') return 'Application';
-  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization' || stored === 'HeapDump') return stored;
+  if (stored === 'JVM' || stored === 'Application' || stored === 'Visualization' || stored === 'HeapDump' || stored === 'Tools') return stored;
   return 'JVM';
 };
 
-const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump'>(getStoredMode());
+const selectedMode = ref<'JVM' | 'Application' | 'Visualization' | 'HeapDump' | 'Tools'>(getStoredMode());
 const heapMemorySubmenuExpanded = ref(false);
 const gcSubmenuExpanded = ref(false);
 
@@ -866,7 +897,7 @@ const toggleSidebar = () => {
   MessageBus.emit(MessageBus.SIDEBAR_CHANGED, null);
 };
 
-const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') => {
+const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump' | 'Tools') => {
   selectedMode.value = mode;
 
   // Navigate to the first item in the selected mode's menu (simplified URLs)
@@ -874,7 +905,8 @@ const selectMode = (mode: 'JVM' | 'Application' | 'Visualization' | 'HeapDump') 
     'JVM': `/profiles/${profileId}/overview`,
     'Application': `/profiles/${profileId}/application/http/overview?mode=server`,
     'Visualization': `/profiles/${profileId}/flamegraphs/primary`,
-    'HeapDump': `/profiles/${profileId}/heap-dump/settings`
+    'HeapDump': `/profiles/${profileId}/heap-dump/settings`,
+    'Tools': `/profiles/${profileId}/tools/rename-frames`
   };
 
   router.push(firstRoutes[mode]);
@@ -1497,6 +1529,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 0.5rem 1rem;
+  margin-left: auto;
 }
 
 .comparison-toggle-btn {
@@ -1593,5 +1626,6 @@ onUnmounted(() => {
     display: none;
   }
 }
+
 
 </style>

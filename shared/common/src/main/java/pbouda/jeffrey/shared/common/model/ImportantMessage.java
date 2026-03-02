@@ -31,8 +31,7 @@ import java.time.Instant;
  * @param category    category of the message (e.g., PERFORMANCE, RESOURCE)
  * @param source      component or service that raised the message
  * @param isAlert     whether the message is intended to be processed as an alert
- * @param sessionId   session ID this message belongs to
- * @param createdAt   when the message was emitted
+ * @param createdAtUs when the message was emitted (microsecond-precision from JFR event start time)
  */
 public record ImportantMessage(
         String type,
@@ -42,6 +41,5 @@ public record ImportantMessage(
         String category,
         String source,
         boolean isAlert,
-        String sessionId,
-        Instant createdAt) {
+        Instant createdAtUs) {
 }
