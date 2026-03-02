@@ -39,6 +39,8 @@ const getFileTypeClass = (fileType: string): string => {
       return 'file-type-perf-counters';
     case 'JVM_LOG':
       return 'file-type-jvm-log';
+    case 'APP_LOG':
+      return 'file-type-app-log';
     case 'HS_JVM_ERROR_LOG':
       return 'file-type-hs-jvm-error-log';
     case 'ASPROF_TEMP':
@@ -64,6 +66,8 @@ const getFileTypeVariant = (fileType: string): string => {
       return 'blue';
     case 'JVM_LOG':
       return 'teal';
+    case 'APP_LOG':
+      return 'amber';
     case 'HS_JVM_ERROR_LOG':
       return 'red';
     case 'UNKNOWN':
@@ -87,6 +91,8 @@ const getFileTypeIcon = (fileType: string): string => {
     case 'PERF_COUNTERS':
       return 'bi-file-earmark-bar-graph';
     case 'JVM_LOG':
+      return 'bi-file-earmark-text';
+    case 'APP_LOG':
       return 'bi-file-earmark-text';
     case 'HS_JVM_ERROR_LOG':
       return 'bi-file-earmark-x';
@@ -263,6 +269,25 @@ const formatTimestamp = (millis: number | null | undefined): string => {
   color: #14b8a6;
 }
 
+/* APP_LOG file styling - amber theme */
+.recording-file-row.file-type-app-log {
+  background-color: rgba(217, 119, 6, 0.08);
+  border-left: 3px solid #d97706;
+  border-top: 1px solid rgba(217, 119, 6, 0.2);
+  border-right: 1px solid rgba(217, 119, 6, 0.2);
+  border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.recording-file-row.file-type-app-log:hover {
+  background-color: rgba(217, 119, 6, 0.12);
+  box-shadow: 0 2px 5px rgba(217, 119, 6, 0.15);
+}
+
+.recording-file-row.file-type-app-log .recording-file-icon-medium {
+  background-color: rgba(217, 119, 6, 0.15);
+  color: #d97706;
+}
+
 /* HS_JVM_ERROR_LOG file styling - red theme */
 .recording-file-row.file-type-hs-jvm-error-log {
   background-color: rgba(198, 40, 40, 0.08);
@@ -389,6 +414,11 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 .recording-file-row.file-type-jvm-log .recording-file-icon-small {
   background-color: rgba(20, 184, 166, 0.15);
   color: #14b8a6;
+}
+
+.recording-file-row.file-type-app-log .recording-file-icon-small {
+  background-color: rgba(217, 119, 6, 0.15);
+  color: #d97706;
 }
 
 .recording-file-row.file-type-hs-jvm-error-log .recording-file-icon-small {

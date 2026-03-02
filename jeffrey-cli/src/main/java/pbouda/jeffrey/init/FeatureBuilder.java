@@ -127,7 +127,7 @@ public class FeatureBuilder {
         }
 
         if (additionalJvmOptions != null && !additionalJvmOptions.isBlank()) {
-            options.append(additionalJvmOptions);
+            options.append(additionalJvmOptions.replace(AgentConstants.CURRENT_SESSION, currentSessionPath.toString()));
             options.append(" ");
         }
 

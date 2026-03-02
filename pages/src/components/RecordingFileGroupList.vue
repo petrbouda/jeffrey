@@ -16,10 +16,10 @@ const emit = defineEmits<{
 }>();
 
 // --- Type grouping constants ---
-type ArtifactTypeGroup = 'JFR_RECORDING' | 'HEAP_DUMP' | 'PERF_COUNTERS' | 'JVM_LOG' | 'HS_JVM_ERROR_LOG' | 'UNKNOWN';
+type ArtifactTypeGroup = 'JFR_RECORDING' | 'HEAP_DUMP' | 'PERF_COUNTERS' | 'JVM_LOG' | 'APP_LOG' | 'HS_JVM_ERROR_LOG' | 'UNKNOWN';
 
 const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
-  'JFR_RECORDING', 'HEAP_DUMP', 'PERF_COUNTERS', 'JVM_LOG', 'HS_JVM_ERROR_LOG', 'UNKNOWN',
+  'JFR_RECORDING', 'HEAP_DUMP', 'PERF_COUNTERS', 'JVM_LOG', 'APP_LOG', 'HS_JVM_ERROR_LOG', 'UNKNOWN',
 ];
 
 const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
@@ -30,6 +30,7 @@ const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
   [RecordingFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
   [RecordingFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
   [RecordingFileType.JVM_LOG]: 'JVM_LOG',
+  [RecordingFileType.APP_LOG]: 'APP_LOG',
   [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
   [RecordingFileType.UNKNOWN]: 'UNKNOWN',
 };
@@ -39,6 +40,7 @@ const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: str
   'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
   'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },
   'JVM_LOG':          { name: 'JVM Logs',            variant: 'teal',    fileType: 'JVM_LOG' },
+  'APP_LOG':          { name: 'Application Logs',     variant: 'amber',   fileType: 'APP_LOG' },
   'HS_JVM_ERROR_LOG': { name: 'HotSpot Error Logs',  variant: 'red',     fileType: 'HS_JVM_ERROR_LOG' },
   'UNKNOWN':          { name: 'Other Files',          variant: 'grey',    fileType: 'UNKNOWN' },
 };

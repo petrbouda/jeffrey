@@ -197,6 +197,12 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
   border-color: #a1887f;
 }
 
+.badge-amber {
+  background-color: #fff8e1;
+  color: #b45309;
+  border-color: #f59e0b;
+}
+
 /* Badge variants - matching MetricsList styles */
 .badge-primary {
   background: #e2e7fd;

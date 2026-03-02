@@ -115,6 +115,8 @@ export default class Utils {
                 return 'JVM Log'
             case 'HS_JVM_ERROR_LOG':
                 return 'HotSpot JVM Error Log'
+            case 'APP_LOG':
+                return 'Application Log'
             default:
                 return fileType;
         }

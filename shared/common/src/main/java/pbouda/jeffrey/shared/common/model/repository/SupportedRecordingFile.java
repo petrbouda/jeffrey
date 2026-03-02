@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.shared.common.model.repository;
 
+import pbouda.jeffrey.shared.common.model.repository.matcher.AppLogFileMatcher;
 import pbouda.jeffrey.shared.common.model.repository.matcher.AsprofCacheFileMatcher;
 import pbouda.jeffrey.shared.common.model.repository.matcher.JvmLogFileMatcher;
 
@@ -75,6 +76,12 @@ public enum SupportedRecordingFile {
             "HotSpot JVM Error Log",
             FileExtensions.HS_JVM_ERROR_LOG,
             filename -> filename.endsWith(FileExtensions.HS_JVM_ERROR_LOG),
+            FileCategory.ARTIFACT
+    ),
+    APP_LOG(
+            "Application Log",
+            FileExtensions.APP_LOG,
+            new AppLogFileMatcher(),
             FileCategory.ARTIFACT
     ),
     UNKNOWN(

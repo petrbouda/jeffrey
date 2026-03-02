@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,19 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.shared.common.model.repository;
+package pbouda.jeffrey.shared.common.model.repository.matcher;
 
-public abstract class FileExtensions {
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
-    public static final String ASPROF_TEMP = "jfr.(.*)~";
-    public static final String JFR = "jfr";
-    public static final String LZ4 = "lz4";
-    public static final String JFR_LZ4 = "jfr.lz4";
-    public static final String HPROF_GZ = "hprof.gz";
-    public static final String HPROF = "hprof";
-    public static final String PERF_COUNTERS = "hsperfdata";
-    public static final String JVM_LOG = "-jvm.log(.[0-9]+)?";
-    public static final String HS_JVM_ERROR_LOG = "hs-jvm-err.log";
-    public static final String APP_LOG = "-app.log(..+)?";
+public class AppLogFileMatcher implements Predicate<String> {
 
+    private static final Pattern APP_LOG_PATTERN = Pattern.compile(".*-app\\.log(\\..+)?$");
+
+    @Override
+    public boolean test(String filename) {
+        if (filename == null) {
+            return false;
+        }
+        return APP_LOG_PATTERN.matcher(filename).matches();
+    }
 }
