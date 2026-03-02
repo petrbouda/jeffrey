@@ -103,10 +103,17 @@ class RepositoryManagerImplTest {
             assertEquals(0, stats.totalFiles());
             assertEquals(0L, stats.biggestSessionSizeBytes());
             assertEquals(0, stats.jfrFiles());
+            assertEquals(0L, stats.jfrSize());
             assertEquals(0, stats.heapDumpFiles());
+            assertEquals(0L, stats.heapDumpSize());
             assertEquals(0, stats.logFiles());
+            assertEquals(0L, stats.logSize());
+            assertEquals(0, stats.appLogFiles());
+            assertEquals(0L, stats.appLogSize());
             assertEquals(0, stats.errorLogFiles());
+            assertEquals(0L, stats.errorLogSize());
             assertEquals(0, stats.otherFiles());
+            assertEquals(0L, stats.otherSize());
         }
 
         @Test
@@ -118,8 +125,9 @@ class RepositoryManagerImplTest {
                     file("f3", SupportedRecordingFile.HEAP_DUMP, 300L, t),
                     file("f4", SupportedRecordingFile.HEAP_DUMP_GZ, 400L, t),
                     file("f5", SupportedRecordingFile.JVM_LOG, 50L, t),
-                    file("f6", SupportedRecordingFile.HS_JVM_ERROR_LOG, 60L, t),
-                    file("f7", SupportedRecordingFile.UNKNOWN, 70L, t)
+                    file("f6", SupportedRecordingFile.APP_LOG, 80L, t),
+                    file("f7", SupportedRecordingFile.HS_JVM_ERROR_LOG, 60L, t),
+                    file("f8", SupportedRecordingFile.UNKNOWN, 70L, t)
             );
             when(repositoryStorage.listSessions(true))
                     .thenReturn(List.of(session("s1", RecordingStatus.FINISHED, files)));
@@ -127,12 +135,19 @@ class RepositoryManagerImplTest {
             RepositoryStatistics stats = manager.calculateRepositoryStatistics();
 
             assertEquals(2, stats.jfrFiles());
+            assertEquals(300L, stats.jfrSize());
             assertEquals(2, stats.heapDumpFiles());
+            assertEquals(700L, stats.heapDumpSize());
             assertEquals(1, stats.logFiles());
+            assertEquals(50L, stats.logSize());
+            assertEquals(1, stats.appLogFiles());
+            assertEquals(80L, stats.appLogSize());
             assertEquals(1, stats.errorLogFiles());
+            assertEquals(60L, stats.errorLogSize());
             assertEquals(1, stats.otherFiles());
-            assertEquals(7, stats.totalFiles());
-            assertEquals(1180L, stats.totalSizeBytes());
+            assertEquals(70L, stats.otherSize());
+            assertEquals(8, stats.totalFiles());
+            assertEquals(1260L, stats.totalSizeBytes());
         }
 
         @Test

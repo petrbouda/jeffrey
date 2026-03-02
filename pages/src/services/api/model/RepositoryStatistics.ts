@@ -31,8 +31,15 @@ export default interface RepositoryStatistics {
     
     // File Type Breakdown
     jfrFiles: number; // Number of JFR files
+    jfrSize: number; // Total size of JFR files in bytes
     heapDumpFiles: number; // Number of heap dump files
+    heapDumpSize: number; // Total size of heap dump files in bytes
     logFiles: number; // Number of JVM log files
+    logSize: number; // Total size of JVM log files in bytes
+    appLogFiles: number; // Number of application log files
+    appLogSize: number; // Total size of application log files in bytes
     errorLogFiles: number; // Number of HS JVM error log files
+    errorLogSize: number; // Total size of HS JVM error log files in bytes
     otherFiles: number; // Number of other/unknown files
+    otherSize: number; // Total size of other/unknown files in bytes
 }

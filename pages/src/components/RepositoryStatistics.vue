@@ -110,25 +110,40 @@ const lastActivityTime = computed(() => {
             <span class="compact-stat-title">File Types</span>
           </div>
           <div class="compact-stat-metrics">
+            <div class="metric-item metric-header-row">
+              <span class="metric-label"></span>
+              <span class="metric-col-header">Count</span>
+              <span class="metric-col-header">Size</span>
+            </div>
             <div class="metric-item">
               <span class="metric-label">JFR Files</span>
               <span class="metric-value text-primary">{{ statistics.jfrFiles }}</span>
+              <span class="metric-value metric-size text-primary">{{ FormattingService.formatBytes(statistics.jfrSize ?? 0) }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Heap Dumps</span>
               <span class="metric-value text-danger">{{ statistics.heapDumpFiles }}</span>
+              <span class="metric-value metric-size text-danger">{{ FormattingService.formatBytes(statistics.heapDumpSize ?? 0) }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">JVM Logs</span>
               <span class="metric-value text-warning">{{ statistics.logFiles }}</span>
+              <span class="metric-value metric-size text-warning">{{ FormattingService.formatBytes(statistics.logSize ?? 0) }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Application Logs</span>
+              <span class="metric-value" style="color: #8b5e3c">{{ statistics.appLogFiles }}</span>
+              <span class="metric-value metric-size" style="color: #8b5e3c">{{ FormattingService.formatBytes(statistics.appLogSize ?? 0) }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">JVM Error Logs</span>
               <span class="metric-value text-danger-emphasis">{{ statistics.errorLogFiles }}</span>
+              <span class="metric-value metric-size text-danger-emphasis">{{ FormattingService.formatBytes(statistics.errorLogSize ?? 0) }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Other Files</span>
               <span class="metric-value">{{ statistics.otherFiles }}</span>
+              <span class="metric-value metric-size">{{ FormattingService.formatBytes(statistics.otherSize ?? 0) }}</span>
             </div>
           </div>
         </div>
@@ -202,6 +217,30 @@ const lastActivityTime = computed(() => {
   font-weight: 600;
   color: #374151;
   text-align: right;
+  min-width: 32px;
+}
+
+.metric-size {
+  min-width: 60px;
+}
+
+.metric-header-row {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.metric-col-header {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: right;
+  min-width: 32px;
+}
+
+.metric-col-header:last-child {
+  min-width: 60px;
 }
 
 .text-primary {

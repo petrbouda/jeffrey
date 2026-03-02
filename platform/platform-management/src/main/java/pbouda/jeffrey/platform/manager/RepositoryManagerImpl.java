@@ -110,7 +110,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         if (sessions.isEmpty()) {
             return new RepositoryStatistics(
-                    0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L, 0, 0, 0, 0, 0);
+                    0, RecordingStatus.UNKNOWN, 0L, 0L, 0, 0L,
+                    0, 0L, 0, 0L, 0, 0L, 0, 0L, 0, 0L, 0, 0L);
         }
 
         // Sessions are already sorted by date (newest first) from listSessions()
@@ -120,10 +121,17 @@ public class RepositoryManagerImpl implements RepositoryManager {
         long totalSize = 0;
         int totalFiles = 0;
         int jfrFiles = 0;
+        long jfrSize = 0;
         int heapDumpFiles = 0;
+        long heapDumpSize = 0;
         int logFiles = 0;
+        long logSize = 0;
+        int appLogFiles = 0;
+        long appLogSize = 0;
         int errorLogFiles = 0;
+        long errorLogSize = 0;
         int otherFiles = 0;
+        long otherSize = 0;
         long biggestSessionSize = 0;
 
         for (RecordingSession session : sessions) {
@@ -135,13 +143,14 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 totalSize += fileSize;
                 sessionSize += fileSize;
 
-                // Count by file type
+                // Count and sum size by file type
                 switch (file.fileType()) {
-                    case JFR, JFR_LZ4 -> jfrFiles++;
-                    case HEAP_DUMP, HEAP_DUMP_GZ -> heapDumpFiles++;
-                    case JVM_LOG -> logFiles++;
-                    case HS_JVM_ERROR_LOG -> errorLogFiles++;
-                    default -> otherFiles++;
+                    case JFR, JFR_LZ4 -> { jfrFiles++; jfrSize += fileSize; }
+                    case HEAP_DUMP, HEAP_DUMP_GZ -> { heapDumpFiles++; heapDumpSize += fileSize; }
+                    case JVM_LOG -> { logFiles++; logSize += fileSize; }
+                    case APP_LOG -> { appLogFiles++; appLogSize += fileSize; }
+                    case HS_JVM_ERROR_LOG -> { errorLogFiles++; errorLogSize += fileSize; }
+                    default -> { otherFiles++; otherSize += fileSize; }
                 }
             }
 
@@ -167,10 +176,17 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 totalFiles,
                 biggestSessionSize,
                 jfrFiles,
+                jfrSize,
                 heapDumpFiles,
+                heapDumpSize,
                 logFiles,
+                logSize,
+                appLogFiles,
+                appLogSize,
                 errorLogFiles,
-                otherFiles
+                errorLogSize,
+                otherFiles,
+                otherSize
         );
     }
 

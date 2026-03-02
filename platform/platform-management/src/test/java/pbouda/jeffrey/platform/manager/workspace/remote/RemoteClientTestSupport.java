@@ -91,7 +91,7 @@ final class RemoteClientTestSupport {
     static RepositoryStatisticsResponse sampleStatisticsResponse() {
         return new RepositoryStatisticsResponse(
                 2, RecordingStatus.FINISHED, 1700003600000L,
-                2048L, 3, 1500L, 2, 0, 1, 0, 0);
+                2048L, 3, 1500L, 2, 1500L, 0, 0L, 1, 548L, 0, 0L, 0, 0L, 0, 0L);
     }
 
     static ProfilerSettingsResponse sampleProfilerSettingsResponse() {

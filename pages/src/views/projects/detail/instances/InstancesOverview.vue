@@ -75,25 +75,40 @@
               <span class="compact-stat-title">File Types</span>
             </div>
             <div class="compact-stat-metrics">
+              <div class="metric-item metric-header-row">
+                <span class="metric-label"></span>
+                <span class="metric-col-header">Count</span>
+                <span class="metric-col-header">Size</span>
+              </div>
               <div class="metric-item">
                 <span class="metric-label">JFR Files</span>
                 <span class="metric-value" style="color: #5e64ff">{{ repositoryStatistics.jfrFiles ?? 0 }}</span>
+                <span class="metric-value metric-size" style="color: #5e64ff">{{ FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0) }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Heap Dumps</span>
                 <span class="metric-value" style="color: #6f42c1">{{ repositoryStatistics.heapDumpFiles ?? 0 }}</span>
+                <span class="metric-value metric-size" style="color: #6f42c1">{{ FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0) }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">JVM Logs</span>
                 <span class="metric-value" style="color: #14b8a6">{{ repositoryStatistics.logFiles ?? 0 }}</span>
+                <span class="metric-value metric-size" style="color: #14b8a6">{{ FormattingService.formatBytes(repositoryStatistics.logSize ?? 0) }}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Application Logs</span>
+                <span class="metric-value" style="color: #8b5e3c">{{ repositoryStatistics.appLogFiles ?? 0 }}</span>
+                <span class="metric-value metric-size" style="color: #8b5e3c">{{ FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0) }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">JVM Error Logs</span>
                 <span class="metric-value" style="color: #c62828">{{ repositoryStatistics.errorLogFiles ?? 0 }}</span>
+                <span class="metric-value metric-size" style="color: #c62828">{{ FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0) }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Other Files</span>
                 <span class="metric-value" style="color: #6c757d">{{ repositoryStatistics.otherFiles ?? 0 }}</span>
+                <span class="metric-value metric-size" style="color: #6c757d">{{ FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0) }}</span>
               </div>
             </div>
           </div>
@@ -345,6 +360,30 @@ onMounted(async () => {
   font-weight: 600;
   color: #374151;
   text-align: right;
+  min-width: 32px;
+}
+
+.metric-size {
+  min-width: 60px;
+}
+
+.metric-header-row {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.metric-col-header {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: right;
+  min-width: 32px;
+}
+
+.metric-col-header:last-child {
+  min-width: 60px;
 }
 
 /* Filter button group */
