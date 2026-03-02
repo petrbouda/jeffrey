@@ -28,13 +28,13 @@ public abstract class JfrMessageEmitter {
 
     public static void projectCreated(String projectName, String projectId) {
         emitMessage(MessageType.PROJECT_CREATED,
-                "Project '" + projectName + "' has been created (projectId=" + projectId + ")",
+                "Project created: projectName=" + projectName + " projectId=" + projectId,
                 Severity.HIGH, MessageCategory.PROJECT);
     }
 
     public static void projectDeleted(String projectId) {
         emitMessage(MessageType.PROJECT_DELETED,
-                "Project has been deleted (projectId=" + projectId + ")",
+                "Project deleted: projectId=" + projectId,
                 Severity.HIGH, MessageCategory.PROJECT);
     }
 
@@ -42,33 +42,33 @@ public abstract class JfrMessageEmitter {
 
     public static void instanceCreated(String instanceId, String projectName, String projectId) {
         emitMessage(MessageType.INSTANCE_CREATED,
-                "New instance '" + instanceId + "' started for project '" + projectName + "' (projectId=" + projectId + ")",
+                "New instance started: instanceId=" + instanceId + " projectName=" + projectName + " projectId=" + projectId,
                 Severity.MEDIUM, MessageCategory.INSTANCE);
     }
 
     // ==================== SESSION events ====================
 
-    public static void sessionCreated(String instanceId, int order, String projectId) {
+    public static void sessionCreated(String sessionId, String instanceId, int order, String projectId) {
         emitMessage(MessageType.SESSION_CREATED,
-                "New recording session #" + order + " started for instance '" + instanceId + "' (projectId=" + projectId + ")",
+                "New recording session started: sessionId=" + sessionId + " instanceId=" + instanceId + " order=" + order + " projectId=" + projectId,
                 Severity.LOW, MessageCategory.SESSION);
     }
 
     public static void sessionFinished(String sessionId, String projectId) {
         emitMessage(MessageType.SESSION_FINISHED,
-                "Recording session finished (sessionId=" + sessionId + " projectId=" + projectId + ")",
+                "Recording session finished: sessionId=" + sessionId + " projectId=" + projectId,
                 Severity.LOW, MessageCategory.SESSION);
     }
 
     public static void sessionDeleted(String sessionId, String projectId) {
         emitMessage(MessageType.SESSION_DELETED,
-                "Recording session deleted (sessionId=" + sessionId + " projectId=" + projectId + ")",
+                "Recording session deleted: sessionId=" + sessionId + " projectId=" + projectId,
                 Severity.LOW, MessageCategory.SESSION);
     }
 
     public static void sessionsCleaned(String projectName, int count) {
         emitMessage(MessageType.SESSIONS_CLEANED,
-                "Cleaned up " + count + " expired recording sessions from project '" + projectName + "'",
+                "Cleaned up expired recording sessions: projectName=" + projectName + " count=" + count,
                 Severity.LOW, MessageCategory.SESSION);
     }
 
@@ -76,15 +76,13 @@ public abstract class JfrMessageEmitter {
 
     public static void jvmCrashDetected(String sessionId, String instanceId, String projectId) {
         emitAlert(MessageType.JVM_CRASH_DETECTED,
-                "Session finished due to HotSpot JVM error — hs_err log detected" +
-                        " (sessionId=" + sessionId + " instanceId=" + instanceId + " projectId=" + projectId + ")",
+                "Session finished due to HotSpot JVM error, hs_err log detected: sessionId=" + sessionId + " instanceId=" + instanceId + " projectId=" + projectId,
                 Severity.CRITICAL, MessageCategory.SESSION);
     }
 
     public static void eventProcessingFailed(String eventType, String projectId, String errorMessage) {
         emitAlert(MessageType.EVENT_PROCESSING_FAILED,
-                "Failed to process workspace event: " + errorMessage +
-                        " (eventType=" + eventType + " projectId=" + projectId + ")",
+                "Failed to process workspace event: eventType=" + eventType + " projectId=" + projectId + " error=" + errorMessage,
                 Severity.HIGH, MessageCategory.SYSTEM);
     }
 

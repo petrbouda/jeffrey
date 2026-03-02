@@ -110,7 +110,7 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
                 .createSession(sessionInfo);
 
         LOG.debug("Session created from workspace event: project_id={} instance_id={} session_id={}", projectId, instanceId, event.originEventId());
-        JfrMessageEmitter.sessionCreated(instanceId, eventContent.order(), projectId);
+        JfrMessageEmitter.sessionCreated(event.originEventId(), instanceId, eventContent.order(), projectId);
     }
 
     /**
