@@ -343,9 +343,10 @@ onMounted(async () => {
 }
 
 .metric-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
+  gap: 12px;
   padding: 2px 0;
 }
 
@@ -360,15 +361,14 @@ onMounted(async () => {
   font-weight: 600;
   color: #374151;
   text-align: right;
-  min-width: 32px;
+  min-width: 36px;
 }
 
 .metric-size {
-  min-width: 60px;
+  min-width: 64px;
 }
 
 .metric-header-row {
-  border-bottom: none;
   padding-bottom: 0;
 }
 
@@ -379,11 +379,11 @@ onMounted(async () => {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: right;
-  min-width: 32px;
+  min-width: 36px;
 }
 
 .metric-col-header:last-child {
-  min-width: 60px;
+  min-width: 64px;
 }
 
 /* Filter button group */
