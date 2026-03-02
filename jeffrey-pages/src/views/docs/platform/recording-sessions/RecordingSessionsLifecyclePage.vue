@@ -88,8 +88,11 @@ onMounted(() => {
         <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The Jeffrey Agent emits periodic liveness signals that the platform monitors to determine session state.</p>
 
         <h3 id="heartbeat-mechanism">Heartbeat Mechanism</h3>
-        <p>The Jeffrey Agent attaches to the profiled JVM and emits periodic <code>jeffrey.Heartbeat</code> JFR events into a streaming repository (<code>streaming-repo/</code>). Each heartbeat carries a sequence number and timestamp.</p>
-        <p>The Jeffrey platform reads these heartbeat events in real-time via JDK's <code>EventStream</code> API. Each received heartbeat updates the <code>last_heartbeat_at</code> timestamp in the database, providing a continuous liveness signal for the session.</p>
+        <p>Jeffrey uses a dual heartbeat approach to reliably detect session liveness:</p>
+        <ul>
+          <li><strong>JFR Event Stream heartbeat</strong> - The Jeffrey Agent attaches to the profiled JVM and emits periodic <code>jeffrey.Heartbeat</code> JFR events into a streaming repository (<code>streaming-repo/</code>). Each heartbeat carries a sequence number and timestamp. The Jeffrey platform reads these events in real-time via JDK's <code>EventStream</code> API.</li>
+          <li><strong>File-based heartbeat</strong> - The Jeffrey Agent also writes epoch timestamps to a <code>.heartbeat/heartbeat</code> file in the session directory every 10 seconds. This provides a fallback detection mechanism when the JFR streaming path is not available.</li>
+        </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
         <p>A scheduled job periodically evaluates each active session and applies the following rules:</p>
@@ -99,7 +102,7 @@ onMounted(() => {
             <div class="case-indicator"><i class="bi bi-circle-fill"></i></div>
             <div class="case-content">
               <h4>Heartbeat is recent</h4>
-              <p>The last heartbeat timestamp exists in the database and is within the staleness threshold (default 10 seconds). The session remains <strong>Active</strong>.</p>
+              <p>A recent heartbeat exists (from JFR event stream or file-based heartbeat) and is within the staleness threshold (default 10 seconds). The session remains <strong>Active</strong>.</p>
             </div>
           </div>
           <div class="detection-case finished-case">
@@ -120,7 +123,7 @@ onMounted(() => {
             <div class="case-indicator"><i class="bi bi-arrow-repeat"></i></div>
             <div class="case-content">
               <h4>No heartbeat, session is old</h4>
-              <p>No heartbeat has been recorded and the session has been around for a while. Jeffrey attempts <strong>replay recovery</strong> from the streaming repository. If no heartbeats are found, the session is marked as <strong>Finished</strong>.</p>
+              <p>No heartbeat has been recorded and the session has been around for a while. Jeffrey checks the file-based heartbeat as a fallback and attempts <strong>replay recovery</strong> from the streaming repository. If no heartbeats are found, the session is marked as <strong>Finished</strong>.</p>
             </div>
           </div>
         </div>

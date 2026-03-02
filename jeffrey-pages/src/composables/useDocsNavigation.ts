@@ -93,7 +93,8 @@ export const docsNavigation: DocSection[] = [
       { title: 'JVM Internals Section', path: 'jvm-internals' },
       { title: 'Application Section', path: 'application' },
       { title: 'Visualization Section', path: 'visualization' },
-      { title: 'Heap Dump Section', path: 'heap-dump-analysis' }
+      { title: 'Heap Dump Section', path: 'heap-dump-analysis' },
+      { title: 'Tools Section', path: 'tools' }
     ]
   },
   {

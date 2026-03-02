@@ -43,7 +43,11 @@ const inputConfig = `# Jeffrey CLI Init Command Configuration
 jeffrey-home = "/tmp/jeffrey"
 
 # Profiler configuration
-profiler-path = "/tmp/asprof/libasyncProfiler.so"
+profiler-path = "/tmp/jeffrey/libs/current/libasyncProfiler.so"
+
+agent-path = "/tmp/jeffrey/libs/current/jeffrey-agent.jar"
+
+jfc-settings-path = "/tmp/jeffrey/jfc"
 
 # Project identification
 project {
@@ -59,7 +63,8 @@ debug-non-safepoints {
     enabled = true
 }
 
-# Performance counters - can be used to detect finished session
+# Performance counters
+# It's automatically used to detect finished session
 perf-counters {
     enabled = true
 }
@@ -81,13 +86,30 @@ jvm-logging {
 # with a dedicated repository for real-time message consumption
 messaging {
     enabled = true
-    max-age = "24h"  # How long to keep messages (e.g., 12h, 1d, 30m)
+}
+
+# Alerting - enables jeffrey.Alert JFR events
+# with a dedicated repository for real-time alert consumption
+alerting {
+    enabled = true
+}
+
+# Streaming - controls the JFR streaming recording shared by messaging,
+# alerting, and heartbeat
+streaming {
+    max-age = "2d"  # How long to keep streaming data (e.g., 12h, 1d, 30m)
+}
+
+# Heartbeat - enables periodic jeffrey.Heartbeat JFR events
+# for reliable session liveness detection
+heartbeat {
+    enabled = true
 }
 
 # JDK Java Options - exports JDK_JAVA_OPTIONS environment variable
 jdk-java-options {
     enabled = true
-    additional-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch"
+    additional-options = "-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"
 }
 
 # Attributes (key-value map)
@@ -105,8 +127,8 @@ export JEFFREY_CURRENT_WORKSPACE=/tmp/jeffrey/workspaces/uat
 export JEFFREY_CURRENT_PROJECT=/tmp/jeffrey/workspaces/uat/jeffrey
 export JEFFREY_CURRENT_SESSION=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560
 export JEFFREY_FILE_PATTERN=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr
-export JEFFREY_PROFILER_CONFIG='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=24h,jeffrey.ImportantMessage#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch'
-export JDK_JAVA_OPTIONS='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=24h,jeffrey.ImportantMessage#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch'`;
+export JEFFREY_PROFILER_CONFIG='-agentpath:/tmp/jeffrey/libs/current/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -javaagent:/tmp/jeffrey/libs/current/jeffrey-agent.jar=heartbeat=true -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=2d,jeffrey.ImportantMessage#enabled=true,jeffrey.Alert#enabled=true,jeffrey.Heartbeat#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jeffrey-app.log'
+export JDK_JAVA_OPTIONS='-agentpath:/tmp/jeffrey/libs/current/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/profile-%t.jfr -javaagent:/tmp/jeffrey/libs/current/jeffrey-agent.jar=heartbeat=true -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+UsePerfData -XX:PerfDataSaveFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/perf-counters.hsperfdata -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpGzipLevel=1 -XX:HeapDumpPath=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/heap-dump.hprof.gz -XX:+CrashOnOutOfMemoryError -XX:ErrorFile=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/hs-jvm-err.log -Xlog:jfr*=trace:file=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jfr-jvm.log::filecount=3,filesize=5m -XX:FlightRecorderOptions:repository=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/streaming-repo,preserve-repository=true -XX:StartFlightRecording=name=jeffrey-streaming,maxage=2d,jeffrey.ImportantMessage#enabled=true,jeffrey.Alert#enabled=true,jeffrey.Heartbeat#enabled=true -Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch -Djeffrey.logging.trace-file.path=/tmp/jeffrey/workspaces/uat/jeffrey/019bea41-630d-7764-9ca5-7bc6099bd560/jeffrey-app.log'`;
 </script>
 
 <template>
@@ -225,15 +247,27 @@ export JDK_JAVA_OPTIONS='-agentpath:/tmp/asprof/libasyncProfiler.so=start,alloc,
               <td><code>jvm-logging { enabled = true }</code></td>
             </tr>
             <tr>
+              <td><code>-javaagent:...jeffrey-agent.jar=heartbeat=true</code></td>
+              <td><code>heartbeat { enabled = true }</code> + <code>agent-path</code></td>
+            </tr>
+            <tr>
               <td><code>-XX:FlightRecorderOptions:repository=...</code></td>
+              <td><code>streaming { max-age = "..." }</code></td>
+            </tr>
+            <tr>
+              <td><code>-XX:StartFlightRecording=...,jeffrey.ImportantMessage#enabled=true</code></td>
               <td><code>messaging { enabled = true }</code></td>
             </tr>
             <tr>
-              <td><code>-XX:StartFlightRecording=...</code></td>
-              <td><code>messaging { enabled = true }</code></td>
+              <td><code>-XX:StartFlightRecording=...,jeffrey.Alert#enabled=true</code></td>
+              <td><code>alerting { enabled = true }</code></td>
             </tr>
             <tr>
-              <td><code>-Xmx1200m -Xms1200m -XX:+UseG1GC -XX:+AlwaysPreTouch</code></td>
+              <td><code>-XX:StartFlightRecording=...,jeffrey.Heartbeat#enabled=true</code></td>
+              <td><code>heartbeat { enabled = true }</code></td>
+            </tr>
+            <tr>
+              <td><code>-Xmx1200m ... -Djeffrey.logging.trace-file.path=...</code></td>
               <td><code>jdk-java-options { additional-options = "..." }</code></td>
             </tr>
           </tbody>

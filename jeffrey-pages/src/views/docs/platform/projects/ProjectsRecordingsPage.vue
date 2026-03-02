@@ -75,6 +75,7 @@ onMounted(() => {
               <p>Additional diagnostic files captured alongside the JFR:</p>
               <ul>
                 <li><strong>Heap Dumps</strong> - Memory snapshots (<code>.hprof</code>)</li>
+                <li><strong>Application Logs</strong> - Application-level log files (<code>*-app.log</code>)</li>
                 <li><strong>JVM Logs</strong> - GC logs, JIT compilation logs</li>
                 <li><strong>Perf-Counters</strong> - Hardware performance counters</li>
               </ul>

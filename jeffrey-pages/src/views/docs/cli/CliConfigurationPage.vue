@@ -44,6 +44,8 @@ project {
 
 const fullConfig = `jeffrey-home = "/opt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
+agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
+jfc-settings-path = "/opt/jeffrey/jfc"
 project {
     workspace-id = "production"
     name = "my-service"
@@ -58,8 +60,14 @@ jvm-logging {
   enabled = true
   command = "jfr*=trace:file=<<JEFFREY_CURRENT_SESSION>>/jfr-jvm.log::filecount=3,filesize=5m"
 }
-messaging { enabled = true, max-age = "24h" }
-jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
+messaging { enabled = true }
+alerting { enabled = true }
+streaming { max-age = "2d" }
+heartbeat { enabled = true }
+jdk-java-options {
+  enabled = true
+  additional-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"
+}`;
 </script>
 
 <template>
@@ -133,6 +141,16 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
               <td>Human-readable project label</td>
             </tr>
             <tr>
+              <td><code>agent-path</code></td>
+              <td>No</td>
+              <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/</code> when <code>jeffrey-home</code> is set.</td>
+            </tr>
+            <tr>
+              <td><code>jfc-settings-path</code></td>
+              <td>No</td>
+              <td>Path to the directory containing JFC settings files for flight recorder configuration.</td>
+            </tr>
+            <tr>
               <td><code>attributes</code></td>
               <td>No</td>
               <td>Custom key-value metadata (e.g., cluster, namespace)</td>
@@ -165,14 +183,32 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
           <div class="feature-card logging">
             <div class="feature-icon"><i class="bi bi-file-text"></i></div>
             <h4>JVM Logging</h4>
-            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity.</p>
+            <p>Structured JVM diagnostic logging including GC events, JIT compilation, and JFR activity. Files with <code>-jvm.log</code> suffix are automatically recognized as JVM log artifacts. Use <code>&lt;&lt;JEFFREY_CURRENT_SESSION&gt;&gt;</code> placeholder in the command for the session directory path.</p>
             <code>jvm-logging { enabled = true }</code>
           </div>
           <div class="feature-card messaging">
             <div class="feature-icon"><i class="bi bi-broadcast"></i></div>
             <h4>Messaging</h4>
-            <p>Real-time JFR event streaming for live monitoring. Events are stored in a streaming repository.</p>
-            <code>messaging { enabled = true, max-age = "24h" }</code>
+            <p>Enables <code>jeffrey.ImportantMessage</code> JFR events for real-time message consumption via the streaming repository.</p>
+            <code>messaging { enabled = true }</code>
+          </div>
+          <div class="feature-card alerting">
+            <div class="feature-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <h4>Alerting</h4>
+            <p>Enables <code>jeffrey.Alert</code> JFR events for real-time alert consumption via the streaming repository.</p>
+            <code>alerting { enabled = true }</code>
+          </div>
+          <div class="feature-card streaming">
+            <div class="feature-icon"><i class="bi bi-arrow-repeat"></i></div>
+            <h4>Streaming</h4>
+            <p>Controls the JFR streaming recording shared by messaging, alerting, and heartbeat. Configures <code>max-age</code> for streaming data retention.</p>
+            <code>streaming { max-age = "2d" }</code>
+          </div>
+          <div class="feature-card heartbeat">
+            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
+            <h4>Heartbeat</h4>
+            <p>Enables periodic <code>jeffrey.Heartbeat</code> JFR events for reliable session liveness detection.</p>
+            <code>heartbeat { enabled = true }</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
@@ -262,6 +298,18 @@ jdk-java-options { enabled = true, additional-options = "-Xmx2g -Xms2g" }`;
 
 .feature-card.debug-safepoints .feature-icon {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.feature-card.alerting .feature-icon {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+}
+
+.feature-card.streaming .feature-icon {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+}
+
+.feature-card.heartbeat .feature-icon {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
 }
 
 .feature-card.jdk-options .feature-icon {

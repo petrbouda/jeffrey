@@ -192,6 +192,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProfilesHeapDumpAnalysis',
         component: () => import('@/views/docs/profiles/ProfilesHeapDumpAnalysisSectionPage.vue')
       },
+      {
+        path: 'profiles/tools',
+        name: 'DocsProfilesTools',
+        component: () => import('@/views/docs/profiles/ProfilesToolsSectionPage.vue')
+      },
       // Jeffrey JFR Events
       {
         path: 'jeffrey-jfr-events/overview',

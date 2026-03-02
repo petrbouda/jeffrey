@@ -98,6 +98,15 @@ onMounted(() => {
               <p>Structured JVM diagnostic logs including GC events and JIT compilation activity.</p>
             </div>
           </div>
+          <div class="session-content-card applog">
+            <div class="card-header">
+              <i class="bi bi-file-earmark-text"></i>
+              <h4>Application Logs</h4>
+            </div>
+            <div class="card-body">
+              <p>Application-level log files captured during the session (e.g., trace logs).</p>
+            </div>
+          </div>
           <div class="session-content-card perf">
             <div class="card-header">
               <i class="bi bi-speedometer2"></i>
@@ -117,7 +126,6 @@ onMounted(() => {
           <li><strong>Start time</strong> - When profiling began</li>
           <li><strong>Duration</strong> - How long the session has been running</li>
           <li><strong>Status</strong> - Active (still recording) or Finished</li>
-          <li><strong>Last Heartbeat</strong> - Timestamp of the most recent heartbeat received from the profiled application</li>
           <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
         </ul>
 
@@ -220,6 +228,10 @@ onMounted(() => {
 
 .session-content-card.logs .card-header i {
   color: #10b981;
+}
+
+.session-content-card.applog .card-header i {
+  color: #78350f;
 }
 
 .session-content-card.perf .card-header i {

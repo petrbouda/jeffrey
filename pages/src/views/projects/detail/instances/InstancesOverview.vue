@@ -74,7 +74,7 @@
               <i class="bi bi-files text-info"></i>
               <span class="compact-stat-title">File Types</span>
             </div>
-            <div class="compact-stat-metrics">
+            <div class="compact-stat-metrics compact-stat-metrics-grid">
               <div class="metric-item metric-header-row">
                 <span class="metric-label"></span>
                 <span class="metric-col-header">Count</span>
@@ -342,6 +342,12 @@ onMounted(async () => {
   gap: 4px;
 }
 
+.compact-stat-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 4px 12px;
+}
+
 .metric-item {
   display: grid;
   grid-template-columns: 1fr auto auto;
@@ -350,10 +356,19 @@ onMounted(async () => {
   padding: 2px 0;
 }
 
+.compact-stat-metrics-grid .metric-item {
+  display: contents;
+}
+
 .metric-label {
   font-size: 0.75rem;
   color: #6b7280;
   font-weight: 500;
+}
+
+.compact-stat-metrics-grid .metric-label,
+.compact-stat-metrics-grid .metric-value {
+  padding: 2px 0;
 }
 
 .metric-value {
@@ -366,10 +381,6 @@ onMounted(async () => {
 
 .metric-size {
   min-width: 64px;
-}
-
-.metric-header-row {
-  padding-bottom: 0;
 }
 
 .metric-col-header {
@@ -508,10 +519,6 @@ onMounted(async () => {
 
   .compact-stat-metrics {
     gap: 3px;
-  }
-
-  .metric-item {
-    padding: 1px 0;
   }
 }
 </style>
