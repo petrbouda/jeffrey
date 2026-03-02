@@ -65,9 +65,9 @@ const getFileTypeVariant = (fileType: string): string => {
     case 'PERF_COUNTERS':
       return 'blue';
     case 'JVM_LOG':
-      return 'teal';
+      return 'green';
     case 'APP_LOG':
-      return 'amber';
+      return 'brown';
     case 'HS_JVM_ERROR_LOG':
       return 'red';
     case 'UNKNOWN':
@@ -250,42 +250,42 @@ const formatTimestamp = (millis: number | null | undefined): string => {
   color: #0ea5e9;
 }
 
-/* JVM_LOG file styling - teal theme */
+/* JVM_LOG file styling - green theme */
 .recording-file-row.file-type-jvm-log {
-  background-color: rgba(20, 184, 166, 0.08);
-  border-left: 3px solid #14b8a6;
-  border-top: 1px solid rgba(20, 184, 166, 0.2);
-  border-right: 1px solid rgba(20, 184, 166, 0.2);
-  border-bottom: 1px solid rgba(20, 184, 166, 0.2);
+  background-color: rgba(22, 163, 74, 0.08);
+  border-left: 3px solid #16a34a;
+  border-top: 1px solid rgba(22, 163, 74, 0.2);
+  border-right: 1px solid rgba(22, 163, 74, 0.2);
+  border-bottom: 1px solid rgba(22, 163, 74, 0.2);
 }
 
 .recording-file-row.file-type-jvm-log:hover {
-  background-color: rgba(20, 184, 166, 0.12);
-  box-shadow: 0 2px 5px rgba(20, 184, 166, 0.15);
+  background-color: rgba(22, 163, 74, 0.12);
+  box-shadow: 0 2px 5px rgba(22, 163, 74, 0.15);
 }
 
 .recording-file-row.file-type-jvm-log .recording-file-icon-medium {
-  background-color: rgba(20, 184, 166, 0.15);
-  color: #14b8a6;
+  background-color: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
 }
 
-/* APP_LOG file styling - amber theme */
+/* APP_LOG file styling - brown theme */
 .recording-file-row.file-type-app-log {
-  background-color: rgba(217, 119, 6, 0.08);
-  border-left: 3px solid #d97706;
-  border-top: 1px solid rgba(217, 119, 6, 0.2);
-  border-right: 1px solid rgba(217, 119, 6, 0.2);
-  border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+  background-color: rgba(120, 53, 15, 0.08);
+  border-left: 3px solid #78350f;
+  border-top: 1px solid rgba(120, 53, 15, 0.2);
+  border-right: 1px solid rgba(120, 53, 15, 0.2);
+  border-bottom: 1px solid rgba(120, 53, 15, 0.2);
 }
 
 .recording-file-row.file-type-app-log:hover {
-  background-color: rgba(217, 119, 6, 0.12);
-  box-shadow: 0 2px 5px rgba(217, 119, 6, 0.15);
+  background-color: rgba(120, 53, 15, 0.12);
+  box-shadow: 0 2px 5px rgba(120, 53, 15, 0.15);
 }
 
 .recording-file-row.file-type-app-log .recording-file-icon-medium {
-  background-color: rgba(217, 119, 6, 0.15);
-  color: #d97706;
+  background-color: rgba(120, 53, 15, 0.15);
+  color: #78350f;
 }
 
 /* HS_JVM_ERROR_LOG file styling - red theme */
@@ -412,13 +412,13 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 }
 
 .recording-file-row.file-type-jvm-log .recording-file-icon-small {
-  background-color: rgba(20, 184, 166, 0.15);
-  color: #14b8a6;
+  background-color: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
 }
 
 .recording-file-row.file-type-app-log .recording-file-icon-small {
-  background-color: rgba(217, 119, 6, 0.15);
-  color: #d97706;
+  background-color: rgba(120, 53, 15, 0.15);
+  color: #78350f;
 }
 
 .recording-file-row.file-type-hs-jvm-error-log .recording-file-icon-small {

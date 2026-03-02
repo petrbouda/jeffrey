@@ -39,8 +39,8 @@ const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: str
   'JFR_RECORDING':    { name: 'JFR Recordings',     variant: 'primary', fileType: 'JFR' },
   'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
   'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },
-  'JVM_LOG':          { name: 'JVM Logs',            variant: 'teal',    fileType: 'JVM_LOG' },
-  'APP_LOG':          { name: 'Application Logs',     variant: 'amber',   fileType: 'APP_LOG' },
+  'JVM_LOG':          { name: 'JVM Logs',            variant: 'green',   fileType: 'JVM_LOG' },
+  'APP_LOG':          { name: 'Application Logs',     variant: 'brown',   fileType: 'APP_LOG' },
   'HS_JVM_ERROR_LOG': { name: 'HotSpot Error Logs',  variant: 'red',     fileType: 'HS_JVM_ERROR_LOG' },
   'UNKNOWN':          { name: 'Other Files',          variant: 'grey',    fileType: 'UNKNOWN' },
 };
@@ -65,6 +65,9 @@ const isTypePanelExpanded = (groupKey: ArtifactTypeGroup): boolean => {
   return !!expandedTypePanels.value[`${props.recordingId}:${groupKey}`];
 };
 
+// Groups that always show as a panel, even with a single file
+const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
+
 // --- Grouping logic ---
 const getGroupMap = (files: RecordingFile[]): Map<ArtifactTypeGroup, RecordingFile[]> => {
   const groupMap = new Map<ArtifactTypeGroup, RecordingFile[]>();
@@ -81,7 +84,8 @@ const getTypeGroupPanels = (files: RecordingFile[]): TypeGroupPanel[] => {
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     const groupFiles = groupMap.get(groupKey);
-    if (!groupFiles || groupFiles.length <= 1) continue;
+    if (!groupFiles) continue;
+    if (groupFiles.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) continue;
     panels.push({
       groupKey,
       display: TYPE_GROUP_DISPLAY[groupKey],
@@ -98,7 +102,7 @@ const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
   const standalone: RecordingFile[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     const groupFiles = groupMap.get(groupKey);
-    if (groupFiles && groupFiles.length === 1) {
+    if (groupFiles && groupFiles.length === 1 && !ALWAYS_GROUPED.has(groupKey)) {
       standalone.push(groupFiles[0]);
     }
   }

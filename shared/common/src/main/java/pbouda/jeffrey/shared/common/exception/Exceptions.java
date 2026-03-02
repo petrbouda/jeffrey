@@ -57,7 +57,8 @@ public abstract class Exceptions {
 
     public static JeffreyClientException emptyRecordingSession(String sessionId) {
         return new JeffreyClientException(
-                ErrorCode.EMPTY_RECORDING_SESSION, "Recording session is empty: %s".formatted(sessionId));
+                ErrorCode.EMPTY_RECORDING_SESSION,
+                "No finished recording files found in session: %s. The session may still be actively recording.".formatted(sessionId));
     }
 
     public static RemoteJeffreyUnavailableException remoteJeffreyUnavailable(URI uri, Throwable cause) {

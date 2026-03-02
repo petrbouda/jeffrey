@@ -59,6 +59,7 @@ public class DownloadTask implements ProgressCallback {
     private final AtomicBoolean cancelled;
     private volatile CompletableFuture<Void> downloadFuture;
     private volatile DownloadTaskStatus status;
+    private volatile String errorMessage;
 
     public DownloadTask(
             String workspaceId,
@@ -191,7 +192,7 @@ public class DownloadTask implements ProgressCallback {
                 total,
                 downloadedBytes,
                 percentComplete,
-                null,
+                errorMessage,
                 createdAt,
                 completedAt
         );
@@ -283,6 +284,7 @@ public class DownloadTask implements ProgressCallback {
 
     @Override
     public void onError(String errorMessage) {
+        this.errorMessage = errorMessage;
         status = DownloadTaskStatus.FAILED;
         notifyListeners();
     }

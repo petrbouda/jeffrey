@@ -90,8 +90,8 @@ const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: str
   'JFR_RECORDING':    { name: 'JFR Recordings',     variant: 'primary', fileType: 'JFR' },
   'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
   'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },
-  'JVM_LOG':          { name: 'JVM Logs',            variant: 'teal',    fileType: 'JVM_LOG' },
-  'APP_LOG':          { name: 'Application Logs',     variant: 'amber',   fileType: 'APP_LOG' },
+  'JVM_LOG':          { name: 'JVM Logs',            variant: 'green',   fileType: 'JVM_LOG' },
+  'APP_LOG':          { name: 'Application Logs',     variant: 'brown',   fileType: 'APP_LOG' },
   'HS_JVM_ERROR_LOG': { name: 'HotSpot Error Logs',  variant: 'red',     fileType: 'HS_JVM_ERROR_LOG' },
   'UNKNOWN':          { name: 'Other Files',          variant: 'grey',    fileType: 'UNKNOWN' },
 };
@@ -539,13 +539,17 @@ const getArtifactGroupMap = (session: RecordingSession): Map<ArtifactTypeGroup, 
   return groupMap;
 };
 
+// Groups that always show as a panel, even with a single file
+const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
+
 const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
   const groupMap = getArtifactGroupMap(session);
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     if (groupKey === 'JFR_RECORDING') continue;
     const files = groupMap.get(groupKey);
-    if (!files || files.length <= 1) continue;
+    if (!files) continue;
+    if (files.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) continue;
     panels.push({
       groupKey,
       display: TYPE_GROUP_DISPLAY[groupKey],
@@ -563,7 +567,7 @@ const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[]
   for (const groupKey of TYPE_GROUP_ORDER) {
     if (groupKey === 'JFR_RECORDING') continue;
     const files = groupMap.get(groupKey);
-    if (files && files.length === 1) {
+    if (files && files.length === 1 && !ALWAYS_GROUPED.has(groupKey)) {
       standalone.push(files[0]);
     }
   }
