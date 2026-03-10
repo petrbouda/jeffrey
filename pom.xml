@@ -198,6 +198,11 @@
                 <artifactId>flyway-database-duckdb</artifactId>
                 <version>${flyway.version}</version>
             </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>turso-datasource</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

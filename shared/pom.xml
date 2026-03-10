@@ -36,6 +36,7 @@
         <module>folder-queue</module>
         <module>persistence</module>
         <module>test</module>
+        <module>turso-datasource</module>
     </modules>
 
     <dependencyManagement>
@@ -63,6 +64,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>turso-datasource</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
