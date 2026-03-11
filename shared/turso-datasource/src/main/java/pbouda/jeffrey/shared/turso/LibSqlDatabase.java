@@ -113,7 +113,7 @@ public class LibSqlDatabase implements AutoCloseable {
         LibSql.checkError(connErr, "Failed to connect for MVCC setup");
 
         try {
-            MemorySegment sql = arena.allocateFrom("PRAGMA journal_mode = 'wal'");
+            MemorySegment sql = arena.allocateFrom("PRAGMA journal_mode = 'mvcc'");
             MemorySegment batchResult = (MemorySegment) LibSql.CONNECTION_BATCH.invokeExact(
                     (SegmentAllocator) arena, connStruct, sql);
             MemorySegment batchErr = (MemorySegment) LibSql.BATCH_ERR.get(batchResult, 0L);
