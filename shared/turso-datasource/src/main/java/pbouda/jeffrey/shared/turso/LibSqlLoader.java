@@ -102,6 +102,8 @@ public final class LibSqlLoader {
             return "linux";
         } else if (osName.contains("mac") || osName.contains("darwin")) {
             return "macos";
+        } else if (osName.contains("windows")) {
+            return "windows";
         }
         throw new LibSqlException("Unsupported OS: " + osName);
     }
@@ -120,6 +122,7 @@ public final class LibSqlLoader {
         return switch (os) {
             case "linux" -> "liblibsql.so";
             case "macos" -> "liblibsql.dylib";
+            case "windows" -> "libsql.dll";
             default -> throw new LibSqlException("Unsupported OS: " + os);
         };
     }
