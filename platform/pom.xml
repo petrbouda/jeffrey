@@ -40,6 +40,7 @@
         <module>persistent-queue</module>
         <module>platform-persistence-api</module>
         <module>platform-sql-persistence</module>
+        <module>platform-turso-persistence</module>
         <module>platform-management</module>
     </modules>
 
@@ -88,6 +89,16 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>platform-sql-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>platform-turso-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>turso-datasource</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
