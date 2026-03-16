@@ -40,11 +40,12 @@ public class ActiveSettingResolver {
 
     public EventSetting resolveSetting(RecordedEvent event) {
         long eventTypeIt = event.getValue("id");
-        String eventName = eventTypes.get(eventTypeIt).getName();
-        if (eventName == null) {
+        EventType eventType = eventTypes.get(eventTypeIt);
+        if (eventType == null) {
             LOG.warn("Unknown event type: curr_event_id={} event_types={}", eventTypeIt, eventTypes);
             return null;
         }
+        String eventName = eventType.getName();
 
         String name = event.getString("name");
         String value = event.getString("value");

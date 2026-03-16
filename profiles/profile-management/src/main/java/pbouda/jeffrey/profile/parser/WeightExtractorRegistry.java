@@ -23,6 +23,7 @@ import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
 import pbouda.jeffrey.shared.common.model.Type;
 
+import java.util.Collections;
 import java.util.HashMap;
 
 import static pbouda.jeffrey.shared.common.model.Type.*;
@@ -31,26 +32,27 @@ import java.util.Map;
 
 public class WeightExtractorRegistry {
 
-    private static Map<Type, WeightExtractor> REGISTRY;
+    private static final Map<Type, WeightExtractor> REGISTRY = Collections.unmodifiableMap(buildRegistry());
 
-    static {
-        REGISTRY = new HashMap<>();
-        REGISTRY.put(NATIVE_LEAK, WeightExtractor.allocation("size"));
-        REGISTRY.put(METHOD_TRACE, WeightExtractor.duration(WeightExtractorRegistry::extractFirstFrame));
-        REGISTRY.put(MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
-        REGISTRY.put(FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
-        REGISTRY.put(JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));
-        REGISTRY.put(JAVA_MONITOR_WAIT, WeightExtractor.duration("monitorClass"));
-        REGISTRY.put(THREAD_PARK, WeightExtractor.duration("parkedClass"));
-        REGISTRY.put(THREAD_SLEEP, WeightExtractor.duration());
-        REGISTRY.put(OBJECT_ALLOCATION_IN_NEW_TLAB, WeightExtractor.allocation("tlabSize", "objectClass"));
-        REGISTRY.put(OBJECT_ALLOCATION_OUTSIDE_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
-        REGISTRY.put(OBJECT_ALLOCATION_SAMPLE, WeightExtractor.allocation("weight", "objectClass"));
-        REGISTRY.put(SOCKET_READ, WeightExtractor.allocation("bytesRead"));
-        REGISTRY.put(SOCKET_WRITE, WeightExtractor.allocation("bytesWritten"));
-        REGISTRY.put(FILE_READ, WeightExtractor.allocation("bytesRead"));
-        REGISTRY.put(FILE_WRITE, WeightExtractor.allocation("bytesWritten"));
-        REGISTRY.put(THREAD_ALLOCATION_STATISTICS, WeightExtractor.allocation("allocated"));
+    private static Map<Type, WeightExtractor> buildRegistry() {
+        Map<Type, WeightExtractor> registry = new HashMap<>();
+        registry.put(NATIVE_LEAK, WeightExtractor.allocation("size"));
+        registry.put(METHOD_TRACE, WeightExtractor.duration(WeightExtractorRegistry::extractFirstFrame));
+        registry.put(MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
+        registry.put(FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
+        registry.put(JAVA_MONITOR_ENTER, WeightExtractor.duration("monitorClass"));
+        registry.put(JAVA_MONITOR_WAIT, WeightExtractor.duration("monitorClass"));
+        registry.put(THREAD_PARK, WeightExtractor.duration("parkedClass"));
+        registry.put(THREAD_SLEEP, WeightExtractor.duration());
+        registry.put(OBJECT_ALLOCATION_IN_NEW_TLAB, WeightExtractor.allocation("tlabSize", "objectClass"));
+        registry.put(OBJECT_ALLOCATION_OUTSIDE_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
+        registry.put(OBJECT_ALLOCATION_SAMPLE, WeightExtractor.allocation("weight", "objectClass"));
+        registry.put(SOCKET_READ, WeightExtractor.allocation("bytesRead"));
+        registry.put(SOCKET_WRITE, WeightExtractor.allocation("bytesWritten"));
+        registry.put(FILE_READ, WeightExtractor.allocation("bytesRead"));
+        registry.put(FILE_WRITE, WeightExtractor.allocation("bytesWritten"));
+        registry.put(THREAD_ALLOCATION_STATISTICS, WeightExtractor.allocation("allocated"));
+        return registry;
     }
 
     public static WeightExtractor resolve(Type type) {

@@ -24,10 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import pbouda.jeffrey.platform.resources.response.InstanceResponse;
 import pbouda.jeffrey.platform.resources.response.InstanceSessionResponse;
-import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +44,7 @@ public class ProjectInstancesPublicResource {
     public List<InstanceResponse> list() {
         LOG.debug("Listing public project instances");
         return projectInstanceRepository.findAll().stream()
-                .map(ProjectInstancesPublicResource::toResponse)
+                .map(InstanceResponse::from)
                 .toList();
     }
 
@@ -56,7 +53,7 @@ public class ProjectInstancesPublicResource {
     public InstanceResponse get(@PathParam("instanceId") String instanceId) {
         LOG.debug("Fetching public project instance: instanceId={}", instanceId);
         return projectInstanceRepository.find(instanceId)
-                .map(ProjectInstancesPublicResource::toResponse)
+                .map(InstanceResponse::from)
                 .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
     }
 
@@ -65,27 +62,7 @@ public class ProjectInstancesPublicResource {
     public List<InstanceSessionResponse> getSessions(@PathParam("instanceId") String instanceId) {
         LOG.debug("Listing public instance sessions: instanceId={}", instanceId);
         return projectInstanceRepository.findSessions(instanceId).stream()
-                .map(ProjectInstancesPublicResource::toSessionResponse)
+                .map(InstanceSessionResponse::from)
                 .toList();
-    }
-
-    private static InstanceResponse toResponse(ProjectInstanceInfo info) {
-        return new InstanceResponse(
-                info.id(),
-                info.hostname(),
-                info.status().name(),
-                InstantUtils.toEpochMilli(info.startedAt()),
-                InstantUtils.toEpochMilli(info.finishedAt()),
-                info.sessionCount(),
-                info.activeSessionId());
-    }
-
-    private static InstanceSessionResponse toSessionResponse(ProjectInstanceSessionInfo info) {
-        return new InstanceSessionResponse(
-                info.sessionId(),
-                info.repositoryId(),
-                InstantUtils.toEpochMilli(info.createdAt()),
-                InstantUtils.toEpochMilli(info.finishedAt()),
-                info.finishedAt() == null);
     }
 }

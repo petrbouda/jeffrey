@@ -28,13 +28,9 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.resources.response.AnalyzeResponse;
 import pbouda.jeffrey.platform.resources.response.ProfileSummaryResponse;
-import pbouda.jeffrey.shared.common.InstantUtils;
-import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileResource;
+import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.io.InputStream;
@@ -51,22 +47,13 @@ public class QuickAnalysisResource {
     private static final Logger LOG = LoggerFactory.getLogger(QuickAnalysisResource.class);
 
     private final QuickAnalysisManager quickAnalysisManager;
-    private final OqlAssistantService oqlAssistantService;
-    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
-    private final HeapDumpContextExtractor heapDumpContextExtractor;
-    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
+    private final ProfileResourceFactory profileResourceFactory;
 
     public QuickAnalysisResource(
             QuickAnalysisManager quickAnalysisManager,
-            OqlAssistantService oqlAssistantService,
-            JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor,
-            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
+            ProfileResourceFactory profileResourceFactory) {
         this.quickAnalysisManager = quickAnalysisManager;
-        this.oqlAssistantService = oqlAssistantService;
-        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
-        this.heapDumpContextExtractor = heapDumpContextExtractor;
-        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
+        this.profileResourceFactory = profileResourceFactory;
     }
 
     /**
@@ -146,25 +133,12 @@ public class QuickAnalysisResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = quickAnalysisManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Quick analysis profile not found: " + profileId));
-        return new ProfileResource(
-                profileManager,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+        return profileResourceFactory.create(profileManager);
     }
 
     private ProfileSummaryResponse toResponse(ProfileInfo profileInfo) {
         ProfileManager profileManager = quickAnalysisManager.profile(profileInfo.id()).orElse(null);
         long sizeInBytes = profileManager != null ? profileManager.sizeInBytes() : 0;
-
-        return new ProfileSummaryResponse(
-                profileInfo.id(),
-                profileInfo.name(),
-                InstantUtils.formatInstant(profileInfo.createdAt()),
-                profileInfo.eventSource(),
-                profileInfo.enabled(),
-                profileInfo.duration().toMillis(),
-                sizeInBytes);
+        return ProfileSummaryResponse.from(profileInfo, sizeInBytes);
     }
 }

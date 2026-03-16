@@ -29,6 +29,12 @@ public record AbsoluteTimeRange(Instant start, Instant end) implements TimeRange
         this(Instant.ofEpochMilli(startInMillis), Instant.ofEpochMilli(endInMillis));
     }
 
+    public static AbsoluteTimeRange ofEpochMillis(Long startMillis, Long endMillis) {
+        Instant start = startMillis != null ? Instant.ofEpochMilli(startMillis) : Instant.MIN;
+        Instant end = endMillis != null ? Instant.ofEpochMilli(endMillis) : Instant.MAX;
+        return new AbsoluteTimeRange(start, end);
+    }
+
     public boolean isStartUsed() {
         return !start.equals(Instant.MIN);
     }

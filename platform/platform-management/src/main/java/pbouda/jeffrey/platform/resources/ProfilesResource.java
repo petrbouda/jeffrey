@@ -28,13 +28,10 @@ import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.resources.response.ProfileWithContextResponse;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.InstantUtils;
-import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileDiffResource;
 import pbouda.jeffrey.profile.resources.ProfileResource;
+import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.ArrayList;
@@ -56,26 +53,17 @@ public class ProfilesResource {
     private final CompositeWorkspacesManager workspacesManager;
     private final QuickAnalysisManager quickAnalysisManager;
     private final PlatformRepositories platformRepositories;
-    private final OqlAssistantService oqlAssistantService;
-    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
-    private final HeapDumpContextExtractor heapDumpContextExtractor;
-    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
+    private final ProfileResourceFactory profileResourceFactory;
 
     public ProfilesResource(
             CompositeWorkspacesManager workspacesManager,
             QuickAnalysisManager quickAnalysisManager,
             PlatformRepositories platformRepositories,
-            OqlAssistantService oqlAssistantService,
-            JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor,
-            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
+            ProfileResourceFactory profileResourceFactory) {
         this.workspacesManager = workspacesManager;
         this.quickAnalysisManager = quickAnalysisManager;
         this.platformRepositories = platformRepositories;
-        this.oqlAssistantService = oqlAssistantService;
-        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
-        this.heapDumpContextExtractor = heapDumpContextExtractor;
-        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
+        this.profileResourceFactory = profileResourceFactory;
     }
 
     /**
@@ -108,12 +96,7 @@ public class ProfilesResource {
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = findProfileManager(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found: " + profileId));
-        return new ProfileResource(
-                profileManager,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+        return profileResourceFactory.create(profileManager);
     }
 
     /**

@@ -185,7 +185,7 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
         );
 
         // Add to longest pauses priority queue (min-heap, limited by maxLongestPauses)
-        long sumOfPausesInNanos = Json.readLong(fields, "sumOfPauses");
+        long sumOfPausesInNanos = event.getSumOfPauses();
         if (longestPauses.size() < maxLongestPauses) {
             longestPauses.offer(event);
         } else {
@@ -260,8 +260,8 @@ public class GCOverviewEventBuilder implements RecordBuilder<GenericRecord, GCOv
                 oldCollections,
                 fullCollections,
                 maxPauseTime,
-                pauseTimesHistogram.getValueAtPercentile(0.99),
-                pauseTimesHistogram.getValueAtPercentile(0.95),
+                pauseTimesHistogram.getValueAtPercentile(95.0),
+                pauseTimesHistogram.getValueAtPercentile(99.0),
                 totalMemoryFreed,
                 avgMemoryFreed,
                 gcThroughput,

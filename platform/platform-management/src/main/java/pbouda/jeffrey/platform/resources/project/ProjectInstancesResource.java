@@ -26,10 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.resources.response.InstanceResponse;
 import pbouda.jeffrey.platform.resources.response.InstanceSessionResponse;
-import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
-import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.util.List;
 
@@ -47,7 +44,7 @@ public class ProjectInstancesResource {
     public List<InstanceResponse> list() {
         LOG.debug("Listing project instances");
         return projectInstanceRepository.findAll().stream()
-                .map(ProjectInstancesResource::toResponse)
+                .map(InstanceResponse::from)
                 .toList();
     }
 
@@ -56,7 +53,7 @@ public class ProjectInstancesResource {
     public InstanceResponse get(@PathParam("instanceId") String instanceId) {
         LOG.debug("Fetching project instance: instanceId={}", instanceId);
         return projectInstanceRepository.find(instanceId)
-                .map(ProjectInstancesResource::toResponse)
+                .map(InstanceResponse::from)
                 .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
     }
 
@@ -65,27 +62,7 @@ public class ProjectInstancesResource {
     public List<InstanceSessionResponse> getSessions(@PathParam("instanceId") String instanceId) {
         LOG.debug("Listing instance sessions: instanceId={}", instanceId);
         return projectInstanceRepository.findSessions(instanceId).stream()
-                .map(ProjectInstancesResource::toSessionResponse)
+                .map(InstanceSessionResponse::from)
                 .toList();
-    }
-
-    private static InstanceResponse toResponse(ProjectInstanceInfo info) {
-        return new InstanceResponse(
-                info.id(),
-                info.hostname(),
-                info.status().name(),
-                InstantUtils.toEpochMilli(info.startedAt()),
-                InstantUtils.toEpochMilli(info.finishedAt()),
-                info.sessionCount(),
-                info.activeSessionId());
-    }
-
-    private static InstanceSessionResponse toSessionResponse(ProjectInstanceSessionInfo info) {
-        return new InstanceSessionResponse(
-                info.sessionId(),
-                info.repositoryId(),
-                InstantUtils.toEpochMilli(info.createdAt()),
-                InstantUtils.toEpochMilli(info.finishedAt()),
-                info.finishedAt() == null);
     }
 }

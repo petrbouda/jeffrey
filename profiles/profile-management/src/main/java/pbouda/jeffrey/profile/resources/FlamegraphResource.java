@@ -45,7 +45,6 @@ import java.util.List;
 public class FlamegraphResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphResource.class);
-    private static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";
 
     private final ProfileInfo profileInfo;
     private final FlamegraphManager flamegraphManager;
@@ -56,7 +55,7 @@ public class FlamegraphResource {
     }
 
     @POST
-    @Produces(PROTOBUF_MEDIA_TYPE)
+    @Produces(MediaTypes.PROTOBUF)
     public byte[] generate(GenerateFlamegraphRequest request) {
         LOG.debug("Generating flamegraph: eventType={} useThreadMode={}", request.eventType(), request.useThreadMode());
         GraphParameters params = mapToGenerateRequest(profileInfo, request, GraphType.PRIMARY);

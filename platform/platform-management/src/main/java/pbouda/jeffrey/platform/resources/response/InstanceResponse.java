@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.platform.resources.response;
 
+import pbouda.jeffrey.shared.common.InstantUtils;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
+
 public record InstanceResponse(
         String id,
         String hostname,
@@ -26,4 +29,15 @@ public record InstanceResponse(
         Long finishedAt,
         int sessionCount,
         String activeSessionId) {
+
+    public static InstanceResponse from(ProjectInstanceInfo info) {
+        return new InstanceResponse(
+                info.id(),
+                info.hostname(),
+                info.status().name(),
+                InstantUtils.toEpochMilli(info.startedAt()),
+                InstantUtils.toEpochMilli(info.finishedAt()),
+                info.sessionCount(),
+                info.activeSessionId());
+    }
 }

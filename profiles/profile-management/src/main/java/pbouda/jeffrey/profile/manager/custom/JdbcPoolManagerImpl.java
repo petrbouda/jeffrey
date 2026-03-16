@@ -136,7 +136,7 @@ public class JdbcPoolManagerImpl implements JdbcPoolManager {
             JdbcPooledEventBuilder.PoolEvent acquireEvent = poolEvents.events()
                     .get(Type.POOLED_JDBC_CONNECTION_ACQUIRED);
 
-            long acquiredCounter = acquireEvent.getCounter();
+            long acquiredCounter = acquireEvent != null ? acquireEvent.getCounter() : 0;
             if (acquiredCounter > 0) {
                 timeoutRate = new BigDecimal(timeoutEvent.getCounter())
                         .divide(new BigDecimal(acquiredCounter), 4, RoundingMode.HALF_DOWN)

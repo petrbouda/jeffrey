@@ -83,8 +83,8 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
                     totalRowsProcessed,
                     totalExecutionTime,
                     maxExecutionTime,
-                    executionHisto.getValueAtPercentile(0.99),
-                    executionHisto.getValueAtPercentile(0.95),
+                    executionHisto.getValueAtPercentile(99.0),
+                    executionHisto.getValueAtPercentile(95.0),
                     errorCount,
                     toJdbcStatementNameStats(statementNameCounts));
         }
@@ -185,8 +185,8 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         JdbcHeader header = new JdbcHeader(
                 executionCount,
                 maxExecutionTime,
-                executionHistogram.getValueAtPercentile(0.99),
-                executionHistogram.getValueAtPercentile(0.95),
+                executionHistogram.getValueAtPercentile(99.0),
+                executionHistogram.getValueAtPercentile(95.0),
                 calculateSuccessRate(executionCount, errors),
                 errors);
 

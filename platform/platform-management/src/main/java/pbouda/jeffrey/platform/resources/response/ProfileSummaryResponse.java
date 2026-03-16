@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.platform.resources.response;
 
+import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.InstantUtils;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 
 public record ProfileSummaryResponse(
@@ -28,4 +31,27 @@ public record ProfileSummaryResponse(
         boolean enabled,
         long durationInMillis,
         long sizeInBytes) {
+
+    public static ProfileSummaryResponse from(ProfileManager profileManager) {
+        ProfileInfo profileInfo = profileManager.info();
+        return new ProfileSummaryResponse(
+                profileInfo.id(),
+                profileInfo.name(),
+                InstantUtils.formatInstant(profileInfo.createdAt()),
+                profileInfo.eventSource(),
+                profileInfo.enabled(),
+                profileInfo.duration().toMillis(),
+                profileManager.sizeInBytes());
+    }
+
+    public static ProfileSummaryResponse from(ProfileInfo profileInfo, long sizeInBytes) {
+        return new ProfileSummaryResponse(
+                profileInfo.id(),
+                profileInfo.name(),
+                InstantUtils.formatInstant(profileInfo.createdAt()),
+                profileInfo.eventSource(),
+                profileInfo.enabled(),
+                profileInfo.duration().toMillis(),
+                sizeInBytes);
+    }
 }

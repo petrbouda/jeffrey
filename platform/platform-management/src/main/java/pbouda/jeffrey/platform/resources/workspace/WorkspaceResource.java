@@ -28,10 +28,7 @@ import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
-import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -44,26 +41,17 @@ public class WorkspaceResource {
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceManager workspaceManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
-    private final OqlAssistantService oqlAssistantService;
-    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
-    private final HeapDumpContextExtractor heapDumpContextExtractor;
-    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
+    private final ProfileResourceFactory profileResourceFactory;
 
     public WorkspaceResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            OqlAssistantService oqlAssistantService,
-            JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor,
-            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
+            ProfileResourceFactory profileResourceFactory) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.workspaceEventQueue = workspaceEventQueue;
-        this.oqlAssistantService = oqlAssistantService;
-        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
-        this.heapDumpContextExtractor = heapDumpContextExtractor;
-        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
+        this.profileResourceFactory = profileResourceFactory;
     }
 
     @Path("/projects")
@@ -71,10 +59,7 @@ public class WorkspaceResource {
         return new WorkspaceProjectsResource(
                 workspaceInfo,
                 workspaceManager,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+                profileResourceFactory);
     }
 
     @DELETE

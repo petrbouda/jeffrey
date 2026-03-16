@@ -42,7 +42,6 @@ import static pbouda.jeffrey.profile.resources.FlamegraphResource.mapToGenerateR
 public class FlamegraphDiffResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphDiffResource.class);
-    private static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";
 
     private final ProfileInfo profileInfo;
     private final FlamegraphManager diffFlamegraphManager;
@@ -53,7 +52,7 @@ public class FlamegraphDiffResource {
     }
 
     @POST
-    @Produces(PROTOBUF_MEDIA_TYPE)
+    @Produces(MediaTypes.PROTOBUF)
     public byte[] generate(GenerateFlamegraphRequest request) {
         LOG.debug("Generating diff flamegraph: eventType={}", request.eventType());
         GraphParameters graphParameters = mapToGenerateRequest(profileInfo, request, GraphType.DIFFERENTIAL);

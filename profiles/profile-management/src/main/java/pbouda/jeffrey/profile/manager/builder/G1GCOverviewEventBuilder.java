@@ -23,10 +23,7 @@ import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.shared.common.model.time.RelativeTimeRange;
-import pbouda.jeffrey.profile.manager.model.gc.GCEvent;
 import pbouda.jeffrey.provider.profile.model.GenericRecord;
-
-import java.util.Optional;
 
 public class G1GCOverviewEventBuilder extends ConcurrentGCOverviewEventBuilder {
 
@@ -43,10 +40,6 @@ public class G1GCOverviewEventBuilder extends ConcurrentGCOverviewEventBuilder {
         super.processYoungGCEvent(record, fields, eventType);
 
         long gcId = Json.readLong(fields, "gcId");
-        Optional<GCEvent> foundGcEvent = longestPauses.stream()
-                .filter(pause -> pause.getGcId() == gcId)
-                .findFirst();
-
         cachedGCTypes.put(gcId, Json.readString(fields, "type"));
     }
 }

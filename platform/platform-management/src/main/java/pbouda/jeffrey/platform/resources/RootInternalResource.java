@@ -30,10 +30,7 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
 import pbouda.jeffrey.platform.project.template.ProjectTemplatesResolver;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
-import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -52,10 +49,7 @@ public class RootInternalResource {
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfilerRepository profilerRepository;
     private final PlatformRepositories platformRepositories;
-    private final OqlAssistantService oqlAssistantService;
-    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
-    private final HeapDumpContextExtractor heapDumpContextExtractor;
-    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
+    private final ProfileResourceFactory profileResourceFactory;
     private final QuickAnalysisManager quickAnalysisManager;
 
     @Inject
@@ -67,10 +61,7 @@ public class RootInternalResource {
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             ProfilerRepository profilerRepository,
             PlatformRepositories platformRepositories,
-            OqlAssistantService oqlAssistantService,
-            JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor,
-            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService,
+            ProfileResourceFactory profileResourceFactory,
             QuickAnalysisManager quickAnalysisManager) {
 
         this.globalSchedulerManager = globalSchedulerManager;
@@ -80,10 +71,7 @@ public class RootInternalResource {
         this.workspaceEventQueue = workspaceEventQueue;
         this.profilerRepository = profilerRepository;
         this.platformRepositories = platformRepositories;
-        this.oqlAssistantService = oqlAssistantService;
-        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
-        this.heapDumpContextExtractor = heapDumpContextExtractor;
-        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
+        this.profileResourceFactory = profileResourceFactory;
         this.quickAnalysisManager = quickAnalysisManager;
     }
 
@@ -102,10 +90,7 @@ public class RootInternalResource {
         return new WorkspacesResource(
                 workspacesManager,
                 workspaceEventQueue,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+                profileResourceFactory);
     }
 
     @Path("/remote-workspaces")
@@ -129,19 +114,13 @@ public class RootInternalResource {
                 workspacesManager,
                 quickAnalysisManager,
                 platformRepositories,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+                profileResourceFactory);
     }
 
     @Path("/quick-analysis")
     public QuickAnalysisResource quickAnalysisResource() {
         return new QuickAnalysisResource(
                 quickAnalysisManager,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+                profileResourceFactory);
     }
 }

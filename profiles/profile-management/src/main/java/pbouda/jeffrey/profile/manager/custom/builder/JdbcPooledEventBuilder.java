@@ -49,13 +49,13 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
 
     public static class PoolEvent {
         private long counter;
-        private Duration accumulated;
+        private long accumulatedNanos;
         private long min;
         private long max;
 
         public PoolEvent(long elapsed) {
             this.counter = 1;
-            this.accumulated = Duration.ofNanos(elapsed);
+            this.accumulatedNanos = elapsed;
             this.min = elapsed;
             this.max = elapsed;
         }
@@ -65,7 +65,7 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
         }
 
         public Duration getAccumulated() {
-            return accumulated;
+            return Duration.ofNanos(accumulatedNanos);
         }
 
         public long getMin() {
@@ -77,18 +77,13 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
         }
     }
 
-    private final List<Pool> pools = new ArrayList<>();
+    private final Map<String, Pool> poolMap = new HashMap<>();
 
     @Override
     public void onRecord(GenericRecord record) {
         ObjectNode fields = record.jsonFields();
         String poolName = fields.get("poolName").asText();
-        Pool pool = findPool(poolName);
-
-        if (pool == null) {
-            pool = new Pool(poolName);
-            pools.add(pool);
-        }
+        Pool pool = poolMap.computeIfAbsent(poolName, Pool::new);
 
         long elapsed = parseElapsed(fields);
 
@@ -97,7 +92,7 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
             pool.addEvent(record.type(), elapsed);
         } else {
             event.counter = event.counter + 1;
-            event.accumulated = event.accumulated.plusNanos(elapsed);
+            event.accumulatedNanos += elapsed;
             event.min = Math.min(event.min, elapsed);
             event.max = Math.max(event.max, elapsed);
         }
@@ -111,17 +106,8 @@ public class JdbcPooledEventBuilder implements RecordBuilder<GenericRecord, List
         return Long.parseLong(elapsedJson.asText());
     }
 
-    private Pool findPool(String poolName) {
-        for (Pool holder : pools) {
-            if (holder.poolName.equals(poolName)) {
-                return holder;
-            }
-        }
-        return null;
-    }
-
     @Override
     public List<Pool> build() {
-        return pools;
+        return new ArrayList<>(poolMap.values());
     }
 }

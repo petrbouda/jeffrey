@@ -92,8 +92,8 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
                     uri,
                     requestCount,
                     maxResponseTime,
-                    responseTimes.getValueAtPercentile(0.99),
-                    responseTimes.getValueAtPercentile(0.95),
+                    responseTimes.getValueAtPercentile(99.0),
+                    responseTimes.getValueAtPercentile(95.0),
                     calculateSuccessRate(requestCount, count4xx, count5xx),
                     count4xx,
                     count5xx,
@@ -270,8 +270,8 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
     private static long accumulateBytes(long current, long addition) {
         // Addition is not -1 (it means the value is known)
         if (addition > 0) {
-            // Current is still -1 (does not contain any value)
-            if (current > 0) {
+            // Current is not -1 (already has accumulated value)
+            if (current != -1) {
                 return current + addition;
             } else {
                 return addition;

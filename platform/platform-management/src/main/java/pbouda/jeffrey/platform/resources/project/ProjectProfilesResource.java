@@ -27,15 +27,10 @@ import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.resources.request.CreateProfileRequest;
 import pbouda.jeffrey.platform.resources.response.ProfileSummaryResponse;
-import pbouda.jeffrey.shared.common.InstantUtils;
-import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
-import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
-import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileDiffResource;
 import pbouda.jeffrey.profile.resources.ProfileResource;
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 
 import java.util.Comparator;
 import java.util.List;
@@ -47,44 +42,27 @@ public class ProjectProfilesResource {
 
     private final ProfilesManager profilesManager;
     private final ProjectsManager projectsManager;
-    private final OqlAssistantService oqlAssistantService;
-    private final JfrAnalysisAssistantService jfrAnalysisAssistantService;
-    private final HeapDumpContextExtractor heapDumpContextExtractor;
-    private final HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService;
+    private final ProfileResourceFactory profileResourceFactory;
 
     /**
-     * @param profilesManager                  Primary Profiles Manager
-     * @param projectsManager                  Projects Manager to retrieve Profiles from different Projects
-     * @param oqlAssistantService              AI-powered OQL assistant service
-     * @param jfrAnalysisAssistantService      AI-powered JFR analysis assistant service
-     * @param heapDumpContextExtractor         Extracts heap dump context for AI prompts
-     * @param heapDumpAnalysisAssistantService AI-powered heap dump analysis assistant service
+     * @param profilesManager        Primary Profiles Manager
+     * @param projectsManager        Projects Manager to retrieve Profiles from different Projects
+     * @param profileResourceFactory Factory for creating ProfileResource sub-resources
      */
     public ProjectProfilesResource(
             ProfilesManager profilesManager,
             ProjectsManager projectsManager,
-            OqlAssistantService oqlAssistantService,
-            JfrAnalysisAssistantService jfrAnalysisAssistantService,
-            HeapDumpContextExtractor heapDumpContextExtractor,
-            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
+            ProfileResourceFactory profileResourceFactory) {
         this.profilesManager = profilesManager;
         this.projectsManager = projectsManager;
-        this.oqlAssistantService = oqlAssistantService;
-        this.jfrAnalysisAssistantService = jfrAnalysisAssistantService;
-        this.heapDumpContextExtractor = heapDumpContextExtractor;
-        this.heapDumpAnalysisAssistantService = heapDumpAnalysisAssistantService;
+        this.profileResourceFactory = profileResourceFactory;
     }
 
     @Path("/{profileId}")
     public ProfileResource profileResource(@PathParam("profileId") String profileId) {
         ProfileManager profileManager = profilesManager.profile(profileId)
                 .orElseThrow(() -> new NotFoundException("Profile not found"));
-        return new ProfileResource(
-                profileManager,
-                oqlAssistantService,
-                jfrAnalysisAssistantService,
-                heapDumpContextExtractor,
-                heapDumpAnalysisAssistantService);
+        return profileResourceFactory.create(profileManager);
     }
 
     @Path("/{primaryProfileId}/diff/{secondaryProfileId}")
@@ -125,20 +103,8 @@ public class ProjectProfilesResource {
         LOG.debug("Listing profiles");
         return profilesManager.allProfiles().stream()
                 .sorted(Comparator.comparing((ProfileManager pm) -> pm.info().createdAt()).reversed())
-                .map(ProjectProfilesResource::toResponse)
+                .map(ProfileSummaryResponse::from)
                 .toList();
-    }
-
-    private static ProfileSummaryResponse toResponse(ProfileManager profileManager) {
-        ProfileInfo profileInfo = profileManager.info();
-        return new ProfileSummaryResponse(
-                profileInfo.id(),
-                profileInfo.name(),
-                InstantUtils.formatInstant(profileInfo.createdAt()),
-                profileInfo.eventSource(),
-                profileInfo.enabled(),
-                profileInfo.duration().toMillis(),
-                profileManager.sizeInBytes());
     }
 
     @POST

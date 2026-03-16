@@ -23,7 +23,9 @@ import pbouda.jeffrey.provider.profile.builder.RecordBuilder;
 import pbouda.jeffrey.provider.profile.model.GenericRecord;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -62,18 +64,18 @@ public class JdbcPoolStatisticsBuilder implements
         }
     }
 
-    private final List<PoolStats> pools = new ArrayList<>();
+    private final Map<String, PoolStats> poolMap = new HashMap<>();
 
     @Override
     public void onRecord(GenericRecord record) {
         ObjectNode fields = record.jsonFields();
         String poolName = fields.get("poolName").asText();
-        PoolStats pool = findPool(poolName);
 
         int active = Integer.parseInt(fields.get("active").asText());
         int idle = Integer.parseInt(fields.get("idle").asText());
         int pendingThreads = Integer.parseInt(fields.get("pendingThreads").asText());
 
+        PoolStats pool = poolMap.get(poolName);
         if (pool == null) {
             int maxConfigConnections = Integer.parseInt(fields.get("max").asText());
             int minConfigConnections = Integer.parseInt(fields.get("min").asText());
@@ -86,7 +88,7 @@ public class JdbcPoolStatisticsBuilder implements
                     maxConfigConnections,
                     minConfigConnections);
 
-            pools.add(poolStats);
+            poolMap.put(poolName, poolStats);
         } else {
             pool.counter.incrementAndGet();
             pool.maxActive.set(Math.max(pool.maxActive.get(), active));
@@ -99,17 +101,8 @@ public class JdbcPoolStatisticsBuilder implements
         }
     }
 
-    private PoolStats findPool(String poolName) {
-        for (PoolStats holder : pools) {
-            if (holder.poolName.equals(poolName)) {
-                return holder;
-            }
-        }
-        return null;
-    }
-
     @Override
     public List<PoolStats> build() {
-        return pools;
+        return new ArrayList<>(poolMap.values());
     }
 }

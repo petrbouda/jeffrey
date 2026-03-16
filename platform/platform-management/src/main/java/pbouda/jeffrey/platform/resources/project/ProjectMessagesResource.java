@@ -25,7 +25,6 @@ import pbouda.jeffrey.platform.manager.MessagesManager;
 import pbouda.jeffrey.platform.resources.response.ImportantMessageResponse;
 import pbouda.jeffrey.shared.common.model.time.AbsoluteTimeRange;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -51,8 +50,7 @@ public class ProjectMessagesResource {
             @QueryParam("start") Long startTimeMillis,
             @QueryParam("end") Long endTimeMillis) {
 
-        AbsoluteTimeRange timeRange = toTimeRange(startTimeMillis, endTimeMillis);
-        return messagesManager.getMessages(timeRange).stream()
+        return messagesManager.getMessages(AbsoluteTimeRange.ofEpochMillis(startTimeMillis, endTimeMillis)).stream()
                 .map(ImportantMessageResponse::from)
                 .toList();
     }
@@ -70,15 +68,8 @@ public class ProjectMessagesResource {
             @QueryParam("start") Long startTimeMillis,
             @QueryParam("end") Long endTimeMillis) {
 
-        AbsoluteTimeRange timeRange = toTimeRange(startTimeMillis, endTimeMillis);
-        return messagesManager.getAlerts(timeRange).stream()
+        return messagesManager.getAlerts(AbsoluteTimeRange.ofEpochMillis(startTimeMillis, endTimeMillis)).stream()
                 .map(ImportantMessageResponse::from)
                 .toList();
-    }
-
-    private static AbsoluteTimeRange toTimeRange(Long startTimeMillis, Long endTimeMillis) {
-        Instant start = startTimeMillis != null ? Instant.ofEpochMilli(startTimeMillis) : Instant.MIN;
-        Instant end = endTimeMillis != null ? Instant.ofEpochMilli(endTimeMillis) : Instant.MAX;
-        return new AbsoluteTimeRange(start, end);
     }
 }

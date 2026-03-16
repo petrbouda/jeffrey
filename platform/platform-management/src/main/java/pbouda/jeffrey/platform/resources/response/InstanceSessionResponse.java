@@ -18,10 +18,22 @@
 
 package pbouda.jeffrey.platform.resources.response;
 
+import pbouda.jeffrey.shared.common.InstantUtils;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+
 public record InstanceSessionResponse(
         String id,
         String repositoryId,
         Long startedAt,
         Long finishedAt,
         boolean isActive) {
+
+    public static InstanceSessionResponse from(ProjectInstanceSessionInfo info) {
+        return new InstanceSessionResponse(
+                info.sessionId(),
+                info.repositoryId(),
+                InstantUtils.toEpochMilli(info.createdAt()),
+                InstantUtils.toEpochMilli(info.finishedAt()),
+                info.finishedAt() == null);
+    }
 }

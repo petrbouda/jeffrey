@@ -34,7 +34,7 @@ public record WeightExtractor(
     public static WeightExtractor duration() {
         return new WeightExtractor(
                 e -> e.getDuration().toNanos(),
-                BytesUtils::format,
+                DurationUtils::formatNanos,
                 null);
     }
 

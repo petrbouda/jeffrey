@@ -16,21 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.request;
+package pbouda.jeffrey.profile.resources;
 
-import pbouda.jeffrey.shared.common.model.ThreadInfo;
-import pbouda.jeffrey.shared.common.model.Type;
-import pbouda.jeffrey.profile.common.analysis.marker.Marker;
+public final class MediaTypes {
 
-import java.util.List;
+    public static final String PROTOBUF = "application/x-protobuf";
 
-public record GenerateTimeseriesRequest(
-        Type eventType,
-        String search,
-        boolean useWeight,
-        boolean excludeNonJavaSamples,
-        boolean excludeIdleSamples,
-        boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+    private MediaTypes() {
+    }
 }

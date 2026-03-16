@@ -76,19 +76,20 @@ public class ThreadManagerImpl implements ThreadManager {
         List<EventSummary> summaries = eventTypeRepository.eventSummaries(
                 List.of(Type.THREAD_SLEEP, Type.THREAD_PARK, Type.JAVA_MONITOR_ENTER));
 
-        EventSummary sleepSummary = filterEventSummary(summaries, Type.THREAD_SLEEP);
-        EventSummary parkSummary = filterEventSummary(summaries, Type.THREAD_PARK);
-        EventSummary monitorSummary = filterEventSummary(summaries, Type.JAVA_MONITOR_ENTER);
+        long sleepSamples = filterEventSamples(summaries, Type.THREAD_SLEEP);
+        long parkSamples = filterEventSamples(summaries, Type.THREAD_PARK);
+        long monitorSamples = filterEventSamples(summaries, Type.JAVA_MONITOR_ENTER);
 
         return new ThreadStats(
-                currAccumulated, currPeak, sleepSummary.samples(), parkSummary.samples(), monitorSummary.samples());
+                currAccumulated, currPeak, sleepSamples, parkSamples, monitorSamples);
     }
 
-    private EventSummary filterEventSummary(List<EventSummary> summaries, Type type) {
+    private long filterEventSamples(List<EventSummary> summaries, Type type) {
         return summaries.stream()
                 .filter(summary -> Type.fromCode(summary.name()).equals(type))
                 .findFirst()
-                .orElse(null);
+                .map(EventSummary::samples)
+                .orElse(0L);
     }
 
     @Override

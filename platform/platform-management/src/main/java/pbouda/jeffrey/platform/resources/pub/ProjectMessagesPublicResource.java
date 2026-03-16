@@ -27,7 +27,6 @@ import pbouda.jeffrey.shared.common.model.time.AbsoluteTimeRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -57,8 +56,7 @@ public class ProjectMessagesPublicResource {
             @QueryParam("end") Long endTimeMillis) {
 
         LOG.debug("Fetching project messages: start={} end={}", startTimeMillis, endTimeMillis);
-        AbsoluteTimeRange timeRange = toTimeRange(startTimeMillis, endTimeMillis);
-        return messagesManager.getMessages(timeRange).stream()
+        return messagesManager.getMessages(AbsoluteTimeRange.ofEpochMillis(startTimeMillis, endTimeMillis)).stream()
                 .map(ImportantMessageResponse::from)
                 .toList();
     }
@@ -77,15 +75,8 @@ public class ProjectMessagesPublicResource {
             @QueryParam("end") Long endTimeMillis) {
 
         LOG.debug("Fetching project alerts: start={} end={}", startTimeMillis, endTimeMillis);
-        AbsoluteTimeRange timeRange = toTimeRange(startTimeMillis, endTimeMillis);
-        return messagesManager.getAlerts(timeRange).stream()
+        return messagesManager.getAlerts(AbsoluteTimeRange.ofEpochMillis(startTimeMillis, endTimeMillis)).stream()
                 .map(ImportantMessageResponse::from)
                 .toList();
-    }
-
-    private static AbsoluteTimeRange toTimeRange(Long startTimeMillis, Long endTimeMillis) {
-        Instant start = startTimeMillis != null ? Instant.ofEpochMilli(startTimeMillis) : Instant.MIN;
-        Instant end = endTimeMillis != null ? Instant.ofEpochMilli(endTimeMillis) : Instant.MAX;
-        return new AbsoluteTimeRange(start, end);
     }
 }

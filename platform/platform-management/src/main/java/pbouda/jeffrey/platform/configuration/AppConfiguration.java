@@ -57,7 +57,12 @@ import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.streaming.JfrStreamingInitializer;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.ProfileInitializerImpl;
+import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
+import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
+import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
+import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
 import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
+import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
@@ -306,6 +311,19 @@ public class AppConfiguration {
         return platformRepositories.newProfilerRepository();
     }
 
+    @Bean
+    public ProfileResourceFactory profileResourceFactory(
+            OqlAssistantService oqlAssistantService,
+            JfrAnalysisAssistantService jfrAnalysisAssistantService,
+            HeapDumpContextExtractor heapDumpContextExtractor,
+            HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService) {
+
+        return new ProfileResourceFactory(
+                oqlAssistantService,
+                jfrAnalysisAssistantService,
+                heapDumpContextExtractor,
+                heapDumpAnalysisAssistantService);
+    }
 
     @Bean
     @ConditionalOnProperty(value = "jeffrey.copy-libs.enabled", havingValue = "true", matchIfMissing = false)
