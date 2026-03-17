@@ -96,7 +96,7 @@ onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
   const [inst] = await Promise.all([
-    client.get(instanceId.value!),
+    client.find(instanceId.value!),
     fetchSessions(),
     fetchWorkspaceInfo(),
   ]);

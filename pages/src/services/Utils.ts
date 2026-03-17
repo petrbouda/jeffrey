@@ -17,6 +17,7 @@
  */
 
 import TimeRange from "@/services/api/model/TimeRange";
+import type { Variant } from '@/types/ui';
 
 export default class Utils {
 
@@ -86,7 +87,7 @@ export default class Utils {
         }
     }
 
-    static getEventSourceVariant(source: string): string {
+    static getEventSourceVariant(source: string): Variant {
         switch (source) {
             case 'ASYNC_PROFILER':
                 return 'purple';

@@ -17,7 +17,7 @@
  */
 
 import ThreadInfo from "./ThreadInfo";
-import ThreadPeriod from "@/services/thread/model/ThreadPeriod";
+import ThreadPeriod from "@/services/api/model/ThreadPeriod";
 
 export default class ThreadRowData {
     constructor(

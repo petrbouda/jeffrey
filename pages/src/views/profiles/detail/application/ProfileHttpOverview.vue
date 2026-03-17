@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, defineProps, nextTick, onMounted, ref, withDefaults} from 'vue';
+import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
@@ -77,7 +77,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';
-import { useNavigation } from '@/composables/useNavigation';
+
 
 // Define props
 interface Props {
@@ -90,7 +90,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const httpOverviewData = ref<HttpOverviewData | null>(null);

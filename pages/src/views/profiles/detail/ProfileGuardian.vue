@@ -294,7 +294,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import GuardianClient from '@/services/api/GuardianClient';
 import GuardResponse from '@/services/api/model/GuardResponse';
 import GuardAnalysisResult from '@/services/api/model/GuardAnalysisResult';
@@ -322,7 +322,6 @@ interface FlatRule extends GuardAnalysisResult {
 }
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 
 // Data
 const guards = ref<GuardResponse[]>([]);

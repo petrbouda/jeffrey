@@ -104,7 +104,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template v-for="(node, index) in filteredEvents" :key="node.key">
+                  <template v-for="node in filteredEvents" :key="node.key">
                     <tr :class="{ 'parent-row': !node.leaf, 'leaf-row': node.leaf }">
                       <td>
                         <div class="d-flex align-items-center event-name-cell">
@@ -278,9 +278,9 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, PropType, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import EventViewerClient from '@/services/api/EventViewerClient';
 import EventType from '@/services/api/model/EventType';
 import * as bootstrap from 'bootstrap';
@@ -315,7 +315,7 @@ const props = defineProps({
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 // State variables
@@ -426,7 +426,7 @@ watch(showFlamegraphDialog, isVisible => {
         false, // excludeNonJavaSamples
         false, // excludeIdleSamples
         false, // onlyUnsafeAllocationSamples
-        null   // threadInfo
+        null // threadInfo
       );
 
       graphUpdater = new FullGraphUpdater(flamegraphClient, false);

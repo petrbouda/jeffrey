@@ -25,7 +25,7 @@ export default class ProjectProfileClient extends BasePlatformClient {
         super(`/workspaces/${workspaceId}/projects/${projectId}/profiles`);
     }
 
-    async get(profileId: string): Promise<Profile> {
+    async find(profileId: string): Promise<Profile> {
         return super.get<Profile>(`/${profileId}`);
     }
 

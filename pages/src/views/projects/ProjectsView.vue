@@ -265,15 +265,6 @@ const getSelectedWorkspaceType = (): WorkspaceType | undefined => {
 };
 
 // Workspace header styling computed properties
-const getWorkspaceHeaderClass = computed(() => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return 'header-live';
-
-  if (workspace.type === WorkspaceType.REMOTE) return 'header-remote';
-  if (workspace.type === WorkspaceType.SANDBOX) return 'header-sandbox';
-  return 'header-live';
-});
-
 const getWorkspaceHeaderIcon = computed(() => {
   const workspace = getSelectedWorkspace();
   if (!workspace) return 'bi bi-folder-fill';

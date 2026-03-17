@@ -18,7 +18,7 @@
 
 import { ref, onBeforeMount } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import EventSummary from '@/services/api/model/EventSummary';
 import EventSummariesClient from '@/services/api/EventSummariesClient';
 import EventTypes from '@/services/EventTypes';
@@ -37,7 +37,6 @@ export interface CategorizedEvents {
 
 export function useFlamegraphEvents(graphMode: string) {
   const route = useRoute();
-  const { workspaceId, projectId } = useNavigation();
 
   const loaded = ref(false);
   const error = ref<string | null>(null);

@@ -81,14 +81,14 @@
           :modal-id="getModalId(plugin.jobType)"
           @job-created="(params: any) => createJob(plugin.jobType, params)"
           @modal-closed="handleModalClosed"
-          :ref="(el) => setModalRef(plugin.jobType, el)"
+          :ref="(el: Element | ComponentPublicInstance | null) => setModalRef(plugin.jobType, el)"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, type ComponentPublicInstance } from 'vue';
 import ToastService from '@/services/ToastService';
 import GlobalSchedulerClient from '@/services/api/GlobalSchedulerClient';
 import JobInfo from '@/services/api/model/JobInfo';
@@ -112,7 +112,7 @@ const pluginsLoaded = ref(false);
 const modalRefs = ref<Record<string, any>>({});
 
 // Set modal ref
-const setModalRef = (jobType: string, el: any) => {
+const setModalRef = (jobType: string, el: Element | ComponentPublicInstance | null) => {
   if (el) {
     modalRefs.value[jobType] = el;
   }
@@ -126,12 +126,6 @@ const availablePlugins = computed(() => {
 // Get modal ID for a job type
 const getModalId = (jobType: string) => {
   return `${jobType.toLowerCase()}Modal`;
-};
-
-// Get job display info from plugin
-const getJobDisplayInfo = (job: JobInfo) => {
-  const plugin = jobPluginRegistry.getPlugin(job.jobType);
-  return plugin ? plugin.getJobDisplayInfo(job) : null;
 };
 
 // Toggle job enabled/disabled state

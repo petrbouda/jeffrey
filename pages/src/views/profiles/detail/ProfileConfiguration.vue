@@ -22,101 +22,73 @@ import {onMounted, ref} from 'vue';
 import InformationClient from '@/services/api/InformationClient';
 import FormattingService from "@/services/FormattingService";
 import {useRoute} from "vue-router";
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 
+interface SectionRow {
+  key: string;
+  value: unknown;
+}
+
+interface TabItem {
+  label: string;
+}
+
+type ValueFormatter = (value: unknown) => string;
+
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 
-let info = null;
-let active = ref(0);
+let info: Record<string, Record<string, unknown>> | null = null;
+const active = ref(0);
 
-let items = ref([]);
+const items = ref<TabItem[]>([]);
 
-let section = ref(null)
-let formatMap = null
+const section = ref<SectionRow[] | null>(null);
+let formatMap: Record<string, ValueFormatter> = {};
 
 onMounted(() => {
   formatMap = {
-    'JVM Information - JVM Start Time': function (value) {
-      return value + " (" + new Date(parseInt(value, 10)) + ")"
+    'JVM Information - JVM Start Time': (value: unknown) => {
+      return value + " (" + new Date(parseInt(String(value), 10)) + ")"
     },
-    'GC Heap Configuration - Minimum Heap Size': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'GC Heap Configuration - Maximum Heap Size': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'GC Heap Configuration - Initial Heap Size': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'TLAB Configuration - Minimum TLAB Size': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'Young Generation Configuration - Minimum Young Generation Size': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'Young Generation Configuration - Maximum Young Generation Size': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'Container Configuration - Container Host Total Memory': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'Container Configuration - Memory and Swap Limit': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'Container Configuration - Memory Limit': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-    'Container Configuration - Memory Soft Limit': function (value) {
-      return FormattingService.formatBytes(value)
-    },
-  }
+    'GC Heap Configuration - Minimum Heap Size': (value: unknown) => FormattingService.formatBytes(value as number),
+    'GC Heap Configuration - Maximum Heap Size': (value: unknown) => FormattingService.formatBytes(value as number),
+    'GC Heap Configuration - Initial Heap Size': (value: unknown) => FormattingService.formatBytes(value as number),
+    'TLAB Configuration - Minimum TLAB Size': (value: unknown) => FormattingService.formatBytes(value as number),
+    'Young Generation Configuration - Minimum Young Generation Size': (value: unknown) => FormattingService.formatBytes(value as number),
+    'Young Generation Configuration - Maximum Young Generation Size': (value: unknown) => FormattingService.formatBytes(value as number),
+    'Container Configuration - Container Host Total Memory': (value: unknown) => FormattingService.formatBytes(value as number),
+    'Container Configuration - Memory and Swap Limit': (value: unknown) => FormattingService.formatBytes(value as number),
+    'Container Configuration - Memory Limit': (value: unknown) => FormattingService.formatBytes(value as number),
+    'Container Configuration - Memory Soft Limit': (value: unknown) => FormattingService.formatBytes(value as number),
+  };
 
   new InformationClient(route.params.profileId as string).info()
-      .then((data) => {
+      .then((data: Record<string, Record<string, unknown>>) => {
         info = data;
 
-        Object.keys(info).forEach(function (key, index) {
-          let formatted = key
+        Object.keys(info).forEach((key) => {
+          const formatted = key
               .replace("Configuration", "")
               .replace("Information", "")
           items.value.push({label: formatted})
         });
 
-        const firstSection = Object.values(info).at(0);
-        if (firstSection) {
-          section.value = formatSections(firstSection);
+        const sections = Object.values(info);
+        if (sections.length > 0) {
+          section.value = formatSections(sections[0]);
         }
       });
 });
 
-/*
-{
-  "Container Type":"cgroupv2",
-  "CPU Slice Period":"-1",
-  "CPU Quota":"-1",
-  ...
-}
-=>
-[
- {
-  "field": "Container Type",
-  "value": "cgroupv2",
- },
- ...
-]
-*/
-const formatSections = (original) => {
-  const formatted = []
+const formatSections = (original: Record<string, unknown>): SectionRow[] => {
+  const formatted: SectionRow[] = []
   for (const [key, value] of Object.entries(original)) {
-    let formatKey = Object.keys(info).at(active.value) + " - " + key
-    let formatter = formatMap[formatKey];
+    const infoKeys = info ? Object.keys(info) : [];
+    const formatKey = (infoKeys[active.value] || '') + " - " + key
+    const formatter = formatMap[formatKey];
 
-    let formattedValue = value
-    if (formatter != null) {
-      formattedValue = formatter(value)
-    }
+    const formattedValue = formatter != null ? formatter(value) : value
 
     formatted.push({
       key: key,
@@ -127,7 +99,11 @@ const formatSections = (original) => {
 }
 
 const selectSection = () => {
-  section.value = formatSections(Object.values(info).at(active.value))
+  if (!info) return;
+  const sections = Object.values(info);
+  if (active.value < sections.length) {
+    section.value = formatSections(sections[active.value]);
+  }
 }
 </script>
 

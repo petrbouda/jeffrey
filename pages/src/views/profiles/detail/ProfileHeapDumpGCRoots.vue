@@ -269,7 +269,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -283,7 +283,7 @@ import GCRootSummary from '@/services/api/model/GCRootSummary';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -383,7 +383,7 @@ const getRootTypeColor = (type: string): string => {
   return rootTypeColors[index % rootTypeColors.length];
 };
 
-const getChartColor = (label: string, index: number): string => {
+const getChartColor = (_label: string, index: number): string => {
   return rootTypeColors[index % rootTypeColors.length];
 };
 

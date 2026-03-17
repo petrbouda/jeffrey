@@ -88,9 +88,9 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref, withDefaults} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useNavigation} from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
@@ -111,7 +111,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const {workspaceId, projectId} = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);

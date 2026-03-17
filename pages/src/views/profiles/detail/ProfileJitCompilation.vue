@@ -314,7 +314,7 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useNavigation} from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import FormattingService from "@/services/FormattingService.ts";
@@ -327,7 +327,7 @@ import JITLongCompilation from "@/services/api/model/JITLongCompilation.ts";
 import {computed} from 'vue';
 
 const route = useRoute();
-const {workspaceId, projectId} = useNavigation();
+
 const loading = ref(true);
 const error = ref(false);
 const statisticsData = ref<JITCompilationData>();

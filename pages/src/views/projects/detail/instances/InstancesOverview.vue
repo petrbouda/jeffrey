@@ -281,6 +281,7 @@ import type RepositoryStatistics from '@/services/api/model/RepositoryStatistics
 import FormattingService from '@/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
+import type { Variant } from '@/types/ui';
 
 const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
 
@@ -317,7 +318,7 @@ function instanceIconClass(status: string): string {
   return 'icon-finished';
 }
 
-function instanceBadgeVariant(status: string): string {
+function instanceBadgeVariant(status: string): Variant {
   if (status === 'PENDING') return 'blue';
   if (status === 'ACTIVE') return 'warning';
   if (status === 'EXPIRED') return 'grey';

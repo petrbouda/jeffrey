@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
@@ -62,7 +62,7 @@ import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesT
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 

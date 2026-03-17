@@ -9,6 +9,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Badge from '@/components/Badge.vue';
+import type { Variant } from '@/types/ui';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
 
 interface Props {
@@ -22,7 +23,7 @@ const cleanedOperation = computed(() => JdbcUtils.cleanOperationName(props.opera
 const badgeVariant = computed(() => {
   const operation = cleanedOperation.value.toLowerCase();
   
-  const variants: Record<string, string> = {
+  const variants: Record<string, Variant> = {
     query: 'blue',
     select: 'blue',
     insert: 'green',

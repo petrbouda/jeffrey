@@ -17,9 +17,9 @@
   -->
 
 <script setup lang="ts">
-import { computed, defineProps, onBeforeMount, ref, withDefaults } from 'vue';
+import { computed, onBeforeMount, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 // Check if tracing dashboard is disabled

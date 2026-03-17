@@ -45,6 +45,7 @@ import Badge from '@/components/Badge.vue';
 import ProjectClient from "@/services/api/ProjectClient.ts";
 import Project from "@/services/api/model/Project.ts";
 import MessageBus from "@/services/MessageBus";
+import type { Variant } from '@/types/ui';
 
 const route = useRoute();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
@@ -175,7 +176,7 @@ const isActive = (path: string) => {
   return route.path.includes(path);
 };
 
-const getBadgeVariant = (type: string): string => {
+const getBadgeVariant = (type: string): Variant => {
   switch (type) {
     case 'linked':
       return 'green';

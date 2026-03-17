@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps, nextTick, onMounted, ref, withDefaults } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
@@ -99,10 +99,11 @@ import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
+import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
-import { useNavigation } from '@/composables/useNavigation';
+
 
 // Define props
 interface Props {
@@ -115,7 +116,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const jdbcOverviewData = ref<JdbcOverviewData | null>(null);
@@ -134,7 +134,7 @@ const client = new ProfileJdbcStatementClient(route.params.profileId as string);
 
 const getStatementGroupsData = () => {
   if (!jdbcOverviewData.value) return [];
-  return jdbcOverviewData.value.groups.map(group => ({
+  return jdbcOverviewData.value.groups.map((group: JdbcGroup) => ({
     label: group.group,
     value: group.count
   }));

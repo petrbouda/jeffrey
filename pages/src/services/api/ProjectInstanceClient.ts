@@ -31,7 +31,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
             .then(data => data.map(this.mapToInstance));
     }
 
-    async get(instanceId: string): Promise<ProjectInstance | undefined> {
+    async find(instanceId: string): Promise<ProjectInstance | undefined> {
         return super.get<any>(`/${instanceId}`)
             .then(data => this.mapToInstance(data))
             .catch(() => undefined);
@@ -40,16 +40,6 @@ export default class ProjectInstanceClient extends BasePlatformClient {
     async getSessions(instanceId: string): Promise<ProjectInstanceSession[]> {
         return super.get<any[]>(`/${instanceId}/sessions`)
             .then(data => data.map(this.mapToSession));
-    }
-
-    async listActive(): Promise<ProjectInstance[]> {
-        const instances = await this.list();
-        return instances.filter(i => i.status === 'ACTIVE');
-    }
-
-    async listFinished(): Promise<ProjectInstance[]> {
-        const instances = await this.list();
-        return instances.filter(i => i.status === 'FINISHED');
     }
 
     private mapToInstance(data: any): ProjectInstance {
@@ -61,7 +51,9 @@ export default class ProjectInstanceClient extends BasePlatformClient {
             data.startedAt ?? Date.now(),
             data.sessionCount || 0,
             data.activeSessionId,
-            data.finishedAt ?? undefined
+            data.finishedAt ?? undefined,
+            data.expiringAt ?? undefined,
+            data.expiredAt ?? undefined
         );
     }
 

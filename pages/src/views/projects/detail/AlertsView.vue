@@ -250,7 +250,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
           v-if="alertsTimeseriesData.length > 0"
           :primary-data="alertsTimeseriesData"
           :visible-minutes="999999"
-          :primary-axis-type="AxisFormatType.COUNT"
+          :primary-axis-type="AxisFormatType.NUMBER"
           primary-title="Alert Count"
           time-unit="milliseconds"
         />

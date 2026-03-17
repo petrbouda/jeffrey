@@ -64,7 +64,7 @@
           <div class="col-md-4 mb-3 mb-md-0">
             <div class="d-flex align-items-center">
               <label for="threadFilter" class="form-label mb-0 me-2">Thread:</label>
-              <select class="form-select" id="threadFilter" v-model="selectedThread" :disabled="isFromGuardian">
+              <select class="form-select" id="threadFilter" v-model="selectedThread" :disabled="Boolean(isFromGuardian)">
                 <option value="all">All Threads</option>
                 <option value="main">main</option>
                 <option value="worker-1">worker-1</option>
@@ -195,9 +195,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, onMounted, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Profile, GuardianCheck } from '@/types';
+import Profile from '@/services/api/model/Profile';
+
+interface GuardianCheck {
+  status: string;
+  name: string;
+  summary: string;
+  score: number;
+  explanation: string;
+  solution: string;
+  flamegraphData?: {
+    methods: any[];
+  };
+}
 
 const route = useRoute();
 
@@ -214,7 +226,7 @@ const guardianCheck = ref<GuardianCheck | null>(null);
 
 // Check if we're coming from a Guardian analysis
 const isFromGuardian = computed(() => {
-  return route.query.source === 'guardian' && route.query.checkId;
+  return route.query.source === 'guardian' && !!route.query.checkId;
 });
 
 // Load Guardian check data if available

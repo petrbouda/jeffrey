@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectRecordingClient from '@/services/api/ProjectRecordingClient';
 import ProjectRecordingFolderClient from '@/services/api/ProjectRecordingFolderClient';
@@ -29,7 +29,11 @@ const deleteFolderDialog = ref(false);
 const folderToDelete = ref<RecordingFolder | null>();
 const uploadFiles = ref<File[]>([]);
 const dragActive = ref(false);
-const uploadProgress = ref({});
+interface UploadProgressEntry {
+  progress: number;
+  status: 'pending' | 'uploading' | 'complete' | 'error';
+}
+const uploadProgress = ref<Record<string, UploadProgressEntry>>({});
 const uploadPanelExpanded = ref(false);
 
 // Services
@@ -231,10 +235,12 @@ const deleteFolder = async () => {
 };
 
 
-const handleFileUpload = (event) => {
-  const files = event.target.files || event.dataTransfer?.files;
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement | null;
+  const dragEvent = event as DragEvent;
+  const files = target?.files || dragEvent.dataTransfer?.files;
   if (files && files.length) {
-    const jfrFiles = Array.from(files).filter(file => file.name.endsWith('.jfr') || file.name.endsWith('.jfr.lz4'));
+    const jfrFiles = Array.from(files).filter((file: File) => file.name.endsWith('.jfr') || file.name.endsWith('.jfr.lz4'));
     if (jfrFiles.length === 0) {
       toast.warn('Invalid Files', 'Only JFR files (.jfr, .jfr.lz4) are supported');
       return;
@@ -331,21 +337,21 @@ const uploadRecordings = async () => {
       uploadPanelExpanded.value = false;
     }, 2000);
   } catch (error) {
-    toast.error('Upload Failed', error.message);
+    toast.error('Upload Failed', (error as Error).message);
   }
 };
 
-const handleDragOver = (event) => {
+const handleDragOver = (event: DragEvent) => {
   event.preventDefault();
   dragActive.value = true;
 };
 
-const handleDragLeave = (event) => {
+const handleDragLeave = (event: DragEvent) => {
   event.preventDefault();
   dragActive.value = false;
 };
 
-const handleDrop = (event) => {
+const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   dragActive.value = false;
   // Expand upload panel if it's collapsed
@@ -355,7 +361,7 @@ const handleDrop = (event) => {
   handleFileUpload(event);
 };
 
-const removeFile = (index) => {
+const removeFile = (index: number) => {
   const newFiles = [...uploadFiles.value];
   newFiles.splice(index, 1);
   uploadFiles.value = newFiles;

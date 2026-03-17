@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadMetadata from "@/services/thread/model/ThreadMetadata";
+import ThreadMetadata from "@/services/api/model/ThreadMetadata";
 
 export default class ThreadCommon {
     constructor(

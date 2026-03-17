@@ -119,7 +119,7 @@ const settingsLevelVariant = computed(() => {
   switch (settingsLevel.value) {
     case 'PROJECT': return 'green';
     case 'WORKSPACE': return 'primary';
-    case 'GLOBAL': return 'gray';
+    case 'GLOBAL': return 'grey';
     default: return 'yellow';
   }
 });

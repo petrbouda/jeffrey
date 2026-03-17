@@ -2,6 +2,7 @@
 import Badge from '@/components/Badge.vue';
 import FormattingService from '@/services/FormattingService';
 import Utils from '@/services/Utils';
+import type { Variant } from '@/types/ui';
 
 interface Props {
   filename: string;
@@ -50,7 +51,7 @@ const getFileTypeClass = (fileType: string): string => {
   }
 };
 
-const getFileTypeVariant = (fileType: string): string => {
+const getFileTypeVariant = (fileType: string): Variant => {
   switch (fileType) {
     case 'JFR':
       return 'primary';

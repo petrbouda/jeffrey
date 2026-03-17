@@ -484,7 +484,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -499,7 +499,7 @@ import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEn
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);
@@ -659,7 +659,7 @@ const getFlagValueClass = (flag: JvmStringFlag): string => {
   return 'font-monospace';
 };
 
-const onTabChange = (tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
+const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
   activeTab.value = tab.id;
   if (tab.id === 'overview') {
     nextTick(() => {
@@ -679,7 +679,7 @@ const renderCharts = () => {
 
     const memoryOptions = {
       chart: {
-        type: 'donut',
+        type: 'donut' as const,
         height: 250
       },
       series: [
@@ -731,7 +731,7 @@ const renderCharts = () => {
 
     const arrayOptions = {
       chart: {
-        type: 'donut',
+        type: 'donut' as const,
         height: 250
       },
       series: [

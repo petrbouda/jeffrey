@@ -233,7 +233,7 @@
 
                       <!-- No projects message -->
                       <div
-                          v-if="!projectsByWorkspace.get(workspaceId) || projectsByWorkspace.get(workspaceId).length === 0"
+                          v-if="!projectsByWorkspace.get(workspaceId) || projectsByWorkspace.get(workspaceId)?.length === 0"
                           class="no-projects-message"
                       >
                         <i class="bi bi-info-circle"></i>

@@ -36,7 +36,7 @@ import router from "@/router";
 import GraphType from "@/services/flamegraphs/GraphType";
 import SubSecondComponent from "@/components/SubSecondComponent.vue";
 import {useRoute} from "vue-router";
-import { useNavigation } from '@/composables/useNavigation';
+
 import FlamegraphClient from "@/services/api/FlamegraphClient";
 import PrimaryFlamegraphClient from "@/services/api/PrimaryFlamegraphClient";
 import DifferentialFlamegraphClient from "@/services/api/DifferentialFlamegraphClient";
@@ -53,7 +53,6 @@ import TimeseriesEventAxeFormatter from "@/services/timeseries/TimeseriesEventAx
 import * as bootstrap from 'bootstrap';
 
 const route = useRoute()
-const { workspaceId, projectId } = useNavigation();
 
 const showDialog = ref<boolean>(false);
 const subSecondRef = ref<InstanceType<typeof SubSecondComponent> | null>(null);

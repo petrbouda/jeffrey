@@ -62,6 +62,7 @@ import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
 import ChartSection from '@/components/ChartSection.vue';
+import type { Variant } from '@/types/ui';
 
 interface SlowRequest {
   uri: string;
@@ -100,9 +101,9 @@ const parseUri = (uri: string) => {
   }));
 };
 
-const getMethodVariant = (method: string): string => {
+const getMethodVariant = (method: string): Variant => {
   const methodLower = method.toLowerCase();
-  const variants: Record<string, string> = {
+  const variants: Record<string, Variant> = {
     get: 'blue',
     post: 'green', 
     put: 'yellow',
@@ -113,7 +114,7 @@ const getMethodVariant = (method: string): string => {
   return variants[methodLower] || 'secondary';
 };
 
-const getStatusVariant = (status: number): string => {
+const getStatusVariant = (status: number): Variant => {
   if (status >= 200 && status < 300) return 'success';
   if (status >= 300 && status < 400) return 'info';
   if (status >= 400 && status < 500) return 'warning';

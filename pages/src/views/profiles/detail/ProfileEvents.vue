@@ -148,11 +148,11 @@ import EventTypeDescription from '@/services/api/model/EventTypeDescription';
 import EventFieldDescription from '@/services/api/model/EventFieldDescription';
 import FormattingService from '@/services/FormattingService';
 import {useRoute} from "vue-router";
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 // State
@@ -188,7 +188,7 @@ const filteredEventTypes = computed(() => {
 });
 
 // Function to determine if a field is string-related
-function isStringField(fieldName: string, fieldType?: string): boolean {
+function isStringField(_fieldName: string, fieldType?: string): boolean {
   if (!fieldType) return true;
   return resolveType(fieldType) === "text";
 }
@@ -289,8 +289,8 @@ async function selectEventType(eventType: EventTypeDescription) {
       columnFilters.value = {};
       
       // Check if startTime column exists and set it as default sort if it does
-      const startTimeColumn = eventColumns.value.find(col => 
-        col.field === 'startTime' && resolveType(col.type) === 'numeric'
+      const startTimeColumn = eventColumns.value.find(col =>
+        col.field === 'startTime' && col.type != null && resolveType(col.type) === 'numeric'
       );
       
       if (startTimeColumn) {

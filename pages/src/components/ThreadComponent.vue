@@ -20,7 +20,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadRow from '@/services/thread/ThreadRow';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
@@ -43,7 +43,6 @@ const props = defineProps<{
 }>();
 
 const route = useRoute();
-const { workspaceId } = useNavigation();
 
 const selectedEventCode = ref();
 const showFlameMenu = ref(false);

@@ -156,7 +156,7 @@
               <!-- Slowest statements with data -->
               <JdbcSlowestStatements
                 v-else-if="getStatementSlowestStatements(statementName.label)"
-                :statements="getStatementSlowestStatements(statementName.label)"
+                :statements="getStatementSlowestStatements(statementName.label)!"
                 :show-wrapper="false"
                 @sql-button-click="showSqlModal"
               />
@@ -208,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps, ref, watch, withDefaults } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
@@ -221,10 +221,11 @@ import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
+import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
-import { useNavigation } from '@/composables/useNavigation';
+
 
 // Define props
 interface Props {
@@ -237,7 +238,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const jdbcOverviewData = ref<JdbcOverviewData | null>(null);
@@ -282,7 +282,7 @@ const timelineTabs = computed(() => {
   if (singleGroupData.value?.groups && singleGroupData.value.groups.length > 0) {
     const group = singleGroupData.value.groups[0];
     if (group.statementNames) {
-      group.statementNames.forEach(statementName => {
+      group.statementNames.forEach((statementName: { label: string }) => {
         tabs.push({
           id: `statement-${statementName.label.toLowerCase().replace(/\s+/g, '-')}`,
           label: statementName.label
@@ -307,7 +307,7 @@ const slowestStatementsTabs = computed(() => {
   if (singleGroupData.value?.groups && singleGroupData.value.groups.length > 0) {
     const group = singleGroupData.value.groups[0];
     if (group.statementNames) {
-      group.statementNames.forEach(statementName => {
+      group.statementNames.forEach((statementName: { label: string }) => {
         tabs.push({
           id: `statement-${statementName.label.toLowerCase().replace(/\s+/g, '-')}`,
           label: statementName.label
@@ -350,7 +350,7 @@ const getStatementGroups = () => {
 
   // Validate and filter groups data
   return jdbcOverviewData.value.groups.filter(
-    group => group && !isNaN(group.count) && group.count >= 0
+    (g: JdbcGroup) => g && !isNaN(g.count) && g.count >= 0
   );
 };
 
@@ -358,7 +358,7 @@ const getSortedSlowStatements = () => {
   if (!singleGroupData.value) return [];
 
   // Sort by execution time (group-specific data should already be filtered by the backend)
-  return singleGroupData.value.slowStatements.sort((a, b) => b.executionTime - a.executionTime);
+  return singleGroupData.value.slowStatements.sort((a: JdbcSlowStatement, b: JdbcSlowStatement) => b.executionTime - a.executionTime);
 };
 
 const getStatementsData = () => {
@@ -383,7 +383,7 @@ const getStatementSlotName = (label: string) => {
 };
 
 // Tab change handler for timeline
-const onTabChange = (tabIndex: number, tab: any) => {
+const onTabChange = (_tabIndex: number, tab: any) => {
   activeTimelineTab.value = tab.id;
 
   // Load timeseries data for statement tabs (not for Total tab)
@@ -394,7 +394,7 @@ const onTabChange = (tabIndex: number, tab: any) => {
 };
 
 // Tab change handler for slowest statements
-const onSlowestStatementsTabChange = (tabIndex: number, tab: any) => {
+const onSlowestStatementsTabChange = (_tabIndex: number, tab: any) => {
   activeSlowestTab.value = tab.id;
 
   // Load slowest statements data for statement tabs (not for Total tab)

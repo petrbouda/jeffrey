@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch, withDefaults, defineProps} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
@@ -96,9 +96,10 @@ import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
 import HttpSingleUriData from '@/services/api/model/HttpSingleUriData.ts';
+import HttpSlowRequest from '@/services/api/model/HttpSlowRequest.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
-import { useNavigation } from '@/composables/useNavigation';
+
 
 // Define props
 interface Props {
@@ -111,7 +112,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const httpOverviewData = ref<HttpOverviewData | null>(null);
@@ -135,7 +135,7 @@ const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
 const slowestRequests = computed(() => {
   if (!singleUriData.value || !selectedUriForDetail.value) return [];
-  return singleUriData.value.slowRequests.sort((a, b) => b.responseTime - a.responseTime);
+  return singleUriData.value.slowRequests.sort((a: HttpSlowRequest, b: HttpSlowRequest) => b.responseTime - a.responseTime);
 });
 
 // Helper functions

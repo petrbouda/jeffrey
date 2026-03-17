@@ -193,7 +193,6 @@ import FormattingService from '@/services/FormattingService';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
 import ProfileThreadClient from '@/services/api/ProfileThreadClient';
 import ThreadStats from '@/services/api/model/ThreadStats';
 import AllocatingThread from '@/services/api/model/AllocatingThread';
@@ -212,7 +211,6 @@ import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAx
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 const profileId = route.params.profileId as string;
 
 // State

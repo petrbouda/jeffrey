@@ -92,6 +92,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import Badge from '@/components/Badge.vue'
+import type { Variant } from '@/types/ui'
 
 export interface MetricDefinition {
   key: string
@@ -262,7 +263,7 @@ const formatMetricValue = (value: any, metric: MetricDefinition): string => {
 }
 
 
-const getMetricVariant = (metric: MetricDefinition, item: any): string => {
+const getMetricVariant = (metric: MetricDefinition, item: any): Variant => {
   const value = getMetricValue(item, metric.key)
   
   // Special handling for HTTP status codes

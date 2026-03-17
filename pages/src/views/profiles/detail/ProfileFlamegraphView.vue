@@ -24,7 +24,7 @@ import { onBeforeMount, ref } from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import GraphType from '@/services/flamegraphs/GraphType';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
@@ -34,7 +34,6 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter.ts';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;

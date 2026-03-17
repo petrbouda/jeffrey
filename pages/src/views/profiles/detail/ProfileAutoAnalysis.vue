@@ -191,14 +191,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import AutoAnalysisClient from '@/services/api/AutoAnalysisClient';
 import AnalysisResult from '@/services/api/model/AnalysisResult';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 
 // Data
 const rules = ref<AnalysisResult[]>([]);

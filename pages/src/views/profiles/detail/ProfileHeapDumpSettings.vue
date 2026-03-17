@@ -313,7 +313,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -328,7 +328,7 @@ import MessageBus from '@/services/MessageBus';
 import { ApiError } from '@/services/HttpInterceptor';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);

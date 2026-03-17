@@ -218,6 +218,7 @@ import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import Badge from '@/components/Badge.vue';
+import type { Variant } from '@/types/ui';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
 import GCPauseDetailsModal from '@/components/gc/GCPauseDetailsModal.vue';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
@@ -296,7 +297,7 @@ const formatDifference = (beforeGC: number, afterGC: number) => {
   return difference > 0 ? `+${formattedValue}` : `-${formattedValue}`;
 };
 
-const getDifferenceBadgeVariant = (beforeGC: number, afterGC: number) => {
+const getDifferenceBadgeVariant = (beforeGC: number, afterGC: number): Variant => {
   const difference = afterGC - beforeGC;
   
   if (difference === 0) {
@@ -355,7 +356,7 @@ const createDistributionChart = async () => {
 
   const options = {
     chart: {
-      type: 'bar',
+      type: 'bar' as const,
       height: '100%',
       fontFamily: 'inherit',
       animations: {
@@ -452,7 +453,7 @@ const createEfficiencyChart = async () => {
 
   const options = {
     chart: {
-      type: 'donut',
+      type: 'donut' as const,
       height: '100%',
       fontFamily: 'inherit'
     },
@@ -475,14 +476,14 @@ const createEfficiencyChart = async () => {
       }
     },
     legend: {
-      position: 'bottom'
+      position: 'bottom' as const
     },
     tooltip: {
       y: {
         formatter: (value: number) => value.toFixed(1) + '%'
       }
     }
-  };
+  } as ApexCharts.ApexOptions;
 
   if (efficiencyChart) {
     efficiencyChart.destroy();

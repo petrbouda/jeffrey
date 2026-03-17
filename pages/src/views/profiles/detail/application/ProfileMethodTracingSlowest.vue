@@ -106,9 +106,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineProps, onMounted, withDefaults } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -131,7 +131,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Route and navigation
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 
 // Check if tracing dashboard is disabled

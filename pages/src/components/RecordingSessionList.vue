@@ -13,6 +13,7 @@ import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
+import type { Variant } from '@/types/ui';
 import FormattingService from "@/services/FormattingService.ts";
 
 interface Props {
@@ -86,7 +87,7 @@ const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
   [RecordingFileType.UNKNOWN]: 'UNKNOWN',
 };
 
-const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: string; fileType: string }> = {
+const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: Variant; fileType: string }> = {
   'JFR_RECORDING':    { name: 'JFR Recordings',     variant: 'primary', fileType: 'JFR' },
   'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
   'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },

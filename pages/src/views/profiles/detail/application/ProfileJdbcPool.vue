@@ -169,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineProps, onMounted, ref, withDefaults } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
@@ -177,12 +177,14 @@ import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PoolData from '@/services/api/model/PoolData.ts';
+import PoolEventStatistics from '@/services/api/model/PoolEventStatistics.ts';
 import ProfileJdbcPoolClient from '@/services/api/ProfileJdbcPoolClient.ts';
 import FormattingService from '@/services/FormattingService.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
-import { useNavigation } from '@/composables/useNavigation';
+
+import type { Variant } from '@/types/ui';
 
 // Define props
 interface Props {
@@ -194,7 +196,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 
 // Reactive state
 const poolDataList = ref<PoolData[]>([]);
@@ -216,7 +217,7 @@ const client = new ProfileJdbcPoolClient(route.params.profileId as string);
 // Computed property for tabs
 const eventTabs = computed(() => {
   if (!selectedPool.value) return [];
-  return selectedPool.value.eventStatistics.map(event => ({
+  return selectedPool.value.eventStatistics.map((event: PoolEventStatistics) => ({
     id: `event-${event.eventType}`,
     label: event.eventName,
     icon: 'graph-up'
@@ -332,7 +333,7 @@ const getPoolHealthStatus = (pool: PoolData): string => {
   }
 };
 
-const getPoolHealthVariant = (pool: PoolData): string => {
+const getPoolHealthVariant = (pool: PoolData): Variant => {
   const status = getPoolHealthStatus(pool);
   switch (status) {
     case 'Critical':
@@ -355,7 +356,7 @@ const onTabClick = (eventType: string) => {
   }
 };
 
-const onTabChange = (tabIndex: number, tab: any) => {
+const onTabChange = (tabIndex: number, _tab: any) => {
   const event = selectedPool.value?.eventStatistics[tabIndex];
   if (event) {
     onTabClick(event.eventType);

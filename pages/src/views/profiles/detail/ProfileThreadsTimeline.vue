@@ -13,7 +13,7 @@
           class="form-control search-input" 
           placeholder="Filter threads..." 
           v-model="fulltextFilter"
-          @input="onFilterChange($event.target.value)"
+          @input="onFilterChange(($event.target as HTMLInputElement).value)"
         >
         <button 
           v-if="fulltextFilter" 
@@ -175,8 +175,8 @@ import { useNavigation } from '@/composables/useNavigation';
 import {onBeforeMount, ref, computed} from "vue";
 import ProfileThreadClient from "@/services/api/ProfileThreadClient.ts";
 import ThreadComponent from "@/components/ThreadComponent.vue";
-import ThreadCommon from "@/services/thread/model/ThreadCommon";
-import ThreadRowData from "@/services/thread/model/ThreadRowData";
+import ThreadCommon from "@/services/api/model/ThreadCommon";
+import ThreadRowData from "@/services/api/model/ThreadRowData";
 import Konva from "konva";
 import ThreadRow from "@/services/thread/ThreadRow";
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -199,7 +199,7 @@ const props = defineProps({
 });
 
 const route = useRoute()
-const { workspaceId, projectId } = useNavigation();
+const { projectId } = useNavigation();
 
 const EVENT_COUNT_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => b.eventsCount - a.eventsCount
 const LIFESPAN_COMPARATOR = (a: ThreadRowData, b: ThreadRowData) => b.totalDuration - a.totalDuration

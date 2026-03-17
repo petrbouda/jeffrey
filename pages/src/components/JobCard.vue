@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Badge from '@/components/Badge.vue';
+import type { Variant } from '@/types/ui';
 
 interface Badge {
   text: string;
@@ -72,9 +73,9 @@ const handleCreateJob = () => {
   }
 };
 
-const getVariantFromColor = (color: string): string => {
+const getVariantFromColor = (color: string): Variant => {
   // Convert Bootstrap color classes to Badge variants
-  const colorMap: Record<string, string> = {
+  const colorMap: Record<string, Variant> = {
     'bg-primary': 'primary',
     'bg-secondary': 'secondary',
     'bg-success': 'success',

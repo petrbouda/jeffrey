@@ -95,7 +95,7 @@
                 </thead>
                 <tbody>
                 <!-- Category nodes (folders) -->
-                <template v-for="(category, categoryIndex) in organizedCounters" :key="category.name">
+                <template v-for="category in organizedCounters" :key="category.name">
                   <tr class="parent-row">
                     <td>
                       <div class="d-flex align-items-center counter-name-cell">
@@ -178,7 +178,7 @@
 
 <script setup lang="ts">
 import {useRoute} from "vue-router";
-import { useNavigation } from '@/composables/useNavigation';
+
 import { onMounted, ref, computed, nextTick } from 'vue';
 import * as bootstrap from 'bootstrap';
 import ProfilePerformanceCountersClient from '@/services/api/ProfilePerformanceCountersClient';
@@ -198,7 +198,6 @@ const props = defineProps({
 });
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 
 // Check if performance counters dashboard is disabled
 const isPerformanceCountersDisabled = computed(() => {
@@ -324,14 +323,6 @@ const formatCounterKey = (key: string): string => {
   return key;
 };
 
-const extractKeySecondPart = (key: string): string | null => {
-  const parts = key.split('.');
-  if (parts.length > 1) {
-    return parts[1];
-  }
-  return null;
-};
-
 const getCategoryLabel = (category: string): string => {
   // Map category codes to readable labels
   const categoryMap: Record<string, string> = {
@@ -348,25 +339,6 @@ const getCategoryLabel = (category: string): string => {
   };
   
   return categoryMap[category] || category;
-};
-
-const getCategoryClass = (category: string): string => {
-  // Map categories to Bootstrap color classes
-  const classMap: Record<string, string> = {
-    'Compiler': 'bg-primary',
-    'ClassLoader': 'bg-info',
-    'Bytecode': 'bg-info',  // Added style for Bytecode category
-    'Property': 'bg-secondary',
-    'Runtime': 'bg-success',
-    'Threads': 'bg-warning',
-    'Garbage Collector': 'bg-danger',
-    'Operating System': 'bg-dark',
-    'ZIP': 'bg-secondary'
-  };
-  
-  // Use the mapped category name, not the original code
-  const categoryLabel = getCategoryLabel(category);
-  return classMap[categoryLabel] || 'bg-secondary';
 };
 
 const extractKeyPrefix = (key: string): string | null => {
@@ -395,18 +367,6 @@ const getBadgeClass = (key: string): string => {
     return 'bg-dark-green text-white'; // Java badge style - dark green
   }
   return 'bg-secondary text-white';
-};
-
-// Use the second part of the key for category determination
-const getCategoryFromKey = (key: string): string => {
-  const secondPart = extractKeySecondPart(key);
-  
-  // Map specific categories to a common category to merge them
-  if (secondPart === 'urlClassLoader' || secondPart === 'cls' || secondPart === 'classloader') {
-    return 'classloader'; // Merge all classloader-related categories
-  }
-  
-  return secondPart || 'unknown';
 };
 
 // Toggle expand/collapse of category nodes

@@ -131,7 +131,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -145,7 +145,7 @@ import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);

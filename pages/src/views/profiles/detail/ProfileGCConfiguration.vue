@@ -157,7 +157,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useNavigation} from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ConfigurationSection from '@/components/ConfigurationSection.vue';
@@ -168,7 +168,7 @@ import GCConfigurationData from '@/services/api/model/GCConfigurationData';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
-const {workspaceId, projectId} = useNavigation();
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 const configData = ref<GCConfigurationData>();

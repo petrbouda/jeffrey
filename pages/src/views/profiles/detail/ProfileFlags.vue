@@ -326,7 +326,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
+
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -338,9 +338,10 @@ import FlagsClient from '@/services/api/FlagsClient';
 import FlagsData from '@/services/api/model/FlagsData';
 import JvmFlag from '@/services/api/model/JvmFlag';
 import FormattingService from '@/services/FormattingService';
+import type { Variant } from '@/types/ui';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
+
 const profileId = route.params.profileId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -449,8 +450,8 @@ const toggleSort = (column: string) => {
   }
 };
 
-const getTypeVariant = (type: string): string => {
-  const typeMap: Record<string, string> = {
+const getTypeVariant = (type: string): Variant => {
+  const typeMap: Record<string, Variant> = {
     'Boolean': 'blue',
     'Int': 'purple',
     'Long': 'purple',
@@ -460,8 +461,8 @@ const getTypeVariant = (type: string): string => {
   return typeMap[type] || 'grey';
 };
 
-const getOriginVariant = (origin: string): string => {
-  const originMap: Record<string, string> = {
+const getOriginVariant = (origin: string): Variant => {
+  const originMap: Record<string, Variant> = {
     'Command line': 'indigo',
     'Management': 'yellow',
     'Ergonomic': 'green',

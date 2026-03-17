@@ -714,11 +714,9 @@ import MessageBus from "@/services/MessageBus.ts";
 import ProfileFeaturesClient from "@/services/api/ProfileFeaturesClient";
 import FeatureType from "@/services/api/model/FeatureType";
 import { profileStore, ProfileWithContext } from "@/stores/profileStore";
-import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
-
 const route = useRoute();
 const router = useRouter();
-const {workspaceId, projectId, generateProjectUrl, generateProfileUrl, navigateToProjectProfiles} = useNavigation();
+const {workspaceId, projectId, navigateToProjectProfiles} = useNavigation();
 const profileId = route.params.profileId as string;
 
 const profile = ref<Profile | null>(null);

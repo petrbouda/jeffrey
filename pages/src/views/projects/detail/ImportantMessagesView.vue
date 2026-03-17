@@ -94,12 +94,6 @@ onMounted(() => {
   loadMessages();
 });
 
-// Get unique categories from messages
-const categories = computed(() => {
-  const cats = new Set(messages.value.map(m => m.category));
-  return Array.from(cats).sort();
-});
-
 // Get unique types from messages
 const messageTypes = computed(() => {
   const types = new Set(messages.value.map(m => m.type));
@@ -268,7 +262,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
           v-if="messagesTimeseriesData.length > 0"
           :primary-data="messagesTimeseriesData"
           :visible-minutes="selectedTimeRange || 10080"
-          :primary-axis-type="AxisFormatType.COUNT"
+          :primary-axis-type="AxisFormatType.NUMBER"
           primary-title="Message Count"
           time-unit="absolute-milliseconds"
         />
