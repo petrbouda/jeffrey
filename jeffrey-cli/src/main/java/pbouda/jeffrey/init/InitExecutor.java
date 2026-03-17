@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -43,11 +43,8 @@ public class InitExecutor {
 
     private static final Clock CLOCK = Clock.systemUTC();
 
-    private static final String ENV_FILE_NAME = ".env";
     private static final String WORKSPACES_DIR_NAME = "workspaces";
     private static final String EVENTS_DIR_NAME = ".events";
-
-    private final EnvFileBuilder envFileBuilder = new EnvFileBuilder();
 
     /**
      * Executes the initialization with the given configuration.
@@ -170,29 +167,33 @@ public class InitExecutor {
                 sessionId, projectId, config.getWorkspaceId(),
                 instanceId, order, profilerSettings);
 
-        EnvFileBuilder.Context envContext = new EnvFileBuilder.Context(
-                jeffreyHome,
-                workspacesPath,
-                workspacePath,
-                projectPath,
-                newSessionPath,
-                profilerSettings,
-                config.useJeffreyHome(),
-                config.isJdkJavaOptionsEnabled());
-        String variables = envFileBuilder.build(envContext);
+        if (config.getEnvFilePath() != null || config.isPrintEnv()) {
+            String envContent = new EnvFileBuilder().build(new EnvFileBuilder.Context(
+                    jeffreyHome,
+                    workspacesPath,
+                    workspacePath,
+                    projectPath,
+                    newSessionPath,
+                    profilerSettings,
+                    config.useJeffreyHome(),
+                    config.isJdkJavaOptionsEnabled()));
 
-        Path envFile = createEnvFile(projectPath, variables);
-        LOG.debug("Env file written: envFile={}", envFile);
-        if (!config.isSilent()) {
-            System.out.println("# ENV file to with variables to source: ");
-            System.out.println("# " + envFile);
-            System.out.println(Files.readString(envFile));
+            if (config.getEnvFilePath() != null) {
+                Files.writeString(config.getEnvFilePath(), envContent);
+                LOG.debug("Env file written: envFile={}", config.getEnvFilePath());
+            }
+
+            if (config.isPrintEnv()) {
+                System.out.print(envContent);
+            }
         }
-    }
 
-    private static Path createEnvFile(Path projectPath, String variables) throws IOException {
-        Path envFilePath = projectPath.resolve(ENV_FILE_NAME);
-        return Files.writeString(envFilePath, variables);
+        if (config.getArgFilePath() != null) {
+            var argsContent = new JvmArgsFileBuilder()
+                    .build(new JvmArgsFileBuilder.Context(newSessionPath, profilerSettings));
+            Files.writeString(config.getArgFilePath(), argsContent);
+            LOG.debug("Arg file written: argFile={}", config.getArgFilePath());
+        }
     }
 
     private static Path createDirectories(Path path) throws IOException {

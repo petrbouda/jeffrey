@@ -35,7 +35,6 @@ class InitConfigTest {
 
     // Base config template with all required fields for ConfigBeanFactory
     private static final String BASE_CONFIG = """
-            silent = false
             project { workspace-id = "", name = "", label = "", instance-id = "" }
             perf-counters { enabled = false }
             heap-dump { enabled = false }
@@ -67,7 +66,6 @@ class InitConfigTest {
             assertEquals("test-project", config.getProjectName());
             assertEquals("Test Project", config.getProjectLabel());
             assertEquals("ASYNC_PROFILER", config.getRepositoryType());
-            assertFalse(config.isSilent());
         }
 
         @Test

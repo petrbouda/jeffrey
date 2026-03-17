@@ -40,7 +40,6 @@ public class InitConfig {
 
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
-            silent = false
             jeffrey-home = ""
             workspaces-dir = ""
             profiler-path = ""
@@ -60,6 +59,9 @@ public class InitConfig {
             jfc-settings-path = ""
             jdk-java-options { enabled = false, additional-options = "" }
             debug-non-safepoints { enabled = true }
+            env-file = ""
+            arg-file = ""
+            print-env = false
             """;
 
     /**
@@ -104,7 +106,6 @@ public class InitConfig {
      */
     private static InitConfig fromConfig(Config resolved) {
         InitConfig config = new InitConfig();
-        config.setSilent(resolved.getBoolean("silent"));
         config.setJeffreyHome(resolved.getString("jeffrey-home"));
         config.setWorkspacesDir(resolved.getString("workspaces-dir"));
         config.setProfilerPath(resolved.getString("profiler-path"));
@@ -112,6 +113,9 @@ public class InitConfig {
         config.setRepositoryType(resolved.getString("repository-type"));
         config.setAgentPath(resolved.getString("agent-path"));
         config.setJfcSettingsPath(resolved.getString("jfc-settings-path"));
+        config.setEnvFilePath(resolved.getString("env-file"));
+        config.setArgFilePath(resolved.getString("arg-file"));
+        config.setPrintEnv(resolved.getBoolean("print-env"));
 
         Config projectCfg = resolved.getConfig("project");
         ProjectConfig project = new ProjectConfig();
@@ -160,7 +164,10 @@ public class InitConfig {
         return config;
     }
 
-    private boolean silent;
+    private String envFilePath;
+    private String argFilePath;
+    private boolean printEnv;
+
     private String jeffreyHome;
     private String workspacesDir;
     private String profilerPath;
@@ -176,12 +183,30 @@ public class InitConfig {
     private DebugNonSafepointsConfig debugNonSafepoints;
     private Map<String, Object> attributes;
 
-    public boolean isSilent() {
-        return silent;
+    public Path getEnvFilePath() {
+        String value = nullIfBlank(envFilePath);
+        return value != null ? Path.of(value) : null;
     }
 
-    public void setSilent(boolean silent) {
-        this.silent = silent;
+    public void setEnvFilePath(String envFilePath) {
+        this.envFilePath = envFilePath;
+    }
+
+    public Path getArgFilePath() {
+        String value = nullIfBlank(argFilePath);
+        return value != null ? Path.of(value) : null;
+    }
+
+    public void setArgFilePath(String argFilePath) {
+        this.argFilePath = argFilePath;
+    }
+
+    public boolean isPrintEnv() {
+        return printEnv;
+    }
+
+    public void setPrintEnv(boolean printEnv) {
+        this.printEnv = printEnv;
     }
 
     public String getJeffreyHome() {
