@@ -62,12 +62,12 @@ spec:
         - name: jeffrey
           image: petrbouda/jeffrey:latest
           command:
-            - /bin/bash
+            - /bin/sh
             - '-c'
             - >-
-              eval "$(java -jar /jeffrey-libs/jeffrey-cli.jar
-              init /mnt/config/jeffrey-init.conf)" &&
-              exec java -jar /app/jeffrey.jar
+              java -jar /jeffrey-libs/jeffrey-cli.jar
+              init --base-config /mnt/config/jeffrey-init.conf &&
+              exec java @/tmp/jvm.args -jar /app/jeffrey.jar
               --spring.config.location=file:/mnt/config/application.properties
           ports:
             - name: http
@@ -124,10 +124,13 @@ data:
 
     jeffrey-home = "/data/jeffrey"
     profiler-path = "/data/jeffrey/libs/libasyncProfiler.so"
+    arg-file = "/tmp/jvm.args"
 
-    workspace-id = "uat"
-    project-name = "jeffrey-"\${ENV_NAME}
-    project-label = "Jeffrey "\${ENV_NAME}
+    project {
+        workspace-id = "uat"
+        name = "jeffrey-"\${ENV_NAME}
+        label = "Jeffrey "\${ENV_NAME}
+    }
 
     perf-counters { enabled = true }
     heap-dump { enabled = true, type = "crash" }
@@ -220,9 +223,8 @@ spec:
         <h3>How It Works</h3>
         <p>The container startup command:</p>
         <ol>
-          <li>Runs <code>jeffrey-cli.jar init</code> to generate JVM flags</li>
-          <li>Uses <code>eval</code> to set environment variables (including <code>JDK_JAVA_OPTIONS</code>)</li>
-          <li>Starts Jeffrey with the profiling configuration active</li>
+          <li>Runs <code>jeffrey-cli.jar init</code> to generate a JVM @argfile</li>
+          <li>Starts Jeffrey with <code>java @/tmp/jvm.args</code> to apply profiling flags</li>
         </ol>
 
         <h2 id="deployment">Deployment</h2>
@@ -233,7 +235,7 @@ spec:
 
         <h3>Key Points</h3>
         <ul>
-          <li><strong>Command</strong> - Uses <code>eval "$(java -jar ... init ...)"</code> to set environment variables before starting the app</li>
+          <li><strong>Command</strong> - Runs <code>jeffrey-cli.jar init</code> to generate @argfile, then starts with <code>java @/tmp/jvm.args</code></li>
           <li><strong>Volume mounts</strong> - ConfigMap for configuration, PVC for persistent data</li>
           <li><strong>Environment variables</strong> - <code>ENV_NAME</code> is used in CLI config via HOCON substitution</li>
           <li><strong>Resources</strong> - 2GB memory recommended for Jeffrey with profiling enabled</li>

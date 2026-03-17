@@ -61,12 +61,12 @@ spec:
         - name: my-service
           image: my-registry/my-service:latest
           command:
-            - /bin/bash
+            - /bin/sh
             - '-c'
             - >-
-              eval "$(java -jar /data/jeffrey/libs/current/jeffrey-cli.jar
-              init /mnt/config/jeffrey-init.conf)" &&
-              exec java -jar /app/my-service.jar
+              java -jar /data/jeffrey/libs/current/jeffrey-cli.jar
+              init --base-config /mnt/config/jeffrey-init.conf &&
+              exec java @/tmp/jvm.args -jar /app/my-service.jar
           ports:
             - name: http
               containerPort: 8080
@@ -114,10 +114,13 @@ data:
 
     jeffrey-home = "/data/jeffrey"
     profiler-path = "/data/jeffrey/libs/current/libasyncProfiler.so"
+    arg-file = "/tmp/jvm.args"
 
-    workspace-id = "uat"
-    project-name = \${SERVICE_NAME}"-"\${ENV_NAME}
-    project-label = \${SERVICE_NAME}" "\${ENV_NAME}
+    project {
+        workspace-id = "uat"
+        name = \${SERVICE_NAME}"-"\${ENV_NAME}
+        label = \${SERVICE_NAME}" "\${ENV_NAME}
+    }
 
     perf-counters { enabled = true }
     heap-dump { enabled = true, type = "crash" }
@@ -173,9 +176,8 @@ data:
         <h3>How It Works</h3>
         <p>The container startup command:</p>
         <ol>
-          <li>Runs <code>jeffrey-cli.jar</code> from the shared storage to generate JVM flags</li>
-          <li>Uses <code>eval</code> to set environment variables (including <code>JDK_JAVA_OPTIONS</code>)</li>
-          <li>Starts your service with profiling automatically enabled</li>
+          <li>Runs <code>jeffrey-cli.jar init</code> from the shared storage to generate a JVM @argfile</li>
+          <li>Starts your service with <code>java @/tmp/jvm.args</code> to apply profiling flags</li>
         </ol>
 
         <DocsCallout type="tip">
@@ -210,8 +212,8 @@ data:
         <h3>CLI Configuration Highlights</h3>
         <ul>
           <li><strong>profiler-path</strong> - Points to Async-Profiler on shared storage</li>
-          <li><strong>project-name</strong> - Uses <code>SERVICE_NAME</code> and <code>ENV_NAME</code> for unique project identification</li>
-          <li><strong>jdk-java-options</strong> - Enabled so profiling flags are automatically picked up by the JVM</li>
+          <li><strong>project.name</strong> - Uses <code>SERVICE_NAME</code> and <code>ENV_NAME</code> for unique project identification</li>
+          <li><strong>arg-file</strong> - Writes JVM arguments to <code>/tmp/jvm.args</code> for @argfile startup</li>
           <li><strong>attributes</strong> - Custom metadata that appears in Jeffrey UI</li>
         </ul>
 

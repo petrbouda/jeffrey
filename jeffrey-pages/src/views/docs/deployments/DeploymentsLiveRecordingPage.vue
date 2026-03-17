@@ -57,10 +57,13 @@ const cliConfig = `# jeffrey-init.conf for target application
 
 jeffrey-home = "/data/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
+arg-file = "/tmp/jvm.args"
 
-workspace-id = "production"
-project-name = "my-service"
-project-label = "My Service"
+project {
+    workspace-id = "production"
+    name = "my-service"
+    label = "My Service"
+}
 
 perf-counters { enabled = true }
 heap-dump { enabled = true, type = "crash" }
@@ -75,9 +78,11 @@ attributes {
   cluster = "blue"
 }`;
 
-const targetStartup = `# Initialize profiling and start application
-eval "$(java -jar jeffrey-cli.jar init /path/to/jeffrey-init.conf)"
-java -jar my-application.jar`;
+const targetStartup = `# Initialize profiling session
+jeffrey-cli init --base-config /path/to/jeffrey-init.conf
+
+# Start application using @argfile
+java @/tmp/jvm.args -jar my-application.jar`;
 </script>
 
 <template>

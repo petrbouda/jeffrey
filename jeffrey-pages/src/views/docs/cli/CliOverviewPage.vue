@@ -38,29 +38,27 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const usageExample = `# Initialize profiling session
-java -jar jeffrey-cli.jar init /path/to/config.conf > /tmp/jeffrey.env
+const usageExample = `# jeffrey-init.conf contains: arg-file = "/tmp/jvm.args"
+jeffrey-cli init --base-config /path/to/config.conf
 
-# Source environment variables
-source /tmp/jeffrey.env
+# Start application using @argfile (JVM reads args from file)
+java @/tmp/jvm.args -jar my-app.jar`;
 
-# Start application with profiling (using JEFFREY_PROFILER_CONFIG)
-java $JEFFREY_PROFILER_CONFIG -jar my-app.jar`;
+const usageWithEnvFile = `# jeffrey-init.conf contains: env-file = "/tmp/jeffrey.env", print-env = true
+jeffrey-cli init --base-config /path/to/config.conf
 
-const usageWithJdkOptions = `# With jdk-java-options enabled in config, JDK_JAVA_OPTIONS is set automatically
-java -jar jeffrey-cli.jar init /path/to/config.conf > /tmp/jeffrey.env
-source /tmp/jeffrey.env
+# Source the generated .env file
+. /tmp/jeffrey.env
 
 # JDK_JAVA_OPTIONS is picked up automatically by the JVM
 java -jar my-app.jar`;
 
-const dockerEntrypoint = `#!/bin/bash
-# Generate profiling environment
-java -jar /jeffrey-libs/jeffrey-cli.jar init /app/jeffrey.conf > /tmp/jeffrey.env
-source /tmp/jeffrey.env
+const dockerEntrypoint = `#!/bin/sh
+# Initialize profiling session
+jeffrey-cli init --base-config /app/jeffrey.conf
 
-# Start application (JDK_JAVA_OPTIONS picked up automatically)
-exec java -jar /app/my-app.jar`;
+# Start application using @argfile
+exec java @/tmp/jvm.args -jar /app/my-app.jar`;
 </script>
 
 <template>
@@ -74,7 +72,7 @@ exec java -jar /app/my-app.jar`;
         <p>Jeffrey CLI is a command-line tool that <strong>configures JVM processes</strong> for profiling, especially in containerized environments.</p>
 
         <h2 id="what-is-jeffrey-cli">What is Jeffrey CLI?</h2>
-        <p>Jeffrey CLI (<code>jeffrey-cli.jar</code>) reads a HOCON configuration file and generates environment variables containing JVM flags. These environment variables are then used by your target JVM process.</p>
+        <p>Jeffrey CLI reads a HOCON configuration file and generates output files containing JVM flags. These files are then used by your target JVM process.</p>
 
         <div class="how-it-works">
           <div class="flow-step">
@@ -99,11 +97,21 @@ exec java -jar /app/my-app.jar`;
           <div class="flow-arrow"><i class="bi bi-arrow-right"></i></div>
           <div class="flow-step">
             <div class="docs-icon docs-icon-md docs-icon-purple">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="flow-content">
+              <strong>Arg File</strong>
+              <p>JVM @argfile format</p>
+            </div>
+          </div>
+          <div class="flow-divider">or</div>
+          <div class="flow-step">
+            <div class="docs-icon docs-icon-md docs-icon-purple">
               <i class="bi bi-filetype-java"></i>
             </div>
             <div class="flow-content">
-              <strong>Environment Variable</strong>
-              <p>Used by target JVM</p>
+              <strong>Env File</strong>
+              <p>Shell export statements</p>
             </div>
           </div>
         </div>
@@ -112,7 +120,7 @@ exec java -jar /app/my-app.jar`;
         <ul>
           <li>Creates workspace/project/session directory structure</li>
           <li>Generates JVM flags for async-profiler and enabled features</li>
-          <li>Outputs environment variables (<code>JEFFREY_PROFILER_CONFIG</code> or <code>JDK_JAVA_OPTIONS</code>)</li>
+          <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
           <li>Stores session metadata for Jeffrey to detect</li>
         </ul>
 
@@ -210,22 +218,22 @@ exec java -jar /app/my-app.jar`;
         </ol>
 
         <h3>Basic Usage</h3>
-        <p>Using <code>JEFFREY_PROFILER_CONFIG</code> environment variable:</p>
+        <p>Using <code>arg-file</code> to generate a JVM @argfile (recommended):</p>
         <DocsCodeBlock
           language="bash"
           :code="usageExample"
         />
 
-        <h3>Using JDK_JAVA_OPTIONS</h3>
-        <p>When <code>jdk-java-options</code> is enabled in your config, the JVM flags are set via <code>JDK_JAVA_OPTIONS</code> which is automatically picked up by the JVM:</p>
+        <DocsCallout type="tip">
+          <strong>@argfile recommended:</strong> Using <code>arg-file</code> is the simplest approach for containers - no shell sourcing needed, just <code>java @/path/to/args</code>. Works natively with <code>/bin/sh</code> entrypoints.
+        </DocsCallout>
+
+        <h3>Using env-file</h3>
+        <p>Alternatively, use <code>env-file</code> and <code>print-env</code> to generate shell export statements. When <code>jdk-java-options</code> is enabled, the JVM picks up flags automatically:</p>
         <DocsCodeBlock
           language="bash"
-          :code="usageWithJdkOptions"
+          :code="usageWithEnvFile"
         />
-
-        <DocsCallout type="tip">
-          <strong>JDK_JAVA_OPTIONS recommended:</strong> Using <code>jdk-java-options { enabled = true }</code> is the simplest approach for containers - the JVM automatically reads this environment variable without any command-line changes.
-        </DocsCallout>
 
         <h3>Docker Entrypoint Example</h3>
         <DocsCodeBlock
@@ -330,6 +338,12 @@ exec java -jar /app/my-app.jar`;
 .flow-arrow {
   color: #9ca3af;
   font-size: 1.25rem;
+}
+
+.flow-divider {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 /* Workflow Steps */

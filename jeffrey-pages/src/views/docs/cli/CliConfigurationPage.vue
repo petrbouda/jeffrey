@@ -46,6 +46,7 @@ const fullConfig = `jeffrey-home = "/opt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
 agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
 jfc-settings-path = "/opt/jeffrey/jfc"
+arg-file = "/tmp/jvm.args"
 project {
     workspace-id = "production"
     name = "my-service"
@@ -149,6 +150,21 @@ jdk-java-options {
               <td><code>jfc-settings-path</code></td>
               <td>No</td>
               <td>Path to the directory containing JFC settings files for flight recorder configuration.</td>
+            </tr>
+            <tr>
+              <td><code>env-file</code></td>
+              <td>No</td>
+              <td>Path to write the <code>.env</code> file with shell export statements</td>
+            </tr>
+            <tr>
+              <td><code>arg-file</code></td>
+              <td>No</td>
+              <td>Path to write JVM arguments file (Java @argfile format, one arg per line)</td>
+            </tr>
+            <tr>
+              <td><code>print-env</code></td>
+              <td>No</td>
+              <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
             </tr>
             <tr>
               <td><code>attributes</code></td>
