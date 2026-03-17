@@ -6,6 +6,10 @@
           <i class="bi bi-folder"></i>
           <span>Projects</span>
         </router-link>
+        <router-link to="/quick-analysis" class="nav-pill" active-class="active">
+          <i class="bi bi-lightning-charge"></i>
+          <span>Quick Analysis</span>
+        </router-link>
         <router-link to="/global-scheduler" class="nav-pill" active-class="active">
           <i class="bi bi-calendar-check"></i>
           <span>Global Scheduler</span>

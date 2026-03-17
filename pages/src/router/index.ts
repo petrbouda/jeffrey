@@ -309,6 +309,11 @@ const router = createRouter({
           component: () => import('@/views/projects/ProjectsView.vue')
         },
         {
+          path: 'quick-analysis',
+          name: 'quick-analysis',
+          component: () => import('@/views/global/QuickAnalysisView.vue')
+        },
+        {
           path: 'global-scheduler',
           name: 'global-scheduler',
           component: () => import('@/views/global/GlobalSchedulerView.vue')
