@@ -29,6 +29,7 @@ import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.io.IOException;
+import java.util.function.Function;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
@@ -92,31 +93,20 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     }
 
     public static <T> RowMapper<T> typedMapper(Class<T> type) {
-        return (rs, _) -> {
-            Blob blob = null;
-            try {
-                blob = rs.getBlob("content");
-                if (blob != null) {
-                    return Json.read(streamToString(blob.getBinaryStream()), type);
-                }
-                return null;
-            } catch (SQLException e) {
-                throw new RuntimeException("Cannot retrieve a binary content", e);
-            } finally {
-               if (blob != null) {
-                   blob.free();
-               }
-            }
-        };
+        return blobMapper(content -> Json.read(content, type));
     }
 
     public static <T> RowMapper<T> typedMapper(TypeReference<T> type) {
+        return blobMapper(content -> Json.read(content, type));
+    }
+
+    private static <T> RowMapper<T> blobMapper(Function<String, T> deserializer) {
         return (rs, _) -> {
             Blob blob = null;
             try {
                 blob = rs.getBlob("content");
                 if (blob != null) {
-                    return Json.read(streamToString(blob.getBinaryStream()), type);
+                    return deserializer.apply(streamToString(blob.getBinaryStream()));
                 }
                 return null;
             } catch (SQLException e) {
