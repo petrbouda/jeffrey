@@ -36,6 +36,7 @@ import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventSerializer;
+import pbouda.jeffrey.platform.workspace.consumer.*;
 import pbouda.jeffrey.shared.common.model.workspace.event.InstanceCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.ProjectCreatedEventContent;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
@@ -68,7 +69,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @DuckDBTest(migration = "classpath:db/migration/platform")
@@ -97,6 +97,22 @@ class ProjectsSynchronizerJobIntegrationTest {
     private static DuckDBPersistentQueue<WorkspaceEvent> createQueue(DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);
         return new DuckDBPersistentQueue<>(provider, "workspace-events", new WorkspaceEventSerializer(), FIXED_CLOCK);
+    }
+
+    private static List<WorkspaceEventConsumer> createConsumers(
+            PlatformRepositories platformRepositories,
+            RepositoryStorage.Factory remoteRepositoryStorageFactory,
+            JfrStreamingConsumerManager streamingConsumerManager,
+            SessionFinisher sessionFinisher) {
+
+        return List.of(
+                new CreateProjectWorkspaceEventConsumer(),
+                new InstanceCreatedWorkspaceEventConsumer(),
+                new CreateSessionWorkspaceEventConsumer(platformRepositories, JEFFREY_DIRS, sessionFinisher),
+                new StartStreamingWorkspaceEventConsumer(streamingConsumerManager, platformRepositories),
+                new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
+                new DeleteSessionWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, FIXED_CLOCK),
+                new DeleteProjectWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, JEFFREY_DIRS));
     }
 
     private static WorkspaceEvent projectCreatedEvent(String originProjectId) {
@@ -153,9 +169,11 @@ class ProjectsSynchronizerJobIntegrationTest {
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
+            var consumers = createConsumers(
+                    platformRepositories, remoteRepositoryStorageFactory,
+                    streamingConsumerManager, sessionFinisher);
             var job = new ProjectsSynchronizerJob(
-                    platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
+                    consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
@@ -210,9 +228,11 @@ class ProjectsSynchronizerJobIntegrationTest {
             when(projectManager.projectInstanceRepository())
                     .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
 
+            var consumers = createConsumers(
+                    platformRepositories, remoteRepositoryStorageFactory,
+                    streamingConsumerManager, sessionFinisher);
             var job = new ProjectsSynchronizerJob(
-                    platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
+                    consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
@@ -282,9 +302,11 @@ class ProjectsSynchronizerJobIntegrationTest {
             when(projectManager.projectInstanceRepository())
                     .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
 
+            var consumers = createConsumers(
+                    platformRepositories, remoteRepositoryStorageFactory,
+                    streamingConsumerManager, sessionFinisher);
             var job = new ProjectsSynchronizerJob(
-                    platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
+                    consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);
@@ -348,9 +370,11 @@ class ProjectsSynchronizerJobIntegrationTest {
             when(projectManager.projectInstanceRepository())
                     .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
 
+            var consumers = createConsumers(
+                    platformRepositories, remoteRepositoryStorageFactory,
+                    streamingConsumerManager, sessionFinisher);
             var job = new ProjectsSynchronizerJob(
-                    platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
+                    consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
 
             // Should NOT throw even though first event fails
@@ -417,9 +441,11 @@ class ProjectsSynchronizerJobIntegrationTest {
             when(projectManager.projectInstanceRepository())
                     .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
 
+            var consumers = createConsumers(
+                    platformRepositories, remoteRepositoryStorageFactory,
+                    streamingConsumerManager, sessionFinisher);
             var job = new ProjectsSynchronizerJob(
-                    platformRepositories, remoteRepositoryStorageFactory, streamingConsumerManager,
-                    queue, null, null, null, JEFFREY_DIRS, FIXED_CLOCK, sessionFinisher,
+                    consumers, queue, null, null, null,
                     Duration.ofMinutes(5));
 
             job.executeOnWorkspace(workspaceManager, JOB_DESCRIPTOR, JobContext.EMPTY);

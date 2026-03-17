@@ -60,7 +60,7 @@ class StopStreamingWorkspaceEventConsumerIntegrationTest {
         @Test
         void sessionFinished_unregistersConsumer() {
             var consumer = new StopStreamingWorkspaceEventConsumer(streamingConsumerManager);
-            consumer.on(sessionFinishedEvent(SESSION_ID), JOB_DESCRIPTOR);
+            consumer.on(sessionFinishedEvent(SESSION_ID), JOB_DESCRIPTOR, null);
 
             verify(streamingConsumerManager).unregisterConsumer(SESSION_ID);
         }

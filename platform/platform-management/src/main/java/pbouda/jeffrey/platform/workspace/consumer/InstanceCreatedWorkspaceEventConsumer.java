@@ -37,14 +37,8 @@ public class InstanceCreatedWorkspaceEventConsumer implements WorkspaceEventCons
 
     private static final Logger LOG = LoggerFactory.getLogger(InstanceCreatedWorkspaceEventConsumer.class);
 
-    private final ProjectsManager projectsManager;
-
-    public InstanceCreatedWorkspaceEventConsumer(ProjectsManager projectsManager) {
-        this.projectsManager = projectsManager;
-    }
-
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
         InstanceCreatedEventContent eventContent = Json.read(event.content(), InstanceCreatedEventContent.class);
 
         Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());

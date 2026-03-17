@@ -143,8 +143,8 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
             assertTrue(projectRepo.find().isPresent());
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, jeffreyDirs);
-            consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR);
+                    platformRepositories, repositoryStorageFactory, jeffreyDirs);
+            consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             // 1. Remote sessions deleted
             verify(repositoryStorage).deleteSession("session-001");
@@ -193,8 +193,8 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
             when(repositoryStorageFactory.apply(PROJECT_INFO)).thenThrow(new RuntimeException("Storage unavailable"));
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, jeffreyDirs);
-            consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR);
+                    platformRepositories, repositoryStorageFactory, jeffreyDirs);
+            consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             // SQL cascade should still happen despite remote failure
             var projectRepo = platformRepositories.newProjectRepository(PROJECT_ID);
@@ -220,10 +220,10 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
             var jeffreyDirs = new JeffreyDirs(Path.of("/tmp/test"));
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, jeffreyDirs);
+                    platformRepositories, repositoryStorageFactory, jeffreyDirs);
 
             assertDoesNotThrow(() ->
-                    consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR));
+                    consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager));
 
             verifyNoInteractions(repositoryStorageFactory);
         }
@@ -244,7 +244,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
         @Test
         void onlyApplicable_forProjectDeletedEvents() {
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory,
+                    platformRepositories, repositoryStorageFactory,
                     new JeffreyDirs(Path.of("/tmp/test")));
 
             WorkspaceEvent projectDeleted = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,

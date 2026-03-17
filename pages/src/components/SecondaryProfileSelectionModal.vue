@@ -193,6 +193,9 @@ import { ref, computed, watch } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
 import DirectProfileClient, { ProfileListResponse } from '@/services/api/DirectProfileClient';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
+
+const directProfileClient = new DirectProfileClient();
+const quickAnalysisClient = new QuickAnalysisClient();
 import FormattingService from '@/services/FormattingService';
 import ToastService from '@/services/ToastService';
 import Profile from '@/services/api/model/Profile';
@@ -430,8 +433,8 @@ const loadAllProfiles = async () => {
   loadingProfiles.value = true;
   try {
     const [regularProfiles, quickProfiles] = await Promise.all([
-      DirectProfileClient.listAll(),
-      QuickAnalysisClient.listProfiles()
+      directProfileClient.listAll(),
+      quickAnalysisClient.listProfiles()
     ]);
 
     const mappedQuickProfiles: ProfileListResponse[] = quickProfiles.map(p => ({

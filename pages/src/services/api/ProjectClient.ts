@@ -16,31 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import Project from "@/services/api/model/Project.ts";
+import BasePlatformClient from '@/services/api/BasePlatformClient';
+import Project from '@/services/api/model/Project';
 
-export default class ProjectClient {
-
-    private baseUrl: string;
+export default class ProjectClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + "/workspaces/" + workspaceId + '/projects/' + projectId
+        super(`/workspaces/${workspaceId}/projects/${projectId}`);
     }
 
     async get(): Promise<Project> {
-        return axios.get<Project>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<Project>();
     }
 
     async isInitializing(): Promise<boolean> {
-        return axios.get<boolean>(this.baseUrl + '/initializing', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<boolean>('/initializing');
     }
 
     async delete(): Promise<void> {
-        return axios.delete(this.baseUrl)
-            .then(HttpUtils.RETURN_DATA);
+        return super.del<void>();
     }
 }

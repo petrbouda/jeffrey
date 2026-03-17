@@ -92,9 +92,9 @@ export function useFlamegraphEvents(graphMode: string) {
           loaded.value = true;
           return;
         }
-        data = await EventSummariesClient.differential(profileId, secondaryId);
+        data = await EventSummariesClient.differential(profileId, secondaryId).events();
       } else {
-        data = await EventSummariesClient.primary(profileId);
+        data = await EventSummariesClient.primary(profileId).events();
       }
 
       categorizeEventTypes(data);

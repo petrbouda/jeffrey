@@ -16,48 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import type { ImportantMessage } from '@/services/api/model/ImportantMessage';
 
-export default class ProjectMessagesClient {
-
-    private baseUrl: string;
+export default class ProjectMessagesClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + "/workspaces/" + workspaceId + '/projects/' + projectId + '/messages';
+        super(`/workspaces/${workspaceId}/projects/${projectId}/messages`);
     }
 
-    /**
-     * Retrieves all messages within an optional time range.
-     * @param startMillis Optional start time in epoch milliseconds
-     * @param endMillis Optional end time in epoch milliseconds
-     */
     async getMessages(startMillis?: number, endMillis?: number): Promise<ImportantMessage[]> {
         const params: Record<string, number> = {};
         if (startMillis !== undefined) params.start = startMillis;
         if (endMillis !== undefined) params.end = endMillis;
-
-        return axios.get<ImportantMessage[]>(this.baseUrl, {
-            ...HttpUtils.JSON_ACCEPT_HEADER,
-            params
-        }).then(HttpUtils.RETURN_DATA);
+        return super.get<ImportantMessage[]>('', params);
     }
 
-    /**
-     * Retrieves only alert messages within an optional time range.
-     * @param startMillis Optional start time in epoch milliseconds
-     * @param endMillis Optional end time in epoch milliseconds
-     */
     async getAlerts(startMillis?: number, endMillis?: number): Promise<ImportantMessage[]> {
         const params: Record<string, number> = {};
         if (startMillis !== undefined) params.start = startMillis;
         if (endMillis !== undefined) params.end = endMillis;
-
-        return axios.get<ImportantMessage[]>(this.baseUrl + '/alerts', {
-            ...HttpUtils.JSON_ACCEPT_HEADER,
-            params
-        }).then(HttpUtils.RETURN_DATA);
+        return super.get<ImportantMessage[]>('/alerts', params);
     }
 }

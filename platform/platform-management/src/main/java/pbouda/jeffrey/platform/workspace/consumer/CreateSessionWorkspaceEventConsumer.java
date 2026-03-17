@@ -49,25 +49,22 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private static final Logger LOG = LoggerFactory.getLogger(CreateSessionWorkspaceEventConsumer.class);
 
-    private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
     private final JeffreyDirs jeffreyDirs;
     private final SessionFinisher sessionFinisher;
 
     public CreateSessionWorkspaceEventConsumer(
-            ProjectsManager projectsManager,
             PlatformRepositories platformRepositories,
             JeffreyDirs jeffreyDirs,
             SessionFinisher sessionFinisher) {
 
-        this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
         this.jeffreyDirs = jeffreyDirs;
         this.sessionFinisher = sessionFinisher;
     }
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
         SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
 
         Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());

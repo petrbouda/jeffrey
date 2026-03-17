@@ -137,7 +137,7 @@ const getJobDisplayInfo = (job: JobInfo) => {
 // Toggle job enabled/disabled state
 const toggleJobEnabled = async (job: JobInfo) => {
   try {
-    await GlobalSchedulerClient.updateEnabled(job.id, !job.enabled);
+    await new GlobalSchedulerClient().updateEnabled(job.id, !job.enabled);
     await refreshJobs();
     ToastService.success('Enable Switch', `Job ${job.enabled ? 'disabled' : 'enabled'} successfully`);
   } catch (error: any) {
@@ -152,7 +152,7 @@ const refreshJobs = async () => {
   jobsErrorMessage.value = '';
 
   try {
-    globalJobs.value = await GlobalSchedulerClient.all();
+    globalJobs.value = await new GlobalSchedulerClient().all();
   } catch (error) {
     ToastService.error('Failed to load jobs', 'Cannot load the jobs for Global Scheduler');
   } finally {
@@ -180,7 +180,7 @@ const createJob = async (jobType: string, params: any) => {
     }
 
     // Create job via API
-    await GlobalSchedulerClient.create(jobType, params);
+    await new GlobalSchedulerClient().create(jobType, params);
 
     // Refresh the job list
     await refreshJobs();
@@ -206,7 +206,7 @@ const createJob = async (jobType: string, params: any) => {
 // Delete a global job
 const deleteGlobalJob = async (id: string) => {
   try {
-    await GlobalSchedulerClient.delete(id);
+    await new GlobalSchedulerClient().delete(id);
     await refreshJobs();
     ToastService.success('Global job deleted', 'Global job successfully deleted');
   } catch (error) {
@@ -250,7 +250,7 @@ const filterJobs = async () => {
     return;
   }
 
-  const allJobs = await GlobalSchedulerClient.all();
+  const allJobs = await new GlobalSchedulerClient().all();
   const query = jobSearchQuery.value.toLowerCase();
 
   globalJobs.value = allJobs.filter(job =>

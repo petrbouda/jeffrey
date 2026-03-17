@@ -319,7 +319,7 @@ const chartSeries = computed(() => [
 
 // Lifecycle
 onMounted(() => {
-  AutoAnalysisClient.rules(route.params.profileId as string)
+  new AutoAnalysisClient(route.params.profileId as string).rules()
     .then((data: AnalysisResult[]) => {
       rules.value = data;
       loading.value = false;

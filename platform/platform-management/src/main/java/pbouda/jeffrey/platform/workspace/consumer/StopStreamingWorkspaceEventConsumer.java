@@ -20,6 +20,7 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -39,7 +40,7 @@ public class StopStreamingWorkspaceEventConsumer implements WorkspaceEventConsum
     }
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
         String sessionId = event.originEventId();
         LOG.debug("Stopping streaming for finished session: sessionId={}", sessionId);
         streamingConsumerManager.unregisterConsumer(sessionId);

@@ -16,28 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import HttpUtils from '@/services/HttpUtils';
 import RecordingSession from "@/services/api/model/RecordingSession.ts";
 import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
 import RepositoryStatistics from "@/services/api/model/RepositoryStatistics.ts";
 
-export default class ProjectRepositoryClient {
-    private baseUrl: string;
+export default class ProjectRepositoryClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/repository'
+        super(`/workspaces/${workspaceId}/projects/${projectId}/repository`);
     }
 
     listRecordingSessions(): Promise<RecordingSession[]> {
-        return axios.get<RecordingSession[]>(this.baseUrl + '/sessions', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<RecordingSession[]>('/sessions');
     }
 
     getRepositoryStatistics(): Promise<RepositoryStatistics> {
-        return axios.get<RepositoryStatistics>(this.baseUrl + '/statistics', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<RepositoryStatistics>('/statistics');
     }
 
     copyRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
@@ -46,13 +42,11 @@ export default class ProjectRepositoryClient {
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/sessions/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<void>('/sessions/download', content);
     }
 
     deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
-        return axios.delete<void>(this.baseUrl + '/sessions/' + recordingSession.id)
-            .then(HttpUtils.RETURN_DATA);
+        return super.del<void>('/sessions/' + recordingSession.id);
     }
 
     copySelectedRepositoryFile(sessionId: string, files: RepositoryFile[], merge: boolean): Promise<void> {
@@ -63,8 +57,7 @@ export default class ProjectRepositoryClient {
             merge: merge,
         }
 
-        return axios.post<void>(this.baseUrl + '/recordings/download', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<void>('/recordings/download', content);
     }
 
     deleteSelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
@@ -74,8 +67,7 @@ export default class ProjectRepositoryClient {
             recordingIds: ids,
         }
 
-        return axios.post<void>(this.baseUrl + '/recordings/delete', content, HttpUtils.JSON_CONTENT_TYPE_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<void>('/recordings/delete', content);
     }
 
     async downloadFile(sessionId: string, fileId: string): Promise<void> {

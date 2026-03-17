@@ -16,40 +16,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import JobInfo from "@/services/api/model/JobInfo.ts";
 
-export default class GlobalSchedulerClient {
-    private static baseUrl: string = GlobalVars.internalUrl + '/scheduler'
+export default class GlobalSchedulerClient extends BasePlatformClient {
 
-    static create(jobType: string, params: Map<string, string>): Promise<JobInfo> {
+    constructor() {
+        super('/scheduler');
+    }
+
+    create(jobType: string, params: Map<string, string>): Promise<JobInfo> {
         const content = {
             jobType: jobType,
             params: params,
         };
 
-        return axios.post(GlobalSchedulerClient.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<JobInfo>('', content);
     }
 
-    static all(): Promise<JobInfo[]> {
-        return axios.get<JobInfo[]>(GlobalSchedulerClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    all(): Promise<JobInfo[]> {
+        return super.get<JobInfo[]>();
     }
 
-    static updateEnabled(jobId: string, enabled: boolean) {
+    updateEnabled(jobId: string, enabled: boolean): Promise<any> {
         const content = {
             enabled: enabled,
         };
 
-        return axios.put(GlobalSchedulerClient.baseUrl + '/' + jobId + '/enabled', content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.put<any>('/' + jobId + '/enabled', content);
     }
 
-    static delete(jobId: string) {
-        return axios.delete(GlobalSchedulerClient.baseUrl + '/' + jobId)
-            .then(HttpUtils.RETURN_DATA);
+    delete(jobId: string): Promise<any> {
+        return super.del<any>('/' + jobId);
     }
 }

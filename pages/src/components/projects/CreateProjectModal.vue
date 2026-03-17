@@ -56,6 +56,8 @@ import FormTemplateSelector from '@/components/form/FormTemplateSelector.vue';
 import ProjectsClient from '@/services/api/ProjectsClient';
 import ProjectTemplateInfo from '@/services/api/model/ProjectTemplateInfo';
 import TemplateTarget from '@/services/api/model/TemplateTarget';
+
+const projectsClient = new ProjectsClient();
 import ToastService from '@/services/ToastService';
 import SlugService from '@/services/SlugService';
 import {useModal} from '@/composables/useModal';
@@ -105,7 +107,7 @@ const validateProjectName = () => {
 // Load project templates
 const loadTemplates = async () => {
   try {
-    projectTemplates.value = await ProjectsClient.templates(TemplateTarget.PROJECT);
+    projectTemplates.value = await projectsClient.templates(TemplateTarget.PROJECT);
     // Set default template if available
     if (projectTemplates.value.length > 0) {
       selectedTemplate.value = projectTemplates.value[0].id;
@@ -141,7 +143,7 @@ const createProject = async () => {
         }
 
         // Pass the selected template ID if one is selected, and workspace ID
-        await ProjectsClient.create(
+        await projectsClient.create(
             projectName.value.trim(),
             projectLabel.value.trim(),
             props.selectedWorkspace,

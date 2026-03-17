@@ -43,22 +43,19 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
 
     private static final Logger LOG = LoggerFactory.getLogger(StartStreamingWorkspaceEventConsumer.class);
 
-    private final ProjectsManager projectsManager;
     private final JfrStreamingConsumerManager streamingConsumerManager;
     private final PlatformRepositories platformRepositories;
 
     public StartStreamingWorkspaceEventConsumer(
-            ProjectsManager projectsManager,
             JfrStreamingConsumerManager streamingConsumerManager,
             PlatformRepositories platformRepositories) {
 
-        this.projectsManager = projectsManager;
         this.streamingConsumerManager = streamingConsumerManager;
         this.platformRepositories = platformRepositories;
     }
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
         SessionCreatedEventContent eventContent = Json.read(event.content(), SessionCreatedEventContent.class);
 
         Optional<ProjectManager> projectOpt = projectsManager.findByOriginProjectId(event.projectId());

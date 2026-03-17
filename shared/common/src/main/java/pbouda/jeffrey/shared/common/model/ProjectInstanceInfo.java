@@ -19,6 +19,7 @@
 package pbouda.jeffrey.shared.common.model;
 
 import java.time.Instant;
+import java.util.Set;
 
 public record ProjectInstanceInfo(
         String id,
@@ -33,6 +34,33 @@ public record ProjectInstanceInfo(
         String activeSessionId) {
 
     public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED, EXPIRED
+        PENDING, ACTIVE, FINISHED, EXPIRED;
+
+        /**
+         * Returns the set of statuses that are valid predecessors for transitioning
+         * to this status. Empty set means this is an initial state (set via insert only).
+         */
+        public Set<ProjectInstanceStatus> validFromStatuses() {
+            return switch (this) {
+                case PENDING -> Set.of();
+                case ACTIVE -> Set.of(PENDING);
+                case FINISHED -> Set.of(ACTIVE);
+                case EXPIRED -> Set.of(FINISHED);
+            };
+        }
+
+        /**
+         * Validates that transitioning from the given status to this status is allowed.
+         *
+         * @throws IllegalStateException if the transition is invalid
+         */
+        public void validateTransitionFrom(ProjectInstanceStatus currentStatus) {
+            Set<ProjectInstanceStatus> valid = validFromStatuses();
+            if (!valid.contains(currentStatus)) {
+                throw new IllegalStateException(
+                        "Invalid instance status transition: " + currentStatus + " -> " + this
+                                + " (valid sources: " + valid + ")");
+            }
+        }
     }
 }

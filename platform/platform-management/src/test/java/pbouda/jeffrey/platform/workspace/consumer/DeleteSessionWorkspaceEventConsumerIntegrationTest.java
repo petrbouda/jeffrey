@@ -107,8 +107,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertTrue(sessionsBefore.stream().anyMatch(s -> s.sessionId().equals(SESSION_ID)));
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
-            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR, projectsManager);
 
             // Verify session deleted from DB
             List<ProjectInstanceSessionInfo> sessionsAfter = repoRepository.findUnfinishedSessions();
@@ -136,10 +136,10 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.empty());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
 
             assertDoesNotThrow(() ->
-                    consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR));
+                    consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR, projectsManager));
 
             verifyNoInteractions(repositoryStorageFactory);
         }
@@ -175,8 +175,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertEquals(ProjectInstanceStatus.FINISHED, instanceRepo.find("inst-001").orElseThrow().status());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
-            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR, projectsManager);
 
             // Instance should now be EXPIRED with expiringAt and expiredAt set
             var instance = instanceRepo.find("inst-001").orElseThrow();
@@ -202,8 +202,8 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find("inst-001").orElseThrow().status());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
-            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR, projectsManager);
 
             // Instance should still be ACTIVE with expiringAt set
             var instance = instanceRepo.find("inst-001").orElseThrow();
@@ -228,7 +228,7 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
         @Test
         void onlyApplicable_forSessionDeletedEvents() {
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+                    platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
 
             WorkspaceEvent sessionDeleted = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED, null, NOW, NOW, "test");

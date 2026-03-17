@@ -43,25 +43,22 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private static final Logger LOG = LoggerFactory.getLogger(DeleteSessionWorkspaceEventConsumer.class);
 
-    private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
     private final Clock clock;
 
     public DeleteSessionWorkspaceEventConsumer(
-            ProjectsManager projectsManager,
             PlatformRepositories platformRepositories,
             RepositoryStorage.Factory remoteRepositoryStorageFactory,
             Clock clock) {
 
-        this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
         this.clock = clock;
     }
 
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
         Optional<ProjectManager> project = projectsManager.project(event.projectId());
         if (project.isEmpty()) {
             LOG.error("Project not found for deleting session: project_id: {}", event.projectId());

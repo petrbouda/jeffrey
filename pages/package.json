@@ -8,7 +8,9 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore",
     "format": "prettier --write \"**/*.{js,vue,ts,d.ts}\"",
-    "proto:generate": "node_modules/.bin/pbjs -t static-module -w es6 -o src/proto/flamegraph.js ../service/flamegraph/src/main/proto/flamegraph.proto && node_modules/.bin/pbts -o src/proto/flamegraph.d.ts src/proto/flamegraph.js"
+    "proto:generate": "node_modules/.bin/pbjs -t static-module -w es6 -o src/proto/flamegraph.js ../service/flamegraph/src/main/proto/flamegraph.proto && node_modules/.bin/pbts -o src/proto/flamegraph.d.ts src/proto/flamegraph.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "apexcharts": "^5.10.0",
@@ -36,6 +38,7 @@
     "sass": "^1.77.6",
     "sass-loader": "^14.2.1",
     "typescript": "^5.5.2",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vitest": "^4.1.0"
   }
 }

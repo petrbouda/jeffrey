@@ -26,50 +26,21 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.platform.repository.WorkspacesRepository;
 
 import java.time.Clock;
-import java.util.List;
 import java.util.Optional;
 
-public final class LiveWorkspacesManager implements WorkspacesManager {
+public final class LiveWorkspacesManager extends AbstractTypedWorkspacesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspacesManager.class);
 
     private final Clock clock;
-    private final WorkspacesRepository workspacesRepository;
-    private final WorkspaceManager.Factory workspaceManagerFactory;
 
     public LiveWorkspacesManager(
             Clock clock,
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
+        super(workspacesRepository, workspaceManagerFactory, WorkspaceType.LIVE);
         this.clock = clock;
-        this.workspacesRepository = workspacesRepository;
-        this.workspaceManagerFactory = workspaceManagerFactory;
-    }
-
-    @Override
-    public List<? extends WorkspaceManager> findAll() {
-        return workspacesRepository.findAll().stream()
-                .filter(WorkspaceInfo::isLive)
-                .map(workspaceManagerFactory)
-                .toList();
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findById(String workspaceId) {
-        return workspacesRepository.find(workspaceId)
-                .map(workspaceManagerFactory);
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findByOriginId(String originId) {
-        return workspacesRepository.findByOriginId(originId)
-                .map(workspaceManagerFactory);
-    }
-
-    @Override
-    public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
-        return workspaceManagerFactory.apply(info);
     }
 
     @Override

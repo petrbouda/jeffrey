@@ -51,6 +51,8 @@ import RecordingSession from '@/services/api/model/RecordingSession';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import Workspace from '@/services/api/model/Workspace';
 import WorkspaceType from '@/services/api/model/WorkspaceType';
+
+const workspaceClient = new WorkspaceClient();
 import {useNavigation} from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
@@ -83,7 +85,7 @@ const fetchSessions = async () => {
 
 const fetchWorkspaceInfo = async () => {
   try {
-    const workspaces = await WorkspaceClient.list();
+    const workspaces = await workspaceClient.list();
     workspaceInfo.value = workspaces.find(w => w.id === workspaceId.value) || null;
   } catch (error: any) {
     console.error('Failed to load workspace info:', error);

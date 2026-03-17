@@ -704,6 +704,8 @@ import {useNavigation} from '@/composables/useNavigation';
 import ToastService from '@/services/ToastService';
 import Profile from "@/services/api/model/Profile.ts";
 import DirectProfileClient from "@/services/api/DirectProfileClient.ts";
+
+const directProfileClient = new DirectProfileClient();
 import ProfileInfo from "@/services/api/model/ProfileInfo.ts";
 import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
@@ -814,7 +816,7 @@ watch(() => route.path, () => {
 onMounted(async () => {
   try {
     // Fetch profile details using direct profile client (simplified URL)
-    const profileWithContext = await DirectProfileClient.get(profileId) as ProfileWithContext;
+    const profileWithContext = await directProfileClient.getById(profileId) as ProfileWithContext;
     profile.value = profileWithContext;
 
     // Store profile context in profileStore for navigation
@@ -844,7 +846,7 @@ onMounted(async () => {
       try {
         loadingProfiles.value = true;
         // Load secondary profile using direct client
-        const secondaryWithContext = await DirectProfileClient.get(savedProfile.id);
+        const secondaryWithContext = await directProfileClient.getById(savedProfile.id);
         secondaryProfile.value = secondaryWithContext;
       } catch (error) {
         console.error('Failed to load secondary profile:', error);

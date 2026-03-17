@@ -16,48 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import JobInfo from "@/services/api/model/JobInfo.ts";
+import BasePlatformClient from '@/services/api/BasePlatformClient';
+import JobInfo from '@/services/api/model/JobInfo';
 
-export default class ProjectSchedulerClient {
-    private baseUrl: string;
+export default class ProjectSchedulerClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/scheduler'
+        super(`/workspaces/${workspaceId}/projects/${projectId}/scheduler`);
     }
 
-    create(jobType: string, params: Map<string, string>) : Promise<JobInfo> {
-        // Convert Map to regular object for JSON serialization
-        const paramsObject = Object.fromEntries(params);
-
+    create(jobType: string, params: Map<string, string>): Promise<JobInfo> {
         const content = {
             jobType: jobType,
-            params: paramsObject,
+            params: Object.fromEntries(params),
         };
-
-
-        return axios.post(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<JobInfo>('', content);
     }
 
-    all() : Promise<JobInfo[]> {
-        return axios.get<JobInfo[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    all(): Promise<JobInfo[]> {
+        return super.get<JobInfo[]>();
     }
 
-    updateEnabled(jobId: string, enabled: boolean) {
-        const content = {
-            enabled: enabled,
-        };
-
-        return axios.put(this.baseUrl + '/' + jobId + '/enabled', content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    updateEnabled(jobId: string, enabled: boolean): Promise<void> {
+        return super.put<void>(`/${jobId}/enabled`, { enabled });
     }
 
-    delete(jobId: string) {
-        return axios.delete(this.baseUrl + '/' + jobId)
-            .then(HttpUtils.RETURN_DATA);
+    delete(jobId: string): Promise<void> {
+        return super.del<void>(`/${jobId}`);
     }
 }

@@ -16,27 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Workspace from '@/services/api/model/Workspace';
 
-export default class RemoteWorkspaceClient {
+export default class RemoteWorkspaceClient extends BasePlatformClient {
 
-    private static baseUrl = GlobalVars.internalUrl + '/remote-workspaces';
-
-    static async listRemote(remoteUrl: string): Promise<Workspace[]> {
-        return axios.get<Workspace[]>(
-            RemoteWorkspaceClient.baseUrl, { params: { remoteUrl } })
-            .then(HttpUtils.RETURN_DATA);
+    constructor() {
+        super('/remote-workspaces');
     }
 
-    static async createRemote(remoteUrl: string, workspaceIds: string[]): Promise<void> {
+    async listRemote(remoteUrl: string): Promise<Workspace[]> {
+        return super.get<Workspace[]>('', {remoteUrl});
+    }
+
+    async createRemote(remoteUrl: string, workspaceIds: string[]): Promise<void> {
         const request = {
             remoteUrl: remoteUrl,
             workspaceIds: workspaceIds
         };
-        return axios.post(RemoteWorkspaceClient.baseUrl + "/create", request, HttpUtils.JSON_CONTENT_TYPE_HEADER)
-            .then(() => undefined);
+        return super.post<void>('/create', request);
     }
 }

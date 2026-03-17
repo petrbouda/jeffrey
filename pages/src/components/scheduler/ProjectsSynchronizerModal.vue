@@ -41,6 +41,8 @@ import FormTemplateSelector from '@/components/form/FormTemplateSelector.vue';
 import ProjectsClient from '@/services/api/ProjectsClient';
 import ProjectTemplateInfo from '@/services/api/model/ProjectTemplateInfo';
 import TemplateTarget from '@/services/api/model/TemplateTarget';
+
+const projectsClient = new ProjectsClient();
 import { useModal } from '@/composables/useModal';
 
 interface Props {
@@ -73,7 +75,7 @@ const selectedTemplate = ref<string | null>(null);
 // Load project templates
 const loadTemplates = async () => {
   try {
-    projectTemplates.value = await ProjectsClient.templates(TemplateTarget.GLOBAL_SCHEDULER);
+    projectTemplates.value = await projectsClient.templates(TemplateTarget.GLOBAL_SCHEDULER);
   } catch (error) {
     console.error('Failed to load project templates:', error);
   }

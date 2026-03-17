@@ -16,17 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import HttpUtils from '@/services/HttpUtils';
-import Recording from "@/services/api/model/Recording.ts";
+import Recording from '@/services/api/model/Recording';
 
-export default class ProjectRecordingClient {
-
-    private baseUrl: string;
+export default class ProjectRecordingClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/recordings';
+        super(`/workspaces/${workspaceId}/projects/${projectId}/recordings`);
     }
 
     async upload(file: File, folderId: string | null): Promise<void> {
@@ -41,13 +39,11 @@ export default class ProjectRecordingClient {
     }
 
     async list(): Promise<Recording[]> {
-        return axios.get<Recording[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<Recording[]>();
     }
 
-    async delete(id: string) {
-        return axios.delete(this.baseUrl + "/" + id, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    async delete(id: string): Promise<void> {
+        return super.del<void>(`/${id}`);
     }
 
     async downloadFile(recordingId: string, fileId: string): Promise<void> {

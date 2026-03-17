@@ -26,23 +26,17 @@ import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConverter;
-import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
-import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
-import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventConsumerType;
-import pbouda.jeffrey.platform.workspace.consumer.*;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.platform.workspace.consumer.WorkspaceEventConsumer;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
@@ -53,36 +47,21 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
 
     private static final WorkspaceEventConsumerType CONSUMER = WorkspaceEventConsumerType.PROJECT_SYNCHRONIZER_CONSUMER;
 
-    private final PlatformRepositories platformRepositories;
-    private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
-    private final JfrStreamingConsumerManager streamingConsumerManager;
+    private final List<WorkspaceEventConsumer> consumers;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
-    private final JeffreyDirs jeffreyDirs;
-    private final Clock clock;
-    private final SessionFinisher sessionFinisher;
     private final Duration period;
 
     public ProjectsSynchronizerJob(
-            PlatformRepositories platformRepositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            JfrStreamingConsumerManager streamingConsumerManager,
+            List<WorkspaceEventConsumer> consumers,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             WorkspacesManager workspacesManager,
             SchedulerManager schedulerManager,
             JobDescriptorFactory jobDescriptorFactory,
-            JeffreyDirs jeffreyDirs,
-            Clock clock,
-            SessionFinisher sessionFinisher,
             Duration period) {
 
         super(workspacesManager, schedulerManager, jobDescriptorFactory);
-        this.platformRepositories = platformRepositories;
-        this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
-        this.streamingConsumerManager = streamingConsumerManager;
+        this.consumers = consumers;
         this.workspaceEventQueue = workspaceEventQueue;
-        this.jeffreyDirs = jeffreyDirs;
-        this.clock = clock;
-        this.sessionFinisher = sessionFinisher;
         this.period = period;
     }
 
@@ -90,16 +69,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     protected void executeOnWorkspace(
             WorkspaceManager workspaceManager, ProjectsSynchronizerJobDescriptor jobDescriptor, JobContext context) {
         WorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
-
         ProjectsManager projectsManager = workspaceManager.projectsManager();
-        List<WorkspaceEventConsumer> consumers = List.of(
-                new CreateProjectWorkspaceEventConsumer(projectsManager),
-                new InstanceCreatedWorkspaceEventConsumer(projectsManager),
-                new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, sessionFinisher),
-                new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
-                new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
-                new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, clock),
-                new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, jeffreyDirs));
 
         String workspaceId = workspaceInfo.id();
         List<QueueEntry<WorkspaceEvent>> entries = workspaceEventQueue.poll(workspaceId, CONSUMER.name());
@@ -122,7 +92,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
             try {
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
-                        consumer.on(event, jobDescriptor);
+                        consumer.on(event, jobDescriptor, projectsManager);
                         LOG.debug("Successfully processed: event_type={} event_id={} consumer={}",
                                 event.eventType(), entry.offset(), consumer.getClass().getSimpleName());
                     }

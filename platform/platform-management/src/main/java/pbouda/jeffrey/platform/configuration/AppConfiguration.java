@@ -31,6 +31,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import pbouda.jeffrey.platform.JeffreyVersion;
 import pbouda.jeffrey.platform.appinitializer.CopyLibsInitializer;
+import pbouda.jeffrey.platform.configuration.properties.JobProperties;
 import pbouda.jeffrey.platform.configuration.properties.ProjectProperties;
 import pbouda.jeffrey.platform.manager.ProfilesManager;
 import pbouda.jeffrey.platform.manager.ProfilesManagerImpl;
@@ -97,6 +98,7 @@ import static pbouda.jeffrey.platform.configuration.GlobalJobsConfiguration.PROJ
 @Import({ProfilesConfiguration.class, JobsConfiguration.class})
 @EnableConfigurationProperties({
         ProjectProperties.class,
+        JobProperties.class,
 })
 public class AppConfiguration {
 

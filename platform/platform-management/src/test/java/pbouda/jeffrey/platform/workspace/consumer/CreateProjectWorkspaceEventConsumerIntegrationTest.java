@@ -93,8 +93,8 @@ class CreateProjectWorkspaceEventConsumerIntegrationTest {
             when(projectManager.repositoryManager()).thenReturn(repositoryManager);
             when(repositoryManager.info()).thenReturn(Optional.empty());
 
-            var consumer = new CreateProjectWorkspaceEventConsumer(projectsManager);
-            consumer.on(projectCreatedEvent(), JOB_DESCRIPTOR);
+            var consumer = new CreateProjectWorkspaceEventConsumer();
+            consumer.on(projectCreatedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             ArgumentCaptor<CreateProject> captor = ArgumentCaptor.forClass(CreateProject.class);
             verify(projectsManager).create(captor.capture());
@@ -142,8 +142,8 @@ class CreateProjectWorkspaceEventConsumerIntegrationTest {
             when(projectManager.repositoryManager()).thenReturn(repositoryManager);
             when(repositoryManager.info()).thenReturn(Optional.empty());
 
-            var consumer = new CreateProjectWorkspaceEventConsumer(projectsManager);
-            consumer.on(projectCreatedEvent(), JOB_DESCRIPTOR);
+            var consumer = new CreateProjectWorkspaceEventConsumer();
+            consumer.on(projectCreatedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             // Project creation should NOT be called
             verify(projectsManager, never()).create(any());
@@ -158,8 +158,8 @@ class CreateProjectWorkspaceEventConsumerIntegrationTest {
             when(projectManager.repositoryManager()).thenReturn(repositoryManager);
             when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
 
-            var consumer = new CreateProjectWorkspaceEventConsumer(projectsManager);
-            consumer.on(projectCreatedEvent(), JOB_DESCRIPTOR);
+            var consumer = new CreateProjectWorkspaceEventConsumer();
+            consumer.on(projectCreatedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             verify(projectsManager, never()).create(any());
             verify(repositoryManager, never()).create(any());
@@ -194,8 +194,8 @@ class CreateProjectWorkspaceEventConsumerIntegrationTest {
             when(projectManager.repositoryManager()).thenReturn(repositoryManager);
             when(repositoryManager.info()).thenReturn(Optional.empty());
 
-            var consumer = new CreateProjectWorkspaceEventConsumer(projectsManager);
-            consumer.on(event, JOB_DESCRIPTOR);
+            var consumer = new CreateProjectWorkspaceEventConsumer();
+            consumer.on(event, JOB_DESCRIPTOR, projectsManager);
 
             ArgumentCaptor<CreateProject> captor = ArgumentCaptor.forClass(CreateProject.class);
             verify(projectsManager).create(captor.capture());
@@ -220,7 +220,7 @@ class CreateProjectWorkspaceEventConsumerIntegrationTest {
 
         @Test
         void onlyApplicable_forProjectCreatedEvents() {
-            var consumer = new CreateProjectWorkspaceEventConsumer(projectsManager);
+            var consumer = new CreateProjectWorkspaceEventConsumer();
 
             WorkspaceEvent projectCreated = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_CREATED, null, NOW, NOW, "test");

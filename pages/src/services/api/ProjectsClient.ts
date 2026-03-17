@@ -16,25 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Project from "@/services/api/model/Project.ts";
 import ProjectTemplateInfo from "@/services/api/model/ProjectTemplateInfo.ts";
 import TemplateTarget from "@/services/api/model/TemplateTarget.ts";
 
-export default class ProjectsClient {
+export default class ProjectsClient extends BasePlatformClient {
 
-    private static baseUrl = GlobalVars.internalUrl + '/projects';
-    private static workspaceBaseUrl = GlobalVars.internalUrl + '/workspaces';
-
-    static async list(workspaceId: string): Promise<Project[]> {
-        return axios.get<Project[]>(
-            ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    constructor() {
+        super('');
     }
 
-    static async create(name: string, label: string, workspaceId: string, templateId?: string, originProjectId?: string): Promise<Project> {
+    async list(workspaceId: string): Promise<Project[]> {
+        return super.get<Project[]>(`/workspaces/${workspaceId}/projects`);
+    }
+
+    async create(name: string, label: string, workspaceId: string, templateId?: string, originProjectId?: string): Promise<Project> {
         const content: any = {name: name, label: label};
         if (templateId) {
             content.templateId = templateId;
@@ -42,23 +39,14 @@ export default class ProjectsClient {
         if (originProjectId) {
             content.originProjectId = originProjectId;
         }
-        return axios.post(
-            ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects", content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<Project>(`/workspaces/${workspaceId}/projects`, content);
     }
 
-    static async templates(target?: TemplateTarget): Promise<ProjectTemplateInfo[]> {
-        const url = ProjectsClient.baseUrl + '/templates';
-
-        return axios.get<ProjectTemplateInfo[]>(url, {
-            headers: {Accept: 'application/json'},
-            params: {target: target},
-        }).then(HttpUtils.RETURN_DATA);
+    async templates(target?: TemplateTarget): Promise<ProjectTemplateInfo[]> {
+        return super.get<ProjectTemplateInfo[]>('/projects/templates', {target: target});
     }
 
-    static async namespaces(workspaceId: string): Promise<string[]> {
-        return axios.get<string[]>(
-            ProjectsClient.workspaceBaseUrl + "/" + workspaceId + "/projects/namespaces", HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    async namespaces(workspaceId: string): Promise<string[]> {
+        return super.get<string[]>(`/workspaces/${workspaceId}/projects/namespaces`);
     }
 }

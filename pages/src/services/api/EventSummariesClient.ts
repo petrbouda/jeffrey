@@ -16,31 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import axios from "axios";
-import HttpUtils from "@/services/HttpUtils";
-import GlobalVars from "@/services/GlobalVars";
+import BaseProfileClient from '@/services/api/BaseProfileClient';
 import EventSummary from "@/services/api/model/EventSummary";
 
-export default abstract class EventSummariesClient {
+export default class EventSummariesClient extends BaseProfileClient {
 
-    /**
-     * Get event summaries for a primary profile using simplified URL.
-     */
-    public static primary(profileId: string): Promise<EventSummary[]> {
-        const baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph';
-        return EventSummariesClient.eventSummaries(baseUrl);
+    private constructor(profileId: string, featurePath: string) {
+        super(profileId, featurePath);
     }
 
     /**
-     * Get event summaries for differential analysis using simplified URL.
+     * Create a client for primary profile event summaries.
      */
-    public static differential(primaryProfileId: string, secondaryProfileId: string): Promise<EventSummary[]> {
-        const baseUrl = GlobalVars.internalUrl + '/profiles/' + primaryProfileId + '/diff/' + secondaryProfileId + '/differential-flamegraph';
-        return EventSummariesClient.eventSummaries(baseUrl);
+    static primary(profileId: string): EventSummariesClient {
+        return new EventSummariesClient(profileId, 'flamegraph');
     }
 
-    private static eventSummaries(baseUrl: string): Promise<EventSummary[]> {
-        return axios.get<EventSummary[]>(baseUrl + '/events', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
+    /**
+     * Create a client for differential analysis event summaries.
+     */
+    static differential(primaryProfileId: string, secondaryProfileId: string): EventSummariesClient {
+        return new EventSummariesClient(primaryProfileId, `diff/${secondaryProfileId}/differential-flamegraph`);
+    }
+
+    events(): Promise<EventSummary[]> {
+        return super.get<EventSummary[]>('/events');
     }
 }

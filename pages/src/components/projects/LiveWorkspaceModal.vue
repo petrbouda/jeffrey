@@ -64,6 +64,8 @@ import BaseModal from '@/components/BaseModal.vue';
 import FormInput from '@/components/form/FormInput.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import CreateWorkspaceRequest from '@/services/api/model/CreateWorkspaceRequest';
+
+const workspaceClient = new WorkspaceClient();
 import ToastService from '@/services/ToastService';
 import SlugService from '@/services/SlugService';
 import {useModal} from '@/composables/useModal';
@@ -141,7 +143,7 @@ const addWorkspace = async () => {
         useCustomPath.value ? undefined : workspacePath.value.trim() || undefined
       );
 
-      const createdWorkspace = await WorkspaceClient.create(request);
+      const createdWorkspace = await workspaceClient.create(request);
 
       ToastService.success('Workspace Added!', `"${createdWorkspace.name}" workspace has been created`);
 

@@ -502,7 +502,7 @@ const chartSeries = computed(() => [
 
 // Lifecycle
 onMounted(() => {
-  GuardianClient.list(route.params.profileId as string)
+  new GuardianClient(route.params.profileId as string).list()
     .then((data: GuardResponse[]) => {
       guards.value = data;
       loading.value = false;

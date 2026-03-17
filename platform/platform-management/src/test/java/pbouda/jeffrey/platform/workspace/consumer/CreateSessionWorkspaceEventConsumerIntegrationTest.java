@@ -135,8 +135,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         newSessionOriginCreatedAt, NOW, "test");
 
                 var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, sessionFinisher);
-                consumer.on(event, JOB_DESCRIPTOR);
+                        platformRepositories, JEFFREY_DIRS, sessionFinisher);
+                consumer.on(event, JOB_DESCRIPTOR, projectsManager);
 
                 var pathCaptor = ArgumentCaptor.forClass(Path.class);
                 var fallbackCaptor = ArgumentCaptor.forClass(Instant.class);
@@ -198,8 +198,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                         newSessionOriginCreatedAt, NOW, "test");
 
                 var consumer = new CreateSessionWorkspaceEventConsumer(
-                        projectsManager, platformRepositories, JEFFREY_DIRS, sessionFinisher);
-                consumer.on(event, JOB_DESCRIPTOR);
+                        platformRepositories, JEFFREY_DIRS, sessionFinisher);
+                consumer.on(event, JOB_DESCRIPTOR, projectsManager);
 
                 verify(sessionFinisher).forceFinish(
                         any(ProjectRepositoryRepository.class),
@@ -230,7 +230,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
         @Test
         void sessionCreation_transitionsInstanceToActive(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-and-instance.sql");
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-pending-instance.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var clock = new MutableClock(NOW);
             var realPlatformRepositories = new pbouda.jeffrey.provider.platform.JdbcPlatformRepositories(provider, clock);
@@ -242,8 +242,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
             var instanceRepo = realPlatformRepositories.newProjectInstanceRepository(PROJECT_ID);
 
-            // Set instance to PENDING to test PENDING → ACTIVE
-            instanceRepo.updateStatus(INSTANCE_ID, ProjectInstanceStatus.PENDING);
+            // Instance starts as PENDING
             assertEquals(ProjectInstanceStatus.PENDING, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
 
             SessionCreatedEventContent content = new SessionCreatedEventContent(
@@ -255,8 +254,8 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                     NOW, NOW, "test");
 
             var consumer = new CreateSessionWorkspaceEventConsumer(
-                    projectsManager, realPlatformRepositories, JEFFREY_DIRS, sessionFinisher);
-            consumer.on(event, JOB_DESCRIPTOR);
+                    realPlatformRepositories, JEFFREY_DIRS, sessionFinisher);
+            consumer.on(event, JOB_DESCRIPTOR, projectsManager);
 
             // Instance should now be ACTIVE
             assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find(INSTANCE_ID).orElseThrow().status());

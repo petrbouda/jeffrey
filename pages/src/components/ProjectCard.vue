@@ -42,6 +42,8 @@ import {useNavigation} from '@/composables/useNavigation';
 import ProjectsClient from "@/services/api/ProjectsClient.ts";
 import ToastService from "@/services/ToastService.ts";
 
+const projectsClient = new ProjectsClient();
+
 const props = defineProps<{
   project: Project;
   workspaceId: string;
@@ -55,7 +57,7 @@ const moveToProject = async (projectId: string) => {
   if (props.project.workspaceType === WorkspaceType.REMOTE && props.project.isVirtual) {
     try {
       // Create project in the same remote workspace with originProjectId set to remote project's originId
-      const createdProject = await ProjectsClient.create(
+      const createdProject = await projectsClient.create(
           props.project.name,
           Project.displayName(props.project),
           props.workspaceId,  // Use the current REMOTE workspace ID

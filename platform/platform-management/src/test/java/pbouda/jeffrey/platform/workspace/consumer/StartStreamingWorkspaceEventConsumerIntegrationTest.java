@@ -119,8 +119,8 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
             when(repositoryManager.info()).thenReturn(Optional.of(REPOSITORY_INFO));
 
             var consumer = new StartStreamingWorkspaceEventConsumer(
-                    projectsManager, streamingConsumerManager, platformRepositories);
-            consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR);
+                    streamingConsumerManager, platformRepositories);
+            consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             // Verify registerConsumer was called with correct arguments
             ArgumentCaptor<ProjectInstanceSessionInfo> sessionCaptor =
@@ -155,10 +155,10 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.empty());
 
             var consumer = new StartStreamingWorkspaceEventConsumer(
-                    projectsManager, streamingConsumerManager, platformRepositories);
+                    streamingConsumerManager, platformRepositories);
 
             assertDoesNotThrow(() ->
-                    consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR));
+                    consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR, projectsManager));
 
             verifyNoInteractions(streamingConsumerManager);
         }
@@ -190,10 +190,10 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
             when(repositoryManager.info()).thenReturn(Optional.empty());
 
             var consumer = new StartStreamingWorkspaceEventConsumer(
-                    projectsManager, streamingConsumerManager, platformRepositories);
+                    streamingConsumerManager, platformRepositories);
 
             assertDoesNotThrow(() ->
-                    consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR));
+                    consumer.on(sessionCreatedEvent(), JOB_DESCRIPTOR, projectsManager));
 
             verifyNoInteractions(streamingConsumerManager);
         }
@@ -214,7 +214,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
         @Test
         void onlyApplicable_forSessionCreatedEvents() {
             var consumer = new StartStreamingWorkspaceEventConsumer(
-                    projectsManager, streamingConsumerManager, platformRepositories);
+                    streamingConsumerManager, platformRepositories);
 
             WorkspaceEvent sessionCreated = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED, null, NOW, NOW, "test");

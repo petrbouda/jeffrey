@@ -16,42 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BaseProfileClient from '@/services/api/BaseProfileClient';
 import EventType from "@/services/viewer/model/EventType.ts";
 import EventFieldDescription from "@/services/viewer/model/EventFieldDescription.ts";
 import EventTypeDescription from "@/services/viewer/model/EventTypeDescription.ts";
 
-export default class EventViewerClient {
-
-    private baseUrl: string;
+export default class EventViewerClient extends BaseProfileClient {
 
     constructor(profileId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/viewer';
+        super(profileId, 'viewer');
     }
 
     eventTypes(): Promise<EventTypeDescription[]> {
-        return axios.get<EventTypeDescription[]>(
-            this.baseUrl + '/events/types', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<EventTypeDescription[]>('/events/types');
     }
 
     eventTypesTree(): Promise<EventType[]> {
-        return axios.get<EventType[]>(
-            this.baseUrl + '/events/types/tree', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<EventType[]>('/events/types/tree');
     }
 
     events(eventType: string): Promise<Record<string, string | number>[]> {
-        return axios.get<Record<string, string | number>[]>(
-            this.baseUrl + '/events/' + eventType, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<Record<string, string | number>[]>('/events/' + eventType);
     }
 
     eventColumns(eventType: string): Promise<EventFieldDescription[]> {
-        return axios.get<EventFieldDescription[]>(
-            this.baseUrl + '/events/' + eventType + '/columns', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<EventFieldDescription[]>('/events/' + eventType + '/columns');
     }
 }

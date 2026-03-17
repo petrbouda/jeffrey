@@ -16,9 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import { ProfileWithContext } from '@/stores/profileStore';
 
 /**
@@ -42,24 +40,23 @@ export interface ProfileListResponse {
  * Direct profile API client that uses simplified URLs.
  * Works with /api/internal/profiles endpoints without requiring workspaceId/projectId.
  */
-export default class DirectProfileClient {
-  private static readonly BASE_URL = GlobalVars.internalUrl + '/profiles';
+export default class DirectProfileClient extends BasePlatformClient {
+
+  constructor() {
+    super('/profiles');
+  }
 
   /**
    * Lists all profiles across all workspaces and projects.
    */
-  static async listAll(): Promise<ProfileListResponse[]> {
-    return axios
-      .get<ProfileListResponse[]>(this.BASE_URL, HttpUtils.JSON_ACCEPT_HEADER)
-      .then(HttpUtils.RETURN_DATA);
+  async listAll(): Promise<ProfileListResponse[]> {
+    return super.get<ProfileListResponse[]>();
   }
 
   /**
    * Gets a single profile by ID with its workspace and project context.
    */
-  static async get(profileId: string): Promise<ProfileWithContext> {
-    return axios
-      .get<ProfileWithContext>(`${this.BASE_URL}/${profileId}`, HttpUtils.JSON_ACCEPT_HEADER)
-      .then(HttpUtils.RETURN_DATA);
+  async getById(profileId: string): Promise<ProfileWithContext> {
+    return super.get<ProfileWithContext>(`/${profileId}`);
   }
 }

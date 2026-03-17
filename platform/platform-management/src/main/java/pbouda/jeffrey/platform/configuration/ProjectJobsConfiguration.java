@@ -21,6 +21,7 @@ package pbouda.jeffrey.platform.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.platform.configuration.properties.JobProperties;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
@@ -51,23 +52,21 @@ public class ProjectJobsConfiguration {
 
     private static final String PROJECT_SCHEDULER = "PROJECT_SCHEDULER";
 
-    private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
-
     private final RepositoryStorage.Factory repositoryStorageFactory;
     private final LiveWorkspacesManager liveWorkspacesManager;
     private final JobDescriptorFactory jobDescriptorFactory;
-    private final Duration defaultPeriod;
+    private final JobProperties jobProperties;
 
     public ProjectJobsConfiguration(
             LiveWorkspacesManager liveWorkspacesManager,
             RepositoryStorage.Factory repositoryStorageFactory,
             JobDescriptorFactory jobDescriptorFactory,
-            @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
+            JobProperties jobProperties) {
 
         this.liveWorkspacesManager = liveWorkspacesManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
-        this.defaultPeriod = defaultPeriod == null ? ONE_MINUTE : defaultPeriod;
         this.repositoryStorageFactory = repositoryStorageFactory;
+        this.jobProperties = jobProperties;
     }
 
     @Bean(name = PROJECT_SCHEDULER, destroyMethod = "close")
@@ -78,71 +77,65 @@ public class ProjectJobsConfiguration {
     @Bean
     public ProjectInstanceSessionCleanerJob projectInstanceSessionCleanerJob(
             Clock clock,
-            PlatformRepositories platformRepositories,
-            @Value("${jeffrey.job.project-instance-session-cleaner.period:}") Duration jobPeriod) {
+            PlatformRepositories platformRepositories) {
         return new ProjectInstanceSessionCleanerJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                jobPeriod == null ? defaultPeriod : jobPeriod,
+                jobProperties.resolvePeriod("project-instance-session-cleaner"),
                 clock,
                 platformRepositories);
     }
 
     @Bean
-    public ProjectInstanceRecordingCleanerJob projectInstanceRecordingCleanerJob(
-            @Value("${jeffrey.job.project-instance-recording-cleaner.period:}") Duration jobPeriod) {
+    public ProjectInstanceRecordingCleanerJob projectInstanceRecordingCleanerJob() {
         return new ProjectInstanceRecordingCleanerJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobProperties.resolvePeriod("project-instance-recording-cleaner"));
     }
 
     @Bean
-    public RepositoryCompressionProjectJob repositoryCompressionProjectJob(
-            @Value("${jeffrey.job.repository-compression.period:}") Duration jobPeriod) {
+    public RepositoryCompressionProjectJob repositoryCompressionProjectJob() {
         return new RepositoryCompressionProjectJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobProperties.resolvePeriod("repository-compression"));
     }
 
     @Bean
-    public RecordingIntervalGeneratorProjectJob recordingGeneratorProjectJob(
-            @Value("${jeffrey.job.recording-generator.period:}") Duration jobPeriod) {
+    public RecordingIntervalGeneratorProjectJob recordingGeneratorProjectJob() {
         return new RecordingIntervalGeneratorProjectJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobProperties.resolvePeriod("recording-generator"));
     }
 
     @Bean
     public ProjectRecordingStorageSynchronizerJob projectRecordingStorageSynchronizerJob(
             CompositeWorkspacesManager compositeWorkspacesManager,
             PlatformRepositories platformRepositories,
-            RecordingStorage recordingStorage,
-            @Value("${jeffrey.job.project-recording-storage-synchronizer.period:}") Duration jobPeriod) {
+            RecordingStorage recordingStorage) {
 
         return new ProjectRecordingStorageSynchronizerJob(
                 compositeWorkspacesManager,
                 jobDescriptorFactory,
                 platformRepositories,
                 recordingStorage,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobProperties.resolvePeriod("project-recording-storage-synchronizer"));
     }
 
     @Bean
     public ExpiredInstanceCleanerJob expiredInstanceCleanerJob(
             Clock clock,
-            PlatformRepositories platformRepositories,
-            @Value("${jeffrey.job.expired-instance-cleaner.period:1h}") Duration jobPeriod) {
+            PlatformRepositories platformRepositories) {
         return new ExpiredInstanceCleanerJob(
                 liveWorkspacesManager,
                 jobDescriptorFactory,
-                jobPeriod,
+                jobProperties.resolvePeriod("expired-instance-cleaner", Duration.ofHours(1)),
                 clock,
                 platformRepositories);
     }
@@ -177,14 +170,13 @@ public class ProjectJobsConfiguration {
             JeffreyDirs jeffreyDirs,
             PlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher,
-            @Value("${jeffrey.job.session-finished-detector.period:10s}") Duration jobPeriod,
             @Value("${jeffrey.platform.streaming.heartbeat-timeout:10s}") Duration heartbeatTimeout) {
 
         return new SessionFinishedDetectorProjectJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                jobPeriod,
+                jobProperties.resolvePeriod("session-finished-detector", Duration.ofSeconds(10)),
                 heartbeatTimeout,
                 clock,
                 jeffreyDirs,

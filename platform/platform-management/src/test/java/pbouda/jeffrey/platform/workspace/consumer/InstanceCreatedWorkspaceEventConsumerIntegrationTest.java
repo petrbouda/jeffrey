@@ -90,8 +90,8 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
             when(projectManager.info()).thenReturn(PROJECT_INFO);
             when(projectManager.projectInstanceRepository()).thenReturn(instanceRepo);
 
-            var consumer = new InstanceCreatedWorkspaceEventConsumer(projectsManager);
-            consumer.on(instanceCreatedEvent("inst-new-001"), JOB_DESCRIPTOR);
+            var consumer = new InstanceCreatedWorkspaceEventConsumer();
+            consumer.on(instanceCreatedEvent("inst-new-001"), JOB_DESCRIPTOR, projectsManager);
 
             Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-new-001");
             assertTrue(instance.isPresent());
@@ -126,8 +126,8 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
             when(projectManager.projectInstanceRepository()).thenReturn(instanceRepo);
 
             // inst-001 already exists from SQL fixture
-            var consumer = new InstanceCreatedWorkspaceEventConsumer(projectsManager);
-            consumer.on(instanceCreatedEvent("inst-001"), JOB_DESCRIPTOR);
+            var consumer = new InstanceCreatedWorkspaceEventConsumer();
+            consumer.on(instanceCreatedEvent("inst-001"), JOB_DESCRIPTOR, projectsManager);
 
             // Should still have exactly one instance (not duplicated)
             var allInstances = instanceRepo.findAll();
@@ -146,11 +146,11 @@ class InstanceCreatedWorkspaceEventConsumerIntegrationTest {
         void projectNotFound_noOp(DataSource dataSource) {
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.empty());
 
-            var consumer = new InstanceCreatedWorkspaceEventConsumer(projectsManager);
+            var consumer = new InstanceCreatedWorkspaceEventConsumer();
 
             // Should not throw
             assertDoesNotThrow(() ->
-                    consumer.on(instanceCreatedEvent("inst-001"), JOB_DESCRIPTOR));
+                    consumer.on(instanceCreatedEvent("inst-001"), JOB_DESCRIPTOR, projectsManager));
         }
     }
 }

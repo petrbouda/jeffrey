@@ -192,6 +192,8 @@ import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceType from '@/services/api/model/WorkspaceType';
+
+const workspaceClient = new WorkspaceClient();
 import { EventContentParser } from '@/services/EventContentParser';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
@@ -222,7 +224,7 @@ const eventDetailsModal = ref<InstanceType<typeof BaseModal>>();
 // Fetch workspaces function
 const refreshWorkspaces = async () => {
   try {
-    const allWorkspaces = await WorkspaceClient.list(true);
+    const allWorkspaces = await workspaceClient.list(true);
     // Filter to show only LIVE workspaces
     workspaces.value = allWorkspaces.filter(workspace => workspace.type === WorkspaceType.LIVE);
     // Set the first workspace as selected if none is selected
@@ -247,7 +249,7 @@ const refreshEvents = async () => {
 
   try {
     const workspaceId = selectedWorkspace.value;
-    events.value = await WorkspaceClient.getEvents(workspaceId);
+    events.value = await workspaceClient.getEvents(workspaceId);
     
     // Sort events by timestamp (youngest to oldest)
     events.value.sort((a, b) => b.originCreatedAt - a.originCreatedAt);

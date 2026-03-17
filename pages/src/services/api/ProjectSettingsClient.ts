@@ -16,29 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import SettingsResponse from "@/services/api/model/SettingsResponse.ts";
+import BasePlatformClient from '@/services/api/BasePlatformClient';
+import SettingsResponse from '@/services/api/model/SettingsResponse';
 
-export default class ProjectSettingsClient {
-    private baseUrl: string;
+export default class ProjectSettingsClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/settings'
+        super(`/workspaces/${workspaceId}/projects/${projectId}/settings`);
     }
 
     updateName(name: string): Promise<void> {
-        const content = {
-            name: name,
-        };
-
-        return axios.post<void>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<void>('', { name });
     }
 
     get(): Promise<SettingsResponse> {
-        return axios.get<SettingsResponse>(this.baseUrl)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<SettingsResponse>();
     }
 }

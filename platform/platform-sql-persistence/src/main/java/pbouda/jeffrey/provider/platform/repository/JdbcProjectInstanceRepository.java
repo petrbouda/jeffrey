@@ -18,6 +18,8 @@
 
 package pbouda.jeffrey.provider.platform.repository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
@@ -35,6 +37,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class JdbcProjectInstanceRepository implements ProjectInstanceRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcProjectInstanceRepository.class);
 
     //language=SQL
     private static final String SELECT_ALL_PROJECT_INSTANCES = """
@@ -81,15 +85,18 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     //language=SQL
     private static final String UPDATE_STATUS = """
-            UPDATE project_instances SET status = :status WHERE instance_id = :instance_id""";
+            UPDATE project_instances SET status = :status
+            WHERE instance_id = :instance_id AND status IN (:valid_from_statuses)""";
 
     //language=SQL
     private static final String UPDATE_STATUS_AND_FINISHED_AT = """
-            UPDATE project_instances SET status = :status, finished_at = :finished_at WHERE instance_id = :instance_id""";
+            UPDATE project_instances SET status = :status, finished_at = :finished_at
+            WHERE instance_id = :instance_id AND status IN (:valid_from_statuses)""";
 
     //language=SQL
     private static final String UPDATE_STATUS_AND_EXPIRED_AT = """
-            UPDATE project_instances SET status = :status, expired_at = :expired_at WHERE instance_id = :instance_id""";
+            UPDATE project_instances SET status = :status, expired_at = :expired_at
+            WHERE instance_id = :instance_id AND status IN (:valid_from_statuses)""";
 
     //language=SQL
     private static final String SET_EXPIRING_AT = """
@@ -173,9 +180,11 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     public void updateStatus(String instanceId, ProjectInstanceStatus status) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId)
-                .addValue("status", status.name());
+                .addValue("status", status.name())
+                .addValue("valid_from_statuses", validFromStatusNames(status));
 
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS, UPDATE_STATUS, paramSource);
+        int updated = databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS, UPDATE_STATUS, paramSource);
+        logIfNoRowsUpdated(updated, instanceId, status);
     }
 
     @Override
@@ -183,9 +192,11 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId)
                 .addValue("status", status.name())
-                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC))
+                .addValue("valid_from_statuses", validFromStatusNames(status));
 
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS_AND_FINISHED_AT, UPDATE_STATUS_AND_FINISHED_AT, paramSource);
+        int updated = databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS_AND_FINISHED_AT, UPDATE_STATUS_AND_FINISHED_AT, paramSource);
+        logIfNoRowsUpdated(updated, instanceId, status);
     }
 
     @Override
@@ -193,9 +204,24 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId)
                 .addValue("status", status.name())
-                .addValue("expired_at", expiredAt.atOffset(ZoneOffset.UTC));
+                .addValue("expired_at", expiredAt.atOffset(ZoneOffset.UTC))
+                .addValue("valid_from_statuses", validFromStatusNames(status));
 
-        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS_AND_EXPIRED_AT, UPDATE_STATUS_AND_EXPIRED_AT, paramSource);
+        int updated = databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS_AND_EXPIRED_AT, UPDATE_STATUS_AND_EXPIRED_AT, paramSource);
+        logIfNoRowsUpdated(updated, instanceId, status);
+    }
+
+    private static List<String> validFromStatusNames(ProjectInstanceStatus targetStatus) {
+        return targetStatus.validFromStatuses().stream()
+                .map(ProjectInstanceStatus::name)
+                .toList();
+    }
+
+    private static void logIfNoRowsUpdated(int updated, String instanceId, ProjectInstanceStatus targetStatus) {
+        if (updated == 0) {
+            LOG.warn("Instance status transition had no effect (instance not found or invalid transition): instanceId={} targetStatus={}",
+                    instanceId, targetStatus);
+        }
     }
 
     @Override

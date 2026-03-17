@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import HttpUtils from '@/services/HttpUtils';
 import ProfilerSettings from "@/services/api/model/ProfilerSettings.ts";
 
@@ -25,43 +25,40 @@ import ProfilerSettings from "@/services/api/model/ProfilerSettings.ts";
  * Client for global profiler settings API.
  * Used for managing settings at global, workspace, or project level from a central location.
  */
-export default class GlobalProfilerClient {
-    private static baseUrl: string = GlobalVars.internalUrl + '/profiler/settings'
+export default class GlobalProfilerClient extends BasePlatformClient {
+
+    constructor() {
+        super('/profiler/settings');
+    }
 
     /**
      * Upsert settings at any level (global, workspace, or project)
      */
-    static upsert(workspaceId: string | null, projectId: string | null, agentSettings: string): Promise<void> {
+    upsert(workspaceId: string | null, projectId: string | null, agentSettings: string): Promise<void> {
         const content = {
             workspaceId: workspaceId,
             projectId: projectId,
             agentSettings: agentSettings,
         };
-
-        return axios.post(GlobalProfilerClient.baseUrl, content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<void>('', content);
     }
 
     /**
      * Fetch all settings across all levels
      */
-    static fetchAll(): Promise<ProfilerSettings[]> {
-        return axios.get(GlobalProfilerClient.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    fetchAll(): Promise<ProfilerSettings[]> {
+        return super.get<ProfilerSettings[]>();
     }
 
     /**
      * Delete settings at a specific level
      */
-    static delete(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
-        const data = {
+    delete(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
+        return axios.delete(this.baseUrl, {
             params: {
                 workspaceId: workspaceId,
                 projectId: projectId
             }
-        }
-
-        return axios.delete(GlobalProfilerClient.baseUrl, data)
-            .then(HttpUtils.RETURN_DATA);
+        }).then(HttpUtils.RETURN_DATA);
     }
 }

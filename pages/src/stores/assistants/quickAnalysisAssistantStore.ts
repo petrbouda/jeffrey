@@ -20,6 +20,8 @@ import { ref, computed } from 'vue';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import QuickAnalysisProfile from '@/services/api/model/QuickAnalysisProfile';
 
+const quickAnalysisClient = new QuickAnalysisClient();
+
 import router from '@/router';
 
 /**
@@ -133,7 +135,7 @@ const setSelectedFile = (file: File | null) => {
  */
 const loadRecentProfiles = async () => {
     try {
-        recentProfiles.value = await QuickAnalysisClient.listProfiles();
+        recentProfiles.value = await quickAnalysisClient.listProfiles();
     } catch (error) {
         console.error('Failed to load recent profiles:', error);
     }
@@ -157,9 +159,9 @@ const startAnalysis = async () => {
         let profileId: string;
 
         if (isHeapDump) {
-            profileId = await QuickAnalysisClient.uploadHeapDump(file);
+            profileId = await quickAnalysisClient.uploadHeapDump(file);
         } else {
-            profileId = await QuickAnalysisClient.uploadAndAnalyze(file);
+            profileId = await quickAnalysisClient.uploadAndAnalyze(file);
         }
 
         status.value = 'completed';
@@ -200,7 +202,7 @@ const openProfile = async (profileId: string) => {
  */
 const deleteProfile = async (profileId: string) => {
     try {
-        await QuickAnalysisClient.deleteProfile(profileId);
+        await quickAnalysisClient.deleteProfile(profileId);
         await loadRecentProfiles();
     } catch {
         // Toast is shown automatically by HttpInterceptor

@@ -16,49 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
-import Profile from "@/services/api/model/Profile";
+import BasePlatformClient from '@/services/api/BasePlatformClient';
+import Profile from '@/services/api/model/Profile';
 
-export default class ProjectProfileClient {
-
-    private baseUrl: string;
+export default class ProjectProfileClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/profiles'
+        super(`/workspaces/${workspaceId}/projects/${projectId}/profiles`);
     }
 
     async get(profileId: string): Promise<Profile> {
-        return axios.get<Profile>(this.baseUrl + '/' + profileId, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<Profile>(`/${profileId}`);
     }
 
     async list(): Promise<Profile[]> {
-        return axios.get<Profile[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.get<Profile[]>();
     }
 
     async create(recordingId: string): Promise<Profile> {
-        const content = {
-            recordingId: recordingId
-        };
-
-        return axios.post<Profile>(this.baseUrl, content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.post<Profile>('', { recordingId });
     }
 
     async update(profileId: string, name: string): Promise<Profile> {
-        const content = {
-            name: name
-        };
-
-        return axios.put<Profile>(this.baseUrl + '/' + profileId, content, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+        return super.put<Profile>(`/${profileId}`, { name });
     }
 
     async delete(profileId: string): Promise<void> {
-        return axios.delete(this.baseUrl + '/' + profileId)
-            .then(HttpUtils.RETURN_DATA);
+        return super.del<void>(`/${profileId}`);
     }
 }

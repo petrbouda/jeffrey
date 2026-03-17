@@ -16,64 +16,54 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Workspace from '@/services/api/model/Workspace';
 import CreateWorkspaceRequest from '@/services/api/model/CreateWorkspaceRequest';
 import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 
-export default class WorkspaceClient {
+export default class WorkspaceClient extends BasePlatformClient {
 
-    private static baseUrl = GlobalVars.internalUrl + '/workspaces';
+    constructor() {
+        super('/workspaces');
+    }
 
     /**
      * Get all workspaces
      * GET /api/workspaces
      */
-    static async list(excludeRemote: boolean = false): Promise<Workspace[]> {
-        return axios.get<Workspace[]>(WorkspaceClient.baseUrl, {
-            ...HttpUtils.JSON_ACCEPT_HEADER,
-            params: {excludeRemote: excludeRemote}
-        }).then(HttpUtils.RETURN_DATA);
+    async list(excludeRemote: boolean = false): Promise<Workspace[]> {
+        return super.get<Workspace[]>('', {excludeRemote: excludeRemote});
     }
 
     /**
      * Get a single workspace by ID
      * GET /api/workspaces/{workspaceId}
      */
-    static async get(workspaceId: string): Promise<Workspace> {
-        const url = `${WorkspaceClient.baseUrl}/${workspaceId}`;
-        return axios.get<Workspace>(url, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    async getById(workspaceId: string): Promise<Workspace> {
+        return super.get<Workspace>(`/${workspaceId}`);
     }
 
     /**
      * Create a new workspace
      * POST /api/workspaces
      */
-    static async create(request: CreateWorkspaceRequest): Promise<Workspace> {
-        return axios.post<Workspace>(WorkspaceClient.baseUrl, request, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    async create(request: CreateWorkspaceRequest): Promise<Workspace> {
+        return super.post<Workspace>('', request);
     }
 
     /**
      * Delete a workspace by ID
      * DELETE /api/workspaces/{workspaceId}
      */
-    static async delete(workspaceId: string): Promise<void> {
-        const url = `${WorkspaceClient.baseUrl}/${workspaceId}`;
-        return axios.delete(url, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(() => undefined);
+    async delete(workspaceId: string): Promise<void> {
+        return super.del<void>(`/${workspaceId}`);
     }
 
     /**
      * Get events for a specific workspace
      * GET /api/workspaces/{workspaceId}/events
      */
-    static async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
-        const url = `${WorkspaceClient.baseUrl}/${workspaceId}/events`;
-        return axios.get<WorkspaceEvent[]>(url, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+    async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
+        return super.get<WorkspaceEvent[]>(`/${workspaceId}/events`);
     }
 }

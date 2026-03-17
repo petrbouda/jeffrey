@@ -24,15 +24,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.platform.appinitializer.ApplicationInitializer;
+import pbouda.jeffrey.platform.configuration.properties.JobProperties;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.LiveWorkspacesManager;
-import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.scheduler.*;
 import pbouda.jeffrey.platform.scheduler.job.*;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
-import pbouda.jeffrey.platform.streaming.JfrStreamingConsumerManager;
-import pbouda.jeffrey.platform.streaming.SessionFinisher;
+import pbouda.jeffrey.platform.workspace.consumer.WorkspaceEventConsumer;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -56,23 +55,21 @@ public class GlobalJobsConfiguration {
 
     private static final String GLOBAL_SCHEDULER = "GLOBAL_SCHEDULER";
 
-    private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
-
     private final LiveWorkspacesManager liveWorkspacesManager;
     private final JobDescriptorFactory jobDescriptorFactory;
     private final SchedulerManager schedulerManager;
-    private final Duration defaultPeriod;
+    private final JobProperties jobProperties;
 
     public GlobalJobsConfiguration(
             LiveWorkspacesManager liveWorkspacesManager,
             JobDescriptorFactory jobDescriptorFactory,
             @Qualifier(GLOBAL_SCHEDULER_MANAGER_BEAN) SchedulerManager schedulerManager,
-            @Value("${jeffrey.job.default.period:}") Duration defaultPeriod) {
+            JobProperties jobProperties) {
 
         this.liveWorkspacesManager = liveWorkspacesManager;
         this.jobDescriptorFactory = jobDescriptorFactory;
         this.schedulerManager = schedulerManager;
-        this.defaultPeriod = defaultPeriod == null ? ONE_MINUTE : defaultPeriod;
+        this.jobProperties = jobProperties;
     }
 
     @Bean(name = GLOBAL_SCHEDULER, destroyMethod = "close")
@@ -87,40 +84,28 @@ public class GlobalJobsConfiguration {
 
     @Bean
     public OrphanedProjectRecordingStorageCleanerJob orphanedProjectRecordingStorageCleanerJob(
-            RecordingStorage recordingStorage,
-            @Value("${jeffrey.job.orphaned-project-recording-storage-cleaner.period:}") Duration jobPeriod) {
+            RecordingStorage recordingStorage) {
 
         return new OrphanedProjectRecordingStorageCleanerJob(
                 liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
                 recordingStorage,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobProperties.resolvePeriod("orphaned-project-recording-storage-cleaner"));
     }
 
     @Bean
     public ProjectsSynchronizerJob projectsSynchronizerJob(
-            @Value("${jeffrey.job.projects-synchronizer.period:}") Duration jobPeriod,
-            Clock clock,
-            PlatformRepositories platformRepositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            JfrStreamingConsumerManager jfrStreamingConsumerManager,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            JeffreyDirs jeffreyDirs,
-            SessionFinisher sessionFinisher) {
+            List<WorkspaceEventConsumer> consumers,
+            PersistentQueue<WorkspaceEvent> workspaceEventQueue) {
 
         return new ProjectsSynchronizerJob(
-                platformRepositories,
-                remoteRepositoryStorageFactory,
-                jfrStreamingConsumerManager,
+                consumers,
                 workspaceEventQueue,
                 liveWorkspacesManager,
                 schedulerManager,
                 jobDescriptorFactory,
-                jeffreyDirs,
-                clock,
-                sessionFinisher,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobProperties.resolvePeriod("projects-synchronizer"));
     }
 
     @Bean
@@ -129,12 +114,11 @@ public class GlobalJobsConfiguration {
             JeffreyDirs jeffreyDirs,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
-            @Value("${jeffrey.job.workspace-events-replicator.period:5s}") Duration jobPeriod,
             @Value("${jeffrey.platform.workspace.auto-create-from-events:true}") boolean autoCreateWorkspaces) {
 
         return new WorkspaceEventsReplicatorJob(
                 liveWorkspacesManager,
-                jobPeriod == null ? defaultPeriod : jobPeriod,
+                jobProperties.resolvePeriod("workspace-events-replicator", Duration.ofSeconds(5)),
                 clock,
                 autoCreateWorkspaces,
                 new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
@@ -144,11 +128,10 @@ public class GlobalJobsConfiguration {
 
     @Bean
     public WorkspaceProfilerSettingsSynchronizerJob profilerSettingsSynchronizerJob(
-            PlatformRepositories platformRepositories,
-            @Value("${jeffrey.job.profiler-settings-synchronizer.period:}") Duration jobPeriod) {
+            PlatformRepositories platformRepositories) {
 
         return new WorkspaceProfilerSettingsSynchronizerJob(
-                jobPeriod == null ? defaultPeriod : jobPeriod,
+                jobProperties.resolvePeriod("profiler-settings-synchronizer"),
                 platformRepositories.newProfilerRepository(),
                 liveWorkspacesManager,
                 schedulerManager,
@@ -161,7 +144,6 @@ public class GlobalJobsConfiguration {
             PlatformRepositories platformRepositories,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             Clock clock,
-            @Value("${jeffrey.job.data-retention.period:}") Duration jobPeriod,
             @Value("${jeffrey.platform.retention.queue-events:31d}") Duration queueEventsRetention,
             @Value("${jeffrey.platform.retention.messages:31d}") Duration messagesRetention,
             @Value("${jeffrey.platform.retention.alerts:31d}") Duration alertsRetention) {
@@ -171,7 +153,7 @@ public class GlobalJobsConfiguration {
                 platformRepositories.newAlertRetentionCleanup(),
                 workspaceEventQueue,
                 clock,
-                jobPeriod == null ? Duration.ofDays(1) : jobPeriod,
+                jobProperties.resolvePeriod("data-retention", Duration.ofDays(1)),
                 queueEventsRetention,
                 messagesRetention,
                 alertsRetention);

@@ -16,36 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import axios from 'axios';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
 import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
-import GlobalVars from '@/services/GlobalVars';
-import HttpUtils from '@/services/HttpUtils';
 
-export default class ProjectInstanceClient {
-
-    private readonly baseUrl: string;
+export default class ProjectInstanceClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl + '/workspaces/' + workspaceId + '/projects/' + projectId + '/instances';
+        super(`/workspaces/${workspaceId}/projects/${projectId}/instances`);
     }
 
     async list(): Promise<ProjectInstance[]> {
-        return axios.get<ProjectInstance[]>(this.baseUrl, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
+        return super.get<any[]>()
             .then(data => data.map(this.mapToInstance));
     }
 
     async get(instanceId: string): Promise<ProjectInstance | undefined> {
-        return axios.get<ProjectInstance>(this.baseUrl + '/' + instanceId, HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
+        return super.get<any>(`/${instanceId}`)
             .then(data => this.mapToInstance(data))
             .catch(() => undefined);
     }
 
     async getSessions(instanceId: string): Promise<ProjectInstanceSession[]> {
-        return axios.get<ProjectInstanceSession[]>(this.baseUrl + '/' + instanceId + '/sessions', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA)
+        return super.get<any[]>(`/${instanceId}/sessions`)
             .then(data => data.map(this.mapToSession));
     }
 

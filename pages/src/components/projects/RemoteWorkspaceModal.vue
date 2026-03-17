@@ -142,6 +142,8 @@ import ToastService from '@/services/ToastService';
 import {useModal} from '@/composables/useModal';
 import RemoteWorkspaceClient from "@/services/api/RemoteWorkspaceClient.ts";
 
+const remoteWorkspaceClient = new RemoteWorkspaceClient();
+
 interface Emits {
   (e: 'workspace-added'): void;
 
@@ -212,7 +214,7 @@ const loadRemoteWorkspaces = async () => {
 
   try {
     // Call the backend API to get available workspaces to add as remote
-    remoteWorkspaces.value = await RemoteWorkspaceClient.listRemote(remoteUrl.value.trim());
+    remoteWorkspaces.value = await remoteWorkspaceClient.listRemote(remoteUrl.value.trim());
     showWorkspaceSelection.value = true;
 
     if (remoteWorkspaces.value.length === 0) {
@@ -267,7 +269,7 @@ const mirrorWorkspace = async () => {
           throw new Error('Selected workspaces not found');
         }
 
-        await RemoteWorkspaceClient.createRemote(
+        await remoteWorkspaceClient.createRemote(
             remoteUrl.value.trim(),
             selectedWorkspaceIds.value
         );

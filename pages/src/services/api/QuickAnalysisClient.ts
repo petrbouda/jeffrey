@@ -16,18 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
 import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import QuickAnalysisProfile from '@/services/api/model/QuickAnalysisProfile';
 
 /**
  * Client for quick/ad-hoc JFR analysis.
  * Allows analyzing JFR files by uploading them to the server.
  */
-export default class QuickAnalysisClient {
+export default class QuickAnalysisClient extends BasePlatformClient {
 
-    private static baseUrl = GlobalVars.internalUrl + '/quick-analysis';
+    constructor() {
+        super('/quick-analysis');
+    }
 
     /**
      * Upload and analyze a JFR file.
@@ -36,12 +37,12 @@ export default class QuickAnalysisClient {
      * @param file The JFR file to upload and analyze
      * @returns The profile ID of the created profile
      */
-    static async uploadAndAnalyze(file: File): Promise<string> {
+    async uploadAndAnalyze(file: File): Promise<string> {
         const formData = new FormData();
         formData.append('file', file);
 
         return axios.post<{ profileId: string }>(
-            QuickAnalysisClient.baseUrl,
+            this.baseUrl,
             formData,
             { headers: { 'Content-Type': 'multipart/form-data' } }
         ).then(response => response.data.profileId);
@@ -54,12 +55,12 @@ export default class QuickAnalysisClient {
      * @param file The heap dump file to upload (.hprof or .hprof.gz)
      * @returns The profile ID of the created profile
      */
-    static async uploadHeapDump(file: File): Promise<string> {
+    async uploadHeapDump(file: File): Promise<string> {
         const formData = new FormData();
         formData.append('file', file);
 
         return axios.post<{ profileId: string }>(
-            QuickAnalysisClient.baseUrl + '/heap-dump',
+            this.baseUrl + '/heap-dump',
             formData,
             { headers: { 'Content-Type': 'multipart/form-data' } }
         ).then(response => response.data.profileId);
@@ -68,20 +69,14 @@ export default class QuickAnalysisClient {
     /**
      * List all quick analysis profiles.
      */
-    static async listProfiles(): Promise<QuickAnalysisProfile[]> {
-        return axios.get<QuickAnalysisProfile[]>(
-            QuickAnalysisClient.baseUrl + '/profiles',
-            HttpUtils.JSON_ACCEPT_HEADER
-        ).then(HttpUtils.RETURN_DATA);
+    async listProfiles(): Promise<QuickAnalysisProfile[]> {
+        return super.get<QuickAnalysisProfile[]>('/profiles');
     }
 
     /**
      * Delete a quick analysis profile.
      */
-    static async deleteProfile(profileId: string): Promise<void> {
-        return axios.delete(
-            QuickAnalysisClient.baseUrl + '/profiles/' + profileId,
-            HttpUtils.JSON_ACCEPT_HEADER
-        ).then(() => undefined);
+    async deleteProfile(profileId: string): Promise<void> {
+        return super.del<void>(`/profiles/${profileId}`);
     }
 }

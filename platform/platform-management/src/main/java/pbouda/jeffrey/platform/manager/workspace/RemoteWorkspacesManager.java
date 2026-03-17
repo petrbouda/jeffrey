@@ -22,25 +22,21 @@ import jakarta.ws.rs.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteClients;
-import pbouda.jeffrey.platform.manager.workspace.remote.RemoteDiscoveryClient;
 import pbouda.jeffrey.platform.manager.workspace.remote.RemoteDiscoveryClient.WorkspaceResult;
 import pbouda.jeffrey.provider.platform.repository.WorkspacesRepository;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
-public final class RemoteWorkspacesManager implements WorkspacesManager {
+public final class RemoteWorkspacesManager extends AbstractTypedWorkspacesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspacesManager.class);
 
     public interface Factory extends Function<URI, RemoteWorkspacesManager> {
     }
 
-    private final WorkspacesRepository workspacesRepository;
-    private final WorkspaceManager.Factory workspaceManagerFactory;
     private final RemoteClients.Factory remoteClientsFactory;
 
     public RemoteWorkspacesManager(
@@ -48,36 +44,8 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
             WorkspaceManager.Factory workspaceManagerFactory,
             RemoteClients.Factory remoteClientsFactory) {
 
-        this.workspacesRepository = workspacesRepository;
-        this.workspaceManagerFactory = workspaceManagerFactory;
+        super(workspacesRepository, workspaceManagerFactory, WorkspaceType.REMOTE);
         this.remoteClientsFactory = remoteClientsFactory;
-    }
-
-    @Override
-    public List<? extends WorkspaceManager> findAll() {
-        return workspacesRepository.findAll().stream()
-                .filter(WorkspaceInfo::isRemote)
-                .map(workspaceManagerFactory)
-                .toList();
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findById(String workspaceId) {
-        return workspacesRepository.find(workspaceId)
-                .filter(WorkspaceInfo::isRemote)
-                .map(workspaceManagerFactory);
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findByOriginId(String originId) {
-        return workspacesRepository.findByOriginId(originId)
-                .filter(WorkspaceInfo::isRemote)
-                .map(workspaceManagerFactory);
-    }
-
-    @Override
-    public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
-        return workspaceManagerFactory.apply(info);
     }
 
     @Override

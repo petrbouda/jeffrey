@@ -16,14 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BaseProfileClient from '@/services/api/BaseProfileClient';
 import AnalysisResult from "@/services/api/model/AnalysisResult.ts";
 
-export default class AutoAnalysisClient {
-    static rules(profileId: string): Promise<AnalysisResult[]> {
-        return axios.get<AnalysisResult[]>(GlobalVars.internalUrl + '/profiles/' + profileId + '/analysis', HttpUtils.JSON_ACCEPT_HEADER)
-            .then(HttpUtils.RETURN_DATA);
+export default class AutoAnalysisClient extends BaseProfileClient {
+
+    constructor(profileId: string) {
+        super(profileId, 'analysis');
+    }
+
+    rules(): Promise<AnalysisResult[]> {
+        return super.get<AnalysisResult[]>('');
     }
 }

@@ -300,6 +300,10 @@ import WorkspaceType from '@/services/api/model/WorkspaceType';
 import type Workspace from '@/services/api/model/Workspace';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
 import ProjectsClient from '@/services/api/ProjectsClient';
+
+const workspaceClient = new WorkspaceClient();
+const globalProfilerClient = new GlobalProfilerClient();
+const projectsClient = new ProjectsClient();
 import type Project from '@/services/api/model/Project';
 
 // Mode management
@@ -384,7 +388,7 @@ const loadProjectsForWorkspaces = async () => {
 
     // Load projects for each selected workspace
     for (const workspaceId of selectedWorkspaces.value) {
-      const projects = await ProjectsClient.list(workspaceId);
+      const projects = await projectsClient.list(workspaceId);
       projectsMap.set(workspaceId, projects);
     }
 
@@ -492,12 +496,12 @@ const applyConfiguration = async () => {
   try {
     if (applicationScope.value === 'global') {
       // Global configuration: workspaceId = null, projectId = null
-      await GlobalProfilerClient.upsert(null, null, finalCommand.value);
+      await globalProfilerClient.upsert(null, null, finalCommand.value);
       ToastService.success('Configuration Applied', 'Profiler configuration has been applied globally.');
     } else if (applicationScope.value === 'workspaces') {
       // Workspace-specific configuration: apply to each selected workspace
       const promises = selectedWorkspaces.value.map(workspaceId =>
-          GlobalProfilerClient.upsert(workspaceId, null, finalCommand.value)
+          globalProfilerClient.upsert(workspaceId, null, finalCommand.value)
       );
 
       await Promise.all(promises);
@@ -505,7 +509,7 @@ const applyConfiguration = async () => {
     } else if (applicationScope.value === 'projects') {
       // Project-specific configuration: apply to each selected project
       const promises = selectedProjects.value.map(({workspaceId, projectId}) =>
-          GlobalProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
+          globalProfilerClient.upsert(workspaceId, projectId, finalCommand.value)
       );
 
       await Promise.all(promises);
@@ -527,7 +531,7 @@ const applyConfiguration = async () => {
 // Load workspaces
 const loadWorkspaces = async () => {
   try {
-    workspaces.value = await WorkspaceClient.list();
+    workspaces.value = await workspaceClient.list();
   } catch (error) {
     console.error('Failed to load workspaces:', error);
     ToastService.error('Failed to load workspaces', 'Cannot load workspaces from the server.');

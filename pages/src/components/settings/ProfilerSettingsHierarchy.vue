@@ -233,6 +233,10 @@ import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceType from '@/services/api/model/WorkspaceType';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
 import ProjectsClient from '@/services/api/ProjectsClient';
+
+const workspaceClient = new WorkspaceClient();
+const globalProfilerClient = new GlobalProfilerClient();
+const projectsClient = new ProjectsClient();
 import ToastService from '@/services/ToastService';
 import type Workspace from '@/services/api/model/Workspace';
 import type Project from '@/services/api/model/Project';
@@ -383,7 +387,7 @@ const copyCommand = async () => {
 
 const loadAllSettings = async () => {
   try {
-    const settings = await GlobalProfilerClient.fetchAll();
+    const settings = await globalProfilerClient.fetchAll();
 
     // fetchAll returns an array of all settings
     if (Array.isArray(settings)) {
@@ -405,7 +409,7 @@ const loadAllSettings = async () => {
 
 const loadWorkspaces = async () => {
   try {
-    const allWorkspaces = await WorkspaceClient.list();
+    const allWorkspaces = await workspaceClient.list();
     const liveWorkspaces = allWorkspaces.filter(w => w.type === WorkspaceType.LIVE);
 
     // Match workspaces with their settings from allSettings
@@ -464,7 +468,7 @@ const loadProjectsWithOverrides = async (workspaceId: string) => {
   isLoadingProjects.value = true;
   try {
     // Load all projects in the workspace
-    const allProjects = await ProjectsClient.list(workspaceId);
+    const allProjects = await projectsClient.list(workspaceId);
 
     // Match projects with their settings from allSettings
     const projectsWithSettings: ProjectWithSettings[] = [];
@@ -512,7 +516,7 @@ const handleWorkspaceDelete = async (workspace: WorkspaceWithSettings) => {
 
   try {
     // Delete workspace settings (workspaceId set, projectId is null)
-    await GlobalProfilerClient.delete(workspace.id, null);
+    await globalProfilerClient.delete(workspace.id, null);
 
     ToastService.success('Deleted', `Custom settings for workspace "${workspace.name}" have been deleted.`);
 
@@ -552,7 +556,7 @@ const handleProjectDelete = async (project: ProjectWithSettings) => {
 
   try {
     // Delete project settings (both workspaceId and projectId are set)
-    await GlobalProfilerClient.delete(selectedWorkspaceId.value, project.id);
+    await globalProfilerClient.delete(selectedWorkspaceId.value, project.id);
 
     ToastService.success('Deleted', `Custom settings for project "${project.name}" have been deleted.`);
 

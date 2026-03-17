@@ -73,7 +73,7 @@ onMounted(() => {
     },
   }
 
-  InformationClient.info(route.params.profileId as string)
+  new InformationClient(route.params.profileId as string).info()
       .then((data) => {
         info = data;
 

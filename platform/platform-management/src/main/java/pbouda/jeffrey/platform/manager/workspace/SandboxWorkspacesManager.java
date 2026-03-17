@@ -24,58 +24,23 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 import pbouda.jeffrey.provider.platform.repository.WorkspacesRepository;
 
 import java.time.Clock;
-import java.util.List;
-import java.util.Optional;
 
-public final class SandboxWorkspacesManager implements WorkspacesManager {
+public final class SandboxWorkspacesManager extends AbstractTypedWorkspacesManager {
 
     private final Clock clock;
-    private final WorkspacesRepository workspacesRepository;
-    private final WorkspaceManager.Factory workspaceManagerFactory;
 
     public SandboxWorkspacesManager(
             Clock clock,
             WorkspacesRepository workspacesRepository,
             WorkspaceManager.Factory workspaceManagerFactory) {
 
+        super(workspacesRepository, workspaceManagerFactory, WorkspaceType.SANDBOX);
         this.clock = clock;
-        this.workspacesRepository = workspacesRepository;
-        this.workspaceManagerFactory = workspaceManagerFactory;
-    }
-
-    @Override
-    public List<? extends WorkspaceManager> findAll() {
-        return this.workspacesRepository.findAll().stream()
-                .filter(WorkspaceInfo::isRemote)
-                .map(workspaceManagerFactory)
-                .toList();
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findById(String workspaceId) {
-        return workspacesRepository.find(workspaceId)
-                .map(workspaceManagerFactory);
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findByOriginId(String originId) {
-        return workspacesRepository.findByOriginId(originId)
-                .map(workspaceManagerFactory);
-    }
-
-    @Override
-    public WorkspaceManager mapToWorkspaceManager(WorkspaceInfo info) {
-        return workspaceManagerFactory.apply(info);
     }
 
     @Override
     public WorkspaceInfo create(CreateWorkspaceRequest request) {
-        WorkspaceInfo workspaceInfo = sandboxWorkspaceInfo(request);
-        return workspacesRepository.create(workspaceInfo);
-    }
-
-    private WorkspaceInfo sandboxWorkspaceInfo(CreateWorkspaceRequest request) {
-        return new WorkspaceInfo(
+        WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 null,
                 null,
                 null,
@@ -87,5 +52,6 @@ public final class SandboxWorkspacesManager implements WorkspacesManager {
                 WorkspaceType.SANDBOX,
                 WorkspaceStatus.AVAILABLE,
                 0);
+        return workspacesRepository.create(workspaceInfo);
     }
 }

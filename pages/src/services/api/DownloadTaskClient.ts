@@ -16,9 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from '@/services/GlobalVars';
-import axios from 'axios';
-import HttpUtils from '@/services/HttpUtils';
+import BasePlatformClient from '@/services/api/BasePlatformClient';
 import DownloadTask from '@/services/api/model/DownloadTask';
 import DownloadProgress from '@/services/api/model/DownloadProgress';
 import DownloadTaskStatus from '@/services/api/model/DownloadTaskStatus';
@@ -27,27 +25,19 @@ import DownloadTaskStatus from '@/services/api/model/DownloadTaskStatus';
  * Client for managing download tasks with progress tracking.
  * Supports SSE for real-time updates with polling fallback.
  */
-export default class DownloadTaskClient {
-    private baseUrl: string;
+export default class DownloadTaskClient extends BasePlatformClient {
     private eventSource: EventSource | null = null;
     private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
     constructor(workspaceId: string, projectId: string) {
-        this.baseUrl = GlobalVars.internalUrl +
-            '/workspaces/' + workspaceId +
-            '/projects/' + projectId + '/download';
+        super(`/workspaces/${workspaceId}/projects/${projectId}/download`);
     }
 
     /**
      * Starts a new download task and returns the task info.
      */
     async startDownload(sessionId: string, fileIds: string[]): Promise<DownloadTask> {
-        const response = await axios.post<DownloadTask>(
-            this.baseUrl + '/start',
-            { sessionId, recordingIds: fileIds },
-            HttpUtils.JSON_ACCEPT_HEADER
-        );
-        return response.data;
+        return super.post<DownloadTask>('/start', { sessionId, recordingIds: fileIds });
     }
 
     /**
@@ -130,18 +120,14 @@ export default class DownloadTaskClient {
      * Gets current status (for polling fallback).
      */
     async getStatus(taskId: string): Promise<DownloadProgress> {
-        const response = await axios.get<DownloadProgress>(
-            this.baseUrl + '/' + taskId + '/status',
-            HttpUtils.JSON_ACCEPT_HEADER
-        );
-        return response.data;
+        return super.get<DownloadProgress>(`/${taskId}/status`);
     }
 
     /**
      * Cancels an ongoing download.
      */
     async cancelDownload(taskId: string): Promise<void> {
-        await axios.delete(this.baseUrl + '/' + taskId);
+        return super.del<void>(`/${taskId}`);
     }
 
     /**

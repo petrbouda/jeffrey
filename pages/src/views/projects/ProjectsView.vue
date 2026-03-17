@@ -222,6 +222,9 @@ import ProjectsClient from "@/services/api/ProjectsClient.ts";
 import WorkspaceProjectsClient from "@/services/api/WorkspaceProjectsClient.ts";
 import Project from "@/services/api/model/Project.ts";
 import WorkspaceClient from "@/services/api/WorkspaceClient.ts";
+
+const workspaceClient = new WorkspaceClient();
+const projectsClient = new ProjectsClient();
 import Workspace from "@/services/api/model/Workspace.ts";
 import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
 import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
@@ -312,7 +315,7 @@ const getTypeBadgeClass = computed(() => {
 const refreshWorkspaces = async () => {
   try {
     // All workspaces come from the backend now
-    workspaces.value = await WorkspaceClient.list();
+    workspaces.value = await workspaceClient.list();
 
     // Set selected workspace: first workspace in the list
     if (!selectedWorkspace.value && workspaces.value.length > 0) {
@@ -331,7 +334,7 @@ const refreshWorkspaces = async () => {
 const resolveWorkspaceStatuses = async () => {
   const resolvePromises = workspaces.value.map(async (workspace, index) => {
     try {
-      const resolved = await WorkspaceClient.get(workspace.id);
+      const resolved = await workspaceClient.getById(workspace.id);
       workspaces.value[index] = resolved;
     } catch (error) {
       console.error('Failed to resolve workspace status:', error);
@@ -387,7 +390,7 @@ const refreshProjects = async () => {
       // The alert will inform users about limitations for virtual projects
 
       // Use standard API for workspace selection mode
-      projects.value = await ProjectsClient.list(targetWorkspaceId);
+      projects.value = await projectsClient.list(targetWorkspaceId);
       filteredProjects.value = [...projects.value];
     }
   } catch (error) {
@@ -421,7 +424,7 @@ const handleCreateSandboxWorkspace = async () => {
     const request = new CreateWorkspaceRequest('sandbox', WorkspaceType.SANDBOX);
 
     // Call the backend to create the workspace and get the returned workspace
-    const createdWorkspace = await WorkspaceClient.create(request);
+    const createdWorkspace = await workspaceClient.create(request);
 
     // Refresh workspaces to get the updated list
     await refreshWorkspaces();
@@ -596,7 +599,7 @@ const confirmDeleteWorkspace = async () => {
   if (!workspace) return;
 
   try {
-    await WorkspaceClient.delete(workspace.id);
+    await workspaceClient.delete(workspace.id);
 
     // Refresh workspaces and select a new one
     await refreshWorkspaces();

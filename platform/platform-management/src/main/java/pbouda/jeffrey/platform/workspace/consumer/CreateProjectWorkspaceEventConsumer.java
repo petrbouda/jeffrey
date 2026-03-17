@@ -37,14 +37,8 @@ public class CreateProjectWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private static final Logger LOG = LoggerFactory.getLogger(CreateProjectWorkspaceEventConsumer.class);
 
-    private final ProjectsManager projectsManager;
-
-    public CreateProjectWorkspaceEventConsumer(ProjectsManager projectsManager) {
-        this.projectsManager = projectsManager;
-    }
-
     @Override
-    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor) {
+    public void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager) {
         ProjectCreatedEventContent eventContent = Json.read(event.content(), ProjectCreatedEventContent.class);
 
         Optional<ProjectManager> existingProject = projectsManager.findByOriginProjectId(event.projectId());

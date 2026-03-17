@@ -18,12 +18,13 @@
 
 package pbouda.jeffrey.platform.workspace.consumer;
 
+import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
 public interface WorkspaceEventConsumer {
 
-    void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor);
+    void on(WorkspaceEvent event, ProjectsSynchronizerJobDescriptor jobDescriptor, ProjectsManager projectsManager);
 
     boolean isApplicable(WorkspaceEvent event);
 }

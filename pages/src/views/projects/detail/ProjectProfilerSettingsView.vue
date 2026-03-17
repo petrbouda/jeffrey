@@ -94,6 +94,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
 const { workspaceId, projectId } = useNavigation();
+const profilerClient = new ProjectProfilerClient(workspaceId.value, projectId.value);
 
 // State
 const isLoading = ref(true);
@@ -127,7 +128,7 @@ const settingsLevelVariant = computed(() => {
 async function loadSettings() {
   isLoading.value = true;
   try {
-    effectiveSettings.value = await ProjectProfilerClient.fetch(workspaceId.value, projectId.value);
+    effectiveSettings.value = await profilerClient.fetch();
   } catch (error) {
     console.error('Failed to load profiler settings:', error);
     ToastService.error('Error', 'Failed to load profiler settings');
@@ -153,7 +154,7 @@ async function copyToClipboard() {
 async function deleteProjectSettings() {
   isDeleting.value = true;
   try {
-    await ProjectProfilerClient.delete(workspaceId.value, projectId.value);
+    await profilerClient.delete();
     await loadSettings();
     ToastService.success('Settings Deleted', 'Project-level profiler settings have been removed.');
   } catch (error) {
@@ -169,7 +170,7 @@ async function applySettings(command: string) {
   if (!command?.trim()) return;
 
   try {
-    await ProjectProfilerClient.upsert(workspaceId.value, projectId.value, command.trim());
+    await profilerClient.upsert(command.trim());
     ToastService.success('Settings Applied', 'Profiler settings have been applied to this project.');
     await loadSettings();
     newCommand.value = '';
