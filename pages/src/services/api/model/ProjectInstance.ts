@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED';
+export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED' | 'EXPIRED';
 
 export default class ProjectInstance {
     constructor(
@@ -28,6 +28,8 @@ export default class ProjectInstance {
         public sessionCount: number,
         public activeSessionId?: string,
         public finishedAt?: number,
+        public expiringAt?: number,
+        public expiredAt?: number,
     ) {
     }
 }

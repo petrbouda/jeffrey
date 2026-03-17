@@ -27,10 +27,12 @@ public record ProjectInstanceInfo(
         ProjectInstanceStatus status,
         Instant startedAt,
         Instant finishedAt,
+        Instant expiringAt,
+        Instant expiredAt,
         int sessionCount,
         String activeSessionId) {
 
     public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED
+        PENDING, ACTIVE, FINISHED, EXPIRED
     }
 }

@@ -28,6 +28,7 @@ public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         RecordingIntervalGeneratorJobDescriptor,
         ProjectInstanceRecordingCleanerJobDescriptor,
         ProjectInstanceSessionCleanerJobDescriptor,
+        ExpiredInstanceCleanerJobDescriptor,
         WorkspaceEventsReplicatorJobDescriptor,
         RepositoryCompressionProjectJobDescriptor,
         ProjectRecordingStorageSynchronizerJobDescriptor,

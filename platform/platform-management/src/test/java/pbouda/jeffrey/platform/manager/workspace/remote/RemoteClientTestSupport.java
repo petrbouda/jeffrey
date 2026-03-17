@@ -115,7 +115,7 @@ final class RemoteClientTestSupport {
     static InstanceResponse sampleInstanceResponse() {
         return new InstanceResponse(
                 INSTANCE_ID, "host-1", "ACTIVE",
-                1700000000000L, null, 2, SESSION_ID);
+                1700000000000L, null, null, null, 2, SESSION_ID);
     }
 
     static InstanceSessionResponse sampleInstanceSessionResponse() {

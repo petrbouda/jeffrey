@@ -98,7 +98,7 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
                 new CreateSessionWorkspaceEventConsumer(projectsManager, platformRepositories, jeffreyDirs, sessionFinisher),
                 new StartStreamingWorkspaceEventConsumer(projectsManager, streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
-                new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory),
+                new DeleteSessionWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, clock),
                 new DeleteProjectWorkspaceEventConsumer(projectsManager, platformRepositories, remoteRepositoryStorageFactory, jeffreyDirs));
 
         String workspaceId = workspaceInfo.id();

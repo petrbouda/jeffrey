@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -42,9 +42,7 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                    (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
                    (SELECT rs.session_id FROM project_instance_sessions rs
                     WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id,
-                   (SELECT MAX(rs.finished_at) FROM project_instance_sessions rs
-                    WHERE rs.instance_id = i.instance_id) as last_session_finished_at
+                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
             FROM project_instances i
             WHERE i.project_id = :project_id
             ORDER BY i.started_at DESC""";
@@ -55,11 +53,20 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                    (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
                    (SELECT rs.session_id FROM project_instance_sessions rs
                     WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
-                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id,
-                   (SELECT MAX(rs.finished_at) FROM project_instance_sessions rs
-                    WHERE rs.instance_id = i.instance_id) as last_session_finished_at
+                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
             FROM project_instances i
             WHERE i.instance_id = :instance_id AND i.project_id = :project_id""";
+
+    //language=SQL
+    private static final String SELECT_PROJECT_INSTANCES_BY_STATUS = """
+            SELECT i.*,
+                   (SELECT COUNT(*) FROM project_instance_sessions rs WHERE rs.instance_id = i.instance_id) as session_count,
+                   (SELECT rs.session_id FROM project_instance_sessions rs
+                    WHERE rs.instance_id = i.instance_id AND rs.finished_at IS NULL
+                    ORDER BY rs.created_at DESC LIMIT 1) as active_session_id
+            FROM project_instances i
+            WHERE i.project_id = :project_id AND i.status = :status
+            ORDER BY i.started_at DESC""";
 
     //language=SQL
     private static final String SELECT_PROJECT_INSTANCE_SESSIONS = """
@@ -69,8 +76,28 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
 
     //language=SQL
     private static final String INSERT_PROJECT_INSTANCE = """
-            INSERT INTO project_instances (instance_id, project_id, hostname, started_at)
-            VALUES (:instance_id, :project_id, :hostname, :started_at)""";
+            INSERT INTO project_instances (instance_id, project_id, hostname, status, started_at)
+            VALUES (:instance_id, :project_id, :hostname, :status, :started_at)""";
+
+    //language=SQL
+    private static final String UPDATE_STATUS = """
+            UPDATE project_instances SET status = :status WHERE instance_id = :instance_id""";
+
+    //language=SQL
+    private static final String UPDATE_STATUS_AND_FINISHED_AT = """
+            UPDATE project_instances SET status = :status, finished_at = :finished_at WHERE instance_id = :instance_id""";
+
+    //language=SQL
+    private static final String UPDATE_STATUS_AND_EXPIRED_AT = """
+            UPDATE project_instances SET status = :status, expired_at = :expired_at WHERE instance_id = :instance_id""";
+
+    //language=SQL
+    private static final String SET_EXPIRING_AT = """
+            UPDATE project_instances SET expiring_at = :expiring_at WHERE instance_id = :instance_id""";
+
+    //language=SQL
+    private static final String DELETE_INSTANCE = """
+            DELETE FROM project_instances WHERE instance_id = :instance_id""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -106,6 +133,19 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     }
 
     @Override
+    public List<ProjectInstanceInfo> findByStatus(ProjectInstanceStatus status) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("status", status.name());
+
+        return databaseClient.query(
+                StatementLabel.FIND_PROJECT_INSTANCES_BY_STATUS,
+                SELECT_PROJECT_INSTANCES_BY_STATUS,
+                paramSource,
+                projectInstanceInfoMapper());
+    }
+
+    @Override
     public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("instance_id", instanceId);
@@ -123,29 +163,62 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 .addValue("instance_id", instance.id())
                 .addValue("project_id", projectId)
                 .addValue("hostname", instance.hostname())
+                .addValue("status", instance.status().name())
                 .addValue("started_at", instance.startedAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.insert(StatementLabel.INSERT_PROJECT_INSTANCE, INSERT_PROJECT_INSTANCE, paramSource);
     }
 
+    @Override
+    public void updateStatus(String instanceId, ProjectInstanceStatus status) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId)
+                .addValue("status", status.name());
+
+        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS, UPDATE_STATUS, paramSource);
+    }
+
+    @Override
+    public void updateStatusAndFinishedAt(String instanceId, ProjectInstanceStatus status, Instant finishedAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId)
+                .addValue("status", status.name())
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS_AND_FINISHED_AT, UPDATE_STATUS_AND_FINISHED_AT, paramSource);
+    }
+
+    @Override
+    public void updateStatusAndExpiredAt(String instanceId, ProjectInstanceStatus status, Instant expiredAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId)
+                .addValue("status", status.name())
+                .addValue("expired_at", expiredAt.atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.UPDATE_PROJECT_INSTANCE_STATUS_AND_EXPIRED_AT, UPDATE_STATUS_AND_EXPIRED_AT, paramSource);
+    }
+
+    @Override
+    public void setExpiringAt(String instanceId, Instant expiringAt) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId)
+                .addValue("expiring_at", expiringAt.atOffset(ZoneOffset.UTC));
+
+        databaseClient.update(StatementLabel.SET_PROJECT_INSTANCE_EXPIRING_AT, SET_EXPIRING_AT, paramSource);
+    }
+
+    @Override
+    public void delete(String instanceId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("instance_id", instanceId);
+
+        databaseClient.delete(StatementLabel.DELETE_PROJECT_INSTANCE, DELETE_INSTANCE, paramSource);
+    }
+
     private static RowMapper<ProjectInstanceInfo> projectInstanceInfoMapper() {
         return (rs, _) -> {
-            String activeSessionId = rs.getString("active_session_id");
-            int sessionCount = rs.getInt("session_count");
-            Instant lastSessionFinishedAt = Mappers.instant(rs, "last_session_finished_at");
-
-            ProjectInstanceStatus status;
-            Instant finishedAt;
-            if (activeSessionId != null) {
-                status = ProjectInstanceStatus.ACTIVE;
-                finishedAt = null;
-            } else if (sessionCount == 0) {
-                status = ProjectInstanceStatus.PENDING;
-                finishedAt = null;
-            } else {
-                status = ProjectInstanceStatus.FINISHED;
-                finishedAt = lastSessionFinishedAt;
-            }
+            String statusStr = rs.getString("status");
+            ProjectInstanceStatus status = ProjectInstanceStatus.valueOf(statusStr);
 
             return new ProjectInstanceInfo(
                     rs.getString("instance_id"),
@@ -153,9 +226,11 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                     rs.getString("hostname"),
                     status,
                     Mappers.instant(rs, "started_at"),
-                    finishedAt,
-                    sessionCount,
-                    activeSessionId);
+                    Mappers.instant(rs, "finished_at"),
+                    Mappers.instant(rs, "expiring_at"),
+                    Mappers.instant(rs, "expired_at"),
+                    rs.getInt("session_count"),
+                    rs.getString("active_session_id"));
         };
     }
 

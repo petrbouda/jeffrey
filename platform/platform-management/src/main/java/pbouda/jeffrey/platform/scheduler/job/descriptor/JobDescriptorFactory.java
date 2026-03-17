@@ -37,6 +37,8 @@ public record JobDescriptorFactory() {
                     ProjectInstanceSessionCleanerJobDescriptor.of(params);
             case PROJECT_INSTANCE_RECORDING_CLEANER ->
                     ProjectInstanceRecordingCleanerJobDescriptor.of(params);
+            case EXPIRED_INSTANCE_CLEANER ->
+                    ExpiredInstanceCleanerJobDescriptor.of(params);
             case WORKSPACE_EVENTS_REPLICATOR ->
                     new WorkspaceEventsReplicatorJobDescriptor();
             case WORKSPACE_PROFILER_SETTINGS_SYNCHRONIZER ->

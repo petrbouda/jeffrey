@@ -77,12 +77,16 @@ public class ProjectJobsConfiguration {
 
     @Bean
     public ProjectInstanceSessionCleanerJob projectInstanceSessionCleanerJob(
+            Clock clock,
+            PlatformRepositories platformRepositories,
             @Value("${jeffrey.job.project-instance-session-cleaner.period:}") Duration jobPeriod) {
         return new ProjectInstanceSessionCleanerJob(
                 liveWorkspacesManager,
                 repositoryStorageFactory,
                 jobDescriptorFactory,
-                jobPeriod == null ? defaultPeriod : jobPeriod);
+                jobPeriod == null ? defaultPeriod : jobPeriod,
+                clock,
+                platformRepositories);
     }
 
     @Bean
@@ -131,6 +135,19 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
+    public ExpiredInstanceCleanerJob expiredInstanceCleanerJob(
+            Clock clock,
+            PlatformRepositories platformRepositories,
+            @Value("${jeffrey.job.expired-instance-cleaner.period:1h}") Duration jobPeriod) {
+        return new ExpiredInstanceCleanerJob(
+                liveWorkspacesManager,
+                jobDescriptorFactory,
+                jobPeriod,
+                clock,
+                platformRepositories);
+    }
+
+    @Bean
     public FileHeartbeatReader fileHeartbeatReader() {
         return new FileHeartbeatReader();
     }
@@ -148,9 +165,10 @@ public class ProjectJobsConfiguration {
             Clock clock,
             SessionFinishEventEmitter sessionFinishEventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
-            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
+            JfrStreamingConsumerManager jfrStreamingConsumerManager,
+            PlatformRepositories platformRepositories) {
 
-        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, jfrStreamingConsumerManager);
+        return new SessionFinisher(clock, sessionFinishEventEmitter, fileHeartbeatReader, jfrStreamingConsumerManager, platformRepositories);
     }
 
     @Bean

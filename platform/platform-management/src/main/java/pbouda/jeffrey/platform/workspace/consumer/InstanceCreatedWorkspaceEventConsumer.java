@@ -71,9 +71,11 @@ public class InstanceCreatedWorkspaceEventConsumer implements WorkspaceEventCons
                 event.originEventId(), // instanceId
                 projectManager.info().id(),
                 event.originEventId(), // hostname (same as instanceId for filesystem-based instances)
-                ProjectInstanceStatus.PENDING, // Status is derived from sessions, PENDING until first session
+                ProjectInstanceStatus.PENDING,
                 event.originCreatedAt(), // startedAt
-                null, // finishedAt - derived from sessions
+                null, // finishedAt
+                null, // expiringAt
+                null, // expiredAt
                 0, // sessionCount - will be calculated dynamically
                 null); // activeSessionId - will be calculated dynamically
 

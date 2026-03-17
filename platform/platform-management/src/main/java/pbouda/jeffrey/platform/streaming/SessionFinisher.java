@@ -22,14 +22,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -44,17 +48,20 @@ public class SessionFinisher {
     private final SessionFinishEventEmitter eventEmitter;
     private final FileHeartbeatReader fileHeartbeatReader;
     private final JfrStreamingConsumerManager streamingConsumerManager;
+    private final PlatformRepositories platformRepositories;
 
     public SessionFinisher(
             Clock clock,
             SessionFinishEventEmitter eventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
-            JfrStreamingConsumerManager streamingConsumerManager) {
+            JfrStreamingConsumerManager streamingConsumerManager,
+            PlatformRepositories platformRepositories) {
 
         this.clock = clock;
         this.eventEmitter = eventEmitter;
         this.fileHeartbeatReader = fileHeartbeatReader;
         this.streamingConsumerManager = streamingConsumerManager;
+        this.platformRepositories = platformRepositories;
     }
 
     /**
@@ -72,6 +79,18 @@ public class SessionFinisher {
 
         LOG.info("Session marked as FINISHED: sessionId={} projectId={} finishedAt={}",
                 sessionInfo.sessionId(), projectInfo.id(), finishedAt);
+
+        // Check if instance should transition to FINISHED (last active session done)
+        List<ProjectInstanceSessionInfo> remaining =
+                repositoryRepository.findUnfinishedSessionsByInstanceId(sessionInfo.instanceId());
+        if (remaining.isEmpty()) {
+            ProjectInstanceRepository instanceRepo =
+                    platformRepositories.newProjectInstanceRepository(projectInfo.id());
+            instanceRepo.updateStatusAndFinishedAt(
+                    sessionInfo.instanceId(), ProjectInstanceStatus.FINISHED, finishedAt);
+            LOG.info("Instance marked as FINISHED (last session done): instanceId={} projectId={}",
+                    sessionInfo.instanceId(), projectInfo.id());
+        }
 
         eventEmitter.emitSessionFinished(projectInfo, sessionInfo);
         JfrMessageEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());

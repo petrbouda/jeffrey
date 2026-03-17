@@ -49,7 +49,7 @@
       <div class="timeline-container">
 <div v-for="instance in instances" :key="instance.id" class="timeline-row">
           <div class="instance-label">
-            <span class="status-dot" :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED' }"></span>
+            <span class="status-dot" :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED', 'expired': instance.status === 'EXPIRED' }"></span>
             <router-link
               :to="generateInstanceUrl(instance.id)"
               class="hostname-link"
@@ -70,7 +70,7 @@
             <!-- Instance background bar (faint) -->
             <div
               class="instance-bg-bar"
-              :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED' }"
+              :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED', 'expired': instance.status === 'EXPIRED' }"
               :style="getBarStyle(instance)"
             ></div>
 
@@ -113,6 +113,10 @@
           <span>Finished Instance</span>
         </div>
         <div class="legend-item">
+          <span class="legend-bar instance-bg expired"></span>
+          <span>Expired Instance</span>
+        </div>
+        <div class="legend-item">
           <span class="legend-bar session active"></span>
           <span>Active Session</span>
         </div>
@@ -141,7 +145,7 @@
           <Badge
             :value="hoveredInstance.status"
             size="xxs"
-            :variant="hoveredInstance.status === 'PENDING' ? 'blue' : hoveredInstance.status === 'ACTIVE' ? 'orange' : 'green'"
+            :variant="hoveredInstance.status === 'PENDING' ? 'blue' : hoveredInstance.status === 'ACTIVE' ? 'orange' : hoveredInstance.status === 'EXPIRED' ? 'grey' : 'green'"
           />
         </div>
         <div class="timeline-tooltip-body">
@@ -296,9 +300,10 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
 
   const startPercent = Math.max(0, Math.min((now - instance.startedAt) / rangeMs * 100, 100));
 
-  const endPercent = (instance.status === 'ACTIVE' || instance.status === 'PENDING' || !instance.finishedAt)
+  const effectiveFinishedAt = instance.finishedAt ?? instance.expiredAt;
+  const endPercent = (instance.status === 'ACTIVE' || instance.status === 'PENDING' || !effectiveFinishedAt)
     ? 0
-    : Math.max(0, Math.min((now - instance.finishedAt) / rangeMs * 100, 100));
+    : Math.max(0, Math.min((now - effectiveFinishedAt) / rangeMs * 100, 100));
 
   const left = endPercent;
   const width = Math.max(startPercent - endPercent, 0.5);
@@ -483,6 +488,10 @@ onMounted(async () => {
   background-color: #10b981;
 }
 
+.status-dot.expired {
+  background-color: #9ca3af;
+}
+
 .instance-bar-container {
   width: 100%;
   height: 32px;
@@ -516,6 +525,11 @@ onMounted(async () => {
 .instance-bg-bar.finished {
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.instance-bg-bar.expired {
+  background: rgba(156, 163, 175, 0.12);
+  border: 1px solid rgba(156, 163, 175, 0.25);
 }
 
 /* Session bars (solid, overlaid on instance bg) */
@@ -610,6 +624,11 @@ onMounted(async () => {
 .legend-bar.instance-bg.finished {
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.legend-bar.instance-bg.expired {
+  background: rgba(156, 163, 175, 0.12);
+  border: 1px solid rgba(156, 163, 175, 0.35);
 }
 
 .legend-bar.session.active {

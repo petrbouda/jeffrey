@@ -20,15 +20,23 @@ package pbouda.jeffrey.platform.workspace.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsumer {
@@ -38,15 +46,18 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
     private final ProjectsManager projectsManager;
     private final PlatformRepositories platformRepositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
+    private final Clock clock;
 
     public DeleteSessionWorkspaceEventConsumer(
             ProjectsManager projectsManager,
             PlatformRepositories platformRepositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory,
+            Clock clock) {
 
         this.projectsManager = projectsManager;
         this.platformRepositories = platformRepositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
+        this.clock = clock;
     }
 
     @Override
@@ -57,17 +68,45 @@ public class DeleteSessionWorkspaceEventConsumer implements WorkspaceEventConsum
             return;
         }
         ProjectManager projectManager = project.get();
+        String projectId = projectManager.info().id();
+
+        // Look up session before deletion to get instanceId
+        ProjectRepositoryRepository repoRepo = platformRepositories.newProjectRepositoryRepository(projectId);
+        Optional<ProjectInstanceSessionInfo> sessionOpt = repoRepo.findSessionById(event.originEventId());
+        String instanceId = sessionOpt.map(ProjectInstanceSessionInfo::instanceId).orElse(null);
 
         // Delete session from project repository (from Database)
-        platformRepositories.newProjectRepositoryRepository(projectManager.info().id())
-                .deleteSession(event.originEventId());
+        repoRepo.deleteSession(event.originEventId());
 
         // Delete session from remote storage (e.g., S3, filesystem)
         remoteRepositoryStorageFactory.apply(projectManager.info())
                 .deleteSession(event.originEventId());
 
         LOG.debug("Deleted session from workspace event: project_id={} session_id={}", event.projectId(), event.originEventId());
-        JfrMessageEmitter.sessionDeleted(event.originEventId(), projectManager.info().id());
+        JfrMessageEmitter.sessionDeleted(event.originEventId(), projectId);
+
+        // Update instance expiring/expired status
+        if (instanceId != null) {
+            ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
+            Optional<ProjectInstanceInfo> instanceOpt = instanceRepo.find(instanceId);
+            if (instanceOpt.isPresent()) {
+                ProjectInstanceInfo instance = instanceOpt.get();
+                Instant now = clock.instant();
+
+                // Set expiring_at on first session deletion
+                if (instance.expiringAt() == null) {
+                    instanceRepo.setExpiringAt(instanceId, now);
+                }
+
+                // If no remaining sessions and instance is FINISHED → EXPIRED
+                List<ProjectInstanceSessionInfo> remainingSessions = instanceRepo.findSessions(instanceId);
+                if (remainingSessions.isEmpty() && instance.status() == ProjectInstanceStatus.FINISHED) {
+                    instanceRepo.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, now);
+                    LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
+                            instanceId, projectId);
+                }
+            }
+        }
     }
 
     @Override

@@ -27,6 +27,8 @@ public record InstanceResponse(
         String status,
         Long startedAt,
         Long finishedAt,
+        Long expiringAt,
+        Long expiredAt,
         int sessionCount,
         String activeSessionId) {
 
@@ -37,6 +39,8 @@ public record InstanceResponse(
                 info.status().name(),
                 InstantUtils.toEpochMilli(info.startedAt()),
                 InstantUtils.toEpochMilli(info.finishedAt()),
+                InstantUtils.toEpochMilli(info.expiringAt()),
+                InstantUtils.toEpochMilli(info.expiredAt()),
                 info.sessionCount(),
                 info.activeSessionId());
     }

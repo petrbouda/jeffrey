@@ -27,6 +27,10 @@
                 <span class="metric-label">Finished Instances</span>
                 <span class="metric-value">{{ finishedCount }}</span>
               </div>
+              <div class="metric-item" v-if="expiredCount > 0">
+                <span class="metric-label">Expired Instances</span>
+                <span class="metric-value">{{ expiredCount }}</span>
+              </div>
               <div class="metric-item">
                 <span class="metric-label">Total Instances</span>
                 <span class="metric-value">{{ instances.length }}</span>
@@ -160,6 +164,12 @@
           :class="statusFilter === 'FINISHED' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = 'FINISHED'"
         >Finished</button>
+        <button
+          type="button"
+          class="btn btn-sm"
+          :class="statusFilter === 'EXPIRED' ? 'btn-primary' : 'btn-outline-secondary'"
+          @click="statusFilter = 'EXPIRED'"
+        >Expired</button>
       </div>
     </div>
 
@@ -188,6 +198,7 @@
           class="instance-card d-block text-decoration-none mb-2"
           :class="instanceCardClass(instance.status)"
         >
+          <!-- Top section: hostname + badge + sessions + chevron -->
           <div class="d-flex align-items-center">
             <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
               <i class="bi bi-box"></i>
@@ -201,13 +212,54 @@
                   :variant="instanceBadgeVariant(instance.status)"
                   size="xs"
                 />
+                <Badge
+                  v-if="instance.expiringAt"
+                  class="ms-1"
+                  value="Expiring"
+                  variant="warning"
+                  size="xs"
+                />
               </div>
               <div class="instance-meta">
                 <span><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} sessions</span>
-                <span><i class="bi bi-play-circle me-1"></i>Started {{ FormattingService.formatRelativeTime(instance.startedAt) }}</span>
               </div>
             </div>
             <i class="bi bi-chevron-right text-muted"></i>
+          </div>
+
+          <!-- Bottom timeline section -->
+          <div class="instance-timeline">
+            <div class="instance-tl-item">
+              <div class="instance-tl-value">
+                <i class="bi bi-play-fill instance-tl-icon text-success"></i>
+                <span class="instance-tl-label">Started</span>
+              </div>
+              <span class="instance-tl-main">{{ FormattingService.formatRelativeTime(instance.startedAt) }}</span>
+              <span class="instance-tl-sub">{{ FormattingService.formatTimestampUTC(instance.startedAt) }}</span>
+            </div>
+            <div class="instance-tl-item">
+              <div class="instance-tl-value">
+                <i class="bi bi-stop-fill instance-tl-icon text-danger"></i>
+                <span class="instance-tl-label">Finished</span>
+              </div>
+              <template v-if="instance.finishedAt">
+                <span class="instance-tl-main">{{ FormattingService.formatRelativeTime(instance.finishedAt) }}</span>
+                <span class="instance-tl-sub">{{ FormattingService.formatTimestampUTC(instance.finishedAt) }}</span>
+              </template>
+              <span v-else class="instance-tl-main text-muted">Running...</span>
+            </div>
+            <div class="instance-tl-item">
+              <div class="instance-tl-value">
+                <i class="bi bi-clock instance-tl-icon text-primary"></i>
+                <span class="instance-tl-label">Duration</span>
+              </div>
+              <span class="instance-tl-main">
+                {{ instance.finishedAt
+                  ? FormattingService.formatDurationFromMillis(instance.startedAt, instance.finishedAt)
+                  : FormattingService.formatDurationFromMillis(instance.startedAt, Date.now())
+                }}
+              </span>
+            </div>
           </div>
         </router-link>
       </div>
@@ -241,6 +293,7 @@ const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 const pendingCount = computed(() => instances.value.filter(i => i.status === 'PENDING').length);
 const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
 const finishedCount = computed(() => instances.value.filter(i => i.status === 'FINISHED').length);
+const expiredCount = computed(() => instances.value.filter(i => i.status === 'EXPIRED').length);
 
 const totalSessions = computed(() => instances.value.reduce((sum, i) => sum + i.sessionCount, 0));
 
@@ -253,18 +306,21 @@ const uptimeRange = computed(() => {
 function instanceCardClass(status: string): string {
   if (status === 'PENDING') return 'instance-pending';
   if (status === 'ACTIVE') return 'instance-active';
+  if (status === 'EXPIRED') return 'instance-expired';
   return 'instance-finished';
 }
 
 function instanceIconClass(status: string): string {
   if (status === 'PENDING') return 'icon-pending';
   if (status === 'ACTIVE') return 'icon-active';
+  if (status === 'EXPIRED') return 'icon-expired';
   return 'icon-finished';
 }
 
 function instanceBadgeVariant(status: string): string {
   if (status === 'PENDING') return 'blue';
   if (status === 'ACTIVE') return 'warning';
+  if (status === 'EXPIRED') return 'grey';
   return 'green';
 }
 
@@ -450,6 +506,15 @@ onMounted(async () => {
   background-color: rgba(16, 185, 129, 0.06);
 }
 
+.instance-expired {
+  border-left: 3px solid #9ca3af;
+  background-color: rgba(156, 163, 175, 0.03);
+}
+
+.instance-expired:hover {
+  background-color: rgba(156, 163, 175, 0.06);
+}
+
 .instance-icon-square {
   width: 36px;
   height: 36px;
@@ -476,6 +541,11 @@ onMounted(async () => {
   color: #059669;
 }
 
+.icon-expired {
+  background-color: rgba(156, 163, 175, 0.12);
+  color: #6b7280;
+}
+
 .instance-meta {
   display: flex;
   gap: 12px;
@@ -486,6 +556,58 @@ onMounted(async () => {
 
 .min-width-0 {
   min-width: 0;
+}
+
+/* Instance timeline footer */
+.instance-timeline {
+  display: flex;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin-top: 10px;
+  padding-top: 8px;
+  background: rgba(0, 0, 0, 0.01);
+  border-radius: 0 0 6px 6px;
+}
+
+.instance-tl-item {
+  flex: 1;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.instance-tl-item + .instance-tl-item {
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.instance-tl-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.instance-tl-icon {
+  font-size: 0.7rem;
+}
+
+.instance-tl-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.instance-tl-main {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.instance-tl-sub {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  opacity: 0.8;
 }
 
 /* Responsive adjustments for smaller screens */
@@ -509,6 +631,17 @@ onMounted(async () => {
 
   .metric-value {
     font-size: 0.75rem;
+  }
+
+  .instance-timeline {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .instance-tl-item + .instance-tl-item {
+    border-left: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    padding-top: 4px;
   }
 }
 

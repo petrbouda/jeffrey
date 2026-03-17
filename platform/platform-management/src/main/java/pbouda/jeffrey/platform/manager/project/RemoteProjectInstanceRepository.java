@@ -78,6 +78,36 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
         throw new UnsupportedOperationException(UNSUPPORTED);
     }
 
+    @Override
+    public List<ProjectInstanceInfo> findByStatus(ProjectInstanceStatus status) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void updateStatus(String instanceId, ProjectInstanceStatus status) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void updateStatusAndFinishedAt(String instanceId, ProjectInstanceStatus status, java.time.Instant finishedAt) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void updateStatusAndExpiredAt(String instanceId, ProjectInstanceStatus status, java.time.Instant expiredAt) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void setExpiringAt(String instanceId, java.time.Instant expiringAt) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Override
+    public void delete(String instanceId) {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
     private ProjectInstanceInfo toProjectInstanceInfo(InstanceResponse response) {
         return new ProjectInstanceInfo(
                 response.id(),
@@ -86,6 +116,8 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 ProjectInstanceStatus.valueOf(response.status()),
                 InstantUtils.fromEpochMilli(response.startedAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),
+                InstantUtils.fromEpochMilli(response.expiringAt()),
+                InstantUtils.fromEpochMilli(response.expiredAt()),
                 response.sessionCount(),
                 response.activeSessionId());
     }

@@ -29,5 +29,13 @@
     "id": "default-session-finished-detector",
     "type": "SESSION_FINISHED_DETECTOR",
     "params": {}
+  },
+  {
+    "id": "default-expired-instance-cleaner",
+    "type": "EXPIRED_INSTANCE_CLEANER",
+    "params": {
+      "duration": "7",
+      "timeUnit": "Days"
+    }
   }
 ]

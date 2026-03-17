@@ -54,6 +54,7 @@ const copyGeneratorJobAlreadyExists = ref(false)
 const jfrCompressionJobExists = ref(false)
 const sessionFinishedDetectorJobExists = ref(false)
 const recordingStorageSynchronizerJobExists = ref(false)
+const expiredInstanceCleanerJobExists = ref(false)
 
 const isLoading = ref(false);
 
@@ -85,6 +86,7 @@ function checkForExistingJobs(jobs: JobInfo[]) {
   jfrCompressionJobExists.value = false;
   sessionFinishedDetectorJobExists.value = false;
   recordingStorageSynchronizerJobExists.value = false;
+  expiredInstanceCleanerJobExists.value = false;
 
   // Check for existing jobs by type
   for (let job of jobs) {
@@ -100,6 +102,8 @@ function checkForExistingJobs(jobs: JobInfo[]) {
       sessionFinishedDetectorJobExists.value = true;
     } else if (job.jobType === JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER) {
       recordingStorageSynchronizerJobExists.value = true;
+    } else if (job.jobType === JobType.EXPIRED_INSTANCE_CLEANER) {
+      expiredInstanceCleanerJobExists.value = true;
     }
   }
 }
@@ -168,6 +172,9 @@ const handleCreateJob = async (jobType: string) => {
       break;
     case JobType.PERIODIC_RECORDING_GENERATOR:
       periodicRecordingGeneratorModalRef.value?.showModal();
+      break;
+    case JobType.EXPIRED_INSTANCE_CLEANER:
+      projectInstanceSessionCleanerModalRef.value?.showModal(JobType.EXPIRED_INSTANCE_CLEANER);
       break;
     case JobType.REPOSITORY_JFR_COMPRESSION:
     case JobType.SESSION_FINISHED_DETECTOR:
@@ -256,6 +263,13 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
         icon: 'bi-arrow-repeat',
         iconColor: 'text-purple',
         iconBg: 'bg-purple-soft'
+      };
+    case JobType.EXPIRED_INSTANCE_CLEANER:
+      return {
+        title: 'Expired Instance Cleaner',
+        icon: 'bi-hourglass-bottom',
+        iconColor: 'text-teal',
+        iconBg: 'bg-teal-soft'
       };
     default:
       return null;
@@ -352,6 +366,23 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
                   :disabled="sessionFinishedDetectorJobExists"
                   :badges="[
                   { text: 'Job already exists', color: 'bg-success', condition: sessionFinishedDetectorJobExists }
+                ]"
+                  @create-job="handleCreateJob"
+              />
+            </div>
+
+            <!-- Expired Instance Cleaner -->
+            <div class="col-12 col-lg-6">
+              <JobCard
+                  :job-type="JobType.EXPIRED_INSTANCE_CLEANER"
+                  title="Expired Instance Cleaner"
+                  description="Removes expired instance metadata after the configured retention period. Instances transition to EXPIRED when all their sessions are cleaned up, and this job permanently deletes those rows."
+                  icon="bi-hourglass-bottom"
+                  icon-color="text-teal"
+                  icon-bg="bg-teal-soft"
+                  :disabled="expiredInstanceCleanerJobExists"
+                  :badges="[
+                  { text: 'Job already exists', color: 'bg-success', condition: expiredInstanceCleanerJobExists }
                 ]"
                   @create-job="handleCreateJob"
               />

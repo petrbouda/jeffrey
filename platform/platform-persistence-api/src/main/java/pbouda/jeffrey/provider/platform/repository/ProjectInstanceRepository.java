@@ -19,8 +19,10 @@
 package pbouda.jeffrey.provider.platform.repository;
 
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +48,14 @@ public interface ProjectInstanceRepository {
     Optional<ProjectInstanceInfo> find(String instanceId);
 
     /**
+     * Find all project instances with the given status.
+     *
+     * @param status the status to filter by
+     * @return list of matching project instances
+     */
+    List<ProjectInstanceInfo> findByStatus(ProjectInstanceStatus status);
+
+    /**
      * Find all sessions for a specific project instance.
      * Sessions are project instance sessions that have an instance_id set.
      *
@@ -60,4 +70,45 @@ public interface ProjectInstanceRepository {
      * @param instance the project instance to insert
      */
     void insert(ProjectInstanceInfo instance);
+
+    /**
+     * Update instance status.
+     *
+     * @param instanceId the instance ID
+     * @param status     the new status
+     */
+    void updateStatus(String instanceId, ProjectInstanceStatus status);
+
+    /**
+     * Update instance status and set finished_at timestamp.
+     *
+     * @param instanceId the instance ID
+     * @param status     the new status
+     * @param finishedAt when the instance finished
+     */
+    void updateStatusAndFinishedAt(String instanceId, ProjectInstanceStatus status, Instant finishedAt);
+
+    /**
+     * Update instance status and set expired_at timestamp.
+     *
+     * @param instanceId the instance ID
+     * @param status     the new status
+     * @param expiredAt  when the instance expired
+     */
+    void updateStatusAndExpiredAt(String instanceId, ProjectInstanceStatus status, Instant expiredAt);
+
+    /**
+     * Set the expiring_at timestamp on an instance, indicating data truncation has started.
+     *
+     * @param instanceId the instance ID
+     * @param expiringAt when expiration started
+     */
+    void setExpiringAt(String instanceId, Instant expiringAt);
+
+    /**
+     * Delete an instance by ID.
+     *
+     * @param instanceId the instance ID to delete
+     */
+    void delete(String instanceId);
 }

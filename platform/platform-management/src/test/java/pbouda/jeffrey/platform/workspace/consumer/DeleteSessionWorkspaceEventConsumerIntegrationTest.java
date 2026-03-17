@@ -29,6 +29,7 @@ import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.provider.platform.JdbcPlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -106,7 +107,7 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             assertTrue(sessionsBefore.stream().anyMatch(s -> s.sessionId().equals(SESSION_ID)));
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory);
+                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
             consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR);
 
             // Verify session deleted from DB
@@ -135,12 +136,80 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
             when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.empty());
 
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory);
+                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
 
             assertDoesNotThrow(() ->
                     consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR));
 
             verifyNoInteractions(repositoryStorageFactory);
+        }
+    }
+
+    @Nested
+    class InstanceExpiredTransition {
+
+        @Mock
+        ProjectsManager projectsManager;
+
+        @Mock
+        ProjectManager projectManager;
+
+        @Mock
+        RepositoryStorage repositoryStorage;
+
+        @Mock
+        RepositoryStorage.Factory repositoryStorageFactory;
+
+        @Test
+        void lastSessionDeleted_finishedInstanceBecomesExpired(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-finished-instance-with-session.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var platformRepositories = new JdbcPlatformRepositories(provider, FIXED_CLOCK);
+
+            when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
+            when(projectManager.info()).thenReturn(PROJECT_INFO);
+            when(repositoryStorageFactory.apply(PROJECT_INFO)).thenReturn(repositoryStorage);
+
+            // Verify instance is FINISHED before deletion
+            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
+            assertEquals(ProjectInstanceStatus.FINISHED, instanceRepo.find("inst-001").orElseThrow().status());
+
+            var consumer = new DeleteSessionWorkspaceEventConsumer(
+                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR);
+
+            // Instance should now be EXPIRED with expiringAt and expiredAt set
+            var instance = instanceRepo.find("inst-001").orElseThrow();
+            assertEquals(ProjectInstanceStatus.EXPIRED, instance.status());
+            assertNotNull(instance.expiringAt());
+            assertNotNull(instance.expiredAt());
+            assertEquals(NOW, instance.expiringAt());
+            assertEquals(NOW, instance.expiredAt());
+        }
+
+        @Test
+        void sessionDeleted_setsExpiringAt_butNotExpired_whenSessionsRemain(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var platformRepositories = new JdbcPlatformRepositories(provider, FIXED_CLOCK);
+
+            when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
+            when(projectManager.info()).thenReturn(PROJECT_INFO);
+            when(repositoryStorageFactory.apply(PROJECT_INFO)).thenReturn(repositoryStorage);
+
+            // Instance is ACTIVE with 2 sessions — deleting one should set expiringAt but not transition to EXPIRED
+            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
+            assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find("inst-001").orElseThrow().status());
+
+            var consumer = new DeleteSessionWorkspaceEventConsumer(
+                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
+            consumer.on(sessionDeletedEvent(SESSION_ID), JOB_DESCRIPTOR);
+
+            // Instance should still be ACTIVE with expiringAt set
+            var instance = instanceRepo.find("inst-001").orElseThrow();
+            assertEquals(ProjectInstanceStatus.ACTIVE, instance.status());
+            assertEquals(NOW, instance.expiringAt());
+            assertNull(instance.expiredAt());
         }
     }
 
@@ -159,7 +228,7 @@ class DeleteSessionWorkspaceEventConsumerIntegrationTest {
         @Test
         void onlyApplicable_forSessionDeletedEvents() {
             var consumer = new DeleteSessionWorkspaceEventConsumer(
-                    projectsManager, platformRepositories, repositoryStorageFactory);
+                    projectsManager, platformRepositories, repositoryStorageFactory, FIXED_CLOCK);
 
             WorkspaceEvent sessionDeleted = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED, null, NOW, NOW, "test");

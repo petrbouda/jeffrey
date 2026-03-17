@@ -119,11 +119,17 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
 
             when(projectManager.info()).thenReturn(PROJECT_INFO);
 
-            // SessionFinisher mock also marks sessions finished in DB (simulates real behavior)
+            // SessionFinisher mock also marks sessions finished in DB and updates instance status
+            // (simulates real SessionFinisher.markFinished behavior including ACTIVE→FINISHED transition)
             var repoRepository = platformRepositories.newProjectRepositoryRepository(PROJECT_ID);
+            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             doAnswer(invocation -> {
                 ProjectInstanceSessionInfo session = invocation.getArgument(2);
                 repoRepository.markSessionFinished(session.sessionId(), NOW);
+                // Simulate the instance FINISHED transition when last session finishes
+                if (repoRepository.findUnfinishedSessionsByInstanceId(session.instanceId()).isEmpty()) {
+                    instanceRepo.updateStatusAndFinishedAt(session.instanceId(), ProjectInstanceStatus.FINISHED, NOW);
+                }
                 return true;
             }).when(sessionFinisher).tryFinishFromHeartbeat(
                     any(), eq(PROJECT_INFO), any(), any(), eq(HEARTBEAT_THRESHOLD), eq(NOW));
@@ -131,8 +137,7 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             var job = createJob(jeffreyDirs, platformRepositories, sessionFinisher);
             job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY);
 
-            // Instance status should derive to FINISHED since all sessions are now finished
-            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
+            // Instance status should be FINISHED since all sessions are now finished
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status());
@@ -208,11 +213,15 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
 
             when(projectManager.info()).thenReturn(PROJECT_INFO);
 
-            // SessionFinisher mock also marks session finished in DB
+            // SessionFinisher mock also marks session finished in DB and updates instance status
             var repoRepository = platformRepositories.newProjectRepositoryRepository(PROJECT_ID);
+            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             doAnswer(invocation -> {
                 ProjectInstanceSessionInfo session = invocation.getArgument(2);
                 repoRepository.markSessionFinished(session.sessionId(), NOW);
+                if (repoRepository.findUnfinishedSessionsByInstanceId(session.instanceId()).isEmpty()) {
+                    instanceRepo.updateStatusAndFinishedAt(session.instanceId(), ProjectInstanceStatus.FINISHED, NOW);
+                }
                 return true;
             }).when(sessionFinisher).tryFinishFromHeartbeat(
                     any(), eq(PROJECT_INFO), any(), any(), eq(HEARTBEAT_THRESHOLD), eq(NOW));
@@ -223,8 +232,7 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             assertDoesNotThrow(() ->
                     job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY));
 
-            // Instance status should derive to FINISHED
-            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
+            // Instance status should be FINISHED
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status());
@@ -287,11 +295,15 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             when(projectManager.info()).thenReturn(PROJECT_INFO);
 
             var repoRepository = platformRepositories.newProjectRepositoryRepository(PROJECT_ID);
+            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
 
             // First session finishes (also marks in DB), second does not
             doAnswer(invocation -> {
                 ProjectInstanceSessionInfo session = invocation.getArgument(2);
                 repoRepository.markSessionFinished(session.sessionId(), NOW);
+                if (repoRepository.findUnfinishedSessionsByInstanceId(session.instanceId()).isEmpty()) {
+                    instanceRepo.updateStatusAndFinishedAt(session.instanceId(), ProjectInstanceStatus.FINISHED, NOW);
+                }
                 return true;
             }).when(sessionFinisher).tryFinishFromHeartbeat(
                     any(), eq(PROJECT_INFO),
@@ -306,7 +318,6 @@ class SessionFinishedDetectorProjectJobIntegrationTest {
             job.executeOnRepository(projectManager, repositoryStorage, JOB_DESCRIPTOR, JobContext.EMPTY);
 
             // Instance should remain ACTIVE (session-002 still unfinished)
-            var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
             Optional<ProjectInstanceInfo> instance = instanceRepo.find(INSTANCE_ID);
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.ACTIVE, instance.get().status());

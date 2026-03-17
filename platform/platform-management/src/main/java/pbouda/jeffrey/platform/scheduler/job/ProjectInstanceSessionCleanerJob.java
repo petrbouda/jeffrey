@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,34 +21,45 @@ package pbouda.jeffrey.platform.scheduler.job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.jfr.JfrMessageEmitter;
-import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
-import pbouda.jeffrey.shared.common.model.job.JobType;
-import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.platform.project.repository.RepositoryStorage;
 import pbouda.jeffrey.platform.scheduler.JobContext;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.JobDescriptorFactory;
 import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import pbouda.jeffrey.shared.common.model.job.JobType;
+import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<ProjectInstanceSessionCleanerJobDescriptor> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstanceSessionCleanerJob.class);
 
     private final Duration period;
+    private final Clock clock;
+    private final PlatformRepositories platformRepositories;
 
     public ProjectInstanceSessionCleanerJob(
             WorkspacesManager workspacesManager,
             RepositoryStorage.Factory remoteRepositoryManagerFactory,
             JobDescriptorFactory jobDescriptorFactory,
-            Duration period) {
+            Duration period,
+            Clock clock,
+            PlatformRepositories platformRepositories) {
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptorFactory);
         this.period = period;
+        this.clock = clock;
+        this.platformRepositories = platformRepositories;
     }
 
     @Override
@@ -58,18 +69,45 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
             JobContext context) {
 
+        String projectId = manager.info().id();
         String projectName = manager.info().name();
         LOG.debug("Cleaning the project instance sessions: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
 
-        Instant currentTime = Instant.now();
-        List<RecordingSession> candidatesForDeletion = repositoryStorage.listSessions(false).stream()
-                // Sort by created time descending
-                .sorted(Comparator.comparing(RecordingSession::createdAt).reversed())
-                // Keep at least one session
-                .skip(1)
-                .filter(session -> currentTime.isAfter(session.createdAt().plus(duration)))
-                .toList();
+        Instant currentTime = clock.instant();
+        ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
+
+        // Group finished sessions by instance
+        Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(false).stream()
+                .filter(session -> session.finishedAt() != null)
+                .collect(Collectors.groupingBy(RecordingSession::instanceId));
+
+        List<RecordingSession> candidatesForDeletion = new ArrayList<>();
+
+        for (var entry : sessionsByInstance.entrySet()) {
+            String instanceId = entry.getKey();
+            List<RecordingSession> sessions = entry.getValue().stream()
+                    .sorted(Comparator.comparing(RecordingSession::createdAt).reversed())
+                    .toList();
+
+            Optional<ProjectInstanceInfo> instanceOpt = instanceRepo.find(instanceId);
+            boolean isFinished = instanceOpt.isPresent()
+                    && instanceOpt.get().status() == ProjectInstanceStatus.FINISHED;
+
+            for (int i = 0; i < sessions.size(); i++) {
+                RecordingSession session = sessions.get(i);
+                if (!currentTime.isAfter(session.createdAt().plus(duration))) {
+                    continue;
+                }
+
+                // Keep latest session for non-FINISHED instances (skip(1) per instance)
+                if (i == 0 && !isFinished) {
+                    continue;
+                }
+
+                candidatesForDeletion.add(session);
+            }
+        }
 
         candidatesForDeletion.forEach(session -> {
             manager.repositoryManager()
@@ -79,6 +117,29 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
 
         if (!candidatesForDeletion.isEmpty()) {
             JfrMessageEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
+
+            // Set expiring_at on affected instances (first session deletion)
+            Set<String> affectedInstanceIds = candidatesForDeletion.stream()
+                    .map(RecordingSession::instanceId)
+                    .collect(Collectors.toSet());
+
+            for (String instanceId : affectedInstanceIds) {
+                Optional<ProjectInstanceInfo> instanceOpt = instanceRepo.find(instanceId);
+                if (instanceOpt.isPresent()) {
+                    ProjectInstanceInfo instance = instanceOpt.get();
+                    if (instance.expiringAt() == null) {
+                        instanceRepo.setExpiringAt(instanceId, currentTime);
+                    }
+
+                    // Check if instance has 0 remaining sessions → EXPIRED
+                    if (instance.status() == ProjectInstanceStatus.FINISHED
+                            && instance.sessionCount() == 0) {
+                        instanceRepo.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, currentTime);
+                        LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
+                                instanceId, projectId);
+                    }
+                }
+            }
         }
     }
 

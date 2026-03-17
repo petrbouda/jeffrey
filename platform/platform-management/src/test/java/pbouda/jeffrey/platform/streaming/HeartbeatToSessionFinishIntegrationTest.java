@@ -28,8 +28,10 @@ import pbouda.jeffrey.platform.project.repository.SessionFinishEventEmitter;
 import pbouda.jeffrey.platform.queue.DuckDBPersistentQueue;
 import pbouda.jeffrey.platform.queue.QueueEntry;
 import pbouda.jeffrey.platform.workspace.WorkspaceEventSerializer;
+import pbouda.jeffrey.provider.platform.JdbcPlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectRepositoryRepository;
+import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.shared.common.HeartbeatConstants;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -87,6 +89,11 @@ class HeartbeatToSessionFinishIntegrationTest {
         return new DuckDBPersistentQueue<>(provider, "workspace-events", new WorkspaceEventSerializer(), clock);
     }
 
+    private static PlatformRepositories createPlatformRepositories(MutableClock clock, DataSource dataSource) {
+        var provider = new DatabaseClientProvider(dataSource);
+        return new JdbcPlatformRepositories(provider, clock);
+    }
+
     private static void writeHeartbeatFile(Path sessionDir, Instant timestamp) throws IOException {
         Path heartbeatDir = sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR);
         Files.createDirectories(heartbeatDir);
@@ -111,7 +118,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
             var fileHeartbeatReader = new FileHeartbeatReader();
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+            var platformRepositories = createPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager, platformRepositories);
 
             // Step 1: Write a heartbeat file (simulates agent writing heartbeats)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
@@ -166,7 +174,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
             var fileHeartbeatReader = new FileHeartbeatReader();
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+            var platformRepositories = createPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager, platformRepositories);
 
             // Write heartbeat file for session-001
             Path session1Dir = tempDir.resolve("session-001");
@@ -213,7 +222,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
             var fileHeartbeatReader = new FileHeartbeatReader();
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+            var platformRepositories = createPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager, platformRepositories);
 
             // Write heartbeat files for both sessions
             Path session1Dir = tempDir.resolve("session-001");
@@ -269,7 +279,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
             var fileHeartbeatReader = new FileHeartbeatReader();
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+            var platformRepositories = createPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager, platformRepositories);
 
             // Write a stale heartbeat file (simulates agent that stopped long ago)
             Path sessionDir = tempDir.resolve("session-2025-06-15");
@@ -300,7 +311,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
             var fileHeartbeatReader = new FileHeartbeatReader();
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+            var platformRepositories = createPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager, platformRepositories);
 
             // No heartbeat file written - directory is empty
             Path sessionDir = tempDir.resolve("session-2025-06-15");
@@ -337,7 +349,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             var queue = createQueue(clock, dataSource);
             var emitter = new SessionFinishEventEmitter(clock, queue);
             var fileHeartbeatReader = new FileHeartbeatReader();
-            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager);
+            var platformRepositories = createPlatformRepositories(clock, dataSource);
+            var finisher = new SessionFinisher(clock, emitter, fileHeartbeatReader, streamingConsumerManager, platformRepositories);
 
             // Step 1: Write heartbeat file (simulates agent writing heartbeat)
             Path sessionDir = tempDir.resolve("session-2025-06-15");

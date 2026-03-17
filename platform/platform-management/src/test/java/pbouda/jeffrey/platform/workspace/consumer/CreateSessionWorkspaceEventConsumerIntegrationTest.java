@@ -32,10 +32,12 @@ import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import pbouda.jeffrey.provider.platform.repository.JdbcProjectRepositoryRepository;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryType;
@@ -102,6 +104,9 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
         @Mock
         SessionFinisher sessionFinisher;
 
+        @Mock
+        ProjectInstanceRepository projectInstanceRepository;
+
         @Nested
         class MultipleUnfinishedSessions {
 
@@ -114,6 +119,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
+                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(projectInstanceRepository);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -176,6 +182,7 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
                 var realRepoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
 
                 when(platformRepositories.newProjectRepositoryRepository(PROJECT_ID)).thenReturn(realRepoRepo);
+                when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(projectInstanceRepository);
                 when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
                 when(projectManager.info()).thenReturn(PROJECT_INFO);
                 when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -203,6 +210,56 @@ class CreateSessionWorkspaceEventConsumerIntegrationTest {
 
                 verify(repositoryManager).createSession(any());
             }
+        }
+    }
+
+    @Nested
+    class InstanceStatusTransition {
+
+        @Mock
+        ProjectsManager projectsManager;
+
+        @Mock
+        ProjectManager projectManager;
+
+        @Mock
+        RepositoryManager repositoryManager;
+
+        @Mock
+        SessionFinisher sessionFinisher;
+
+        @Test
+        void sessionCreation_transitionsInstanceToActive(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-and-instance.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var clock = new MutableClock(NOW);
+            var realPlatformRepositories = new pbouda.jeffrey.provider.platform.JdbcPlatformRepositories(provider, clock);
+
+            when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
+            when(projectManager.info()).thenReturn(PROJECT_INFO);
+            when(projectManager.repositoryManager()).thenReturn(repositoryManager);
+            when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
+
+            var instanceRepo = realPlatformRepositories.newProjectInstanceRepository(PROJECT_ID);
+
+            // Set instance to PENDING to test PENDING → ACTIVE
+            instanceRepo.updateStatus(INSTANCE_ID, ProjectInstanceStatus.PENDING);
+            assertEquals(ProjectInstanceStatus.PENDING, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
+
+            SessionCreatedEventContent content = new SessionCreatedEventContent(
+                    INSTANCE_ID, 1, "session-new", "cpu=true");
+            WorkspaceEvent event = new WorkspaceEvent(
+                    null, "session-new", ORIGIN_PROJECT_ID, WORKSPACE_ID,
+                    WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED,
+                    Json.toString(content),
+                    NOW, NOW, "test");
+
+            var consumer = new CreateSessionWorkspaceEventConsumer(
+                    projectsManager, realPlatformRepositories, JEFFREY_DIRS, sessionFinisher);
+            consumer.on(event, JOB_DESCRIPTOR);
+
+            // Instance should now be ACTIVE
+            assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
         }
     }
 }

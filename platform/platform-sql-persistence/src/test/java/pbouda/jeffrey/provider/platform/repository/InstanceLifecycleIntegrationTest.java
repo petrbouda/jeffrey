@@ -54,7 +54,7 @@ class InstanceLifecycleIntegrationTest {
             var newInstance = new ProjectInstanceInfo(
                     "inst-new", PROJECT_ID, "new-host.example.com",
                     ProjectInstanceStatus.PENDING,
-                    Instant.parse("2025-06-15T12:00:00Z"), null, 0, null);
+                    Instant.parse("2025-06-15T12:00:00Z"), null, null, null, 0, null);
 
             instanceRepo.insert(newInstance);
 
@@ -81,7 +81,7 @@ class InstanceLifecycleIntegrationTest {
     }
 
     @Nested
-    class DerivedStatus {
+    class StoredStatus {
 
         @Test
         void instanceWithNoSessions_isPending(DataSource dataSource) throws SQLException {
@@ -93,7 +93,7 @@ class InstanceLifecycleIntegrationTest {
             var newInstance = new ProjectInstanceInfo(
                     "inst-no-sessions", PROJECT_ID, "no-sessions.example.com",
                     ProjectInstanceStatus.PENDING,
-                    Instant.parse("2025-06-15T12:00:00Z"), null, 0, null);
+                    Instant.parse("2025-06-15T12:00:00Z"), null, null, null, 0, null);
             instanceRepo.insert(newInstance);
 
             Optional<ProjectInstanceInfo> found = instanceRepo.find("inst-no-sessions");
@@ -104,55 +104,128 @@ class InstanceLifecycleIntegrationTest {
         }
 
         @Test
-        void instanceWithUnfinishedSession_isActive(DataSource dataSource) throws SQLException {
+        void instanceWithActiveStatus_isActive(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
-            // inst-001 has session-001 with finished_at=NULL → ACTIVE
+            // inst-001 has status=ACTIVE in fixture
             Optional<ProjectInstanceInfo> found = instanceRepo.find("inst-001");
             assertTrue(found.isPresent());
             assertEquals(ProjectInstanceStatus.ACTIVE, found.get().status());
-            assertNull(found.get().finishedAt());
         }
 
         @Test
-        void instanceWithAllSessionsFinished_isFinished(DataSource dataSource) throws SQLException {
+        void instanceWithFinishedStatus_isFinished(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
-            // inst-002 has session-002 with finished_at='2025-01-02T13:00:00Z' → FINISHED
+            // inst-002 has status=FINISHED in fixture
             Optional<ProjectInstanceInfo> found = instanceRepo.find("inst-002");
             assertTrue(found.isPresent());
             assertEquals(ProjectInstanceStatus.FINISHED, found.get().status());
-            assertEquals(Instant.parse("2025-01-02T13:00:00Z"), found.get().finishedAt());
         }
 
         @Test
-        void allSessionsFinished_statusDerivedCorrectly(DataSource dataSource) throws SQLException {
+        void updateStatus_changesStoredStatus(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
             var provider = new DatabaseClientProvider(dataSource);
-            var clock = Clock.fixed(Instant.parse("2025-06-15T12:00:00Z"), ZoneOffset.UTC);
-            var repoRepo = new JdbcProjectRepositoryRepository(clock, PROJECT_ID, provider);
             var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
 
-            // inst-001 has one unfinished session → ACTIVE
+            // inst-001 starts as ACTIVE
             assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find("inst-001").get().status());
 
-            // Finish the unfinished session
+            // Update to FINISHED with finishedAt
             Instant finishedAt = Instant.parse("2025-06-15T14:00:00Z");
-            repoRepo.markSessionFinished("session-001", finishedAt);
+            instanceRepo.updateStatusAndFinishedAt("inst-001", ProjectInstanceStatus.FINISHED, finishedAt);
 
-            // Verify no unfinished sessions remain
-            List<ProjectInstanceSessionInfo> unfinished = repoRepo.findUnfinishedSessions();
-            assertTrue(unfinished.isEmpty());
-
-            // Now the instance should derive to FINISHED
             Optional<ProjectInstanceInfo> instance = instanceRepo.find("inst-001");
             assertTrue(instance.isPresent());
             assertEquals(ProjectInstanceStatus.FINISHED, instance.get().status());
             assertEquals(finishedAt, instance.get().finishedAt());
+        }
+    }
+
+    @Nested
+    class StatusTransitions {
+
+        @Test
+        void updateStatus_pendingToActive(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            // Insert a PENDING instance
+            var newInstance = new ProjectInstanceInfo(
+                    "inst-pending", PROJECT_ID, "pending.example.com",
+                    ProjectInstanceStatus.PENDING,
+                    Instant.parse("2025-06-15T12:00:00Z"), null, null, null, 0, null);
+            instanceRepo.insert(newInstance);
+
+            instanceRepo.updateStatus("inst-pending", ProjectInstanceStatus.ACTIVE);
+
+            var found = instanceRepo.find("inst-pending").orElseThrow();
+            assertEquals(ProjectInstanceStatus.ACTIVE, found.status());
+        }
+
+        @Test
+        void updateStatusAndExpiredAt_setsStatusAndTimestamp(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            Instant expiredAt = Instant.parse("2025-06-20T10:00:00Z");
+            instanceRepo.updateStatusAndExpiredAt("inst-002", ProjectInstanceStatus.EXPIRED, expiredAt);
+
+            var found = instanceRepo.find("inst-002").orElseThrow();
+            assertEquals(ProjectInstanceStatus.EXPIRED, found.status());
+            assertEquals(expiredAt, found.expiredAt());
+        }
+
+        @Test
+        void setExpiringAt_setsTimestamp(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            Instant expiringAt = Instant.parse("2025-06-18T08:00:00Z");
+            instanceRepo.setExpiringAt("inst-001", expiringAt);
+
+            var found = instanceRepo.find("inst-001").orElseThrow();
+            assertEquals(expiringAt, found.expiringAt());
+        }
+
+        @Test
+        void delete_removesInstance(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            assertEquals(2, instanceRepo.findAll().size());
+
+            instanceRepo.delete("inst-002");
+
+            assertEquals(1, instanceRepo.findAll().size());
+            assertTrue(instanceRepo.find("inst-002").isEmpty());
+        }
+
+        @Test
+        void findByStatus_filtersCorrectly(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/instances/insert-project-with-instances.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            var instanceRepo = new JdbcProjectInstanceRepository(PROJECT_ID, provider);
+
+            List<ProjectInstanceInfo> active = instanceRepo.findByStatus(ProjectInstanceStatus.ACTIVE);
+            assertEquals(1, active.size());
+            assertEquals("inst-001", active.getFirst().id());
+
+            List<ProjectInstanceInfo> finished = instanceRepo.findByStatus(ProjectInstanceStatus.FINISHED);
+            assertEquals(1, finished.size());
+            assertEquals("inst-002", finished.getFirst().id());
+
+            List<ProjectInstanceInfo> expired = instanceRepo.findByStatus(ProjectInstanceStatus.EXPIRED);
+            assertTrue(expired.isEmpty());
         }
     }
 

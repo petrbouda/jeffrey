@@ -27,10 +27,12 @@ import pbouda.jeffrey.platform.scheduler.job.descriptor.ProjectsSynchronizerJobD
 import pbouda.jeffrey.platform.streaming.SessionFinisher;
 import pbouda.jeffrey.platform.streaming.SessionPaths;
 import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
+import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.provider.platform.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.shared.common.Json;
 import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RepositoryInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
@@ -108,6 +110,10 @@ public class CreateSessionWorkspaceEventConsumer implements WorkspaceEventConsum
 
         projectManager.repositoryManager()
                 .createSession(sessionInfo);
+
+        // Transition instance to ACTIVE (handles PENDING→ACTIVE, FINISHED→ACTIVE, EXPIRED→ACTIVE)
+        ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
+        instanceRepo.updateStatus(instanceId, ProjectInstanceStatus.ACTIVE);
 
         LOG.debug("Session created from workspace event: project_id={} instance_id={} session_id={}", projectId, instanceId, event.originEventId());
         JfrMessageEmitter.sessionCreated(event.originEventId(), instanceId, eventContent.order(), projectId);
