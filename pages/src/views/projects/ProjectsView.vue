@@ -37,6 +37,55 @@
     </div>
 
     <div class="projects-main-card mb-4">
+      <!-- Compact Workspace Context Bar (sticky header) -->
+      <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar" :class="getContextBarClass">
+        <div class="context-bar-info">
+          <span class="workspace-type-badge" :class="getTypeBadgeClass">
+            <i :class="getWorkspaceHeaderIcon"></i>
+            {{ getWorkspaceHeaderLabel }}
+          </span>
+          <span class="workspace-name">{{ getSelectedWorkspace()?.name }}</span>
+          <span class="context-divider">•</span>
+          <span class="workspace-meta">{{ getProjectCountText() }}</span>
+          <span class="context-divider">•</span>
+          <span class="workspace-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
+        </div>
+        <div class="context-bar-actions">
+          <div class="context-search">
+            <i class="bi bi-search"></i>
+            <input
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search..."
+                @input="filterProjects"
+            >
+          </div>
+          <button
+              class="context-btn primary"
+              @click="createProjectModal?.showModal()"
+              :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
+              :title="getCreateProjectTooltip(selectedWorkspace)"
+          >
+            <i class="bi bi-plus-lg"></i>
+            New
+          </button>
+          <button
+              class="context-btn danger"
+              @click="handleDeleteWorkspace()"
+              :disabled="!canDeleteWorkspace()"
+              :title="getDeleteTooltip()"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State (no workspace selected) -->
+      <div v-else class="workspace-context-empty">
+        <i class="bi bi-folder"></i>
+        <span>Select a workspace to view projects</span>
+      </div>
+
       <div class="projects-main-content">
         <!-- Offline Remote Workspace Info -->
         <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE && getSelectedWorkspace()?.type === WorkspaceType.REMOTE" class="workspace-offline-info mb-4">
@@ -62,55 +111,6 @@
               <small class="text-muted">The workspace directory may have been moved, deleted, or is no longer accessible. Check the workspace path and file permissions.</small>
             </div>
           </div>
-        </div>
-
-        <!-- Compact Workspace Context Bar -->
-        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar mb-4" :class="getContextBarClass">
-          <div class="context-bar-info">
-            <span class="workspace-type-badge" :class="getTypeBadgeClass">
-              <i :class="getWorkspaceHeaderIcon"></i>
-              {{ getWorkspaceHeaderLabel }}
-            </span>
-            <span class="workspace-name">{{ getSelectedWorkspace()?.name }}</span>
-            <span class="context-divider">•</span>
-            <span class="workspace-meta">{{ getProjectCountText() }}</span>
-            <span class="context-divider">•</span>
-            <span class="workspace-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
-          </div>
-          <div class="context-bar-actions">
-            <div class="context-search">
-              <i class="bi bi-search"></i>
-              <input
-                  type="text"
-                  v-model="searchQuery"
-                  placeholder="Search..."
-                  @input="filterProjects"
-              >
-            </div>
-            <button
-                class="context-btn primary"
-                @click="createProjectModal?.showModal()"
-                :disabled="!canCreateProjectInWorkspace(selectedWorkspace)"
-                :title="getCreateProjectTooltip(selectedWorkspace)"
-            >
-              <i class="bi bi-plus-lg"></i>
-              New
-            </button>
-            <button
-                class="context-btn danger"
-                @click="handleDeleteWorkspace()"
-                :disabled="!canDeleteWorkspace()"
-                :title="getDeleteTooltip()"
-            >
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else class="workspace-context-empty mb-4">
-          <i class="bi bi-folder"></i>
-          <span>Select a workspace to view projects</span>
         </div>
 
         <!-- Loading indicator -->
@@ -184,26 +184,6 @@
       @confirm="confirmDeleteWorkspace"
   />
 
-  <!-- Quick Analysis Assistant (only on Projects page) -->
-  <QuickAnalysisAssistant
-      :is-open="quickStore.isOpen.value"
-      :is-expanded="quickStore.isExpanded.value"
-      :selected-file="quickStore.selectedFile.value"
-      :selected-file-type="quickStore.selectedFileType.value"
-      :status="quickStore.status.value"
-      :status-message="quickStore.statusMessage.value"
-      :recent-profiles="quickStore.recentProfiles.value"
-      :error-message="quickStore.errorMessage.value"
-      :is-processing="quickStore.isProcessing.value"
-      @open="quickStore.open"
-      @expand="quickStore.expand"
-      @minimize="quickStore.minimize"
-      @close="quickStore.close"
-      @set-selected-file="quickStore.setSelectedFile"
-      @start-analysis="quickStore.startAnalysis"
-      @open-profile="quickStore.openProfile"
-      @delete-profile="quickStore.deleteProfile"
-  />
 </template>
 
 <script setup lang="ts">
@@ -214,8 +194,6 @@ import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
-import { QuickAnalysisAssistant } from '@/components/assistants';
-import { quickAnalysisAssistantStore as quickStore } from '@/stores/assistants';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import ProjectsClient from "@/services/api/ProjectsClient.ts";
@@ -678,14 +656,17 @@ const confirmDeleteWorkspace = async () => {
 
 /* Compact Workspace Context Bar */
 .workspace-context-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
   background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
   border-left: 3px solid #5e64ff;
+  border-radius: 16px 16px 0 0;
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -901,8 +882,8 @@ const confirmDeleteWorkspace = async () => {
   gap: 10px;
   padding: 16px 20px;
   background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
+  border-bottom: 1px dashed #d1d5db;
+  border-radius: 16px 16px 0 0;
   color: #9ca3af;
   font-size: 0.9rem;
   font-weight: 500;
