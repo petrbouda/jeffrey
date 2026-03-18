@@ -75,17 +75,17 @@ public class ProfilerSettingsResolver {
 
                 String projectConfig = profilerSettings.projectSettings().get(projectName);
                 if (projectConfig != null && !projectConfig.isBlank()) {
-                    LOG.info("Profiler config resolved from: {} (project: {})", settingsFile, projectName);
+                    LOG.info("Profiler config resolved from: {} (project settings)", settingsFile);
                     return projectConfig;
                 } else if (profilerSettings.defaultSettings() != null && !profilerSettings.defaultSettings().isBlank()) {
-                    LOG.info("Profiler config resolved from: {} (default section)", settingsFile);
+                    LOG.info("Profiler config resolved from: {} ({} settings)", settingsFile, profilerSettings.defaultSettingsLevel().toLowerCase());
                     return profilerSettings.defaultSettings();
                 } else {
-                    LOG.info("Profiler config resolved from: built-in default configuration (settings file had no applicable config)");
+                    LOG.info("Profiler config resolved from: built-in (cli settings)");
                     return AgentConstants.DEFAULT_PROFILER_CONFIG;
                 }
             } else {
-                LOG.info("Profiler config resolved from: built-in default configuration");
+                LOG.info("Profiler config resolved from: built-in (cli settings)");
                 return AgentConstants.DEFAULT_PROFILER_CONFIG;
             }
         } catch (IOException e) {

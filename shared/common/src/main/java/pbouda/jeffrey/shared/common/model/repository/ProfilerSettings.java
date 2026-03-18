@@ -20,5 +20,5 @@ package pbouda.jeffrey.shared.common.model.repository;
 
 import java.util.Map;
 
-public record ProfilerSettings(String defaultSettings, Map<String, String> projectSettings) {
+public record ProfilerSettings(String defaultSettings, String defaultSettingsLevel, Map<String, String> projectSettings) {
 }

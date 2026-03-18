@@ -75,7 +75,9 @@ public class WorkspaceProfilerSettingsSynchronizerJob extends
             }
         }
 
-        return new ProfilerSettings(workspaceSettings != null ? workspaceSettings : globalSettings, projectSettings);
+        String defaultSettings = workspaceSettings != null ? workspaceSettings : globalSettings;
+        String defaultSettingsLevel = workspaceSettings != null ? "WORKSPACE" : (globalSettings != null ? "GLOBAL" : null);
+        return new ProfilerSettings(defaultSettings, defaultSettingsLevel, projectSettings);
     }
 
     @Override

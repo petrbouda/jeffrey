@@ -208,6 +208,7 @@ class ProfilerSettingsResolverTest {
                     {
                         "profiler": {
                             "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall,file=<<JEFFREY_CURRENT_SESSION>>/profile.jfr",
+                            "defaultSettingsLevel": "WORKSPACE",
                             "projectSettings": {}
                         }
                     }
@@ -239,6 +240,7 @@ class ProfilerSettingsResolverTest {
                     {
                         "profiler": {
                             "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=wall",
+                            "defaultSettingsLevel": "GLOBAL",
                             "projectSettings": {
                                 "my-project": "-agentpath:<<JEFFREY_PROFILER_PATH>>=start,event=cpu,alloc"
                             }
@@ -273,6 +275,7 @@ class ProfilerSettingsResolverTest {
                     {
                         "profiler": {
                             "defaultSettings": "-agentpath:<<JEFFREY_PROFILER_PATH>>=custom-config",
+                            "defaultSettingsLevel": "WORKSPACE",
                             "projectSettings": {}
                         }
                     }

@@ -270,7 +270,7 @@ class FilesystemRemoteWorkspaceRepositoryTest {
         void writesNewSettingsFile(@TempDir Path workspacePath) throws IOException {
             var repo = new FilesystemRemoteWorkspaceRepository(FIXED_CLOCK, workspacePath);
             var settings = new RemoteWorkspaceSettings(
-                    new ProfilerSettings("cpu=10ms", Map.of("proj-1", "wall=5ms")));
+                    new ProfilerSettings("cpu=10ms", "WORKSPACE", Map.of("proj-1", "wall=5ms")));
 
             repo.uploadSettings(settings);
 
@@ -292,7 +292,7 @@ class FilesystemRemoteWorkspaceRepositoryTest {
         void skipsUpload_whenIdenticalToLatest(@TempDir Path workspacePath) throws IOException {
             var repo = new FilesystemRemoteWorkspaceRepository(FIXED_CLOCK, workspacePath);
             var settings = new RemoteWorkspaceSettings(
-                    new ProfilerSettings("cpu=10ms", Map.of()));
+                    new ProfilerSettings("cpu=10ms", "WORKSPACE", Map.of()));
 
             repo.uploadSettings(settings);
 
@@ -312,9 +312,9 @@ class FilesystemRemoteWorkspaceRepositoryTest {
         @Test
         void createsNewVersion_whenDifferent(@TempDir Path workspacePath) throws IOException {
             var settings1 = new RemoteWorkspaceSettings(
-                    new ProfilerSettings("cpu=10ms", Map.of()));
+                    new ProfilerSettings("cpu=10ms", "WORKSPACE", Map.of()));
             var settings2 = new RemoteWorkspaceSettings(
-                    new ProfilerSettings("wall=5ms", Map.of()));
+                    new ProfilerSettings("wall=5ms", "GLOBAL", Map.of()));
 
             // Use different clock times to avoid filename collision
             Clock clock1 = Clock.fixed(Instant.parse("2025-06-15T12:00:00Z"), ZoneOffset.UTC);
@@ -341,9 +341,9 @@ class FilesystemRemoteWorkspaceRepositoryTest {
 
         @Test
         void keepsOnlySpecifiedNumberOfVersions(@TempDir Path workspacePath) throws IOException {
-            var settings1 = new RemoteWorkspaceSettings(new ProfilerSettings("v1", Map.of()));
-            var settings2 = new RemoteWorkspaceSettings(new ProfilerSettings("v2", Map.of()));
-            var settings3 = new RemoteWorkspaceSettings(new ProfilerSettings("v3", Map.of()));
+            var settings1 = new RemoteWorkspaceSettings(new ProfilerSettings("v1", "GLOBAL", Map.of()));
+            var settings2 = new RemoteWorkspaceSettings(new ProfilerSettings("v2", "WORKSPACE", Map.of()));
+            var settings3 = new RemoteWorkspaceSettings(new ProfilerSettings("v3", "WORKSPACE", Map.of()));
 
             Clock clock1 = Clock.fixed(Instant.parse("2025-06-15T12:00:00Z"), ZoneOffset.UTC);
             Clock clock2 = Clock.fixed(Instant.parse("2025-06-15T12:01:00Z"), ZoneOffset.UTC);
