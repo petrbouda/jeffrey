@@ -678,7 +678,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 </div>
                 <div class="session-meta">
                   <span><i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources</span>
-                  <span><i class="bi bi-send me-1"></i>{{ parseSessionName(session.name).sessionId }}</span>
                 </div>
               </div>
             </div>
