@@ -27,21 +27,25 @@ import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
+
 public class WorkspacePublicResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspacePublicResource.class);
 
     private final WorkspaceManager workspaceManager;
     private final ProfilerRepository profilerRepository;
+    private final Clock clock;
 
-    public WorkspacePublicResource(WorkspaceManager workspaceManager, ProfilerRepository profilerRepository) {
+    public WorkspacePublicResource(WorkspaceManager workspaceManager, ProfilerRepository profilerRepository, Clock clock) {
         this.workspaceManager = workspaceManager;
         this.profilerRepository = profilerRepository;
+        this.clock = clock;
     }
 
     @Path("/projects")
     public WorkspaceProjectsPublicResource projects() {
-        return new WorkspaceProjectsPublicResource(workspaceManager.projectsManager(), profilerRepository);
+        return new WorkspaceProjectsPublicResource(workspaceManager.projectsManager(), profilerRepository, clock);
     }
 
     @GET

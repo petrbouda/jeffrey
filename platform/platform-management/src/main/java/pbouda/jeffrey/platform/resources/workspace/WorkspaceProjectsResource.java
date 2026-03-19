@@ -42,6 +42,7 @@ import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -54,15 +55,18 @@ public class WorkspaceProjectsResource {
     private final ProjectsManager projectsManager;
     private final WorkspaceManager workspaceManager;
     private final ProfileResourceFactory profileResourceFactory;
+    private final Clock clock;
 
     public WorkspaceProjectsResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
-            ProfileResourceFactory profileResourceFactory) {
+            ProfileResourceFactory profileResourceFactory,
+            Clock clock) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.projectsManager = workspaceManager.projectsManager();
         this.profileResourceFactory = profileResourceFactory;
+        this.clock = clock;
     }
 
     @Path("/{projectId}")
@@ -73,7 +77,8 @@ public class WorkspaceProjectsResource {
         return new ProjectResource(
                 projectManager,
                 projectsManager,
-                profileResourceFactory);
+                profileResourceFactory,
+                clock);
     }
 
     /**
@@ -82,7 +87,6 @@ public class WorkspaceProjectsResource {
     @GET
     @Path("/profiles")
     public List<ProjectWithProfilesResponse> projectsWithProfiles() {
-        LOG.debug("Listing projects with profiles: workspaceId={}", workspaceInfo.id());
         List<ProjectWithProfilesResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : this.projectsManager.findAll()) {
             ProjectInfo projectInfo = projectManager.info();
@@ -103,25 +107,26 @@ public class WorkspaceProjectsResource {
 
             responses.add(response);
         }
+        LOG.debug("Listed projects with profiles: workspaceId={} projectCount={}", workspaceInfo.id(), responses.size());
         return responses;
     }
 
     @GET
     public List<ProjectResponse> projects() {
-        LOG.debug("Listing projects: workspaceId={}", workspaceInfo.id());
-        List<ProjectResponse> projects = projectsManager.findAll().stream()
+        var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();
-
-        return projects;
+        LOG.debug("Listed projects: workspaceId={} count={}", workspaceInfo.id(), result.size());
+        return result;
     }
 
     @GET
     @Path("/namespaces")
     public List<String> namespaces() {
-        LOG.debug("Listing namespaces: workspaceId={}", workspaceInfo.id());
-        return projectsManager.findAllNamespaces();
+        var result = projectsManager.findAllNamespaces();
+        LOG.debug("Listed namespaces: workspaceId={} count={}", workspaceInfo.id(), result.size());
+        return result;
     }
 
     @POST

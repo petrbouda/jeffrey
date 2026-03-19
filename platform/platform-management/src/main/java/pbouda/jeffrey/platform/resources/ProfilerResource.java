@@ -65,10 +65,11 @@ public class ProfilerResource {
     @GET
     @Path("settings")
     public List<ProfilerSettingsRequest> findAllSettings() {
-        LOG.debug("Listing profiler settings");
-        return profilerRepository.findAllSettings().stream()
+        var result = profilerRepository.findAllSettings().stream()
                 .map(it -> new ProfilerSettingsRequest(it.workspaceId(), it.projectId(), it.agentSettings()))
                 .toList();
+        LOG.debug("Listed profiler settings: count={}", result.size());
+        return result;
     }
 
     @DELETE

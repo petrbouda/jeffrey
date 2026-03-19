@@ -35,6 +35,8 @@ import pbouda.jeffrey.provider.platform.repository.PlatformRepositories;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 
+import java.time.Clock;
+
 import static pbouda.jeffrey.platform.configuration.AppConfiguration.GLOBAL_SCHEDULER_MANAGER_BEAN;
 
 @Path("/internal")
@@ -51,6 +53,7 @@ public class RootInternalResource {
     private final PlatformRepositories platformRepositories;
     private final ProfileResourceFactory profileResourceFactory;
     private final QuickAnalysisManager quickAnalysisManager;
+    private final Clock clock;
 
     @Inject
     public RootInternalResource(
@@ -62,7 +65,8 @@ public class RootInternalResource {
             ProfilerRepository profilerRepository,
             PlatformRepositories platformRepositories,
             ProfileResourceFactory profileResourceFactory,
-            QuickAnalysisManager quickAnalysisManager) {
+            QuickAnalysisManager quickAnalysisManager,
+            Clock clock) {
 
         this.globalSchedulerManager = globalSchedulerManager;
         this.remoteClientsFactory = remoteClientsFactory;
@@ -73,6 +77,7 @@ public class RootInternalResource {
         this.platformRepositories = platformRepositories;
         this.profileResourceFactory = profileResourceFactory;
         this.quickAnalysisManager = quickAnalysisManager;
+        this.clock = clock;
     }
 
     @Path("/projects")
@@ -90,7 +95,8 @@ public class RootInternalResource {
         return new WorkspacesResource(
                 workspacesManager,
                 workspaceEventQueue,
-                profileResourceFactory);
+                profileResourceFactory,
+                clock);
     }
 
     @Path("/remote-workspaces")

@@ -32,6 +32,7 @@ import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
+import java.time.Clock;
 import java.util.List;
 
 public class WorkspaceResource {
@@ -42,16 +43,19 @@ public class WorkspaceResource {
     private final WorkspaceManager workspaceManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfileResourceFactory profileResourceFactory;
+    private final Clock clock;
 
     public WorkspaceResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            ProfileResourceFactory profileResourceFactory) {
+            ProfileResourceFactory profileResourceFactory,
+            Clock clock) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.workspaceEventQueue = workspaceEventQueue;
         this.profileResourceFactory = profileResourceFactory;
+        this.clock = clock;
     }
 
     @Path("/projects")
@@ -59,7 +63,8 @@ public class WorkspaceResource {
         return new WorkspaceProjectsResource(
                 workspaceInfo,
                 workspaceManager,
-                profileResourceFactory);
+                profileResourceFactory,
+                clock);
     }
 
     @DELETE
@@ -77,10 +82,11 @@ public class WorkspaceResource {
     @GET
     @Path("/events")
     public List<WorkspaceEventResponse> events() {
-        LOG.debug("Listing workspace events: workspaceId={}", workspaceInfo.id());
-        return workspaceEventQueue.findAll(workspaceInfo.id()).stream()
+        var result = workspaceEventQueue.findAll(workspaceInfo.id()).stream()
                 .map(WorkspaceEventConverter::fromQueueEntry)
                 .map(Mappers::toEventResponse)
                 .toList();
+        LOG.debug("Listed workspace events: workspaceId={} count={}", workspaceInfo.id(), result.size());
+        return result;
     }
 }

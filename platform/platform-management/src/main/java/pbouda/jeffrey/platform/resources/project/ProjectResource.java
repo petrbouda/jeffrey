@@ -32,6 +32,8 @@ import pbouda.jeffrey.platform.resources.workspace.Mappers;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
+import java.time.Clock;
+
 public class ProjectResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectResource.class);
@@ -39,24 +41,29 @@ public class ProjectResource {
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
     private final ProfileResourceFactory profileResourceFactory;
+    private final Clock clock;
 
     /**
      * @param projectManager         Primary Project Manager
      * @param projectsManager        Projects Manager to retrieve Profiles from different Projects
      * @param profileResourceFactory Factory for creating ProfileResource sub-resources
+     * @param clock                  Clock for time-based computations
      */
     public ProjectResource(
             ProjectManager projectManager,
             ProjectsManager projectsManager,
-            ProfileResourceFactory profileResourceFactory) {
+            ProfileResourceFactory profileResourceFactory,
+            Clock clock) {
         this.projectManager = projectManager;
         this.projectsManager = projectsManager;
         this.profileResourceFactory = profileResourceFactory;
+        this.clock = clock;
     }
 
     @Path("/profiles")
     public ProjectProfilesResource profilesResource() {
         return new ProjectProfilesResource(
+                projectManager.info(),
                 projectManager.profilesManager(),
                 projectsManager,
                 profileResourceFactory);
@@ -74,12 +81,12 @@ public class ProjectResource {
 
     @Path("/recordings")
     public ProjectRecordingsResource recordingResource() {
-        return new ProjectRecordingsResource(projectManager.recordingsManager());
+        return new ProjectRecordingsResource(projectManager.info(), projectManager.recordingsManager());
     }
 
     @Path("/repository")
     public ProjectRepositoryResource repositoryResource() {
-        return new ProjectRepositoryResource(projectManager);
+        return new ProjectRepositoryResource(projectManager, clock);
     }
 
     @Path("/download")
@@ -102,7 +109,7 @@ public class ProjectResource {
 
     @Path("/instances")
     public ProjectInstancesResource instancesResource() {
-        return new ProjectInstancesResource(projectManager.projectInstanceRepository());
+        return new ProjectInstancesResource(projectManager.info(), projectManager.projectInstanceRepository(), clock);
     }
 
     @GET

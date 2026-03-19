@@ -114,7 +114,7 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 projectInfo.originId(),
                 response.hostname(),
                 ProjectInstanceStatus.valueOf(response.status()),
-                InstantUtils.fromEpochMilli(response.startedAt()),
+                InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),
                 InstantUtils.fromEpochMilli(response.expiringAt()),
                 InstantUtils.fromEpochMilli(response.expiredAt()),
@@ -131,7 +131,7 @@ public class RemoteProjectInstanceRepository implements ProjectInstanceRepositor
                 null,
                 null,
                 null,
-                InstantUtils.fromEpochMilli(response.startedAt()),
+                InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()));
     }
 }

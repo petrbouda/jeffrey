@@ -28,6 +28,7 @@ export default class RecordingSession {
         public finishedAt: number | null,
         public status: RecordingStatus,
         public profilerSettings: string,
+        public duration: number,
         public files: RepositoryFile[],
     ) {
     }

@@ -28,16 +28,20 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
+
 public class WorkspaceProjectPublicResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectPublicResource.class);
 
     private final ProjectManager projectManager;
     private final ProfilerRepository profilerRepository;
+    private final Clock clock;
 
-    public WorkspaceProjectPublicResource(ProjectManager projectManager, ProfilerRepository profilerRepository) {
+    public WorkspaceProjectPublicResource(ProjectManager projectManager, ProfilerRepository profilerRepository, Clock clock) {
         this.projectManager = projectManager;
         this.profilerRepository = profilerRepository;
+        this.clock = clock;
     }
 
     @GET
@@ -49,7 +53,7 @@ public class WorkspaceProjectPublicResource {
 
     @Path("/repository")
     public ProjectRepositoryPublicResource repositoryResource() {
-        return new ProjectRepositoryPublicResource(projectManager);
+        return new ProjectRepositoryPublicResource(projectManager, clock);
     }
 
     @Path("/profiler/settings")
@@ -65,6 +69,6 @@ public class WorkspaceProjectPublicResource {
 
     @Path("/instances")
     public ProjectInstancesPublicResource instancesResource() {
-        return new ProjectInstancesPublicResource(projectManager.projectInstanceRepository());
+        return new ProjectInstancesPublicResource(projectManager.info(), projectManager.projectInstanceRepository(), clock);
     }
 }

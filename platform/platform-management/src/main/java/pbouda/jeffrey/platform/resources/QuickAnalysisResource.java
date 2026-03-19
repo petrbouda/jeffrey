@@ -119,11 +119,12 @@ public class QuickAnalysisResource {
     @Path("/profiles")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProfileSummaryResponse> listProfiles() {
-        LOG.debug("Listing quick analysis profiles");
-        return quickAnalysisManager.listProfiles().stream()
+        var result = quickAnalysisManager.listProfiles().stream()
                 .sorted(Comparator.comparing(ProfileInfo::createdAt).reversed())
                 .map(this::toResponse)
                 .toList();
+        LOG.debug("Listed quick analysis profiles: count={}", result.size());
+        return result;
     }
 
     /**

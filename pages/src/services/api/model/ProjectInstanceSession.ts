@@ -20,7 +20,8 @@ export default class ProjectInstanceSession {
     constructor(
         public id: string,
         public repositoryId: string,
-        public startedAt: number,
+        public createdAt: number,
+        public duration: number,
         public finishedAt?: number,
         public isActive?: boolean,
     ) {

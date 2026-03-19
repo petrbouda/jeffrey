@@ -22,6 +22,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.manager.ThreadManager;
 import pbouda.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
@@ -56,16 +57,19 @@ public class ThreadResource {
             Type allocationType) {
     }
 
+    private final ProfileInfo profileInfo;
     private final ThreadManager threadManager;
 
-    public ThreadResource(ThreadManager threadManager) {
+    public ThreadResource(ProfileInfo profileInfo, ThreadManager threadManager) {
+        this.profileInfo = profileInfo;
         this.threadManager = threadManager;
     }
 
     @GET
     public ThreadRoot list() {
-        LOG.debug("Listing threads");
-        return threadManager.threadRows();
+        var result = threadManager.threadRows();
+        LOG.debug("Listed threads: profileId={}", profileInfo.id());
+        return result;
     }
 
     @GET

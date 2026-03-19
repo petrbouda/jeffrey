@@ -79,6 +79,7 @@ final class RemoteClientTestSupport {
                 SESSION_ID, "session-one", INSTANCE_ID,
                 1700000000000L, 1700003600000L,
                 RecordingStatus.FINISHED, "cpu=true",
+                3600000L,
                 List.of(sampleFileResponse()));
     }
 
@@ -115,13 +116,13 @@ final class RemoteClientTestSupport {
     static InstanceResponse sampleInstanceResponse() {
         return new InstanceResponse(
                 INSTANCE_ID, "host-1", "ACTIVE",
-                1700000000000L, null, null, null, 2, SESSION_ID);
+                1700000000000L, null, null, null, 2, SESSION_ID, null);
     }
 
     static InstanceSessionResponse sampleInstanceSessionResponse() {
         return new InstanceSessionResponse(
                 SESSION_ID, "repo-1",
-                1700000000000L, null, true);
+                1700000000000L, null, true, 0L);
     }
 
     private RemoteClientTestSupport() {

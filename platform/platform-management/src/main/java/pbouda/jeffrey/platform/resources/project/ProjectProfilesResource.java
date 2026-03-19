@@ -32,6 +32,8 @@ import pbouda.jeffrey.profile.resources.ProfileDiffResource;
 import pbouda.jeffrey.profile.resources.ProfileResource;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -40,19 +42,23 @@ public class ProjectProfilesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectProfilesResource.class);
 
+    private final ProjectInfo projectInfo;
     private final ProfilesManager profilesManager;
     private final ProjectsManager projectsManager;
     private final ProfileResourceFactory profileResourceFactory;
 
     /**
+     * @param projectInfo            Project info for logging context
      * @param profilesManager        Primary Profiles Manager
      * @param projectsManager        Projects Manager to retrieve Profiles from different Projects
      * @param profileResourceFactory Factory for creating ProfileResource sub-resources
      */
     public ProjectProfilesResource(
+            ProjectInfo projectInfo,
             ProfilesManager profilesManager,
             ProjectsManager projectsManager,
             ProfileResourceFactory profileResourceFactory) {
+        this.projectInfo = projectInfo;
         this.profilesManager = profilesManager;
         this.projectsManager = projectsManager;
         this.profileResourceFactory = profileResourceFactory;
@@ -100,11 +106,12 @@ public class ProjectProfilesResource {
 
     @GET
     public List<ProfileSummaryResponse> profiles() {
-        LOG.debug("Listing profiles");
-        return profilesManager.allProfiles().stream()
+        var result = profilesManager.allProfiles().stream()
                 .sorted(Comparator.comparing((ProfileManager pm) -> pm.info().createdAt()).reversed())
                 .map(ProfileSummaryResponse::from)
                 .toList();
+        LOG.debug("Listed profiles: projectId={} count={}", projectInfo.id(), result.size());
+        return result;
     }
 
     @POST

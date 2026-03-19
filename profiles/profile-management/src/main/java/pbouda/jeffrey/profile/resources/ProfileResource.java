@@ -65,7 +65,7 @@ public class ProfileResource {
 
     @Path("/viewer")
     public EventViewerResource eventViewerResource() {
-        return new EventViewerResource(profileManager.eventViewerManager());
+        return new EventViewerResource(profileManager.info(), profileManager.eventViewerManager());
     }
 
     @Path("/flags")
@@ -82,7 +82,7 @@ public class ProfileResource {
 
     @Path("/guardian")
     public GuardianResource guardianResource() {
-        return new GuardianResource(profileManager.guardianManager());
+        return new GuardianResource(profileManager.info(), profileManager.guardianManager());
     }
 
     @Path("/information")
@@ -92,7 +92,7 @@ public class ProfileResource {
 
     @Path("/thread")
     public ThreadResource threadResource() {
-        return new ThreadResource(profileManager.threadManager());
+        return new ThreadResource(profileManager.info(), profileManager.threadManager());
     }
 
     @Path("/compilation")

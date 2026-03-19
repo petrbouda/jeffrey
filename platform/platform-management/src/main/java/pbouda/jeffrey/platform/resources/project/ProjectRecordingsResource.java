@@ -37,6 +37,8 @@ import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
 
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -46,16 +48,17 @@ public class ProjectRecordingsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRecordingsResource.class);
 
+    private final ProjectInfo projectInfo;
     private final RecordingsManager recordingsManager;
 
-    public ProjectRecordingsResource(RecordingsManager recordingsManager) {
+    public ProjectRecordingsResource(ProjectInfo projectInfo, RecordingsManager recordingsManager) {
+        this.projectInfo = projectInfo;
         this.recordingsManager = recordingsManager;
     }
 
     @GET
     public List<RecordingsResponse> recordings() {
-        LOG.debug("Listing recordings");
-        return recordingsManager.all().stream()
+        var result = recordingsManager.all().stream()
                 .map(rec -> {
 
                     List<RecordingFileResponse> recordingFiles = rec.files().stream()
@@ -79,6 +82,8 @@ public class ProjectRecordingsResource {
 
                 })
                 .toList();
+        LOG.debug("Listed recordings: projectId={} count={}", projectInfo.id(), result.size());
+        return result;
     }
 
     private static RecordingFileResponse toRecordingFile(RecordingFile recordingFile) {
@@ -118,8 +123,9 @@ public class ProjectRecordingsResource {
     @GET
     @Path("/folders")
     public List<RecordingFolder> findAllFolders() {
-        LOG.debug("Listing recording folders");
-        return recordingsManager.allRecordingFolders();
+        var result = recordingsManager.allRecordingFolders();
+        LOG.debug("Listed recording folders: projectId={} count={}", projectInfo.id(), result.size());
+        return result;
     }
 
     @DELETE

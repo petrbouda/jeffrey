@@ -36,6 +36,7 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
+import java.time.Clock;
 import java.util.List;
 
 public class WorkspacesResource {
@@ -45,14 +46,17 @@ public class WorkspacesResource {
     private final CompositeWorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfileResourceFactory profileResourceFactory;
+    private final Clock clock;
 
     public WorkspacesResource(
             CompositeWorkspacesManager workspacesManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            ProfileResourceFactory profileResourceFactory) {
+            ProfileResourceFactory profileResourceFactory,
+            Clock clock) {
         this.workspacesManager = workspacesManager;
         this.workspaceEventQueue = workspaceEventQueue;
         this.profileResourceFactory = profileResourceFactory;
+        this.clock = clock;
     }
 
     @Path("/{workspaceId}")
@@ -72,19 +76,19 @@ public class WorkspacesResource {
                 workspaceInfo,
                 workspaceManager,
                 workspaceEventQueue,
-                profileResourceFactory);
+                profileResourceFactory,
+                clock);
     }
 
     @GET
     public List<WorkspaceResponse> workspaces(@QueryParam("type") WorkspaceType type) {
-        LOG.debug("Listing workspaces: type={}", type);
-        List<WorkspaceResponse> workspaces = workspacesManager.findAll().stream()
+        var result = workspacesManager.findAll().stream()
                 .map(WorkspaceManager::localInfo)
                 .filter(info -> type == null || info.type() == type)
                 .map(Mappers::toResponse)
                 .toList();
-
-        return workspaces;
+        LOG.debug("Listed workspaces: type={} count={}", type, result.size());
+        return result;
     }
 
     @POST

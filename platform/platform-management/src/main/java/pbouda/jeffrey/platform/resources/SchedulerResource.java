@@ -53,8 +53,9 @@ public class SchedulerResource {
 
     @GET
     public List<JobInfo> allJobs() {
-        LOG.debug("Listing scheduler jobs");
-        return schedulerManager.all();
+        var result = schedulerManager.all();
+        LOG.debug("Listed scheduler jobs: count={}", result.size());
+        return result;
     }
 
     @PUT

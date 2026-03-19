@@ -28,10 +28,12 @@ import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
 import pbouda.jeffrey.platform.resources.request.FileDownloadRequest;
 import pbouda.jeffrey.platform.resources.request.FilesDownloadRequest;
 import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UncheckedIOException;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,18 +41,23 @@ public class ProjectRepositorySessionPublicResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositorySessionPublicResource.class);
 
+    private final ProjectInfo projectInfo;
     private final RepositoryManager repositoryManager;
+    private final Clock clock;
 
-    public ProjectRepositorySessionPublicResource(RepositoryManager repositoryManager) {
+    public ProjectRepositorySessionPublicResource(ProjectInfo projectInfo, RepositoryManager repositoryManager, Clock clock) {
+        this.projectInfo = projectInfo;
         this.repositoryManager = repositoryManager;
+        this.clock = clock;
     }
 
     @GET
     public List<RecordingSessionResponse> listSessions() {
-        LOG.debug("Listing public repository sessions");
-        return repositoryManager.listRecordingSessions(true).stream()
-                .map(RecordingSessionResponse::from)
+        var result = repositoryManager.listRecordingSessions(true).stream()
+                .map(s -> RecordingSessionResponse.from(s, clock))
                 .toList();
+        LOG.debug("Listed public repository sessions: projectId={} count={}", projectInfo.id(), result.size());
+        return result;
     }
 
     @GET
@@ -59,7 +66,7 @@ public class ProjectRepositorySessionPublicResource {
         LOG.debug("Fetching public repository session: sessionId={}", sessionId);
         Optional<RecordingSessionResponse> sessionOpt = repositoryManager.listRecordingSessions(true).stream()
                 .filter(s -> s.id().equals(sessionId))
-                .map(RecordingSessionResponse::from)
+                .map(s -> RecordingSessionResponse.from(s, clock))
                 .findFirst();
 
         if (sessionOpt.isEmpty()) {

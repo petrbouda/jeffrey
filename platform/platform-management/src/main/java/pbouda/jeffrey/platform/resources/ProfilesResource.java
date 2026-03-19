@@ -71,7 +71,6 @@ public class ProfilesResource {
      */
     @GET
     public List<ProfileWithContextResponse> listAllProfiles() {
-        LOG.debug("Listing all profiles across workspaces");
         List<ProfileWithContextResponse> allProfiles = new ArrayList<>();
 
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
@@ -84,9 +83,11 @@ public class ProfilesResource {
             }
         }
 
-        return allProfiles.stream()
+        var result = allProfiles.stream()
                 .sorted(Comparator.comparing(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
+        LOG.debug("Listed all profiles across workspaces: count={}", result.size());
+        return result;
     }
 
     /**

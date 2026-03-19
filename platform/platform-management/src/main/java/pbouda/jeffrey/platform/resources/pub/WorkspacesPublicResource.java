@@ -30,6 +30,7 @@ import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.List;
 
 public class WorkspacesPublicResource {
@@ -38,10 +39,12 @@ public class WorkspacesPublicResource {
 
     private final WorkspacesManager workspacesManager;
     private final ProfilerRepository profilerRepository;
+    private final Clock clock;
 
-    public WorkspacesPublicResource(WorkspacesManager workspacesManager, ProfilerRepository profilerRepository) {
+    public WorkspacesPublicResource(WorkspacesManager workspacesManager, ProfilerRepository profilerRepository, Clock clock) {
         this.workspacesManager = workspacesManager;
         this.profilerRepository = profilerRepository;
+        this.clock = clock;
     }
 
     @Path("/{workspaceId}")
@@ -49,15 +52,16 @@ public class WorkspacesPublicResource {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
 
-        return new WorkspacePublicResource(workspaceManager, profilerRepository);
+        return new WorkspacePublicResource(workspaceManager, profilerRepository, clock);
     }
 
     @GET
     public List<WorkspaceResponse> workspaces() {
-        LOG.debug("Listing public workspaces");
-        return workspacesManager.findAll().stream()
+        var result = workspacesManager.findAll().stream()
                 .map(WorkspaceManager::resolveInfo)
                 .map(Mappers::toResponse)
                 .toList();
+        LOG.debug("Listed public workspaces: count={}", result.size());
+        return result;
     }
 }

@@ -25,6 +25,7 @@ import pbouda.jeffrey.profile.common.analysis.AnalysisResult;
 import pbouda.jeffrey.profile.manager.GuardianManager;
 import pbouda.jeffrey.profile.guardian.guard.Guard.Category;
 import pbouda.jeffrey.profile.guardian.guard.GuardAnalysisResult;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.*;
 
@@ -35,15 +36,16 @@ public class GuardianResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuardianResource.class);
 
+    private final ProfileInfo profileInfo;
     private final GuardianManager guardianManager;
 
-    public GuardianResource(GuardianManager guardianManager) {
+    public GuardianResource(ProfileInfo profileInfo, GuardianManager guardianManager) {
+        this.profileInfo = profileInfo;
         this.guardianManager = guardianManager;
     }
 
     @GET
     public List<GuardListResponse> list() {
-        LOG.debug("Listing guardian results");
         List<GuardAnalysisResult> guardAnalysisResults = guardianManager
                 .guardResults()
                 .stream()
@@ -64,10 +66,12 @@ public class GuardianResource {
             });
         }
 
-        return output.entrySet().stream()
+        var result = output.entrySet().stream()
                 .sorted(Comparator.comparingInt(e -> e.getKey().getOrder()))
                 .map(e -> new GuardListResponse(e.getKey().getLabel(), e.getValue()))
                 .toList();
+        LOG.debug("Listed guardian results: profileId={} count={}", profileInfo.id(), result.size());
+        return result;
     }
 
     private static int severityOrder(AnalysisResult.Severity severity) {

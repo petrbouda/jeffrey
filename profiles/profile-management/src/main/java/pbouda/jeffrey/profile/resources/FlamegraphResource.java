@@ -65,8 +65,9 @@ public class FlamegraphResource {
     @GET
     @Path("/events")
     public List<EventSummaryResult> events() {
-        LOG.debug("Listing flamegraph event types");
-        return flamegraphManager.eventSummaries();
+        var result = flamegraphManager.eventSummaries();
+        LOG.debug("Listed flamegraph event types: profileId={} count={}", profileInfo.id(), result.size());
+        return result;
     }
 
     static GraphParameters mapToGenerateRequest(

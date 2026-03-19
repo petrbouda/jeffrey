@@ -152,8 +152,8 @@
           <div class="timeline-tooltip-row">
             <span class="timeline-tooltip-label">Started</span>
             <span class="timeline-tooltip-value">
-              {{ FormattingService.formatRelativeTime(hoveredInstance.startedAt) }}
-              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredInstance.startedAt) }}</span>
+              {{ FormattingService.formatRelativeTime(hoveredInstance.createdAt) }}
+              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredInstance.createdAt) }}</span>
             </span>
           </div>
           <div class="timeline-tooltip-row">
@@ -169,10 +169,7 @@
           <div class="timeline-tooltip-row">
             <span class="timeline-tooltip-label">Duration</span>
             <span class="timeline-tooltip-value">
-              {{ hoveredInstance.finishedAt
-                ? FormattingService.formatDurationFromMillis(hoveredInstance.startedAt, hoveredInstance.finishedAt)
-                : FormattingService.formatDurationFromMillis(hoveredInstance.startedAt, Date.now())
-              }}
+              {{ FormattingService.formatDurationInMillis2Units(hoveredInstance.duration) }}
             </span>
           </div>
           <div class="timeline-tooltip-row">
@@ -212,8 +209,8 @@
           <div class="timeline-tooltip-row">
             <span class="timeline-tooltip-label">Started</span>
             <span class="timeline-tooltip-value">
-              {{ FormattingService.formatRelativeTime(hoveredSession.session.startedAt) }}
-              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredSession.session.startedAt) }}</span>
+              {{ FormattingService.formatRelativeTime(hoveredSession.session.createdAt) }}
+              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredSession.session.createdAt) }}</span>
             </span>
           </div>
           <div class="timeline-tooltip-row">
@@ -229,10 +226,7 @@
           <div class="timeline-tooltip-row">
             <span class="timeline-tooltip-label">Duration</span>
             <span class="timeline-tooltip-value">
-              {{ hoveredSession.session.finishedAt
-                ? FormattingService.formatDurationFromMillis(hoveredSession.session.startedAt, hoveredSession.session.finishedAt)
-                : FormattingService.formatDurationFromMillis(hoveredSession.session.startedAt, Date.now())
-              }}
+              {{ FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration) }}
             </span>
           </div>
         </div>
@@ -298,7 +292,7 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
   const now = Date.now();
   const rangeMs = getRangeMs();
 
-  const startPercent = Math.max(0, Math.min((now - instance.startedAt) / rangeMs * 100, 100));
+  const startPercent = Math.max(0, Math.min((now - instance.createdAt) / rangeMs * 100, 100));
 
   const effectiveFinishedAt = instance.finishedAt ?? instance.expiredAt;
   const endPercent = (instance.status === 'ACTIVE' || instance.status === 'PENDING' || !effectiveFinishedAt)
@@ -318,7 +312,7 @@ function getSessionBarStyle(session: ProjectInstanceSession): Record<string, str
   const now = Date.now();
   const rangeMs = getRangeMs();
 
-  const startPercent = Math.max(0, Math.min((now - session.startedAt) / rangeMs * 100, 100));
+  const startPercent = Math.max(0, Math.min((now - session.createdAt) / rangeMs * 100, 100));
 
   const endPercent = (session.isActive || !session.finishedAt)
     ? 0

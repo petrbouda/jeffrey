@@ -31,30 +31,37 @@ import pbouda.jeffrey.platform.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.profile.manager.model.StreamedRecordingFile;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.List;
 
 public class ProjectRepositoryResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryResource.class);
 
+    private final ProjectInfo projectInfo;
     private final RepositoryManager repositoryManager;
     private final RecordingsDownloadManager recordingsDownloadManager;
+    private final Clock clock;
 
-    public ProjectRepositoryResource(ProjectManager projectManager) {
+    public ProjectRepositoryResource(ProjectManager projectManager, Clock clock) {
+        this.projectInfo = projectManager.info();
         this.repositoryManager = projectManager.repositoryManager();
         this.recordingsDownloadManager = projectManager.recordingsDownloadManager();
+        this.clock = clock;
     }
 
     @GET
     @Path("/sessions")
     public List<RecordingSessionResponse> listRepositorySessions() {
-        LOG.debug("Listing repository sessions");
-        return repositoryManager.listRecordingSessions(true).stream()
-                .map(RecordingSessionResponse::from)
+        var result = repositoryManager.listRecordingSessions(true).stream()
+                .map(s -> RecordingSessionResponse.from(s, clock))
                 .toList();
+        LOG.debug("Listed repository sessions: projectId={} count={}", projectInfo.id(), result.size());
+        return result;
     }
 
     @GET

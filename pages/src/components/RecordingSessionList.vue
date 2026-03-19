@@ -15,6 +15,7 @@ import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import type { Variant } from '@/types/ui';
 import FormattingService from "@/services/FormattingService.ts";
+import TimelineBar from '@/components/TimelineBar.vue';
 
 interface Props {
   sessions: RecordingSession[]
@@ -206,6 +207,13 @@ const copyProfilerSettings = async (settings: string) => {
 // --- Status helpers ---
 const getSourcesCount = (session: RecordingSession): number => {
   return session.files.length;
+};
+
+const getSessionIconClass = (session: RecordingSession) => {
+  if (session.status === RecordingStatus.ACTIVE) return 'session-icon-active';
+  if (session.status === RecordingStatus.FINISHED) return 'session-icon-finished';
+  if (session.status === RecordingStatus.UNKNOWN) return 'session-icon-unknown';
+  return 'session-icon-unknown';
 };
 
 const getSessionStatusClass = (session: RecordingSession) => {
@@ -645,10 +653,11 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
            @click="toggleSession(session.id)">
         <!-- Identity section -->
         <div class="session-identity">
-          <div class="d-flex justify-content-between align-items-start">
-            <div class="d-flex align-items-start">
-              <i class="bi fs-4 me-3 text-primary"
-                 :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              <div class="session-icon-square me-3" :class="getSessionIconClass(session)">
+                <i class="bi" :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
+              </div>
               <div>
                 <div class="d-flex align-items-center gap-2">
                   <template v-if="showInstanceLink">
@@ -667,13 +676,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   </template>
                   <span class="session-id-part">{{ session.id }}</span>
                 </div>
-                <div class="session-pills">
-                  <span class="session-pill">
-                    <i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources
-                  </span>
-                  <span class="session-pill">
-                    <i class="bi bi-send me-1"></i>{{ parseSessionName(session.name).sessionId }}
-                  </span>
+                <div class="session-meta">
+                  <span><i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources</span>
+                  <span><i class="bi bi-send me-1"></i>{{ parseSessionName(session.name).sessionId }}</span>
                 </div>
               </div>
             </div>
@@ -716,31 +721,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         </div>
 
         <!-- Timeline section -->
-        <div class="session-timeline">
-          <div class="session-tl-item">
-            <div class="session-tl-value">
-              <i class="bi bi-play-circle"></i>
-              <span class="session-tl-label">Started</span>
-              {{ FormattingService.formatRelativeTime(session.createdAt) }}
-            </div>
-            <div class="session-tl-sub">{{ FormattingService.formatTimestampUTC(session.createdAt) }}</div>
-          </div>
-          <div class="session-tl-item" v-if="session.finishedAt">
-            <div class="session-tl-value">
-              <i class="bi bi-stop-circle"></i>
-              <span class="session-tl-label">Finished</span>
-              {{ FormattingService.formatRelativeTime(session.finishedAt) }}
-            </div>
-            <div class="session-tl-sub">{{ FormattingService.formatTimestampUTC(session.finishedAt) }}</div>
-          </div>
-          <div class="session-tl-item" v-if="session.finishedAt">
-            <div class="session-tl-value">
-              <i class="bi bi-hourglass-split"></i>
-              <span class="session-tl-label">Duration</span>
-              {{ FormattingService.formatDurationFromMillis(session.createdAt, session.finishedAt) }}
-            </div>
-          </div>
-        </div>
+        <TimelineBar :createdAt="session.createdAt" :finishedAt="session.finishedAt" :duration="session.duration" />
       </div>
 
       <!-- Session recordings (shown when expanded) -->
@@ -1309,73 +1290,40 @@ code {
   font-size: 0.88rem;
 }
 
-/* Session pills */
-.session-pills {
+/* Session icon square (matching instance-icon-square) */
+.session-icon-square {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  justify-content: center;
+  font-size: 1rem;
 }
 
-.session-pill {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 1px 8px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
+.session-icon-active {
+  background-color: rgba(255, 193, 7, 0.12);
+  color: #d97706;
 }
 
-.session-pill i {
-  color: #94a3b8;
-  font-size: 0.65rem;
+.session-icon-finished {
+  background-color: rgba(40, 167, 69, 0.12);
+  color: #059669;
 }
 
-/* Session timeline section */
-.session-timeline {
+.session-icon-unknown {
+  background-color: rgba(111, 66, 193, 0.12);
+  color: #6f42c1;
+}
+
+/* Session meta (matching instance-meta) */
+.session-meta {
   display: flex;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  background: rgba(248, 250, 252, 0.5);
-}
-
-.session-tl-item {
-  flex: 1;
-  padding: 10px 18px;
-}
-
-.session-tl-item + .session-tl-item {
-  border-left: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.session-tl-value {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.session-tl-value i {
-  font-size: 0.8rem;
-  color: #94a3b8;
-}
-
-.session-tl-label {
+  gap: 12px;
   font-size: 0.75rem;
-  font-weight: 500;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.session-tl-sub {
-  font-size: 0.78rem;
-  color: #94a3b8;
+  color: #6b7280;
   margin-top: 2px;
-  padding-left: 22px;
 }
 
 /* Show More button styling */

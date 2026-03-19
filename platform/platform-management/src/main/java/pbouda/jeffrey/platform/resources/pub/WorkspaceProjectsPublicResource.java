@@ -30,6 +30,7 @@ import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.List;
 
 public class WorkspaceProjectsPublicResource {
@@ -38,10 +39,12 @@ public class WorkspaceProjectsPublicResource {
 
     private final ProjectsManager projectsManager;
     private final ProfilerRepository profilerRepository;
+    private final Clock clock;
 
-    public WorkspaceProjectsPublicResource(ProjectsManager projectsManager, ProfilerRepository profilerRepository) {
+    public WorkspaceProjectsPublicResource(ProjectsManager projectsManager, ProfilerRepository profilerRepository, Clock clock) {
         this.projectsManager = projectsManager;
         this.profilerRepository = profilerRepository;
+        this.clock = clock;
     }
 
     @Path("/{projectId}")
@@ -49,15 +52,16 @@ public class WorkspaceProjectsPublicResource {
         ProjectManager projectManager = projectsManager.project(projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));
 
-        return new WorkspaceProjectPublicResource(projectManager, profilerRepository);
+        return new WorkspaceProjectPublicResource(projectManager, profilerRepository, clock);
     }
 
     @GET
     public List<ProjectResponse> projects() {
-        LOG.debug("Listing public projects");
-        return projectsManager.findAll().stream()
+        var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();
+        LOG.debug("Listed public projects: count={}", result.size());
+        return result;
     }
 }

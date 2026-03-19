@@ -22,6 +22,8 @@ import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 public record RecordingSessionResponse(
@@ -32,9 +34,13 @@ public record RecordingSessionResponse(
         Long finishedAt,
         RecordingStatus status,
         String profilerSettings,
+        Long duration,
         List<RepositoryFileResponse> files) {
 
-    public static RecordingSessionResponse from(RecordingSession session) {
+    public static RecordingSessionResponse from(RecordingSession session, Clock clock) {
+        Instant end = session.finishedAt() != null ? session.finishedAt() : clock.instant();
+        long duration = end.toEpochMilli() - session.createdAt().toEpochMilli();
+
         return new RecordingSessionResponse(
                 session.id(),
                 session.name(),
@@ -43,6 +49,7 @@ public record RecordingSessionResponse(
                 InstantUtils.toEpochMilli(session.finishedAt()),
                 session.status(),
                 session.profilerSettings(),
+                duration,
                 session.files().stream()
                         .map(RepositoryFileResponse::from)
                         .toList());

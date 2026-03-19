@@ -81,8 +81,20 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public CompletableFuture<ProfileManager> createProfile(String recordingId) {
-        LOG.debug("Creating profile from recording: recordingId={} projectId={}", recordingId, projectInfo.id());
-        return CompletableFuture.supplyAsync(() -> createProfileInternal(recordingId), Schedulers.sharedVirtual())
+        Recording recording = projectRecordingRepository.findById(recordingId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Recording not found in database: recording_id=" + recordingId));
+
+        Path recordingPath = projectRecordingStorage.findRecording(recordingId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Recording file not found in storage: recording_id=" + recordingId
+                        + " project_id=" + projectInfo.id()));
+
+        LOG.info("Profile creation task submitted: recordingId={} projectId={} recordingPath={}",
+                recordingId, projectInfo.id(), recordingPath);
+
+        return CompletableFuture.supplyAsync(
+                () -> createProfileInternal(recording, recordingPath), Schedulers.sharedVirtual())
                 .exceptionally(ex -> {
                     LOG.error("Could not create profile for recording: recording_id={} message={}",
                             recordingId, ex.getMessage(), ex);
@@ -90,16 +102,9 @@ public class ProfilesManagerImpl implements ProfilesManager {
                 });
     }
 
-    private ProfileManager createProfileInternal(String recordingId) {
-        // --- Create profile from recording ---
-        Recording recording = projectRecordingRepository.findById(recordingId)
-                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
-
-        Optional<Path> recordingPathOpt = projectRecordingStorage.findRecording(recordingId);
-        if (recordingPathOpt.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Recording not found: recording_id=" + recordingId + " project_id=" + projectInfo.id());
-        }
+    private ProfileManager createProfileInternal(Recording recording, Path recordingPath) {
+        LOG.debug("Asynchronous profile creation started: recordingId={} projectId={} thread={}",
+                recording.id(), projectInfo.id(), Thread.currentThread());
 
         String profileId = IDGenerator.generate();
         Instant profileCreatedAt = clock.instant();
@@ -112,7 +117,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
                 recording.recordingName(),
                 recording.eventSource(),
                 profileCreatedAt,
-                recordingId,
+                recording.id(),
                 recording.recordingStartedAt(),
                 recording.recordingFinishedAt());
 
@@ -121,7 +126,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
         ProfileInfo profileInfo = platformRepositories.newProfileRepository(profileId).find()
                 .orElseThrow(() -> new RuntimeException("Could not find newly created profile: " + profileId));
 
-        ProfileManager profileManager = profileInitializer.initialize(profileInfo, recordingId, recordingPathOpt.get());
+        ProfileManager profileManager = profileInitializer.initialize(profileInfo, recording.id(), recordingPath);
         profileRepository.enableProfile(clock.instant());
         return profileManager;
     }

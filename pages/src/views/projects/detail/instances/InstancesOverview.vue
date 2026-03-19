@@ -228,39 +228,7 @@
           </div>
 
           <!-- Bottom timeline section -->
-          <div class="instance-timeline">
-            <div class="instance-tl-item">
-              <div class="instance-tl-value">
-                <i class="bi bi-play-fill instance-tl-icon text-success"></i>
-                <span class="instance-tl-label">Started</span>
-              </div>
-              <span class="instance-tl-main">{{ FormattingService.formatRelativeTime(instance.startedAt) }}</span>
-              <span class="instance-tl-sub">{{ FormattingService.formatTimestampUTC(instance.startedAt) }}</span>
-            </div>
-            <div class="instance-tl-item">
-              <div class="instance-tl-value">
-                <i class="bi bi-stop-fill instance-tl-icon text-danger"></i>
-                <span class="instance-tl-label">Finished</span>
-              </div>
-              <template v-if="instance.finishedAt">
-                <span class="instance-tl-main">{{ FormattingService.formatRelativeTime(instance.finishedAt) }}</span>
-                <span class="instance-tl-sub">{{ FormattingService.formatTimestampUTC(instance.finishedAt) }}</span>
-              </template>
-              <span v-else class="instance-tl-main text-muted">Running...</span>
-            </div>
-            <div class="instance-tl-item">
-              <div class="instance-tl-value">
-                <i class="bi bi-clock instance-tl-icon text-primary"></i>
-                <span class="instance-tl-label">Duration</span>
-              </div>
-              <span class="instance-tl-main">
-                {{ instance.finishedAt
-                  ? FormattingService.formatDurationFromMillis(instance.startedAt, instance.finishedAt)
-                  : FormattingService.formatDurationFromMillis(instance.startedAt, Date.now())
-                }}
-              </span>
-            </div>
-          </div>
+          <TimelineBar :createdAt="instance.createdAt" :finishedAt="instance.finishedAt" :duration="instance.duration" />
         </router-link>
       </div>
     </div>
@@ -279,6 +247,7 @@ import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
 import type RepositoryStatistics from '@/services/api/model/RepositoryStatistics';
 import FormattingService from '@/services/FormattingService';
+import TimelineBar from '@/components/TimelineBar.vue';
 import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 import type { Variant } from '@/types/ui';
@@ -300,7 +269,7 @@ const totalSessions = computed(() => instances.value.reduce((sum, i) => sum + i.
 
 const uptimeRange = computed(() => {
   if (instances.value.length === 0) return '\u2014';
-  const oldest = Math.min(...instances.value.map(i => i.startedAt));
+  const oldest = Math.min(...instances.value.map(i => i.createdAt));
   return FormattingService.formatRelativeTime(oldest);
 });
 
@@ -559,58 +528,6 @@ onMounted(async () => {
   min-width: 0;
 }
 
-/* Instance timeline footer */
-.instance-timeline {
-  display: flex;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  margin-top: 10px;
-  padding-top: 8px;
-  background: rgba(0, 0, 0, 0.01);
-  border-radius: 0 0 6px 6px;
-}
-
-.instance-tl-item {
-  flex: 1;
-  padding: 0 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.instance-tl-item + .instance-tl-item {
-  border-left: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.instance-tl-value {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.instance-tl-icon {
-  font-size: 0.7rem;
-}
-
-.instance-tl-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.instance-tl-main {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.instance-tl-sub {
-  font-size: 0.68rem;
-  color: #9ca3af;
-  opacity: 0.8;
-}
-
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
   .compact-stat-card {
@@ -634,16 +551,6 @@ onMounted(async () => {
     font-size: 0.75rem;
   }
 
-  .instance-timeline {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .instance-tl-item + .instance-tl-item {
-    border-left: none;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    padding-top: 4px;
-  }
 }
 
 @media (max-width: 576px) {

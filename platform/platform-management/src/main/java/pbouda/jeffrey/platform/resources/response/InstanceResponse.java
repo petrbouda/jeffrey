@@ -21,18 +21,25 @@ package pbouda.jeffrey.platform.resources.response;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 
+import java.time.Clock;
+import java.time.Instant;
+
 public record InstanceResponse(
         String id,
         String hostname,
         String status,
-        Long startedAt,
+        Long createdAt,
         Long finishedAt,
         Long expiringAt,
         Long expiredAt,
         int sessionCount,
-        String activeSessionId) {
+        String activeSessionId,
+        Long duration) {
 
-    public static InstanceResponse from(ProjectInstanceInfo info) {
+    public static InstanceResponse from(ProjectInstanceInfo info, Clock clock) {
+        Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
+        long duration = end.toEpochMilli() - info.startedAt().toEpochMilli();
+
         return new InstanceResponse(
                 info.id(),
                 info.hostname(),
@@ -42,6 +49,7 @@ public record InstanceResponse(
                 InstantUtils.toEpochMilli(info.expiringAt()),
                 InstantUtils.toEpochMilli(info.expiredAt()),
                 info.sessionCount(),
-                info.activeSessionId());
+                info.activeSessionId(),
+                duration);
     }
 }

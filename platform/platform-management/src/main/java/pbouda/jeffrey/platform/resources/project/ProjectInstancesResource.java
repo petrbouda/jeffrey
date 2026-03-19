@@ -27,25 +27,32 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.resources.response.InstanceResponse;
 import pbouda.jeffrey.platform.resources.response.InstanceSessionResponse;
 import pbouda.jeffrey.provider.platform.repository.ProjectInstanceRepository;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
+import java.time.Clock;
 import java.util.List;
 
 public class ProjectInstancesResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesResource.class);
 
+    private final ProjectInfo projectInfo;
     private final ProjectInstanceRepository projectInstanceRepository;
+    private final Clock clock;
 
-    public ProjectInstancesResource(ProjectInstanceRepository projectInstanceRepository) {
+    public ProjectInstancesResource(ProjectInfo projectInfo, ProjectInstanceRepository projectInstanceRepository, Clock clock) {
+        this.projectInfo = projectInfo;
         this.projectInstanceRepository = projectInstanceRepository;
+        this.clock = clock;
     }
 
     @GET
     public List<InstanceResponse> list() {
-        LOG.debug("Listing project instances");
-        return projectInstanceRepository.findAll().stream()
-                .map(InstanceResponse::from)
+        var result = projectInstanceRepository.findAll().stream()
+                .map(i -> InstanceResponse.from(i, clock))
                 .toList();
+        LOG.debug("Listed project instances: projectId={} count={}", projectInfo.id(), result.size());
+        return result;
     }
 
     @GET
@@ -53,16 +60,17 @@ public class ProjectInstancesResource {
     public InstanceResponse get(@PathParam("instanceId") String instanceId) {
         LOG.debug("Fetching project instance: instanceId={}", instanceId);
         return projectInstanceRepository.find(instanceId)
-                .map(InstanceResponse::from)
+                .map(i -> InstanceResponse.from(i, clock))
                 .orElseThrow(() -> new NotFoundException("Instance not found: " + instanceId));
     }
 
     @GET
     @Path("/{instanceId}/sessions")
     public List<InstanceSessionResponse> getSessions(@PathParam("instanceId") String instanceId) {
-        LOG.debug("Listing instance sessions: instanceId={}", instanceId);
-        return projectInstanceRepository.findSessions(instanceId).stream()
-                .map(InstanceSessionResponse::from)
+        var result = projectInstanceRepository.findSessions(instanceId).stream()
+                .map(s -> InstanceSessionResponse.from(s, clock))
                 .toList();
+        LOG.debug("Listed instance sessions: projectId={} instanceId={} count={}", projectInfo.id(), instanceId, result.size());
+        return result;
     }
 }

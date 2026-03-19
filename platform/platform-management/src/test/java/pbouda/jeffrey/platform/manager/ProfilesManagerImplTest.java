@@ -42,6 +42,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -148,9 +149,7 @@ class ProfilesManagerImplTest {
         void throwsIllegalArgument_whenRecordingNotInDb() {
             when(projectRecordingRepository.findById("missing-rec")).thenReturn(Optional.empty());
 
-            var future = manager.createProfile("missing-rec");
-
-            assertThrows(Exception.class, future::join);
+            assertThrows(IllegalArgumentException.class, () -> manager.createProfile("missing-rec"));
         }
 
         @Test
@@ -162,9 +161,22 @@ class ProfilesManagerImplTest {
             when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
             when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.empty());
 
-            var future = manager.createProfile("rec-1");
+            assertThrows(IllegalArgumentException.class, () -> manager.createProfile("rec-1"));
+        }
 
-            assertThrows(Exception.class, future::join);
+        @Test
+        void returnsCompletableFuture_whenRecordingAndFileExist() {
+            Recording recording = new Recording(
+                    "rec-1", "recording.jfr", "proj-1", null,
+                    RecordingEventSource.JDK, NOW, NOW, NOW, false, List.of());
+            Path recordingPath = Path.of("/recordings/rec-1/recording.jfr");
+
+            when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
+            when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.of(recordingPath));
+
+            CompletableFuture<ProfileManager> future = manager.createProfile("rec-1");
+
+            assertNotNull(future);
         }
     }
 }

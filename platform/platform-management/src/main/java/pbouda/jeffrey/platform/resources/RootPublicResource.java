@@ -30,6 +30,8 @@ import pbouda.jeffrey.platform.resources.pub.WorkspacesPublicResource;
 import pbouda.jeffrey.platform.resources.response.PublicApiInfoResponse;
 import pbouda.jeffrey.provider.platform.repository.ProfilerRepository;
 
+import java.time.Clock;
+
 @Path("/public")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -37,14 +39,17 @@ public class RootPublicResource {
 
     private final LiveWorkspacesManager workspacesManager;
     private final ProfilerRepository profilerRepository;
+    private final Clock clock;
 
     @Inject
     public RootPublicResource(
             LiveWorkspacesManager workspacesManager,
-            ProfilerRepository profilerRepository) {
+            ProfilerRepository profilerRepository,
+            Clock clock) {
 
         this.workspacesManager = workspacesManager;
         this.profilerRepository = profilerRepository;
+        this.clock = clock;
     }
 
     @GET
@@ -57,6 +62,6 @@ public class RootPublicResource {
 
     @Path("/workspaces")
     public WorkspacesPublicResource workspaceResource() {
-        return new WorkspacesPublicResource(workspacesManager, profilerRepository);
+        return new WorkspacesPublicResource(workspacesManager, profilerRepository, clock);
     }
 }

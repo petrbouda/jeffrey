@@ -46,9 +46,9 @@ export default class ProjectInstanceClient extends BasePlatformClient {
         return new ProjectInstance(
             data.id,
             data.hostname,
-            data.projectId || '',
+            data.projectId,
             data.status,
-            data.startedAt ?? Date.now(),
+            data.createdAt,
             data.sessionCount || 0,
             data.activeSessionId,
             data.finishedAt ?? undefined,
@@ -61,7 +61,8 @@ export default class ProjectInstanceClient extends BasePlatformClient {
         return new ProjectInstanceSession(
             data.id,
             data.repositoryId,
-            data.startedAt ?? Date.now(),
+            data.createdAt,
+            data.duration ?? 0,
             data.finishedAt ?? undefined,
             data.isActive
         );

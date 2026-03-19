@@ -24,6 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.Type;
 import pbouda.jeffrey.profile.common.treetable.EventViewerData;
 import pbouda.jeffrey.profile.manager.EventViewerManager;
@@ -35,9 +36,11 @@ public class EventViewerResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventViewerResource.class);
 
+    private final ProfileInfo profileInfo;
     private final EventViewerManager eventViewerManager;
 
-    public EventViewerResource(EventViewerManager eventViewerManager) {
+    public EventViewerResource(ProfileInfo profileInfo, EventViewerManager eventViewerManager) {
+        this.profileInfo = profileInfo;
         this.eventViewerManager = eventViewerManager;
     }
 
@@ -51,8 +54,9 @@ public class EventViewerResource {
     @GET
     @Path("/events/types")
     public List<EventViewerData> eventTypes() {
-        LOG.debug("Listing event types");
-        return eventViewerManager.eventTypes();
+        var result = eventViewerManager.eventTypes();
+        LOG.debug("Listed event types: profileId={} count={}", profileInfo.id(), result.size());
+        return result;
     }
 
     @GET

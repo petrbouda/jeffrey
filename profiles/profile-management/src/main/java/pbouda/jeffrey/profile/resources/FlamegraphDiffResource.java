@@ -62,7 +62,8 @@ public class FlamegraphDiffResource {
     @GET
     @Path("/events")
     public List<EventSummaryResult> events() {
-        LOG.debug("Listing diff flamegraph event types");
-        return diffFlamegraphManager.eventSummaries();
+        var result = diffFlamegraphManager.eventSummaries();
+        LOG.debug("Listed diff flamegraph event types: profileId={} count={}", profileInfo.id(), result.size());
+        return result;
     }
 }

@@ -54,15 +54,16 @@ public class RemoteWorkspacesResource {
 
     @GET
     public List<RemoteWorkspaceResponse> listRemoteWorkspaces(@QueryParam("remoteUrl") String remoteUrl) {
-        LOG.debug("Listing remote workspaces: url={}", remoteUrl);
         if (remoteUrl == null || remoteUrl.isBlank()) {
             throw Exceptions.invalidRequest("Remote URL is required");
         }
         URI remoteUri = URI.create(remoteUrl);
         RemoteClients remoteClients = remoteClientsFactory.apply(remoteUri);
-        return remoteClients.discovery().allWorkspaces().stream()
+        var result = remoteClients.discovery().allWorkspaces().stream()
                 .map(this::toRemoteWorkspaceResponse)
                 .toList();
+        LOG.debug("Listed remote workspaces: url={} count={}", remoteUrl, result.size());
+        return result;
     }
 
     @POST

@@ -24,22 +24,29 @@ import pbouda.jeffrey.platform.manager.RepositoryManager;
 import pbouda.jeffrey.profile.manager.model.RepositoryStatistics;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.resources.response.RepositoryStatisticsResponse;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Clock;
 
 public class ProjectRepositoryPublicResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryPublicResource.class);
 
+    private final ProjectInfo projectInfo;
     private final RepositoryManager repositoryManager;
+    private final Clock clock;
 
-    public ProjectRepositoryPublicResource(ProjectManager projectManager) {
+    public ProjectRepositoryPublicResource(ProjectManager projectManager, Clock clock) {
+        this.projectInfo = projectManager.info();
         this.repositoryManager = projectManager.repositoryManager();
+        this.clock = clock;
     }
 
     @Path("/sessions")
     public ProjectRepositorySessionPublicResource repositorySessions() {
-        return new ProjectRepositorySessionPublicResource(repositoryManager);
+        return new ProjectRepositorySessionPublicResource(projectInfo, repositoryManager, clock);
     }
 
     @GET
