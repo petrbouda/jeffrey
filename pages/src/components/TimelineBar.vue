@@ -1,32 +1,36 @@
 <template>
   <div class="tl-timeline">
     <div class="tl-item">
-      <div class="tl-value">
-        <i class="bi bi-play-fill tl-icon text-success"></i>
+      <span class="tl-icon-badge tl-icon-badge--success">
+        <i class="bi bi-play-fill"></i>
+      </span>
+      <div class="tl-info">
         <span class="tl-label">Started</span>
+        <span class="tl-sub">{{ FormattingService.formatTimestampUTC(createdAt) }}</span>
       </div>
       <span class="tl-main">{{ FormattingService.formatRelativeTime(createdAt) }}</span>
-      <span class="tl-sub">{{ FormattingService.formatTimestampUTC(createdAt) }}</span>
     </div>
     <div class="tl-item">
-      <div class="tl-value">
-        <i class="bi bi-stop-fill tl-icon text-danger"></i>
+      <span class="tl-icon-badge tl-icon-badge--danger">
+        <i class="bi bi-stop-fill"></i>
+      </span>
+      <div class="tl-info">
         <span class="tl-label">Finished</span>
+        <span v-if="finishedAt" class="tl-sub">{{ FormattingService.formatTimestampUTC(finishedAt) }}</span>
       </div>
       <template v-if="finishedAt">
         <span class="tl-main">{{ FormattingService.formatRelativeTime(finishedAt) }}</span>
-        <span class="tl-sub">{{ FormattingService.formatTimestampUTC(finishedAt) }}</span>
       </template>
-      <span v-else class="tl-main text-muted">Running...</span>
+      <span v-else class="tl-main tl-running">Running...</span>
     </div>
     <div class="tl-item">
-      <div class="tl-value">
-        <i class="bi bi-clock tl-icon text-primary"></i>
+      <span class="tl-icon-badge tl-icon-badge--primary">
+        <i class="bi bi-clock"></i>
+      </span>
+      <div class="tl-info">
         <span class="tl-label">Duration</span>
       </div>
-      <span class="tl-main">
-        {{ FormattingService.formatDurationInMillis2Units(duration) }}
-      </span>
+      <span class="tl-main">{{ FormattingService.formatDurationInMillis2Units(duration) }}</span>
     </div>
   </div>
 </template>
@@ -47,32 +51,53 @@ defineProps<Props>();
 .tl-timeline {
   display: flex;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
-  margin-top: 0;
-  padding-top: 0;
-  background: rgba(0, 0, 0, 0.01);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.015), transparent);
   border-radius: 0 0 6px 6px;
 }
 
 .tl-item {
   flex: 1;
-  padding: 8px 8px;
+  padding: 10px 12px;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 10px;
 }
 
 .tl-item + .tl-item {
   border-left: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.tl-value {
-  display: flex;
+.tl-icon-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
-.tl-icon {
-  font-size: 0.7rem;
+.tl-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tl-icon-badge--success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.tl-icon-badge--danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.tl-icon-badge--primary {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
 }
 
 .tl-label {
@@ -80,19 +105,27 @@ defineProps<Props>();
   font-weight: 600;
   color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .tl-main {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.tl-running {
+  color: #9ca3af;
   font-weight: 500;
-  color: #374151;
+  font-style: italic;
 }
 
 .tl-sub {
-  font-size: 0.68rem;
-  color: #9ca3af;
-  opacity: 0.8;
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 768px) {
@@ -104,7 +137,7 @@ defineProps<Props>();
   .tl-item + .tl-item {
     border-left: none;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
-    padding-top: 4px;
+    padding-top: 6px;
   }
 }
 </style>

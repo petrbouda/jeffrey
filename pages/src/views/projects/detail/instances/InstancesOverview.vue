@@ -199,32 +199,34 @@
           :class="instanceCardClass(instance.status)"
         >
           <!-- Top section: hostname + badge + sessions + chevron -->
-          <div class="d-flex align-items-center">
-            <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
-              <i class="bi bi-box"></i>
-            </div>
-            <div class="flex-grow-1 min-width-0">
-              <div class="d-flex align-items-center">
-                <span class="fw-bold text-dark">{{ instance.hostname }}</span>
-                <Badge
-                  class="ms-2"
-                  :value="instance.status"
-                  :variant="instanceBadgeVariant(instance.status)"
-                  size="xs"
-                />
-                <Badge
-                  v-if="instance.expiringAt"
-                  class="ms-1"
-                  value="Expiring"
-                  variant="warning"
-                  size="xs"
-                />
+          <div class="instance-identity" :class="instanceIdentityClass(instance.status)">
+            <div class="d-flex align-items-center">
+              <div class="instance-icon-square me-3" :class="instanceIconClass(instance.status)">
+                <i class="bi bi-box"></i>
               </div>
-              <div class="instance-meta">
-                <span><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} sessions</span>
+              <div class="flex-grow-1 min-width-0">
+                <div class="d-flex align-items-center">
+                  <span class="fw-bold text-dark">{{ instance.hostname }}</span>
+                  <Badge
+                    class="ms-2"
+                    :value="instance.status"
+                    :variant="instanceBadgeVariant(instance.status)"
+                    size="xs"
+                  />
+                  <Badge
+                    v-if="instance.expiringAt"
+                    class="ms-1"
+                    value="Expiring"
+                    variant="warning"
+                    size="xs"
+                  />
+                </div>
+                <div class="instance-meta">
+                  <span><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }} sessions</span>
+                </div>
               </div>
+              <i class="bi bi-chevron-right text-muted"></i>
             </div>
-            <i class="bi bi-chevron-right text-muted"></i>
           </div>
 
           <!-- Bottom timeline section -->
@@ -278,6 +280,13 @@ function instanceCardClass(status: string): string {
   if (status === 'ACTIVE') return 'instance-active';
   if (status === 'EXPIRED') return 'instance-expired';
   return 'instance-finished';
+}
+
+function instanceIdentityClass(status: string): string {
+  if (status === 'PENDING') return 'identity-pending';
+  if (status === 'ACTIVE') return 'identity-active';
+  if (status === 'EXPIRED') return 'identity-expired';
+  return 'identity-finished';
 }
 
 function instanceIconClass(status: string): string {
@@ -437,52 +446,55 @@ onMounted(async () => {
 
 /* Instance cards */
 .instance-card {
-  border: 1px solid #e2e8f0;
+  background-color: white;
+  border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 8px;
-  padding: 12px 16px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   color: inherit;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .instance-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(94, 100, 255, 0.15);
 }
 
 .instance-pending {
   border-left: 3px solid #3b82f6;
-  background-color: rgba(59, 130, 246, 0.03);
-}
-
-.instance-pending:hover {
-  background-color: rgba(59, 130, 246, 0.06);
 }
 
 .instance-active {
   border-left: 3px solid #f59e0b;
-  background-color: rgba(245, 158, 11, 0.03);
-}
-
-.instance-active:hover {
-  background-color: rgba(245, 158, 11, 0.06);
 }
 
 .instance-finished {
   border-left: 3px solid #10b981;
-  background-color: rgba(16, 185, 129, 0.03);
-}
-
-.instance-finished:hover {
-  background-color: rgba(16, 185, 129, 0.06);
 }
 
 .instance-expired {
   border-left: 3px solid #9ca3af;
-  background-color: rgba(156, 163, 175, 0.03);
 }
 
-.instance-expired:hover {
-  background-color: rgba(156, 163, 175, 0.06);
+.instance-identity {
+  padding: 12px 16px;
+}
+
+.identity-pending {
+  background-color: rgba(59, 130, 246, 0.06);
+}
+
+.identity-active {
+  background-color: rgba(245, 158, 11, 0.06);
+}
+
+.identity-finished {
+  background-color: rgba(16, 185, 129, 0.04);
+}
+
+.identity-expired {
+  background-color: rgba(156, 163, 175, 0.04);
 }
 
 .instance-icon-square {

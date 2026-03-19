@@ -49,6 +49,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
             data.projectId,
             data.status,
             data.createdAt,
+            data.duration ?? 0,
             data.sessionCount || 0,
             data.activeSessionId,
             data.finishedAt ?? undefined,
