@@ -102,6 +102,14 @@ onMounted(() => {
             </div>
           </div>
 
+          <div class="job-card">
+            <div class="job-icon teal"><i class="bi bi-trash"></i></div>
+            <div class="job-content">
+              <h4>Expired Instance Cleaner</h4>
+              <p>Removes expired instance metadata after the configured retention period. Instances transition to EXPIRED when all their sessions are cleaned up, and this job permanently deletes those rows.</p>
+            </div>
+          </div>
+
           <div class="job-card coming-soon">
             <div class="job-icon blue"><i class="bi bi-clock-history"></i></div>
             <div class="job-content">

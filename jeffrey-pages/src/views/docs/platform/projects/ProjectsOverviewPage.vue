@@ -155,6 +155,10 @@ onMounted(() => {
           <strong>Sandbox is simplest:</strong> If you just want to upload and analyze JFR files locally, Sandbox provides everything you need with Profiles and Recordings.
         </DocsCallout>
 
+        <DocsCallout type="info">
+          <strong>Collector-Only Mode:</strong> In Live workspaces with <strong>collector-only mode</strong> enabled (default), Profiles and Recordings are hidden from the sidebar. This is the recommended server configuration — use a Remote workspace for analysis. Disable with <code>jeffrey.project.live.collector-only-mode-enabled=false</code>.
+        </DocsCallout>
+
         <h2 id="creating-projects">Creating Projects</h2>
         <p>To create a new project:</p>
         <ol>

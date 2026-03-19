@@ -313,9 +313,9 @@ async function initializeProject() {
     setWorkspaceType(workspaceId.value, projectInfo.value.workspaceType);
     setCollectorOnlyMode(projectId.value, projectInfo.value.collectorOnlyModeEnabled);
 
-    // Redirect to instances if collector-only mode is active and landing on profiles
-    if (projectInfo.value.collectorOnlyModeEnabled &&
-        projectInfo.value.workspaceType === WorkspaceType.LIVE &&
+    // Redirect to instances for LIVE and REMOTE workspaces when landing on profiles
+    if ((projectInfo.value.workspaceType === WorkspaceType.LIVE ||
+        projectInfo.value.workspaceType === WorkspaceType.REMOTE) &&
         route.path.endsWith('/profiles')) {
       instancesSubmenuExpanded.value = true;
       await router.replace(generateProjectUrl('instances'));

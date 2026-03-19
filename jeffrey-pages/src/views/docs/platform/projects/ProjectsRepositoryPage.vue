@@ -88,6 +88,10 @@ onMounted(() => {
           </ul>
         </DocsCallout>
 
+        <DocsCallout type="info">
+          <strong>Collector-Only Mode:</strong> In Live workspaces with collector-only mode enabled (default), <strong>Merge and Copy</strong> and <strong>Download</strong> buttons are hidden. Use a <strong>Remote</strong> workspace to access these features.
+        </DocsCallout>
+
         <h3>After Merge and Copy</h3>
         <p>Once you've merged a session:</p>
         <ul>

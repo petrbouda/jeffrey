@@ -30,6 +30,7 @@ const headings = [
   { id: 'workspace-types', text: 'Workspace Types', level: 2 },
   { id: 'sandbox-workspace', text: 'Sandbox Workspace', level: 2 },
   { id: 'live-workspace', text: 'Live Workspace', level: 2 },
+  { id: 'collector-only-mode', text: 'Collector-Only Mode', level: 3 },
   { id: 'remote-workspace', text: 'Remote Workspace', level: 2 },
   { id: 'recommended-workflows', text: 'Recommended Workflows', level: 2 },
   { id: 'comparison', text: 'Comparison', level: 2 }
@@ -121,6 +122,14 @@ onMounted(() => {
           <li>Workspace event tracking</li>
           <li>Can be accessed remotely by other Jeffrey instances</li>
         </ul>
+
+        <h3 id="collector-only-mode">Collector-Only Mode</h3>
+
+        <DocsCallout type="info">
+          By default, Live workspaces operate in <strong>collector-only mode</strong> — designed for lightweight server deployments. In this mode, <strong>Profiles</strong> and <strong>Recordings</strong> navigation are hidden, and <strong>Merge and Copy</strong> / <strong>Download</strong> buttons in Repository are disabled. Only collection-related features (Repository, Scheduler, Profiler Settings, Alerts) are available.
+          <br><br>
+          To enable full analysis on the Live workspace, set <code>jeffrey.project.live.collector-only-mode-enabled=false</code>. The recommended approach remains: use a <strong>Remote</strong> workspace from your local machine for analysis.
+        </DocsCallout>
 
         <h3>How to Create</h3>
         <p>Click <strong>"Add Live"</strong> and provide a name and optional directory location. Storage defaults to <code>~/.jeffrey/workspaces/</code>.</p>

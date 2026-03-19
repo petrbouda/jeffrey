@@ -32,6 +32,7 @@ const headings = [
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'profile', text: 'Profile Configuration', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
+  { id: 'live-workspace', text: 'Live Workspace', level: 2 },
   { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
   { id: 'container', text: 'Container Deployment', level: 2 },
@@ -248,6 +249,26 @@ onMounted(() => {
             <td><code>jeffrey.project.recording-storage.path</code></td>
             <td><code>${jeffrey.home.dir}/recordings</code></td>
             <td>Directory for storing JFR recordings</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="live-workspace">Live Workspace</h2>
+      <p>Settings for Live workspace behavior.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.project.live.collector-only-mode-enabled</code></td>
+            <td><code>true</code></td>
+            <td>Enable collector-only mode for Live workspace projects. When enabled, Profiles and Recordings navigation are hidden, and Merge/Download actions are disabled. Recommended for server deployments — use Remote workspaces for analysis.</td>
           </tr>
         </tbody>
       </table>
