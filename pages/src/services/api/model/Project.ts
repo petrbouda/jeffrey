@@ -38,7 +38,8 @@ export default class Project {
         public alertCount: number,
         public eventSource: RecordingEventSource,
         public isVirtual: boolean,
-        public isOrphaned: boolean) {
+        public isOrphaned: boolean,
+        public collectorOnlyModeEnabled: boolean) {
     }
 
     static displayName(project: Project): string {

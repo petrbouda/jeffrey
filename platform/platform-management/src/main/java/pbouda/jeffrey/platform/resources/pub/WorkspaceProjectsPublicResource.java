@@ -59,7 +59,7 @@ public class WorkspaceProjectsPublicResource {
     public List<ProjectResponse> projects() {
         var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
-                .map(Mappers::toProjectResponse)
+                .map(d -> Mappers.toProjectResponse(d, false))
                 .toList();
         LOG.debug("Listed public projects: count={}", result.size());
         return result;

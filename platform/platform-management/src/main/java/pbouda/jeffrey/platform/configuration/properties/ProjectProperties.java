@@ -28,7 +28,6 @@ public class ProjectProperties {
 
     private Map<String, String> params = new HashMap<>();
     private Map<String, String> recordingStorage = new HashMap<>();
-
     public Map<String, String> getRecordingStorage() {
         return recordingStorage;
     }

@@ -24,11 +24,13 @@ interface Props {
   isRemoteWorkspace: boolean
   showInstanceLink?: boolean
   headerText?: string
+  isCollectorOnly?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showInstanceLink: true,
   headerText: 'Recording Sessions',
+  isCollectorOnly: false,
 });
 
 const emit = defineEmits<{
@@ -683,6 +685,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             </div>
             <div class="d-flex align-items-center gap-1">
               <button
+                  v-if="!isCollectorOnly"
                   class="btn btn-sm btn-outline-primary"
                   type="button"
                   title="Merge and Copy Recordings"
@@ -760,6 +763,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`"
                    variant="secondary" size="xs" class="me-2"/>
             <button
+                v-if="!isCollectorOnly"
                 class="btn btn-sm btn-outline-primary"
                 @click.stop="downloadSelectedSources(session.id, true)"
                 :disabled="getSelectedCount(session.id) === 0"

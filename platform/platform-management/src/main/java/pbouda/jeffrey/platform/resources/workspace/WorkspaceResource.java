@@ -23,6 +23,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.configuration.ProjectParamsResolver;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
 import pbouda.jeffrey.platform.resources.response.WorkspaceEventResponse;
@@ -43,6 +44,7 @@ public class WorkspaceResource {
     private final WorkspaceManager workspaceManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfileResourceFactory profileResourceFactory;
+    private final ProjectParamsResolver projectParamsResolver;
     private final Clock clock;
 
     public WorkspaceResource(
@@ -50,11 +52,13 @@ public class WorkspaceResource {
             WorkspaceManager workspaceManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             ProfileResourceFactory profileResourceFactory,
+            ProjectParamsResolver projectParamsResolver,
             Clock clock) {
         this.workspaceInfo = workspaceInfo;
         this.workspaceManager = workspaceManager;
         this.workspaceEventQueue = workspaceEventQueue;
         this.profileResourceFactory = profileResourceFactory;
+        this.projectParamsResolver = projectParamsResolver;
         this.clock = clock;
     }
 
@@ -64,6 +68,7 @@ public class WorkspaceResource {
                 workspaceInfo,
                 workspaceManager,
                 profileResourceFactory,
+                projectParamsResolver,
                 clock);
     }
 

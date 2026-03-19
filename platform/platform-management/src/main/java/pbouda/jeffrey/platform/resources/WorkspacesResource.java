@@ -26,6 +26,7 @@ import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.platform.queue.PersistentQueue;
+import pbouda.jeffrey.platform.configuration.ProjectParamsResolver;
 import pbouda.jeffrey.platform.resources.request.CreateWorkspaceRequest;
 import pbouda.jeffrey.platform.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
@@ -46,16 +47,19 @@ public class WorkspacesResource {
     private final CompositeWorkspacesManager workspacesManager;
     private final PersistentQueue<WorkspaceEvent> workspaceEventQueue;
     private final ProfileResourceFactory profileResourceFactory;
+    private final ProjectParamsResolver projectParamsResolver;
     private final Clock clock;
 
     public WorkspacesResource(
             CompositeWorkspacesManager workspacesManager,
             PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             ProfileResourceFactory profileResourceFactory,
+            ProjectParamsResolver projectParamsResolver,
             Clock clock) {
         this.workspacesManager = workspacesManager;
         this.workspaceEventQueue = workspaceEventQueue;
         this.profileResourceFactory = profileResourceFactory;
+        this.projectParamsResolver = projectParamsResolver;
         this.clock = clock;
     }
 
@@ -77,6 +81,7 @@ public class WorkspacesResource {
                 workspaceManager,
                 workspaceEventQueue,
                 profileResourceFactory,
+                projectParamsResolver,
                 clock);
     }
 

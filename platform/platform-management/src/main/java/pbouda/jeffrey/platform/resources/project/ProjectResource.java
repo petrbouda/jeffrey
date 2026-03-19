@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
+import pbouda.jeffrey.platform.configuration.ProjectParamsResolver;
 import pbouda.jeffrey.platform.resources.SchedulerResource;
 import pbouda.jeffrey.platform.resources.response.ProjectResponse;
 import pbouda.jeffrey.platform.resources.workspace.Mappers;
@@ -41,22 +42,19 @@ public class ProjectResource {
     private final ProjectManager projectManager;
     private final ProjectsManager projectsManager;
     private final ProfileResourceFactory profileResourceFactory;
+    private final ProjectParamsResolver projectParamsResolver;
     private final Clock clock;
 
-    /**
-     * @param projectManager         Primary Project Manager
-     * @param projectsManager        Projects Manager to retrieve Profiles from different Projects
-     * @param profileResourceFactory Factory for creating ProfileResource sub-resources
-     * @param clock                  Clock for time-based computations
-     */
     public ProjectResource(
             ProjectManager projectManager,
             ProjectsManager projectsManager,
             ProfileResourceFactory profileResourceFactory,
+            ProjectParamsResolver projectParamsResolver,
             Clock clock) {
         this.projectManager = projectManager;
         this.projectsManager = projectsManager;
         this.profileResourceFactory = profileResourceFactory;
+        this.projectParamsResolver = projectParamsResolver;
         this.clock = clock;
     }
 
@@ -123,7 +121,8 @@ public class ProjectResource {
     public ProjectResponse infoResource() {
         LOG.debug("Fetching project info: projectId={}", projectManager.info().id());
         DetailedProjectInfo detail = projectManager.detailedInfo();
-        return Mappers.toProjectResponse(detail);
+        boolean collectorOnly = projectParamsResolver.isCollectorOnlyModeEnabled(detail.projectInfo());
+        return Mappers.toProjectResponse(detail, collectorOnly);
     }
 
     @DELETE

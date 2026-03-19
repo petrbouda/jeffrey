@@ -16,29 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.platform.resources.response;
+package pbouda.jeffrey.platform.configuration;
 
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
-import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
+import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceType;
 
-public record ProjectResponse(
-        String id,
-        String originId,
-        String name,
-        String label,
-        String namespace,
-        String createdAt,
-        String workspaceId,
-        WorkspaceType workspaceType,
-        RecordingStatus status,
-        int profileCount,
-        int recordingCount,
-        int sessionCount,
-        int jobCount,
-        int alertCount,
-        RecordingEventSource eventSource,
-        boolean isVirtual,
-        boolean isOrphaned,
-        boolean collectorOnlyModeEnabled) {
+public class ProjectParamsResolver {
+
+    private final boolean liveCollectorOnlyModeEnabled;
+
+    public ProjectParamsResolver(boolean liveCollectorOnlyModeEnabled) {
+        this.liveCollectorOnlyModeEnabled = liveCollectorOnlyModeEnabled;
+    }
+
+    public boolean isCollectorOnlyModeEnabled(ProjectInfo projectInfo) {
+        return liveCollectorOnlyModeEnabled && projectInfo.workspaceType() == WorkspaceType.LIVE;
+    }
 }

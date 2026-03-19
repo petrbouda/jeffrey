@@ -54,7 +54,7 @@ public abstract class Mappers {
         );
     }
 
-    public static ProjectResponse toProjectResponse(DetailedProjectInfo detail) {
+    public static ProjectResponse toProjectResponse(DetailedProjectInfo detail, boolean collectorOnlyModeEnabled) {
         ProjectInfo projectInfo = detail.projectInfo();
         return new ProjectResponse(
                 projectInfo.id(),
@@ -73,6 +73,7 @@ public abstract class Mappers {
                 detail.alertCount(),
                 detail.eventSource(),
                 detail.isVirtual(),
-                detail.isOrphaned());
+                detail.isOrphaned(),
+                collectorOnlyModeEnabled);
     }
 }

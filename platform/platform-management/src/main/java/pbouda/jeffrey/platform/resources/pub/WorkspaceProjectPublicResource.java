@@ -48,7 +48,7 @@ public class WorkspaceProjectPublicResource {
     public ProjectResponse infoResource() {
         LOG.debug("Fetching public project info: projectId={}", projectManager.info().id());
         ProjectManager.DetailedProjectInfo detail = projectManager.detailedInfo();
-        return Mappers.toProjectResponse(detail);
+        return Mappers.toProjectResponse(detail, false);
     }
 
     @Path("/repository")

@@ -366,6 +366,12 @@ public class AppConfiguration {
     }
 
     @Bean
+    public ProjectParamsResolver projectParamsResolver(
+            @Value("${jeffrey.project.live.collector-only-mode-enabled:true}") boolean liveCollectorOnlyModeEnabled) {
+        return new ProjectParamsResolver(liveCollectorOnlyModeEnabled);
+    }
+
+    @Bean
     public QuickAnalysisManager quickAnalysisManager(
             Clock clock,
             JeffreyDirs jeffreyDirs,

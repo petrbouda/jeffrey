@@ -19,17 +19,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
-import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient.ts";
-import ProjectSettingsClient from "@/services/api/ProjectSettingsClient.ts";
-import JobInfo from "@/services/api/model/JobInfo.ts";
-import { JobType } from "@/services/api/model/JobType.ts";
-import SettingsResponse from "@/services/api/model/SettingsResponse.ts";
-import ToastService from "@/services/ToastService";
-import MessageBus from "@/services/MessageBus";
-import JobCard from "@/components/JobCard.vue";
-import ProjectInstanceSessionCleanerModal from "@/components/scheduler/modal/ProjectInstanceSessionCleanerModal.vue";
-import PeriodicRecordingGeneratorModal from "@/components/scheduler/modal/PeriodicRecordingGeneratorModal.vue";
-import CopyRecordingGeneratorModal from "@/components/scheduler/modal/CopyRecordingGeneratorModal.vue";
+import ProjectSchedulerClient from '@/services/api/ProjectSchedulerClient.ts';
+import ProjectSettingsClient from '@/services/api/ProjectSettingsClient.ts';
+import JobInfo from '@/services/api/model/JobInfo.ts';
+import { JobType } from '@/services/api/model/JobType.ts';
+import SettingsResponse from '@/services/api/model/SettingsResponse.ts';
+import ToastService from '@/services/ToastService';
+import MessageBus from '@/services/MessageBus';
+import JobCard from '@/components/JobCard.vue';
+import ProjectInstanceSessionCleanerModal from '@/components/scheduler/modal/ProjectInstanceSessionCleanerModal.vue';
+import PeriodicRecordingGeneratorModal from '@/components/scheduler/modal/PeriodicRecordingGeneratorModal.vue';
+import CopyRecordingGeneratorModal from '@/components/scheduler/modal/CopyRecordingGeneratorModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import JobsTable, { type JobDisplayInfo } from '@/components/scheduler/JobsTable.vue';
 import LoadingState from '@/components/LoadingState.vue';
@@ -39,22 +39,28 @@ import '@/styles/shared-components.css';
 const { workspaceId, projectId } = useNavigation();
 const currentProject = ref<SettingsResponse | null>(null);
 
-const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectId.value!)
-const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!)
+const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectId.value!);
+const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
 
 // Modal refs
-const projectInstanceSessionCleanerModalRef = ref<InstanceType<typeof ProjectInstanceSessionCleanerModal> | null>(null);
-const periodicRecordingGeneratorModalRef = ref<InstanceType<typeof PeriodicRecordingGeneratorModal> | null>(null);
-const copyRecordingGeneratorModalRef = ref<InstanceType<typeof CopyRecordingGeneratorModal> | null>(null);
+const projectInstanceSessionCleanerModalRef = ref<InstanceType<
+  typeof ProjectInstanceSessionCleanerModal
+> | null>(null);
+const periodicRecordingGeneratorModalRef = ref<InstanceType<
+  typeof PeriodicRecordingGeneratorModal
+> | null>(null);
+const copyRecordingGeneratorModalRef = ref<InstanceType<typeof CopyRecordingGeneratorModal> | null>(
+  null
+);
 
-const activeJobs = ref<JobInfo[]>([])
-const sessionCleanerJobAlreadyExists = ref(false)
-const recordingCleanerJobAlreadyExists = ref(false)
-const copyGeneratorJobAlreadyExists = ref(false)
-const jfrCompressionJobExists = ref(false)
-const sessionFinishedDetectorJobExists = ref(false)
-const recordingStorageSynchronizerJobExists = ref(false)
-const expiredInstanceCleanerJobExists = ref(false)
+const activeJobs = ref<JobInfo[]>([]);
+const sessionCleanerJobAlreadyExists = ref(false);
+const recordingCleanerJobAlreadyExists = ref(false);
+const copyGeneratorJobAlreadyExists = ref(false);
+const jfrCompressionJobExists = ref(false);
+const sessionFinishedDetectorJobExists = ref(false);
+const recordingStorageSynchronizerJobExists = ref(false);
+const expiredInstanceCleanerJobExists = ref(false);
 
 const isLoading = ref(false);
 
@@ -66,11 +72,12 @@ onMounted(async () => {
     await updateJobList();
 
     // Get project settings
-    await settingsService.get()
-      .then((data) => {
+    await settingsService
+      .get()
+      .then(data => {
         currentProject.value = data;
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Failed to load project settings:', error);
       });
   } finally {
@@ -137,7 +144,10 @@ async function toggleJobEnabled(job: JobInfo) {
     // Refresh the job list to get updated state
     await updateJobList();
 
-    ToastService.success('Job Updated', job.enabled ? 'Job has been disabled' : 'Job has been enabled');
+    ToastService.success(
+      'Job Updated',
+      job.enabled ? 'Job has been disabled' : 'Job has been enabled'
+    );
   } catch (error: any) {
     console.error('Failed to update job state:', error);
     ToastService.error('Update Failed', error.response?.data || 'Failed to update job state.');
@@ -162,10 +172,14 @@ async function deleteActiveTask(id: string) {
 const handleCreateJob = async (jobType: string) => {
   switch (jobType) {
     case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
-      projectInstanceSessionCleanerModalRef.value?.showModal(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
+      projectInstanceSessionCleanerModalRef.value?.showModal(
+        JobType.PROJECT_INSTANCE_SESSION_CLEANER
+      );
       break;
     case JobType.PROJECT_INSTANCE_RECORDING_CLEANER:
-      projectInstanceSessionCleanerModalRef.value?.showModal(JobType.PROJECT_INSTANCE_RECORDING_CLEANER);
+      projectInstanceSessionCleanerModalRef.value?.showModal(
+        JobType.PROJECT_INSTANCE_RECORDING_CLEANER
+      );
       break;
     case JobType.COPY_RECORDING_GENERATOR:
       copyRecordingGeneratorModalRef.value?.showModal();
@@ -217,14 +231,14 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
   switch (job.jobType) {
     case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
       return {
-        title: 'Project Instance Session Cleaner',
+        title: 'Instance Session Cleaner',
         icon: 'bi-trash',
         iconColor: 'text-teal',
         iconBg: 'bg-teal-soft'
       };
     case JobType.PROJECT_INSTANCE_RECORDING_CLEANER:
       return {
-        title: 'Project Instance Recording Cleaner',
+        title: 'Instance Recording Cleaner',
         icon: 'bi-trash',
         iconColor: 'text-teal',
         iconBg: 'bg-teal-soft'
@@ -267,7 +281,7 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
     case JobType.EXPIRED_INSTANCE_CLEANER:
       return {
         title: 'Expired Instance Cleaner',
-        icon: 'bi-hourglass-bottom',
+        icon: 'bi-trash',
         iconColor: 'text-teal',
         iconBg: 'bg-teal-soft'
       };
@@ -286,144 +300,164 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
     <!-- Job Types -->
     <div class="col-12 mb-4">
       <div class="row g-4">
-        <!-- Project Instance Session Cleaner -->
+        <!-- Instance Session Cleaner -->
         <div class="col-12 col-lg-6">
           <JobCard
-                  :job-type="JobType.PROJECT_INSTANCE_SESSION_CLEANER"
-                  title="Project Instance Session Cleaner"
-                  description="Task for removing Project Instance Session older than the configured duration. Once a session is removed, all associated Recordings and Additional Files (e.g. HeapDump, PerfCounters, ...) are being removed as well."
-                  icon="bi-trash"
-                  icon-color="text-teal"
-                  icon-bg="bg-teal-soft"
-                  :disabled="sessionCleanerJobAlreadyExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: sessionCleanerJobAlreadyExists }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+            :job-type="JobType.PROJECT_INSTANCE_SESSION_CLEANER"
+            title="Instance Session Cleaner"
+            description="Task for removing Project Instance Session older than the configured duration. Once a session is removed, all associated Recordings and Additional Files (e.g. HeapDump, PerfCounters, ...) are being removed as well."
+            icon="bi-trash"
+            icon-color="text-teal"
+            icon-bg="bg-teal-soft"
+            :disabled="sessionCleanerJobAlreadyExists"
+            :badges="[
+              {
+                text: 'Job already exists',
+                color: 'bg-success',
+                condition: sessionCleanerJobAlreadyExists
+              }
+            ]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- Project Instance Recording Cleaner -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.PROJECT_INSTANCE_RECORDING_CLEANER"
-                  title="Project Instance Recording Cleaner"
-                  description="Task for removing only Recording in the active (latest) Project Instance Session. It does not remove recordings in older sessions, it just ensures that the rolling recordings in the latest session are limited."
-                  icon="bi-trash"
-                  icon-color="text-teal"
-                  icon-bg="bg-teal-soft"
-                  :disabled="recordingCleanerJobAlreadyExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: recordingCleanerJobAlreadyExists }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+        <!-- Instance Recording Cleaner -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.PROJECT_INSTANCE_RECORDING_CLEANER"
+            title="Instance Recording Cleaner"
+            description="Task for removing only Recording in the active (latest) Project Instance Session. It does not remove recordings in older sessions, it just ensures that the rolling recordings in the latest session are limited."
+            icon="bi-trash"
+            icon-color="text-teal"
+            icon-bg="bg-teal-soft"
+            :disabled="recordingCleanerJobAlreadyExists"
+            :badges="[
+              {
+                text: 'Job already exists',
+                color: 'bg-success',
+                condition: recordingCleanerJobAlreadyExists
+              }
+            ]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- JFR Compression -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.REPOSITORY_JFR_COMPRESSION"
-                  title="JFR Compression"
-                  description="Compresses finished JFR recording files using LZ4 compression to save storage space. Processes active and latest finished sessions automatically."
-                  icon="bi-file-zip"
-                  icon-color="text-orange"
-                  icon-bg="bg-orange-soft"
-                  :disabled="jfrCompressionJobExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: jfrCompressionJobExists }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+        <!-- JFR Compression -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.REPOSITORY_JFR_COMPRESSION"
+            title="JFR Compression"
+            description="Compresses finished JFR recording files using LZ4 compression to save storage space. Processes active and latest finished sessions automatically."
+            icon="bi-file-zip"
+            icon-color="text-orange"
+            icon-bg="bg-orange-soft"
+            :disabled="jfrCompressionJobExists"
+            :badges="[
+              {
+                text: 'Job already exists',
+                color: 'bg-success',
+                condition: jfrCompressionJobExists
+              }
+            ]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- Recording Storage Synchronizer -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER"
-                  title="Recording Storage Synchronizer"
-                  description="Synchronizes recording storage with the database by removing orphaned recordings that no longer exist in the database."
-                  icon="bi-arrow-repeat"
-                  icon-color="text-purple"
-                  icon-bg="bg-purple-soft"
-                  :disabled="recordingStorageSynchronizerJobExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: recordingStorageSynchronizerJobExists }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+        <!-- Recording Storage Synchronizer -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.PROJECT_RECORDING_STORAGE_SYNCHRONIZER"
+            title="Recording Storage Synchronizer"
+            description="Synchronizes recording storage with the database by removing orphaned recordings that no longer exist in the database."
+            icon="bi-arrow-repeat"
+            icon-color="text-purple"
+            icon-bg="bg-purple-soft"
+            :disabled="recordingStorageSynchronizerJobExists"
+            :badges="[
+              {
+                text: 'Job already exists',
+                color: 'bg-success',
+                condition: recordingStorageSynchronizerJobExists
+              }
+            ]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- Session Finished Detector -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.SESSION_FINISHED_DETECTOR"
-                  title="Session Finished Detector"
-                  description="Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses heartbeat-based detection strategy."
-                  icon="bi-check-circle"
-                  icon-color="text-cyan"
-                  icon-bg="bg-cyan-soft"
-                  :disabled="sessionFinishedDetectorJobExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: sessionFinishedDetectorJobExists }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+        <!-- Session Finished Detector -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.SESSION_FINISHED_DETECTOR"
+            title="Session Finished Detector"
+            description="Detects when repository sessions become finished and emits SESSION_FINISHED workspace events. Uses heartbeat-based detection strategy."
+            icon="bi-check-circle"
+            icon-color="text-cyan"
+            icon-bg="bg-cyan-soft"
+            :disabled="sessionFinishedDetectorJobExists"
+            :badges="[
+              {
+                text: 'Job already exists',
+                color: 'bg-success',
+                condition: sessionFinishedDetectorJobExists
+              }
+            ]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- Expired Instance Cleaner -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.EXPIRED_INSTANCE_CLEANER"
-                  title="Expired Instance Cleaner"
-                  description="Removes expired instance metadata after the configured retention period. Instances transition to EXPIRED when all their sessions are cleaned up, and this job permanently deletes those rows."
-                  icon="bi-hourglass-bottom"
-                  icon-color="text-teal"
-                  icon-bg="bg-teal-soft"
-                  :disabled="expiredInstanceCleanerJobExists"
-                  :badges="[
-                  { text: 'Job already exists', color: 'bg-success', condition: expiredInstanceCleanerJobExists }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+        <!-- Expired Instance Cleaner -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.EXPIRED_INSTANCE_CLEANER"
+            title="Expired Instance Cleaner"
+            description="Removes expired instance metadata after the configured retention period. Instances transition to EXPIRED when all their sessions are cleaned up, and this job permanently deletes those rows."
+            icon="bi-trash"
+            icon-color="text-teal"
+            icon-bg="bg-teal-soft"
+            :disabled="expiredInstanceCleanerJobExists"
+            :badges="[
+              {
+                text: 'Job already exists',
+                color: 'bg-success',
+                condition: expiredInstanceCleanerJobExists
+              }
+            ]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- Copy Recording Generator -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.COPY_RECORDING_GENERATOR"
-                  title="Download Recording Generator"
-                  description="Creates a new recording from the repository simply by merging last configured number of recordings and placing them to Recording section."
-                  icon="bi-clock-history"
-                  icon-color="text-blue"
-                  icon-bg="bg-blue-soft"
-                  :coming-soon="true"
-                  :disabled="true"
-                  :badges="[
-                  { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
+        <!-- Copy Recording Generator -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.COPY_RECORDING_GENERATOR"
+            title="Download Recording Generator"
+            description="Creates a new recording from the repository simply by merging last configured number of recordings and placing them to Recording section."
+            icon="bi-clock-history"
+            icon-color="text-blue"
+            icon-bg="bg-blue-soft"
+            :coming-soon="true"
+            :disabled="true"
+            :badges="[{ text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }]"
+            @create-job="handleCreateJob"
+          />
+        </div>
 
-            <!-- Periodic Recording Generator -->
-            <div class="col-12 col-lg-6">
-              <JobCard
-                  :job-type="JobType.PERIODIC_RECORDING_GENERATOR"
-                  title="Periodic Recording Generator"
-                  description="Creates a new recording from the repository based on a specified periods (e.g. every 15min). Generated recording will be available in a Recordings section. Period can include several source files based on their modification date (it always waits for the latest file that crosses the expected end-time to finished and written to disk)."
-                  icon="bi-arrow-repeat"
-                  icon-color="text-blue"
-                  icon-bg="bg-blue-soft"
-                  :coming-soon="true"
-                  :disabled="true"
-                  :badges="[
-                  { text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }
-                ]"
-                  @create-job="handleCreateJob"
-              />
-            </div>
-          </div>
+        <!-- Periodic Recording Generator -->
+        <div class="col-12 col-lg-6">
+          <JobCard
+            :job-type="JobType.PERIODIC_RECORDING_GENERATOR"
+            title="Periodic Recording Generator"
+            description="Creates a new recording from the repository based on a specified periods (e.g. every 15min). Generated recording will be available in a Recordings section. Period can include several source files based on their modification date (it always waits for the latest file that crosses the expected end-time to finished and written to disk)."
+            icon="bi-arrow-repeat"
+            icon-color="text-blue"
+            icon-bg="bg-blue-soft"
+            :coming-soon="true"
+            :disabled="true"
+            :badges="[{ text: 'Coming Soon', color: 'bg-warning text-dark', condition: true }]"
+            @create-job="handleCreateJob"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- Active Jobs Card -->
@@ -462,17 +496,20 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
   <ProjectInstanceSessionCleanerModal
     ref="projectInstanceSessionCleanerModalRef"
     :scheduler-service="schedulerService"
-    @saved="handleModalSaved" />
+    @saved="handleModalSaved"
+  />
 
   <PeriodicRecordingGeneratorModal
     ref="periodicRecordingGeneratorModalRef"
     :scheduler-service="schedulerService"
-    @saved="handleModalSaved" />
+    @saved="handleModalSaved"
+  />
 
   <CopyRecordingGeneratorModal
     ref="copyRecordingGeneratorModalRef"
     :scheduler-service="schedulerService"
-    @saved="handleModalSaved" />
+    @saved="handleModalSaved"
+  />
 
   <!-- Bootstrap toast container will be added by the ToastService -->
   <div class="toast-container position-fixed top-0 end-0 p-3">

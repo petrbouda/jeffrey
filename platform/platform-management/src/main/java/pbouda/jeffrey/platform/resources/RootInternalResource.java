@@ -24,6 +24,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.springframework.beans.factory.annotation.Qualifier;
+import pbouda.jeffrey.platform.configuration.ProjectParamsResolver;
 import pbouda.jeffrey.platform.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.platform.manager.SchedulerManager;
 import pbouda.jeffrey.platform.manager.workspace.CompositeWorkspacesManager;
@@ -53,6 +54,7 @@ public class RootInternalResource {
     private final PlatformRepositories platformRepositories;
     private final ProfileResourceFactory profileResourceFactory;
     private final QuickAnalysisManager quickAnalysisManager;
+    private final ProjectParamsResolver projectParamsResolver;
     private final Clock clock;
 
     @Inject
@@ -66,6 +68,7 @@ public class RootInternalResource {
             PlatformRepositories platformRepositories,
             ProfileResourceFactory profileResourceFactory,
             QuickAnalysisManager quickAnalysisManager,
+            ProjectParamsResolver projectParamsResolver,
             Clock clock) {
 
         this.globalSchedulerManager = globalSchedulerManager;
@@ -77,6 +80,7 @@ public class RootInternalResource {
         this.platformRepositories = platformRepositories;
         this.profileResourceFactory = profileResourceFactory;
         this.quickAnalysisManager = quickAnalysisManager;
+        this.projectParamsResolver = projectParamsResolver;
         this.clock = clock;
     }
 
@@ -96,6 +100,7 @@ public class RootInternalResource {
                 workspacesManager,
                 workspaceEventQueue,
                 profileResourceFactory,
+                projectParamsResolver,
                 clock);
     }
 

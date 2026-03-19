@@ -71,7 +71,7 @@ final class RemoteClientTestSupport {
                 PROJECT_ID, "origin-1", "Test Project", "test-project", "default",
                 "2025-06-01T12:00:00Z", WORKSPACE_ID, WorkspaceType.SANDBOX,
                 RecordingStatus.FINISHED, 5, 10, 2, 1, 0,
-                RecordingEventSource.JDK, false, false);
+                RecordingEventSource.JDK, false, false, false);
     }
 
     static RecordingSessionResponse sampleSessionResponse() {

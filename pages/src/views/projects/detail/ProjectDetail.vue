@@ -20,6 +20,7 @@
               <div class="nav-section-title">OVERVIEW</div>
               <div class="nav-items">
                 <router-link
+                    v-if="!isCollectorOnly"
                     :to="generateProjectUrl('profiles')"
                     class="nav-item"
                     active-class="active">
@@ -31,7 +32,15 @@
                   <Badge v-else-if="projectInfo != null && projectInfo.profileCount > 0" :value="projectInfo.profileCount.toString()" variant="primary" size="xs"
                          class="ms-auto"/>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Profiles are not available in collector-only mode">
+                  <i class="bi bi-file-earmark-text"></i>
+                  <span>Profiles</span>
+                </div>
                 <router-link
+                    v-if="!isCollectorOnly"
                     :to="generateProjectUrl('recordings')"
                     class="nav-item"
                     active-class="active">
@@ -40,6 +49,13 @@
                   <Badge v-if="projectInfo != null && projectInfo.recordingCount > 0" :value="projectInfo.recordingCount.toString()" variant="info" size="xs"
                          class="ms-auto"/>
                 </router-link>
+                <div
+                    v-else
+                    class="nav-item disabled-feature"
+                    title="Recordings are not available in collector-only mode">
+                  <i class="bi bi-record-circle"></i>
+                  <span>Recordings</span>
+                </div>
                 <!-- Instances with 2-level submenu -->
                 <div class="nav-item-group">
                   <div class="nav-item nav-item-parent"
@@ -168,12 +184,14 @@ import Project from "@/services/api/model/Project.ts";
 import WorkspaceType from "@/services/api/model/WorkspaceType.ts";
 import { useNavigation } from '@/composables/useNavigation';
 import { useWorkspaceType } from '@/composables/useWorkspaceType';
+import { useCollectorOnlyMode } from '@/composables/useCollectorOnlyMode';
 
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const { workspaceType, setWorkspaceType } = useWorkspaceType();
+const { collectorOnlyMode, setCollectorOnlyMode } = useCollectorOnlyMode();
 
 const projectInfo = ref<Project | null>(null);
 const sidebarCollapsed = ref(false);
@@ -199,6 +217,11 @@ const isSandboxWorkspace = computed(() => {
 const isSchedulerDisabled = computed(() => {
   return workspaceType.value === WorkspaceType.SANDBOX ||
          workspaceType.value === WorkspaceType.REMOTE;
+});
+
+// Computed property to check if project is in collector-only mode (LIVE workspace only)
+const isCollectorOnly = computed(() => {
+  return collectorOnlyMode.value && workspaceType.value === WorkspaceType.LIVE;
 });
 
 // Computed property for sidebar header styling
@@ -288,6 +311,16 @@ async function initializeProject() {
     // Fetch project data
     projectInfo.value = await projectClient.get();
     setWorkspaceType(workspaceId.value, projectInfo.value.workspaceType);
+    setCollectorOnlyMode(projectId.value, projectInfo.value.collectorOnlyModeEnabled);
+
+    // Redirect to instances if collector-only mode is active and landing on profiles
+    if (projectInfo.value.collectorOnlyModeEnabled &&
+        projectInfo.value.workspaceType === WorkspaceType.LIVE &&
+        route.path.endsWith('/profiles')) {
+      instancesSubmenuExpanded.value = true;
+      await router.replace(generateProjectUrl('instances'));
+      return;
+    }
 
     // Check for initializing profiles
     await checkInitializingProfiles();

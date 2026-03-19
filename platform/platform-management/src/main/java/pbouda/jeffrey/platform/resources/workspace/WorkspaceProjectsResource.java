@@ -28,6 +28,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.platform.configuration.ProjectParamsResolver;
 import pbouda.jeffrey.platform.manager.project.ProjectManager;
 import pbouda.jeffrey.platform.manager.project.ProjectsManager;
 import pbouda.jeffrey.platform.manager.workspace.WorkspaceManager;
@@ -53,19 +54,20 @@ public class WorkspaceProjectsResource {
 
     private final WorkspaceInfo workspaceInfo;
     private final ProjectsManager projectsManager;
-    private final WorkspaceManager workspaceManager;
     private final ProfileResourceFactory profileResourceFactory;
+    private final ProjectParamsResolver projectParamsResolver;
     private final Clock clock;
 
     public WorkspaceProjectsResource(
             WorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
             ProfileResourceFactory profileResourceFactory,
+            ProjectParamsResolver projectParamsResolver,
             Clock clock) {
         this.workspaceInfo = workspaceInfo;
-        this.workspaceManager = workspaceManager;
         this.projectsManager = workspaceManager.projectsManager();
         this.profileResourceFactory = profileResourceFactory;
+        this.projectParamsResolver = projectParamsResolver;
         this.clock = clock;
     }
 
@@ -78,6 +80,7 @@ public class WorkspaceProjectsResource {
                 projectManager,
                 projectsManager,
                 profileResourceFactory,
+                projectParamsResolver,
                 clock);
     }
 
@@ -115,7 +118,7 @@ public class WorkspaceProjectsResource {
     public List<ProjectResponse> projects() {
         var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
-                .map(Mappers::toProjectResponse)
+                .map(d -> Mappers.toProjectResponse(d, projectParamsResolver.isCollectorOnlyModeEnabled(d.projectInfo())))
                 .toList();
         LOG.debug("Listed projects: workspaceId={} count={}", workspaceInfo.id(), result.size());
         return result;
@@ -147,7 +150,9 @@ public class WorkspaceProjectsResource {
 
         ProjectManager projectManager = projectsManager.create(createProject);
         if (projectManager != null) {
-            ProjectResponse entity = Mappers.toProjectResponse(projectManager.detailedInfo());
+            var detailedInfo = projectManager.detailedInfo();
+            boolean collectorOnly = projectParamsResolver.isCollectorOnlyModeEnabled(detailedInfo.projectInfo());
+            ProjectResponse entity = Mappers.toProjectResponse(detailedInfo, collectorOnly);
             return Response.status(Status.CREATED)
                     .entity(entity)
                     .build();

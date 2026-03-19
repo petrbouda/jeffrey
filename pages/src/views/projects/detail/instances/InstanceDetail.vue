@@ -22,6 +22,7 @@
         :workspaceId="workspaceId!"
         :projectId="projectId!"
         :isRemoteWorkspace="isRemoteWorkspace"
+        :isCollectorOnly="isCollectorOnly"
         :showInstanceLink="false"
         headerText="Sessions"
         @refresh="fetchSessions"
@@ -54,9 +55,17 @@ import WorkspaceType from '@/services/api/model/WorkspaceType';
 
 const workspaceClient = new WorkspaceClient();
 import {useNavigation} from '@/composables/useNavigation';
+import {useCollectorOnlyMode} from '@/composables/useCollectorOnlyMode';
+import {useWorkspaceType} from '@/composables/useWorkspaceType';
 import '@/styles/shared-components.css';
 
 const {workspaceId, projectId, instanceId} = useNavigation();
+const {collectorOnlyMode} = useCollectorOnlyMode();
+const {workspaceType} = useWorkspaceType();
+
+const isCollectorOnly = computed(() => {
+  return collectorOnlyMode.value && workspaceType.value === WorkspaceType.LIVE;
+});
 
 const loading = ref(true);
 const sessionsLoading = ref(true);
