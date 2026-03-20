@@ -42,15 +42,15 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <picocli.version>4.7.7</picocli.version>
-        <jackson.version>2.19.2</jackson.version>
-        <typesafe-config.version>1.4.3</typesafe-config.version>
-        <lz4.version>1.10.2</lz4.version>
-        <junit.version>5.13.4</junit.version>
+        <jackson.version>2.21.1</jackson.version>
+        <typesafe-config.version>1.4.5</typesafe-config.version>
+        <lz4.version>1.10.4</lz4.version>
+        <junit.version>5.14.3</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <jeffrey-events.version>0.9.0</jeffrey-events.version>
-        <spring-boot.version>4.0.0</spring-boot.version>
-        <spring-ai.version>2.0.0-M2</spring-ai.version>
-        <duckdb.version>1.4.1.0</duckdb.version>
+        <spring-boot.version>4.0.4</spring-boot.version>
+        <spring-ai.version>2.0.0-M3</spring-ai.version>
+        <duckdb.version>1.5.0.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
     </properties>
 
@@ -108,7 +108,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>ai-assistant</artifactId>
+                <artifactId>ai-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>oql-assistant</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -206,7 +211,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
+                <version>3.15.0</version>
                 <configuration>
                     <release>25</release>
                     <parameters>true</parameters>

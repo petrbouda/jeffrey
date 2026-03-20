@@ -42,7 +42,8 @@
         <module>subsecond</module>
         <module>timeseries</module>
         <module>heap-dump</module>
-        <module>ai-assistant</module>
+        <module>ai-config</module>
+        <module>oql-assistant</module>
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
@@ -126,7 +127,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>ai-assistant</artifactId>
+                <artifactId>ai-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>oql-assistant</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -208,7 +214,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>3.5.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>

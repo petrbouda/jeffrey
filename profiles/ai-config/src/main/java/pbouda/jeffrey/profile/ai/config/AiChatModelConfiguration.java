@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
-import org.springframework.ai.anthropic.api.AnthropicApi;
+import org.springframework.ai.anthropic.AnthropicSetup;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.model.tool.ToolCallingManager;
@@ -68,9 +68,7 @@ public class AiChatModelConfiguration {
     private ChatModel createAnthropicChatModel(String apiKey, String modelName, int maxTokens) {
         LOG.info("Creating Anthropic ChatModel: model={} maxTokens={}", modelName, maxTokens);
 
-        AnthropicApi api = AnthropicApi.builder()
-                .apiKey(apiKey)
-                .build();
+        var client = AnthropicSetup.setupSyncClient(apiKey, null, null, null, null, null);
 
         AnthropicChatOptions options = AnthropicChatOptions.builder()
                 .model(modelName)
@@ -78,8 +76,8 @@ public class AiChatModelConfiguration {
                 .build();
 
         return AnthropicChatModel.builder()
-                .anthropicApi(api)
-                .defaultOptions(options)
+                .anthropicClient(client)
+                .options(options)
                 .toolCallingManager(ToolCallingManager.builder().build())
                 .build();
     }

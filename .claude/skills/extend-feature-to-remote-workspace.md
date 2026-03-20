@@ -43,7 +43,7 @@ Remote Jeffrey Instance
 
 ### Step 1: Create Response/Request DTOs
 
-Create DTOs in `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/response/` and `request/`:
+Create DTOs in `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/response/` and `request/`:
 
 ```java
 // response/YourFeatureResponse.java
@@ -65,7 +65,7 @@ public record YourFeatureRequest(
 
 ### Step 2: Create Public REST Resource (Remote Server Side)
 
-Create a public resource in `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/pub/`:
+Create a public resource in `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/pub/`:
 
 ```java
 // YourFeaturePublicResource.java
@@ -168,7 +168,7 @@ public void deleteYourFeature(String workspaceId, String projectId) {
 
 ### Step 6: Create Manager Interface
 
-Create a manager interface in `service/platform-management/src/main/java/pbouda/jeffrey/platform/manager/`:
+Create a manager interface in `platform/platform-management/src/main/java/pbouda/jeffrey/platform/manager/`:
 
 ```java
 // YourFeatureManager.java
@@ -271,7 +271,7 @@ public YourFeatureManager yourFeatureManager() {
 
 ### Step 12: Create Internal REST Resource
 
-Create the internal resource in `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/project/`:
+Create the internal resource in `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/project/`:
 
 ```java
 // YourFeatureResource.java
@@ -358,13 +358,13 @@ const data = await YourFeatureClient.fetchProjectFeature(workspaceId.value, proj
 
 | Component | Path |
 |-----------|------|
-| Response DTOs | `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/response/` |
-| Request DTOs | `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/request/` |
-| Public Resources | `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/pub/` |
-| Internal Resources | `service/platform-management/src/main/java/pbouda/jeffrey/platform/resources/project/` |
-| Managers | `service/platform-management/src/main/java/pbouda/jeffrey/platform/manager/` |
-| RemoteWorkspaceClient | `service/platform-management/src/main/java/pbouda/jeffrey/platform/manager/workspace/remote/` |
-| ProjectManager | `service/platform-management/src/main/java/pbouda/jeffrey/platform/manager/project/` |
+| Response DTOs | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/response/` |
+| Request DTOs | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/request/` |
+| Public Resources | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/pub/` |
+| Internal Resources | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/resources/project/` |
+| Managers | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/manager/` |
+| RemoteWorkspaceClient | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/manager/workspace/remote/` |
+| ProjectManager | `platform/platform-management/src/main/java/pbouda/jeffrey/platform/manager/project/` |
 | Frontend Clients | `pages/src/services/api/` |
 
 ## Verification

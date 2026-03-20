@@ -13,7 +13,7 @@ Verify that Java changes compile successfully by running Maven compilation.
 
 3. If compilation **fails**:
    - Extract each error with its file path and line number
-   - Group errors by module (e.g., `service/core`, `service/profile-management`)
+   - Group errors by module (e.g., `platform/platform-management`, `profiles/profile-management`)
    - For each error, provide:
      - File path (relative to project root)
      - Line number
