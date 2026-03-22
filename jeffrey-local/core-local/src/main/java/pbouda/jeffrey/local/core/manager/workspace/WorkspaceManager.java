@@ -19,7 +19,7 @@
 package pbouda.jeffrey.local.core.manager.workspace;
 
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 
 import java.util.Optional;
@@ -28,7 +28,7 @@ import java.util.function.Function;
 public interface WorkspaceManager {
 
     @FunctionalInterface
-    interface Factory extends Function<WorkspaceInfo, WorkspaceManager> {
+    interface Factory extends Function<RemoteWorkspaceInfo, WorkspaceManager> {
     }
 
     /**
@@ -37,7 +37,7 @@ public interface WorkspaceManager {
      *
      * @return the locally stored workspace information
      */
-    WorkspaceInfo localInfo();
+    RemoteWorkspaceInfo localInfo();
 
     /**
      * Returns the workspace information associated with this manager.
@@ -45,7 +45,7 @@ public interface WorkspaceManager {
      *
      * @return the workspace information
      */
-    WorkspaceInfo resolveInfo();
+    RemoteWorkspaceInfo resolveInfo();
 
     /**
      * Returns the projects manager for managing multiple projects within the workspace.

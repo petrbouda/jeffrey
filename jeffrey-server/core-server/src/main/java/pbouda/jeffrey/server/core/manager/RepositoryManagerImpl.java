@@ -73,17 +73,20 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public StreamedRecordingFile streamArtifact(String sessionId, String artifactId) {
-        List<Path> artifactPaths = repositoryStorage.artifacts(sessionId, List.of(artifactId));
+    public StreamedRecordingFile streamArtifactFile(String sessionId, String fileId) {
+        RepositoryFile file = findAndValidateFile(sessionId, fileId);
 
-        if (artifactPaths.isEmpty()) {
-            throw new IllegalArgumentException("Artifact not found: session_id=" + sessionId + " artifact_id=" + artifactId);
+        if (!file.isArtifactFile()) {
+            throw new IllegalArgumentException("File is not an artifact: fileId=" + fileId);
         }
 
-        Path artifactPath = artifactPaths.getFirst();
-        String filename = artifactPath.getFileName().toString();
+        List<Path> paths = repositoryStorage.artifacts(sessionId, List.of(fileId));
+        if (paths.isEmpty()) {
+            throw new IllegalArgumentException("Artifact file path not found: fileId=" + fileId);
+        }
 
-        return new StreamedRecordingFile(filename, artifactPath);
+        Path filePath = paths.getFirst();
+        return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
     }
 
     @Override
@@ -219,7 +222,23 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public StreamedRecordingFile streamFile(String sessionId, String fileId) {
+    public StreamedRecordingFile streamRecordingFile(String sessionId, String fileId) {
+        RepositoryFile file = findAndValidateFile(sessionId, fileId);
+
+        if (!file.isRecordingFile()) {
+            throw new IllegalArgumentException("File is not a recording: fileId=" + fileId);
+        }
+
+        List<Path> paths = repositoryStorage.recordings(sessionId, List.of(fileId));
+        if (paths.isEmpty()) {
+            throw new IllegalArgumentException("Recording file path not found: fileId=" + fileId);
+        }
+
+        Path filePath = paths.getFirst();
+        return new StreamedRecordingFile(filePath.getFileName().toString(), filePath);
+    }
+
+    private RepositoryFile findAndValidateFile(String sessionId, String fileId) {
         RecordingSession session = repositoryStorage.singleSession(sessionId, true)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
@@ -236,20 +255,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
             throw new IllegalArgumentException("Cannot download temporary file: fileId=" + fileId);
         }
 
-        List<Path> paths;
-        if (file.isRecordingFile()) {
-            paths = repositoryStorage.recordings(sessionId, List.of(fileId));
-        } else {
-            paths = repositoryStorage.artifacts(sessionId, List.of(fileId));
-        }
-
-        if (paths.isEmpty()) {
-            throw new IllegalArgumentException("File path not found: fileId=" + fileId);
-        }
-
-        Path filePath = paths.getFirst();
-        String filename = filePath.getFileName().toString();
-        return new StreamedRecordingFile(filename, filePath);
+        return file;
     }
 
     @Override

@@ -20,8 +20,8 @@ package pbouda.jeffrey.local.persistence.repository;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.shared.common.IDGenerator;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.persistence.GroupLabel;
@@ -60,7 +60,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     @Override
-    public List<WorkspaceInfo> findAll() {
+    public List<RemoteWorkspaceInfo> findAll() {
         return databaseClient.query(
                 StatementLabel.FIND_ALL_WORKSPACES,
                 SELECT_ALL,
@@ -69,7 +69,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     @Override
-    public Optional<WorkspaceInfo> find(String workspaceId) {
+    public Optional<RemoteWorkspaceInfo> find(String workspaceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceId);
 
@@ -78,8 +78,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     @Override
-    public WorkspaceInfo create(WorkspaceInfo workspaceInfo) {
-        WorkspaceInfo newInfo = workspaceInfo.withId(IDGenerator.generate());
+    public RemoteWorkspaceInfo create(RemoteWorkspaceInfo workspaceInfo) {
+        RemoteWorkspaceInfo newInfo = workspaceInfo.withId(IDGenerator.generate());
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("workspace_id", newInfo.id())
@@ -91,20 +91,18 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     /**
-     * Maps the minimal workspaces row to a WorkspaceInfo with only connection fields populated.
+     * Maps the minimal workspaces row to a RemoteWorkspaceInfo with only connection fields populated.
      * Fields like name, description, status, projectCount will be filled by gRPC resolveInfo().
      */
-    private static RowMapper<WorkspaceInfo> connectionMapper() {
+    private static RowMapper<RemoteWorkspaceInfo> connectionMapper() {
         return (rs, _) -> {
             String baseLocation = rs.getString("base_location");
 
-            return new WorkspaceInfo(
+            return new RemoteWorkspaceInfo(
                     rs.getString("workspace_id"),
                     rs.getString("workspace_origin_id"),
                     null,
                     null,
-                    null,
-                    baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
                     Instant.EPOCH,
                     WorkspaceStatus.UNKNOWN,

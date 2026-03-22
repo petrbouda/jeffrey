@@ -30,7 +30,8 @@ import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.client.RemoteMappers;
 import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,23 +41,26 @@ public class RemoteProjectsManager implements ProjectsManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
+    private final LocalCoreRepositories localCoreRepositories;
 
     public RemoteProjectsManager(
             LocalJeffreyDirs jeffreyDirs,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+            ProjectRecordingInitializer.Factory recordingInitializerFactory,
+            LocalCoreRepositories localCoreRepositories) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingInitializerFactory = recordingInitializerFactory;
+        this.localCoreRepositories = localCoreRepositories;
     }
 
     @Override
@@ -100,7 +104,8 @@ public class RemoteProjectsManager implements ProjectsManager {
                 projectInfo,
                 remoteClients,
                 profilesManagerFactory,
-                recordingInitializerFactory);
+                recordingInitializerFactory,
+                localCoreRepositories);
     }
 
     @Override

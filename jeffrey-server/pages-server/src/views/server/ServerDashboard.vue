@@ -30,6 +30,19 @@
       </nav>
     </div>
 
+    <div v-if="!loading && workspaces.length > 0" class="search-container">
+      <i class="bi bi-search search-icon"></i>
+      <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Filter projects..."
+      >
+      <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
     <div v-if="loading" class="loading-state">
       <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
       <span>Loading workspaces...</span>
@@ -42,34 +55,44 @@
     </div>
 
     <div v-else class="workspaces-list">
-      <div v-for="ws in workspaces" :key="ws.workspace.id" class="workspace-section">
-        <div class="workspace-header">
+      <div v-for="ws in filteredWorkspaces" :key="ws.workspace.id" class="workspace-section">
+        <div class="workspace-header" @click="toggleWorkspace(ws.workspace.id)">
+          <i class="bi chevron-icon"
+             :class="isExpanded(ws.workspace.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
           <i class="bi bi-hdd-rack workspace-icon"></i>
           <span class="workspace-name">{{ ws.workspace.name }}</span>
+          <span class="project-count">{{ ws.projects.length }}</span>
         </div>
 
-        <div v-if="ws.projects.length === 0" class="no-projects">
-          No projects
-        </div>
-
-        <div v-else class="project-list">
-          <div
-              v-for="project in ws.projects"
-              :key="project.id"
-              class="project-row"
-              :class="{ 'project-active': isActive(project) }"
-          >
-            <span v-if="isActive(project)" class="active-dot"></span>
-            <span class="project-name">{{ displayName(project) }}</span>
+        <template v-if="isExpanded(ws.workspace.id)">
+          <div v-if="ws.projects.length === 0" class="no-projects">
+            No projects
           </div>
-        </div>
+
+          <div v-else class="project-list">
+            <div
+                v-for="project in ws.projects"
+                :key="project.id"
+                class="project-row"
+                :class="{ 'project-active': isActive(project) }"
+            >
+              <span v-if="isActive(project)" class="active-dot"></span>
+              <span class="project-name">{{ displayName(project) }}</span>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div v-if="filteredWorkspaces.length === 0" class="empty-state">
+        <i class="bi bi-search"></i>
+        <span>No projects matching "{{ searchQuery }}"</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
 import type Workspace from '@/services/api/model/Workspace';
@@ -84,9 +107,38 @@ interface WorkspaceWithProjects {
 const workspaceClient = new WorkspaceClient();
 const loading = ref(true);
 const workspaces = ref<WorkspaceWithProjects[]>([]);
+const searchQuery = ref('');
+const expandedWorkspaces = ref(new Set<string>());
 
 const displayName = (project: Project) => ProjectModel.displayName(project);
 const isActive = (project: Project) => project.status === 'ACTIVE';
+const isExpanded = (workspaceId: string) => expandedWorkspaces.value.has(workspaceId);
+
+const toggleWorkspace = (workspaceId: string) => {
+  const updated = new Set(expandedWorkspaces.value);
+  if (updated.has(workspaceId)) {
+    updated.delete(workspaceId);
+  } else {
+    updated.add(workspaceId);
+  }
+  expandedWorkspaces.value = updated;
+};
+
+const filteredWorkspaces = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim();
+  if (!query) {
+    return workspaces.value;
+  }
+
+  return workspaces.value
+      .map(ws => ({
+        workspace: ws.workspace,
+        projects: ws.projects.filter(p =>
+            ProjectModel.displayName(p).toLowerCase().includes(query)
+        )
+      }))
+      .filter(ws => ws.projects.length > 0);
+});
 
 const loadDashboard = async () => {
   try {
@@ -104,6 +156,9 @@ const loadDashboard = async () => {
     }
 
     workspaces.value = results;
+    if (results.length > 0) {
+      expandedWorkspaces.value = new Set([results[0].workspace.id]);
+    }
   } catch (error) {
     console.error('Failed to load dashboard:', error);
   } finally {
@@ -176,6 +231,62 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+/* Search */
+.search-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 36px 0 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #1f2937;
+  background: white;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-input:focus {
+  border-color: #5e64ff;
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.clear-btn:hover {
+  color: #6b7280;
+}
+
 /* Loading / Empty */
 .loading-state,
 .empty-state {
@@ -216,6 +327,19 @@ onMounted(() => {
   gap: 10px;
   padding: 14px 18px;
   border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+
+.workspace-header:hover {
+  background-color: #f9fafb;
+}
+
+.chevron-icon {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  transition: transform 0.15s ease;
 }
 
 .workspace-icon {
@@ -227,6 +351,16 @@ onMounted(() => {
   font-weight: 600;
   font-size: 0.95rem;
   color: #1f2937;
+}
+
+.project-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5e64ff;
+  background: rgba(94, 100, 255, 0.08);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .no-projects {

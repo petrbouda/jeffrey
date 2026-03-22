@@ -62,6 +62,11 @@ public class ProjectResource {
                 profileResourceFactory);
     }
 
+    @Path("/recordings")
+    public ProjectRecordingsResource recordingsResource() {
+        return new ProjectRecordingsResource(projectManager.info(), projectManager.recordingsManager());
+    }
+
     @Path("/profiler/settings")
     public ProjectProfilerSettingsResource profilerSettingsResource() {
         return new ProjectProfilerSettingsResource(projectManager.profilerSettingsManager());
@@ -88,6 +93,12 @@ public class ProjectResource {
     @Path("/instances")
     public ProjectInstancesResource instancesResource() {
         return new ProjectInstancesResource(projectManager.info(), projectManager.instancesManager(), clock);
+    }
+
+    @GET
+    @Path("/initializing")
+    public boolean initializing() {
+        return false;
     }
 
     @GET

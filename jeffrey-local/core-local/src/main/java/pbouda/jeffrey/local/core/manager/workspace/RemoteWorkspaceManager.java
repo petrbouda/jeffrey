@@ -28,7 +28,8 @@ import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.local.persistence.repository.WorkspaceRepository;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.util.Optional;
@@ -38,19 +39,21 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
+    private final LocalCoreRepositories localCoreRepositories;
 
     public RemoteWorkspaceManager(
             LocalJeffreyDirs jeffreyDirs,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+            ProjectRecordingInitializer.Factory recordingInitializerFactory,
+            LocalCoreRepositories localCoreRepositories) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
@@ -58,15 +61,16 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingInitializerFactory = recordingInitializerFactory;
+        this.localCoreRepositories = localCoreRepositories;
     }
 
     @Override
-    public WorkspaceInfo localInfo() {
+    public RemoteWorkspaceInfo localInfo() {
         return workspaceInfo;
     }
 
     @Override
-    public WorkspaceInfo resolveInfo() {
+    public RemoteWorkspaceInfo resolveInfo() {
         try {
             RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.originId());
             return switch (result.status()) {
@@ -88,7 +92,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 workspaceInfo,
                 remoteClients,
                 profilesManagerFactory,
-                recordingInitializerFactory);
+                recordingInitializerFactory,
+                localCoreRepositories);
     }
 
     @Override

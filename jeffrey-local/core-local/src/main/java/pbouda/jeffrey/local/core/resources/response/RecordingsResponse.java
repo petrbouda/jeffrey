@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,30 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.core.manager.project;
-
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+package pbouda.jeffrey.local.core.resources.response;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
-public interface ProjectsManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<RemoteWorkspaceInfo, ProjectsManager> {
-    }
-
-    List<ProjectManager> findAll();
-
-    Optional<ProjectManager> project(String projectId);
-
-    /**
-     * Find all distinct namespaces across all projects.
-     * Used by UI to provide namespace filtering options.
-     *
-     * @return list of distinct namespace names (excluding null values)
-     */
-    List<String> findAllNamespaces();
-
+public record RecordingsResponse(
+        String id,
+        String name,
+        long sizeInBytes,
+        long durationInMillis,
+        String uploadedAt,
+        String folderId,
+        String sourceType,
+        boolean hasProfile,
+        List<RecordingFileResponse> recordingFiles) {
 }

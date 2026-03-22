@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,30 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.core.manager.project;
+package pbouda.jeffrey.local.core.manager;
 
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import pbouda.jeffrey.local.core.persistence.NewRecording;
+import pbouda.jeffrey.local.persistence.model.RecordingFolder;
+import pbouda.jeffrey.shared.common.model.Recording;
 
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
-public interface ProjectsManager {
+public interface RecordingsManager {
 
-    @FunctionalInterface
-    interface Factory extends Function<RemoteWorkspaceInfo, ProjectsManager> {
-    }
+    List<Recording> all();
 
-    List<ProjectManager> findAll();
+    void upload(NewRecording newRecording, InputStream stream);
 
-    Optional<ProjectManager> project(String projectId);
+    void createFolder(String folderName);
 
-    /**
-     * Find all distinct namespaces across all projects.
-     * Used by UI to provide namespace filtering options.
-     *
-     * @return list of distinct namespace names (excluding null values)
-     */
-    List<String> findAllNamespaces();
+    List<RecordingFolder> allRecordingFolders();
 
+    void deleteFolder(String folderId);
+
+    void delete(String recordingId);
+
+    Optional<Path> findRecordingFile(String recordingId, String fileId);
 }

@@ -38,7 +38,7 @@ import pbouda.jeffrey.local.core.LocalJeffreyDirs;
 import pbouda.jeffrey.shared.common.filesystem.TempDirectory;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryFile;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,7 +65,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     private final LocalJeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final RemoteRecordingStreamClient recordingStreamClient;
     private final RemoteRepositoryClient repositoryClient;
     private final ProjectRecordingInitializer recordingInitializer;
@@ -73,7 +73,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     public RemoteRecordingsDownloadManager(
             LocalJeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             RemoteRecordingStreamClient recordingStreamClient,
             RemoteRepositoryClient repositoryClient,
             ProjectRecordingInitializer recordingInitializer) {
@@ -136,7 +136,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             // Download artifact files (heap dumps, logs, etc.)
             List<CompletableFuture<Path>> artifactsF = files.stream()
                     .filter(RepositoryFile::isArtifactFile)
-                    .map(file -> recordingStreamClient.downloadFile(
+                    .map(file -> recordingStreamClient.downloadArtifactFile(
                                     workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id())
                             .thenApply(resource -> copyToTempDir(resource, tempDir)))
                     .toList();
@@ -272,7 +272,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                                     }
 
                                     Path artifactPath = tempDir.resolve(artifactFile.name());
-                                    recordingStreamClient.streamFile(
+                                    recordingStreamClient.streamArtifactFile(
                                             workspaceInfo.originId(), projectInfo.originId(),
                                             recordingSessionId, artifactFile.id(),
                                             (inputStream, contentLength) -> {

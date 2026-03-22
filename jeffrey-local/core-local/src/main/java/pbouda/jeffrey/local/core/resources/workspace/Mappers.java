@@ -20,7 +20,7 @@ package pbouda.jeffrey.local.core.resources.workspace;
 
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager.DetailedProjectInfo;
 import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceEventResponse;
@@ -29,7 +29,7 @@ import pbouda.jeffrey.shared.common.InstantUtils;
 
 public abstract class Mappers {
 
-    public static WorkspaceResponse toResponse(WorkspaceInfo info) {
+    public static WorkspaceResponse toResponse(RemoteWorkspaceInfo info) {
         return new WorkspaceResponse(
                 info.id(),
                 info.name(),

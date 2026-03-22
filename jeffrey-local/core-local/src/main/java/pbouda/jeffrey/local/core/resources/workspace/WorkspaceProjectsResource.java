@@ -34,7 +34,7 @@ import pbouda.jeffrey.local.core.resources.response.ProjectWithProfilesResponse;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -44,13 +44,13 @@ public class WorkspaceProjectsResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectsResource.class);
 
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final ProjectsManager projectsManager;
     private final ProfileResourceFactory profileResourceFactory;
     private final Clock clock;
 
     public WorkspaceProjectsResource(
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             WorkspaceManager workspaceManager,
             ProfileResourceFactory profileResourceFactory,
             Clock clock) {

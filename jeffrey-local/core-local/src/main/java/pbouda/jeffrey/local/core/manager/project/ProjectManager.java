@@ -26,6 +26,7 @@ import pbouda.jeffrey.local.core.manager.MessagesManager;
 import pbouda.jeffrey.local.core.manager.ProfilerSettingsManager;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.RecordingsDownloadManager;
+import pbouda.jeffrey.local.core.manager.RecordingsManager;
 import pbouda.jeffrey.local.core.manager.RepositoryManager;
 import java.util.function.Function;
 
@@ -63,6 +64,8 @@ public interface ProjectManager {
     }
 
     ProfilesManager profilesManager();
+
+    RecordingsManager recordingsManager();
 
     MessagesManager messagesManager();
 

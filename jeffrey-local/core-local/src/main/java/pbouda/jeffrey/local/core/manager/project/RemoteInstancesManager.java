@@ -26,7 +26,7 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -34,12 +34,12 @@ import java.util.Optional;
 public class RemoteInstancesManager {
 
     private final ProjectInfo projectInfo;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final RemoteInstancesClient instancesClient;
 
     public RemoteInstancesManager(
             ProjectInfo projectInfo,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             RemoteInstancesClient instancesClient) {
 
         this.projectInfo = projectInfo;

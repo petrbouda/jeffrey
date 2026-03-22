@@ -67,42 +67,42 @@ public class RecordingDownloadGrpcService extends RecordingDownloadServiceGrpc.R
     }
 
     @Override
-    public void downloadFile(DownloadFileRequest request, StreamObserver<DataChunk> responseObserver) {
+    public void downloadArtifactFile(DownloadArtifactFileRequest request, StreamObserver<DataChunk> responseObserver) {
         try {
             ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
 
-            LOG.debug("Streaming artifact via gRPC: sessionId={} fileId={}",
+            LOG.debug("Streaming artifact file via gRPC: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId());
 
             StreamedRecordingFile file = project.repositoryManager()
-                    .streamArtifact(request.getSessionId(), request.getFileId());
+                    .streamArtifactFile(request.getSessionId(), request.getFileId());
 
             streamFile(file, responseObserver);
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
         } catch (Exception e) {
-            LOG.error("Failed to stream artifact: sessionId={} fileId={}",
+            LOG.error("Failed to stream artifact file: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }
     }
 
     @Override
-    public void downloadSingleFile(DownloadSingleFileRequest request, StreamObserver<DataChunk> responseObserver) {
+    public void downloadRecordingFile(DownloadRecordingFileRequest request, StreamObserver<DataChunk> responseObserver) {
         try {
             ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
 
-            LOG.debug("Streaming single file via gRPC: sessionId={} fileId={}",
+            LOG.debug("Streaming recording file via gRPC: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId());
 
             StreamedRecordingFile file = project.repositoryManager()
-                    .streamFile(request.getSessionId(), request.getFileId());
+                    .streamRecordingFile(request.getSessionId(), request.getFileId());
 
             streamFile(file, responseObserver);
         } catch (io.grpc.StatusRuntimeException e) {
             responseObserver.onError(e);
         } catch (Exception e) {
-            LOG.error("Failed to stream single file: sessionId={} fileId={}",
+            LOG.error("Failed to stream recording file: sessionId={} fileId={}",
                     request.getSessionId(), request.getFileId(), e);
             responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
         }

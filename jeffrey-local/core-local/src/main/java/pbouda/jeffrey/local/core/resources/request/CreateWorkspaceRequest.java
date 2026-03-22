@@ -21,6 +21,5 @@ package pbouda.jeffrey.local.core.resources.request;
 public record CreateWorkspaceRequest(
         String id,
         String name,
-        String description,
-        String location) {
+        String description) {
 }

@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.local.core.manager.workspace;
 
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 
 import java.util.List;
@@ -31,7 +31,6 @@ public interface WorkspacesManager {
             String workspaceSourceId,
             String name,
             String description,
-            WorkspaceLocation location,
             WorkspaceLocation baseLocation) {
 
         public static Builder builder() {
@@ -43,7 +42,6 @@ public interface WorkspacesManager {
             private String workspaceSourceId;
             private String name;
             private String description;
-            private WorkspaceLocation workspaceLocation;
             private WorkspaceLocation workspaceBaseLocation;
 
             public Builder workspaceId(String workspaceId) {
@@ -66,16 +64,6 @@ public interface WorkspacesManager {
                 return this;
             }
 
-            public Builder location(String location) {
-                this.workspaceLocation = location != null ? WorkspaceLocation.of(location) : null;
-                return this;
-            }
-
-            public Builder location(WorkspaceLocation location) {
-                this.workspaceLocation = location;
-                return this;
-            }
-
             public Builder baseLocation(WorkspaceLocation baseLocation) {
                 this.workspaceBaseLocation = baseLocation;
                 return this;
@@ -87,13 +75,12 @@ public interface WorkspacesManager {
                         workspaceSourceId,
                         name,
                         description,
-                        workspaceLocation,
                         workspaceBaseLocation);
             }
         }
     }
 
-    WorkspaceInfo create(CreateWorkspaceRequest request);
+    RemoteWorkspaceInfo create(CreateWorkspaceRequest request);
 
     List<? extends WorkspaceManager> findAll();
 

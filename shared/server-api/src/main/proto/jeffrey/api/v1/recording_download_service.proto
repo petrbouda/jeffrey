@@ -11,11 +11,11 @@ service RecordingDownloadService {
   // Streams merged recordings as a single file (64KB chunks).
   rpc DownloadMergedRecordings(DownloadMergedRecordingsRequest) returns (stream DataChunk);
 
-  // Streams a single artifact file (64KB chunks).
-  rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
+  // Streams a single artifact file (heap dump, log, etc.) with validation (64KB chunks).
+  rpc DownloadArtifactFile(DownloadArtifactFileRequest) returns (stream DataChunk);
 
-  // Downloads a single session file by file ID (64KB chunks).
-  rpc DownloadSingleFile(DownloadSingleFileRequest) returns (stream DataChunk);
+  // Streams a single recording file (JFR) with validation (64KB chunks).
+  rpc DownloadRecordingFile(DownloadRecordingFileRequest) returns (stream DataChunk);
 }
 
 message DownloadMergedRecordingsRequest {
@@ -25,14 +25,14 @@ message DownloadMergedRecordingsRequest {
   repeated string file_ids = 4;
 }
 
-message DownloadFileRequest {
+message DownloadArtifactFileRequest {
   string workspace_id = 1;
   string project_id = 2;
   string session_id = 3;
   string file_id = 4;
 }
 
-message DownloadSingleFileRequest {
+message DownloadRecordingFileRequest {
   string workspace_id = 1;
   string project_id = 2;
   string session_id = 3;

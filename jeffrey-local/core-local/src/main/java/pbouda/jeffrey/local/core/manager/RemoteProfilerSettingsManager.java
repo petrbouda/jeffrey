@@ -20,7 +20,7 @@ package pbouda.jeffrey.local.core.manager;
 
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 /**
  * Remote implementation of ProfilerSettingsManager that calls the remote Jeffrey.
@@ -29,12 +29,12 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 public class RemoteProfilerSettingsManager implements ProfilerSettingsManager {
 
     private final RemoteProfilerClient profilerClient;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final String projectId;
 
     public RemoteProfilerSettingsManager(
             RemoteProfilerClient profilerClient,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             String projectId) {
 
         this.profilerClient = profilerClient;

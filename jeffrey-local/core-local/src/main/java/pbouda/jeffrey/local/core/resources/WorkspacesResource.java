@@ -30,7 +30,7 @@ import pbouda.jeffrey.local.core.resources.workspace.Mappers;
 import pbouda.jeffrey.local.core.resources.workspace.WorkspaceResource;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
 import pbouda.jeffrey.shared.common.exception.Exceptions;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.time.Clock;
 import java.util.List;
@@ -59,7 +59,7 @@ public class WorkspacesResource {
         WorkspaceManager workspaceManager = workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
 
-        WorkspaceInfo workspaceInfo = workspaceManager.localInfo();
+        RemoteWorkspaceInfo workspaceInfo = workspaceManager.resolveInfo();
 
         return new WorkspaceResource(
                 workspaceInfo,
@@ -71,7 +71,7 @@ public class WorkspacesResource {
     @GET
     public List<WorkspaceResponse> workspaces() {
         var result = workspacesManager.findAll().stream()
-                .map(WorkspaceManager::localInfo)
+                .map(WorkspaceManager::resolveInfo)
                 .map(Mappers::toResponse)
                 .toList();
         LOG.debug("Listed workspaces: count={}", result.size());
@@ -97,10 +97,9 @@ public class WorkspacesResource {
                 .workspaceSourceId(workspaceId)
                 .name(workspaceName)
                 .description(request.description())
-                .location(request.location())
                 .build();
 
-        WorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);
+        RemoteWorkspaceInfo workspaceInfo = workspacesManager.create(createRequest);
 
         return Response.status(Response.Status.CREATED)
                 .entity(Mappers.toResponse(workspaceInfo))

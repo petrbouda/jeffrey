@@ -27,11 +27,12 @@ import pbouda.jeffrey.local.core.resources.response.RepositoryFileResponse;
 import pbouda.jeffrey.local.core.resources.response.RepositoryStatisticsResponse;
 import pbouda.jeffrey.shared.common.filesystem.TempDirectory;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.repository.FileCategory;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
 import pbouda.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import pbouda.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,14 +43,14 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     private final LocalJeffreyDirs jeffreyDirs;
     private final ProjectInfo projectInfo;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final RemoteRepositoryClient repositoryClient;
     private final RemoteRecordingStreamClient recordingStreamClient;
 
     public RemoteRepositoryManager(
             LocalJeffreyDirs jeffreyDirs,
             ProjectInfo projectInfo,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             RemoteRepositoryClient repositoryClient,
             RemoteRecordingStreamClient recordingStreamClient) {
 
@@ -88,11 +89,17 @@ public class RemoteRepositoryManager implements RepositoryManager {
         Path tempFile = tempDir.resolve(fileResponse.name());
 
         try {
-            recordingStreamClient.streamSingleFile(
-                    workspaceInfo.originId(), projectInfo.originId(), sessionId, fileId,
-                    (inputStream, _) -> {
-                        Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-                    });
+            RemoteRecordingStreamClient.InputStreamConsumer consumer = (inputStream, _) -> {
+                Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            };
+
+            if (fileResponse.fileType().fileCategory() == FileCategory.RECORDING) {
+                recordingStreamClient.streamRecordingFile(
+                        workspaceInfo.originId(), projectInfo.originId(), sessionId, fileId, consumer);
+            } else {
+                recordingStreamClient.streamArtifactFile(
+                        workspaceInfo.originId(), projectInfo.originId(), sessionId, fileId, consumer);
+            }
         } catch (Exception e) {
             tempDir.close();
             throw e;

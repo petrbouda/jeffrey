@@ -27,7 +27,7 @@ import pbouda.jeffrey.local.core.resources.response.PublicApiInfoResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
@@ -36,12 +36,12 @@ import java.util.List;
 
 public class RemoteDiscoveryClient {
 
-    public record WorkspaceResult(WorkspaceInfo info, WorkspaceStatus status) {
+    public record WorkspaceResult(RemoteWorkspaceInfo info, WorkspaceStatus status) {
         public static WorkspaceResult of(WorkspaceStatus status) {
             return new WorkspaceResult(null, status);
         }
 
-        public static WorkspaceResult of(WorkspaceInfo info) {
+        public static WorkspaceResult of(RemoteWorkspaceInfo info) {
             return new WorkspaceResult(info, WorkspaceStatus.AVAILABLE);
         }
     }
@@ -78,7 +78,7 @@ public class RemoteDiscoveryClient {
                             .build());
 
             pbouda.jeffrey.api.v1.WorkspaceInfo proto = response.getWorkspace();
-            WorkspaceInfo info = toWorkspaceInfo(proto);
+            RemoteWorkspaceInfo info = toWorkspaceInfo(proto);
             return WorkspaceResult.of(info);
         } catch (StatusRuntimeException e) {
             if (e.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
@@ -104,15 +104,13 @@ public class RemoteDiscoveryClient {
                 .toList();
     }
 
-    private WorkspaceInfo toWorkspaceInfo(pbouda.jeffrey.api.v1.WorkspaceInfo proto) {
-        return new WorkspaceInfo(
+    private RemoteWorkspaceInfo toWorkspaceInfo(pbouda.jeffrey.api.v1.WorkspaceInfo proto) {
+        return new RemoteWorkspaceInfo(
                 null,
                 proto.getId(),
-                null,
                 proto.getName(),
                 proto.getDescription(),
-                WorkspaceLocation.of("http://" + connection.host() + ":" + connection.port()),
-                WorkspaceLocation.of("http://" + connection.host() + ":" + connection.port()),
+                WorkspaceLocation.of(connection.location()),
                 Instant.ofEpochMilli(proto.getCreatedAt()),
                 fromProtoStatus(proto.getStatus()),
                 proto.getProjectCount());

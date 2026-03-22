@@ -37,13 +37,15 @@ public interface RepositoryManager {
     }
 
     /**
-     * Downloads file of every type (even non-recording, e.g. Heap Dump) from the repository.
+     * Downloads an artifact file (heap dump, log, etc.) from the repository with validation.
+     * Only FINISHED, non-TEMPORARY artifact files can be streamed.
      *
-     * @param sessionId  id of the session to download from
-     * @param artifactId id of the artifact to download
+     * @param sessionId id of the session to download from
+     * @param fileId    id of the artifact file to download
      * @return entity for file information and streaming to output stream
+     * @throws IllegalArgumentException if the file is not found, not finished, or not an artifact
      */
-    StreamedRecordingFile streamArtifact(String sessionId, String artifactId);
+    StreamedRecordingFile streamArtifactFile(String sessionId, String fileId);
 
     /**
      * Downloads recordings from the repository and merge them into a single file.
@@ -99,15 +101,15 @@ public interface RepositoryManager {
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 
     /**
-     * Streams a single file (recording or artifact) from the repository for direct download.
-     * Only FINISHED files can be streamed.
+     * Downloads a recording file (JFR) from the repository with validation.
+     * Only FINISHED, non-TEMPORARY recording files can be streamed.
      *
      * @param sessionId the session containing the file
      * @param fileId    the unique file ID
      * @return entity for file information and streaming
-     * @throws IllegalArgumentException if the file is not found or is still ACTIVE
+     * @throws IllegalArgumentException if the file is not found, not finished, or not a recording
      */
-    StreamedRecordingFile streamFile(String sessionId, String fileId);
+    StreamedRecordingFile streamRecordingFile(String sessionId, String fileId);
 
     void delete();
 }

@@ -23,26 +23,29 @@ import pbouda.jeffrey.local.core.manager.*;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.manager.workspace.RemoteRecordingsDownloadManager;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
+import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 public class RemoteProjectManager implements ProjectManager {
 
     private final LocalJeffreyDirs jeffreyDirs;
-    private final WorkspaceInfo workspaceInfo;
+    private final RemoteWorkspaceInfo workspaceInfo;
     private final DetailedProjectInfo detailedProjectInfo;
     private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final ProjectRecordingInitializer.Factory recordingInitializerFactory;
+    private final LocalCoreRepositories localCoreRepositories;
 
     public RemoteProjectManager(
             LocalJeffreyDirs jeffreyDirs,
-            WorkspaceInfo workspaceInfo,
+            RemoteWorkspaceInfo workspaceInfo,
             DetailedProjectInfo detailedProjectInfo,
             RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+            ProjectRecordingInitializer.Factory recordingInitializerFactory,
+            LocalCoreRepositories localCoreRepositories) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
@@ -50,6 +53,7 @@ public class RemoteProjectManager implements ProjectManager {
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingInitializerFactory = recordingInitializerFactory;
+        this.localCoreRepositories = localCoreRepositories;
     }
 
     @Override
@@ -65,6 +69,15 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public ProfilesManager profilesManager() {
         return profilesManagerFactory.apply(detailedProjectInfo.projectInfo());
+    }
+
+    @Override
+    public RecordingsManager recordingsManager() {
+        ProjectInfo projectInfo = detailedProjectInfo.projectInfo();
+        return new RecordingsManagerImpl(
+                projectInfo,
+                recordingInitializerFactory.apply(projectInfo),
+                localCoreRepositories.newProjectRecordingRepository(projectInfo.id()));
     }
 
     @Override

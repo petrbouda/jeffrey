@@ -69,18 +69,18 @@ public class RemoteRecordingStreamClient {
         }, Schedulers.sharedVirtual());
     }
 
-    public CompletableFuture<Resource> downloadFile(
+    public CompletableFuture<Resource> downloadArtifactFile(
             String workspaceId, String projectId, String sessionId, String fileId) {
 
         return CompletableFuture.supplyAsync(() -> {
-            DownloadFileRequest request = DownloadFileRequest.newBuilder()
+            DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
                     .setWorkspaceId(workspaceId)
                     .setProjectId(projectId)
                     .setSessionId(sessionId)
                     .setFileId(fileId)
                     .build();
 
-            Iterator<DataChunk> chunks = stub.downloadFile(request);
+            Iterator<DataChunk> chunks = stub.downloadArtifactFile(request);
             return collectChunksToResource(chunks);
         }, Schedulers.sharedVirtual());
     }
@@ -100,33 +100,33 @@ public class RemoteRecordingStreamClient {
         streamChunksToConsumer(chunks, consumer);
     }
 
-    public void streamFile(
+    public void streamArtifactFile(
             String workspaceId, String projectId, String sessionId,
             String fileId, InputStreamConsumer consumer) {
 
-        DownloadFileRequest request = DownloadFileRequest.newBuilder()
+        DownloadArtifactFileRequest request = DownloadArtifactFileRequest.newBuilder()
                 .setWorkspaceId(workspaceId)
                 .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .setFileId(fileId)
                 .build();
 
-        Iterator<DataChunk> chunks = stub.downloadFile(request);
+        Iterator<DataChunk> chunks = stub.downloadArtifactFile(request);
         streamChunksToConsumer(chunks, consumer);
     }
 
-    public void streamSingleFile(
+    public void streamRecordingFile(
             String workspaceId, String projectId, String sessionId,
             String fileId, InputStreamConsumer consumer) {
 
-        DownloadSingleFileRequest request = DownloadSingleFileRequest.newBuilder()
+        DownloadRecordingFileRequest request = DownloadRecordingFileRequest.newBuilder()
                 .setWorkspaceId(workspaceId)
                 .setProjectId(projectId)
                 .setSessionId(sessionId)
                 .setFileId(fileId)
                 .build();
 
-        Iterator<DataChunk> chunks = stub.downloadSingleFile(request);
+        Iterator<DataChunk> chunks = stub.downloadRecordingFile(request);
         streamChunksToConsumer(chunks, consumer);
     }
 

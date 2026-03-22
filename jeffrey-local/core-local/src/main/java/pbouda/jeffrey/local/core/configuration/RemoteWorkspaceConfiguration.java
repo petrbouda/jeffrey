@@ -39,6 +39,7 @@ import pbouda.jeffrey.local.persistence.repository.JdbcWorkspaceRepository;
 import pbouda.jeffrey.local.persistence.repository.JdbcWorkspacesRepository;
 import pbouda.jeffrey.local.persistence.repository.WorkspacesRepository;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
+import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.net.URI;
@@ -59,7 +60,8 @@ public class RemoteWorkspaceConfiguration {
             WorkspacesRepository localWorkspacesRepository,
             RemoteClients.Factory remoteClientsFactory,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
+            ProjectRecordingInitializer.Factory recordingInitializerFactory,
+            LocalCoreRepositories localCoreRepositories) {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             URI baseUri = workspaceInfo.baseLocation().toUri();
@@ -69,7 +71,8 @@ public class RemoteWorkspaceConfiguration {
                     new JdbcWorkspaceRepository(workspaceInfo.id(), databaseClientProvider),
                     remoteClientsFactory.apply(baseUri),
                     profilesManagerFactory,
-                    recordingInitializerFactory);
+                    recordingInitializerFactory,
+                    localCoreRepositories);
         };
 
         return new RemoteWorkspacesManager(
@@ -81,11 +84,7 @@ public class RemoteWorkspaceConfiguration {
     @Bean
     public RemoteClients.Factory remoteClientsFactory() {
         return remoteUrl -> {
-            // Extract host and port from the URI — use gRPC port (default 9090)
-            String host = remoteUrl.getHost();
-            int grpcPort = remoteUrl.getPort() > 0 ? remoteUrl.getPort() + 1 : 9090;
-
-            GrpcServerConnection connection = new GrpcServerConnection(host, grpcPort);
+            GrpcServerConnection connection = new GrpcServerConnection(remoteUrl);
 
             return new RemoteClients(
                     new RemoteDiscoveryClient(connection),

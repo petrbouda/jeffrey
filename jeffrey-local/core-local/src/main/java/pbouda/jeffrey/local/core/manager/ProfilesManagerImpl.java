@@ -114,6 +114,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
         var insertProfile = new ProfileRepository.InsertProfile(
                 projectInfo.id(),
+                projectInfo.workspaceId(),
                 recording.recordingName(),
                 recording.eventSource(),
                 profileCreatedAt,

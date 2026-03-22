@@ -70,6 +70,7 @@ public interface ProfileRepository {
      */
     record InsertProfile(
             String projectId,
+            String workspaceId,
             String profileName,
             RecordingEventSource eventSource,
             Instant createdAt,

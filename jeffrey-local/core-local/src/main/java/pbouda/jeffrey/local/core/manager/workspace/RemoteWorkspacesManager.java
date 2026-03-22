@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.client.RemoteDiscoveryClient.WorkspaceResult;
 import pbouda.jeffrey.local.persistence.repository.WorkspacesRepository;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,7 +48,7 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     }
 
     @Override
-    public WorkspaceInfo create(CreateWorkspaceRequest request) {
+    public RemoteWorkspaceInfo create(CreateWorkspaceRequest request) {
         LOG.debug("Creating remote workspace: name={}", request.name());
         RemoteClients remoteClients =
                 remoteClientsFactory.apply(request.baseLocation().toUri());

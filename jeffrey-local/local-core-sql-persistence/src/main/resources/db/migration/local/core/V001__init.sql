@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS profiles
 (
     profile_id            VARCHAR NOT NULL,
     project_id            VARCHAR NOT NULL,
+    workspace_id          VARCHAR NOT NULL,
     profile_name          VARCHAR NOT NULL,
     event_source          VARCHAR NOT NULL,
     created_at            TIMESTAMPTZ  NOT NULL,
@@ -120,3 +121,28 @@ CREATE TABLE IF NOT EXISTS quick_profiles
 );
 
 CREATE INDEX IF NOT EXISTS idx_quick_profiles_group ON quick_profiles(group_name);
+
+--
+-- QUICK ANALYSIS TABLES
+--
+
+CREATE TABLE IF NOT EXISTS quick_groups (
+    group_id   VARCHAR NOT NULL PRIMARY KEY,
+    group_name VARCHAR NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS quick_recordings (
+    recording_id          VARCHAR NOT NULL PRIMARY KEY,
+    filename              VARCHAR NOT NULL,
+    group_id              VARCHAR REFERENCES quick_groups(group_id),
+    event_source          VARCHAR NOT NULL,
+    file_path             VARCHAR NOT NULL,
+    size_in_bytes         BIGINT NOT NULL,
+    uploaded_at           TIMESTAMPTZ NOT NULL,
+    profiling_started_at  TIMESTAMPTZ,
+    profiling_finished_at TIMESTAMPTZ,
+    profile_id            VARCHAR
+);
+
+CREATE INDEX IF NOT EXISTS idx_quick_recordings_group ON quick_recordings(group_id);

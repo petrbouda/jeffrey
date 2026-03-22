@@ -16,23 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.persistence.repository;
+package pbouda.jeffrey.local.core.resources.request;
 
-import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-
-import java.util.List;
-import java.util.Optional;
-
-/**
- * Local registry of remote workspace connections.
- * Stores only minimal connection references (id, origin id, server URL).
- * All other workspace data comes from gRPC.
- */
-public interface WorkspacesRepository {
-
-    List<RemoteWorkspaceInfo> findAll();
-
-    Optional<RemoteWorkspaceInfo> find(String workspaceId);
-
-    RemoteWorkspaceInfo create(RemoteWorkspaceInfo workspaceInfo);
+public record CreateFolderRequest(String folderName) {
 }
