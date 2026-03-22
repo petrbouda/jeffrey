@@ -6,7 +6,7 @@ on:
 name: Release Jeffrey
 
 jobs:
-  build-local:
+  build:
     runs-on: ubuntu-latest
     container:
       image: petrbouda/jeffrey-builder:25
@@ -29,6 +29,12 @@ jobs:
       with:
         name: jeffrey-jar
         path: ./build/build-local/target/jeffrey.jar
+
+    - name: Upload jeffrey-server.jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: jeffrey-server-jar
+        path: ./build/build-server/target/jeffrey-server.jar
 
     - name: Upload jeffrey-cli.jar
       uses: actions/upload-artifact@v4
@@ -78,7 +84,7 @@ jobs:
         path: ./build/build-cli-native/target/jeffrey-cli
 
   compose-docker:
-    needs: [build-local, build-cli-native]
+    needs: [build, build-cli-native]
     runs-on: ubuntu-latest
 
     steps:
@@ -92,6 +98,12 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: jeffrey-jar
+        path: ./docker-context
+
+    - name: Download jeffrey-server.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-server-jar
         path: ./docker-context
 
     - name: Download jeffrey-cli.jar
@@ -138,7 +150,6 @@ jobs:
         # mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
         rm -rf ./docker-context/cli-amd64
         cp ./docker/libs/jeffrey-streaming.jfc ./docker-context/jeffrey-streaming.jfc
-        cp ./docker/Dockerfile-local ./docker-context/Dockerfile
         ls -la ./docker-context/
 
     - name: Set up QEMU
@@ -153,17 +164,35 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push
+    - name: Build and push jeffrey (local)
       uses: docker/build-push-action@v6
       with:
         context: ./docker-context
-        file: ./docker-context/Dockerfile
+        file: ./docker/Dockerfile-local
         push: true
         platforms: linux/amd64
         tags: petrbouda/jeffrey:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey:latest
 
+    - name: Build and push jeffrey-examples (local with examples)
+      uses: docker/build-push-action@v6
+      with:
+        context: ./docker-context
+        file: ./docker/Dockerfile-local-examples
+        push: true
+        platforms: linux/amd64
+        tags: petrbouda/jeffrey-examples:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey-examples:latest
+
+    - name: Build and push jeffrey-server
+      uses: docker/build-push-action@v6
+      with:
+        context: ./docker-context
+        file: ./docker/Dockerfile-server
+        push: true
+        platforms: linux/amd64
+        tags: petrbouda/jeffrey-server:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey-server:latest
+
   create-release:
-    needs: [build-local, build-cli-native]
+    needs: [build, build-cli-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -172,6 +201,12 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: jeffrey-jar
+        path: ./artifacts
+
+    - name: Download jeffrey-server.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-server-jar
         path: ./artifacts
 
     - name: Download jeffrey-cli.jar
@@ -215,6 +250,7 @@ jobs:
         body: Release ${{ steps.version.outputs.VERSION }}
         files: |
           ./artifacts/jeffrey.jar
+          ./artifacts/jeffrey-server.jar
           ./artifacts/jeffrey-cli.jar
           ./artifacts/jeffrey-agent.jar
           ./artifacts/jeffrey-cli-amd64

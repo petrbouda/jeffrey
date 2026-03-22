@@ -31,4 +31,13 @@ RUN . /envfile; wget "${JAVA_DOWNLOAD_URL}" -P /tmp \
 ENV JAVA_HOME=/opt/jdk-${JAVA_VERSION}+${JAVA_MINOR_VERSION}
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
+# Install protoc and protoc-gen-doc for gRPC API documentation generation
+ARG PROTOC_GEN_DOC_VERSION=1.5.1
+RUN apt-get update && apt-get install -y --no-install-recommends protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/* \
+    && wget -q https://github.com/pseudomuto/protoc-gen-doc/releases/download/v${PROTOC_GEN_DOC_VERSION}/protoc-gen-doc_${PROTOC_GEN_DOC_VERSION}_linux_amd64.tar.gz -O /tmp/protoc-gen-doc.tar.gz \
+    && tar -xzf /tmp/protoc-gen-doc.tar.gz -C /usr/local/bin protoc-gen-doc \
+    && rm /tmp/protoc-gen-doc.tar.gz \
+    && chmod +x /usr/local/bin/protoc-gen-doc
+
 CMD ["java"]
