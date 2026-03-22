@@ -70,7 +70,7 @@
                             <mainClass>${mainClass}</mainClass>
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
-                                <buildArg>--initialize-at-build-time=org.xml.sax.helpers.LocatorImpl</buildArg>
+                                <buildArg>--initialize-at-build-time=org.xml.sax.helpers</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
