@@ -31,7 +31,7 @@ jobs:
     - name: Build native CLI
       env:
         JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
-      run: mvn -pl build/build-cli-native -am -Pnative package -DskipTests
+      run: mvn -e -pl build/build-cli-native -am -Pnative package -DskipTests
 
     - name: Upload native CLI
       uses: actions/upload-artifact@v4

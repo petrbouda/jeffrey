@@ -62,7 +62,7 @@ jobs:
     secrets: inherit
 
   create-release:
-    needs: [build, cli-native]
+    needs: [docker-local, docker-server, cli-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
