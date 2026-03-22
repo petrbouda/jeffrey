@@ -1,0 +1,40 @@
+name: Build Native CLI
+
+on:
+  workflow_call:
+
+jobs:
+  build-cli-native:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          # - os: ubuntu-24.04-arm64
+          #   arch: arm64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: '25'
+        distribution: 'graalvm-community'
+        components: 'native-image'
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Build native CLI
+      env:
+        JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
+      run: mvn -pl build/build-cli-native -am -Pnative package -DskipTests
+
+    - name: Upload native CLI
+      uses: actions/upload-artifact@v4
+      with:
+        name: jeffrey-cli-${{ matrix.arch }}
+        path: ./build/build-cli-native/target/jeffrey-cli

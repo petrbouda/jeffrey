@@ -1,0 +1,51 @@
+name: Docker Local Images
+
+on:
+  workflow_call:
+
+jobs:
+  docker-local:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Download jeffrey.jar
+      uses: actions/download-artifact@v4
+      with:
+        name: jeffrey-jar
+        path: ./docker-context
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push jeffrey (local)
+      uses: docker/build-push-action@v6
+      with:
+        context: ./docker-context
+        file: ./docker/Dockerfile-local
+        push: true
+        platforms: linux/amd64
+        tags: petrbouda/jeffrey:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey:latest
+
+    - name: Build and push jeffrey-examples (local with examples)
+      uses: docker/build-push-action@v6
+      with:
+        context: ./docker-context
+        file: ./docker/Dockerfile-local-examples
+        push: true
+        platforms: linux/amd64
+        tags: petrbouda/jeffrey-examples:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey-examples:latest
