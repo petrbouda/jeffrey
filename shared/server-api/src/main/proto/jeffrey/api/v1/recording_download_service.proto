@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for downloading recordings and artifacts via server-streaming.
+// Uses streaming RPCs for efficient transfer of large files.
+service RecordingDownloadService {
+  // Streams merged recordings as a single file (64KB chunks).
+  rpc DownloadMergedRecordings(DownloadMergedRecordingsRequest) returns (stream DataChunk);
+
+  // Streams a single artifact file (64KB chunks).
+  rpc DownloadFile(DownloadFileRequest) returns (stream DataChunk);
+
+  // Downloads a single session file by file ID (64KB chunks).
+  rpc DownloadSingleFile(DownloadSingleFileRequest) returns (stream DataChunk);
+}
+
+message DownloadMergedRecordingsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+  repeated string file_ids = 4;
+}
+
+message DownloadFileRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+  string file_id = 4;
+}
+
+message DownloadSingleFileRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+  string file_id = 4;
+}
+
+// A chunk of binary data for streaming file transfers.
+message DataChunk {
+  bytes data = 1;
+  int64 total_size = 2;
+}

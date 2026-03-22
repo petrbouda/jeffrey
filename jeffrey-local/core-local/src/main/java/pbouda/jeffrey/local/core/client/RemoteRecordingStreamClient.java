@@ -1,0 +1,196 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.local.core.client;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.shared.common.Schedulers;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public class RemoteRecordingStreamClient {
+
+    /**
+     * Consumer for streaming HTTP response body.
+     *
+     * @param inputStream   the raw HTTP response body stream
+     * @param contentLength the Content-Length from the HTTP response, or -1 if unknown
+     */
+    @FunctionalInterface
+    public interface InputStreamConsumer {
+        void accept(InputStream inputStream, long contentLength) throws IOException;
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteRecordingStreamClient.class);
+
+    private final RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub;
+
+    public RemoteRecordingStreamClient(GrpcServerConnection connection) {
+        this.stub = RecordingDownloadServiceGrpc.newBlockingStub(connection.getChannel());
+    }
+
+    public CompletableFuture<Resource> downloadRecordings(
+            String workspaceId, String projectId, String sessionId, List<String> recordingIds) {
+
+        return CompletableFuture.supplyAsync(() -> {
+            DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
+                    .setWorkspaceId(workspaceId)
+                    .setProjectId(projectId)
+                    .setSessionId(sessionId)
+                    .addAllFileIds(recordingIds)
+                    .build();
+
+            Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
+            return collectChunksToResource(chunks);
+        }, Schedulers.sharedVirtual());
+    }
+
+    public CompletableFuture<Resource> downloadFile(
+            String workspaceId, String projectId, String sessionId, String fileId) {
+
+        return CompletableFuture.supplyAsync(() -> {
+            DownloadFileRequest request = DownloadFileRequest.newBuilder()
+                    .setWorkspaceId(workspaceId)
+                    .setProjectId(projectId)
+                    .setSessionId(sessionId)
+                    .setFileId(fileId)
+                    .build();
+
+            Iterator<DataChunk> chunks = stub.downloadFile(request);
+            return collectChunksToResource(chunks);
+        }, Schedulers.sharedVirtual());
+    }
+
+    public void streamRecordings(
+            String workspaceId, String projectId, String sessionId,
+            List<String> recordingIds, InputStreamConsumer consumer) {
+
+        DownloadMergedRecordingsRequest request = DownloadMergedRecordingsRequest.newBuilder()
+                .setWorkspaceId(workspaceId)
+                .setProjectId(projectId)
+                .setSessionId(sessionId)
+                .addAllFileIds(recordingIds)
+                .build();
+
+        Iterator<DataChunk> chunks = stub.downloadMergedRecordings(request);
+        streamChunksToConsumer(chunks, consumer);
+    }
+
+    public void streamFile(
+            String workspaceId, String projectId, String sessionId,
+            String fileId, InputStreamConsumer consumer) {
+
+        DownloadFileRequest request = DownloadFileRequest.newBuilder()
+                .setWorkspaceId(workspaceId)
+                .setProjectId(projectId)
+                .setSessionId(sessionId)
+                .setFileId(fileId)
+                .build();
+
+        Iterator<DataChunk> chunks = stub.downloadFile(request);
+        streamChunksToConsumer(chunks, consumer);
+    }
+
+    public void streamSingleFile(
+            String workspaceId, String projectId, String sessionId,
+            String fileId, InputStreamConsumer consumer) {
+
+        DownloadSingleFileRequest request = DownloadSingleFileRequest.newBuilder()
+                .setWorkspaceId(workspaceId)
+                .setProjectId(projectId)
+                .setSessionId(sessionId)
+                .setFileId(fileId)
+                .build();
+
+        Iterator<DataChunk> chunks = stub.downloadSingleFile(request);
+        streamChunksToConsumer(chunks, consumer);
+    }
+
+    /**
+     * Collects gRPC data chunks into a temporary file and returns it as a Spring Resource.
+     */
+    private static Resource collectChunksToResource(Iterator<DataChunk> chunks) {
+        try {
+            Path tempFile = Files.createTempFile("grpc-download-", ".tmp");
+            long totalSize = -1;
+
+            try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tempFile))) {
+                while (chunks.hasNext()) {
+                    DataChunk chunk = chunks.next();
+                    chunk.getData().writeTo(out);
+                    if (totalSize == -1 && chunk.getTotalSize() > 0) {
+                        totalSize = chunk.getTotalSize();
+                    }
+                }
+            }
+
+            return new FileSystemResource(tempFile);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to collect gRPC data chunks to temp file", e);
+        }
+    }
+
+    /**
+     * Streams gRPC data chunks through a PipedInputStream to the consumer.
+     * Uses a virtual thread to write chunks to the pipe concurrently.
+     */
+    private static void streamChunksToConsumer(Iterator<DataChunk> chunks, InputStreamConsumer consumer) {
+        try {
+            PipedOutputStream pipeOut = new PipedOutputStream();
+            PipedInputStream pipeIn = new PipedInputStream(pipeOut, 64 * 1024);
+
+            // Determine total size from first chunk
+            long[] totalSize = {-1};
+
+            Thread writer = Thread.ofVirtual().start(() -> {
+                try (pipeOut) {
+                    while (chunks.hasNext()) {
+                        DataChunk chunk = chunks.next();
+                        if (totalSize[0] == -1 && chunk.getTotalSize() > 0) {
+                            totalSize[0] = chunk.getTotalSize();
+                        }
+                        chunk.getData().writeTo(pipeOut);
+                    }
+                } catch (IOException e) {
+                    LOG.error("Error writing gRPC chunks to pipe", e);
+                }
+            });
+
+            try {
+                consumer.accept(pipeIn, totalSize[0]);
+            } finally {
+                writer.join();
+                pipeIn.close();
+            }
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new RuntimeException("Failed to stream gRPC data chunks", e);
+        }
+    }
+}

@@ -29,9 +29,8 @@
 
     <modules>
         <module>shared</module>
-        <module>platform</module>
-        <module>profiles</module>
-        <module>pages</module>
+        <module>jeffrey-server</module>
+        <module>jeffrey-local</module>
         <module>jeffrey-cli</module>
         <module>jeffrey-agent</module>
         <module>build</module>
@@ -52,6 +51,8 @@
         <spring-ai.version>2.0.0-M3</spring-ai.version>
         <duckdb.version>1.5.0.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
+        <grpc.version>1.72.0</grpc.version>
+        <protobuf.version>4.30.2</protobuf.version>
     </properties>
 
     <dependencyManagement>
@@ -82,18 +83,52 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>pages</artifactId>
+                <artifactId>pages-local</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>platform-management</artifactId>
+                <artifactId>pages-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>platform-persistence-api</artifactId>
+                <artifactId>server-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>profile-management</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>core-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>core-local</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>local-core-persistence-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>local-core-sql-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>server-persistence-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>server-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -133,7 +168,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>tools</artifactId>
+                <artifactId>recording-storage-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -190,6 +225,20 @@
                 <groupId>cafe.jeffrey-analyst</groupId>
                 <artifactId>jeffrey-events</artifactId>
                 <version>${jeffrey-events.version}</version>
+            </dependency>
+
+            <!-- gRPC -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
             </dependency>
 
             <!-- DuckDB -->

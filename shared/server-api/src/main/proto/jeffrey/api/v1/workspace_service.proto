@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for workspace discovery and listing.
+service WorkspaceService {
+  // Returns API version and Jeffrey version.
+  rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
+
+  // Lists all workspaces.
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+
+  // Gets a single workspace by ID.
+  rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
+}
+
+message GetApiInfoRequest {}
+
+message GetApiInfoResponse {
+  string version = 1;
+  int32 api_version = 2;
+}
+
+message ListWorkspacesRequest {}
+
+message ListWorkspacesResponse {
+  repeated WorkspaceInfo workspaces = 1;
+}
+
+message GetWorkspaceRequest {
+  string workspace_id = 1;
+}
+
+message GetWorkspaceResponse {
+  WorkspaceInfo workspace = 1;
+}
+
+message WorkspaceInfo {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 created_at = 4;
+  int32 project_count = 5;
+  WorkspaceStatus status = 6;
+  reserved 7;
+}
+
+enum WorkspaceStatus {
+  WORKSPACE_STATUS_UNSPECIFIED = 0;
+  WORKSPACE_STATUS_AVAILABLE = 1;
+  WORKSPACE_STATUS_UNAVAILABLE = 2;
+  WORKSPACE_STATUS_INCOMPATIBLE = 3;
+}

@@ -32,7 +32,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>build-app</module>
+        <module>build-local</module>
+        <module>build-server</module>
         <module>build-cli</module>
         <module>build-cli-native</module>
         <module>build-agent</module>

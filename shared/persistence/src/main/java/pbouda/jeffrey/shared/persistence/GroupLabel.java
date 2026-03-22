@@ -44,4 +44,7 @@ public enum GroupLabel {
     MESSAGES,
     ALERTS,
     PROFILE_FRAMES,
+    QUICK_PROFILES,
+    QUICK_GROUPS,
+    QUICK_RECORDINGS,
 }

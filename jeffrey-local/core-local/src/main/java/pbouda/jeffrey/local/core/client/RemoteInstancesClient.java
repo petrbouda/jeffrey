@@ -1,0 +1,120 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.local.core.client;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
+import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
+
+import java.util.List;
+
+public class RemoteInstancesClient {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RemoteInstancesClient.class);
+
+    private final InstanceServiceGrpc.InstanceServiceBlockingStub stub;
+
+    public RemoteInstancesClient(GrpcServerConnection connection) {
+        this.stub = InstanceServiceGrpc.newBlockingStub(connection.getChannel());
+    }
+
+    public List<InstanceResponse> projectInstances(String workspaceId, String projectId) {
+        ListInstancesResponse response = stub.listInstances(
+                ListInstancesRequest.newBuilder()
+                        .setWorkspaceId(workspaceId)
+                        .setProjectId(projectId)
+                        .build());
+
+        LOG.debug("Listed instances via gRPC: workspaceId={} projectId={} count={}",
+                workspaceId, projectId, response.getInstancesCount());
+
+        return response.getInstancesList().stream()
+                .map(RemoteInstancesClient::toInstanceResponse)
+                .toList();
+    }
+
+    public InstanceResponse projectInstance(String workspaceId, String projectId, String instanceId) {
+        GetInstanceResponse response = stub.getInstance(
+                GetInstanceRequest.newBuilder()
+                        .setWorkspaceId(workspaceId)
+                        .setProjectId(projectId)
+                        .setInstanceId(instanceId)
+                        .build());
+
+        LOG.debug("Fetched instance via gRPC: workspaceId={} projectId={} instanceId={}",
+                workspaceId, projectId, instanceId);
+
+        return toInstanceResponse(response.getInstance());
+    }
+
+    public List<InstanceSessionResponse> projectInstanceSessions(
+            String workspaceId, String projectId, String instanceId) {
+
+        ListInstanceSessionsResponse response = stub.listInstanceSessions(
+                ListInstanceSessionsRequest.newBuilder()
+                        .setWorkspaceId(workspaceId)
+                        .setProjectId(projectId)
+                        .setInstanceId(instanceId)
+                        .build());
+
+        LOG.debug("Listed instance sessions via gRPC: workspaceId={} projectId={} instanceId={} count={}",
+                workspaceId, projectId, instanceId, response.getSessionsCount());
+
+        return response.getSessionsList().stream()
+                .map(RemoteInstancesClient::toSessionResponse)
+                .toList();
+    }
+
+    private static InstanceResponse toInstanceResponse(InstanceInfo proto) {
+        return new InstanceResponse(
+                proto.getId(),
+                proto.getHostname().isEmpty() ? null : proto.getHostname(),
+                proto.getStatus(),
+                parseLongOrNull(proto.getCreatedAt()),
+                proto.hasFinishedAt() ? parseLongOrNull(proto.getFinishedAt()) : null,
+                proto.hasExpiringAt() ? parseLongOrNull(proto.getExpiringAt()) : null,
+                proto.hasExpiredAt() ? parseLongOrNull(proto.getExpiredAt()) : null,
+                proto.getSessionCount(),
+                proto.hasActiveSessionId() ? proto.getActiveSessionId() : null,
+                proto.hasDuration() ? parseLongOrNull(proto.getDuration()) : null);
+    }
+
+    private static InstanceSessionResponse toSessionResponse(InstanceSessionInfo proto) {
+        return new InstanceSessionResponse(
+                proto.getId(),
+                proto.getRepositoryId().isEmpty() ? null : proto.getRepositoryId(),
+                parseLongOrNull(proto.getCreatedAt()),
+                proto.hasFinishedAt() ? parseLongOrNull(proto.getFinishedAt()) : null,
+                proto.getIsActive(),
+                proto.hasDuration() ? parseLongOrNull(proto.getDuration()) : null);
+    }
+
+    private static Long parseLongOrNull(String value) {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+}

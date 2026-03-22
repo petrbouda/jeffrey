@@ -35,7 +35,12 @@
         <module>common</module>
         <module>folder-queue</module>
         <module>persistence</module>
+        <module>persistent-queue</module>
+        <module>server-api</module>
         <module>test</module>
+        <module>sql-builder</module>
+        <module>recording-storage-api</module>
+        <module>filesystem-recording-storage</module>
     </modules>
 
     <dependencyManagement>
@@ -57,12 +62,27 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>persistent-queue</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>sql-builder</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>recording-storage-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>filesystem-recording-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

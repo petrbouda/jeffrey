@@ -10,37 +10,45 @@
 .DS_Store
 
 # Logs
-pages/logs
-pages/*.log
-pages/npm-debug.log*
-pages/yarn-debug.log*
-pages/yarn-error.log*
-pages/pnpm-debug.log*
-pages/lerna-debug.log*
+jeffrey-local/pages-local/logs
+jeffrey-local/pages-local/*.log
+jeffrey-local/pages-local/npm-debug.log*
+jeffrey-local/pages-local/yarn-debug.log*
+jeffrey-local/pages-local/yarn-error.log*
+jeffrey-local/pages-local/pnpm-debug.log*
+jeffrey-local/pages-local/lerna-debug.log*
 
 # dependencies
-pages/node_modules
-pages/package-lock.json
-pages/yarn.lock
+jeffrey-local/pages-local/node_modules
+jeffrey-local/pages-local/package-lock.json
+jeffrey-local/pages-local/yarn.lock
 
-pages/.DS_Store
-pages/dist
-pages/dist-ssr
-pages/coverage
-pages/*.local
+jeffrey-local/pages-local/.DS_Store
+jeffrey-local/pages-local/dist
+jeffrey-local/pages-local/dist-ssr
+jeffrey-local/pages-local/coverage
+jeffrey-local/pages-local/*.local
+
+# pages-server dependencies and build output
+jeffrey-server/pages-server/node_modules
+jeffrey-server/pages-server/package-lock.json
+jeffrey-server/pages-server/.DS_Store
+jeffrey-server/pages-server/dist
+jeffrey-server/pages-server/coverage
+jeffrey-server/pages-server/*.local
 
 /cypress/videos/
 /cypress/screenshots/
 
 # Editor directories and files
-pages/.vscode/*
-pages/!.vscode/extensions.json
-pages/.idea
-pages/*.suo
-pages/*.ntvs*
-pages/*.njsproj
-pages/*.sln
-pages/*.sw?
+jeffrey-local/pages-local/.vscode/*
+jeffrey-local/pages-local/!.vscode/extensions.json
+jeffrey-local/pages-local/.idea
+jeffrey-local/pages-local/*.suo
+jeffrey-local/pages-local/*.ntvs*
+jeffrey-local/pages-local/*.njsproj
+jeffrey-local/pages-local/*.sln
+jeffrey-local/pages-local/*.sw?
 
 package-lock.json
 /node_modules/*
@@ -59,3 +67,4 @@ jmh-tests/dependency-reduced-pom.xml
 # AI Assistant secrets (API keys)
 **/secrets.properties
 .worktrees
+.superpowers

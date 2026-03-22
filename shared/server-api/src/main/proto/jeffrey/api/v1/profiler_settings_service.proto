@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for profiler settings management.
+service ProfilerSettingsService {
+  // Gets effective profiler settings (resolved from hierarchy: project > workspace > global).
+  rpc GetSettings(GetProfilerSettingsRequest) returns (GetProfilerSettingsResponse);
+
+  // Creates or updates project-level profiler settings.
+  rpc UpsertSettings(UpsertProfilerSettingsRequest) returns (UpsertProfilerSettingsResponse);
+
+  // Deletes project-level profiler settings.
+  rpc DeleteSettings(DeleteProfilerSettingsRequest) returns (DeleteProfilerSettingsResponse);
+
+  // Lists all profiler settings at all levels (global, workspace, project) on this server.
+  rpc ListAllSettings(ListAllProfilerSettingsRequest) returns (ListAllProfilerSettingsResponse);
+
+  // Creates or updates profiler settings at any hierarchy level.
+  rpc UpsertSettingsAtLevel(UpsertProfilerSettingsAtLevelRequest) returns (UpsertProfilerSettingsAtLevelResponse);
+
+  // Deletes profiler settings at any hierarchy level.
+  rpc DeleteSettingsAtLevel(DeleteProfilerSettingsAtLevelRequest) returns (DeleteProfilerSettingsAtLevelResponse);
+}
+
+message GetProfilerSettingsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message GetProfilerSettingsResponse {
+  string agent_settings = 1;
+  SettingsLevel level = 2;
+}
+
+message UpsertProfilerSettingsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string agent_settings = 3;
+}
+
+message UpsertProfilerSettingsResponse {}
+
+message DeleteProfilerSettingsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message DeleteProfilerSettingsResponse {}
+
+enum SettingsLevel {
+  SETTINGS_LEVEL_UNSPECIFIED = 0;
+  SETTINGS_LEVEL_GLOBAL = 1;
+  SETTINGS_LEVEL_WORKSPACE = 2;
+  SETTINGS_LEVEL_PROJECT = 3;
+}
+
+message ListAllProfilerSettingsRequest {}
+
+message ListAllProfilerSettingsResponse {
+  repeated ProfilerSettingsEntry settings = 1;
+}
+
+message ProfilerSettingsEntry {
+  string workspace_id = 1;
+  string project_id = 2;
+  string agent_settings = 3;
+}
+
+message UpsertProfilerSettingsAtLevelRequest {
+  string workspace_id = 1;   // empty = global level
+  string project_id = 2;     // empty = workspace or global level
+  string agent_settings = 3;
+}
+
+message UpsertProfilerSettingsAtLevelResponse {}
+
+message DeleteProfilerSettingsAtLevelRequest {
+  string workspace_id = 1;   // empty = global level
+  string project_id = 2;     // empty = workspace or global level
+}
+
+message DeleteProfilerSettingsAtLevelResponse {}

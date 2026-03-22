@@ -1,0 +1,16 @@
+# Download example recordings
+FROM alpine/git AS recordings
+
+RUN git clone https://github.com/petrbouda/jeffrey-recordings.git /recordings
+
+# Runtime stage
+FROM eclipse-temurin:25-jdk
+
+RUN mkdir /app
+
+COPY jeffrey.jar /app/
+COPY --from=recordings /recordings /jeffrey-examples
+
+ENV JEFFREY_LOCAL_SEED_RECORDINGS_DIR=/jeffrey-examples
+
+ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]

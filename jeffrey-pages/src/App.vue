@@ -39,7 +39,10 @@ const closeMenu = () => {
     <!-- Modern Navbar -->
     <nav class="navbar">
       <div class="navbar-container">
-        <router-link to="/" class="navbar-brand">Jeffrey</router-link>
+        <router-link to="/" class="navbar-brand">
+          <img src="/images/jeffrey-icon.svg" alt="Jeffrey" class="navbar-logo" />
+          Jeffrey
+        </router-link>
 
         <ul class="nav-menu" :class="{ 'active': isMenuOpen }">
           <li class="nav-item">
@@ -108,6 +111,14 @@ const closeMenu = () => {
 .navbar-brand {
   font-weight: 700;
   font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-logo {
+  width: 28px;
+  height: 28px;
 }
 
 .nav-link {

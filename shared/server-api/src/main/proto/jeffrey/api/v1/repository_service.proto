@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for repository session management and statistics.
+service RepositoryService {
+  // Lists all recording sessions.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+
+  // Gets a single recording session by ID.
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+
+  // Gets repository statistics.
+  rpc GetRepositoryStatistics(GetRepositoryStatisticsRequest) returns (GetRepositoryStatisticsResponse);
+
+  // Deletes a recording session.
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+
+  // Deletes specific files within a recording session.
+  rpc DeleteFilesInSession(DeleteFilesInSessionRequest) returns (DeleteFilesInSessionResponse);
+}
+
+message ListSessionsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message ListSessionsResponse {
+  repeated RecordingSession sessions = 1;
+}
+
+message GetSessionRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+}
+
+message GetSessionResponse {
+  RecordingSession session = 1;
+}
+
+message GetRepositoryStatisticsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message GetRepositoryStatisticsResponse {
+  int32 total_sessions = 1;
+  string session_status = 2;
+  int64 last_activity_time = 3;
+  int64 total_size = 4;
+  int32 total_files = 5;
+  int64 biggest_session_size = 6;
+  int32 jfr_files = 7;
+  int64 jfr_size = 8;
+  int32 heap_dump_files = 9;
+  int64 heap_dump_size = 10;
+  int32 log_files = 11;
+  int64 log_size = 12;
+  int32 app_log_files = 13;
+  int64 app_log_size = 14;
+  int32 error_log_files = 15;
+  int64 error_log_size = 16;
+  int32 other_files = 17;
+  int64 other_size = 18;
+}
+
+message DeleteSessionRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+}
+
+message DeleteSessionResponse {}
+
+message DeleteFilesInSessionRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
+  repeated string file_ids = 4;
+}
+
+message DeleteFilesInSessionResponse {}
+
+message RecordingSession {
+  string id = 1;
+  string name = 2;
+  optional string instance_id = 3;
+  string created_at = 4;
+  optional string finished_at = 5;
+  string status = 6;
+  optional string profiler_settings = 7;
+  optional string duration = 8;
+  repeated RepositoryFile files = 9;
+}
+
+message RepositoryFile {
+  string id = 1;
+  string name = 2;
+  string created_at = 3;
+  int64 size = 4;
+  string file_type = 5;
+  string status = 6;
+}

@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for project instance management.
+service InstanceService {
+  // Lists all instances for a project.
+  rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
+
+  // Gets a single instance by ID.
+  rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
+
+  // Lists all sessions for an instance.
+  rpc ListInstanceSessions(ListInstanceSessionsRequest) returns (ListInstanceSessionsResponse);
+}
+
+message ListInstancesRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message ListInstancesResponse {
+  repeated InstanceInfo instances = 1;
+}
+
+message GetInstanceRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string instance_id = 3;
+}
+
+message GetInstanceResponse {
+  InstanceInfo instance = 1;
+}
+
+message ListInstanceSessionsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string instance_id = 3;
+}
+
+message ListInstanceSessionsResponse {
+  repeated InstanceSessionInfo sessions = 1;
+}
+
+message InstanceInfo {
+  string id = 1;
+  string hostname = 2;
+  string status = 3;
+  string created_at = 4;
+  optional string finished_at = 5;
+  optional string expiring_at = 6;
+  optional string expired_at = 7;
+  int32 session_count = 8;
+  optional string active_session_id = 9;
+  optional string duration = 10;
+}
+
+message InstanceSessionInfo {
+  string id = 1;
+  string repository_id = 2;
+  string created_at = 3;
+  optional string finished_at = 4;
+  bool is_active = 5;
+  optional string duration = 6;
+}

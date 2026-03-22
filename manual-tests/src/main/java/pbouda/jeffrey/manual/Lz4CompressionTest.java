@@ -19,7 +19,7 @@
 package pbouda.jeffrey.manual;
 
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.filesystem.TempDirFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,12 +30,11 @@ import java.util.List;
 public class Lz4CompressionTest {
 
     private static final Path JFRS_DIR = Path.of("manual-tests/jfrs");
-    private static final JeffreyDirs JEFFREY_DIRS = new JeffreyDirs(
-            null, JFRS_DIR);
+    private static final TempDirFactory TEMP_DIR_FACTORY = TempDirFactory.of(JFRS_DIR);
 
-    private static final Lz4Compressor LZ4_COMPRESSOR = new Lz4Compressor(JEFFREY_DIRS);
+    private static final Lz4Compressor LZ4_COMPRESSOR = new Lz4Compressor(TEMP_DIR_FACTORY);
 
-    private static final Path OUTPUT_DIR = JEFFREY_DIRS.newTempDir().path();
+    private static final Path OUTPUT_DIR = TEMP_DIR_FACTORY.newTempDir().path();
 
     static void main() throws IOException {
         // Create output directory

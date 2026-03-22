@@ -166,7 +166,8 @@ jeffrey/
 ├── jeffrey-agent/                     # Agent module
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
-│   ├── build-app/                     # Application assembly
+│   ├── build-local/                   # Local application assembly
+│   ├── build-server/                  # Server application assembly
 │   ├── build-cli/                     # CLI build
 │   ├── build-cli-native/             # Native image build
 │   └── build-agent/                   # Agent build

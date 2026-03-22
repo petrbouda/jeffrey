@@ -20,8 +20,8 @@ package pbouda.jeffrey.shared.common.compression;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs.Directory;
+import pbouda.jeffrey.shared.common.filesystem.TempDirFactory;
+import pbouda.jeffrey.shared.common.filesystem.TempDirectory;
 import pbouda.jeffrey.shared.common.model.repository.FileExtensions;
 
 import java.io.IOException;
@@ -40,10 +40,10 @@ public class Lz4Compressor {
 
     private static final String LZ4_EXTENSION = "." + FileExtensions.LZ4;
 
-    private final JeffreyDirs jeffreyDirs;
+    private final TempDirFactory tempDirFactory;
 
-    public Lz4Compressor(JeffreyDirs jeffreyDirs) {
-        this.jeffreyDirs = jeffreyDirs;
+    public Lz4Compressor(TempDirFactory tempDirFactory) {
+        this.tempDirFactory = tempDirFactory;
     }
 
     /**
@@ -56,7 +56,7 @@ public class Lz4Compressor {
      */
     public Path compressAndMove(Path source) throws IOException {
         String targetFilename = source.toString() + LZ4_EXTENSION;
-        try (Directory tempDir = jeffreyDirs.newTempDir()) {
+        try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
             Path tempFile = compressToDir(source, tempDir.path());
             compress(source, tempFile);
             return Files.move(tempFile, Path.of(targetFilename), ATOMIC_MOVE, REPLACE_EXISTING);

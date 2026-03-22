@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80">
+  <rect x="8" y="56" width="52" height="10" rx="3" fill="#bf360c"/>
+  <rect x="15" y="41" width="38" height="10" rx="3" fill="#e65100"/>
+  <rect x="22" y="26" width="24" height="10" rx="3" fill="#ff6d00"/>
+  <rect x="28" y="12" width="12" height="10" rx="3" fill="#ffab00"/>
+  <text x="72" y="52" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="36" font-weight="700" fill="#e0e0e0" letter-spacing="-1">Jeffrey</text>
+</svg>

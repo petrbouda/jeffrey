@@ -1,0 +1,50 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.local.core.manager.qanalysis;
+
+import pbouda.jeffrey.local.persistence.model.QuickGroupInfo;
+import pbouda.jeffrey.local.persistence.model.QuickRecordingInfo;
+import pbouda.jeffrey.profile.manager.ProfileManager;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.Optional;
+
+public interface QuickAnalysisManager {
+
+    // Group operations
+    String createGroup(String groupName);
+
+    List<QuickGroupInfo> listGroups();
+
+    void deleteGroup(String groupId);
+
+    // Recording operations
+    String uploadRecording(String filename, InputStream inputStream, String groupId);
+
+    List<QuickRecordingInfo> listRecordings();
+
+    void deleteRecording(String recordingId);
+
+    // Profile creation from recording
+    String analyzeRecording(String recordingId);
+
+    // Profile access (kept for ProfilesResource.findProfileManager)
+    Optional<ProfileManager> profile(String profileId);
+}

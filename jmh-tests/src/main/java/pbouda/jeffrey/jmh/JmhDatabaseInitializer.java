@@ -27,7 +27,7 @@ import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.writer.SQLEventWriter;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.filesystem.TempDirFactory;
 import pbouda.jeffrey.shared.persistence.DataSourceParams;
 import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 import pbouda.jeffrey.shared.persistence.DuckDBDataSourceProvider;
@@ -87,16 +87,18 @@ public class JmhDatabaseInitializer {
             FileSystemUtils.removeFile(DB_FILE);
         }
 
-        JeffreyDirs jeffreyDirs = new JeffreyDirs(DATA_DIR, TEMP_DIR);
-        jeffreyDirs.initialize();
+        FileSystemUtils.createDirectories(DATA_DIR);
+        FileSystemUtils.removeAndCreateDirectories(TEMP_DIR);
+
+        TempDirFactory tempDirFactory = TempDirFactory.of(TEMP_DIR);
 
         DataSource dataSource = createDataSource(DB_FILE);
         try {
             runMigrations(dataSource);
             LOG.info("Database migrations completed: path={}", DB_FILE.toAbsolutePath());
 
-            Lz4Compressor lz4Compressor = new Lz4Compressor(jeffreyDirs);
-            JfrRecordingEventParser parser = new JfrRecordingEventParser(jeffreyDirs, lz4Compressor);
+            Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
+            JfrRecordingEventParser parser = new JfrRecordingEventParser(tempDirFactory, lz4Compressor);
             EventWriter eventWriter = new SQLEventWriter(() -> new DuckDBEventWriters(dataSource, BATCH_SIZE));
 
             LOG.info("Parsing JFR file: path={}", JFR_FILE.toAbsolutePath());

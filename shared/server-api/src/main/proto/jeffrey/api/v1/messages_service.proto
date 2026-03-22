@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for project messages and alerts.
+service MessagesService {
+  // Gets messages within an optional time interval.
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+
+  // Gets alert messages within an optional time interval.
+  rpc GetAlerts(GetAlertsRequest) returns (GetAlertsResponse);
+}
+
+message GetMessagesRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  optional int64 start_epoch_millis = 3;
+  optional int64 end_epoch_millis = 4;
+}
+
+message GetMessagesResponse {
+  repeated ImportantMessage messages = 1;
+}
+
+message GetAlertsRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  optional int64 start_epoch_millis = 3;
+  optional int64 end_epoch_millis = 4;
+}
+
+message GetAlertsResponse {
+  repeated ImportantMessage messages = 1;
+}
+
+message ImportantMessage {
+  string type = 1;
+  string title = 2;
+  string message = 3;
+  string severity = 4;
+  string category = 5;
+  string source = 6;
+  bool is_alert = 7;
+  string created_at = 8;
+}

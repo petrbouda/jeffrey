@@ -24,7 +24,7 @@ import java.time.format.DateTimeFormatter;
 
 public abstract class InstantUtils {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.of("UTC"));
 
     public static String formatInstant(Instant instant) {

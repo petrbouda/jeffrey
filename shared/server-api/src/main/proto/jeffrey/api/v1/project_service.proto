@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Service for project discovery and listing within a workspace.
+service ProjectService {
+  // Lists all projects in a workspace.
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+
+  // Gets a single project by ID.
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+
+  // Deletes a project by ID.
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+}
+
+message ListProjectsRequest {
+  string workspace_id = 1;
+}
+
+message ListProjectsResponse {
+  repeated ProjectInfo projects = 1;
+}
+
+message GetProjectRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message GetProjectResponse {
+  ProjectInfo project = 1;
+}
+
+message DeleteProjectRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message DeleteProjectResponse {
+}
+
+message ProjectInfo {
+  string id = 1;
+  string origin_id = 2;
+  string name = 3;
+  string label = 4;
+  string namespace = 5;
+  string created_at = 6;
+  string workspace_id = 7;
+  reserved 8;
+  string status = 9;
+  int32 profile_count = 10;
+  int32 recording_count = 11;
+  int32 session_count = 12;
+  int32 job_count = 13;
+  int32 alert_count = 14;
+  string event_source = 15;
+  bool is_virtual = 16;
+  bool is_orphaned = 17;
+  bool collector_only_mode_enabled = 18;
+}

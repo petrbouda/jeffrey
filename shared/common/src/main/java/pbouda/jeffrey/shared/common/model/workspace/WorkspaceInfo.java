@@ -29,7 +29,6 @@ public record WorkspaceInfo(
         WorkspaceLocation location,
         WorkspaceLocation baseLocation,
         Instant createdAt,
-        WorkspaceType type,
         WorkspaceStatus status,
         int projectCount) {
 
@@ -43,7 +42,6 @@ public record WorkspaceInfo(
                 this.location,
                 this.baseLocation,
                 this.createdAt,
-                this.type,
                 this.status,
                 this.projectCount
         );
@@ -59,7 +57,6 @@ public record WorkspaceInfo(
                 newLocation,
                 this.baseLocation,
                 this.createdAt,
-                this.type,
                 this.status,
                 this.projectCount
         );
@@ -75,21 +72,8 @@ public record WorkspaceInfo(
                 this.location,
                 this.baseLocation,
                 this.createdAt,
-                this.type,
                 newStatus,
                 this.projectCount
         );
-    }
-
-    public boolean isLive() {
-        return this.type == WorkspaceType.LIVE;
-    }
-
-    public boolean isSandbox() {
-        return this.type == WorkspaceType.SANDBOX;
-    }
-
-    public boolean isRemote() {
-        return this.type == WorkspaceType.REMOTE;
     }
 }

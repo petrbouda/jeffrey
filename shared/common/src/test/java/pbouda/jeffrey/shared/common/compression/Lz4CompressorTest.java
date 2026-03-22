@@ -21,7 +21,7 @@ package pbouda.jeffrey.shared.common.compression;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pbouda.jeffrey.shared.common.filesystem.JeffreyDirs;
+import pbouda.jeffrey.shared.common.filesystem.TempDirFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -173,8 +173,7 @@ class Lz4CompressorTest {
             Files.createDirectories(homeDir);
             Files.createDirectories(jeffreyTempDir);
 
-            JeffreyDirs jeffreyDirs = new JeffreyDirs(homeDir, jeffreyTempDir);
-            Lz4Compressor compressor = new Lz4Compressor(jeffreyDirs);
+            Lz4Compressor compressor = new Lz4Compressor(TempDirFactory.of(jeffreyTempDir));
 
             String content = "Test content for instance method";
             Path sourceFile = tempDir.resolve("source.txt");
@@ -197,8 +196,7 @@ class Lz4CompressorTest {
             Files.createDirectories(homeDir);
             Files.createDirectories(jeffreyTempDir);
 
-            JeffreyDirs jeffreyDirs = new JeffreyDirs(homeDir, jeffreyTempDir);
-            Lz4Compressor compressor = new Lz4Compressor(jeffreyDirs);
+            Lz4Compressor compressor = new Lz4Compressor(TempDirFactory.of(jeffreyTempDir));
 
             String content = "Test content";
             Path sourceFile = tempDir.resolve("test.txt");
@@ -223,8 +221,7 @@ class Lz4CompressorTest {
             Files.createDirectories(homeDir);
             Files.createDirectories(jeffreyTempDir);
 
-            JeffreyDirs jeffreyDirs = new JeffreyDirs(homeDir, jeffreyTempDir);
-            Lz4Compressor compressor = new Lz4Compressor(jeffreyDirs);
+            Lz4Compressor compressor = new Lz4Compressor(TempDirFactory.of(jeffreyTempDir));
 
             String content = "Test content";
             Path sourceFile = tempDir.resolve("test.txt");

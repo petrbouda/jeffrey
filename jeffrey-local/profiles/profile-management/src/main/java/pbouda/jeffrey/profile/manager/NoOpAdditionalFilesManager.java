@@ -1,0 +1,108 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package pbouda.jeffrey.profile.manager;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.profile.manager.model.PerfCounter;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * AdditionalFilesManager implementation for Quick Analysis profiles.
+ * Quick Analysis profiles don't have a project context, so performance counters
+ * are not available, but heap dump files uploaded via Quick Analysis are supported.
+ */
+public class NoOpAdditionalFilesManager implements AdditionalFilesManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(NoOpAdditionalFilesManager.class);
+
+    private final Path heapDumpAnalysisPath;
+
+    // Cached heap dump path (lazy loaded)
+    private Path heapDumpPath;
+    private boolean heapDumpPathResolved;
+
+    public NoOpAdditionalFilesManager(Path heapDumpAnalysisPath) {
+        this.heapDumpAnalysisPath = heapDumpAnalysisPath;
+    }
+
+    @Override
+    public void processAdditionalFiles(String recordingId) {
+        // No-op: Quick Analysis doesn't have recording storage
+    }
+
+    @Override
+    public boolean performanceCountersExists() {
+        return false;
+    }
+
+    @Override
+    public List<PerfCounter> performanceCounters() {
+        return List.of();
+    }
+
+    @Override
+    public boolean heapDumpExists() {
+        return getHeapDumpPath().isPresent();
+    }
+
+    @Override
+    public Optional<Path> getHeapDumpPath() {
+        if (!heapDumpPathResolved) {
+            resolveHeapDumpPath();
+        }
+        return Optional.ofNullable(heapDumpPath);
+    }
+
+    private synchronized void resolveHeapDumpPath() {
+        if (heapDumpPathResolved) {
+            return;
+        }
+
+        // Look for heap dump in profile's heap-dump-analysis folder
+        if (Files.exists(heapDumpAnalysisPath) && Files.isDirectory(heapDumpAnalysisPath)) {
+            try (var files = Files.list(heapDumpAnalysisPath)) {
+                Optional<Path> found = files
+                        .filter(file -> {
+                            SupportedRecordingFile fileType = SupportedRecordingFile.of(file);
+                            return fileType == SupportedRecordingFile.HEAP_DUMP ||
+                                    fileType == SupportedRecordingFile.HEAP_DUMP_GZ;
+                        })
+                        .findFirst();
+                if (found.isPresent()) {
+                    heapDumpPath = found.get();
+                }
+            } catch (IOException e) {
+                LOG.warn("Failed to resolve heap dump path: path={}", heapDumpAnalysisPath, e);
+            }
+        }
+        heapDumpPathResolved = true;
+    }
+
+    @Override
+    public Path getHeapDumpAnalysisPath() {
+        return heapDumpAnalysisPath;
+    }
+}

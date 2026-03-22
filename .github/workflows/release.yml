@@ -6,7 +6,7 @@ on:
 name: Release Jeffrey
 
 jobs:
-  build-app:
+  build-local:
     runs-on: ubuntu-latest
     container:
       image: petrbouda/jeffrey-builder:25
@@ -28,7 +28,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: jeffrey-jar
-        path: ./build/build-app/target/jeffrey.jar
+        path: ./build/build-local/target/jeffrey.jar
 
     - name: Upload jeffrey-cli.jar
       uses: actions/upload-artifact@v4
@@ -78,7 +78,7 @@ jobs:
         path: ./build/build-cli-native/target/jeffrey-cli
 
   compose-docker:
-    needs: [build-app, build-cli-native]
+    needs: [build-local, build-cli-native]
     runs-on: ubuntu-latest
 
     steps:
@@ -138,7 +138,7 @@ jobs:
         # mv ./docker-context/cli-arm64/jeffrey-cli ./docker-context/jeffrey-cli-arm64
         rm -rf ./docker-context/cli-amd64
         cp ./docker/libs/jeffrey-streaming.jfc ./docker-context/jeffrey-streaming.jfc
-        cp ./docker/Dockerfile-jeffrey ./docker-context/Dockerfile
+        cp ./docker/Dockerfile-local ./docker-context/Dockerfile
         ls -la ./docker-context/
 
     - name: Set up QEMU
@@ -163,7 +163,7 @@ jobs:
         tags: petrbouda/jeffrey:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey:latest
 
   create-release:
-    needs: [build-app, build-cli-native]
+    needs: [build-local, build-cli-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
