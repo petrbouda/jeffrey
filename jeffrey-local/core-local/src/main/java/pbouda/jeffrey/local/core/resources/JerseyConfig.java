@@ -38,14 +38,12 @@ public class JerseyConfig extends ResourceConfig {
 
     @Autowired
     public JerseyConfig(
-            @Value("${jeffrey.local.cors.enabled:false}") boolean corsEnabled,
             @Value("${jeffrey.local.logging.http-access.enabled:false}") boolean isAccessLoggingEnabled) {
 
         // Scan for resources in core and profile-management modules
         packages("pbouda.jeffrey.resources", "pbouda.jeffrey.profile.resources");
 
         register(JacksonFeature.class);
-        register(new CorsFilter(corsEnabled));
         register(MultiPartFeature.class);
         register(SseFeature.class);
 

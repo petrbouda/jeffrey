@@ -26,8 +26,6 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import pbouda.jeffrey.shared.common.exception.ErrorCode;
 import pbouda.jeffrey.shared.common.exception.ErrorResponse;
@@ -37,13 +35,9 @@ import pbouda.jeffrey.shared.common.exception.ErrorType;
 @ApplicationPath("/api")
 public class JerseyConfig extends ResourceConfig {
 
-    @Autowired
-    public JerseyConfig(
-            @Value("${jeffrey.server.cors.enabled:false}") boolean corsEnabled) {
-
+    public JerseyConfig() {
         register(JacksonFeature.class);
         register(GenericExceptionMapper.class);
-        register(new CorsFilter(corsEnabled));
     }
 
     public static class GenericExceptionMapper implements ExceptionMapper<Exception> {
