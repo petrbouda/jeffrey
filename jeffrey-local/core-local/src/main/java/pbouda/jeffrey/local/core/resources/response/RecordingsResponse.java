@@ -29,5 +29,9 @@ public record RecordingsResponse(
         String folderId,
         String sourceType,
         boolean hasProfile,
+        String profileId,
+        String profileName,
+        boolean profileEnabled,
+        long profileSizeInBytes,
         List<RecordingFileResponse> recordingFiles) {
 }

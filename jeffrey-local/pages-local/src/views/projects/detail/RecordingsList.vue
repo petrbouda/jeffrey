@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
+import {computed, onMounted, onUnmounted, ref} from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectRecordingClient from '@/services/api/ProjectRecordingClient';
 import ProjectRecordingFolderClient from '@/services/api/ProjectRecordingFolderClient';
@@ -7,6 +7,7 @@ import {ToastService} from '@/services/ToastService';
 import Recording from "@/services/api/model/Recording.ts";
 import RecordingFolder from "@/services/api/model/RecordingFolder.ts";
 import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
+import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import FormattingService from "@/services/FormattingService.ts";
 import MessageBus from "@/services/MessageBus";
 import Utils from "@/services/Utils";
@@ -47,20 +48,72 @@ const expandedFolders = ref<Set<string>>(new Set());
 // Track expanded recording files sections
 const expandedRecordingFiles = ref<Set<string>>(new Set());
 
-const { workspaceId, projectId } = useNavigation();
+const { workspaceId, projectId, generateProfileUrl } = useNavigation();
 
-onMounted(() => {
+// --- Profile Management State ---
+const editProfileModal = ref<InstanceType<typeof BaseModal>>();
+const editProfileName = ref('');
+const selectedProfileId = ref('');
+const updatingProfile = ref(false);
+const deleteProfileDialog = ref(false);
+const profileToDelete = ref<Recording | null>(null);
+const deletingProfile = ref(false);
+const pollInterval = ref<number | null>(null);
+
+// Persistent storage for deleting profiles
+const DELETING_PROFILES_KEY = computed(() => `deleting_profiles_${workspaceId.value}_${projectId.value}`);
+
+const getDeletingProfiles = (): Set<string> => {
+  const stored = sessionStorage.getItem(DELETING_PROFILES_KEY.value);
+  return stored ? new Set(JSON.parse(stored)) : new Set();
+};
+
+const addDeletingProfile = (profileId: string) => {
+  const profiles = getDeletingProfiles();
+  profiles.add(profileId);
+  sessionStorage.setItem(DELETING_PROFILES_KEY.value, JSON.stringify(Array.from(profiles)));
+};
+
+const removeDeletingProfile = (profileId: string) => {
+  const profiles = getDeletingProfiles();
+  profiles.delete(profileId);
+  sessionStorage.setItem(DELETING_PROFILES_KEY.value, JSON.stringify(Array.from(profiles)));
+};
+
+// Track profile creation states for each recording
+const profileCreationStates = ref<Map<string, boolean>>(new Map());
+
+const folders = ref<RecordingFolder[]>([]);
+const newFolderName = ref('');
+const selectedFolderId = ref<string | null>(null);
+const createFolderModal = ref<InstanceType<typeof BaseModal>>();
+
+onMounted(async () => {
   if (!workspaceId.value || !projectId.value) return;
 
   projectProfileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
   projectRecordingClient = new ProjectRecordingClient(workspaceId.value, projectId.value);
   projectRecordingFolderClient = new ProjectRecordingFolderClient(workspaceId.value, projectId.value);
 
-  // Initialize with root folder expanded by default
   expandedFolders.value.add('root');
-  
-  loadData();
+
+  await loadData();
+
+  // Start polling if any profiles are initializing or deleting
+  if (hasInitializingOrDeletingProfiles()) {
+    startPolling();
+  }
 });
+
+onUnmounted(() => {
+  stopPolling();
+});
+
+const hasInitializingOrDeletingProfiles = (): boolean => {
+  const hasInitializing = recordings.value.some(r => r.hasProfile && !r.profileEnabled);
+  const hasDeleting = getDeletingProfiles().size > 0;
+  return hasInitializing || hasDeleting;
+};
 
 // Toggle the recording files section
 const toggleRecordingFiles = (recording: Recording) => {
@@ -80,52 +133,44 @@ const downloadFile = async (recordingId: string, fileId: string) => {
   }
 };
 
-const folders = ref<RecordingFolder[]>([]);
-const newFolderName = ref('');
-const selectedFolderId = ref<string | null>(null);
-// Create folder modal ref
-const createFolderModal = ref<InstanceType<typeof BaseModal>>();
-
-// Track profile creation states for each recording
-const profileCreationStates = ref<Map<string, boolean>>(new Map());
-
 const loadData = async () => {
   loading.value = true;
   try {
-    // Load recordings and folders in parallel
     const [recordingsData, foldersData] = await Promise.all([
       projectRecordingClient.list(),
       projectRecordingFolderClient.list()
     ]);
+
+    // Restore deleting state from storage
+    const deletingProfiles = getDeletingProfiles();
+    recordingsData.forEach(recording => {
+      if (recording.profileId && deletingProfiles.has(recording.profileId)) {
+        (recording as any)._profileDeleting = true;
+      }
+    });
 
     recordings.value = recordingsData;
     folders.value = foldersData;
   } catch (error: any) {
     toast.error('Failed to load data', error.message);
   } finally {
-    // Notify sidebar of recording count change
     MessageBus.emit(MessageBus.RECORDINGS_COUNT_CHANGED, recordings.value.length);
+    MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, recordings.value.filter(r => r.hasProfile).length);
     loading.value = false;
   }
 };
 
 // Organize recordings by folders
 const organizedRecordings = computed(() => {
-  // Create a set of valid folder IDs for quick lookup
   const validFolderIds = new Set(folders.value.map(folder => folder.id));
 
-  // Root level recordings (no folder OR invalid folder ID)
   const rootRecordings = recordings.value.filter(recording =>
       recording.folderId == null || !validFolderIds.has(recording.folderId))
-      // Sort from latest to oldest
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
-  // Grouped by folder_id
   const folderRecordings = new Map<string, Recording[]>();
 
-  // Group recordings by folder_id, but only if the folder actually exists
   recordings.value.forEach(recording => {
-    // Only add to folder if folder exists
     const folderId = recording.folderId;
     if (folderId && validFolderIds.has(folderId)) {
       if (!folderRecordings.has(folderId)) {
@@ -134,59 +179,164 @@ const organizedRecordings = computed(() => {
       folderRecordings.get(folderId)?.push(recording);
     }
   });
-  
-  // Sort each folder's recordings from latest to oldest
+
   folderRecordings.forEach((folderRecs, folderId) => {
     folderRecordings.set(
-      folderId, 
+      folderId,
       folderRecs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
     );
   });
 
-  return {
-    rootRecordings,
-    folderRecordings
-  };
+  return { rootRecordings, folderRecordings };
 });
 
+// --- Profile Actions ---
+
+const isProfileDeleting = (recording: Recording): boolean => {
+  if (!recording.profileId) return false;
+  return getDeletingProfiles().has(recording.profileId) || (recording as any)._profileDeleting === true;
+};
+
+const selectProfile = () => {
+  SecondaryProfileService.remove();
+  sessionStorage.removeItem('profile-sidebar-mode');
+};
 
 const createProfile = async (recording: Recording) => {
-  // Prevent multiple concurrent requests for the same recording
   if (profileCreationStates.value.get(recording.id) || recording.hasProfile) {
     return;
   }
 
-  // Set loading state for this specific recording
   profileCreationStates.value.set(recording.id, true);
-
-  // Optimistic UI update - set hasProfile to true immediately
   recording.hasProfile = true;
 
   try {
-    // Emit event that profile initialization started (before API call)
-    // This will show the "Initializing" badge in the sidebar immediately
     MessageBus.emit(MessageBus.PROFILE_INITIALIZATION_STARTED, true);
-
     await projectProfileClient.create(recording.id);
     toast.success('Profile Creation Started', `Asynchronous Profile Creation started from recording: ${recording.name}`);
 
-    // Refresh recordings list but preserve hasProfile state for this recording
     await loadData();
 
-    // Ensure the recording hasProfile flag remains true after data reload
     const updatedRecording = recordings.value.find(r => r.id === recording.id);
     if (updatedRecording) {
       updatedRecording.hasProfile = true;
     }
+
+    // Start polling for initialization
+    startPolling();
   } catch (error: any) {
-    // If there was an error, revert the hasProfile flag
     recording.hasProfile = false;
     toast.error('Profile Creation Failed', error.message);
   } finally {
-    // Always clear the loading state for this recording
     profileCreationStates.value.delete(recording.id);
   }
 };
+
+const editProfile = (recording: Recording) => {
+  if (!recording.profileId || !recording.profileName) return;
+  selectedProfileId.value = recording.profileId;
+  editProfileName.value = recording.profileName;
+  editProfileModal.value?.showModal();
+};
+
+const closeEditModal = () => {
+  editProfileModal.value?.hideModal();
+};
+
+const updateProfile = async () => {
+  if (!editProfileName.value || editProfileName.value.trim() === '') {
+    editProfileModal.value?.setValidationErrors(['Profile name cannot be empty']);
+    return;
+  }
+
+  updatingProfile.value = true;
+
+  try {
+    await projectProfileClient.update(selectedProfileId.value, editProfileName.value.trim());
+
+    const updatedName = editProfileName.value;
+    selectedProfileId.value = '';
+    editProfileName.value = '';
+    editProfileModal.value?.hideModal();
+
+    toast.success('Profile Updated!', 'Profile "' + updatedName + '" successfully updated!');
+
+    await loadData();
+  } catch (error) {
+    console.error('Failed to update profile:', error);
+    editProfileModal.value?.setValidationErrors([error instanceof Error ? error.message : 'Failed to update profile']);
+  } finally {
+    updatingProfile.value = false;
+  }
+};
+
+const deleteProfile = (recording: Recording) => {
+  profileToDelete.value = recording;
+  deleteProfileDialog.value = true;
+};
+
+const confirmDeleteProfile = async () => {
+  if (!profileToDelete.value || !profileToDelete.value.profileId) return;
+
+  deletingProfile.value = true;
+  const profileId = profileToDelete.value.profileId;
+  const profileName = profileToDelete.value.profileName || profileToDelete.value.name;
+
+  addDeletingProfile(profileId);
+  (profileToDelete.value as any)._profileDeleting = true;
+
+  startPolling();
+
+  try {
+    projectProfileClient.delete(profileId)
+        .then(() => {
+          toast.success('Profile Deleted', 'Profile "' + profileName + '" successfully deleted!');
+          removeDeletingProfile(profileId);
+          loadData();
+        })
+        .catch(error => {
+          console.error('Failed to delete profile:', error);
+          toast.error('Delete Profile', 'Failed to delete profile: ' + profileName);
+          removeDeletingProfile(profileId);
+          loadData();
+        });
+  } catch (error) {
+    console.error('Failed to delete profile:', error);
+    toast.error('Delete Profile', 'Failed to delete profile: ' + profileName);
+    removeDeletingProfile(profileId);
+  } finally {
+    deletingProfile.value = false;
+    deleteProfileDialog.value = false;
+    profileToDelete.value = null;
+  }
+};
+
+// --- Polling ---
+
+const startPolling = () => {
+  if (pollInterval.value !== null) return;
+
+  pollInterval.value = window.setInterval(async () => {
+    try {
+      await loadData();
+
+      if (!hasInitializingOrDeletingProfiles()) {
+        stopPolling();
+      }
+    } catch (error) {
+      console.error('Error while polling recordings:', error);
+    }
+  }, 5000) as unknown as number;
+};
+
+const stopPolling = () => {
+  if (pollInterval.value !== null) {
+    window.clearInterval(pollInterval.value);
+    pollInterval.value = null;
+  }
+};
+
+// --- Recording Actions ---
 
 const confirmDeleteRecording = (recording: Recording) => {
   recordingToDelete.value = recording;
@@ -199,11 +349,7 @@ const deleteRecording = async () => {
   try {
     await projectRecordingClient.delete(recordingToDelete.value.id);
     toast.success('Recording Deleted', `Recording ${recordingToDelete.value.name} has been deleted`);
-
-    // Refresh all data
     await loadData();
-
-    // Close dialog
     deleteRecordingDialog.value = false;
     recordingToDelete.value = null;
   } catch (error: any) {
@@ -222,18 +368,13 @@ const deleteFolder = async () => {
   try {
     await projectRecordingFolderClient.delete(folderToDelete.value.id);
     toast.success('Folder Deleted', `Folder ${folderToDelete.value.name} has been deleted along with all its recordings`);
-
-    // Refresh all data
     await loadData();
-
-    // Close dialog
     deleteFolderDialog.value = false;
     folderToDelete.value = null;
   } catch (error: any) {
     toast.error('Delete Failed', error.message);
   }
 };
-
 
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement | null;
@@ -249,7 +390,6 @@ const handleFileUpload = (event: Event) => {
   }
 };
 
-
 const createFolder = async () => {
   if (!newFolderName.value.trim()) {
     createFolderModal.value?.setValidationErrors(['Folder name cannot be empty']);
@@ -259,12 +399,8 @@ const createFolder = async () => {
   try {
     await projectRecordingFolderClient.create(newFolderName.value.trim());
     toast.success('Folder Created', `Folder "${newFolderName.value.trim()}" has been created`);
-
-    // Reset form and close dialog
     newFolderName.value = '';
     createFolderModal.value?.hideModal();
-
-    // Refresh data
     await loadData();
   } catch (error: any) {
     createFolderModal.value?.setValidationErrors([error.message || 'Failed to create folder']);
@@ -283,28 +419,20 @@ const uploadRecordings = async () => {
 
   for (let i = 0; i < uploadFiles.value.length; i++) {
     const file = uploadFiles.value[i];
-    uploadProgress.value[file.name] = {
-      progress: 0,
-      status: 'pending'
-    };
+    uploadProgress.value[file.name] = { progress: 0, status: 'pending' };
   }
 
   const uploadPromises = uploadFiles.value.map(async (file) => {
     try {
       uploadProgress.value[file.name].status = 'uploading';
-
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
         if (uploadProgress.value[file.name].progress < 90) {
           uploadProgress.value[file.name].progress += Math.floor(Math.random() * 10) + 5;
         }
       }, 300);
 
-      // Upload the file using ProjectRecordingClient with selected folder
-      // Pass null explicitly if no folder is selected to avoid "undefined" string
       await projectRecordingClient.upload(file, selectedFolderId.value || null);
 
-      // Complete the progress
       clearInterval(progressInterval);
       uploadProgress.value[file.name].progress = 100;
       uploadProgress.value[file.name].status = 'complete';
@@ -326,14 +454,11 @@ const uploadRecordings = async () => {
       toast.warn('Upload Partially Complete', `${successCount} of ${uploadFiles.value.length} recordings uploaded successfully`);
     }
 
-    // Refresh recordings list
     await loadData();
 
-    // Reset files after a short delay to show completed status
     setTimeout(() => {
       uploadFiles.value = [];
       uploadProgress.value = {};
-      // Close the upload panel after successful upload
       uploadPanelExpanded.value = false;
     }, 2000);
   } catch (error) {
@@ -354,7 +479,6 @@ const handleDragLeave = (event: DragEvent) => {
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   dragActive.value = false;
-  // Expand upload panel if it's collapsed
   if (!uploadPanelExpanded.value) {
     uploadPanelExpanded.value = true;
   }
@@ -367,7 +491,6 @@ const removeFile = (index: number) => {
   uploadFiles.value = newFiles;
 };
 
-// Helper function to check if a recording is currently creating a profile
 const isRecordingCreatingProfile = (recordingId: string): boolean => {
   return profileCreationStates.value.get(recordingId) || false;
 };
@@ -376,7 +499,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 <template>
   <PageHeader
     title="Recordings"
-    description="Contains the recordings uploaded to the server. You can create folders to organize your recordings."
+    description="Manage recordings and their profiles. Upload JFR files, organize with folders, and create profiles for performance analysis."
     icon="bi-record-circle"
   >
     <!-- File Upload Panel -->
@@ -397,7 +520,6 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
       </div>
 
       <div v-if="uploadPanelExpanded" class="card-body">
-        <!-- Folder Selection - Moved to the top of the panel -->
         <div class="form-group mb-3">
           <label for="folderSelect" class="form-label fw-bold">Target Folder</label>
           <select id="folderSelect" class="form-select" v-model="selectedFolderId">
@@ -564,24 +686,60 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
 
               <!-- Folder recordings (shown when expanded) -->
               <div v-if="expandedFolders.has(folder.id)" class="ps-4 pt-2">
-                <div v-for="recording in organizedRecordings.folderRecordings.get(folder.id) || []" 
-                     :key="`recording-${recording.id}`" 
-                     class="child-row p-3 mb-2 rounded">
+                <div v-for="recording in organizedRecordings.folderRecordings.get(folder.id) || []"
+                     :key="`recording-${recording.id}`"
+                     class="child-row p-3 mb-2 rounded"
+                     :class="{ 'disabled-profile': isProfileDeleting(recording) }">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                      <button
-                          class="btn btn-sm me-3"
-                          :class="{
-                            'btn-success': !recording.hasProfile && !isRecordingCreatingProfile(recording.id),
-                            'btn-outline-success': isRecordingCreatingProfile(recording.id)
-                          }"
-                          @click="createProfile(recording)"
-                          :disabled="recording.hasProfile || isRecordingCreatingProfile(recording.id)"
-                          :title="recording.hasProfile ? 'Profile already exists' : (isRecordingCreatingProfile(recording.id) ? 'Creating profile...' : 'Create profile from recording')"
+                      <!-- Profile Action Button -->
+                      <!-- Has profile & enabled: View button -->
+                      <router-link
+                        v-if="recording.hasProfile && recording.profileEnabled && !isProfileDeleting(recording)"
+                        :to="generateProfileUrl('overview', recording.profileId!)"
+                        class="btn btn-primary view-btn me-3"
+                        @click="selectProfile"
+                        title="View Profile"
                       >
-                        <span v-if="isRecordingCreatingProfile(recording.id)" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <i v-else class="bi bi-plus-circle"></i>
+                        <i class="bi bi-eye"></i>
+                      </router-link>
+                      <!-- Has profile but initializing -->
+                      <button
+                        v-else-if="recording.hasProfile && !recording.profileEnabled && !isRecordingCreatingProfile(recording.id)"
+                        class="btn btn-outline-warning view-btn me-3"
+                        disabled
+                        title="Profile is initializing..."
+                      >
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                       </button>
+                      <!-- Profile deleting -->
+                      <button
+                        v-else-if="isProfileDeleting(recording)"
+                        class="btn btn-outline-secondary view-btn me-3"
+                        disabled
+                        title="Profile is being deleted..."
+                      >
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      </button>
+                      <!-- Creating profile (optimistic) -->
+                      <button
+                        v-else-if="isRecordingCreatingProfile(recording.id)"
+                        class="btn btn-outline-success view-btn me-3"
+                        disabled
+                        title="Creating profile..."
+                      >
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      </button>
+                      <!-- No profile: Create button -->
+                      <button
+                        v-else
+                        class="btn btn-success view-btn me-3"
+                        @click="createProfile(recording)"
+                        title="Create profile from recording"
+                      >
+                        <i class="bi bi-plus-circle"></i>
+                      </button>
+
                       <div>
                         <div class="fw-bold">
                           <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
@@ -592,16 +750,52 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             size="xs"
                             class="ms-2"
                           />
+                          <Badge
+                            v-if="isProfileDeleting(recording)"
+                            value="Deleting"
+                            variant="red"
+                            size="xs"
+                            icon="spinner-border spinner-border-sm"
+                            class="ms-1"
+                          />
+                          <Badge
+                            v-else-if="recording.hasProfile && !recording.profileEnabled"
+                            value="Initializing"
+                            variant="orange"
+                            size="xs"
+                            icon="spinner-border spinner-border-sm"
+                            class="ms-1"
+                          />
                         </div>
                         <div class="d-flex text-muted small mt-1">
                           <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
                           <div class="me-3"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</div>
                           <div class="me-3"><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
-                          <div><i class="bi bi-files me-1"></i>{{ recording.recordingFiles.length }} file{{ recording.recordingFiles.length !== 1 ? 's' : '' }}</div>
+                          <div class="me-3"><i class="bi bi-files me-1"></i>{{ recording.recordingFiles.length }} file{{ recording.recordingFiles.length !== 1 ? 's' : '' }}</div>
+                          <div v-if="recording.hasProfile && recording.profileSizeInBytes" class="text-primary">
+                            <i class="bi bi-person-vcard me-1"></i>Profile: {{ FormattingService.formatBytes(recording.profileSizeInBytes) }}
+                          </div>
                         </div>
                       </div>
                     </div>
                     <div class="d-flex">
+                      <!-- Profile actions (when profile exists and enabled) -->
+                      <button
+                        v-if="recording.hasProfile && recording.profileEnabled && !isProfileDeleting(recording)"
+                        class="action-btn action-menu-btn action-info-btn me-2"
+                        @click="editProfile(recording)"
+                        title="Edit Profile"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        v-if="recording.hasProfile && !isProfileDeleting(recording)"
+                        class="action-btn action-menu-btn action-danger-btn me-2"
+                        @click="deleteProfile(recording)"
+                        title="Delete Profile"
+                      >
+                        <i class="bi bi-person-x"></i>
+                      </button>
                       <button
                           class="action-btn action-menu-btn action-info-btn me-2"
                           @click="toggleRecordingFiles(recording)"
@@ -637,7 +831,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
             </div>
 
 
-            <!-- Root Recordings (displayed directly without synthetic folder) -->
+            <!-- Root Recordings -->
             <div v-if="organizedRecordings.rootRecordings.length > 0" class="mt-3">
               <div class="mb-3" v-if="folders.length > 0">
                 <div class="root-recordings-bar d-flex align-items-center px-3">
@@ -646,22 +840,54 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
               </div>
 
               <div class="root-recordings-list">
-                <div v-for="recording in organizedRecordings.rootRecordings" :key="recording.id" class="child-row p-3 mb-2 rounded">
+                <div v-for="recording in organizedRecordings.rootRecordings" :key="recording.id"
+                     class="child-row p-3 mb-2 rounded"
+                     :class="{ 'disabled-profile': isProfileDeleting(recording) }">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                      <button
-                          class="btn btn-sm me-3"
-                          :class="{
-                            'btn-success': !recording.hasProfile && !isRecordingCreatingProfile(recording.id),
-                            'btn-outline-success': isRecordingCreatingProfile(recording.id)
-                          }"
-                          @click="createProfile(recording)"
-                          :disabled="recording.hasProfile || isRecordingCreatingProfile(recording.id)"
-                          :title="recording.hasProfile ? 'Profile already exists' : (isRecordingCreatingProfile(recording.id) ? 'Creating profile...' : 'Create profile from recording')"
+                      <!-- Profile Action Button -->
+                      <router-link
+                        v-if="recording.hasProfile && recording.profileEnabled && !isProfileDeleting(recording)"
+                        :to="generateProfileUrl('overview', recording.profileId!)"
+                        class="btn btn-primary view-btn me-3"
+                        @click="selectProfile"
+                        title="View Profile"
                       >
-                        <span v-if="isRecordingCreatingProfile(recording.id)" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        <i v-else class="bi bi-plus-circle"></i>
+                        <i class="bi bi-eye"></i>
+                      </router-link>
+                      <button
+                        v-else-if="recording.hasProfile && !recording.profileEnabled && !isRecordingCreatingProfile(recording.id)"
+                        class="btn btn-outline-warning view-btn me-3"
+                        disabled
+                        title="Profile is initializing..."
+                      >
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                       </button>
+                      <button
+                        v-else-if="isProfileDeleting(recording)"
+                        class="btn btn-outline-secondary view-btn me-3"
+                        disabled
+                        title="Profile is being deleted..."
+                      >
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        v-else-if="isRecordingCreatingProfile(recording.id)"
+                        class="btn btn-outline-success view-btn me-3"
+                        disabled
+                        title="Creating profile..."
+                      >
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      </button>
+                      <button
+                        v-else
+                        class="btn btn-success view-btn me-3"
+                        @click="createProfile(recording)"
+                        title="Create profile from recording"
+                      >
+                        <i class="bi bi-plus-circle"></i>
+                      </button>
+
                       <div>
                         <div class="fw-bold">
                           <i class="bi bi-file-earmark-binary me-2 text-secondary"></i>
@@ -672,16 +898,51 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                             size="xs"
                             class="ms-2"
                           />
+                          <Badge
+                            v-if="isProfileDeleting(recording)"
+                            value="Deleting"
+                            variant="red"
+                            size="xs"
+                            icon="spinner-border spinner-border-sm"
+                            class="ms-1"
+                          />
+                          <Badge
+                            v-else-if="recording.hasProfile && !recording.profileEnabled"
+                            value="Initializing"
+                            variant="orange"
+                            size="xs"
+                            icon="spinner-border spinner-border-sm"
+                            class="ms-1"
+                          />
                         </div>
                         <div class="d-flex text-muted small mt-1">
                           <div class="me-3"><i class="bi bi-stopwatch me-1"></i>{{ FormattingService.formatDurationInMillis2Units(recording.durationInMillis) }}</div>
                           <div class="me-3"><i class="bi bi-hdd me-1"></i>{{ FormattingService.formatBytes(recording.sizeInBytes) }}</div>
                           <div class="me-3"><i class="bi bi-calendar me-1"></i>{{ recording.uploadedAt }}</div>
-                          <div><i class="bi bi-files me-1"></i>{{ recording.recordingFiles.length }} file{{ recording.recordingFiles.length !== 1 ? 's' : '' }}</div>
+                          <div class="me-3"><i class="bi bi-files me-1"></i>{{ recording.recordingFiles.length }} file{{ recording.recordingFiles.length !== 1 ? 's' : '' }}</div>
+                          <div v-if="recording.hasProfile && recording.profileSizeInBytes" class="text-primary">
+                            <i class="bi bi-person-vcard me-1"></i>Profile: {{ FormattingService.formatBytes(recording.profileSizeInBytes) }}
+                          </div>
                         </div>
                       </div>
                     </div>
                     <div class="d-flex">
+                      <button
+                        v-if="recording.hasProfile && recording.profileEnabled && !isProfileDeleting(recording)"
+                        class="action-btn action-menu-btn action-info-btn me-2"
+                        @click="editProfile(recording)"
+                        title="Edit Profile"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        v-if="recording.hasProfile && !isProfileDeleting(recording)"
+                        class="action-btn action-menu-btn action-danger-btn me-2"
+                        @click="deleteProfile(recording)"
+                        title="Delete Profile"
+                      >
+                        <i class="bi bi-person-x"></i>
+                      </button>
                       <button
                           class="action-btn action-menu-btn action-info-btn me-2"
                           @click="toggleRecordingFiles(recording)"
@@ -729,7 +990,7 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
         modal-id="deleteRecordingModal"
         @confirm="deleteRecording"
       />
-      
+
       <!-- Delete Folder Confirmation Dialog -->
       <ConfirmationDialog
         v-model:show="deleteFolderDialog"
@@ -742,6 +1003,24 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
         modal-id="deleteFolderModal"
         @confirm="deleteFolder"
       />
+
+      <!-- Delete Profile Confirmation Dialog -->
+      <ConfirmationDialog
+        v-model:show="deleteProfileDialog"
+        title="Confirm Profile Deletion"
+        :message="profileToDelete ? `Are you sure you want to delete the profile for '${profileToDelete.profileName || profileToDelete.name}'?` : 'Are you sure you want to delete this profile?'"
+        sub-message="This action cannot be undone. The recording will be preserved."
+        confirm-label="Delete Profile"
+        confirm-button-class="btn-danger"
+        confirm-button-id="deleteProfileButton"
+        modal-id="deleteProfileModal"
+        @confirm="confirmDeleteProfile"
+      >
+        <template #confirm-button>
+          <span v-if="deletingProfile" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          Delete Profile
+        </template>
+      </ConfirmationDialog>
 
       <!-- Create Folder Dialog -->
       <BaseModal
@@ -762,6 +1041,32 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
                 v-model="newFolderName"
                 placeholder="Enter folder name"
                 @keyup.enter="createFolder"
+            >
+          </div>
+        </template>
+      </BaseModal>
+
+      <!-- Edit Profile Modal -->
+      <BaseModal
+        ref="editProfileModal"
+        modal-id="editProfileModal"
+        title="Edit Profile"
+        icon="bi-pencil"
+        primary-button-text="Update"
+        :loading="updatingProfile"
+        @submit="updateProfile"
+        @cancel="closeEditModal"
+      >
+        <template #body>
+          <div class="mb-3">
+            <label for="editProfileName" class="form-label">Profile Name</label>
+            <input
+                type="text"
+                class="form-control"
+                id="editProfileName"
+                v-model="editProfileName"
+                @keyup.enter="updateProfile"
+                placeholder="Enter profile name"
             >
           </div>
         </template>
@@ -831,17 +1136,10 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
-
 @keyframes pulse {
-  0% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.7;
-  }
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
 }
 
 .child-row {
@@ -908,58 +1206,23 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
+.action-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .action-danger-btn {
   color: #fff;
   background-color: #dc3545;
   border-color: #dc3545;
 }
 
-.action-danger-btn:hover {
+.action-danger-btn:hover:not(:disabled) {
   background-color: #c82333;
   border-color: #bd2130;
   color: #fff;
-}
-
-/* Section divider styling */
-.section-divider {
-  height: 1px;
-  background-color: #e9ecef;
-  margin: 1.5rem 0 1rem;
-}
-
-.root-folder-row {
-  background-color: rgba(94, 100, 255, 0.03);
-  border-left: 3px solid #5e64ff;
-}
-
-.modern-empty-state {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: #adb5bd;
-  background-color: white;
-  border-radius: 10px;
-  padding: 3rem;
-  text-align: center;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
-}
-
-/* Download button styling */
-.download-file-btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  opacity: 0.6;
-  transition: opacity 0.15s ease;
-}
-
-.download-file-btn:hover {
-  opacity: 1;
-}
-
-.recording-file-row:hover .download-file-btn {
-  opacity: 0.8;
 }
 
 /* Action info button style */
@@ -969,10 +1232,57 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   border-color: #5e64ff;
 }
 
-.action-info-btn:hover {
+.action-info-btn:hover:not(:disabled) {
   background-color: #4a50e3;
   border-color: #4a50e3;
   color: #fff;
+}
+
+/* View button square styling */
+.view-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Disabled profile styling */
+.disabled-profile {
+  opacity: 0.6;
+}
+
+.disabled-profile:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-left-color: #6c757d;
+}
+
+/* Root recordings bar styling */
+.root-recordings-bar {
+  background: white;
+  border: 1px solid #4a50e2;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.15);
+  position: relative;
+  height: 31px;
+}
+
+.root-header-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4a50e2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 /* Profile creation button loading state */
@@ -993,39 +1303,5 @@ const isRecordingCreatingProfile = (recordingId: string): boolean => {
   width: 0.875rem;
   height: 0.875rem;
   border-width: 0.1em;
-}
-
-/* Square button with rounded corners for profile creation */
-.btn-sm.me-3 {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  padding: 0;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 0.875rem;
-}
-
-
-/* Root recordings bar styling */
-.root-recordings-bar {
-  background: white;
-  border: 1px solid #4a50e2;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.15);
-  position: relative;
-  height: 31px;
-}
-
-.root-header-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #4a50e2;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 </style>

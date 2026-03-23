@@ -45,7 +45,8 @@ public abstract class Mappers {
                     Mappers.instant(rs, "recording_started_at"),
                     Mappers.instant(rs, "recording_finished_at"),
                     Mappers.instant(rs, "created_at"),
-                    safeParseTimestamp(rs.getLong("enabled_at")) != null);
+                    safeParseTimestamp(rs.getLong("enabled_at")) != null,
+                    rs.getString("recording_id"));
         };
     }
 

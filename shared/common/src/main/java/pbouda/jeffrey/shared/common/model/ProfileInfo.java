@@ -43,7 +43,8 @@ public record ProfileInfo(
         Instant profilingStartedAt,
         Instant profilingFinishedAt,
         Instant createdAt,
-        boolean enabled) {
+        boolean enabled,
+        String recordingId) {
 
     public Duration duration() {
         return Duration.between(profilingStartedAt, profilingFinishedAt);

@@ -31,6 +31,10 @@ export default class Recording {
         public path?: string,
         public hasProfile?: boolean,
         public folderId?: string | null,
+        public profileId?: string | null,
+        public profileName?: string | null,
+        public profileEnabled?: boolean,
+        public profileSizeInBytes?: number,
     ) {
     }
 }

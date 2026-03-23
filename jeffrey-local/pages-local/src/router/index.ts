@@ -370,7 +370,7 @@ const router = createRouter({
                 {
                   path: '',
                   name: 'project-default',
-                  redirect: to => `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/profiles`
+                  redirect: to => `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
                 },
                 {
                   path: 'settings',
@@ -381,8 +381,7 @@ const router = createRouter({
                 {
                   path: 'profiles',
                   name: 'project-profiles',
-                  component: () => import('@/views/projects/detail/ProfilesList.vue'),
-                  meta: { layout: 'project' }
+                  redirect: to => `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
                 },
                 {
                   path: 'recordings',

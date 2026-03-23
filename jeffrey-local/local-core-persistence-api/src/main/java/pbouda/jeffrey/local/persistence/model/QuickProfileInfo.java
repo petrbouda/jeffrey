@@ -47,6 +47,7 @@ public record QuickProfileInfo(
                 profilingStartedAt,
                 profilingFinishedAt,
                 createdAt,
-                true);
+                true,
+                null);
     }
 }

@@ -50,7 +50,7 @@ class HeapMemoryManagerImplTest {
 
     private static final ProfileInfo PROFILE_INFO = new ProfileInfo(
             "test-id", "project-1", "workspace-1", "test-profile",
-            null, START, END, START, true);
+            null, START, END, START, true, null);
 
     @Nested
     @DisplayName("getOverviewData()")

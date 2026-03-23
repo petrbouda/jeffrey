@@ -27,14 +27,17 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.RecordingsManager;
 import pbouda.jeffrey.local.core.persistence.NewRecording;
 import pbouda.jeffrey.local.core.resources.request.CreateFolderRequest;
 import pbouda.jeffrey.local.core.resources.response.RecordingFileResponse;
 import pbouda.jeffrey.local.core.resources.response.RecordingsResponse;
 import pbouda.jeffrey.local.persistence.model.RecordingFolder;
+import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
 
@@ -42,6 +45,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ProjectRecordingsResource {
 
@@ -49,14 +54,27 @@ public class ProjectRecordingsResource {
 
     private final ProjectInfo projectInfo;
     private final RecordingsManager recordingsManager;
+    private final ProfilesManager profilesManager;
 
-    public ProjectRecordingsResource(ProjectInfo projectInfo, RecordingsManager recordingsManager) {
+    public ProjectRecordingsResource(
+            ProjectInfo projectInfo,
+            RecordingsManager recordingsManager,
+            ProfilesManager profilesManager) {
         this.projectInfo = projectInfo;
         this.recordingsManager = recordingsManager;
+        this.profilesManager = profilesManager;
     }
 
     @GET
     public List<RecordingsResponse> recordings() {
+        // Build a mapping from recordingId to ProfileManager for enrichment
+        Map<String, ProfileManager> profileByRecordingId = profilesManager.allProfiles().stream()
+                .filter(pm -> pm.info().recordingId() != null)
+                .collect(Collectors.toMap(
+                        pm -> pm.info().recordingId(),
+                        pm -> pm,
+                        (existing, _) -> existing));
+
         var result = recordingsManager.all().stream()
                 .map(rec -> {
                     List<RecordingFileResponse> recordingFiles = rec.files().stream()
@@ -67,6 +85,9 @@ public class ProjectRecordingsResource {
                             .mapToLong(RecordingFileResponse::sizeInBytes)
                             .sum();
 
+                    ProfileManager profileManager = profileByRecordingId.get(rec.id());
+                    ProfileInfo profileInfo = profileManager != null ? profileManager.info() : null;
+
                     return new RecordingsResponse(
                             rec.id(),
                             rec.recordingName(),
@@ -75,8 +96,12 @@ public class ProjectRecordingsResource {
                             InstantUtils.formatInstant(rec.createdAt()),
                             rec.folderId(),
                             rec.eventSource().name(),
-                            rec.hasProfile(),
-                            recordingFiles);  // maps to "recordingFiles" in JSON
+                            profileInfo != null,
+                            profileInfo != null ? profileInfo.id() : null,
+                            profileInfo != null ? profileInfo.name() : null,
+                            profileInfo != null && profileInfo.enabled(),
+                            profileManager != null ? profileManager.sizeInBytes() : 0,
+                            recordingFiles);
                 })
                 .toList();
         LOG.debug("Listed recordings: projectId={} count={}", projectInfo.id(), result.size());

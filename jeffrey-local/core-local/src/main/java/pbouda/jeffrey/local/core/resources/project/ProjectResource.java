@@ -73,7 +73,10 @@ public class ProjectResource {
 
     @Path("/recordings")
     public ProjectRecordingsResource recordingsResource() {
-        return new ProjectRecordingsResource(projectManager.info(), projectManager.recordingsManager());
+        return new ProjectRecordingsResource(
+                projectManager.info(),
+                projectManager.recordingsManager(),
+                projectManager.profilesManager());
     }
 
     @Path("/profiler/settings")

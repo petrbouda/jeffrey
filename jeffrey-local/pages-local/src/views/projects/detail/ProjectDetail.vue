@@ -21,32 +21,15 @@
               <div class="nav-items">
                 <router-link
                     v-if="!isCollectorOnly"
-                    :to="generateProjectUrl('profiles')"
-                    class="nav-item"
-                    active-class="active">
-                  <i class="bi bi-file-earmark-text"></i>
-                  <span>Profiles</span>
-                  <div v-if="hasInitializingProfiles" class="ms-auto">
-                    <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm"/>
-                  </div>
-                  <Badge v-else-if="projectInfo != null && projectInfo.profileCount > 0" :value="projectInfo.profileCount.toString()" variant="primary" size="xs"
-                         class="ms-auto"/>
-                </router-link>
-                <div
-                    v-else
-                    class="nav-item disabled-feature"
-                    title="Profiles are not available in collector-only mode">
-                  <i class="bi bi-file-earmark-text"></i>
-                  <span>Profiles</span>
-                </div>
-                <router-link
-                    v-if="!isCollectorOnly"
                     :to="generateProjectUrl('recordings')"
                     class="nav-item"
                     active-class="active">
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
-                  <Badge v-if="projectInfo != null && projectInfo.recordingCount > 0" :value="projectInfo.recordingCount.toString()" variant="info" size="xs"
+                  <div v-if="hasInitializingProfiles" class="ms-auto">
+                    <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm"/>
+                  </div>
+                  <Badge v-else-if="projectInfo != null && projectInfo.recordingCount > 0" :value="projectInfo.recordingCount.toString()" variant="info" size="xs"
                          class="ms-auto"/>
                 </router-link>
                 <div
