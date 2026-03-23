@@ -36,11 +36,10 @@ public abstract class RemoteMappers {
                 response.profileCount(),
                 response.recordingCount(),
                 response.sessionCount(),
-                response.jobCount(),
-                response.alertCount(),
                 response.eventSource(),
                 liveProject.isEmpty(),
-                false);
+                false,
+                response.isBlocked());
     }
 
     private static ProjectInfo toProjectInfo(ProjectResponse response, Optional<ProjectInfo> liveProject) {
@@ -53,7 +52,8 @@ public abstract class RemoteMappers {
                 response.workspaceId(),
                 InstantUtils.parseInstant(response.createdAt()),
                 null,
-                null
+                null,
+                false
         );
     }
 }

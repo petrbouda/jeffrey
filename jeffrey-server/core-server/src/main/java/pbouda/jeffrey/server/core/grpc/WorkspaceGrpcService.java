@@ -106,6 +106,57 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
         }
     }
 
+    @Override
+    public void blockWorkspace(BlockWorkspaceRequest request, StreamObserver<BlockWorkspaceResponse> responseObserver) {
+        try {
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+
+            switch (request.getMode()) {
+                case BLOCK -> workspace.block();
+                case BLOCK_AND_DELETE_DATA -> workspace.blockAndDeleteData();
+                case DELETE -> workspace.delete();
+                default -> throw Status.INVALID_ARGUMENT
+                        .withDescription("Unknown block mode: " + request.getMode())
+                        .asRuntimeException();
+            }
+
+            LOG.info("Blocked workspace via gRPC: workspaceId={} mode={}", request.getWorkspaceId(), request.getMode());
+
+            responseObserver.onNext(BlockWorkspaceResponse.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to block workspace: workspaceId={}", request.getWorkspaceId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void unblockWorkspace(UnblockWorkspaceRequest request, StreamObserver<UnblockWorkspaceResponse> responseObserver) {
+        try {
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+            workspace.unblock();
+
+            LOG.info("Unblocked workspace via gRPC: workspaceId={}", request.getWorkspaceId());
+
+            responseObserver.onNext(UnblockWorkspaceResponse.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to unblock workspace: workspaceId={}", request.getWorkspaceId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    private WorkspaceManager findWorkspace(String workspaceId) {
+        return workspacesManager.findById(workspaceId)
+                .orElseThrow(() -> Status.NOT_FOUND
+                        .withDescription("Workspace not found: " + workspaceId)
+                        .asRuntimeException());
+    }
+
     static pbouda.jeffrey.api.v1.WorkspaceInfo toProto(WorkspaceInfo info) {
         return pbouda.jeffrey.api.v1.WorkspaceInfo.newBuilder()
                 .setId(info.id())
@@ -114,6 +165,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setProjectCount(info.projectCount())
                 .setStatus(toProtoStatus(info.status()))
+                .setIsBlocked(info.blocked())
                 .build();
     }
 

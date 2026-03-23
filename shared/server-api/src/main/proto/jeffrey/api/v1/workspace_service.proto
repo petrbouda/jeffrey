@@ -5,32 +5,47 @@ package jeffrey.api.v1;
 option java_package = "pbouda.jeffrey.api.v1";
 option java_multiple_files = true;
 
-// Service for workspace discovery and listing.
+// Manages workspace discovery, lifecycle, and blocking.
+// Workspaces are top-level containers that group projects. They are auto-created
+// from filesystem events and represent a connection to a monitored environment.
 service WorkspaceService {
-  // Returns API version and Jeffrey version.
+  // Returns the Jeffrey server version and API version for compatibility checks.
   rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
 
-  // Lists all workspaces.
+  // Lists all workspaces registered on this server, including blocked ones.
   rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
 
-  // Gets a single workspace by ID.
+  // Gets a single workspace by its internal ID.
   rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
+
+  // Blocks a workspace with a configurable mode: block only, block and delete data,
+  // or fully delete. Blocked workspaces stop all event processing, streaming,
+  // and periodic jobs. Events arriving for a blocked workspace are silently discarded.
+  rpc BlockWorkspace(BlockWorkspaceRequest) returns (BlockWorkspaceResponse);
+
+  // Unblocks a previously blocked workspace, resuming event processing and periodic jobs.
+  // Events that arrived while blocked were discarded and will not be replayed.
+  rpc UnblockWorkspace(UnblockWorkspaceRequest) returns (UnblockWorkspaceResponse);
 }
 
 message GetApiInfoRequest {}
 
 message GetApiInfoResponse {
+  // The Jeffrey server version (e.g., "1.0.0").
   string version = 1;
+  // The gRPC API version number for client compatibility checks.
   int32 api_version = 2;
 }
 
 message ListWorkspacesRequest {}
 
 message ListWorkspacesResponse {
+  // All workspaces on this server, including blocked ones.
   repeated WorkspaceInfo workspaces = 1;
 }
 
 message GetWorkspaceRequest {
+  // The internal workspace ID (not the origin/source ID).
   string workspace_id = 1;
 }
 
@@ -38,19 +53,68 @@ message GetWorkspaceResponse {
   WorkspaceInfo workspace = 1;
 }
 
-message WorkspaceInfo {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  int64 created_at = 4;
-  int32 project_count = 5;
-  WorkspaceStatus status = 6;
-  reserved 7;
+// Controls what happens when blocking a workspace.
+enum BlockWorkspaceMode {
+  // Block the workspace but keep all project data intact.
+  // All processing stops; data can be accessed read-only.
+  BLOCK = 0;
+
+  // Block the workspace and cascade-delete all project data
+  // (instances, sessions, recordings, messages, alerts, etc.).
+  // The workspace row is kept with blocked=true to prevent re-creation by the synchronizer.
+  BLOCK_AND_DELETE_DATA = 1;
+
+  // Cascade-delete everything including the workspace row itself.
+  // The workspace can be re-created automatically by the synchronizer
+  // if new filesystem events arrive for this workspace.
+  DELETE = 2;
 }
 
+message BlockWorkspaceRequest {
+  // The workspace to block or delete.
+  string workspace_id = 1;
+  // The blocking mode that determines data retention.
+  BlockWorkspaceMode mode = 2;
+}
+
+message BlockWorkspaceResponse {}
+
+message UnblockWorkspaceRequest {
+  // The workspace to unblock.
+  string workspace_id = 1;
+}
+
+message UnblockWorkspaceResponse {}
+
+// Represents a workspace — a top-level container for projects.
+// Workspaces correspond to monitored environments and are typically
+// auto-created when the CLI starts sending profiling events.
+message WorkspaceInfo {
+  // Internal unique identifier for the workspace.
+  string id = 1;
+  // Display name of the workspace.
+  string name = 2;
+  // Optional human-readable description.
+  string description = 3;
+  // Timestamp when the workspace was created (epoch millis).
+  int64 created_at = 4;
+  // Number of projects currently in this workspace.
+  int32 project_count = 5;
+  // Current availability status of the workspace.
+  WorkspaceStatus status = 6;
+  // Whether the workspace is blocked. Blocked workspaces do not process
+  // any events, run periodic jobs, or accept new project data.
+  bool is_blocked = 7;
+}
+
+// Availability status of a workspace.
 enum WorkspaceStatus {
+  // Status has not been determined yet.
   WORKSPACE_STATUS_UNSPECIFIED = 0;
+  // Workspace is available and operational.
   WORKSPACE_STATUS_AVAILABLE = 1;
+  // Workspace is no longer available (may have been removed from the filesystem).
   WORKSPACE_STATUS_UNAVAILABLE = 2;
+  // Workspace exists but is incompatible with the current server version.
   WORKSPACE_STATUS_INCOMPATIBLE = 3;
 }

@@ -36,8 +36,7 @@ CREATE TABLE IF NOT EXISTS workspaces
     location            VARCHAR,
     base_location       VARCHAR,
     created_at          TIMESTAMPTZ NOT NULL,
-    type                VARCHAR NOT NULL,
-    deleted             BOOLEAN NOT NULL
+    blocked             BOOLEAN NOT NULL DEFAULT false
 );
 
 --
@@ -56,6 +55,7 @@ CREATE TABLE IF NOT EXISTS projects
     origin_created_at       TIMESTAMPTZ,
     attributes              VARCHAR NOT NULL,
     graph_visualization     VARCHAR NOT NULL,
+    blocked                 BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (project_id)
 );
 
@@ -70,64 +70,6 @@ CREATE TABLE IF NOT EXISTS schedulers
     params     VARCHAR NOT NULL,
     enabled    BOOLEAN NOT NULL,
     PRIMARY KEY (id)
-);
-
---
--- RECORDING TABLES
---
-
-CREATE TABLE IF NOT EXISTS recordings
-(
-    project_id            VARCHAR NOT NULL,
-    id                    VARCHAR NOT NULL,
-    recording_name        VARCHAR NOT NULL,
-    folder_id             VARCHAR,
-    event_source          VARCHAR NOT NULL,
-    created_at            TIMESTAMPTZ NOT NULL,
-    recording_started_at  TIMESTAMPTZ NOT NULL,
-    recording_finished_at TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (project_id, id)
-);
-
-CREATE TABLE IF NOT EXISTS recording_files
-(
-    project_id     VARCHAR NOT NULL,
-    recording_id   VARCHAR NOT NULL,
-    id             VARCHAR NOT NULL,
-    filename       VARCHAR NOT NULL,
-    supported_type VARCHAR NOT NULL,
-    uploaded_at    TIMESTAMPTZ NOT NULL,
-    size_in_bytes  BIGINT  NOT NULL,
-    PRIMARY KEY (project_id, id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_recording_files_recording_id ON recording_files(project_id, recording_id);
-
-CREATE TABLE IF NOT EXISTS recording_folders
-(
-    project_id VARCHAR NOT NULL,
-    id         VARCHAR NOT NULL,
-    name       VARCHAR NOT NULL,
-    PRIMARY KEY (project_id, id)
-);
-
---
--- PROFILE METADATA TABLE
--- Note: Profile event data (events, stacktraces, frames, threads, cache) is stored in per-profile databases.
---
-
-CREATE TABLE IF NOT EXISTS profiles
-(
-    profile_id            VARCHAR NOT NULL,
-    project_id            VARCHAR NOT NULL,
-    profile_name          VARCHAR NOT NULL,
-    event_source          VARCHAR NOT NULL,
-    created_at            TIMESTAMPTZ  NOT NULL,
-    recording_id          VARCHAR NOT NULL,
-    recording_started_at  TIMESTAMPTZ NOT NULL,
-    recording_finished_at TIMESTAMPTZ NOT NULL,
-    enabled_at            TIMESTAMPTZ,
-    PRIMARY KEY (profile_id)
 );
 
 --

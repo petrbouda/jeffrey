@@ -58,7 +58,7 @@ public abstract class ProjectJob<T extends JobDescriptor<T>> implements Job {
         // Iterate all workspaces (no isLive filter - runs for all projects)
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
             // Iterate all projects in the workspace
-            for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
+            for (ProjectManager projectManager : workspaceManager.projectsManager().findAllActive()) {
                 // Query project-level scheduler for this job type
                 List<JobInfo> projectJobs = projectManager.schedulerManager().all(jobType());
 

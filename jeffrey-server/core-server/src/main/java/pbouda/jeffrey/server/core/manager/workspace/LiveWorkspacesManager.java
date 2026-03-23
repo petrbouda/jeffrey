@@ -82,7 +82,8 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
                 request.baseLocation(),
                 clock.instant(),
                 WorkspaceStatus.UNKNOWN,
-                0
+                0,
+                false
         );
 
         return workspacesRepository.create(workspaceInfo);
@@ -91,6 +92,13 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
     @Override
     public List<? extends WorkspaceManager> findAll() {
         return workspacesRepository.findAll().stream()
+                .map(workspaceManagerFactory)
+                .toList();
+    }
+
+    @Override
+    public List<? extends WorkspaceManager> findAllActive() {
+        return workspacesRepository.findAllActive().stream()
                 .map(workspaceManagerFactory)
                 .toList();
     }

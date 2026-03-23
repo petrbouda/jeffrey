@@ -95,7 +95,8 @@ public abstract class ServerMappers {
                     rs.getString("workspace_id"),
                     ServerMappers.instant(rs, "created_at"),
                     ServerMappers.instant(rs, "origin_created_at"),
-                    Json.toMap(rs.getString("attributes")));
+                    Json.toMap(rs.getString("attributes")),
+                    rs.getBoolean("blocked"));
         };
     }
 }

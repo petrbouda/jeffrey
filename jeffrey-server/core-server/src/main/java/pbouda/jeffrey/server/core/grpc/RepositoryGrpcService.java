@@ -109,7 +109,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
 
             GetRepositoryStatisticsResponse response = GetRepositoryStatisticsResponse.newBuilder()
                     .setTotalSessions(stats.totalSessions())
-                    .setSessionStatus(stats.latestSessionStatus() != null ? stats.latestSessionStatus().name() : "")
+                    .setSessionStatus(toProtoRecordingStatus(stats.latestSessionStatus()))
                     .setLastActivityTime(stats.lastActivityTimeMillis())
                     .setTotalSize(stats.totalSizeBytes())
                     .setTotalFiles(stats.totalFiles())
@@ -188,21 +188,17 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     static RecordingSession toProto(
             pbouda.jeffrey.shared.common.model.repository.RecordingSession session, Clock clock) {
 
-        Instant end = session.finishedAt() != null ? session.finishedAt() : clock.instant();
-        long durationMillis = end.toEpochMilli() - session.createdAt().toEpochMilli();
-
         RecordingSession.Builder builder = RecordingSession.newBuilder()
                 .setId(session.id())
                 .setName(session.name() != null ? session.name() : "")
-                .setCreatedAt(String.valueOf(session.createdAt().toEpochMilli()))
-                .setStatus(session.status().name())
-                .setDuration(String.valueOf(durationMillis));
+                .setCreatedAt(session.createdAt().toEpochMilli())
+                .setStatus(toProtoRecordingStatus(session.status()));
 
         if (session.instanceId() != null) {
             builder.setInstanceId(session.instanceId());
         }
         if (session.finishedAt() != null) {
-            builder.setFinishedAt(String.valueOf(session.finishedAt().toEpochMilli()));
+            builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
         if (session.profilerSettings() != null) {
             builder.setProfilerSettings(session.profilerSettings());
@@ -219,10 +215,23 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         return RepositoryFile.newBuilder()
                 .setId(file.id())
                 .setName(file.name())
-                .setCreatedAt(file.createdAt() != null ? String.valueOf(file.createdAt().toEpochMilli()) : "")
+                .setCreatedAt(file.createdAt() != null ? file.createdAt().toEpochMilli() : 0)
                 .setSize(file.size() != null ? file.size() : 0)
                 .setFileType(file.fileType() != null ? file.fileType().name() : "")
-                .setStatus(file.status() != null ? file.status().name() : "")
+                .setStatus(toProtoRecordingStatus(file.status()))
                 .build();
     }
+
+    private static pbouda.jeffrey.api.v1.RecordingStatus toProtoRecordingStatus(
+            pbouda.jeffrey.shared.common.model.repository.RecordingStatus status) {
+        if (status == null) {
+            return pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+        }
+        return switch (status) {
+            case ACTIVE -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
+            case FINISHED -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
+            case UNKNOWN -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+        };
+    }
+
 }

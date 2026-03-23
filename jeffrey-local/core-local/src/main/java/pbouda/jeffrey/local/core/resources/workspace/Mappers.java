@@ -67,11 +67,10 @@ public abstract class Mappers {
                 detail.profileCount(),
                 detail.recordingCount(),
                 detail.sessionCount(),
-                detail.jobCount(),
-                detail.alertCount(),
                 detail.eventSource(),
                 detail.isVirtual(),
                 detail.isOrphaned(),
-                collectorOnlyModeEnabled);
+                collectorOnlyModeEnabled,
+                detail.isBlocked());
     }
 }

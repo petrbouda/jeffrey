@@ -87,24 +87,34 @@ public class RemoteInstancesClient {
         return new InstanceResponse(
                 proto.getId(),
                 proto.getHostname().isEmpty() ? null : proto.getHostname(),
-                proto.getStatus(),
-                parseLongOrNull(proto.getCreatedAt()),
-                proto.hasFinishedAt() ? parseLongOrNull(proto.getFinishedAt()) : null,
-                proto.hasExpiringAt() ? parseLongOrNull(proto.getExpiringAt()) : null,
-                proto.hasExpiredAt() ? parseLongOrNull(proto.getExpiredAt()) : null,
+                fromProtoInstanceStatus(proto.getStatus()),
+                proto.getCreatedAt(),
+                proto.hasFinishedAt() ? proto.getFinishedAt() : null,
+                proto.hasExpiringAt() ? proto.getExpiringAt() : null,
+                proto.hasExpiredAt() ? proto.getExpiredAt() : null,
                 proto.getSessionCount(),
                 proto.hasActiveSessionId() ? proto.getActiveSessionId() : null,
-                proto.hasDuration() ? parseLongOrNull(proto.getDuration()) : null);
+                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null);
     }
 
     private static InstanceSessionResponse toSessionResponse(InstanceSessionInfo proto) {
         return new InstanceSessionResponse(
                 proto.getId(),
                 proto.getRepositoryId().isEmpty() ? null : proto.getRepositoryId(),
-                parseLongOrNull(proto.getCreatedAt()),
-                proto.hasFinishedAt() ? parseLongOrNull(proto.getFinishedAt()) : null,
+                proto.getCreatedAt(),
+                proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.getIsActive(),
-                proto.hasDuration() ? parseLongOrNull(proto.getDuration()) : null);
+                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null);
+    }
+
+    private static String fromProtoInstanceStatus(pbouda.jeffrey.api.v1.InstanceStatus status) {
+        return switch (status) {
+            case INSTANCE_STATUS_PENDING -> "PENDING";
+            case INSTANCE_STATUS_ACTIVE -> "ACTIVE";
+            case INSTANCE_STATUS_FINISHED -> "FINISHED";
+            case INSTANCE_STATUS_EXPIRED -> "EXPIRED";
+            default -> "UNKNOWN";
+        };
     }
 
     private static Long parseLongOrNull(String value) {

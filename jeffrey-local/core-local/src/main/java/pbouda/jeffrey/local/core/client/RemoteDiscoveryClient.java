@@ -25,11 +25,12 @@ import pbouda.jeffrey.api.v1.*;
 import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.local.core.resources.response.PublicApiInfoResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
+
+import pbouda.jeffrey.shared.common.InstantUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -86,10 +87,10 @@ public class RemoteDiscoveryClient {
                 return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
             }
             LOG.warn("Failed to get workspace via gRPC: workspaceId={} status={}", workspaceId, e.getStatus());
-            return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
+            return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
         } catch (Exception e) {
-            LOG.warn("Unexpected error getting workspace via gRPC: workspaceId={}", workspaceId, e);
-            return WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE);
+            LOG.warn("Cannot reach remote server: workspaceId={}", workspaceId, e);
+            return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
         }
     }
 
@@ -132,18 +133,25 @@ public class RemoteDiscoveryClient {
                 proto.getName(),
                 proto.getLabel().isEmpty() ? null : proto.getLabel(),
                 proto.getNamespace().isEmpty() ? null : proto.getNamespace(),
-                proto.getCreatedAt().isEmpty() ? null : proto.getCreatedAt(),
+                proto.getCreatedAt() != 0 ? InstantUtils.formatInstant(Instant.ofEpochMilli(proto.getCreatedAt())) : null,
                 proto.getWorkspaceId(),
-                parseRecordingStatus(proto.getStatus()),
-                proto.getProfileCount(),
-                proto.getRecordingCount(),
+                fromProtoRecordingStatus(proto.getStatus()),
+                0,
+                0,
                 proto.getSessionCount(),
-                proto.getJobCount(),
-                proto.getAlertCount(),
-                parseEventSource(proto.getEventSource()),
-                proto.getIsVirtual(),
-                proto.getIsOrphaned(),
-                proto.getCollectorOnlyModeEnabled());
+                null,
+                false,
+                false,
+                false,
+                proto.getIsBlocked());
+    }
+
+    private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.api.v1.RecordingStatus status) {
+        return switch (status) {
+            case RECORDING_STATUS_ACTIVE -> RecordingStatus.ACTIVE;
+            case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;
+            default -> RecordingStatus.UNKNOWN;
+        };
     }
 
     private static WorkspaceStatus fromProtoStatus(pbouda.jeffrey.api.v1.WorkspaceStatus status) {
@@ -155,22 +163,4 @@ public class RemoteDiscoveryClient {
         };
     }
 
-    private static RecordingStatus parseRecordingStatus(String status) {
-        try {
-            return RecordingStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            return RecordingStatus.UNKNOWN;
-        }
-    }
-
-    private static RecordingEventSource parseEventSource(String eventSource) {
-        if (eventSource == null || eventSource.isEmpty()) {
-            return null;
-        }
-        try {
-            return RecordingEventSource.valueOf(eventSource);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
 }

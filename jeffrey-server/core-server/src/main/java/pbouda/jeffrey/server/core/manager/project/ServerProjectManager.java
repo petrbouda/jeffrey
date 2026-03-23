@@ -24,13 +24,16 @@ import org.springframework.beans.factory.ObjectFactory;
 import pbouda.jeffrey.server.core.manager.*;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
 import pbouda.jeffrey.server.core.scheduler.SchedulerTrigger;
+import pbouda.jeffrey.server.core.streaming.JfrStreamingConsumerManager;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventConverter;
 import pbouda.jeffrey.server.core.workspace.WorkspaceEventPublisher;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.persistence.repository.ProjectInstanceRepository;
 import pbouda.jeffrey.server.persistence.repository.ProjectRepository;
+import pbouda.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
 import pbouda.jeffrey.server.persistence.repository.SchedulerRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
+import pbouda.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.job.JobInfo;
 import pbouda.jeffrey.shared.common.model.repository.RecordingSession;
@@ -55,6 +58,7 @@ public class ServerProjectManager implements ProjectManager {
     private final ServerPlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceEventPublisher workspaceEventPublisher;
+    private final JfrStreamingConsumerManager jfrStreamingConsumerManager;
     private final Clock clock;
     private final ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger;
 
@@ -64,7 +68,8 @@ public class ServerProjectManager implements ProjectManager {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             ServerPlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
-            WorkspaceEventPublisher workspaceEventPublisher) {
+            WorkspaceEventPublisher workspaceEventPublisher,
+            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
 
         this.clock = clock;
         String projectId = projectInfo.id();
@@ -75,6 +80,7 @@ public class ServerProjectManager implements ProjectManager {
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
+        this.jfrStreamingConsumerManager = jfrStreamingConsumerManager;
     }
 
     @Override
@@ -126,8 +132,6 @@ public class ServerProjectManager implements ProjectManager {
 
     @Override
     public DetailedProjectInfo detailedInfo() {
-        List<JobInfo> allJobs = schedulerManager().all();
-
         List<RecordingSession> recordingSessions = repositoryManager()
                 .listRecordingSessions(false);
 
@@ -136,20 +140,32 @@ public class ServerProjectManager implements ProjectManager {
                 .findAny()
                 .map(RecordingSession::status).orElse(null);
 
-        // Server queries profile count from platform DB directly — no profile-management needed
-        int profileCount = projectRepository.findAllProfiles().size();
-
         return new DetailedProjectInfo(
                 projectInfo,
                 recordingStatus,
-                profileCount,
-                0,
                 recordingSessions.size(),
-                allJobs.size(),
-                0,
-                RecordingEventSource.UNKNOWN,
-                false,
-                false);
+                projectInfo.blocked());
+    }
+
+    @Override
+    public void block() {
+        projectRepository.block();
+
+        // Stop all active JFR streaming consumers for this project
+        ProjectRepositoryRepository repoRepository =
+                platformRepositories.newProjectRepositoryRepository(projectInfo.id());
+        List<ProjectInstanceSessionInfo> unfinishedSessions = repoRepository.findUnfinishedSessions();
+        for (ProjectInstanceSessionInfo session : unfinishedSessions) {
+            jfrStreamingConsumerManager.unregisterConsumer(session.sessionId());
+        }
+
+        LOG.info("Blocked project: projectId={} stoppedStreams={}", projectInfo.id(), unfinishedSessions.size());
+    }
+
+    @Override
+    public void unblock() {
+        projectRepository.unblock();
+        LOG.info("Unblocked project: projectId={}", projectInfo.id());
     }
 
     @Override

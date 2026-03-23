@@ -134,25 +134,21 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     }
 
     private static InstanceInfo toProto(ProjectInstanceInfo info, Clock clock) {
-        Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
-        long durationMillis = end.toEpochMilli() - info.startedAt().toEpochMilli();
-
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(info.id())
                 .setHostname(info.hostname() != null ? info.hostname() : "")
-                .setStatus(info.status().name())
-                .setCreatedAt(String.valueOf(info.startedAt().toEpochMilli()))
-                .setSessionCount(info.sessionCount())
-                .setDuration(String.valueOf(durationMillis));
+                .setStatus(toProtoInstanceStatus(info.status()))
+                .setCreatedAt(info.startedAt().toEpochMilli())
+                .setSessionCount(info.sessionCount());
 
         if (info.finishedAt() != null) {
-            builder.setFinishedAt(String.valueOf(info.finishedAt().toEpochMilli()));
+            builder.setFinishedAt(info.finishedAt().toEpochMilli());
         }
         if (info.expiringAt() != null) {
-            builder.setExpiringAt(String.valueOf(info.expiringAt().toEpochMilli()));
+            builder.setExpiringAt(info.expiringAt().toEpochMilli());
         }
         if (info.expiredAt() != null) {
-            builder.setExpiredAt(String.valueOf(info.expiredAt().toEpochMilli()));
+            builder.setExpiredAt(info.expiredAt().toEpochMilli());
         }
         if (info.activeSessionId() != null) {
             builder.setActiveSessionId(info.activeSessionId());
@@ -162,20 +158,26 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     }
 
     private static InstanceSessionInfo toSessionProto(ProjectInstanceSessionInfo info, Clock clock) {
-        Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
-        long durationMillis = end.toEpochMilli() - info.createdAt().toEpochMilli();
-
         InstanceSessionInfo.Builder builder = InstanceSessionInfo.newBuilder()
                 .setId(info.sessionId())
                 .setRepositoryId(info.repositoryId() != null ? info.repositoryId() : "")
-                .setCreatedAt(String.valueOf(info.createdAt().toEpochMilli()))
-                .setIsActive(info.finishedAt() == null)
-                .setDuration(String.valueOf(durationMillis));
+                .setCreatedAt(info.createdAt().toEpochMilli())
+                .setIsActive(info.finishedAt() == null);
 
         if (info.finishedAt() != null) {
-            builder.setFinishedAt(String.valueOf(info.finishedAt().toEpochMilli()));
+            builder.setFinishedAt(info.finishedAt().toEpochMilli());
         }
 
         return builder.build();
+    }
+
+    private static pbouda.jeffrey.api.v1.InstanceStatus toProtoInstanceStatus(
+            ProjectInstanceInfo.ProjectInstanceStatus status) {
+        return switch (status) {
+            case PENDING -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_PENDING;
+            case ACTIVE -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_ACTIVE;
+            case FINISHED -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_FINISHED;
+            case EXPIRED -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_EXPIRED;
+        };
     }
 }

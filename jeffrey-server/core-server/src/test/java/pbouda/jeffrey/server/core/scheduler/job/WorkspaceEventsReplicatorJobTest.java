@@ -142,7 +142,7 @@ class WorkspaceEventsReplicatorJobTest {
 
         private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
                 INTERNAL_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Test Workspace", null,
-                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0, false);
 
         @Test
         void instanceCreatedEvent_replicatedWithInternalWorkspaceId() throws Exception {
@@ -150,7 +150,7 @@ class WorkspaceEventsReplicatorJobTest {
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", instanceCreatedEvent("inst-new-001"));
 
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-            when(workspaceManager.resolveInfo()).thenReturn(WORKSPACE_INFO);
+            when(workspaceManager.localInfo()).thenReturn(WORKSPACE_INFO);
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
@@ -179,7 +179,7 @@ class WorkspaceEventsReplicatorJobTest {
             writeEventFile(events, "20260220120000100_aaaaaaaa.json", projectCreatedEvent());
 
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-            when(workspaceManager.resolveInfo()).thenReturn(WORKSPACE_INFO);
+            when(workspaceManager.localInfo()).thenReturn(WORKSPACE_INFO);
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);
@@ -212,7 +212,7 @@ class WorkspaceEventsReplicatorJobTest {
         private static final String AUTO_CREATED_WORKSPACE_ID = "auto-created-uuid-001";
         private static final WorkspaceInfo AUTO_CREATED_INFO = new WorkspaceInfo(
                 AUTO_CREATED_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, null,
-                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0, false);
 
         @Test
         void unknownWorkspace_autoCreateEnabled_workspaceCreatedAndEventReplicated() throws Exception {
@@ -362,7 +362,7 @@ class WorkspaceEventsReplicatorJobTest {
 
         private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
                 INTERNAL_WORKSPACE_ID, WORKSPACE_ID, WORKSPACE_ID, "Test Workspace", null,
-                null, null, NOW, WorkspaceStatus.UNKNOWN, 0);
+                null, null, NOW, WorkspaceStatus.UNKNOWN, 0, false);
 
         @Test
         void mixedWorkspaces_autoCreateDisabled_onlyKnownWorkspaceEventsReplicated() throws Exception {
@@ -381,7 +381,7 @@ class WorkspaceEventsReplicatorJobTest {
 
             when(workspacesManager.findByOriginId("ws-unknown")).thenReturn(Optional.empty());
             when(workspacesManager.findByOriginId(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-            when(workspaceManager.resolveInfo()).thenReturn(WORKSPACE_INFO);
+            when(workspaceManager.localInfo()).thenReturn(WORKSPACE_INFO);
             when(migrationCallback.execute()).thenReturn(CompletableFuture.completedFuture(null));
 
             var folderQueue = new FolderQueue(jeffreyDirs().workspaces().resolve(".events"), FIXED_CLOCK);

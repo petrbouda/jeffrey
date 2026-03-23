@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -30,50 +30,24 @@ public record WorkspaceInfo(
         WorkspaceLocation baseLocation,
         Instant createdAt,
         WorkspaceStatus status,
-        int projectCount) {
+        int projectCount,
+        boolean blocked) {
 
     public WorkspaceInfo withId(String newId) {
         return new WorkspaceInfo(
-                newId,
-                this.originId,
-                this.repositoryId,
-                this.name,
-                this.description,
-                this.location,
-                this.baseLocation,
-                this.createdAt,
-                this.status,
-                this.projectCount
-        );
+                newId, originId, repositoryId, name, description,
+                location, baseLocation, createdAt, status, projectCount, blocked);
     }
 
     public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
         return new WorkspaceInfo(
-                this.id,
-                this.originId,
-                this.repositoryId,
-                this.name,
-                this.description,
-                newLocation,
-                this.baseLocation,
-                this.createdAt,
-                this.status,
-                this.projectCount
-        );
+                id, originId, repositoryId, name, description,
+                newLocation, baseLocation, createdAt, status, projectCount, blocked);
     }
 
     public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new WorkspaceInfo(
-                this.id,
-                this.originId,
-                this.repositoryId,
-                this.name,
-                this.description,
-                this.location,
-                this.baseLocation,
-                this.createdAt,
-                newStatus,
-                this.projectCount
-        );
+                id, originId, repositoryId, name, description,
+                location, baseLocation, createdAt, newStatus, projectCount, blocked);
     }
 }

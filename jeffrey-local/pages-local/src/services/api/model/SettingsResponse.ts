@@ -21,6 +21,7 @@ export default class SettingsResponse {
         public id: string,
         public name: string,
         public description: string,
-        public createdAt: string){
+        public createdAt: string,
+        public blocked: boolean){
     }
 }

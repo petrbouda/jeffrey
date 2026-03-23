@@ -5,19 +5,35 @@ package jeffrey.api.v1;
 option java_package = "pbouda.jeffrey.api.v1";
 option java_multiple_files = true;
 
-// Service for project discovery and listing within a workspace.
+import "jeffrey/api/v1/common.proto";
+
+// Manages projects within a workspace — listing, deletion, and blocking.
+// Projects represent monitored applications and are auto-created from
+// workspace events when the CLI detects a new application.
 service ProjectService {
-  // Lists all projects in a workspace.
+  // Lists all projects in a workspace, including blocked ones.
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
 
-  // Gets a single project by ID.
+  // Gets detailed information about a single project.
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
 
-  // Deletes a project by ID.
+  // Deletes a project by publishing a PROJECT_DELETED workspace event.
+  // The actual deletion is processed asynchronously by the event pipeline.
   rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+
+  // Blocks a project — stops all event processing, JFR streaming, and periodic jobs.
+  // Active streaming consumers are immediately stopped. Events arriving for
+  // a blocked project are silently consumed and discarded.
+  rpc BlockProject(BlockProjectRequest) returns (BlockProjectResponse);
+
+  // Unblocks a previously blocked project, resuming event processing.
+  // Events that arrived while blocked were discarded and will not be replayed.
+  // Active streaming does not automatically resume for previously stopped sessions.
+  rpc UnblockProject(UnblockProjectRequest) returns (UnblockProjectResponse);
 }
 
 message ListProjectsRequest {
+  // The workspace containing the projects.
   string workspace_id = 1;
 }
 
@@ -39,26 +55,43 @@ message DeleteProjectRequest {
   string project_id = 2;
 }
 
-message DeleteProjectResponse {
+message DeleteProjectResponse {}
+
+message BlockProjectRequest {
+  string workspace_id = 1;
+  string project_id = 2;
 }
 
+message BlockProjectResponse {}
+
+message UnblockProjectRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message UnblockProjectResponse {}
+
+// Detailed information about a project and its current state.
 message ProjectInfo {
+  // Internal unique identifier for the project.
   string id = 1;
+  // Origin project ID from the workspace (used for synchronization tracking).
   string origin_id = 2;
+  // Project name (can be renamed by the user).
   string name = 3;
+  // Optional display label (shown in UI if set, otherwise name is used).
   string label = 4;
+  // Optional namespace for grouping related projects.
   string namespace = 5;
-  string created_at = 6;
+  // Creation timestamp (epoch millis).
+  int64 created_at = 6;
+  // ID of the workspace this project belongs to.
   string workspace_id = 7;
-  reserved 8;
-  string status = 9;
-  int32 profile_count = 10;
-  int32 recording_count = 11;
-  int32 session_count = 12;
-  int32 job_count = 13;
-  int32 alert_count = 14;
-  string event_source = 15;
-  bool is_virtual = 16;
-  bool is_orphaned = 17;
-  bool collector_only_mode_enabled = 18;
+  // Current recording status.
+  RecordingStatus status = 8;
+  // Number of active and finished recording sessions.
+  int32 session_count = 9;
+  // Whether the project is blocked. Blocked projects do not process events,
+  // run streaming, or execute periodic jobs.
+  bool is_blocked = 10;
 }

@@ -33,10 +33,9 @@ public record ProjectResponse(
         int profileCount,
         int recordingCount,
         int sessionCount,
-        int jobCount,
-        int alertCount,
         RecordingEventSource eventSource,
         boolean isVirtual,
         boolean isOrphaned,
-        boolean collectorOnlyModeEnabled) {
+        boolean collectorOnlyModeEnabled,
+        boolean isBlocked) {
 }

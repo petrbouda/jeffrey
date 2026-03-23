@@ -54,9 +54,27 @@ public interface WorkspaceManager {
     ProjectsManager projectsManager();
 
     /**
-     * Deletes the workspace from the repository.
+     * Blocks the workspace — stops all event processing, streaming, and periodic jobs.
+     * Keeps all data intact.
+     */
+    void block();
+
+    /**
+     * Blocks the workspace and cascade-deletes all project data.
+     * Keeps the workspace row with blocked=true so it won't be recreated by the synchronizer.
+     */
+    void blockAndDeleteData();
+
+    /**
+     * Cascade-deletes all workspace data including the workspace row itself.
+     * The workspace can be recreated by the synchronizer from filesystem events.
      */
     void delete();
+
+    /**
+     * Unblocks the workspace — resumes event processing and periodic jobs.
+     */
+    void unblock();
 
     /**
      * Creates and returns a remote workspace repository instance for this workspace.

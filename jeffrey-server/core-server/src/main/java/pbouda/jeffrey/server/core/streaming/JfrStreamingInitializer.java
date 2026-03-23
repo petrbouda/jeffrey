@@ -59,8 +59,8 @@ public class JfrStreamingInitializer implements ApplicationListener<ApplicationR
         LOG.info("Initializing JFR streaming consumers for active sessions...");
 
         int count = 0;
-        for (WorkspaceManager workspace : workspacesManager.findAll()) {
-            for (ProjectManager project : workspace.projectsManager().findAll()) {
+        for (WorkspaceManager workspace : workspacesManager.findAllActive()) {
+            for (ProjectManager project : workspace.projectsManager().findAllActive()) {
                 count += initializeProjectConsumers(project);
             }
         }

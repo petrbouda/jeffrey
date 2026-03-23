@@ -53,6 +53,15 @@ public class ProjectResource {
         this.clock = clock;
     }
 
+    @Path("/settings")
+    public ProjectSettingsResource settingsResource() {
+        return new ProjectSettingsResource(
+                projectManager.info(),
+                projectManager::updateName,
+                projectManager::block,
+                projectManager::unblock);
+    }
+
     @Path("/profiles")
     public ProjectProfilesResource profilesResource() {
         return new ProjectProfilesResource(

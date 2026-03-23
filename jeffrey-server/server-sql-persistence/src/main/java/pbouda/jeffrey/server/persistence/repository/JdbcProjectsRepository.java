@@ -51,6 +51,12 @@ public class JdbcProjectsRepository implements ProjectsRepository {
             WHERE p.workspace_id = :workspace_id""";
 
     //language=SQL
+    private static final String SELECT_ACTIVE_PROJECTS_BY_WORKSPACE = """
+            SELECT * FROM projects p
+            JOIN workspaces w ON p.workspace_id = w.workspace_id
+            WHERE p.workspace_id = :workspace_id AND p.blocked = false""";
+
+    //language=SQL
     private static final String INSERT_PROJECT = """
             INSERT INTO projects (
                  project_id,
@@ -90,6 +96,14 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                 .addValue("workspace_id", workspaceId);
         return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE,
                 SELECT_PROJECTS_BY_WORKSPACE, paramSource, ServerMappers.projectInfoMapper());
+    }
+
+    @Override
+    public List<ProjectInfo> findAllActiveProjects(String workspaceId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId);
+        return databaseClient.query(StatementLabel.FIND_ACTIVE_PROJECTS_BY_WORKSPACE,
+                SELECT_ACTIVE_PROJECTS_BY_WORKSPACE, paramSource, ServerMappers.projectInfoMapper());
     }
 
     @Override

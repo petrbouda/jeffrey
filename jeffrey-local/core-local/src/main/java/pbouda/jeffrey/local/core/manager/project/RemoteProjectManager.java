@@ -129,6 +129,25 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
+    public void updateName(String name) {
+        throw new UnsupportedOperationException("Renaming remote projects is not supported");
+    }
+
+    @Override
+    public void block() {
+        remoteClients.projects().blockProject(
+                workspaceInfo.id(),
+                detailedProjectInfo.projectInfo().id());
+    }
+
+    @Override
+    public void unblock() {
+        remoteClients.projects().unblockProject(
+                workspaceInfo.id(),
+                detailedProjectInfo.projectInfo().id());
+    }
+
+    @Override
     public void delete(WorkspaceEventCreator createdBy) {
         remoteClients.projects().deleteProject(
                 workspaceInfo.id(),

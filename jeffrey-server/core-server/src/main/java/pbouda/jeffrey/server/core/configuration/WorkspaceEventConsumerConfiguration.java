@@ -78,9 +78,8 @@ public class WorkspaceEventConsumerConfiguration {
     @Bean
     public DeleteProjectWorkspaceEventConsumer deleteProjectWorkspaceEventConsumer(
             ServerPlatformRepositories platformRepositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            ServerJeffreyDirs jeffreyDirs) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
 
-        return new DeleteProjectWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, jeffreyDirs.profiles());
+        return new DeleteProjectWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory);
     }
 }

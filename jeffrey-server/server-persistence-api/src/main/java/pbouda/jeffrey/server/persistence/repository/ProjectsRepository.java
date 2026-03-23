@@ -50,6 +50,14 @@ public interface ProjectsRepository {
     List<ProjectInfo> findAllProjects(String workspaceId);
 
     /**
+     * Find all active (non-blocked) projects by workspace ID.
+     *
+     * @param workspaceId workspace ID to filter by
+     * @return list of active projects in the specified workspace.
+     */
+    List<ProjectInfo> findAllActiveProjects(String workspaceId);
+
+    /**
      * Find a project by its origin project ID.
      *
      * @param originProjectId the origin project ID to search for

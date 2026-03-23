@@ -25,11 +25,19 @@ import java.util.List;
 public interface WorkspaceRepository {
 
     /**
-     * Delete the workspace.
-     *
-     * @return true if the workspace was deleted, false if it didn't exist
+     * Block the workspace — stops all event processing and periodic jobs.
      */
-    boolean delete();
+    void block();
+
+    /**
+     * Unblock the workspace — resumes event processing and periodic jobs.
+     */
+    void unblock();
+
+    /**
+     * Delete the workspace row and all workspace-scoped data from the database.
+     */
+    void delete();
 
     /**
      * Find all projects in the workspace.

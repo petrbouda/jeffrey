@@ -25,7 +25,7 @@ This skill documents how to create a new assistant component in the Jeffrey code
 ## Directory Structure
 
 ```
-pages/src/components/assistants/
+jeffrey-local/pages-local/src/components/assistants/
 ├── global/                              # Global assistants (App.vue level)
 │   └── {Name}Assistant.vue
 ├── local/                               # Local assistants (page-specific)
@@ -35,7 +35,7 @@ pages/src/components/assistants/
 ├── AssistantMinimizedContainer.vue      # Container for minimized buttons (handles row layout)
 └── index.ts                             # Barrel export
 
-pages/src/stores/assistants/
+jeffrey-local/pages-local/src/stores/assistants/
 ├── {name}AssistantStore.ts              # Global store (for global assistants)
 └── index.ts                             # Barrel export
 ```
@@ -63,7 +63,7 @@ When multiple assistants are minimized simultaneously, their buttons are arrange
 
 ### For Global Assistants
 
-Location: `/pages/src/components/assistants/global/{Name}Assistant.vue`
+Location: `/jeffrey-local/pages-local/src/components/assistants/global/{Name}Assistant.vue`
 
 ```vue
 <template>
@@ -137,7 +137,7 @@ defineEmits<{
 
 ### For Local Assistants
 
-Location: `/pages/src/components/{feature}/{Name}Assistant.vue` or `/pages/src/components/assistants/local/{Name}Assistant.vue`
+Location: `/jeffrey-local/pages-local/src/components/{feature}/{Name}Assistant.vue` or `/jeffrey-local/pages-local/src/components/assistants/local/{Name}Assistant.vue`
 
 **Key difference from Global Assistants:**
 - The minimized button should be visible immediately when entering the page
@@ -176,7 +176,7 @@ Additional requirements:
 
 ## Step 3: Create Store (Global Assistants Only)
 
-Location: `/pages/src/stores/assistants/{name}AssistantStore.ts`
+Location: `/jeffrey-local/pages-local/src/stores/assistants/{name}AssistantStore.ts`
 
 ```typescript
 import { ref, computed } from 'vue';
@@ -212,7 +212,7 @@ export const {name}AssistantStore = {
 };
 ```
 
-Export from barrel file: `/pages/src/stores/assistants/index.ts`
+Export from barrel file: `/jeffrey-local/pages-local/src/stores/assistants/index.ts`
 
 ## Step 4: Integrate Into App (Global) or Page (Local)
 

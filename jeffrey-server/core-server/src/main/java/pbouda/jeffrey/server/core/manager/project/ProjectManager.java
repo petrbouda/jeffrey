@@ -40,14 +40,8 @@ public interface ProjectManager {
     record DetailedProjectInfo(
             ProjectInfo projectInfo,
             RecordingStatus status,
-            int profileCount,
-            int recordingCount,
             int sessionCount,
-            int jobCount,
-            int alertCount,
-            RecordingEventSource eventSource,
-            boolean isVirtual,
-            boolean isOrphaned) {
+            boolean isBlocked) {
     }
 
     @FunctionalInterface
@@ -69,6 +63,10 @@ public interface ProjectManager {
     ProjectInfo info();
 
     DetailedProjectInfo detailedInfo();
+
+    void block();
+
+    void unblock();
 
     void delete(WorkspaceEventCreator createdBy);
 }

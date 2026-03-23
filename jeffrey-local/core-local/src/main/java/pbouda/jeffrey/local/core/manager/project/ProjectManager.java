@@ -38,11 +38,10 @@ public interface ProjectManager {
             int profileCount,
             int recordingCount,
             int sessionCount,
-            int jobCount,
-            int alertCount,
             RecordingEventSource eventSource,
             boolean isVirtual,
-            boolean isOrphaned) {
+            boolean isOrphaned,
+            boolean isBlocked) {
 
         public DetailedProjectInfo orphaned() {
             return new DetailedProjectInfo(
@@ -51,11 +50,10 @@ public interface ProjectManager {
                     profileCount,
                     recordingCount,
                     sessionCount,
-                    jobCount,
-                    alertCount,
                     eventSource,
                     isVirtual,
-                    true);
+                    true,
+                    isBlocked);
         }
     }
 
@@ -80,6 +78,12 @@ public interface ProjectManager {
     ProjectInfo info();
 
     DetailedProjectInfo detailedInfo();
+
+    void updateName(String name);
+
+    void block();
+
+    void unblock();
 
     void delete(WorkspaceEventCreator createdBy);
 }

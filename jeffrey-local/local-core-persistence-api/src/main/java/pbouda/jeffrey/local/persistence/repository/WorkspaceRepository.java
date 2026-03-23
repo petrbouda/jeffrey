@@ -18,10 +18,17 @@
 
 package pbouda.jeffrey.local.persistence.repository;
 
+import java.util.List;
+
 /**
  * Local-only repository for managing a single remote workspace stored in the local database.
  */
 public interface WorkspaceRepository {
 
-    boolean delete();
+    /**
+     * Delete the workspace and all its local data (profiles, recordings, profiler settings).
+     *
+     * @return list of profile IDs that were deleted (for filesystem cleanup of per-profile databases)
+     */
+    List<String> delete();
 }

@@ -25,7 +25,6 @@ import JobInfo from '@/services/api/model/JobInfo.ts';
 import { JobType } from '@/services/api/model/JobType.ts';
 import SettingsResponse from '@/services/api/model/SettingsResponse.ts';
 import ToastService from '@/services/ToastService';
-import MessageBus from '@/services/MessageBus';
 import JobCard from '@/components/JobCard.vue';
 import ProjectInstanceSessionCleanerModal from '@/components/scheduler/modal/ProjectInstanceSessionCleanerModal.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -103,9 +102,6 @@ async function updateJobList() {
     const data = await schedulerService.all();
     checkForExistingJobs(data);
     activeJobs.value = data;
-
-    // Emit job count change event for the sidebar to update
-    MessageBus.emit(MessageBus.JOBS_COUNT_CHANGED, data.length);
 
     return data;
   } catch (error) {

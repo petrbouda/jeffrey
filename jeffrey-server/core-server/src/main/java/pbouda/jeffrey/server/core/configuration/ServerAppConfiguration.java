@@ -143,14 +143,16 @@ public class ServerAppConfiguration {
             ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             RepositoryStorage.Factory repositoryStorageFactory,
             ServerPlatformRepositories platformRepositories,
-            WorkspaceEventPublisher workspaceEventPublisher) {
+            WorkspaceEventPublisher workspaceEventPublisher,
+            JfrStreamingConsumerManager jfrStreamingConsumerManager) {
         return projectInfo -> new ServerProjectManager(
                 applicationClock,
                 projectInfo,
                 projectsSynchronizerTrigger,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
-                workspaceEventPublisher);
+                workspaceEventPublisher,
+                jfrStreamingConsumerManager);
     }
 
     @Bean

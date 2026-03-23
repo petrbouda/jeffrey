@@ -60,7 +60,7 @@ public class JdbcServerPlatformRepositories implements ServerPlatformRepositorie
 
     @Override
     public WorkspaceRepository newWorkspaceRepository(String workspaceId) {
-        return new JdbcWorkspaceRepository(workspaceId, databaseClientProvider, clock);
+        return new JdbcWorkspaceRepository(workspaceId, databaseClientProvider);
     }
 
     @Override

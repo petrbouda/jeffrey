@@ -20,7 +20,6 @@ package pbouda.jeffrey.server.persistence.repository;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.test.DuckDBTest;
@@ -59,32 +58,6 @@ class JdbcProjectRepositoryTest {
             Optional<ProjectInfo> result = repository.find();
 
             assertTrue(result.isEmpty());
-        }
-    }
-
-    @Nested
-    class FindAllProfilesMethod {
-
-        @Test
-        void returnsEmptyList_whenNoProfiles(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
-
-            List<ProfileInfo> result = repository.findAllProfiles();
-
-            assertTrue(result.isEmpty());
-        }
-
-        @Test
-        void returnsProfiles_whenProfilesExist(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/project/insert-project-with-profiles.sql");
-            JdbcProjectRepository repository = new JdbcProjectRepository("proj-001", provider);
-
-            List<ProfileInfo> result = repository.findAllProfiles();
-
-            assertEquals(2, result.size());
         }
     }
 

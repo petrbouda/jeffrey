@@ -18,25 +18,16 @@
 
 package pbouda.jeffrey.server.persistence.repository;
 
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface ProjectRepository {
 
     /**
-     * Delete the project.
+     * Delete the project and all its related data.
      */
     void delete();
-
-    /**
-     * Find all profiles belonging to the given project.
-     *
-     * @return list of profiles.
-     */
-    List<ProfileInfo> findAllProfiles();
 
     /**
      * Find the project information.
@@ -51,4 +42,14 @@ public interface ProjectRepository {
      * @param name new project's name.
      */
     void updateProjectName(String name);
+
+    /**
+     * Block the project — stops all event processing, streaming, and periodic jobs.
+     */
+    void block();
+
+    /**
+     * Unblock the project — resumes event processing and periodic jobs.
+     */
+    void unblock();
 }

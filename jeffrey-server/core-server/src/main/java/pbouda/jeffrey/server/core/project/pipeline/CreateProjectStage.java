@@ -66,7 +66,8 @@ public class CreateProjectStage implements Stage<CreateProjectContext> {
                 workspaceInfo.id(),
                 clock.instant(),
                 project.originCreatedAt(),
-                project.attributes());
+                project.attributes(),
+                false);
 
         CreateProject createProject = new CreateProject(projectInfo, graphVisualization);
         ProjectInfo newProjectInfo = projectsRepository.create(createProject);

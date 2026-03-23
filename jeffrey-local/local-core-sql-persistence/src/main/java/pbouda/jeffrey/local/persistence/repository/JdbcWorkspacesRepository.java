@@ -41,16 +41,16 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String SELECT_ALL =
-            "SELECT * FROM workspaces WHERE deleted = false";
+            "SELECT * FROM workspaces";
 
     //language=SQL
     private static final String SELECT_BY_ID =
-            "SELECT * FROM workspaces WHERE workspace_id = :workspace_id AND deleted = false";
+            "SELECT * FROM workspaces WHERE workspace_id = :workspace_id";
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO workspaces (workspace_id, base_location, deleted)
-            VALUES (:workspace_id, :base_location, false)""";
+            INSERT INTO workspaces (workspace_id, base_location)
+            VALUES (:workspace_id, :base_location)""";
 
     private final DatabaseClient databaseClient;
 

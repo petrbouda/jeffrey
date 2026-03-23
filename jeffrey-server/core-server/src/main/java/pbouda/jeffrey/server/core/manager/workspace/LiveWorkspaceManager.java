@@ -18,9 +18,13 @@
 
 package pbouda.jeffrey.server.core.manager.workspace;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.core.repository.FilesystemRemoteWorkspaceRepository;
 import pbouda.jeffrey.server.core.repository.RemoteWorkspaceRepository;
+import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.persistence.repository.WorkspaceRepository;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.server.core.ServerJeffreyDirs;
@@ -33,10 +37,13 @@ import java.time.Clock;
 
 public class LiveWorkspaceManager implements WorkspaceManager {
 
+    private static final Logger LOG = LoggerFactory.getLogger(LiveWorkspaceManager.class);
+
     private final Clock clock;
     private final ServerJeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
+    private final ServerPlatformRepositories platformRepositories;
     private final ProjectsManager.Factory projectsManagerFactory;
 
     public LiveWorkspaceManager(
@@ -44,12 +51,14 @@ public class LiveWorkspaceManager implements WorkspaceManager {
             ServerJeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
+            ServerPlatformRepositories platformRepositories,
             ProjectsManager.Factory projectsManagerFactory) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
+        this.platformRepositories = platformRepositories;
         this.projectsManagerFactory = projectsManagerFactory;
     }
 
@@ -84,8 +93,38 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public void block() {
+        for (ProjectManager project : projectsManager().findAll()) {
+            project.block();
+        }
+        workspaceRepository.block();
+        LOG.info("Blocked workspace: workspaceId={}", workspaceInfo.id());
+    }
+
+    @Override
+    public void blockAndDeleteData() {
+        for (ProjectManager project : projectsManager().findAll()) {
+            project.block();
+            platformRepositories.newProjectRepository(project.info().id()).delete();
+        }
+        workspaceRepository.block();
+        LOG.info("Blocked workspace and deleted data: workspaceId={}", workspaceInfo.id());
+    }
+
+    @Override
     public void delete() {
+        for (ProjectManager project : projectsManager().findAll()) {
+            project.block();
+            platformRepositories.newProjectRepository(project.info().id()).delete();
+        }
         workspaceRepository.delete();
+        LOG.info("Deleted workspace: workspaceId={}", workspaceInfo.id());
+    }
+
+    @Override
+    public void unblock() {
+        workspaceRepository.unblock();
+        LOG.info("Unblocked workspace: workspaceId={}", workspaceInfo.id());
     }
 
     @Override

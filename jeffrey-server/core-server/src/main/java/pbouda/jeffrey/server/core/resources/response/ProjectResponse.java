@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.server.core.resources.response;
 
-import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 
 public record ProjectResponse(
@@ -30,13 +29,6 @@ public record ProjectResponse(
         String createdAt,
         String workspaceId,
         RecordingStatus status,
-        int profileCount,
-        int recordingCount,
         int sessionCount,
-        int jobCount,
-        int alertCount,
-        RecordingEventSource eventSource,
-        boolean isVirtual,
-        boolean isOrphaned,
-        boolean collectorOnlyModeEnabled) {
+        boolean isBlocked) {
 }

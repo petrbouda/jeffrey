@@ -37,7 +37,7 @@ public abstract class Mappers {
                 info.status());
     }
 
-    public static ProjectResponse toProjectResponse(DetailedProjectInfo detail, boolean collectorOnlyModeEnabled) {
+    public static ProjectResponse toProjectResponse(DetailedProjectInfo detail) {
         ProjectInfo projectInfo = detail.projectInfo();
         return new ProjectResponse(
                 projectInfo.id(),
@@ -48,14 +48,7 @@ public abstract class Mappers {
                 InstantUtils.formatInstant(projectInfo.createdAt()),
                 projectInfo.workspaceId(),
                 detail.status(),
-                detail.profileCount(),
-                detail.recordingCount(),
                 detail.sessionCount(),
-                detail.jobCount(),
-                detail.alertCount(),
-                detail.eventSource(),
-                detail.isVirtual(),
-                detail.isOrphaned(),
-                collectorOnlyModeEnabled);
+                detail.isBlocked());
     }
 }

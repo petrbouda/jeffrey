@@ -1,6 +1,6 @@
 -- Insert a workspace with projects for testing JdbcWorkspaceRepository
-INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location, deleted, created_at)
-VALUES ('ws-001', NULL, NULL, 'Test Workspace', 'A test workspace', NULL, NULL, false, '2025-01-01T10:00:00Z');
+INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location,  created_at)
+VALUES ('ws-001', NULL, NULL, 'Test Workspace', 'A test workspace', NULL, NULL, '2025-01-01T10:00:00Z');
 
 INSERT INTO projects (project_id, origin_project_id, project_name, project_label, workspace_id, created_at, origin_created_at, attributes, graph_visualization)
 VALUES

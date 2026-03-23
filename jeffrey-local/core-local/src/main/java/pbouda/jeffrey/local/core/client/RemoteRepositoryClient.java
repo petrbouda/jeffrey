@@ -71,7 +71,7 @@ public class RemoteRepositoryClient {
 
         return new RepositoryStatisticsResponse(
                 response.getTotalSessions(),
-                parseRecordingStatus(response.getSessionStatus()),
+                fromProtoRecordingStatus(response.getSessionStatus()),
                 response.getLastActivityTime(),
                 response.getTotalSize(),
                 response.getTotalFiles(),
@@ -124,11 +124,11 @@ public class RemoteRepositoryClient {
                 proto.getId(),
                 proto.getName().isEmpty() ? null : proto.getName(),
                 proto.hasInstanceId() ? proto.getInstanceId() : null,
-                parseLongOrNull(proto.getCreatedAt()),
-                proto.hasFinishedAt() ? parseLongOrNull(proto.getFinishedAt()) : null,
-                parseRecordingStatus(proto.getStatus()),
+                proto.getCreatedAt(),
+                proto.hasFinishedAt() ? proto.getFinishedAt() : null,
+                fromProtoRecordingStatus(proto.getStatus()),
                 proto.hasProfilerSettings() ? proto.getProfilerSettings() : null,
-                proto.hasDuration() ? parseLongOrNull(proto.getDuration()) : null,
+                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files);
     }
 
@@ -136,21 +136,18 @@ public class RemoteRepositoryClient {
         return new RepositoryFileResponse(
                 proto.getId(),
                 proto.getName(),
-                parseLongOrNull(proto.getCreatedAt()),
+                proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
                 proto.getSize(),
                 parseFileType(proto.getFileType()),
-                parseRecordingStatus(proto.getStatus()));
+                fromProtoRecordingStatus(proto.getStatus()));
     }
 
-    private static RecordingStatus parseRecordingStatus(String status) {
-        if (status == null || status.isEmpty()) {
-            return null;
-        }
-        try {
-            return RecordingStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+    private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.api.v1.RecordingStatus status) {
+        return switch (status) {
+            case RECORDING_STATUS_ACTIVE -> RecordingStatus.ACTIVE;
+            case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;
+            default -> RecordingStatus.UNKNOWN;
+        };
     }
 
     private static SupportedRecordingFile parseFileType(String fileType) {

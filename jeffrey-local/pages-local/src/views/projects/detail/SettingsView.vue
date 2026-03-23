@@ -43,6 +43,43 @@
         </form>
       </div>
 
+      <!-- Project Blocking Section -->
+      <div class="settings-section blocking-section mb-4">
+        <div class="section-header blocking-header">
+          <i class="bi bi-slash-circle section-icon blocking-icon"></i>
+          <h6 class="section-title blocking-title">Project Blocking</h6>
+        </div>
+
+        <p class="blocking-description">
+          Blocking a project stops all event processing, streaming, and periodic maintenance.
+          Existing data is preserved. Events arriving while blocked are permanently discarded.
+        </p>
+
+        <button
+            v-if="!isBlocked"
+            type="button"
+            class="btn-action btn-action-warning"
+            @click="blockProject"
+            :disabled="isBlockingAction"
+        >
+          <span v-if="isBlockingAction" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-slash-circle"></i>
+          {{ isBlockingAction ? 'Blocking...' : 'Block Project' }}
+        </button>
+
+        <button
+            v-else
+            type="button"
+            class="btn-action btn-action-primary"
+            @click="unblockProject"
+            :disabled="isBlockingAction"
+        >
+          <span v-if="isBlockingAction" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-check-circle"></i>
+          {{ isBlockingAction ? 'Unblocking...' : 'Unblock Project' }}
+        </button>
+      </div>
+
       <!-- Danger Zone Section -->
       <div class="settings-section danger-section">
         <div class="section-header danger-header">
@@ -143,6 +180,10 @@ const isLoading = ref(true);
 const isSaving = ref(false);
 const hasChanges = ref(false);
 
+// Block/unblock state
+const isBlocked = ref(false);
+const isBlockingAction = ref(false);
+
 // Delete project state
 const isDeleting = ref(false);
 const showDeleteConfirmation = ref(false);
@@ -155,6 +196,7 @@ onMounted(async () => {
     const settings = await settingsClient.get();
     originalProjectName.value = settings.name;
     projectName.value = settings.name;
+    isBlocked.value = settings.blocked;
     isLoading.value = false;
   } catch (error) {
     console.error('Failed to load project settings:', error);
@@ -187,6 +229,36 @@ async function saveChanges() {
     ToastService.error('Error', 'Failed to update project name');
   } finally {
     isSaving.value = false;
+  }
+}
+
+// Block project
+async function blockProject() {
+  try {
+    isBlockingAction.value = true;
+    await settingsClient.block();
+    isBlocked.value = true;
+    ToastService.success('Project Blocked', 'Project has been blocked. No events will be processed.');
+  } catch (error) {
+    console.error('Failed to block project:', error);
+    ToastService.error('Error', 'Failed to block project');
+  } finally {
+    isBlockingAction.value = false;
+  }
+}
+
+// Unblock project
+async function unblockProject() {
+  try {
+    isBlockingAction.value = true;
+    await settingsClient.unblock();
+    isBlocked.value = false;
+    ToastService.success('Project Unblocked', 'Project has been unblocked. Event processing will resume.');
+  } catch (error) {
+    console.error('Failed to unblock project:', error);
+    ToastService.error('Error', 'Failed to unblock project');
+  } finally {
+    isBlockingAction.value = false;
   }
 }
 
@@ -348,6 +420,47 @@ async function deleteProject() {
 }
 
 .btn-action-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Blocking Section */
+.blocking-section {
+  background: linear-gradient(135deg, #ffffff, #fffbeb);
+  border-color: rgba(245, 158, 11, 0.12);
+}
+
+.blocking-header {
+  border-bottom-color: rgba(245, 158, 11, 0.12);
+}
+
+.blocking-icon {
+  color: #f59e0b;
+}
+
+.blocking-title {
+  color: #92400e;
+}
+
+.blocking-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.btn-action-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-action-warning:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+.btn-action-warning:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

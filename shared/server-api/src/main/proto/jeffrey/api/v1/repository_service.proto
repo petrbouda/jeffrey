@@ -5,18 +5,21 @@ package jeffrey.api.v1;
 option java_package = "pbouda.jeffrey.api.v1";
 option java_multiple_files = true;
 
-// Service for repository session management and statistics.
+import "jeffrey/api/v1/common.proto";
+
+// Manages the recording repository — JFR files, heap dumps, and other artifacts
+// organized into recording sessions. Provides session listing, statistics, and deletion.
 service RepositoryService {
-  // Lists all recording sessions.
+  // Lists all recording sessions for a project, optionally including finished ones.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
 
-  // Gets a single recording session by ID.
+  // Gets detailed information about a single recording session, including its files.
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
 
-  // Gets repository statistics.
+  // Gets aggregate statistics about the repository (file counts, sizes by type).
   rpc GetRepositoryStatistics(GetRepositoryStatisticsRequest) returns (GetRepositoryStatisticsResponse);
 
-  // Deletes a recording session.
+  // Deletes a recording session and all its associated files from the repository.
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 
   // Deletes specific files within a recording session.
@@ -47,24 +50,44 @@ message GetRepositoryStatisticsRequest {
   string project_id = 2;
 }
 
+// Aggregate statistics about the recording repository.
+// Breaks down file counts and sizes by type (JFR, heap dump, logs, etc.).
 message GetRepositoryStatisticsResponse {
+  // Total number of recording sessions.
   int32 total_sessions = 1;
-  string session_status = 2;
+  // Overall session status summary.
+  RecordingStatus session_status = 2;
+  // Timestamp of the most recent activity (epoch millis).
   int64 last_activity_time = 3;
+  // Total size of all files in bytes.
   int64 total_size = 4;
+  // Total number of files across all sessions.
   int32 total_files = 5;
+  // Size of the largest session in bytes.
   int64 biggest_session_size = 6;
+  // Number of JFR recording files.
   int32 jfr_files = 7;
+  // Total size of JFR files in bytes.
   int64 jfr_size = 8;
+  // Number of heap dump files.
   int32 heap_dump_files = 9;
+  // Total size of heap dump files in bytes.
   int64 heap_dump_size = 10;
+  // Number of JVM log files (e.g., gc.log, hs_err).
   int32 log_files = 11;
+  // Total size of JVM log files in bytes.
   int64 log_size = 12;
+  // Number of application log files.
   int32 app_log_files = 13;
+  // Total size of application log files in bytes.
   int64 app_log_size = 14;
+  // Number of error log files (e.g., hs_err crash logs).
   int32 error_log_files = 15;
+  // Total size of error log files in bytes.
   int64 error_log_size = 16;
+  // Number of other/unclassified files.
   int32 other_files = 17;
+  // Total size of other files in bytes.
   int64 other_size = 18;
 }
 
@@ -80,28 +103,46 @@ message DeleteFilesInSessionRequest {
   string workspace_id = 1;
   string project_id = 2;
   string session_id = 3;
+  // IDs of specific files to delete within the session.
   repeated string file_ids = 4;
 }
 
 message DeleteFilesInSessionResponse {}
 
+// A recording session — a continuous profiling period that produces files.
+// Sessions are created when the profiler starts and finished when
+// the heartbeat goes stale or the JVM shuts down.
 message RecordingSession {
+  // Unique identifier for the session.
   string id = 1;
+  // Display name of the session.
   string name = 2;
+  // ID of the instance that produced this session (if tracked).
   optional string instance_id = 3;
-  string created_at = 4;
-  optional string finished_at = 5;
-  string status = 6;
+  // Timestamp when the session started (epoch millis).
+  int64 created_at = 4;
+  // Timestamp when the session finished (epoch millis).
+  optional int64 finished_at = 5;
+  // Current status.
+  RecordingStatus status = 6;
+  // Profiler agent settings used for this session (JSON string).
   optional string profiler_settings = 7;
-  optional string duration = 8;
+  // Files produced during this session (JFR recordings, heap dumps, logs).
   repeated RepositoryFile files = 9;
 }
 
+// A single file within a recording session.
 message RepositoryFile {
+  // Unique identifier for the file.
   string id = 1;
+  // Filename (e.g., "recording-2025-01-15.jfr").
   string name = 2;
-  string created_at = 3;
+  // Timestamp when the file was created (epoch millis).
+  int64 created_at = 3;
+  // File size in bytes.
   int64 size = 4;
+  // File type identifier (e.g., JFR, JFR_LZ4, HEAP_DUMP, GC_LOG, HS_ERR_LOG, APP_LOG).
   string file_type = 5;
-  string status = 6;
+  // File status.
+  RecordingStatus status = 6;
 }

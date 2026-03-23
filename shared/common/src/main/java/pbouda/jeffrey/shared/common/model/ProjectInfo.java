@@ -30,5 +30,6 @@ public record ProjectInfo(
         String workspaceId,
         Instant createdAt,
         Instant originCreatedAt,
-        Map<String, String> attributes) {
+        Map<String, String> attributes,
+        boolean blocked) {
 }

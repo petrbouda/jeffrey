@@ -96,7 +96,6 @@
                     active-class="active">
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
-                  <Badge v-if="projectInfo != null && projectInfo.jobCount > 0" :value="projectInfo.jobCount" variant="warning" size="xs" class="ms-auto"/>
                 </router-link>
                 <div
                     v-else
@@ -136,6 +135,12 @@
 
     <!-- Main Content -->
     <div class="detail-main-content">
+      <!-- Blocked Project Banner -->
+      <div v-if="projectInfo?.isBlocked" class="blocked-banner">
+        <i class="bi bi-slash-circle"></i>
+        <span>This project is blocked. No events are being processed.</span>
+      </div>
+
       <!-- Content Area without tabs -->
       <div class="detail-content-container mb-4">
         <div class="card">
@@ -206,12 +211,6 @@ async function checkInitializingProfiles() {
 
 
 // Set up message bus listeners for count updates
-function handleJobCountChange(count: number) {
-  if (projectInfo.value) {
-    projectInfo.value.jobCount = count;
-  }
-}
-
 function handleProfileCountChange(count: number) {
   if (projectInfo.value) {
     projectInfo.value.profileCount = count;
@@ -271,13 +270,6 @@ async function initializeProject() {
     projectInfo.value = await projectClient.get();
     setCollectorOnlyMode(projectId.value, projectInfo.value.collectorOnlyModeEnabled);
 
-    // Redirect to instances when landing on profiles
-    if (route.path.endsWith('/profiles')) {
-      instancesSubmenuExpanded.value = true;
-      await router.replace(generateProjectUrl('instances'));
-      return;
-    }
-
     // Check for initializing profiles
     await checkInitializingProfiles();
   } catch (error) {
@@ -303,7 +295,6 @@ watch(() => route.path, (newPath) => {
 
 onMounted(() => {
   // Set up message bus listeners
-  MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
   MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
   MessageBus.on(MessageBus.PROFILE_INITIALIZATION_STARTED, handleProfileInitializationStarted);
@@ -311,7 +302,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   // Clean up message bus listeners
-  MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
   MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
   MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
   MessageBus.off(MessageBus.PROFILE_INITIALIZATION_STARTED);
@@ -329,6 +319,26 @@ const toggleSidebar = () => {
 <style scoped>
 /* ProjectDetail-specific styles */
 /* Common sidebar styles are in @/assets/_sidebar-menu.scss */
+
+/* Blocked Project Banner */
+.blocked-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.blocked-banner i {
+  font-size: 1rem;
+  color: #f59e0b;
+}
 
 /* Sidebar Header - Light Tinted with Accent Border */
 .sidebar-header {

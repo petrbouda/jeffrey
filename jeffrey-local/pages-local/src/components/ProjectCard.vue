@@ -21,12 +21,11 @@
     <div class="footer-row">
       <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
       <div class="badges">
-        <span v-if="project.status" class="status-badge" :class="getStatusClass">
-          {{ formatStatus(project.status) }}
+        <span v-if="project.isBlocked" class="status-badge status-blocked">
+          Blocked
         </span>
-        <span v-if="project.alertCount > 0" class="alert-badge">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          {{ project.alertCount }}
+        <span v-else-if="project.status" class="status-badge" :class="getStatusClass">
+          {{ formatStatus(project.status) }}
         </span>
       </div>
     </div>
@@ -53,22 +52,25 @@ const moveToProject = (projectId: string) => {
 
 // Border color class
 const getBorderClass = computed(() => {
+  if (props.project.isBlocked) return 'border-blocked';
   if (props.isOrphaned) return 'border-orphaned';
   return 'border-default';
 });
 
-// Show warning icon for orphaned or virtual projects
+// Show warning icon for orphaned, virtual, or blocked projects
 const showCriticalWarning = computed(() => {
-  return props.isOrphaned || props.project.isVirtual;
+  return props.isOrphaned || props.project.isVirtual || props.project.isBlocked;
 });
 
 const getCriticalWarningIcon = computed(() => {
+  if (props.project.isBlocked) return 'bi bi-slash-circle-fill';
   if (props.isOrphaned) return 'bi bi-exclamation-triangle-fill';
   if (props.project.isVirtual) return 'bi bi-cloud-arrow-down-fill';
   return '';
 });
 
 const getCriticalWarningTooltip = computed(() => {
+  if (props.project.isBlocked) return 'Project is blocked - no events are being processed';
   if (props.isOrphaned) return 'Project is orphaned - original remote project was removed';
   if (props.project.isVirtual)
     return 'Virtual project - click to create local copy';
@@ -132,6 +134,11 @@ const formatStatus = (status: RecordingStatus): string => {
 
 .border-orphaned {
   border-left-color: #f97316;
+}
+
+.border-blocked {
+  border-left-color: #9ca3af;
+  opacity: 0.65;
 }
 
 /* Name Row */
@@ -229,6 +236,11 @@ const formatStatus = (status: RecordingStatus): string => {
 }
 
 .status-badge.status-unknown {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-badge.status-blocked {
   background: #f3f4f6;
   color: #6b7280;
 }

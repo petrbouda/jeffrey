@@ -5,20 +5,26 @@ package jeffrey.api.v1;
 option java_package = "pbouda.jeffrey.api.v1";
 option java_multiple_files = true;
 
-// Service for project messages and alerts.
+import "jeffrey/api/v1/common.proto";
+
+// Provides access to project messages and alerts.
+// Messages are informational events (e.g., project created, session finished).
+// Alerts are critical events requiring attention (e.g., JVM crash detected).
 service MessagesService {
-  // Gets messages within an optional time interval.
+  // Gets messages for a project, optionally filtered by time interval.
   rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
 
-  // Gets alert messages within an optional time interval.
+  // Gets alerts for a project, optionally filtered by time interval.
   rpc GetAlerts(GetAlertsRequest) returns (GetAlertsResponse);
 }
 
 message GetMessagesRequest {
   string workspace_id = 1;
   string project_id = 2;
-  optional int64 start_epoch_millis = 3;
-  optional int64 end_epoch_millis = 4;
+  // Optional start of the time interval filter (epoch millis, inclusive).
+  optional int64 start_at = 3;
+  // Optional end of the time interval filter (epoch millis, inclusive).
+  optional int64 end_at = 4;
 }
 
 message GetMessagesResponse {
@@ -28,21 +34,34 @@ message GetMessagesResponse {
 message GetAlertsRequest {
   string workspace_id = 1;
   string project_id = 2;
-  optional int64 start_epoch_millis = 3;
-  optional int64 end_epoch_millis = 4;
+  // Optional start of the time interval filter (epoch millis, inclusive).
+  optional int64 start_at = 3;
+  // Optional end of the time interval filter (epoch millis, inclusive).
+  optional int64 end_at = 4;
 }
 
 message GetAlertsResponse {
   repeated ImportantMessage messages = 1;
 }
 
+// A message or alert produced by the system.
+// Messages are streamed from JFR events (jeffrey.Message, jeffrey.Alert)
+// and persisted for later retrieval.
 message ImportantMessage {
+  // Message type identifier (e.g., "PROJECT_CREATED", "JVM_CRASH_DETECTED").
   string type = 1;
+  // Short title summarizing the message.
   string title = 2;
+  // Detailed message body.
   string message = 3;
-  string severity = 4;
+  // Severity level.
+  Severity severity = 4;
+  // Category for grouping: SYSTEM, PROFILING, LIFECYCLE.
   string category = 5;
+  // Source that produced the message: STREAMING, SCHEDULER, MANUAL.
   string source = 6;
+  // Whether this message is an alert (critical event requiring attention).
   bool is_alert = 7;
-  string created_at = 8;
+  // Timestamp when the message was created (epoch millis).
+  int64 created_at = 8;
 }

@@ -26,12 +26,14 @@ import pbouda.jeffrey.local.core.client.RemoteDiscoveryClient;
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
+import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.local.persistence.repository.WorkspaceRepository;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
+import java.util.List;
 import java.util.Optional;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
@@ -80,8 +82,8 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
             };
         } catch (Exception e) {
-            LOG.warn("Failed to resolve remote workspace status, marking as unavailable: workspaceId={}", workspaceInfo.id());
-            return workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
+            LOG.warn("Cannot reach remote server, marking as offline: workspaceId={}", workspaceInfo.id());
+            return workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
         }
     }
 
@@ -103,7 +105,18 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
-        workspaceRepository.delete();
+        List<String> profileIds = workspaceRepository.delete();
+
+        // Clean up per-profile database directories from filesystem
+        for (String profileId : profileIds) {
+            try {
+                FileSystemUtils.removeDirectory(jeffreyDirs.profileDir(profileId));
+            } catch (Exception e) {
+                LOG.warn("Failed to delete profile directory: profileId={}", profileId, e);
+            }
+        }
+
+        LOG.info("Deleted workspace: workspaceId={} deletedProfiles={}", workspaceInfo.id(), profileIds.size());
     }
 
 }

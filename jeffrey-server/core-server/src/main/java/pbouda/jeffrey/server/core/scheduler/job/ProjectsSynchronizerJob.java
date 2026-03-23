@@ -34,6 +34,7 @@ import pbouda.jeffrey.server.core.workspace.WorkspaceEventConsumerType;
 import pbouda.jeffrey.server.core.workspace.consumer.WorkspaceEventConsumer;
 import pbouda.jeffrey.shared.common.model.job.JobType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.time.Duration;
@@ -89,6 +90,13 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
         for (QueueEntry<WorkspaceEvent> entry : sortedEntries) {
             WorkspaceEvent event = fromQueueEntry(entry);
             try {
+                if (isProjectBlocked(event, projectsManager)) {
+                    LOG.debug("Skipping event for blocked project: event_type={} project_id={}",
+                            event.eventType(), event.projectId());
+                    latestOffset = entry.offset();
+                    continue;
+                }
+
                 for (WorkspaceEventConsumer consumer : consumers) {
                     if (consumer.isApplicable(event)) {
                         consumer.on(event, jobDescriptor, projectsManager);
@@ -126,6 +134,22 @@ public class ProjectsSynchronizerJob extends WorkspaceJob<ProjectsSynchronizerJo
     @Override
     public JobType jobType() {
         return JobType.PROJECTS_SYNCHRONIZER;
+    }
+
+    private static boolean isProjectBlocked(WorkspaceEvent event, ProjectsManager projectsManager) {
+        if (event.projectId() == null) {
+            return false;
+        }
+
+        // Never block project creation or deletion events
+        if (event.eventType() == WorkspaceEventType.PROJECT_CREATED
+                || event.eventType() == WorkspaceEventType.PROJECT_DELETED) {
+            return false;
+        }
+
+        return projectsManager.findByOriginProjectId(event.projectId())
+                .map(pm -> pm.info().blocked())
+                .orElse(false);
     }
 
     private static WorkspaceEvent fromQueueEntry(QueueEntry<WorkspaceEvent> entry) {

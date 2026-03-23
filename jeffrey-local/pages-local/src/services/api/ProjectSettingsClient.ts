@@ -32,4 +32,12 @@ export default class ProjectSettingsClient extends BasePlatformClient {
     get(): Promise<SettingsResponse> {
         return super.get<SettingsResponse>();
     }
+
+    block(): Promise<void> {
+        return super.post<void>('/block', {});
+    }
+
+    unblock(): Promise<void> {
+        return super.post<void>('/unblock', {});
+    }
 }

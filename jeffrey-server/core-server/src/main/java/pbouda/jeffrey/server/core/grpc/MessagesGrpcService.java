@@ -47,8 +47,8 @@ public class MessagesGrpcService extends MessagesServiceGrpc.MessagesServiceImpl
         try {
             ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
 
-            Long startMillis = request.hasStartEpochMillis() ? request.getStartEpochMillis() : null;
-            Long endMillis = request.hasEndEpochMillis() ? request.getEndEpochMillis() : null;
+            Long startMillis = request.hasStartAt() ? request.getStartAt() : null;
+            Long endMillis = request.hasEndAt() ? request.getEndAt() : null;
 
             List<ImportantMessage> messages = project.messagesManager()
                     .getMessages(AbsoluteTimeRange.ofEpochMillis(startMillis, endMillis)).stream()
@@ -75,8 +75,8 @@ public class MessagesGrpcService extends MessagesServiceGrpc.MessagesServiceImpl
         try {
             ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
 
-            Long startMillis = request.hasStartEpochMillis() ? request.getStartEpochMillis() : null;
-            Long endMillis = request.hasEndEpochMillis() ? request.getEndEpochMillis() : null;
+            Long startMillis = request.hasStartAt() ? request.getStartAt() : null;
+            Long endMillis = request.hasEndAt() ? request.getEndAt() : null;
 
             List<ImportantMessage> alerts = project.messagesManager()
                     .getAlerts(AbsoluteTimeRange.ofEpochMillis(startMillis, endMillis)).stream()
@@ -114,11 +114,21 @@ public class MessagesGrpcService extends MessagesServiceGrpc.MessagesServiceImpl
                 .setType(msg.type() != null ? msg.type() : "")
                 .setTitle(msg.title() != null ? msg.title() : "")
                 .setMessage(msg.message() != null ? msg.message() : "")
-                .setSeverity(msg.severity().name())
+                .setSeverity(toProtoSeverity(msg.severity()))
                 .setCategory(msg.category() != null ? msg.category() : "")
                 .setSource(msg.source() != null ? msg.source() : "")
                 .setIsAlert(msg.isAlert())
-                .setCreatedAt(String.valueOf(msg.createdAtUs().toEpochMilli()))
+                .setCreatedAt(msg.createdAtUs().toEpochMilli())
                 .build();
+    }
+
+    private static pbouda.jeffrey.api.v1.Severity toProtoSeverity(
+            pbouda.jeffrey.shared.common.model.Severity severity) {
+        return switch (severity) {
+            case CRITICAL -> pbouda.jeffrey.api.v1.Severity.SEVERITY_CRITICAL;
+            case HIGH -> pbouda.jeffrey.api.v1.Severity.SEVERITY_HIGH;
+            case MEDIUM -> pbouda.jeffrey.api.v1.Severity.SEVERITY_MEDIUM;
+            case LOW -> pbouda.jeffrey.api.v1.Severity.SEVERITY_LOW;
+        };
     }
 }

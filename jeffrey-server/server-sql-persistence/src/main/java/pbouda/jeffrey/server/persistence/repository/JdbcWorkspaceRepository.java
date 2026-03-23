@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -25,36 +25,57 @@ import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Clock;
 import java.util.List;
 
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     //language=SQL
-    private static final String DELETE_WORKSPACE =
-            "UPDATE workspaces SET deleted = true WHERE workspace_id = :workspace_id";
+    private static final String BLOCK_WORKSPACE =
+            "UPDATE workspaces SET blocked = true WHERE workspace_id = :workspace_id";
+
+    //language=SQL
+    private static final String UNBLOCK_WORKSPACE =
+            "UPDATE workspaces SET blocked = false WHERE workspace_id = :workspace_id";
+
+    //language=SQL
+    private static final String DELETE_WORKSPACE = """
+            DELETE FROM profiler_settings WHERE workspace_id = '%workspace_id%' AND project_id IS NULL;
+            DELETE FROM persistent_queue_consumers WHERE scope_id = '%workspace_id%';
+            DELETE FROM persistent_queue_events WHERE scope_id = '%workspace_id%';
+            DELETE FROM workspaces WHERE workspace_id = '%workspace_id%'""";
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID = """
-            SELECT * FROM projects
-            JOIN workspaces ON projects.workspace_id = workspaces.workspace_id
-            WHERE workspaces.workspace_id = :workspace_id""";
+            SELECT * FROM projects p
+            JOIN workspaces w ON p.workspace_id = w.workspace_id
+            WHERE w.workspace_id = :workspace_id""";
 
     private final String workspaceId;
     private final DatabaseClient databaseClient;
 
-    public JdbcWorkspaceRepository(String workspaceId, DatabaseClientProvider databaseClientProvider, Clock clock) {
+    public JdbcWorkspaceRepository(String workspaceId, DatabaseClientProvider databaseClientProvider) {
         this.workspaceId = workspaceId;
         this.databaseClient = databaseClientProvider.provide(GroupLabel.WORKSPACES);
     }
 
     @Override
-    public boolean delete() {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+    public void block() {
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("workspace_id", this.workspaceId);
+        databaseClient.update(StatementLabel.BLOCK_WORKSPACE, BLOCK_WORKSPACE, params);
+    }
 
-        int rowsAffected = databaseClient.update(StatementLabel.DELETE_WORKSPACE, DELETE_WORKSPACE, paramSource);
-        return rowsAffected > 0;
+    @Override
+    public void unblock() {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("workspace_id", this.workspaceId);
+        databaseClient.update(StatementLabel.UNBLOCK_WORKSPACE, UNBLOCK_WORKSPACE, params);
+    }
+
+    @Override
+    public void delete() {
+        String sql = DELETE_WORKSPACE.replaceAll("%workspace_id%", workspaceId);
+        databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql);
     }
 
     @Override

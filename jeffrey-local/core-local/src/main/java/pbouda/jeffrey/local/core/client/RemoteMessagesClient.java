@@ -41,10 +41,10 @@ public class RemoteMessagesClient {
                 .setProjectId(projectId);
 
         if (start != null) {
-            requestBuilder.setStartEpochMillis(start);
+            requestBuilder.setStartAt(start);
         }
         if (end != null) {
-            requestBuilder.setEndEpochMillis(end);
+            requestBuilder.setEndAt(end);
         }
 
         GetMessagesResponse response = stub.getMessages(requestBuilder.build());
@@ -63,10 +63,10 @@ public class RemoteMessagesClient {
                 .setProjectId(projectId);
 
         if (start != null) {
-            requestBuilder.setStartEpochMillis(start);
+            requestBuilder.setStartAt(start);
         }
         if (end != null) {
-            requestBuilder.setEndEpochMillis(end);
+            requestBuilder.setEndAt(end);
         }
 
         GetAlertsResponse response = stub.getAlerts(requestBuilder.build());
@@ -80,21 +80,24 @@ public class RemoteMessagesClient {
     }
 
     private static ImportantMessageResponse toResponse(ImportantMessage proto) {
-        long createdAt = 0;
-        try {
-            createdAt = Long.parseLong(proto.getCreatedAt());
-        } catch (NumberFormatException e) {
-            // fallback to 0
-        }
-
         return new ImportantMessageResponse(
                 proto.getType().isEmpty() ? null : proto.getType(),
                 proto.getTitle().isEmpty() ? null : proto.getTitle(),
                 proto.getMessage().isEmpty() ? null : proto.getMessage(),
-                proto.getSeverity(),
+                fromProtoSeverity(proto.getSeverity()),
                 proto.getCategory().isEmpty() ? null : proto.getCategory(),
                 proto.getSource().isEmpty() ? null : proto.getSource(),
                 proto.getIsAlert(),
-                createdAt);
+                proto.getCreatedAt());
+    }
+
+    private static String fromProtoSeverity(pbouda.jeffrey.api.v1.Severity severity) {
+        return switch (severity) {
+            case SEVERITY_CRITICAL -> "CRITICAL";
+            case SEVERITY_HIGH -> "HIGH";
+            case SEVERITY_MEDIUM -> "MEDIUM";
+            case SEVERITY_LOW -> "LOW";
+            default -> "UNKNOWN";
+        };
     }
 }

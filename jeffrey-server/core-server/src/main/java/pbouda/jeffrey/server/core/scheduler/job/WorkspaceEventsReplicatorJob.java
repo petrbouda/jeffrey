@@ -133,7 +133,14 @@ public class WorkspaceEventsReplicatorJob implements Job {
                     LOG.info("Auto-created workspace for CLI event: origin_id={} workspace_id={}",
                             event.workspaceId(), internalWorkspaceId);
                 } else {
-                    internalWorkspaceId = workspaceOpt.get().resolveInfo().id();
+                    WorkspaceInfo workspaceInfo = workspaceOpt.get().localInfo();
+                    if (workspaceInfo.blocked()) {
+                        LOG.debug("Skipping event for blocked workspace: workspace_id={} event_type={}",
+                                event.workspaceId(), event.eventType());
+                        folderQueue.acknowledge(entry.filePath());
+                        continue;
+                    }
+                    internalWorkspaceId = workspaceInfo.id();
                 }
 
                 workspaceEventQueue.append(internalWorkspaceId, event);

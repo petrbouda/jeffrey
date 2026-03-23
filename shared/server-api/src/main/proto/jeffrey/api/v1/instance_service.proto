@@ -5,15 +5,19 @@ package jeffrey.api.v1;
 option java_package = "pbouda.jeffrey.api.v1";
 option java_multiple_files = true;
 
-// Service for project instance management.
+import "jeffrey/api/v1/common.proto";
+
+// Manages project instances — running JVM processes that produce profiling data.
+// Each instance represents a single JVM lifecycle (start to finish) and contains
+// one or more recording sessions.
 service InstanceService {
-  // Lists all instances for a project.
+  // Lists all instances for a project, in all lifecycle states.
   rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
 
-  // Gets a single instance by ID.
+  // Gets detailed information about a single instance.
   rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
 
-  // Lists all sessions for an instance.
+  // Lists all recording sessions within a specific instance.
   rpc ListInstanceSessions(ListInstanceSessionsRequest) returns (ListInstanceSessionsResponse);
 }
 
@@ -46,24 +50,40 @@ message ListInstanceSessionsResponse {
   repeated InstanceSessionInfo sessions = 1;
 }
 
+// A project instance — represents a single JVM process lifecycle.
+// Instances transition through states: PENDING -> ACTIVE -> FINISHED -> EXPIRED.
 message InstanceInfo {
+  // Unique identifier for the instance.
   string id = 1;
+  // Hostname of the machine running this JVM instance.
   string hostname = 2;
-  string status = 3;
-  string created_at = 4;
-  optional string finished_at = 5;
-  optional string expiring_at = 6;
-  optional string expired_at = 7;
+  // Current lifecycle status.
+  InstanceStatus status = 3;
+  // Timestamp when the instance was first detected (epoch millis).
+  int64 created_at = 4;
+  // Timestamp when the instance finished, all sessions completed (epoch millis).
+  optional int64 finished_at = 5;
+  // Timestamp when the instance is scheduled for expiration cleanup (epoch millis).
+  optional int64 expiring_at = 6;
+  // Timestamp when the instance was expired and cleaned up (epoch millis).
+  optional int64 expired_at = 7;
+  // Number of recording sessions in this instance.
   int32 session_count = 8;
+  // ID of the currently active session, if any.
   optional string active_session_id = 9;
-  optional string duration = 10;
 }
 
+// A recording session within an instance.
+// Each session corresponds to a continuous profiling period.
 message InstanceSessionInfo {
+  // Unique identifier for the session.
   string id = 1;
+  // ID of the repository storing the session's recording files.
   string repository_id = 2;
-  string created_at = 3;
-  optional string finished_at = 4;
+  // Timestamp when the session started (epoch millis).
+  int64 created_at = 3;
+  // Timestamp when the session finished, heartbeat went stale or JVM stopped (epoch millis).
+  optional int64 finished_at = 4;
+  // Whether this session is currently active (streaming events).
   bool is_active = 5;
-  optional string duration = 6;
 }

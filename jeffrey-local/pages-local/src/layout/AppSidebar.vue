@@ -69,12 +69,6 @@ async function checkInitializingProfiles() {
 
 
 // Set up message bus listeners for count updates
-function handleJobCountChange(count: number) {
-  if (projectInfo.value) {
-    projectInfo.value.jobCount = count;
-  }
-}
-
 function handleProfileCountChange(count: number) {
   if (projectInfo.value) {
     projectInfo.value.profileCount = count;
@@ -93,7 +87,6 @@ async function fetchProjectDetails() {
   try {
     projectInfo.value = await projectClient.get();
     isLoading.value = false;
-    MessageBus.emit(MessageBus.JOBS_COUNT_CHANGED, projectInfo.value.jobCount);
     MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, projectInfo.value.profileCount);
     MessageBus.emit(MessageBus.RECORDINGS_COUNT_CHANGED, projectInfo.value.recordingCount);
   } catch (error) {
@@ -104,7 +97,6 @@ async function fetchProjectDetails() {
 
 // Component lifecycle hooks
 onMounted(async () => {
-  MessageBus.on(MessageBus.JOBS_COUNT_CHANGED, handleJobCountChange);
   MessageBus.on(MessageBus.PROFILES_COUNT_CHANGED, handleProfileCountChange);
   MessageBus.on(MessageBus.RECORDINGS_COUNT_CHANGED, handleRecordingCountChange);
   MessageBus.on(MessageBus.UPDATE_PROJECT_SETTINGS, fetchProjectDetails);
@@ -149,7 +141,6 @@ function handleProfileInitializationStarted() {
 
 onUnmounted(() => {
   stopPolling(); // Ensure polling is stopped when component unmounts
-  MessageBus.off(MessageBus.JOBS_COUNT_CHANGED);
   MessageBus.off(MessageBus.PROFILES_COUNT_CHANGED);
   MessageBus.off(MessageBus.RECORDINGS_COUNT_CHANGED);
   MessageBus.off(MessageBus.UPDATE_PROJECT_SETTINGS);
@@ -164,7 +155,7 @@ const menuItems = computed(() => [
   { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
     badge: projectInfo.value && projectInfo.value.recordingCount > 0 ? { type: 'info', text: projectInfo.value.recordingCount.toString() } : null },
 { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
-    badge: projectInfo.value && projectInfo.value.jobCount > 0 ? { type: 'warning', text: projectInfo.value.jobCount.toString() } : null },
+    badge: null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
 ]);
 

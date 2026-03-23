@@ -27,7 +27,6 @@ import java.nio.file.Path;
 public class ServerJeffreyDirs implements TempDirFactory {
 
     private static final String WORKSPACES_DIR = "workspaces";
-    private static final String PROFILES_DIR = "profiles";
     private static final String TMP_DIR = "tmp";
     private static final String LIBS_DIR = "libs";
     private static final String EVENTS_DIR = ".events";
@@ -52,10 +51,6 @@ public class ServerJeffreyDirs implements TempDirFactory {
 
     public Path workspaces() {
         return homeDir.resolve(WORKSPACES_DIR);
-    }
-
-    public Path profiles() {
-        return homeDir.resolve(PROFILES_DIR);
     }
 
     public Path homeDir() {

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -59,22 +59,9 @@ class JdbcWorkspacesRepositoryTest {
 
             List<WorkspaceInfo> result = repository.findAll();
 
-            // Should return only non-deleted workspaces
             assertEquals(2, result.size());
             Set<String> names = result.stream().map(WorkspaceInfo::name).collect(Collectors.toSet());
             assertEquals(Set.of("Workspace One", "Workspace Two"), names);
-        }
-
-        @Test
-        void excludesDeletedWorkspaces(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
-            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
-
-            List<WorkspaceInfo> result = repository.findAll();
-
-            Set<String> names = result.stream().map(WorkspaceInfo::name).collect(Collectors.toSet());
-            assertFalse(names.contains("Deleted Workspace"));
         }
     }
 
@@ -100,17 +87,6 @@ class JdbcWorkspacesRepositoryTest {
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
             Optional<WorkspaceInfo> result = repository.find("non-existent-id");
-
-            assertTrue(result.isEmpty());
-        }
-
-        @Test
-        void returnsEmpty_whenWorkspaceIsDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
-            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
-
-            Optional<WorkspaceInfo> result = repository.find("ws-003");
 
             assertTrue(result.isEmpty());
         }
@@ -141,17 +117,6 @@ class JdbcWorkspacesRepositoryTest {
 
             assertTrue(result.isEmpty());
         }
-
-        @Test
-        void returnsEmpty_whenWorkspaceIsDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/workspaces/insert-workspace-with-origin-deleted.sql");
-            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
-
-            Optional<WorkspaceInfo> result = repository.findByOriginId("origin-ws-deleted");
-
-            assertTrue(result.isEmpty());
-        }
     }
 
     @Nested
@@ -171,7 +136,8 @@ class JdbcWorkspacesRepositoryTest {
                     null,
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
-                    0
+                    0,
+                    false
             );
 
             WorkspaceInfo result = repository.create(input);
@@ -206,17 +172,6 @@ class JdbcWorkspacesRepositoryTest {
             JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
 
             boolean result = repository.existsByName("Non Existent");
-
-            assertFalse(result);
-        }
-
-        @Test
-        void returnsFalse_whenWorkspaceIsDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/workspaces/insert-multiple-workspaces.sql");
-            JdbcWorkspacesRepository repository = new JdbcWorkspacesRepository(provider);
-
-            boolean result = repository.existsByName("Deleted Workspace");
 
             assertFalse(result);
         }

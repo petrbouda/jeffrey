@@ -1,32 +1,32 @@
 <template>
   <div
     class="workspace-selection-card"
-    :class="{ 'active': selected }"
+    :class="cardClasses"
     @click="$emit('select')"
   >
     <div class="workspace-card-content">
       <div class="workspace-card-header">
         <div class="workspace-name-container">
-          <i class="bi bi-folder workspace-icon"></i>
+          <i class="bi workspace-icon" :class="iconClass"></i>
           <h6 class="workspace-name">{{ name }}</h6>
         </div>
 
         <!-- Status Badges -->
         <Badge
           v-if="showStatusBadges && status === 'UNAVAILABLE'"
-          :value="'X'"
-          variant="red"
+          value="REMOVED"
+          variant="grey"
           size="s"
         />
         <Badge
           v-else-if="showStatusBadges && status === 'OFFLINE'"
-          :value="'OFFLINE'"
-          variant="red"
+          value="OFFLINE"
+          variant="yellow"
           size="s"
         />
         <Badge
           v-else-if="showStatusBadges && status === 'UNKNOWN'"
-          :value="'?'"
+          value="?"
           variant="yellow"
           size="s"
         />
@@ -40,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+import {computed} from 'vue';
 import Badge from '@/components/Badge.vue';
 
 interface Props {
@@ -51,7 +52,7 @@ interface Props {
   showStatusBadges?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   badgeValue: '0',
   status: 'AVAILABLE',
   showStatusBadges: false
@@ -60,6 +61,18 @@ withDefaults(defineProps<Props>(), {
 defineEmits<{
   select: [];
 }>();
+
+const cardClasses = computed(() => ({
+  'active': props.selected,
+  'status-unavailable': props.status === 'UNAVAILABLE',
+  'status-offline': props.status === 'OFFLINE',
+}));
+
+const iconClass = computed(() => {
+  if (props.status === 'UNAVAILABLE') return 'bi-folder-x';
+  if (props.status === 'OFFLINE') return 'bi-wifi-off';
+  return 'bi-folder';
+});
 </script>
 
 <style scoped>
@@ -100,6 +113,32 @@ defineEmits<{
 
 .workspace-selection-card.active .workspace-icon {
   color: #5e64ff;
+}
+
+/* UNAVAILABLE — workspace removed from server */
+.workspace-selection-card.status-unavailable {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  border-color: rgba(156, 163, 175, 0.3);
+  opacity: 0.75;
+}
+
+.workspace-selection-card.status-unavailable .workspace-icon {
+  color: #9ca3af;
+}
+
+.workspace-selection-card.status-unavailable .workspace-name {
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+/* OFFLINE — server unreachable */
+.workspace-selection-card.status-offline {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.workspace-selection-card.status-offline .workspace-icon {
+  color: #f59e0b;
 }
 
 /* Card Content */

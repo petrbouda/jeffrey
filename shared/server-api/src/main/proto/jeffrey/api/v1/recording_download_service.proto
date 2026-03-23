@@ -5,23 +5,30 @@ package jeffrey.api.v1;
 option java_package = "pbouda.jeffrey.api.v1";
 option java_multiple_files = true;
 
-// Service for downloading recordings and artifacts via server-streaming.
-// Uses streaming RPCs for efficient transfer of large files.
+// Provides server-streaming RPCs for downloading recordings and artifacts.
+// Files are streamed in 64KB chunks to support efficient transfer of large files
+// (JFR recordings, heap dumps) without loading them entirely into memory.
 service RecordingDownloadService {
-  // Streams merged recordings as a single file (64KB chunks).
+  // Merges selected JFR recording files from a session into a single file
+  // and streams the result. If no file_ids are specified, all finished recordings
+  // in the session are merged.
   rpc DownloadMergedRecordings(DownloadMergedRecordingsRequest) returns (stream DataChunk);
 
-  // Streams a single artifact file (heap dump, log, etc.) with validation (64KB chunks).
+  // Streams a single artifact file (heap dump, log, error log, etc.) from a session.
+  // The file must exist and be in FINISHED status.
   rpc DownloadArtifactFile(DownloadArtifactFileRequest) returns (stream DataChunk);
 
-  // Streams a single recording file (JFR) with validation (64KB chunks).
+  // Streams a single JFR recording file from a session.
+  // The file must exist and be in FINISHED status.
   rpc DownloadRecordingFile(DownloadRecordingFileRequest) returns (stream DataChunk);
 }
 
 message DownloadMergedRecordingsRequest {
   string workspace_id = 1;
   string project_id = 2;
+  // The recording session containing the files to merge.
   string session_id = 3;
+  // Specific file IDs to merge. If empty, all finished recordings are merged.
   repeated string file_ids = 4;
 }
 
@@ -29,6 +36,7 @@ message DownloadArtifactFileRequest {
   string workspace_id = 1;
   string project_id = 2;
   string session_id = 3;
+  // The ID of the artifact file to download.
   string file_id = 4;
 }
 
@@ -36,11 +44,16 @@ message DownloadRecordingFileRequest {
   string workspace_id = 1;
   string project_id = 2;
   string session_id = 3;
+  // The ID of the JFR recording file to download.
   string file_id = 4;
 }
 
 // A chunk of binary data for streaming file transfers.
+// The stream consists of sequential chunks that, when concatenated,
+// form the complete file.
 message DataChunk {
+  // Binary content of this chunk (up to 64KB).
   bytes data = 1;
+  // Total size of the complete file in bytes (same value in every chunk).
   int64 total_size = 2;
 }

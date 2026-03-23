@@ -29,7 +29,7 @@ import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.server.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.server.core.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.shared.common.InstantUtils;
+import pbouda.jeffrey.server.core.resources.workspace.Mappers;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
 import java.util.List;
@@ -71,27 +71,7 @@ public class WorkspacesResource {
         ProjectsManager projectsManager = workspace.projectsManager();
         var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
-                .map(detail -> {
-                    ProjectInfo pi = detail.projectInfo();
-                    return new ProjectResponse(
-                            pi.id(),
-                            pi.originId(),
-                            pi.name(),
-                            pi.label(),
-                            pi.namespace(),
-                            InstantUtils.formatInstant(pi.createdAt()),
-                            pi.workspaceId(),
-                            detail.status(),
-                            detail.profileCount(),
-                            detail.recordingCount(),
-                            detail.sessionCount(),
-                            detail.jobCount(),
-                            detail.alertCount(),
-                            detail.eventSource(),
-                            detail.isVirtual(),
-                            detail.isOrphaned(),
-                            false);
-                })
+                .map(Mappers::toProjectResponse)
                 .toList();
         LOG.debug("Listed projects for workspace: workspaceId={} count={}", workspaceId, result.size());
         return result;

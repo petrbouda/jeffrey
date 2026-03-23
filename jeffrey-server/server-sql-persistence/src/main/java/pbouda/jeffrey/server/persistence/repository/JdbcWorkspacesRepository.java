@@ -38,26 +38,31 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     //language=SQL
     private static final String SELECT_ALL_WORKSPACES = """
             SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM workspaces w WHERE w.deleted = false""";
+            FROM workspaces w""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ID = """
             SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM workspaces w WHERE w.workspace_id = :workspace_id AND w.deleted = false""";
+            FROM workspaces w WHERE w.workspace_id = :workspace_id""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ORIGIN_ID = """
             SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
-            FROM workspaces w WHERE w.workspace_origin_id = :workspace_origin_id AND w.deleted = false""";
+            FROM workspaces w WHERE w.workspace_origin_id = :workspace_origin_id""";
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location, deleted, created_at)
-            VALUES (:workspace_id, :workspace_origin_id, :repository_id, :name, :description, :location, :base_location, :deleted, :created_at)""";
+            INSERT INTO workspaces (workspace_id, workspace_origin_id, repository_id, name, description, location, base_location, created_at)
+            VALUES (:workspace_id, :workspace_origin_id, :repository_id, :name, :description, :location, :base_location, :created_at)""";
+
+    //language=SQL
+    private static final String SELECT_ALL_ACTIVE_WORKSPACES = """
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
+            FROM workspaces w WHERE w.blocked = false""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
-            "SELECT COUNT(*) FROM workspaces WHERE name = :name AND deleted = false";
+            "SELECT COUNT(*) FROM workspaces WHERE name = :name";
 
     private final DatabaseClient databaseClient;
 
@@ -70,6 +75,15 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
         return databaseClient.query(
                 StatementLabel.FIND_ALL_WORKSPACES,
                 SELECT_ALL_WORKSPACES,
+                new MapSqlParameterSource(),
+                workspaceMapper());
+    }
+
+    @Override
+    public List<WorkspaceInfo> findAllActive() {
+        return databaseClient.query(
+                StatementLabel.FIND_ALL_WORKSPACES,
+                SELECT_ALL_ACTIVE_WORKSPACES,
                 new MapSqlParameterSource(),
                 workspaceMapper());
     }
@@ -109,7 +123,6 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                 .addValue("description", newWorkspaceInfo.description())
                 .addValue("location", newWorkspaceInfo.location() != null ? newWorkspaceInfo.location().toString() : null)
                 .addValue("base_location", newWorkspaceInfo.baseLocation() != null ? newWorkspaceInfo.baseLocation().toString() : null)
-                .addValue("deleted", false)
                 .addValue("created_at", newWorkspaceInfo.createdAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT_WORKSPACE, paramSource);
@@ -146,7 +159,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
                     ServerMappers.instant(rs, "created_at"),
                     WorkspaceStatus.UNKNOWN,
-                    rs.getInt("project_count")
+                    rs.getInt("project_count"),
+                    rs.getBoolean("blocked")
             );
         };
     }

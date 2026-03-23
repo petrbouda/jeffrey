@@ -20,8 +20,10 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.api.v1.BlockProjectRequest;
 import pbouda.jeffrey.api.v1.DeleteProjectRequest;
 import pbouda.jeffrey.api.v1.ProjectServiceGrpc;
+import pbouda.jeffrey.api.v1.UnblockProjectRequest;
 
 public class RemoteProjectsClient {
 
@@ -40,5 +42,23 @@ public class RemoteProjectsClient {
                 .build());
 
         LOG.debug("Deleted project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+    }
+
+    public void blockProject(String workspaceId, String projectId) {
+        stub.blockProject(BlockProjectRequest.newBuilder()
+                .setWorkspaceId(workspaceId)
+                .setProjectId(projectId)
+                .build());
+
+        LOG.debug("Blocked project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+    }
+
+    public void unblockProject(String workspaceId, String projectId) {
+        stub.unblockProject(UnblockProjectRequest.newBuilder()
+                .setWorkspaceId(workspaceId)
+                .setProjectId(projectId)
+                .build());
+
+        LOG.debug("Unblocked project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.server.core.jfr.JfrMessageEmitter;
 import pbouda.jeffrey.server.core.project.repository.RepositoryStorage;
-import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
@@ -30,8 +29,6 @@ import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsumer {
@@ -40,16 +37,13 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
 
     private final ServerPlatformRepositories platformRepositories;
     private final RepositoryStorage.Factory remoteRepositoryStorageFactory;
-    private final Path profilesDir;
 
     public DeleteProjectWorkspaceEventConsumer(
             ServerPlatformRepositories platformRepositories,
-            RepositoryStorage.Factory remoteRepositoryStorageFactory,
-            Path profilesDir) {
+            RepositoryStorage.Factory remoteRepositoryStorageFactory) {
 
         this.platformRepositories = platformRepositories;
         this.remoteRepositoryStorageFactory = remoteRepositoryStorageFactory;
-        this.profilesDir = profilesDir;
     }
 
     @Override
@@ -61,13 +55,7 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
         }
         ProjectManager projectManager = project.get();
 
-        // 1. Collect profile IDs for filesystem cleanup BEFORE SQL cascade deletes them
-        List<String> profileIds = platformRepositories.newProjectRepository(projectManager.info().id())
-                .findAllProfiles().stream()
-                .map(p -> p.id())
-                .toList();
-
-        // 2. Delete remote repository storage sessions
+        // 1. Delete remote repository storage sessions
         try {
             RepositoryStorage remoteStorage = remoteRepositoryStorageFactory.apply(projectManager.info());
             remoteStorage.listSessions(false).forEach(session -> {
@@ -81,19 +69,9 @@ public class DeleteProjectWorkspaceEventConsumer implements WorkspaceEventConsum
             LOG.warn("Failed to clean up remote storage for project: projectId={}", event.projectId(), e);
         }
 
-        // 3. SQL cascade deletes ALL metadata (including profiles, instances, sessions, etc.)
+        // 2. SQL cascade deletes all project metadata (instances, sessions, schedulers, etc.)
         platformRepositories.newProjectRepository(projectManager.info().id())
                 .delete();
-
-        // 4. Best-effort filesystem cleanup for profile directories
-        for (String profileId : profileIds) {
-            try {
-                Path profileDirectory = profilesDir.resolve(profileId);
-                FileSystemUtils.removeDirectory(profileDirectory);
-            } catch (Exception e) {
-                LOG.warn("Failed to delete profile directory, will be cleaned by orphan job: profileId={}", profileId, e);
-            }
-        }
 
         LOG.debug("Deleted project from workspace event: project_id={}", event.projectId());
         JfrMessageEmitter.projectDeleted(event.projectId());

@@ -88,7 +88,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
-            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of());
+            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false);
 
     private static final RepositoryInfo REPO_INFO = new RepositoryInfo(
             "repo-001", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
@@ -111,7 +111,7 @@ class ProjectsSynchronizerJobIntegrationTest {
                 new StartStreamingWorkspaceEventConsumer(streamingConsumerManager, platformRepositories),
                 new StopStreamingWorkspaceEventConsumer(streamingConsumerManager),
                 new DeleteSessionWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, FIXED_CLOCK),
-                new DeleteProjectWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory, JEFFREY_DIRS.profiles()));
+                new DeleteProjectWorkspaceEventConsumer(platformRepositories, remoteRepositoryStorageFactory));
     }
 
     private static WorkspaceEvent projectCreatedEvent(String originProjectId) {
@@ -164,7 +164,7 @@ class ProjectsSynchronizerJobIntegrationTest {
             var queue = createQueue(dataSource);
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -219,7 +219,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
@@ -287,7 +287,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -355,7 +355,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
@@ -430,7 +430,7 @@ class ProjectsSynchronizerJobIntegrationTest {
 
             WorkspaceInfo wsInfo = new WorkspaceInfo(
                     WORKSPACE_ID, null, null, "Test Workspace", null, null, null,
-                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0);
+                    Instant.parse("2025-01-01T10:00:00Z"), WorkspaceStatus.AVAILABLE, 0, false);
             when(workspaceManager.resolveInfo()).thenReturn(wsInfo);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));

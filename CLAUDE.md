@@ -4,97 +4,108 @@
 Jeffrey is a JFR (Java Flight Recorder) analysis tool that specializes in visualizing JFR events using various types of graphs. The project helps developers profile Java applications and identify performance bottlenecks to optimize code for better speed and resource consumption.
 
 ## Architecture
-This is a full-stack application with:
-- **Backend**: Java 25 + Spring Boot 4.0.0 + Jersey/JAX-RS
-- **Frontend**: Vue 3 SPA with TypeScript
+This is a full-stack application with two deployment modes:
+- **Backend**: Java 25 + Spring Boot 4.0.4 + Jersey/JAX-RS + gRPC 1.72.0
+- **Frontend**: Vue 3 SPA with TypeScript (separate frontends for local and server deployments)
 - **Build System**: Maven (Java) + Vite (Frontend)
-- **Database**: DuckDB 1.4.1.0 (platform DB + per-profile DBs)
-- **AI Integration**: Spring AI 2.0.0-M2 (Claude/OpenAI providers)
+- **Database**: DuckDB 1.5.0.0 (three-tier: local core DB + server DB + per-profile DBs)
+- **AI Integration**: Spring AI 2.0.0-M3 (Claude/OpenAI providers)
+- **Remote Communication**: gRPC (proto files in `shared/server-api/`)
 - **CLI**: GraalVM Native Image
 
-### Backend Domain Architecture
+### Deployment Architecture
 
-The backend is organized into three top-level directories: **platform/**, **profiles/**, and **shared/**
+The project supports two deployment modes: **jeffrey-local** (standalone) and **jeffrey-server** (multi-workspace server). They share common modules via **shared/**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        PLATFORM                                  │
-│  Workspaces → Projects → Recordings → Profiles List              │
-│  + Sessions, Scheduling, Remote Workspaces                       │
+│                     JEFFREY-LOCAL (standalone)                    │
+│  LocalApplication — full-featured single-user deployment         │
 │                                                                  │
-│  Module: platform/platform-management                            │
-│  Persistence: platform/platform-sql-persistence                  │
-│  Providers: platform/providers/                                  │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ triggers profile creation/analysis
-                               ▼
+│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │  core-local   │  │  pages-local      │  │  profiles/       │  │
+│  │  REST + gRPC  │  │  Full Vue 3 SPA   │  │  Profile analysis │  │
+│  │  clients      │  │                   │  │  modules          │  │
+│  └──────────────┘  └──────────────────┘  └──────────────────┘  │
+│                                                                  │
+│  Persistence: local-core-sql-persistence (local core DB)         │
+│  + profiles/profile-sql-persistence (per-profile DBs)            │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ gRPC communication
+                           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                       PROFILES                                   │
+│                     JEFFREY-SERVER (remote)                       │
+│  ServerApplication — multi-workspace server with scheduling      │
 │                                                                  │
-│  ┌───────────────────────┐       ┌───────────────────────────┐  │
-│  │   recording-parser    │       │   profile-management      │  │
-│  │                       │       │                           │  │
-│  │  Path/InputStream     │       │  ProfileManager           │  │
-│  │        ↓              │──────>│  Analysis features        │  │
-│  │  Parse JFR → Store DB │       │  (Flamegraph, Timeseries,  │  │
-│  │        ↓              │       │   Guardian, GC, Threads,  │  │
-│  │  Returns ProfileInfo  │       │   HeapDump, AI Analysis)  │  │
-│  │                       │       │                           │  │
-│  │  profiles/recording-parser    │  profiles/profile-management │
-│  └───────────────────────┘       └───────────────────────────┘  │
+│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │  core-server  │  │  pages-server     │  │  shared/          │  │
+│  │  gRPC services│  │  Minimal Vue 3    │  │  persistent-queue │  │
+│  │  scheduler    │  │  UI               │  │                   │  │
+│  └──────────────┘  └──────────────────┘  └──────────────────┘  │
 │                                                                  │
-│  AI: profiles/ai-assistant, profiles/duckdb-ai-mcp,             │
-│      profiles/heap-dump-ai-mcp                                   │
-│  Persistence: profiles/profile-sql-persistence                   │
+│  Persistence: server-sql-persistence (server DB)                 │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                        SHARED                                    │
 │  Common utilities, persistence abstractions, test infrastructure │
-│  Module: shared/common, shared/persistence, shared/test          │
+│  gRPC proto definitions, storage, SQL builder                    │
+│  Modules: common, persistence, test, server-api, sql-builder,   │
+│           recording-storage-api, filesystem-recording-storage,   │
+│           folder-queue, persistent-queue                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Platform** (`platform/`):
-- `platform-management` — Workspaces, projects, recordings, sessions, scheduling, remote workspace support
-- `platform-sql-persistence` — Platform-level DuckDB persistence (shared database)
-- `platform-persistence-api` — Persistence interfaces for platform domain
-- `providers/` — Recording storage (filesystem-recording-storage, recording-storage-api)
-- `sql-builder` — SQL query building utilities
-- `jfr-repository-parser` — JFR repository streaming parser
-- `persistent-queue` — Durable event queue
-- `tools` — JDK tooling utilities
-- REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/public/**`
+**jeffrey-local** (`jeffrey-local/`):
+- `core-local` — Main Spring Boot app (LocalApplication), REST resources, managers, gRPC clients for remote workspace communication
+- `local-core-persistence-api` — Persistence interfaces for local core domain
+- `local-core-sql-persistence` — DuckDB persistence for local core (workspaces, projects, recordings, remote workspace connections)
+- `pages-local` — Full-featured Vue 3 SPA frontend
+- `profiles/` — All profile analysis modules (see below)
+- REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
 
-**Profiles** (`profiles/`):
-- `profile-management` — All profile analysis features (Flamegraph, Timeseries, Guardian, GC, Threads, HeapDump, AI)
+**jeffrey-local/profiles/** (profile analysis, used only by jeffrey-local):
+- `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, Guardian, GC, Threads, HeapDump, AI)
 - `recording-parser/` — JFR parsing (jfr-parser-api, jdk-jfr-parser, db-jfr-parser)
 - `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
 - `profile-persistence-api` — Persistence interfaces for profile domain
 - `common-profile` — Shared profile utilities
 - `flamegraph`, `timeseries`, `subsecond`, `profile-guardian`, `profile-thread`, `frame-ir` — Analysis modules
 - `heap-dump` — Heap dump analysis
-- `ai-assistant` — AI-powered profile analysis
+- `ai-config` — AI configuration for profile analysis
+- `oql-assistant` — OQL AI assistant
 - `duckdb-ai-mcp`, `heap-dump-ai-mcp` — MCP servers for AI integration
-- REST resources: `/api/internal/profiles/**`
 
-**Shared** (`shared/`):
+**jeffrey-server** (`jeffrey-server/`):
+- `core-server` — Main Spring Boot app (ServerApplication), gRPC service implementations, scheduler/jobs, JFR streaming
+- `server-persistence-api` — Persistence interfaces for server domain
+- `server-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)
+- `pages-server` — Minimal Vue 3 frontend
+- `shared/persistent-queue` — Server-specific persistent queue
+
+**shared** (`shared/`):
 - `common` — Shared utilities and models
 - `persistence` — Common persistence abstractions
 - `test` — Test infrastructure (`@DuckDBTest` annotation, test utilities)
+- `server-api` — gRPC proto files at `src/main/proto/jeffrey/api/v1/`
+- `sql-builder` — SQL query building utilities
+- `recording-storage-api` — Storage interfaces
+- `filesystem-recording-storage` — Filesystem storage implementation
 - `folder-queue` — File-based queue implementation
-- `turso-datasource` — Turso database support
+- `persistent-queue` — Durable event queue
 
 ## Technology Stack
 
 ### Backend (Java)
 - **Java**: Version 25
-- **Spring Boot**: 4.0.0 with Jersey/JAX-RS for REST APIs
+- **Spring Boot**: 4.0.4 with Jersey/JAX-RS for REST APIs
 - **Maven**: Build tool and dependency management
-- **DuckDB**: 1.4.1.0 — Two-tier database architecture (platform DB + per-profile DBs)
+- **DuckDB**: 1.5.0.0 — Three-tier database architecture (local core DB + server DB + per-profile DBs)
 - **Flyway**: 10.24.0 for database migrations
-- **Jackson**: 2.19.2 for JSON serialization
-- **Spring AI**: 2.0.0-M2 for AI integration (Claude/OpenAI)
+- **Jackson**: 2.21.1 for JSON serialization
+- **gRPC**: 1.72.0 for remote workspace communication (replaces old REST public API)
+- **Protobuf**: 4.30.2 for gRPC message serialization
+- **Spring AI**: 2.0.0-M3 for AI integration (Claude/OpenAI)
 - **Logging**: SLF4J with Logback
 
 ### Frontend (Vue 3)
@@ -115,53 +126,72 @@ The backend is organized into three top-level directories: **platform/**, **prof
 
 ```
 jeffrey/
-├── platform/                          # Platform domain (workspaces, projects, recordings)
-│   ├── platform-management/           # Core platform logic + REST resources
-│   ├── platform-persistence-api/      # Platform persistence interfaces
-│   ├── platform-sql-persistence/      # Platform DuckDB persistence
-│   ├── providers/                     # Recording storage providers
-│   │   ├── recording-storage-api/     # Storage interfaces
-│   │   └── filesystem-recording-storage/
-│   ├── jfr-repository-parser/         # JFR repository streaming parser
-│   ├── persistent-queue/              # Durable event queue
-│   ├── sql-builder/                   # SQL query building
-│   └── tools/                         # JDK tooling utilities
-├── profiles/                          # Profile analysis domain
-│   ├── profile-management/            # Profile analysis features + REST resources
-│   ├── recording-parser/              # JFR parsing
-│   │   ├── jfr-parser-api/            # Parser interfaces
-│   │   ├── jdk-jfr-parser/            # JDK-based parser
-│   │   └── db-jfr-parser/             # Database-based parser
-│   ├── profile-persistence-api/       # Profile persistence interfaces
-│   ├── profile-sql-persistence/       # Per-profile DuckDB persistence
-│   ├── common-profile/                # Shared profile utilities
-│   ├── flamegraph/                    # Flame graph generation
-│   ├── timeseries/                    # Time series analysis
-│   ├── subsecond/                     # Sub-second analysis
-│   ├── profile-guardian/              # Profile validation/checks
-│   ├── profile-thread/                # Thread analysis
-│   ├── frame-ir/                      # Frame intermediate representation
-│   ├── heap-dump/                     # Heap dump analysis
-│   ├── ai-assistant/                  # AI-powered analysis
-│   ├── duckdb-ai-mcp/                 # DuckDB MCP server for AI
-│   └── heap-dump-ai-mcp/             # Heap dump MCP server for AI
-├── shared/                            # Shared modules
+├── jeffrey-local/                     # Standalone local deployment
+│   ├── core-local/                    # Main Spring Boot app (LocalApplication)
+│   │   └── src/.../local/core/
+│   │       ├── client/                # gRPC clients (RemoteClients, Remote*Client)
+│   │       ├── manager/               # Managers (project/, workspace/, downloads, recordings, etc.)
+│   │       └── resources/             # REST resources (project/, workspace/, ProfilesResource, etc.)
+│   ├── local-core-persistence-api/    # Local core persistence interfaces
+│   ├── local-core-sql-persistence/    # Local core DuckDB persistence
+│   ├── pages-local/                   # Full-featured Vue 3 SPA frontend
+│   │   └── src/
+│   │       ├── assets/                # Design tokens, SCSS, static assets
+│   │       ├── components/            # Reusable Vue components
+│   │       ├── composables/           # Vue 3 composables (useModal, useNavigation, etc.)
+│   │       ├── services/              # API clients and utilities
+│   │       │   └── api/               # BasePlatformClient, BaseProfileClient, feature clients
+│   │       ├── stores/                # Simple ref-based stores
+│   │       ├── styles/                # Shared CSS files
+│   │       ├── views/                 # Page components
+│   │       └── router/                # Vue Router configuration
+│   └── profiles/                      # Profile analysis modules
+│       ├── profile-management/        # Profile analysis features + REST resources
+│       │   └── src/.../profile/
+│       │       ├── manager/           # Profile managers
+│       │       └── resources/         # Profile REST resources (Flamegraph, Timeseries, etc.)
+│       ├── recording-parser/          # JFR parsing
+│       │   ├── jfr-parser-api/        # Parser interfaces
+│       │   ├── jdk-jfr-parser/        # JDK-based parser
+│       │   └── db-jfr-parser/         # Database-based parser
+│       ├── profile-persistence-api/   # Profile persistence interfaces
+│       ├── profile-sql-persistence/   # Per-profile DuckDB persistence
+│       ├── common-profile/            # Shared profile utilities
+│       ├── flamegraph/                # Flame graph generation
+│       ├── timeseries/                # Time series analysis
+│       ├── subsecond/                 # Sub-second analysis
+│       ├── profile-guardian/          # Profile validation/checks
+│       ├── profile-thread/            # Thread analysis
+│       ├── frame-ir/                  # Frame intermediate representation
+│       ├── heap-dump/                 # Heap dump analysis
+│       ├── ai-config/                 # AI configuration
+│       ├── oql-assistant/             # OQL AI assistant
+│       ├── duckdb-ai-mcp/            # DuckDB MCP server for AI
+│       └── heap-dump-ai-mcp/         # Heap dump MCP server for AI
+├── jeffrey-server/                    # Multi-workspace server deployment
+│   ├── core-server/                   # Main Spring Boot app (ServerApplication)
+│   │   └── src/.../server/core/
+│   │       ├── grpc/                  # gRPC service implementations
+│   │       ├── scheduler/             # Job scheduler, job definitions
+│   │       │   └── job/               # Job implementations + descriptor/
+│   │       ├── resources/             # REST resources (WorkspacesResource, GrpcDocsResource)
+│   │       └── streaming/             # JFR streaming
+│   ├── server-persistence-api/        # Server persistence interfaces
+│   ├── server-sql-persistence/        # Server DuckDB persistence
+│   ├── pages-server/                  # Minimal Vue 3 frontend
+│   └── shared/                        # Server-specific shared modules
+│       └── persistent-queue/          # Server persistent queue
+├── shared/                            # Shared modules (used by both deployments)
 │   ├── common/                        # Common utilities and models
 │   ├── persistence/                   # Common persistence abstractions
 │   ├── test/                          # Test infrastructure (@DuckDBTest)
+│   ├── server-api/                    # gRPC proto definitions
+│   │   └── src/main/proto/jeffrey/api/v1/  # Proto files
+│   ├── sql-builder/                   # SQL query building
+│   ├── recording-storage-api/         # Storage interfaces
+│   ├── filesystem-recording-storage/  # Filesystem storage implementation
 │   ├── folder-queue/                  # File-based queue
-│   └── turso-datasource/             # Turso database support
-├── pages/                             # Vue.js frontend application
-│   ├── src/
-│   │   ├── assets/                    # Design tokens, SCSS, static assets
-│   │   ├── components/                # Reusable Vue components
-│   │   ├── composables/               # Vue 3 composables (useModal, useNavigation, etc.)
-│   │   ├── services/                  # API clients and utilities
-│   │   │   └── api/                   # BasePlatformClient, BaseProfileClient, feature clients
-│   │   ├── stores/                    # Simple ref-based stores
-│   │   ├── views/                     # Page components
-│   │   └── router/                    # Vue Router configuration
-│   └── package.json
+│   └── persistent-queue/             # Durable event queue
 ├── jeffrey-cli/                       # CLI tool (GraalVM Native Image)
 ├── jeffrey-agent/                     # Agent module
 ├── jeffrey-pages/                     # Documentation site
@@ -170,8 +200,10 @@ jeffrey/
 │   ├── build-server/                  # Server application assembly
 │   ├── build-cli/                     # CLI build
 │   ├── build-cli-native/             # Native image build
-│   └── build-agent/                   # Agent build
+│   ├── build-agent/                   # Agent build
+│   └── scripts/                       # Build scripts
 ├── jmh-tests/                         # JMH benchmarks
+├── manual-tests/                      # Manual testing
 ├── docker/                            # Docker configurations
 └── pom.xml                            # Root Maven configuration
 ```
@@ -179,14 +211,15 @@ jeffrey/
 ## Code Style and Conventions
 
 ### Java Backend
-- **Package Structure**: `pbouda.jeffrey.*` with feature-based organization
+- **Package Structure**: `pbouda.jeffrey.local.*` for local deployment, `pbouda.jeffrey.server.*` for server deployment, `pbouda.jeffrey.profile.*` for profiles, `pbouda.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Jersey/JAX-RS with `@Path` annotations, constructor injection (not `@Autowired`)
+- **gRPC**: Proto files in `shared/server-api/`, implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data
-- **Two-Tier Persistence**: Platform DB (shared, all workspaces/projects) + Profile DB (isolated per profile)
-- **Resource Hierarchy**: Internal (`/api/internal/`) for frontend, Public (`/api/public/`) for remote workspace communication
+- **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)
+- **Resource Hierarchy**: Internal (`/api/internal/`) for frontend, gRPC for remote workspace communication
 - **Copyright Headers**: All Java files must include the AGPL license header with the current year (2026):
   ```java
   /*
@@ -222,12 +255,12 @@ jeffrey/
 - **Components**: PascalCase for component names
 - **Composition API**: Preferred over Options API
 - **TypeScript**: Strict typing with interfaces for API models
-- **Design Tokens**: CSS custom properties in `pages/src/assets/design-tokens.css` — always use these for colors, spacing, typography
-- **Composables**: Reusable reactive logic in `pages/src/composables/` (useModal, useNavigation, useAiAnalysis, useWorkspaceType, etc.)
-- **API Clients**: Two base classes in `pages/src/services/api/`:
+- **Design Tokens**: CSS custom properties in `jeffrey-local/pages-local/src/assets/design-tokens.css` — always use these for colors, spacing, typography
+- **Composables**: Reusable reactive logic in `jeffrey-local/pages-local/src/composables/` (useModal, useNavigation, useAiAnalysis, useWorkspaceType, etc.)
+- **API Clients**: Two base classes in `jeffrey-local/pages-local/src/services/api/`:
   - `BasePlatformClient` — for workspace/project APIs (used by WorkspaceClient, ProjectClient)
   - `BaseProfileClient` — for profile feature APIs (used by OqlAssistantClient, ProfileMethodTracingClient, etc.)
-- **State Management**: Simple ref-based stores in `pages/src/stores/` (not Pinia)
+- **State Management**: Simple ref-based stores in `jeffrey-local/pages-local/src/stores/` (not Pinia)
 - **Protobuf**: Used for flamegraph binary data; regenerate with `npm run proto:generate`
 - **Styling**: Use shared CSS files first, then scoped CSS for component-specific styles
   - **Shared CSS files** (import via `import '@/styles/...'` or `@import` in SCSS):
@@ -245,25 +278,28 @@ jeffrey/
   ```bash
   JAVA_HOME=/Users/petrbouda/.sdkman/candidates/java/25.0.1-amzn /Users/petrbouda/.sdkman/candidates/maven/current/bin/mvn clean compile
   ```
-- **Frontend Dev**: `cd pages && npm run dev`
-- **Frontend Build**: `cd pages && npm run build`
-- **Frontend Lint**: `cd pages && npm run lint`
-- **Frontend Format**: `cd pages && npm run format`
-- **Frontend Test**: `cd pages && npm run test`
-- **Frontend Protobuf**: `cd pages && npm run proto:generate`
+- **Frontend Dev**: `cd jeffrey-local/pages-local && npm run dev`
+- **Frontend Build**: `cd jeffrey-local/pages-local && npm run build`
+- **Frontend Lint**: `cd jeffrey-local/pages-local && npm run lint`
+- **Frontend Format**: `cd jeffrey-local/pages-local && npm run format`
+- **Frontend Test**: `cd jeffrey-local/pages-local && npm run test`
+- **Frontend Protobuf**: `cd jeffrey-local/pages-local && npm run proto:generate`
 
 ## API Structure
-- Two API paths: `/api/internal/` (frontend-facing) and `/api/public/` (remote workspace communication)
-- Implemented using Jersey/JAX-RS (not Spring MVC)
-- Platform resources in `platform/platform-management/.../resources/`
-- Profile resources in `profiles/profile-management/.../resources/`
-- JSON data exchange format
+- **jeffrey-local REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-local/core-local/.../resources/`
+- **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — resources in `jeffrey-local/profiles/profile-management/.../resources/`
+- **jeffrey-server REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-server/core-server/.../resources/`
+- **gRPC**: Remote workspace communication between jeffrey-local and jeffrey-server — proto definitions in `shared/server-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
+- gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `messages_service.proto`
+- gRPC clients: `RemoteClients` record containing `RemoteDiscoveryClient`, `RemoteRepositoryClient`, `RemoteRecordingStreamClient`, `RemoteProfilerClient`, `RemoteMessagesClient`, `RemoteInstancesClient`, `RemoteProjectsClient`
+- Implemented using Jersey/JAX-RS (not Spring MVC) for REST
+- JSON data exchange format for REST, Protobuf for gRPC
 - Multi-part file uploads for JFR files
 
 ## Development Workflow
-1. Backend development in Java with Spring Boot
-2. Frontend development with Vue 3 and TypeScript
-3. Integration through REST APIs
+1. Backend development in Java with Spring Boot (two deployment targets: local and server)
+2. Frontend development with Vue 3 and TypeScript (primary UI in `jeffrey-local/pages-local/`)
+3. Integration through REST APIs (local) and gRPC (server communication)
 4. Docker containerization for deployment
 5. Maven for Java build management, npm for frontend dependencies
 
@@ -272,25 +308,27 @@ jeffrey/
 - **Backend**: Mockito for mocking dependencies
 - **Backend**: `@DuckDBTest` custom annotation for database integration tests (from `shared/test`)
 - **Backend**: Use `java.time.Clock` instead of real timestamps to fix time
-- **Frontend**: Vitest (`cd pages && npm run test`)
+- **Frontend**: Vitest (`cd jeffrey-local/pages-local && npm run test`)
 
 ## AI Integration
-- Spring AI 2.0.0-M2 with Claude and OpenAI providers
-- AI modules: `profiles/ai-assistant/`, `profiles/duckdb-ai-mcp/`, `profiles/heap-dump-ai-mcp/`
+- Spring AI 2.0.0-M3 with Claude and OpenAI providers
+- AI modules: `jeffrey-local/profiles/ai-config/`, `jeffrey-local/profiles/oql-assistant/`, `jeffrey-local/profiles/duckdb-ai-mcp/`, `jeffrey-local/profiles/heap-dump-ai-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-6`
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data
 
 ### Structure of the Database
-- Two-tier architecture: platform database (shared) and per-profile databases (isolated)
-- Platform DB: workspaces, projects, recordings, sessions, scheduling
+- Three-tier architecture: local core database, server database, and per-profile databases (isolated)
+- Local Core DB: workspaces, projects, recordings, remote workspace connections
+- Server DB: server-side workspaces, projects, scheduling
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile
 
 ### Database Schema
-- Platform migrations: `platform/platform-sql-persistence/src/main/resources/db/migration/platform/V001__init.sql`
-- Profile migrations: `profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
+- Local Core migrations: `jeffrey-local/local-core-sql-persistence/src/main/resources/db/migration/local/core/V001__init.sql`
+- Server migrations: `jeffrey-server/server-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
+- Profile migrations: `jeffrey-local/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
 - JSONB `fields` column in the `events` table contains event-specific data — see `/jfr-event-fields` skill for full field reference per event type
 
@@ -300,8 +338,9 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 
 | Code module | Documentation pages |
 |---|---|
-| `platform/platform-management` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, scheduler, profiler settings, alerts |
-| `profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
+| `jeffrey-local/core-local` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, profiler settings, alerts |
+| `jeffrey-server/core-server` | `jeffrey-pages/src/views/docs/platform/` — scheduler |
+| `jeffrey-local/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
 | `jeffrey-cli/` | `jeffrey-pages/src/views/docs/cli/` — CLI overview, configuration, directory structure, generated output |
 | Architecture changes | `jeffrey-pages/src/views/docs/architecture/` — overview, public API, storage |
 | Deployment changes | `jeffrey-pages/src/views/docs/deployments/` — JAR, container, live recording |

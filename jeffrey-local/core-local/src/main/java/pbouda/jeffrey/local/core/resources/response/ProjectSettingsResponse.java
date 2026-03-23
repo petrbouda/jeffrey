@@ -25,9 +25,10 @@ public record ProjectSettingsResponse(
         String id,
         String name,
         String description,
-        String createdAt) {
+        String createdAt,
+        boolean blocked) {
 
     public ProjectSettingsResponse(ProjectInfo projectInfo) {
-        this(projectInfo.id(), projectInfo.name(), null, InstantUtils.formatInstant(projectInfo.createdAt()));
+        this(projectInfo.id(), projectInfo.name(), null, InstantUtils.formatInstant(projectInfo.createdAt()), projectInfo.blocked());
     }
 }

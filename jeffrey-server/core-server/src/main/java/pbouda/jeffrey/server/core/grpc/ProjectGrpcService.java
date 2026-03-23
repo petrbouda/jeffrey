@@ -111,6 +111,46 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
         }
     }
 
+    @Override
+    public void blockProject(BlockProjectRequest request, StreamObserver<BlockProjectResponse> responseObserver) {
+        try {
+            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            project.block();
+
+            LOG.info("Blocked project via gRPC: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId());
+
+            responseObserver.onNext(BlockProjectResponse.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to block project: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void unblockProject(UnblockProjectRequest request, StreamObserver<UnblockProjectResponse> responseObserver) {
+        try {
+            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            project.unblock();
+
+            LOG.info("Unblocked project via gRPC: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId());
+
+            responseObserver.onNext(UnblockProjectResponse.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to unblock project: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
     private WorkspaceManager findWorkspace(String workspaceId) {
         return workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Status.NOT_FOUND
@@ -135,19 +175,23 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
                 .setName(info.name())
                 .setLabel(info.label() != null ? info.label() : "")
                 .setNamespace(info.namespace() != null ? info.namespace() : "")
-                .setCreatedAt(InstantUtils.formatInstant(info.createdAt()) != null
-                        ? InstantUtils.formatInstant(info.createdAt()) : "")
+                .setCreatedAt(info.createdAt() != null ? info.createdAt().toEpochMilli() : 0)
                 .setWorkspaceId(info.workspaceId())
-                .setStatus(detail.status().name())
-                .setProfileCount(detail.profileCount())
-                .setRecordingCount(detail.recordingCount())
+                .setStatus(toProtoRecordingStatus(detail.status()))
                 .setSessionCount(detail.sessionCount())
-                .setJobCount(detail.jobCount())
-                .setAlertCount(detail.alertCount())
-                .setEventSource(detail.eventSource() != null ? detail.eventSource().name() : "")
-                .setIsVirtual(detail.isVirtual())
-                .setIsOrphaned(detail.isOrphaned())
-                .setCollectorOnlyModeEnabled(false)
+                .setIsBlocked(detail.isBlocked())
                 .build();
+    }
+
+    private static pbouda.jeffrey.api.v1.RecordingStatus toProtoRecordingStatus(
+            pbouda.jeffrey.shared.common.model.repository.RecordingStatus status) {
+        if (status == null) {
+            return pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+        }
+        return switch (status) {
+            case ACTIVE -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
+            case FINISHED -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
+            case UNKNOWN -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+        };
     }
 }

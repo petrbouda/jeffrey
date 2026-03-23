@@ -53,6 +53,15 @@
             >
           </div>
           <button
+              v-if="hasBlockedProjects"
+              class="context-btn"
+              :class="{ active: showBlockedProjects }"
+              @click="toggleBlockedProjects"
+              :title="showBlockedProjects ? 'Hide blocked projects' : 'Show blocked projects'"
+          >
+            <i class="bi bi-eye-slash"></i>
+          </button>
+          <button
               class="context-btn danger"
               @click="handleDeleteWorkspace()"
               :disabled="!canDeleteWorkspace()"
@@ -81,15 +90,34 @@
           </div>
         </div>
 
-        <!-- Unavailable Workspace Info -->
-        <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE" class="workspace-unavailable-info mb-4">
-          <div class="alert alert-danger d-flex align-items-center">
-            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-            <div>
-              <strong>Remote workspace is no longer available</strong><br>
-              <small class="text-muted">The workspace may have been deleted on the remote Jeffrey instance. You can remove this workspace reference.</small>
+        <!-- Unavailable Workspace — removed from server -->
+        <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE" class="workspace-status-banner unavailable-banner mb-4">
+          <div class="banner-content">
+            <i class="bi bi-folder-x banner-icon"></i>
+            <div class="banner-text">
+              <strong>This workspace has been removed from the remote server</strong>
+              <span class="banner-hint">All local data (profiles, recordings) will be deleted when you remove this workspace.</span>
             </div>
           </div>
+          <button class="btn-action btn-action-secondary" @click="handleDeleteWorkspace()">
+            <i class="bi bi-trash3"></i>
+            Delete Workspace
+          </button>
+        </div>
+
+        <!-- Offline Workspace — server unreachable -->
+        <div v-else-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="workspace-status-banner offline-banner mb-4">
+          <div class="banner-content">
+            <i class="bi bi-wifi-off banner-icon"></i>
+            <div class="banner-text">
+              <strong>Cannot reach the remote server</strong>
+              <span class="banner-hint">The server may be down or there is a network issue. Projects cannot be loaded.</span>
+            </div>
+          </div>
+          <button class="btn-action btn-action-secondary" @click="refreshProjects">
+            <i class="bi bi-arrow-clockwise"></i>
+            Retry
+          </button>
         </div>
 
         <!-- Loading indicator -->
@@ -187,6 +215,8 @@ const selectedWorkspace = ref<string>('');
 const projects = ref<Project[]>([]);
 const filteredProjects = ref<Project[]>([]);
 const searchQuery = ref('');
+const showBlockedProjects = ref(false);
+const hasBlockedProjects = computed(() => projects.value.some(p => p.isBlocked));
 const errorMessage = ref('');
 const loading = ref(true);
 
@@ -349,16 +379,27 @@ onMounted(async () => {
 
 
 const filterProjects = () => {
-  // Apply search filter to all projects (workspace filtering is now handled by backend)
-  if (!searchQuery.value.trim()) {
-    filteredProjects.value = [...projects.value];
-    return;
+  let result = projects.value;
+
+  // Filter blocked projects unless toggle is on
+  if (!showBlockedProjects.value) {
+    result = result.filter(project => !project.isBlocked);
   }
 
-  const query = searchQuery.value.toLowerCase();
-  filteredProjects.value = projects.value.filter(project =>
-      project.name.toLowerCase().includes(query)
-  );
+  // Apply search filter
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(project =>
+        project.name.toLowerCase().includes(query)
+    );
+  }
+
+  filteredProjects.value = result;
+};
+
+const toggleBlockedProjects = () => {
+  showBlockedProjects.value = !showBlockedProjects.value;
+  filterProjects();
 };
 
 const handleWorkspaceClick = (workspaceId: string) => {
@@ -430,6 +471,81 @@ const confirmDeleteWorkspace = async () => {
 
 <style scoped>
 @import '@/styles/shared-components.css';
+
+/* Workspace Status Banners */
+.workspace-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.banner-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.banner-hint {
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.unavailable-banner {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  border-color: rgba(156, 163, 175, 0.25);
+  color: #4b5563;
+}
+
+.unavailable-banner .banner-icon {
+  color: #9ca3af;
+}
+
+.offline-banner {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-color: rgba(245, 158, 11, 0.2);
+  color: #92400e;
+}
+
+.offline-banner .banner-icon {
+  color: #f59e0b;
+}
+
+.btn-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  background: white;
+  color: #374151;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-action-secondary:hover {
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.15);
+}
 
 /* Compact Workspace Context Bar */
 .workspace-context-bar {

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package jeffrey.api.v1;
+
+option java_package = "pbouda.jeffrey.api.v1";
+option java_multiple_files = true;
+
+// Shared enums used across multiple gRPC services.
+
+// Recording status — applies to projects, recording sessions, and repository files.
+enum RecordingStatus {
+  RECORDING_STATUS_UNSPECIFIED = 0;
+  // Recording/session is actively collecting data.
+  RECORDING_STATUS_ACTIVE = 1;
+  // Recording/session has completed.
+  RECORDING_STATUS_FINISHED = 2;
+  // Status could not be determined.
+  RECORDING_STATUS_UNKNOWN = 3;
+}
+
+// Instance lifecycle status.
+enum InstanceStatus {
+  INSTANCE_STATUS_UNSPECIFIED = 0;
+  // Instance created, waiting for first session.
+  INSTANCE_STATUS_PENDING = 1;
+  // Instance has at least one active session.
+  INSTANCE_STATUS_ACTIVE = 2;
+  // All sessions have finished.
+  INSTANCE_STATUS_FINISHED = 3;
+  // Instance has been cleaned up after retention period.
+  INSTANCE_STATUS_EXPIRED = 4;
+}
+
+// Severity level for messages and alerts.
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  // Critical severity — immediate attention required.
+  SEVERITY_CRITICAL = 1;
+  // High severity — requires attention.
+  SEVERITY_HIGH = 2;
+  // Medium severity — should be investigated.
+  SEVERITY_MEDIUM = 3;
+  // Low severity — informational.
+  SEVERITY_LOW = 4;
+}

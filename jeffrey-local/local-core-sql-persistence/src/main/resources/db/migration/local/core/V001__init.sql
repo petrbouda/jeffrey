@@ -28,8 +28,7 @@
 CREATE TABLE IF NOT EXISTS workspaces
 (
     workspace_id        VARCHAR PRIMARY KEY,
-    base_location       VARCHAR NOT NULL,
-    deleted             BOOLEAN NOT NULL DEFAULT FALSE
+    base_location       VARCHAR NOT NULL
 );
 
 --

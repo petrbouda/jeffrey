@@ -24,11 +24,22 @@ import pbouda.jeffrey.shared.persistence.StatementLabel;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
+import java.util.List;
+
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     //language=SQL
-    private static final String DELETE_WORKSPACE =
-            "UPDATE workspaces SET deleted = true WHERE workspace_id = :workspace_id";
+    private static final String SELECT_PROFILE_IDS =
+            "SELECT profile_id FROM profiles WHERE workspace_id = :workspace_id";
+
+    //language=SQL
+    private static final String DELETE_WORKSPACE_CASCADE = """
+            DELETE FROM recording_folders WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
+            DELETE FROM recording_files WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
+            DELETE FROM recordings WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
+            DELETE FROM profiler_settings WHERE workspace_id = '%workspace_id%';
+            DELETE FROM profiles WHERE workspace_id = '%workspace_id%';
+            DELETE FROM workspaces WHERE workspace_id = '%workspace_id%'""";
 
     private final String workspaceId;
     private final DatabaseClient databaseClient;
@@ -39,11 +50,19 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     }
 
     @Override
-    public boolean delete() {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", this.workspaceId);
+    public List<String> delete() {
+        // Collect profile IDs before deletion for filesystem cleanup
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("workspace_id", workspaceId);
 
-        int rowsAffected = databaseClient.update(StatementLabel.DELETE_WORKSPACE, DELETE_WORKSPACE, paramSource);
-        return rowsAffected > 0;
+        List<String> profileIds = databaseClient.query(
+                StatementLabel.FIND_ALL_PROFILES, SELECT_PROFILE_IDS, params,
+                (rs, _) -> rs.getString("profile_id"));
+
+        // Cascade delete all local data
+        String sql = DELETE_WORKSPACE_CASCADE.replaceAll("%workspace_id%", workspaceId);
+        databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql);
+
+        return profileIds;
     }
 }

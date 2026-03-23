@@ -69,6 +69,13 @@ public class LiveProjectsManager implements ProjectsManager {
     }
 
     @Override
+    public List<ProjectManager> findAllActive() {
+        return projectsRepository.findAllActiveProjects(workspaceInfo.id()).stream()
+                .map(projectManagerFactory)
+                .toList();
+    }
+
+    @Override
     public Optional<ProjectManager> project(String projectId) {
         return platformRepositories.newProjectRepository(projectId).find()
                 .map(projectManagerFactory);

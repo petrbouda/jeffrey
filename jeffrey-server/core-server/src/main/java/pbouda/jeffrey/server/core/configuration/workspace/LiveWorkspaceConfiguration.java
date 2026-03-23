@@ -78,7 +78,7 @@ public class LiveWorkspaceConfiguration {
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
             return new LiveWorkspaceManager(
-                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
+                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, platformRepositories, projectsManagerFactory);
         };
     }
 

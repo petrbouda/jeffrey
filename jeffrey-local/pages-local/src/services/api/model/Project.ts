@@ -31,12 +31,11 @@ export default class Project {
         public status: RecordingStatus,
         public recordingCount: number,
         public sessionCount: number,
-        public jobCount: number,
-        public alertCount: number,
         public eventSource: RecordingEventSource,
         public isVirtual: boolean,
         public isOrphaned: boolean,
-        public collectorOnlyModeEnabled: boolean) {
+        public collectorOnlyModeEnabled: boolean,
+        public isBlocked: boolean) {
     }
 
     static displayName(project: Project): string {

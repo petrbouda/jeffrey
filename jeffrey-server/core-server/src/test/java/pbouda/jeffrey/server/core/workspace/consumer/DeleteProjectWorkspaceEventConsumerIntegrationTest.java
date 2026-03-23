@@ -66,7 +66,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
-            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of());
+            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false);
 
     private static final ProjectsSynchronizerJobDescriptor JOB_DESCRIPTOR =
             new ProjectsSynchronizerJobDescriptor("test-template");
@@ -93,19 +93,10 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
         RepositoryStorage.Factory repositoryStorageFactory;
 
         @Test
-        void projectDeleted_cascadeCleanup(DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
+        void projectDeleted_cascadeCleanup(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             var provider = new DatabaseClientProvider(dataSource);
             var platformRepositories = new JdbcServerPlatformRepositories(provider, FIXED_CLOCK);
-            Path profilesDir = tempDir.resolve("profiles");
-
-            // Create profile directories that should be cleaned up
-            Path profileDir1 = profilesDir.resolve("profile-001");
-            Path profileDir2 = profilesDir.resolve("profile-002");
-            Files.createDirectories(profileDir1);
-            Files.createDirectories(profileDir2);
-            assertTrue(Files.exists(profileDir1));
-            assertTrue(Files.exists(profileDir2));
 
             when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.of(projectManager));
             when(projectManager.info()).thenReturn(PROJECT_INFO);
@@ -123,7 +114,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
             assertTrue(projectRepo.find().isPresent());
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, profilesDir);
+                    platformRepositories, repositoryStorageFactory);
             consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             // 1. Remote sessions deleted
@@ -132,10 +123,6 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
 
             // 2. SQL cascade delete - project no longer exists
             assertTrue(projectRepo.find().isEmpty());
-
-            // 3. Profile directories cleaned up
-            assertFalse(Files.exists(profileDir1));
-            assertFalse(Files.exists(profileDir2));
         }
     }
 
@@ -168,7 +155,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
             when(repositoryStorageFactory.apply(PROJECT_INFO)).thenThrow(new RuntimeException("Storage unavailable"));
 
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, profilesDir);
+                    platformRepositories, repositoryStorageFactory);
             consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager);
 
             // SQL cascade should still happen despite remote failure
@@ -193,7 +180,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
         void projectNotFound_noOp() {
             when(projectsManager.project(ORIGIN_PROJECT_ID)).thenReturn(Optional.empty());
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory, Path.of("/tmp/test/profiles"));
+                    platformRepositories, repositoryStorageFactory);
 
             assertDoesNotThrow(() ->
                     consumer.on(projectDeletedEvent(), JOB_DESCRIPTOR, projectsManager));
@@ -217,8 +204,7 @@ class DeleteProjectWorkspaceEventConsumerIntegrationTest {
         @Test
         void onlyApplicable_forProjectDeletedEvents() {
             var consumer = new DeleteProjectWorkspaceEventConsumer(
-                    platformRepositories, repositoryStorageFactory,
-                    Path.of("/tmp/test/profiles"));
+                    platformRepositories, repositoryStorageFactory);
 
             WorkspaceEvent projectDeleted = new WorkspaceEvent(null, "id", "proj", WORKSPACE_ID,
                     WorkspaceEventType.PROJECT_DELETED, null, NOW, NOW, "test");

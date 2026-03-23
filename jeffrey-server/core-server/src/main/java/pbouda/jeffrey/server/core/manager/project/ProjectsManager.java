@@ -35,6 +35,11 @@ public interface ProjectsManager {
 
     List<ProjectManager> findAll();
 
+    /**
+     * Find all active (non-blocked) projects.
+     */
+    List<ProjectManager> findAllActive();
+
     Optional<ProjectManager> project(String projectId);
 
     /**
