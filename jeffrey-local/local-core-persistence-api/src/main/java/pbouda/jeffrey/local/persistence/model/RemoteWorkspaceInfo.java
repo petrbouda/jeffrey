@@ -25,7 +25,6 @@ import java.time.Instant;
 
 public record RemoteWorkspaceInfo(
         String id,
-        String originId,
         String name,
         String description,
         WorkspaceLocation baseLocation,
@@ -33,13 +32,8 @@ public record RemoteWorkspaceInfo(
         WorkspaceStatus status,
         int projectCount) {
 
-    public RemoteWorkspaceInfo withId(String newId) {
-        return new RemoteWorkspaceInfo(
-                newId, originId, name, description, baseLocation, createdAt, status, projectCount);
-    }
-
     public RemoteWorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new RemoteWorkspaceInfo(
-                id, originId, name, description, baseLocation, createdAt, newStatus, projectCount);
+                id, name, description, baseLocation, createdAt, newStatus, projectCount);
     }
 }

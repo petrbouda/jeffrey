@@ -21,7 +21,6 @@ package pbouda.jeffrey.local.persistence.repository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.persistence.GroupLabel;
@@ -35,7 +34,7 @@ import java.util.Optional;
 
 /**
  * Minimal local registry of remote workspace connections.
- * Only stores connection reference (workspace_id, origin_id, base_location).
+ * Only stores connection reference (workspace_id, base_location).
  * All other workspace data (name, description, status, project count) comes from gRPC.
  */
 public class JdbcWorkspacesRepository implements WorkspacesRepository {
@@ -50,8 +49,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO workspaces (workspace_id, workspace_origin_id, base_location, deleted)
-            VALUES (:workspace_id, :workspace_origin_id, :base_location, false)""";
+            INSERT INTO workspaces (workspace_id, base_location, deleted)
+            VALUES (:workspace_id, :base_location, false)""";
 
     private final DatabaseClient databaseClient;
 
@@ -79,15 +78,12 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     @Override
     public RemoteWorkspaceInfo create(RemoteWorkspaceInfo workspaceInfo) {
-        RemoteWorkspaceInfo newInfo = workspaceInfo.withId(IDGenerator.generate());
-
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("workspace_id", newInfo.id())
-                .addValue("workspace_origin_id", newInfo.originId())
-                .addValue("base_location", newInfo.baseLocation() != null ? newInfo.baseLocation().toString() : null);
+                .addValue("workspace_id", workspaceInfo.id())
+                .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null);
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT, params);
-        return newInfo;
+        return workspaceInfo;
     }
 
     /**
@@ -100,7 +96,6 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
             return new RemoteWorkspaceInfo(
                     rs.getString("workspace_id"),
-                    rs.getString("workspace_origin_id"),
                     null,
                     null,
                     baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,

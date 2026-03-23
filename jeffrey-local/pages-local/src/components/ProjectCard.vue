@@ -127,7 +127,7 @@ const formatStatus = (status: RecordingStatus): string => {
 
 /* Border Color Classes */
 .border-default {
-  border-left-color: #38b2ac;
+  border-left-color: #5e64ff;
 }
 
 .border-orphaned {

@@ -89,7 +89,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     @Override
     public void mergeAndDownloadSession(String recordingSessionId) {
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
-                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
+                workspaceInfo.id(), projectInfo.id(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
@@ -102,7 +102,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     @Override
     public void mergeAndDownloadRecordings(String recordingSessionId, List<String> fileIds) {
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
-                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
+                workspaceInfo.id(), projectInfo.id(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
@@ -130,14 +130,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         try (TempDirectory tempDir = jeffreyDirs.newTempDir()) {
             // Download the merged recording file
             CompletableFuture<Path> recordingF = recordingStreamClient.downloadRecordings(
-                            workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, onlyRecordingFileIds)
+                            workspaceInfo.id(), projectInfo.id(), recordingSessionId, onlyRecordingFileIds)
                     .thenApply(resource -> copyToTempDir(resource, tempDir));
 
             // Download artifact files (heap dumps, logs, etc.)
             List<CompletableFuture<Path>> artifactsF = files.stream()
                     .filter(RepositoryFile::isArtifactFile)
                     .map(file -> recordingStreamClient.downloadArtifactFile(
-                                    workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, file.id())
+                                    workspaceInfo.id(), projectInfo.id(), recordingSessionId, file.id())
                             .thenApply(resource -> copyToTempDir(resource, tempDir)))
                     .toList();
 
@@ -177,7 +177,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             ProgressCallback progressCallback) {
 
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
-                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
+                workspaceInfo.id(), projectInfo.id(), recordingSessionId);
 
         List<RepositoryFile> files = recordingSession.files().stream()
                 .map(RepositoryFileResponse::from)
@@ -247,7 +247,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
             Path recordingPath = tempDir.resolve(mergedFileName);
             recordingStreamClient.streamRecordings(
-                    workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, recordingFileIds,
+                    workspaceInfo.id(), projectInfo.id(), recordingSessionId, recordingFileIds,
                     (inputStream, contentLength) -> {
                         long actualSize = contentLength > 0 ? contentLength : mergedSizeEstimate;
                         progressCallback.onFileStart(mergedFileName, actualSize);
@@ -273,7 +273,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
                                     Path artifactPath = tempDir.resolve(artifactFile.name());
                                     recordingStreamClient.streamArtifactFile(
-                                            workspaceInfo.originId(), projectInfo.originId(),
+                                            workspaceInfo.id(), projectInfo.id(),
                                             recordingSessionId, artifactFile.id(),
                                             (inputStream, contentLength) -> {
                                                 long actualSize = contentLength > 0 ? contentLength : artifactFile.size();

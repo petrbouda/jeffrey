@@ -122,30 +122,20 @@ public class ProfilesResource {
      * (which would trigger HTTP calls for remote workspaces).
      */
     private Optional<ProfileManager> findProfileManager(String profileId) {
-        // First check quick analysis profiles
         Optional<ProfileManager> quickProfile = quickAnalysisManager.profile(profileId);
         if (quickProfile.isPresent()) {
             return quickProfile;
         }
 
-        // Direct DB lookup — profiles are always stored locally
         Optional<ProfileInfo> profileInfoOpt = localCoreRepositories.newProfileRepository(profileId).find();
         if (profileInfoOpt.isEmpty()) {
             return Optional.empty();
         }
 
         ProfileInfo profileInfo = profileInfoOpt.get();
-
-        // workspace_id in profiles table stores the remote/origin workspace ID.
-        // Match it against workspace originId to find the right workspace.
-        String remoteWorkspaceId = profileInfo.workspaceId();
-        for (WorkspaceManager ws : workspacesManager.findAll()) {
-            if (remoteWorkspaceId != null && remoteWorkspaceId.equals(ws.localInfo().originId())) {
-                return ws.projectsManager().project(profileInfo.projectId())
-                        .flatMap(pm -> pm.profilesManager().profile(profileId));
-            }
-        }
-        return Optional.empty();
+        return workspacesManager.findById(profileInfo.workspaceId())
+                .flatMap(ws -> ws.projectsManager().project(profileInfo.projectId()))
+                .flatMap(pm -> pm.profilesManager().profile(profileId));
     }
 
     private static ProfileWithContextResponse toResponse(ProfileManager profileManager, String workspaceName, String projectName) {

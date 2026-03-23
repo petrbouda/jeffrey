@@ -84,8 +84,8 @@ public class RemoteProjectManager implements ProjectManager {
     public MessagesManager messagesManager() {
         return new RemoteMessagesManager(
                 remoteClients.messages(),
-                workspaceInfo.originId(),
-                detailedProjectInfo.projectInfo().originId());
+                workspaceInfo.id(),
+                detailedProjectInfo.projectInfo().id());
     }
 
     @Override
@@ -117,7 +117,7 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteProfilerSettingsManager(
                 remoteClients.profiler(),
                 workspaceInfo,
-                detailedProjectInfo.projectInfo().originId());
+                detailedProjectInfo.projectInfo().id());
     }
 
     @Override
@@ -131,7 +131,7 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public void delete(WorkspaceEventCreator createdBy) {
         remoteClients.projects().deleteProject(
-                workspaceInfo.originId(),
-                detailedProjectInfo.projectInfo().originId());
+                workspaceInfo.id(),
+                detailedProjectInfo.projectInfo().id());
     }
 }

@@ -106,7 +106,6 @@ public class RemoteDiscoveryClient {
 
     private RemoteWorkspaceInfo toWorkspaceInfo(pbouda.jeffrey.api.v1.WorkspaceInfo proto) {
         return new RemoteWorkspaceInfo(
-                null,
                 proto.getId(),
                 proto.getName(),
                 proto.getDescription(),

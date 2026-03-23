@@ -334,8 +334,8 @@ const toggleSidebar = () => {
 .sidebar-header {
   padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
-  border-left: 4px solid #38b2ac;
-  background: linear-gradient(135deg, #f0fdfb, #e6faf7);
+  border-left: 4px solid #5e64ff;
+  background: linear-gradient(135deg, #f0f0ff, #e8e8ff);
 }
 
 .project-name {

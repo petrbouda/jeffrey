@@ -45,7 +45,7 @@ public abstract class RemoteMappers {
 
     private static ProjectInfo toProjectInfo(ProjectResponse response, Optional<ProjectInfo> liveProject) {
         return new ProjectInfo(
-                liveProject.map(ProjectInfo::id).orElse(response.id()),
+                response.id(),
                 response.id(),
                 response.name(),
                 response.label(),

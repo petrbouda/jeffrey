@@ -57,7 +57,7 @@ public abstract class Mappers {
         ProjectInfo projectInfo = detail.projectInfo();
         return new ProjectResponse(
                 projectInfo.id(),
-                projectInfo.originId(),
+                projectInfo.id(),
                 projectInfo.name(),
                 projectInfo.label(),
                 projectInfo.namespace(),

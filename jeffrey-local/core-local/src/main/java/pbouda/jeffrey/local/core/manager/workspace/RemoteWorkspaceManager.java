@@ -72,9 +72,9 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public RemoteWorkspaceInfo resolveInfo() {
         try {
-            RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.originId());
+            RemoteDiscoveryClient.WorkspaceResult result = remoteClients.discovery().workspace(workspaceInfo.id());
             return switch (result.status()) {
-                case AVAILABLE -> result.info().withId(workspaceInfo.id());
+                case AVAILABLE -> result.info();
                 case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
                 case OFFLINE -> workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
                 case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");

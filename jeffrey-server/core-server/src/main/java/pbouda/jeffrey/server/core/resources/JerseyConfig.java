@@ -26,6 +26,8 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import pbouda.jeffrey.shared.common.exception.ErrorCode;
 import pbouda.jeffrey.shared.common.exception.ErrorResponse;
@@ -35,22 +37,14 @@ import pbouda.jeffrey.shared.common.exception.ErrorType;
 @ApplicationPath("/api")
 public class JerseyConfig extends ResourceConfig {
 
-    public JerseyConfig() {
+    @Autowired
+    public JerseyConfig(
+            @Value("${jeffrey.server.cors.enabled:false}") boolean corsEnabled) {
+
         register(JacksonFeature.class);
         register(GenericExceptionMapper.class);
+        register(new CorsFilter(corsEnabled));
     }
-
-//    public static class DevCORSFilter implements ContainerResponseFilter {
-//        @Override
-//        public void filter(ContainerRequestContext request, ContainerResponseContext response) {
-//            response.getHeaders().add("Access-Control-Allow-Origin", "*");
-//            response.getHeaders().add("Access-Control-Allow-Headers", "*");
-//            response.getHeaders().add("Access-Control-Allow-Credentials", "true");
-//            response.getHeaders().add("Access-Control-Allow-Methods",
-//                    "GET, POST, PUT, DELETE, OPTIONS, HEAD");
-//            response.getHeaders().add("Access-Control-Expose-Headers", "Content-Disposition");
-//        }
-//    }
 
     public static class GenericExceptionMapper implements ExceptionMapper<Exception> {
 

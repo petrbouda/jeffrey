@@ -63,7 +63,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return repositoryClient.recordingSessions(workspaceInfo.originId(), projectInfo.originId()).stream()
+        return repositoryClient.recordingSessions(workspaceInfo.id(), projectInfo.id()).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }
@@ -71,14 +71,14 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
         RepositoryStatisticsResponse response =
-                repositoryClient.repositoryStatistics(workspaceInfo.originId(), projectInfo.originId());
+                repositoryClient.repositoryStatistics(workspaceInfo.id(), projectInfo.id());
         return RepositoryStatisticsResponse.from(response);
     }
 
     @Override
     public StreamedRecordingFile streamFile(String sessionId, String fileId) {
         RecordingSessionResponse session = repositoryClient.recordingSession(
-                workspaceInfo.originId(), projectInfo.originId(), sessionId);
+                workspaceInfo.id(), projectInfo.id(), sessionId);
 
         RepositoryFileResponse fileResponse = session.files().stream()
                 .filter(f -> f.id().equals(fileId))
@@ -95,10 +95,10 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
             if (fileResponse.fileType().fileCategory() == FileCategory.RECORDING) {
                 recordingStreamClient.streamRecordingFile(
-                        workspaceInfo.originId(), projectInfo.originId(), sessionId, fileId, consumer);
+                        workspaceInfo.id(), projectInfo.id(), sessionId, fileId, consumer);
             } else {
                 recordingStreamClient.streamArtifactFile(
-                        workspaceInfo.originId(), projectInfo.originId(), sessionId, fileId, consumer);
+                        workspaceInfo.id(), projectInfo.id(), sessionId, fileId, consumer);
             }
         } catch (Exception e) {
             tempDir.close();
@@ -110,12 +110,12 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
-        repositoryClient.deleteSession(workspaceInfo.originId(), projectInfo.originId(), recordingSessionId);
+        repositoryClient.deleteSession(workspaceInfo.id(), projectInfo.id(), recordingSessionId);
     }
 
     @Override
     public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
         repositoryClient.deleteFilesInSession(
-                workspaceInfo.originId(), projectInfo.originId(), recordingSessionId, fileIds);
+                workspaceInfo.id(), projectInfo.id(), recordingSessionId, fileIds);
     }
 }

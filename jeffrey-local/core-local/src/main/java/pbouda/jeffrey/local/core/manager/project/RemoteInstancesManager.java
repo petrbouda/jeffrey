@@ -48,20 +48,20 @@ public class RemoteInstancesManager {
     }
 
     public List<ProjectInstanceInfo> findAll() {
-        return instancesClient.projectInstances(workspaceInfo.originId(), projectInfo.originId()).stream()
+        return instancesClient.projectInstances(workspaceInfo.id(), projectInfo.id()).stream()
                 .map(this::toProjectInstanceInfo)
                 .toList();
     }
 
     public Optional<ProjectInstanceInfo> find(String instanceId) {
         InstanceResponse response = instancesClient.projectInstance(
-                workspaceInfo.originId(), projectInfo.originId(), instanceId);
+                workspaceInfo.id(), projectInfo.id(), instanceId);
         return Optional.ofNullable(response).map(this::toProjectInstanceInfo);
     }
 
     public List<ProjectInstanceSessionInfo> findSessions(String instanceId) {
         return instancesClient.projectInstanceSessions(
-                        workspaceInfo.originId(), projectInfo.originId(), instanceId).stream()
+                        workspaceInfo.id(), projectInfo.id(), instanceId).stream()
                 .map(RemoteInstancesManager::toProjectInstanceSessionInfo)
                 .toList();
     }
@@ -69,7 +69,7 @@ public class RemoteInstancesManager {
     private ProjectInstanceInfo toProjectInstanceInfo(InstanceResponse response) {
         return new ProjectInstanceInfo(
                 response.id(),
-                projectInfo.originId(),
+                projectInfo.id(),
                 response.hostname(),
                 ProjectInstanceStatus.valueOf(response.status()),
                 InstantUtils.fromEpochMilli(response.createdAt()),

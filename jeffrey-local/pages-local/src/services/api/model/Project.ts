@@ -22,7 +22,6 @@ import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 export default class Project {
     constructor(
         public id: string,
-        public originId: string,
         public name: string,
         public label: string | null,
         public namespace: string | null,

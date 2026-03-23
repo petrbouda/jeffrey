@@ -36,10 +36,6 @@
       <!-- Compact Workspace Context Bar (sticky header) -->
       <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar" :class="getContextBarClass">
         <div class="context-bar-info">
-          <span class="workspace-type-badge" :class="getTypeBadgeClass">
-            <i :class="getWorkspaceHeaderIcon"></i>
-            {{ getWorkspaceHeaderLabel }}
-          </span>
           <span class="workspace-name">{{ getSelectedWorkspace()?.name }}</span>
           <span class="context-divider">•</span>
           <span class="workspace-meta">{{ getProjectCountText() }}</span>
@@ -453,7 +449,7 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .context-bar-remote {
-  border-left-color: #38b2ac;
+  border-left-color: #5e64ff;
 }
 
 .context-bar-info {

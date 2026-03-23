@@ -67,7 +67,7 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<ProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.originId());
+            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id());
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
@@ -84,7 +84,7 @@ public class RemoteProjectsManager implements ProjectsManager {
         // In remote-only mode, we look up the project from the remote server
         List<ProjectResponse> remoteProjects;
         try {
-            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.originId());
+            remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id());
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             return Optional.empty();

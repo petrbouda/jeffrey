@@ -44,16 +44,16 @@ public class RemoteProfilerSettingsManager implements ProfilerSettingsManager {
 
     @Override
     public EffectiveProfilerSettings fetchEffectiveSettings() {
-        return profilerClient.fetchProfilerSettings(workspaceInfo.originId(), projectId);
+        return profilerClient.fetchProfilerSettings(workspaceInfo.id(), projectId);
     }
 
     @Override
     public void upsertSettings(String agentSettings) {
-        profilerClient.upsertProfilerSettings(workspaceInfo.originId(), projectId, agentSettings);
+        profilerClient.upsertProfilerSettings(workspaceInfo.id(), projectId, agentSettings);
     }
 
     @Override
     public void deleteSettings() {
-        profilerClient.deleteProfilerSettings(workspaceInfo.originId(), projectId);
+        profilerClient.deleteProfilerSettings(workspaceInfo.id(), projectId);
     }
 }
