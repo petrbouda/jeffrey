@@ -116,11 +116,6 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public FileHeartbeatReader fileHeartbeatReader() {
-        return new FileHeartbeatReader();
-    }
-
-    @Bean
     public SessionFinishEventEmitter sessionFinishEventEmitter(
             Clock clock,
             WorkspaceEventPublisher workspaceEventPublisher) {

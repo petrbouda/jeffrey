@@ -20,7 +20,7 @@
           <WorkspaceSelectionCard
             v-for="workspace in workspaces"
             :key="workspace.id"
-            :name="workspace.name"
+            :name="workspace.name ?? workspace.id"
             :description="getWorkspaceDescription(workspace)"
             :selected="selectedWorkspace === workspace.id"
             :badge-value="getWorkspaceProjectCount(workspace.id)"
@@ -36,7 +36,7 @@
       <!-- Compact Workspace Context Bar (sticky header) -->
       <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar" :class="getContextBarClass">
         <div class="context-bar-info">
-          <span class="workspace-name">{{ getSelectedWorkspace()?.name }}</span>
+          <span class="workspace-name">{{ getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id }}</span>
           <span class="context-divider">•</span>
           <span class="workspace-meta">{{ getProjectCountText() }}</span>
           <span class="context-divider">•</span>
@@ -359,7 +359,7 @@ const getWorkspaceDescription = (workspace: Workspace | undefined) => {
   if (workspace.description) {
     return workspace.description;
   } else {
-    return `Projects for ${workspace.name}`;
+    return `Projects for ${workspace.name ?? workspace.id}`;
   }
 };
 

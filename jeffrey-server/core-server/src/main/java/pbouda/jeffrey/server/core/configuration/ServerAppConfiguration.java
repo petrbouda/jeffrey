@@ -194,6 +194,11 @@ public class ServerAppConfiguration {
         return new CopyLibsInitializer(Path.of(source), Path.of(resolvedTarget), resolvedVersion, maxKeptVersions);
     }
 
+    @Bean
+    public FileHeartbeatReader fileHeartbeatReader() {
+        return new FileHeartbeatReader();
+    }
+
     @Bean(destroyMethod = "close")
     public JfrStreamingConsumerManager jfrStreamingConsumerManager(
             ServerJeffreyDirs jeffreyDirs,
