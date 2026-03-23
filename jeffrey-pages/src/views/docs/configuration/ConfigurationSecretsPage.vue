@@ -37,11 +37,11 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const secretsExample = `# AI API Key (Anthropic or OpenAI, depending on jeffrey.ai.provider)
-jeffrey.ai.api-key=sk-ant-api03-...`;
+const secretsExample = `# AI API Key (Anthropic or OpenAI, depending on jeffrey.local.ai.provider)
+jeffrey.local.ai.api-key=sk-ant-api03-...`;
 
-const envVarExample = `# Set API key via environment variable
-export JEFFREY_AI_API_KEY=sk-ant-api03-...
+const envVarExample = `# Set API key via environment variable (Jeffrey Local only)
+export JEFFREY_LOCAL_AI_API_KEY=sk-ant-api03-...
 
 # Start Jeffrey
 java -jar jeffrey.jar`;
@@ -71,6 +71,10 @@ secrets.properties
         <code>secrets.properties</code> to your <code>.gitignore</code> file.
       </DocsCallout>
 
+      <DocsCallout type="info">
+        <strong>Jeffrey Local Only:</strong> Secrets are only needed for Jeffrey Local, which provides AI-powered analysis features. Jeffrey Server does not require any API keys.
+      </DocsCallout>
+
       <h2 id="ai-api-keys">AI Provider API Keys</h2>
       <p>
         API keys for the AI assistant feature. Configure the key matching your chosen provider
@@ -86,7 +90,7 @@ secrets.properties
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.ai.api-key</code></td>
+            <td><code>jeffrey.local.ai.api-key</code></td>
             <td>API key for your chosen provider. Anthropic: <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>, OpenAI: <a href="https://platform.openai.com/" target="_blank">platform.openai.com</a></td>
           </tr>
         </tbody>

@@ -24,7 +24,8 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'deployment-options', text: 'Deployment Options', level: 2 }
+  { id: 'deployment-options', text: 'Jeffrey Local Deployment Options', level: 2 },
+  { id: 'server-deployment', text: 'Jeffrey Server Deployment', level: 2 }
 ];
 
 onMounted(() => {
@@ -35,14 +36,14 @@ onMounted(() => {
 <template>
   <article class="docs-article">
       <DocsPageHeader
-        title="Local Deployments Overview"
+        title="Deployments Overview"
         icon="bi bi-cloud-upload"
       />
 
       <div class="docs-content">
-        <p>Jeffrey can be deployed locally in various ways. Choose the deployment option that best fits your use case.</p>
+        <p>Jeffrey consists of two applications that can be deployed independently. <strong>Jeffrey Local</strong> (<code>jeffrey.jar</code>) is the analysis tool for developer machines. <strong>Jeffrey Server</strong> (<code>jeffrey-server.jar</code>) is the recording collection server for cloud/server environments.</p>
 
-        <h2 id="deployment-options">Deployment Options</h2>
+        <h2 id="deployment-options">Jeffrey Local Deployment Options</h2>
 
         <div class="options-grid">
           <router-link to="/docs/deployments/simple-jar" class="option-card">
@@ -67,6 +68,27 @@ onMounted(() => {
             </div>
             <h4>Container with Examples</h4>
             <p>Pre-loaded with sample profiles for exploring Jeffrey's features.</p>
+          </router-link>
+        </div>
+
+        <h2 id="server-deployment">Jeffrey Server Deployment</h2>
+        <p>Jeffrey Server is designed for server and cloud environments where it collects recordings from running applications.</p>
+
+        <div class="options-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <router-link to="/docs/live-recording/overview" class="option-card">
+            <div class="option-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+              <i class="bi bi-broadcast-pin"></i>
+            </div>
+            <h4>Live Recording Setup</h4>
+            <p>Deploy Jeffrey Server to automatically collect recordings from your applications.</p>
+          </router-link>
+
+          <router-link to="/docs/live-recording/kubernetes/jeffrey-deployment" class="option-card">
+            <div class="option-icon" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">
+              <i class="bi bi-cloud"></i>
+            </div>
+            <h4>Kubernetes Deployment</h4>
+            <p>Deploy Jeffrey Server in Kubernetes alongside your services.</p>
           </router-link>
         </div>
       </div>

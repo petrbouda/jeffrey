@@ -88,7 +88,7 @@ onMounted(() => {
         </div>
 
         <h2 id="dual-database-architecture">Dual Database Architecture</h2>
-        <p>Jeffrey uses two types of DuckDB databases with different purposes:</p>
+        <p>Jeffrey uses DuckDB databases across both applications with different purposes:</p>
 
         <div class="database-diagram">
           <div class="db-card platform">
@@ -98,16 +98,15 @@ onMounted(() => {
               <span class="badge">Single File</span>
             </div>
             <div class="card-body">
-              <p class="file-path"><i class="bi bi-file-earmark"></i> <code>jeffrey.db</code></p>
-              <p><strong>Purpose:</strong> Manages workspace, project, and recording metadata</p>
+              <p class="file-path"><i class="bi bi-file-earmark"></i> <code>jeffrey-data.db</code></p>
+              <p><strong>Purpose:</strong> Manages workspace, project, and recording metadata. Both Jeffrey Server and Jeffrey Local maintain their own platform database.</p>
               <h5>Contains:</h5>
               <ul>
-                <li>Workspaces (Sandbox, Live, Remote)</li>
-                <li>Projects within workspaces</li>
-                <li>Recordings and recording files</li>
-                <li>Profile metadata (but NOT event data)</li>
-                <li>Scheduler jobs</li>
-                <li>Repository sessions</li>
+                <li>Workspaces and Projects</li>
+                <li>Instances and Recording Sessions (Server)</li>
+                <li>Recordings and Profile metadata (Local)</li>
+                <li>Remote Workspace info (Local)</li>
+                <li>Scheduler jobs (Server)</li>
               </ul>
             </div>
           </div>
@@ -140,6 +139,7 @@ onMounted(() => {
             <li><strong>No contention</strong> - Profile analysis doesn't block other profiles</li>
             <li><strong>Simple scaling</strong> - Each profile is completely independent</li>
             <li><strong>No complex queries</strong> - No need for profile_id filtering in every query</li>
+            <li><strong>Application split</strong> - Jeffrey Server and Jeffrey Local each maintain their own platform database independently</li>
           </ul>
         </DocsCallout>
 
@@ -201,25 +201,33 @@ onMounted(() => {
         <p>JFR recordings and artifacts are stored on the filesystem:</p>
 
         <div class="directory-structure">
-          <pre><code>$JEFFREY_HOME/
-├── jeffrey.db                    # Platform database
-├── profiles/
-│   ├── {profile-id-1}/
-│   │   └── profile-data.db      # Profile database
-│   ├── {profile-id-2}/
-│   │   └── profile-data.db
-│   └── ...
+          <pre><code>~/.jeffrey-server/                # Jeffrey Server home
+├── jeffrey-data.db               # Server platform database
+├── temp/                         # Temporary files
 └── workspaces/
     └── {workspace-id}/
         └── {project-id}/
-            └── recordings/
-                └── {recording-id}/
-                    ├── recording.jfr    # Main JFR file
-                    └── artifacts/       # Heap dumps, logs, etc.</code></pre>
+            └── recordings/       # JFR recordings storage
+                └── {session-id}/
+                    ├── recording.jfr
+                    └── artifacts/
+
+~/.jeffrey-local/                 # Jeffrey Local home
+├── jeffrey-data.db               # Local platform database
+├── temp/                         # Temporary files
+├── profiles/
+│   ├── {profile-id-1}/
+│   │   └── profile-data.db       # Profile database
+│   └── {profile-id-2}/
+│       └── profile-data.db
+└── recordings/                   # Downloaded recordings
+    └── {recording-id}/
+        ├── recording.jfr
+        └── artifacts/</code></pre>
         </div>
 
         <h3>Recording Storage</h3>
-        <p>Each recording is stored in its own directory:</p>
+        <p>Recordings are stored on Jeffrey Server in workspace-organized directories. Jeffrey Local stores downloaded recordings locally for analysis.</p>
         <ul>
           <li><strong>One main recording file</strong> - The JFR file (<code>.jfr</code> or <code>.jfr.lz4</code>)</li>
           <li><strong>Multiple artifacts</strong> - Heap dumps, JVM logs, perf-counters</li>

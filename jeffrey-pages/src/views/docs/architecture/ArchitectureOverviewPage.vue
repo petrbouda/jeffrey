@@ -42,7 +42,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey is a <strong>Java application</strong> composed into a single JAR file that contains the backend and also serves the frontend. This design offers an easy way to run the application locally, on a server, or using a single container in the cloud.</p>
+        <p>Jeffrey consists of two applications: <strong>Jeffrey Local</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Local can also operate standalone in <strong>Sandbox mode</strong> without any server, allowing you to analyze JFR files directly without setting up the server component.</p>
 
         <h2 id="technology-stack">Technology Stack</h2>
 
@@ -96,17 +96,31 @@ onMounted(() => {
             </div>
             <div class="docs-card-body">
               <ul>
-                <li><strong>Docker</strong> - Single container deployment</li>
+                <li><strong>Two JARs</strong> - <code>jeffrey.jar</code> (Local) and <code>jeffrey-server.jar</code> (Server)</li>
+                <li><strong>Docker</strong> - Separate containers for each application</li>
                 <li><strong>Kubernetes</strong> - Cloud-native ready</li>
                 <li><strong>Filesystem</strong> - Recording storage on disk</li>
-                <li><strong>No dependencies</strong> - Self-contained application</li>
+              </ul>
+            </div>
+          </div>
+          <div class="docs-card tech-card communication">
+            <div class="docs-card-header">
+              <i class="bi bi-arrows-angle-expand"></i>
+              <h4>Communication</h4>
+            </div>
+            <div class="docs-card-body">
+              <ul>
+                <li><strong>gRPC</strong> - Communication between Local and Server</li>
+                <li><strong>TLS</strong> - Secure channel support</li>
+                <li><strong>Protocol Buffers</strong> - Efficient binary serialization</li>
+                <li><strong>Bidirectional</strong> - Streaming and unary calls</li>
               </ul>
             </div>
           </div>
         </div>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
-        <p>Jeffrey runs as a single process serving both the REST API and static frontend files:</p>
+        <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings, while Jeffrey Local provides the analysis UI and connects to the server via gRPC:</p>
 
         <div class="architecture-diagram">
           <div class="diagram-row">
@@ -118,9 +132,9 @@ onMounted(() => {
               <i class="bi bi-arrow-down"></i>
             </div>
           </div>
-          <div class="diagram-row">
+          <div class="diagram-row apps-row">
             <div class="diagram-box container">
-              <div class="container-title">Jeffrey Container</div>
+              <div class="container-title">Jeffrey Local</div>
               <div class="container-content">
                 <div class="component api">
                   <i class="bi bi-gear"></i>
@@ -132,73 +146,107 @@ onMounted(() => {
                   <span>Static Files</span>
                   <small>Vue SPA</small>
                 </div>
+                <div class="component grpc-client">
+                  <i class="bi bi-arrows-angle-expand"></i>
+                  <span>gRPC Client</span>
+                </div>
+              </div>
+            </div>
+            <div class="diagram-connector">
+              <i class="bi bi-arrow-left-right"></i>
+              <span>gRPC</span>
+            </div>
+            <div class="diagram-box container">
+              <div class="container-title server">Jeffrey Server</div>
+              <div class="container-content">
+                <div class="component api">
+                  <i class="bi bi-gear"></i>
+                  <span>REST API</span>
+                  <small>/api/*</small>
+                </div>
+                <div class="component grpc-server">
+                  <i class="bi bi-hdd-rack"></i>
+                  <span>gRPC Server</span>
+                  <small>port 9090</small>
+                </div>
               </div>
             </div>
           </div>
-          <div class="diagram-row">
-            <div class="diagram-arrow">
-              <i class="bi bi-arrow-down"></i>
+          <div class="diagram-row apps-row">
+            <div class="diagram-row storage-row">
+              <div class="diagram-box storage">
+                <i class="bi bi-database"></i>
+                <span>DuckDB</span>
+              </div>
+              <div class="diagram-box storage">
+                <i class="bi bi-folder"></i>
+                <span>Filesystem</span>
+              </div>
             </div>
-          </div>
-          <div class="diagram-row storage-row">
-            <div class="diagram-box storage">
-              <i class="bi bi-database"></i>
-              <span>DuckDB</span>
+            <div class="diagram-connector">
             </div>
-            <div class="diagram-box storage">
-              <i class="bi bi-folder"></i>
-              <span>Filesystem</span>
+            <div class="diagram-row storage-row">
+              <div class="diagram-box storage">
+                <i class="bi bi-database"></i>
+                <span>DuckDB</span>
+              </div>
+              <div class="diagram-box storage">
+                <i class="bi bi-folder"></i>
+                <span>Filesystem</span>
+              </div>
             </div>
           </div>
         </div>
 
         <h2 id="domain-architecture">Domain Architecture</h2>
-        <p>The backend is organized into two main domains with clear responsibilities:</p>
+        <p>The backend is organized into two separate applications with clear responsibilities:</p>
 
         <div class="domain-diagram">
-          <div class="domain-box platform">
-            <div class="domain-header">
-              <i class="bi bi-layers"></i>
-              <h4>Platform Management</h4>
-            </div>
-            <div class="domain-body">
-              <p>Manages workspace lifecycle and organization:</p>
-              <div class="domain-flow">
-                <span class="flow-item">Workspaces</span>
-                <i class="bi bi-arrow-right"></i>
-                <span class="flow-item">Projects</span>
-                <i class="bi bi-arrow-right"></i>
-                <span class="flow-item">Recordings</span>
-                <i class="bi bi-arrow-right"></i>
-                <span class="flow-item">Profiles</span>
+          <div class="domain-row">
+            <div class="domain-box platform">
+              <div class="domain-header">
+                <i class="bi bi-layers"></i>
+                <h4>Jeffrey Server</h4>
               </div>
-              <p class="domain-note">+ Sessions, Scheduling, Repository</p>
-            </div>
-          </div>
-
-          <div class="domain-connector">
-            <i class="bi bi-arrow-down"></i>
-            <span>triggers profile creation</span>
-          </div>
-
-          <div class="domain-box profile">
-            <div class="domain-header">
-              <i class="bi bi-cpu"></i>
-              <h4>Profile Domain</h4>
-            </div>
-            <div class="domain-body">
-              <div class="profile-modules">
-                <div class="module parser">
-                  <h5>Profile Parser</h5>
-                  <p>Parses JFR files and stores events to DuckDB. Returns ProfileInfo.</p>
-                </div>
-                <div class="module-arrow">
+              <div class="domain-body">
+                <p>Manages workspace lifecycle, recording collection, and session monitoring:</p>
+                <div class="domain-flow">
+                  <span class="flow-item">Workspaces</span>
                   <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Projects</span>
+                  <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Instances</span>
+                  <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Sessions</span>
+                  <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Repository</span>
                 </div>
-                <div class="module management">
-                  <h5>Profile Management</h5>
-                  <p>Analysis features: Flamegraph, Timeseries, Guardian, GC, Threads, etc.</p>
+                <p class="domain-note">+ Profiler Settings, Messages & Alerts, gRPC Services</p>
+              </div>
+            </div>
+
+            <div class="domain-connector">
+              <i class="bi bi-arrow-left-right"></i>
+              <span>gRPC communication</span>
+            </div>
+
+            <div class="domain-box profile">
+              <div class="domain-header">
+                <i class="bi bi-cpu"></i>
+                <h4>Jeffrey Local</h4>
+              </div>
+              <div class="domain-body">
+                <p>Profile analysis tool with remote connectivity:</p>
+                <div class="domain-flow">
+                  <span class="flow-item">Workspaces</span>
+                  <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Projects</span>
+                  <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Recordings</span>
+                  <i class="bi bi-arrow-right"></i>
+                  <span class="flow-item">Profiles</span>
                 </div>
+                <p class="domain-note">+ Remote Workspaces, AI Assistant, Flamegraph, Timeseries, Guardian</p>
               </div>
             </div>
           </div>
@@ -214,44 +262,32 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr>
-              <td><code>platform/platform-management</code></td>
-              <td>Workspace, Project, Recording APIs and REST resources</td>
+              <td><code>jeffrey-server/core-server</code></td>
+              <td>Server application: gRPC services, workspace/project management</td>
             </tr>
             <tr>
-              <td><code>platform/jfr-repository-parser</code></td>
-              <td>JFR repository parsing for streaming recordings</td>
+              <td><code>jeffrey-local/core-local</code></td>
+              <td>Local application: REST resources, remote workspace connectivity</td>
             </tr>
             <tr>
-              <td><code>profiles/profile-management</code></td>
-              <td>Profile analysis features and REST resources</td>
+              <td><code>jeffrey-local/profiles/</code></td>
+              <td>All profile analysis modules (flamegraph, timeseries, guardian, etc.)</td>
             </tr>
             <tr>
-              <td><code>profiles/recording-parser</code></td>
-              <td>JFR parsing, event extraction, DuckDB storage</td>
-            </tr>
-            <tr>
-              <td><code>profiles/flamegraph</code></td>
-              <td>Flame graph generation</td>
-            </tr>
-            <tr>
-              <td><code>profiles/timeseries</code></td>
-              <td>Time series analysis and charts</td>
-            </tr>
-            <tr>
-              <td><code>profiles/profile-guardian</code></td>
-              <td>Automated stacktrace analysis (Guardian)</td>
-            </tr>
-            <tr>
-              <td><code>profiles/heap-dump</code></td>
-              <td>Heap dump analysis</td>
+              <td><code>shared/server-api</code></td>
+              <td>gRPC protocol buffer definitions</td>
             </tr>
             <tr>
               <td><code>shared/common</code></td>
               <td>Shared utilities across modules</td>
             </tr>
             <tr>
-              <td><code>pages/</code></td>
-              <td>Vue.js frontend application</td>
+              <td><code>jeffrey-local/pages-local</code></td>
+              <td>Vue.js frontend for Jeffrey Local</td>
+            </tr>
+            <tr>
+              <td><code>jeffrey-server/pages-server</code></td>
+              <td>Vue.js frontend for Jeffrey Server</td>
             </tr>
           </tbody>
         </table>
@@ -280,6 +316,7 @@ onMounted(() => {
 .tech-card.frontend .docs-card-header i { color: #10b981; }
 .tech-card.database .docs-card-header i { color: #f59e0b; }
 .tech-card.deployment .docs-card-header i { color: #5e64ff; }
+.tech-card.communication .docs-card-header i { color: #8b5cf6; }
 
 /* Architecture Diagram */
 .architecture-diagram {
@@ -300,9 +337,18 @@ onMounted(() => {
   align-items: center;
 }
 
+.diagram-row.apps-row {
+  flex-direction: row;
+  gap: 1.5rem;
+  align-items: stretch;
+  width: 100%;
+}
+
 .diagram-row.storage-row {
   flex-direction: row;
   gap: 1rem;
+  flex: 1;
+  justify-content: center;
 }
 
 .diagram-box {
@@ -326,8 +372,9 @@ onMounted(() => {
 }
 
 .diagram-box.container {
+  flex: 1;
   padding: 0;
-  min-width: 280px;
+  min-width: 220px;
 }
 
 .container-title {
@@ -338,6 +385,10 @@ onMounted(() => {
   font-size: 0.85rem;
   text-align: center;
   border-radius: 7px 7px 0 0;
+}
+
+.container-title.server {
+  background: #8b5cf6;
 }
 
 .container-content {
@@ -368,6 +419,25 @@ onMounted(() => {
   color: #6c757d;
 }
 
+.diagram-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.diagram-connector i {
+  font-size: 1.5rem;
+  color: #8b5cf6;
+}
+
+.diagram-connector span {
+  font-size: 0.7rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
 .diagram-box.storage {
   min-width: 100px;
 }
@@ -390,7 +460,15 @@ onMounted(() => {
   margin: 1.5rem 0;
 }
 
+.domain-row {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: stretch;
+}
+
 .domain-box {
+  flex: 1;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
@@ -461,13 +539,15 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
   padding: 0.5rem 0;
   color: #6c757d;
 }
 
 .domain-connector i {
-  font-size: 1rem;
+  font-size: 1.5rem;
+  color: #8b5cf6;
 }
 
 .domain-connector span {
@@ -522,6 +602,14 @@ onMounted(() => {
   }
 
   .diagram-row.storage-row {
+    flex-direction: column;
+  }
+
+  .diagram-row.apps-row {
+    flex-direction: column;
+  }
+
+  .domain-row {
     flex-direction: column;
   }
 }

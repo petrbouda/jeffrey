@@ -26,7 +26,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'purpose', text: 'Purpose', level: 2 },
-  { id: 'endpoints', text: 'Endpoints', level: 2 },
+  { id: 'grpc-services', text: 'gRPC Services', level: 2 },
   { id: 'use-case', text: 'Use Case', level: 2 }
 ];
 
@@ -38,192 +38,289 @@ onMounted(() => {
 <template>
   <article class="docs-article">
       <DocsPageHeader
-        title="Public API"
-        icon="bi bi-globe"
+        title="gRPC API"
+        icon="bi bi-hdd-network"
       />
 
       <div class="docs-content">
-        <p>The Public API provides REST endpoints for <strong>Remote Jeffrey</strong> instances to connect to <strong>Local/Live Jeffrey</strong>. All endpoints are served under <code>/api/public</code>.</p>
+        <p>Jeffrey Server exposes gRPC services for Jeffrey Local instances to connect and fetch data. All communication between Jeffrey Local and Jeffrey Server uses gRPC on port <code>9090</code> (configurable).</p>
 
         <DocsCallout type="info">
-          <strong>Remote Connectivity:</strong> This API is primarily used by Remote workspaces running on developer machines to fetch recordings from Live workspaces running in cloud environments like Kubernetes.
+          <strong>Remote Connectivity:</strong> Jeffrey Local connects to Jeffrey Server via gRPC to browse workspaces, projects, instances, download recordings, and manage profiler settings. All CPU-intensive analysis happens locally.
         </DocsCallout>
 
         <h2 id="purpose">Purpose</h2>
-        <p>The Public API serves a specific purpose: enabling Remote workspaces to download recordings for local analysis.</p>
+        <p>The gRPC API enables Jeffrey Local to communicate with Jeffrey Server for remote workspace operations.</p>
 
         <div class="purpose-cards">
           <div class="purpose-card">
-            <div class="card-icon"><i class="bi bi-eye"></i></div>
+            <div class="card-icon"><i class="bi bi-broadcast"></i></div>
             <div class="card-content">
-              <h4>Read-Only Focus</h4>
-              <p>Minimal write operations - primarily for fetching data from remote instances</p>
+              <h4>Efficient Protocol</h4>
+              <p>gRPC with Protocol Buffers for fast, type-safe communication between applications</p>
             </div>
           </div>
           <div class="purpose-card">
             <div class="card-icon"><i class="bi bi-cloud-download"></i></div>
             <div class="card-content">
-              <h4>Recording Downloads</h4>
-              <p>Stream JFR recordings and artifacts from Live workspace repository</p>
+              <h4>Recording Streaming</h4>
+              <p>Stream JFR recordings and artifacts in 64KB chunks for efficient transfer</p>
             </div>
           </div>
           <div class="purpose-card">
             <div class="card-icon"><i class="bi bi-sliders"></i></div>
             <div class="card-content">
               <h4>Settings Sync</h4>
-              <p>Fetch profiler settings to maintain consistency between instances</p>
+              <p>Manage profiler settings hierarchy across workspace, project, and global levels</p>
             </div>
           </div>
         </div>
 
-        <h2 id="endpoints">Endpoints</h2>
-        <p>All endpoints are served under <code>/api/public</code>.</p>
+        <h2 id="grpc-services">gRPC Services</h2>
+        <p>Jeffrey Server exposes 7 gRPC services defined in <code>shared/server-api/src/main/proto/jeffrey/api/v1/</code>.</p>
 
         <div class="endpoint-groups">
-          <!-- Workspaces -->
+          <!-- WorkspaceService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-house"></i>
-              <h4>Workspaces</h4>
+              <h4>WorkspaceService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/workspaces</code>
+                  <span class="method rpc">RPC</span>
+                  <code>GetApiInfo</code>
                 </div>
-                <p>List all available workspaces (Live workspaces only)</p>
+                <p>Returns API and Jeffrey version</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/workspaces/{id}</code>
+                  <span class="method rpc">RPC</span>
+                  <code>ListWorkspaces</code>
                 </div>
-                <p>Get workspace details</p>
+                <p>List all available workspaces</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetWorkspace</code>
+                </div>
+                <p>Get workspace details by ID</p>
               </div>
             </div>
           </div>
 
-          <!-- Projects -->
+          <!-- ProjectService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-folder"></i>
-              <h4>Projects</h4>
+              <h4>ProjectService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/workspaces/{id}/projects</code>
+                  <span class="method rpc">RPC</span>
+                  <code>ListProjects</code>
                 </div>
-                <p>List all projects in workspace</p>
+                <p>List projects in workspace</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/workspaces/{id}/projects/{projectId}</code>
+                  <span class="method rpc">RPC</span>
+                  <code>GetProject</code>
                 </div>
                 <p>Get project details</p>
               </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>DeleteProject</code>
+                </div>
+                <p>Delete project by ID</p>
+              </div>
             </div>
           </div>
 
-          <!-- Profiler Settings -->
+          <!-- InstanceService -->
           <div class="endpoint-group">
             <div class="group-header">
-              <i class="bi bi-sliders"></i>
-              <h4>Profiler Settings</h4>
+              <i class="bi bi-server"></i>
+              <h4>InstanceService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/.../projects/{id}/profiler/settings</code>
+                  <span class="method rpc">RPC</span>
+                  <code>ListInstances</code>
                 </div>
-                <p>Fetch effective profiler settings</p>
+                <p>List instances/pods for project</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method post">POST</span>
-                  <code>/.../projects/{id}/profiler/settings</code>
+                  <span class="method rpc">RPC</span>
+                  <code>GetInstance</code>
                 </div>
-                <p>Update profiler settings</p>
+                <p>Get instance details</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method delete">DELETE</span>
-                  <code>/.../projects/{id}/profiler/settings</code>
+                  <span class="method rpc">RPC</span>
+                  <code>ListInstanceSessions</code>
                 </div>
-                <p>Delete project-level settings override</p>
+                <p>List sessions for an instance</p>
               </div>
             </div>
           </div>
 
-          <!-- Repository -->
+          <!-- RepositoryService -->
           <div class="endpoint-group">
             <div class="group-header">
               <i class="bi bi-collection"></i>
-              <h4>Repository</h4>
+              <h4>RepositoryService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/.../repository/statistics</code>
-                </div>
-                <p>Get repository statistics (session count, size)</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/.../repository/sessions</code>
+                  <span class="method rpc">RPC</span>
+                  <code>ListSessions</code>
                 </div>
                 <p>List all recording sessions</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/.../repository/sessions/{sessionId}</code>
+                  <span class="method rpc">RPC</span>
+                  <code>GetSession</code>
                 </div>
-                <p>Get single session details</p>
+                <p>Get session details</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method post">POST</span>
-                  <code>/.../sessions/{sessionId}/recordings</code>
+                  <span class="method rpc">RPC</span>
+                  <code>GetRepositoryStatistics</code>
                 </div>
-                <p>Stream selected JFR recordings for download</p>
+                <p>Get repository statistics</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method post">POST</span>
-                  <code>/.../sessions/{sessionId}/artifact</code>
+                  <span class="method rpc">RPC</span>
+                  <code>DeleteSession</code>
                 </div>
-                <p>Stream single artifact (heap dump, log)</p>
+                <p>Delete recording session</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method delete">DELETE</span>
-                  <code>/.../repository/sessions/{sessionId}</code>
+                  <span class="method rpc">RPC</span>
+                  <code>DeleteFilesInSession</code>
                 </div>
-                <p>Delete session from repository</p>
+                <p>Delete specific files in session</p>
               </div>
             </div>
           </div>
 
-          <!-- Messages -->
+          <!-- RecordingDownloadService -->
           <div class="endpoint-group">
             <div class="group-header">
-              <i class="bi bi-chat-left-text"></i>
-              <h4>Messages</h4>
+              <i class="bi bi-cloud-download"></i>
+              <h4>RecordingDownloadService</h4>
             </div>
             <div class="group-body">
               <div class="endpoint-item">
                 <div class="endpoint-line">
-                  <span class="method get">GET</span>
-                  <code>/.../projects/{id}/messages</code>
+                  <span class="method rpc">RPC</span>
+                  <code>DownloadMergedRecordings</code>
                 </div>
-                <p>Get project messages and alerts</p>
+                <p>Stream merged recordings in 64KB chunks</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>DownloadArtifactFile</code>
+                </div>
+                <p>Stream artifact file - heap dump, logs</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>DownloadRecordingFile</code>
+                </div>
+                <p>Stream single recording file</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ProfilerSettingsService -->
+          <div class="endpoint-group">
+            <div class="group-header">
+              <i class="bi bi-sliders"></i>
+              <h4>ProfilerSettingsService</h4>
+            </div>
+            <div class="group-body">
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetSettings</code>
+                </div>
+                <p>Get effective profiler settings</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>UpsertSettings</code>
+                </div>
+                <p>Create/update project settings</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>DeleteSettings</code>
+                </div>
+                <p>Delete project settings</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>ListAllSettings</code>
+                </div>
+                <p>List settings at all levels</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>UpsertSettingsAtLevel</code>
+                </div>
+                <p>Create/update at any level</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>DeleteSettingsAtLevel</code>
+                </div>
+                <p>Delete at any level</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- MessagesService -->
+          <div class="endpoint-group">
+            <div class="group-header">
+              <i class="bi bi-chat-left-text"></i>
+              <h4>MessagesService</h4>
+            </div>
+            <div class="group-body">
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetMessages</code>
+                </div>
+                <p>Get project messages with optional time filter</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetAlerts</code>
+                </div>
+                <p>Get alert messages</p>
               </div>
             </div>
           </div>
@@ -240,22 +337,22 @@ onMounted(() => {
                 <span>Developer Machine</span>
               </div>
               <div class="box-content">
-                <strong>Remote Workspace</strong>
-                <p>Connects to Live Jeffrey via Public API</p>
+                <strong>Jeffrey Local</strong>
+                <p>Connects to Jeffrey Server via gRPC</p>
               </div>
             </div>
             <div class="workflow-arrow">
-              <span>Public API</span>
+              <span>gRPC</span>
               <i class="bi bi-arrow-right"></i>
             </div>
             <div class="workflow-box cloud">
               <div class="box-header">
                 <i class="bi bi-cloud"></i>
-                <span>Kubernetes</span>
+                <span>Server / Kubernetes</span>
               </div>
               <div class="box-content">
-                <strong>Live Workspace</strong>
-                <p>Collects recordings from running apps</p>
+                <strong>Jeffrey Server</strong>
+                <p>Collects recordings, exposes gRPC services</p>
               </div>
             </div>
           </div>
@@ -264,8 +361,9 @@ onMounted(() => {
         <h3>Benefits</h3>
         <ul>
           <li><strong>Cost Savings</strong> - Expensive profile analysis runs on local machine, not in cloud</li>
-          <li><strong>Data Access</strong> - Recordings collected in production are available for local analysis</li>
-          <li><strong>Security</strong> - Only read operations exposed, no profile creation or modification</li>
+          <li><strong>Data Access</strong> - Recordings collected in production streamed to local via gRPC</li>
+          <li><strong>Security</strong> - Read-only data access with TLS support for secure communication</li>
+          <li><strong>Efficiency</strong> - Protocol Buffers provide fast, compact serialization for large recording transfers</li>
         </ul>
       </div>
 
@@ -411,6 +509,7 @@ onMounted(() => {
 .method.post { background: #dbeafe; color: #1e40af; }
 .method.put { background: #fef3c7; color: #92400e; }
 .method.delete { background: #fee2e2; color: #991b1b; }
+.method.rpc { background: #ede9fe; color: #6d28d9; }
 
 /* Workflow Diagram */
 .workflow-diagram {

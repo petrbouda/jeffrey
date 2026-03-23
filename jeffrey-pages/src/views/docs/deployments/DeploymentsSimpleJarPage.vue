@@ -29,7 +29,8 @@ const headings = [
   { id: 'prerequisites', text: 'Prerequisites', level: 2 },
   { id: 'download', text: 'Download', level: 2 },
   { id: 'running', text: 'Running Jeffrey', level: 2 },
-  { id: 'configuration', text: 'Configuration', level: 2 }
+  { id: 'configuration', text: 'Configuration', level: 2 },
+  { id: 'jeffrey-server', text: 'Running Jeffrey Server', level: 2 }
 ];
 
 onMounted(() => {
@@ -41,11 +42,13 @@ const basicRun = `java -jar jeffrey.jar`;
 const customPort = `java -jar jeffrey.jar --server.port=9090`;
 
 const customHome = `java -jar jeffrey.jar \\
-  --jeffrey.home.dir=/path/to/jeffrey-data`;
+  --jeffrey.local.home.dir=/path/to/jeffrey-data`;
 
 const fullConfig = `java -jar jeffrey.jar \\
   --server.port=9090 \\
-  --jeffrey.home.dir=/data/jeffrey`;
+  --jeffrey.local.home.dir=/data/jeffrey`;
+
+const serverRun = `java -jar jeffrey-server.jar`;
 </script>
 
 <template>
@@ -56,7 +59,7 @@ const fullConfig = `java -jar jeffrey.jar \\
       />
 
       <div class="docs-content">
-        <p>The simplest way to run Jeffrey is directly as a JAR file. This is ideal for local development, quick testing, or environments where containers aren't available.</p>
+        <p>The simplest way to run Jeffrey Local is directly as a JAR file. This is ideal for local development, quick testing, or environments where containers aren't available.</p>
 
         <h2 id="prerequisites">Prerequisites</h2>
         <ul>
@@ -117,8 +120,8 @@ const fullConfig = `java -jar jeffrey.jar \\
               <td>HTTP server port</td>
             </tr>
             <tr>
-              <td><code>--jeffrey.home.dir</code></td>
-              <td>./jeffrey-data</td>
+              <td><code>--jeffrey.local.home.dir</code></td>
+              <td>~/.jeffrey-local</td>
               <td>Base directory for all Jeffrey data</td>
             </tr>
           </tbody>
@@ -127,6 +130,14 @@ const fullConfig = `java -jar jeffrey.jar \\
         <DocsCallout type="info">
           <strong>Configuration file:</strong> For more complex configurations, create an <code>application.properties</code> file and use <code>--spring.config.location=file:./application.properties</code>.
         </DocsCallout>
+
+        <h2 id="jeffrey-server">Running Jeffrey Server</h2>
+        <p>To run the server application:</p>
+        <DocsCodeBlock
+          language="bash"
+          :code="serverRun"
+        />
+        <p>Jeffrey Server starts on HTTP port <code>8080</code> and gRPC port <code>9090</code>, using <code>~/.jeffrey-server</code> as its home directory.</p>
       </div>
 
       <DocsNavFooter />

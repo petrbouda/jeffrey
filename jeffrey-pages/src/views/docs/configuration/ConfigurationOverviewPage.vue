@@ -41,8 +41,8 @@ onMounted(() => {
 const envVarExample = `# Override server port
 export SERVER_PORT=9090
 
-# Override Jeffrey home directory
-export JEFFREY_HOME_DIR=/data/jeffrey
+# Override Jeffrey Local home directory
+export JEFFREY_LOCAL_HOME_DIR=/data/jeffrey
 
 # Start Jeffrey
 java -jar jeffrey.jar`;
@@ -51,10 +51,10 @@ const cmdLineExample = `# Override server port
 java -jar jeffrey.jar --server.port=9090
 
 # Override home directory
-java -jar jeffrey.jar -Djeffrey.home.dir=/data/jeffrey
+java -jar jeffrey.jar -Djeffrey.local.home.dir=/data/jeffrey
 
 # Multiple overrides
-java -jar jeffrey.jar --server.port=9090 -Djeffrey.home.dir=/data/jeffrey`;
+java -jar jeffrey.jar --server.port=9090 -Djeffrey.local.home.dir=/data/jeffrey`;
 
 const configLocationExample = `# Use a specific configuration file
 java -jar jeffrey.jar --spring.config.location=file:/mnt/config/application.properties
@@ -90,9 +90,7 @@ spring.config.import=optional:file:/path/to/secrets.properties,optional:file:/pa
       </p>
 
       <DocsCallout type="info">
-        <strong>Ready to Run:</strong> All configuration properties have code defaults. Jeffrey starts
-        without any configuration files, using <code>~/.jeffrey</code> as the home directory and
-        port <code>8080</code> for the web interface.
+        <strong>Ready to Run:</strong> All configuration properties have code defaults. Jeffrey Local uses <code>~/.jeffrey-local</code> and Jeffrey Server uses <code>~/.jeffrey-server</code> as home directories, both on port <code>8080</code>.
       </DocsCallout>
 
       <h2 id="configuration-precedence">Configuration Precedence</h2>

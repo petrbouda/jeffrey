@@ -27,9 +27,8 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'server', text: 'Server Configuration', level: 2 },
-  { id: 'directories', text: 'Core Directories', level: 2 },
-  { id: 'ai-assistant', text: 'AI Assistant', level: 2 }
+  { id: 'jeffrey-local', text: 'Jeffrey Local Properties', level: 2 },
+  { id: 'jeffrey-server', text: 'Jeffrey Server Properties', level: 2 }
 ];
 
 onMounted(() => {
@@ -56,9 +55,10 @@ onMounted(() => {
         to create this file if you want to override the defaults.
       </DocsCallout>
 
-      <h2 id="server">Server Configuration</h2>
-      <p>Settings for the HTTP server that hosts the Jeffrey web interface.</p>
+      <h2 id="jeffrey-local">Jeffrey Local Properties</h2>
+      <p>Settings for the Jeffrey Local application (jeffrey.jar) — the analysis tool.</p>
 
+      <h3>Server Configuration</h3>
       <table>
         <thead>
           <tr>
@@ -76,9 +76,7 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <h2 id="directories">Core Directories</h2>
-      <p>Base directories where Jeffrey stores its data and temporary files.</p>
-
+      <h3>Core Directories</h3>
       <table>
         <thead>
           <tr>
@@ -89,24 +87,21 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.home.dir</code></td>
-            <td><code>${user.home}/.jeffrey</code></td>
+            <td><code>jeffrey.local.home.dir</code></td>
+            <td><code>${user.home}/.jeffrey-local</code></td>
             <td>
-              Base directory for all Jeffrey data including database, workspaces, and profiles.
-              Can also be set via environment variable <code>JEFFREY_HOME_DIR</code>.
+              Base directory for all Jeffrey Local data. Env var: <code>JEFFREY_LOCAL_HOME_DIR</code>
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.temp.dir</code></td>
-            <td><code>${jeffrey.home.dir}/temp</code></td>
-            <td>Directory for temporary files during profile processing</td>
+            <td><code>jeffrey.local.temp.dir</code></td>
+            <td><code>${jeffrey.local.home.dir}/temp</code></td>
+            <td>Directory for temporary files during processing</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="ai-assistant">AI Assistant</h2>
-      <p>Configuration for the AI-powered OQL assistant feature.</p>
-
+      <h3>AI Assistant</h3>
       <table>
         <thead>
           <tr>
@@ -117,11 +112,21 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.ai.provider</code></td>
-            <td><code>none</code></td>
+            <td><code>jeffrey.local.ai.provider</code></td>
+            <td><code>claude</code></td>
             <td>
               AI provider: <code>claude</code>, <code>chatgpt</code>, or <code>none</code> (disabled)
             </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.local.ai.model</code></td>
+            <td><code>claude-opus-4-6</code></td>
+            <td>AI model name</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.local.ai.max-tokens</code></td>
+            <td><code>128000</code></td>
+            <td>Maximum tokens in AI response</td>
           </tr>
         </tbody>
       </table>
@@ -130,6 +135,88 @@ onMounted(() => {
         <strong>API Keys Required:</strong> To use the AI assistant, you need to configure the
         appropriate API key in <router-link to="/docs/configuration/secrets">secrets.properties</router-link>.
       </DocsCallout>
+
+      <h2 id="jeffrey-server">Jeffrey Server Properties</h2>
+      <p>Settings for the Jeffrey Server application (jeffrey-server.jar) — the recording collection server.</p>
+
+      <h3>Server Configuration</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>server.port</code></td>
+            <td><code>8080</code></td>
+            <td>HTTP server port for the web interface</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Core Directories</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.server.home.dir</code></td>
+            <td><code>${user.home}/.jeffrey-server</code></td>
+            <td>
+              Base directory for all Jeffrey Server data. Env var: <code>JEFFREY_SERVER_HOME_DIR</code>
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.server.temp.dir</code></td>
+            <td><code>${jeffrey.server.home.dir}/temp</code></td>
+            <td>Directory for temporary files</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>gRPC Configuration</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.server.grpc.port</code></td>
+            <td><code>9090</code></td>
+            <td>gRPC server port for Jeffrey Local connections</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>CORS Configuration</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.server.cors.mode</code></td>
+            <td><code>DEV</code></td>
+            <td>CORS mode: <code>DEV</code> allows all cross-origin requests, <code>PROD</code> restricts to specific origins</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <DocsNavFooter />

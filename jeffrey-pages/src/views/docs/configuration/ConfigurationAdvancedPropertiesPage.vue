@@ -32,7 +32,7 @@ const headings = [
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'profile', text: 'Profile Configuration', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
-  { id: 'live-workspace', text: 'Live Workspace', level: 2 },
+  { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
   { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
   { id: 'container', text: 'Container Deployment', level: 2 },
@@ -77,10 +77,10 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.cors.mode</code></td>
+            <td><code>jeffrey.server.cors.mode</code></td>
             <td><code>PROD</code></td>
             <td>
-              CORS mode. <code>DEV</code>: all endpoints (internal + public) allow cross-origin requests
+              Jeffrey Server property. CORS mode. <code>DEV</code>: all endpoints (internal + public) allow cross-origin requests
               with all HTTP methods (for local development with separate frontend).
               <code>PROD</code>: only <code>/api/public/*</code> endpoints allow cross-origin requests
               (for Jeffrey-to-Jeffrey communication over network).
@@ -247,14 +247,14 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>jeffrey.project.recording-storage.path</code></td>
-            <td><code>${jeffrey.home.dir}/recordings</code></td>
-            <td>Directory for storing JFR recordings</td>
+            <td><code>${jeffrey.server.home.dir}/recordings</code></td>
+            <td>Directory for storing JFR recordings. Jeffrey Server only.</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="live-workspace">Live Workspace</h2>
-      <p>Settings for Live workspace behavior.</p>
+      <h2 id="live-workspace">Server Collection Mode</h2>
+      <p>Settings for Jeffrey Server collection mode. Jeffrey Server is designed for recording collection and does not perform profile analysis.</p>
 
       <table>
         <thead>
@@ -268,7 +268,7 @@ onMounted(() => {
           <tr>
             <td><code>jeffrey.project.live.collector-only-mode-enabled</code></td>
             <td><code>true</code></td>
-            <td>Enable collector-only mode for Live workspace projects. When enabled, Profiles and Recordings navigation are hidden, and Merge/Download actions are disabled. Recommended for server deployments — use Remote workspaces for analysis.</td>
+            <td>Jeffrey Server only — controls UI visibility of analysis features. When enabled, Profiles and Recordings navigation are hidden, and Merge/Download actions are disabled. Use Remote workspaces in Jeffrey Local for analysis.</td>
           </tr>
         </tbody>
       </table>
@@ -317,8 +317,8 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>jeffrey.persistence.database.url</code></td>
-            <td><code>jdbc:duckdb:${jeffrey.home.dir}/jeffrey-data.db</code></td>
-            <td>DuckDB database connection URL</td>
+            <td><code>jdbc:duckdb:${jeffrey.local.home.dir}/jeffrey-data.db</code></td>
+            <td>DuckDB database connection URL. Jeffrey Server uses <code>${jeffrey.server.home.dir}/jeffrey-data.db</code>.</td>
           </tr>
           <tr>
             <td><code>jeffrey.persistence.database.pool-size</code></td>
@@ -399,7 +399,7 @@ onMounted(() => {
       </table>
 
       <h2 id="ai-model">AI Model Settings</h2>
-      <p>Configuration for the AI model used by the assistant.</p>
+      <p>Configuration for the AI model used by the assistant. Jeffrey Local only.</p>
 
       <table>
         <thead>
@@ -411,17 +411,17 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.ai.provider</code></td>
+            <td><code>jeffrey.local.ai.provider</code></td>
             <td><code>claude</code></td>
             <td>AI provider: <code>claude</code> for Claude models, <code>chatgpt</code> for GPT/O1/O3 models, <code>none</code> to disable</td>
           </tr>
           <tr>
-            <td><code>jeffrey.ai.model</code></td>
+            <td><code>jeffrey.local.ai.model</code></td>
             <td><code>claude-opus-4-5-20251101</code></td>
             <td>AI model name. Claude: <code>claude-opus-4-5-20251101</code>, <code>claude-sonnet-4-5-20250929</code>, <code>claude-sonnet-4-20250514</code>. ChatGPT: <code>gpt-4o</code>, <code>gpt-4o-mini</code>, <code>o3-mini</code></td>
           </tr>
           <tr>
-            <td><code>jeffrey.ai.max-tokens</code></td>
+            <td><code>jeffrey.local.ai.max-tokens</code></td>
             <td><code>4096</code></td>
             <td>Maximum tokens in AI response</td>
           </tr>

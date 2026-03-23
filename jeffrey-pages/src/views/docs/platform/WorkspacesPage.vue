@@ -126,16 +126,14 @@ onMounted(() => {
         <h3 id="collector-only-mode">Collector-Only Mode</h3>
 
         <DocsCallout type="info">
-          By default, Live workspaces operate in <strong>collector-only mode</strong> — designed for lightweight server deployments. In this mode, <strong>Profiles</strong> and <strong>Recordings</strong> navigation are hidden, and <strong>Merge and Copy</strong> / <strong>Download</strong> buttons in Repository are disabled. Only collection-related features (Repository, Scheduler, Profiler Settings, Alerts) are available.
-          <br><br>
-          To enable full analysis on the Live workspace, set <code>jeffrey.project.live.collector-only-mode-enabled=false</code>. The recommended approach remains: use a <strong>Remote</strong> workspace from your local machine for analysis.
+          In the split architecture, Jeffrey Server inherently operates as a collection-only system — it manages workspaces, projects, instances, and recording sessions but does <strong>not</strong> perform profile analysis. Use a <strong>Remote</strong> workspace in Jeffrey Local for analysis.
         </DocsCallout>
 
         <h3>How to Create</h3>
-        <p>Click <strong>"Add Live"</strong> and provide a name and optional directory location. Storage defaults to <code>~/.jeffrey/workspaces/</code>.</p>
+        <p>Live workspaces are created on <strong>Jeffrey Server</strong>. Storage defaults to <code>~/.jeffrey-server/workspaces/</code>.</p>
 
         <h2 id="remote-workspace">Remote Workspace</h2>
-        <p>The Remote workspace allows you to <strong>mirror a Live workspace</strong> from a remote Jeffrey server to your local machine. This is the <strong>recommended approach</strong> for analyzing recordings from servers.</p>
+        <p>The Remote workspace allows you to <strong>mirror a workspace</strong> from a Jeffrey Server instance to your Jeffrey Local. This is the <strong>recommended approach</strong> for analyzing recordings collected by the server.</p>
 
         <DocsCallout type="info">
           <strong>Recommended for Live Workspaces:</strong> Instead of running heavy analysis directly on your server, use a Remote workspace to connect from your local machine. This keeps your server lightweight (only collecting recordings) while all CPU-intensive profile processing and visualization happens on your local device with better resources.
@@ -143,7 +141,7 @@ onMounted(() => {
 
         <h3>How It Works</h3>
         <ol>
-          <li>Connect to a remote Jeffrey server via URL</li>
+          <li>Connect to a Jeffrey Server instance via gRPC</li>
           <li>Mirror a Live workspace to your local Jeffrey</li>
           <li>Browse the same projects and recording sessions locally (in Repository page)</li>
           <li>When you find an interesting recording session:
@@ -165,7 +163,7 @@ onMounted(() => {
         </ul>
 
         <h3>How to Create</h3>
-        <p>Click <strong>"Add Remote"</strong>, enter the remote Jeffrey server URL, then select which workspaces to mirror.</p>
+        <p>Click <strong>"Add Remote"</strong>, enter the Jeffrey Server address (gRPC endpoint), then select which workspaces to mirror.</p>
 
         <h2 id="recommended-workflows">Recommended Workflows</h2>
 
@@ -184,7 +182,7 @@ onMounted(() => {
         <div class="workflow-diagram">
           <div class="workflow-box server">
             <h4><i class="bi bi-server me-2"></i>Server</h4>
-            <p>Jeffrey + Live Workspace</p>
+            <p>Jeffrey Server</p>
             <ul>
               <li>Collects recordings</li>
               <li>Stores sessions</li>
@@ -193,11 +191,11 @@ onMounted(() => {
           </div>
           <div class="workflow-arrow">
             <i class="bi bi-arrow-left-right"></i>
-            <span>HTTP</span>
+            <span>gRPC</span>
           </div>
           <div class="workflow-box local">
             <h4><i class="bi bi-laptop me-2"></i>Local Machine</h4>
-            <p>Jeffrey + Remote Workspace</p>
+            <p>Jeffrey Local + Remote Workspace</p>
             <ul>
               <li>Mirror Live workspace</li>
               <li>Browse Repository</li>
@@ -244,7 +242,7 @@ onMounted(() => {
               <td>Network Required</td>
               <td>No</td>
               <td>No</td>
-              <td>Yes</td>
+              <td>Yes (gRPC)</td>
             </tr>
             <tr>
               <td>Resource Usage<br><small class="text-muted">profile initialization & visualization</small></td>

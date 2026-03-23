@@ -50,7 +50,7 @@ export const docsNavigation: DocSection[] = [
     icon: 'bi-diagram-3',
     children: [
       { title: 'Overview', path: 'overview' },
-      { title: 'Public API', path: 'public-api' },
+      { title: 'gRPC API', path: 'public-api' },
       { title: 'Storage', path: 'storage' }
     ]
   },
@@ -120,7 +120,7 @@ export const docsNavigation: DocSection[] = [
     ]
   },
   {
-    title: 'Local Deployments',
+    title: 'Deployments',
     path: 'deployments',
     icon: 'bi-cloud-upload',
     children: [
