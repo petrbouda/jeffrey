@@ -42,9 +42,12 @@ public interface QuickAnalysisManager {
 
     void deleteRecording(String recordingId);
 
-    // Profile creation from recording
+    // Profile operations
     String analyzeRecording(String recordingId);
 
-    // Profile access (kept for ProfilesResource.findProfileManager)
+    void updateProfileName(String profileId, String profileName);
+
+    void deleteProfile(String recordingId);
+
     Optional<ProfileManager> profile(String profileId);
 }

@@ -70,4 +70,12 @@ export default class QuickAnalysisClient extends BasePlatformClient {
         return super.post<{ profileId: string }>(`/recordings/${recordingId}/analyze`)
             .then(r => r.profileId);
     }
+
+    async updateProfileName(recordingId: string, name: string): Promise<void> {
+        return super.put<void>(`/recordings/${recordingId}/profile`, { name });
+    }
+
+    async deleteProfile(recordingId: string): Promise<void> {
+        return super.del<void>(`/recordings/${recordingId}/profile`);
+    }
 }

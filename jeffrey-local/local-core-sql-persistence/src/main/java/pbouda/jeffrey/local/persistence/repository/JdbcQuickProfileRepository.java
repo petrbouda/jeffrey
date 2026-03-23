@@ -56,6 +56,10 @@ public class JdbcQuickProfileRepository implements QuickProfileRepository {
             "UPDATE quick_profiles SET group_name = :group_name WHERE profile_id = :profile_id";
 
     //language=SQL
+    private static final String UPDATE_PROFILE_NAME =
+            "UPDATE quick_profiles SET profile_name = :profile_name WHERE profile_id = :profile_id";
+
+    //language=SQL
     private static final String DELETE =
             "DELETE FROM quick_profiles WHERE profile_id = :profile_id";
 
@@ -116,6 +120,15 @@ public class JdbcQuickProfileRepository implements QuickProfileRepository {
                 .addValue("group_name", groupName);
 
         databaseClient.update(StatementLabel.UPDATE_QUICK_PROFILE_GROUP, UPDATE_GROUP, params);
+    }
+
+    @Override
+    public void updateProfileName(String profileId, String profileName) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("profile_id", profileId)
+                .addValue("profile_name", profileName);
+
+        databaseClient.update(StatementLabel.UPDATE_QUICK_PROFILE_NAME, UPDATE_PROFILE_NAME, params);
     }
 
     @Override

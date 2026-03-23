@@ -35,5 +35,7 @@ public interface QuickProfileRepository {
 
     void updateGroupName(String profileId, String groupName);
 
+    void updateProfileName(String profileId, String profileName);
+
     void delete(String profileId);
 }

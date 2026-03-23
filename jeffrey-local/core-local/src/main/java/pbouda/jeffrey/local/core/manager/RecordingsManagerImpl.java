@@ -20,8 +20,6 @@ package pbouda.jeffrey.local.core.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.local.core.persistence.NewRecording;
-import pbouda.jeffrey.local.core.persistence.NewRecordingHolder;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.persistence.model.RecordingFolder;
 import pbouda.jeffrey.local.persistence.repository.ProjectRecordingRepository;
@@ -29,7 +27,6 @@ import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.Recording;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
 
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -55,21 +52,6 @@ public class RecordingsManagerImpl implements RecordingsManager {
     @Override
     public List<Recording> all() {
         return projectRecordingRepository.findAllRecordings();
-    }
-
-    @Override
-    public void upload(NewRecording newRecording, InputStream stream) {
-        LOG.debug("Uploading recording: name={} folderId={} projectId={}",
-                newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
-
-        try (NewRecordingHolder holder = recordingInitializer.newRecording(newRecording)) {
-            holder.transferFrom(stream);
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot upload the recording: " + newRecording, e);
-        }
-
-        LOG.info("Uploaded recording: name={} folderId={} projectId={}",
-                newRecording.recordingName(), newRecording.folderId(), projectInfo.id());
     }
 
     @Override

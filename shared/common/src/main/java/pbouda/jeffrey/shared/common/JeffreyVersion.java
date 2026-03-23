@@ -22,7 +22,7 @@ import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 public abstract class JeffreyVersion {
     private static final String JEFFREY_VERSION = "jeffrey-tag.txt";
-    private static final String NO_VERSION = "Cannot resolve the version!";
+    private static final String NO_VERSION = "Unknown";
 
     public static void print() {
         System.out.println(resolveJeffreyVersion());

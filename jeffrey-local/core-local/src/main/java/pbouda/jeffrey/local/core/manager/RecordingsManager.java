@@ -18,11 +18,9 @@
 
 package pbouda.jeffrey.local.core.manager;
 
-import pbouda.jeffrey.local.core.persistence.NewRecording;
 import pbouda.jeffrey.local.persistence.model.RecordingFolder;
 import pbouda.jeffrey.shared.common.model.Recording;
 
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -30,8 +28,6 @@ import java.util.Optional;
 public interface RecordingsManager {
 
     List<Recording> all();
-
-    void upload(NewRecording newRecording, InputStream stream);
 
     void createFolder(String folderName);
 

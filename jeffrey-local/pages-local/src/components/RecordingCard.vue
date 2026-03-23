@@ -1,0 +1,487 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2026 Petr Bouda
+  -
+  - This program is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - This program is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU Affero General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<script setup lang="ts">
+import FormattingService from '@/services/FormattingService';
+
+interface Props {
+  recordingId: string;
+  name: string;
+  sizeInBytes: number;
+  durationInMillis: number;
+  uploadedAt: string;
+  sourceType?: string;
+  fileCount?: number;
+  hasProfile: boolean;
+  profileId?: string | null;
+  profileEnabled?: boolean;
+  profileSizeInBytes?: number;
+  analyzing?: boolean;
+  creatingProfile?: boolean;
+  deletingProfile?: boolean;
+  expandable?: boolean;
+  expanded?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  profileEnabled: true,
+  analyzing: false,
+  creatingProfile: false,
+  deletingProfile: false,
+  expandable: false,
+  expanded: false,
+});
+
+const emit = defineEmits<{
+  (e: 'click'): void;
+  (e: 'create-profile'): void;
+  (e: 'open-profile'): void;
+  (e: 'edit-profile'): void;
+  (e: 'delete-profile'): void;
+  (e: 'delete-recording'): void;
+  (e: 'toggle-expand'): void;
+}>();
+
+const isTransitional = () =>
+    props.analyzing || props.creatingProfile || props.deletingProfile || (props.hasProfile && !props.profileEnabled);
+
+const handleClick = () => {
+  if (!isTransitional()) {
+    emit('click');
+  }
+};
+
+const formatRelativeTime = (dateString: string) => {
+  const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+  const timestamp = new Date(utcString).getTime();
+  return FormattingService.formatRelativeTime(timestamp);
+};
+</script>
+
+<template>
+  <div
+      class="rec-card"
+      :class="{
+        'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
+        'rec-card--analyzing': analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
+        'rec-card--deleting': deletingProfile,
+      }"
+      @click="handleClick"
+  >
+    <!-- Two-column layout: left (name + metadata), right (actions) -->
+    <div class="rec-card__body">
+      <!-- Left: info -->
+      <div class="rec-card__info">
+        <div class="rec-card__line1">
+          <i
+              class="rec-card__icon"
+              :class="sourceType === 'HEAP_DUMP' ? 'bi bi-database' : 'bi bi-file-earmark-binary'"
+          ></i>
+          <span class="rec-card__name">{{ name }}</span>
+        </div>
+        <div class="rec-card__line2">
+          <span class="rec-card__meta">{{ FormattingService.formatBytes(sizeInBytes) }}</span>
+          <template v-if="durationInMillis > 0">
+            <span class="rec-card__sep">&middot;</span>
+            <span class="rec-card__meta">{{ FormattingService.formatDurationInMillis2Units(durationInMillis) }}</span>
+          </template>
+          <span class="rec-card__sep">&middot;</span>
+          <span class="rec-card__meta">{{ formatRelativeTime(uploadedAt) }}</span>
+          <template v-if="fileCount != null && fileCount > 0 && !expandable">
+            <span class="rec-card__sep">&middot;</span>
+            <span class="rec-card__meta">{{ fileCount }} file{{ fileCount !== 1 ? 's' : '' }}</span>
+          </template>
+          <template v-if="hasProfile && profileSizeInBytes && profileSizeInBytes > 0">
+            <span class="rec-card__sep">&middot;</span>
+            <span class="rec-card__profile-info">
+              <i class="bi bi-check-circle-fill"></i>
+              Profile: {{ FormattingService.formatBytes(profileSizeInBytes) }}
+            </span>
+          </template>
+        </div>
+      </div>
+
+      <!-- Right: actions spanning both lines -->
+      <div class="rec-card__actions">
+        <!-- Files toggle -->
+        <button
+            v-if="expandable && fileCount != null && fileCount > 0"
+            class="rec-card__files-toggle"
+            :class="{ 'rec-card__files-toggle--active': expanded }"
+            @click.stop="emit('toggle-expand')"
+        >
+          <i class="bi bi-files"></i>
+          {{ fileCount }} file{{ fileCount !== 1 ? 's' : '' }}
+          <i class="bi" :class="expanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        </button>
+
+        <!-- Not analyzed: Analyze button -->
+        <button
+            v-if="!hasProfile && !analyzing && !creatingProfile"
+            class="rec-card__btn rec-card__btn--analyze"
+            @click.stop="emit('create-profile')"
+        >
+          <i class="bi bi-play-fill"></i>
+          Analyze
+        </button>
+
+        <!-- Analyzing / Creating spinner -->
+        <span v-else-if="analyzing || creatingProfile" class="rec-card__btn rec-card__btn--spinner">
+          <div class="rec-card__spinner"></div>
+          {{ analyzing ? 'Analyzing...' : 'Creating...' }}
+        </span>
+
+        <!-- Deleting spinner -->
+        <span v-else-if="deletingProfile" class="rec-card__btn rec-card__btn--spinner rec-card__btn--spinner-danger">
+          <div class="rec-card__spinner rec-card__spinner--danger"></div>
+          Deleting...
+        </span>
+
+        <!-- Initializing (has profile but not enabled yet) -->
+        <span v-else-if="hasProfile && !profileEnabled" class="rec-card__btn rec-card__btn--spinner">
+          <div class="rec-card__spinner"></div>
+          Initializing...
+        </span>
+
+        <!-- Analyzed + enabled: Open Profile -->
+        <button
+            v-else-if="hasProfile && profileEnabled"
+            class="rec-card__btn rec-card__btn--open"
+            @click.stop="emit('open-profile')"
+        >
+          Open Profile
+          <i class="bi bi-arrow-right"></i>
+        </button>
+
+        <!-- Action icon buttons -->
+        <button
+            v-if="hasProfile && profileEnabled && !deletingProfile"
+            class="rec-card__action-btn"
+            @click.stop="emit('edit-profile')"
+            title="Edit Profile"
+        >
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button
+            v-if="hasProfile && !deletingProfile"
+            class="rec-card__action-btn rec-card__action-btn--danger"
+            @click.stop="emit('delete-profile')"
+            title="Delete Profile"
+        >
+          <i class="bi bi-person-x"></i>
+        </button>
+        <button
+            class="rec-card__action-btn rec-card__action-btn--danger"
+            @click.stop="emit('delete-recording')"
+            title="Delete"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Expanded content slot -->
+    <div v-if="expanded" class="rec-card__expanded" @click.stop>
+      <slot name="expanded-content"></slot>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* Card base */
+.rec-card {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px dashed #d1d5db;
+  background: #fafbfc;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.rec-card:hover {
+  border-color: rgba(94, 100, 255, 0.3);
+  border-left-color: #5e64ff;
+  border-left-style: solid;
+  background: linear-gradient(135deg, #f0f2ff, #f8f9ff);
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.12);
+}
+
+/* Analyzed state */
+.rec-card--analyzed {
+  border-left: 3px solid #00d27a;
+  background: linear-gradient(135deg, #f7fdf9, #ffffff);
+}
+
+.rec-card--analyzed:hover {
+  border-color: rgba(0, 210, 122, 0.3);
+  border-left-color: #00b368;
+  background: linear-gradient(135deg, #ecfaf0, #f0fbf4);
+  box-shadow: 0 2px 8px rgba(0, 210, 122, 0.15);
+}
+
+/* Analyzing / Creating state */
+.rec-card--analyzing {
+  border-left: 3px solid #5e64ff;
+  animation: rec-card-pulse 2s ease-in-out infinite;
+  cursor: default;
+}
+
+.rec-card--analyzing:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Deleting state */
+.rec-card--deleting {
+  border-left: 3px dashed #dc2626;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.rec-card--deleting:hover {
+  border-left-color: #dc2626;
+  background: #fafbfc;
+  box-shadow: none;
+}
+
+@keyframes rec-card-pulse {
+  0%, 100% { background: #fafbfc; }
+  50% { background: #f0f2ff; }
+}
+
+/* Two-column body */
+.rec-card__body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rec-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Line 1: icon + name */
+.rec-card__line1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.rec-card__icon {
+  font-size: 1.05rem;
+  color: #5e64ff;
+  flex-shrink: 0;
+}
+
+.rec-card--analyzed .rec-card__icon {
+  color: #00b368;
+}
+
+.rec-card__name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Line 2: metadata */
+.rec-card__line2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 26px;
+}
+
+/* Right: actions */
+.rec-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rec-card__meta {
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.rec-card__sep {
+  color: #d1d5db;
+  font-size: 0.65rem;
+}
+
+.rec-card__profile-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #00b368;
+}
+
+.rec-card__profile-info i {
+  font-size: 0.7rem;
+}
+
+/* Files toggle button (line 2) */
+.rec-card__files-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rec-card__files-toggle:hover {
+  background: #f0f2ff;
+  border-color: rgba(94, 100, 255, 0.3);
+  color: #5e64ff;
+}
+
+.rec-card__files-toggle--active {
+  background: #f0f2ff;
+  border-color: rgba(94, 100, 255, 0.25);
+  color: #5e64ff;
+}
+
+.rec-card__files-toggle i {
+  font-size: 0.75rem;
+}
+
+/* Primary action buttons */
+.rec-card__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.rec-card__btn--analyze {
+  background: transparent;
+  color: #5e64ff;
+  border: 1px solid rgba(94, 100, 255, 0.3);
+}
+
+.rec-card:hover .rec-card__btn--analyze {
+  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  color: white;
+  border-color: transparent;
+}
+
+.rec-card__btn--open {
+  background: transparent;
+  color: #00b368;
+  border: 1px solid rgba(0, 210, 122, 0.3);
+}
+
+.rec-card:hover .rec-card__btn--open {
+  background: linear-gradient(135deg, #00d27a, #00b368);
+  color: white;
+  border-color: transparent;
+}
+
+.rec-card__btn--spinner {
+  color: #5e64ff;
+  padding: 7px 16px;
+  cursor: default;
+}
+
+.rec-card__btn--spinner-danger {
+  color: #dc2626;
+}
+
+/* Spinner */
+.rec-card__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(94, 100, 255, 0.2);
+  border-top-color: #5e64ff;
+  border-radius: 50%;
+  animation: rec-card-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.rec-card__spinner--danger {
+  border-color: rgba(220, 38, 38, 0.2);
+  border-top-color: #dc2626;
+}
+
+@keyframes rec-card-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hover-revealed action buttons */
+.rec-card__action-btn {
+  background: transparent;
+  border: none;
+  color: #c8ccd4;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  transition: all 0.15s ease;
+}
+
+.rec-card__action-btn:hover {
+  background: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+}
+
+.rec-card__action-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.rec-card__action-btn:active {
+  transform: scale(0.92);
+}
+
+/* Expanded content */
+.rec-card__expanded {
+  margin-top: 8px;
+  padding-top: 8px;
+  padding-left: 12px;
+  border-left: 2px solid #e5e7eb;
+  margin-left: 10px;
+}
+</style>

@@ -356,10 +356,16 @@ const getWorkspaceDescription = (workspace: Workspace | undefined) => {
   if (!workspace) {
     return 'No workspace selected';
   }
-  if (workspace.description) {
+  if (workspace.status === WorkspaceStatus.OFFLINE) {
+    return 'Remote workspace is offline';
+  } else if (workspace.status === WorkspaceStatus.UNAVAILABLE) {
+    return 'Workspace unavailable';
+  } else if (workspace.description) {
     return workspace.description;
+  } else if (workspace.name) {
+    return `Projects for ${workspace.name}`;
   } else {
-    return `Projects for ${workspace.name ?? workspace.id}`;
+    return 'Remote workspace';
   }
 };
 

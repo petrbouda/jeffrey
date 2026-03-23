@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import axios from 'axios';
 import BasePlatformClient from '@/services/api/BasePlatformClient';
 import HttpUtils from '@/services/HttpUtils';
 import Recording from '@/services/api/model/Recording';
@@ -25,17 +24,6 @@ export default class ProjectRecordingClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
         super(`/workspaces/${workspaceId}/projects/${projectId}/recordings`);
-    }
-
-    async upload(file: File, folderId: string | null): Promise<void> {
-        const formData = new FormData();
-        formData.append("file", file, file.name);
-        if (folderId) {
-            formData.append("folder_id", folderId);
-        }
-
-        return axios.post(this.baseUrl, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
-            .then(HttpUtils.RETURN_DATA);
     }
 
     async list(): Promise<Recording[]> {

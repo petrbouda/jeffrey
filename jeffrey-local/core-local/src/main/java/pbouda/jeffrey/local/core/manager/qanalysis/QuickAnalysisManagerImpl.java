@@ -270,6 +270,27 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         return profileId;
     }
 
+    @Override
+    public void updateProfileName(String profileId, String profileName) {
+        quickProfileRepository.updateProfileName(profileId, profileName);
+        LOG.info("Quick analysis profile renamed: profileId={} newName={}", profileId, profileName);
+    }
+
+    @Override
+    public void deleteProfile(String recordingId) {
+        QuickRecordingInfo recording = quickRecordingRepository.findById(recordingId)
+                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
+
+        if (!recording.hasProfile()) {
+            throw new IllegalStateException("Recording has no profile: " + recordingId);
+        }
+
+        deleteProfileInternal(recording.profileId());
+        quickRecordingRepository.updateProfileId(recordingId, null);
+
+        LOG.info("Quick analysis profile deleted: recordingId={} profileId={}", recordingId, recording.profileId());
+    }
+
     // --- Profile access ---
 
     @Override

@@ -23,13 +23,10 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.RecordingsManager;
-import pbouda.jeffrey.local.core.persistence.NewRecording;
 import pbouda.jeffrey.local.core.resources.request.CreateFolderRequest;
 import pbouda.jeffrey.local.core.resources.response.RecordingFileResponse;
 import pbouda.jeffrey.local.core.resources.response.RecordingsResponse;
@@ -115,23 +112,6 @@ public class ProjectRecordingsResource {
                 recordingFile.sizeInBytes(),
                 recordingFile.recordingFileType().name(),
                 recordingFile.recordingFileType().description());
-    }
-
-    @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response upload(
-            @FormDataParam("folder_id") String folderId,
-            @FormDataParam("file") InputStream fileInputStream,
-            @FormDataParam("file") FormDataContentDisposition cdh) {
-
-        LOG.debug("Uploading recording: filename={} folderId={}", cdh.getFileName(), folderId);
-        String trimmedFolderId = folderId == null || folderId.isBlank() ? null : folderId.trim();
-        java.nio.file.Path filename = java.nio.file.Path.of(cdh.getFileName());
-        String recordingName = FileSystemUtils.filenameWithoutExtension(filename);
-
-        NewRecording recording = new NewRecording(recordingName, cdh.getFileName(), trimmedFolderId);
-        recordingsManager.upload(recording, fileInputStream);
-        return Response.status(Response.Status.CREATED).build();
     }
 
     @POST

@@ -149,6 +149,37 @@ public class QuickAnalysisResource {
         return Response.ok(new AnalyzeResponse(profileId)).build();
     }
 
+    @PUT
+    @Path("/recordings/{recordingId}/profile")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response updateProfile(
+            @PathParam("recordingId") String recordingId,
+            UpdateProfileRequest request) {
+
+        if (request == null || request.name() == null || request.name().isBlank()) {
+            throw new BadRequestException("Profile name is required");
+        }
+
+        QuickRecordingInfo recording = quickAnalysisManager.listRecordings().stream()
+                .filter(r -> r.recordingId().equals(recordingId))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Recording not found: " + recordingId));
+
+        if (!recording.hasProfile()) {
+            throw new BadRequestException("Recording has no profile: " + recordingId);
+        }
+
+        quickAnalysisManager.updateProfileName(recording.profileId(), request.name().trim());
+        return Response.ok().build();
+    }
+
+    @DELETE
+    @Path("/recordings/{recordingId}/profile")
+    public Response deleteProfile(@PathParam("recordingId") String recordingId) {
+        quickAnalysisManager.deleteProfile(recordingId);
+        return Response.ok().build();
+    }
+
     // --- Profile sub-resource (kept for profile access) ---
 
     @Path("/profiles/{profileId}")
@@ -165,6 +196,8 @@ public class QuickAnalysisResource {
     public record CreateGroupResponse(String groupId) {}
 
     public record UploadRecordingResponse(String recordingId) {}
+
+    public record UpdateProfileRequest(String name) {}
 
     // --- Helpers ---
 

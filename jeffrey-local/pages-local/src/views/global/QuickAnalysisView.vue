@@ -79,71 +79,26 @@
                 <span>No recordings</span>
               </div>
               <div v-if="!section.collapsed && section.recordings.length > 0" class="qa-group-items">
-                <div
+                <RecordingCard
                     v-for="recording in section.recordings"
                     :key="recording.id"
-                    class="qa-rec-card"
-                    :class="{
-                      'analyzed': recording.hasProfile,
-                      'analyzing': analyzingRecordings.has(recording.id)
-                    }"
+                    :recording-id="recording.id"
+                    :name="recording.filename"
+                    :size-in-bytes="recording.sizeInBytes"
+                    :duration-in-millis="recording.durationInMillis"
+                    :uploaded-at="recording.uploadedAt"
+                    :source-type="recording.eventSource"
+                    :has-profile="recording.hasProfile"
+                    :profile-id="recording.profileId"
+                    :profile-size-in-bytes="recording.profileSizeInBytes"
+                    :analyzing="analyzingRecordings.has(recording.id)"
                     @click="handleCardClick(recording)"
-                >
-                  <!-- Line 1: filename + actions -->
-                  <div class="qa-rec-line1">
-                    <i :class="recording.eventSource === 'HEAP_DUMP' ? 'bi bi-database' : 'bi bi-file-earmark-binary'" class="qa-rec-icon"></i>
-                    <span class="qa-rec-filename">{{ recording.filename }}</span>
-                    <div class="qa-rec-actions">
-                      <!-- Not analyzed: Analyze button -->
-                      <button
-                          v-if="!recording.hasProfile && !analyzingRecordings.has(recording.id)"
-                          class="qa-btn-analyze"
-                          @click.stop="analyzeRecording(recording.id)"
-                      >
-                        <i class="bi bi-play-fill"></i>
-                        Analyze
-                      </button>
-                      <!-- Analyzing: spinner -->
-                      <span v-else-if="analyzingRecordings.has(recording.id)" class="qa-btn-analyzing">
-                        <div class="qa-spinner-sm"></div>
-                        Analyzing...
-                      </span>
-                      <!-- Analyzed: Open Profile button -->
-                      <button
-                          v-else-if="recording.hasProfile"
-                          class="qa-btn-open"
-                          @click.stop="openProfile(recording)"
-                      >
-                        Open Profile
-                        <i class="bi bi-arrow-right"></i>
-                      </button>
-                      <!-- Delete (hover-revealed) -->
-                      <button class="qa-btn-delete" @click.stop="deleteRecording(recording.id)" title="Delete">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <!-- Line 2: metadata -->
-                  <div class="qa-rec-line2">
-                    <span class="qa-rec-badge" :class="recording.eventSource === 'HEAP_DUMP' ? 'badge-heap' : 'badge-jfr'">
-                      {{ recording.eventSource === 'HEAP_DUMP' ? 'Heap Dump' : 'JFR' }}
-                    </span>
-                    <span class="qa-rec-meta">{{ formatBytes(recording.sizeInBytes) }}</span>
-                    <template v-if="recording.durationInMillis > 0">
-                      <span class="qa-rec-sep">&middot;</span>
-                      <span class="qa-rec-meta">{{ formatDuration(recording.durationInMillis) }}</span>
-                    </template>
-                    <span class="qa-rec-sep">&middot;</span>
-                    <span class="qa-rec-meta">{{ formatRelativeTime(recording.uploadedAt) }}</span>
-                    <template v-if="recording.hasProfile && recording.profileSizeInBytes > 0">
-                      <span class="qa-rec-sep">&middot;</span>
-                      <span class="qa-rec-profile-info">
-                        <i class="bi bi-check-circle-fill"></i>
-                        Profile: {{ formatBytes(recording.profileSizeInBytes) }}
-                      </span>
-                    </template>
-                  </div>
-                </div>
+                    @create-profile="analyzeRecording(recording.id)"
+                    @open-profile="openProfile(recording)"
+                    @edit-profile="startEditProfile(recording)"
+                    @delete-profile="deleteProfileFromRecording(recording.id)"
+                    @delete-recording="deleteRecording(recording.id)"
+                />
               </div>
             </div>
           </template>
@@ -193,6 +148,33 @@
       </div>
     </div>
 
+    <!-- Edit Profile modal -->
+    <div v-if="editingRecording" class="qa-modal-overlay" @click.self="editingRecording = null">
+      <div class="qa-modal">
+        <div class="qa-modal-header">
+          <span class="qa-modal-title">Edit Profile</span>
+          <button class="qa-modal-close" @click="editingRecording = null">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="qa-modal-body">
+          <input
+              ref="editProfileInputRef"
+              v-model="editProfileName"
+              type="text"
+              class="qa-modal-input"
+              placeholder="Enter profile name"
+              @keydown.enter="updateProfileName"
+              @keydown.escape="editingRecording = null"
+          >
+        </div>
+        <div class="qa-modal-footer">
+          <button class="qa-modal-btn-cancel" @click="editingRecording = null">Cancel</button>
+          <button class="qa-modal-btn-save" @click="updateProfileName" :disabled="!editProfileName.trim()">Update</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Delete Group confirmation -->
     <div v-if="deletingGroupId" class="qa-modal-overlay" @click.self="deletingGroupId = null">
       <div class="qa-modal">
@@ -217,9 +199,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import FormattingService from '@/services/FormattingService';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
+import RecordingCard from '@/components/RecordingCard.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import type QuickGroup from '@/services/api/model/QuickGroup';
 import type QuickRecording from '@/services/api/model/QuickRecording';
@@ -258,14 +240,18 @@ const groupNameInputRef = ref<HTMLInputElement | null>(null);
 // Group deletion
 const deletingGroupId = ref<string | null>(null);
 
-// Formatting
-const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
-const formatRelativeTime = (dateString: string) => {
-  const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-  const timestamp = new Date(utcString).getTime();
-  return FormattingService.formatRelativeTime(timestamp);
-};
-const formatDuration = (millis: number) => FormattingService.formatDurationInMillis2Units(millis);
+// Profile editing
+const editingRecording = ref<QuickRecording | null>(null);
+const editProfileName = ref('');
+const editProfileInputRef = ref<HTMLInputElement | null>(null);
+
+// Focus edit profile input when modal opens
+watch(editingRecording, async (val) => {
+  if (val) {
+    await nextTick();
+    editProfileInputRef.value?.focus();
+  }
+});
 
 // Focus group name input when modal opens
 watch(showCreateGroupModal, async (val) => {
@@ -467,6 +453,33 @@ const deleteGroup = async () => {
   }
 };
 
+// Profile edit
+const startEditProfile = (recording: QuickRecording) => {
+  editingRecording.value = recording;
+  editProfileName.value = recording.filename;
+};
+
+const updateProfileName = async () => {
+  if (!editingRecording.value || !editProfileName.value.trim()) return;
+  try {
+    await quickAnalysisClient.updateProfileName(editingRecording.value.id, editProfileName.value.trim());
+    editingRecording.value = null;
+    await loadData();
+  } catch {
+    // Toast shown by HttpInterceptor
+  }
+};
+
+// Profile delete (keeps recording)
+const deleteProfileFromRecording = async (recordingId: string) => {
+  try {
+    await quickAnalysisClient.deleteProfile(recordingId);
+    await loadData();
+  } catch {
+    // Toast shown by HttpInterceptor
+  }
+};
+
 // Delete recording
 const deleteRecording = async (recordingId: string) => {
   try {
@@ -604,20 +617,6 @@ onMounted(() => {
   border-bottom: 1px solid rgba(94, 100, 255, 0.06);
 }
 
-.qa-spinner-sm {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(94, 100, 255, 0.2);
-  border-top-color: #5e64ff;
-  border-radius: 50%;
-  animation: spinner-rotate 0.8s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spinner-rotate {
-  to { transform: rotate(360deg); }
-}
-
 /* Error */
 .qa-error {
   margin: 0 20px 8px;
@@ -703,6 +702,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 6px;
   padding-left: 12px;
+  margin-top: 6px;
   margin-bottom: 6px;
   animation: groupExpand 0.2s ease-out;
 }
@@ -710,242 +710,6 @@ onMounted(() => {
 @keyframes groupExpand {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.qa-rec-card {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  border-left: 3px dashed #d1d5db;
-  background: #fafbfc;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.qa-rec-card:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  border-left-color: #5e64ff;
-  border-left-style: solid;
-  background: linear-gradient(135deg, #f0f2ff, #f8f9ff);
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.12);
-}
-
-.qa-rec-card.analyzed {
-  border-left: 3px solid #00d27a;
-  background: linear-gradient(135deg, #f7fdf9, #ffffff);
-}
-
-.qa-rec-card.analyzed:hover {
-  border-color: rgba(0, 210, 122, 0.3);
-  border-left-color: #00b368;
-  background: linear-gradient(135deg, #ecfaf0, #f0fbf4);
-  box-shadow: 0 2px 8px rgba(0, 210, 122, 0.15);
-}
-
-.qa-rec-card.analyzing {
-  border-left: 3px solid #5e64ff;
-  animation: analyzePulse 2s ease-in-out infinite;
-  cursor: default;
-}
-
-.qa-rec-card.analyzing:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-@keyframes analyzePulse {
-  0%, 100% { background: #fafbfc; }
-  50% { background: #f0f2ff; }
-}
-
-/* Line 1: filename + actions */
-.qa-rec-line1 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.qa-rec-icon {
-  font-size: 0.9rem;
-  color: #5e64ff;
-  flex-shrink: 0;
-}
-
-.qa-rec-card.analyzed .qa-rec-icon {
-  color: #00b368;
-}
-
-.qa-rec-filename {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #1f2937;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-}
-
-.qa-rec-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-/* Line 2: metadata */
-.qa-rec-line2 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 22px;
-}
-
-.qa-rec-badge {
-  font-size: 0.6rem;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.qa-rec-badge.badge-jfr {
-  background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
-}
-
-.qa-rec-badge.badge-heap {
-  background: rgba(111, 66, 193, 0.1);
-  color: #6f42c1;
-}
-
-.qa-rec-meta {
-  font-size: 0.7rem;
-  color: #9ca3af;
-}
-
-.qa-rec-sep {
-  color: #d1d5db;
-  font-size: 0.6rem;
-}
-
-.qa-rec-profile-info {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 0.68rem;
-  font-weight: 500;
-  color: #00b368;
-}
-
-.qa-rec-profile-info i {
-  font-size: 0.65rem;
-}
-
-/* Action buttons */
-.qa-btn-analyze {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
-  border: none;
-  padding: 4px 12px;
-  border-radius: 5px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-.qa-rec-card:hover .qa-btn-analyze {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.2);
-}
-
-.qa-btn-open {
-  background: linear-gradient(135deg, #00d27a, #00b368);
-  color: white;
-  border: none;
-  padding: 4px 12px;
-  border-radius: 5px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-.qa-rec-card:hover .qa-btn-open {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 210, 122, 0.2);
-}
-
-.qa-btn-analyzing {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  color: #5e64ff;
-  font-weight: 500;
-  padding: 4px 12px;
-}
-
-.qa-btn-delete {
-  background: transparent;
-  border: none;
-  color: #c8ccd4;
-  width: 26px;
-  height: 26px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  transition: all 0.15s ease;
-  opacity: 0;
-}
-
-.qa-rec-card:hover .qa-btn-delete {
-  opacity: 1;
-}
-
-.qa-btn-delete:hover {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
-}
-
-.qa-btn-delete:active {
-  transform: scale(0.92);
-}
-
-.qa-action-btn {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  width: 26px;
-  height: 26px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  transition: all 0.15s ease;
-}
-
-.qa-action-btn:active {
-  transform: scale(0.92);
-}
-
-.qa-action-delete:hover {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
 }
 
 /* Modal */
