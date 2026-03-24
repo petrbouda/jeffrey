@@ -107,51 +107,51 @@
   </PageHeader>
 
   <!-- Delete Project Confirmation Modal -->
-  <div class="modal fade" :class="{ 'show d-block': showDeleteConfirmation }" tabindex="-1"
-       aria-labelledby="deleteProjectModal" :aria-hidden="!showDeleteConfirmation">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content delete-modal-content">
-        <div class="modal-header delete-modal-header border-bottom-0">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-danger"></i>
-            <h5 class="modal-title mb-0">Confirm Delete</h5>
-          </div>
-          <button type="button" class="btn-close" @click="closeDeleteConfirmation" :disabled="isDeleting"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <p>Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.</p>
-            <p class="mb-0">Please type <strong>{{ projectName }}</strong> to confirm:</p>
-          </div>
-          <div class="form-group">
-            <input
-                type="text"
-                class="form-control"
-                v-model="deleteConfirmText"
-                placeholder="Type project name here"
-                :disabled="isDeleting"
-            >
-          </div>
-        </div>
-        <div class="modal-footer border-top-0">
-          <button type="button" class="btn btn-secondary" @click="closeDeleteConfirmation" :disabled="isDeleting">
-            Cancel
-          </button>
-          <button
-              type="button"
-              class="btn btn-danger"
-              @click="deleteProject"
-              :disabled="deleteConfirmText !== projectName || isDeleting"
-          >
-            <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status"
-                  aria-hidden="true"></span>
-            {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
-          </button>
-        </div>
+  <GenericModal
+      modal-id="deleteProjectModal"
+      :show="showDeleteConfirmation"
+      title="Confirm Delete"
+      icon="bi-exclamation-triangle-fill"
+      size="md"
+      modal-dialog-class="modal-dialog-centered"
+      :show-footer="false"
+      @update:show="closeDeleteConfirmation">
+    <template #header>
+      <div class="d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-danger"></i>
+        <h5 class="modal-title mb-0">Confirm Delete</h5>
       </div>
+      <button type="button" class="btn-close" @click="closeDeleteConfirmation" :disabled="isDeleting"></button>
+    </template>
+    <div class="mb-3">
+      <p>Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.</p>
+      <p class="mb-0">Please type <strong>{{ projectName }}</strong> to confirm:</p>
     </div>
-  </div>
-  <div class="modal-backdrop fade show" v-if="showDeleteConfirmation"></div>
+    <div class="form-group">
+      <input
+          type="text"
+          class="form-control"
+          v-model="deleteConfirmText"
+          placeholder="Type project name here"
+          :disabled="isDeleting"
+      >
+    </div>
+    <template #footer>
+      <button type="button" class="btn btn-secondary" @click="closeDeleteConfirmation" :disabled="isDeleting">
+        Cancel
+      </button>
+      <button
+          type="button"
+          class="btn btn-danger"
+          @click="deleteProject"
+          :disabled="deleteConfirmText !== projectName || isDeleting"
+      >
+        <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status"
+              aria-hidden="true"></span>
+        {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
+      </button>
+    </template>
+  </GenericModal>
 </template>
 
 <script setup lang="ts">
@@ -162,6 +162,7 @@ import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
 import ProjectClient from '@/services/api/ProjectClient';
 import ToastService from '@/services/ToastService';
 import MessageBus from '@/services/MessageBus';
+import GenericModal from '@/components/GenericModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import '@/styles/shared-components.css';
@@ -502,16 +503,4 @@ async function deleteProject() {
   z-index: 1050;
 }
 
-.delete-modal-content {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 1px solid rgba(220, 53, 69, 0.15);
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-}
-
-.delete-modal-header {
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.05), rgba(220, 53, 69, 0.08));
-  border-radius: 16px 16px 0 0;
-  padding: 20px 24px;
-}
 </style>

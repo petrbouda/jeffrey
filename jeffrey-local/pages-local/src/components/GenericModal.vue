@@ -17,20 +17,24 @@
   -->
 
 <template>
-  <div class="modal modal-overlay"
+  <div ref="overlayRef"
+       class="modal modal-overlay"
        :class="{ 'd-block': show, 'd-none': !show }"
        :id="modalId"
        tabindex="-1"
        :aria-labelledby="modalId + 'Label'"
-       @keyup.esc="closeModal">
-    <div class="modal-dialog" :class="modalSize">
+       @keyup.esc="closeModal"
+       @click.self="closeModal">
+    <div class="modal-dialog" :class="[modalSizeClass, modalDialogClass]" :style="fullscreenStyle">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" :id="modalId + 'Label'">
-            <i v-if="icon" :class="icon + ' me-2'"></i>
-            {{ title }}
-          </h5>
-          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+          <slot name="header">
+            <h5 class="modal-title" :id="modalId + 'Label'">
+              <i v-if="icon" :class="icon + ' me-2'"></i>
+              {{ title }}
+            </h5>
+            <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+          </slot>
         </div>
         <div class="modal-body">
           <slot></slot>
@@ -46,36 +50,76 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 
 interface Props {
   modalId: string;
   show: boolean;
-  title: string;
+  title?: string;
   icon?: string;
-  size?: 'sm' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen';
+  modalDialogClass?: string;
   showFooter?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  title: '',
   size: 'lg',
+  modalDialogClass: '',
   showFooter: true
 });
 
-const emit = defineEmits(['update:show']);
+const emit = defineEmits<{
+  (e: 'update:show', value: boolean): void;
+  (e: 'shown'): void;
+  (e: 'hidden'): void;
+}>();
+
+const overlayRef = ref<HTMLElement | null>(null);
 
 const closeModal = () => {
   emit('update:show', false);
 };
 
-const modalSize = computed(() => {
+const modalSizeClass = computed(() => {
   switch (props.size) {
     case 'sm': return 'modal-sm';
+    case 'md': return '';
     case 'lg': return 'modal-lg';
     case 'xl': return 'modal-xl';
+    case 'fullscreen': return 'modal-lg';
     default: return '';
+  }
+});
+
+const fullscreenStyle = computed(() => {
+  if (props.size === 'fullscreen') {
+    return { width: '95vw', maxWidth: '95%' };
+  }
+  return undefined;
+});
+
+watch(() => props.show, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      overlayRef.value?.focus();
+      emit('shown');
+    });
+  } else {
+    emit('hidden');
   }
 });
 </script>
 
-<!-- Styles provided by global .modal-overlay class in styles.scss -->
+<style scoped>
+.modal-content {
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+</style>
+
+<!-- Base overlay styles provided by global .modal-overlay class in styles.scss -->

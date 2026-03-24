@@ -244,55 +244,50 @@
       </div>
 
       <!-- Flamegraph Modal -->
-      <div
-        class="modal fade"
-        id="flamegraphModal"
-        tabindex="-1"
-        aria-labelledby="flamegraphModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="btn-close" @click="closeFlamegraphModal" aria-label="Close" />
-            </div>
-            <div
-              id="scrollable-wrapper"
-              class="modal-body pr-2 pl-2"
-              v-if="showFlamegraphDialog && activeVisualization"
-            >
-              <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-              <TimeSeriesChart
-                :graph-updater="graphUpdater"
-                :primary-axis-type="
-                  TimeseriesEventAxeFormatter.resolveAxisFormatter(
-                    activeVisualization.useWeight,
-                    activeVisualization.eventType
-                  )
-                "
-                :visible-minutes="60"
-                :zoom-enabled="true"
-                time-unit="seconds"
-              />
-              <FlamegraphComponent
-                :with-timeseries="true"
-                :use-weight="activeVisualization.useWeight"
-                :use-guardian="activeVisualization"
-                scrollableWrapperClass="scrollable-wrapper"
-                :flamegraph-tooltip="flamegraphTooltip"
-                :graph-updater="graphUpdater"
-                @loaded="scrollToTop"
-              />
-            </div>
-          </div>
+      <GenericModal
+          modal-id="flamegraphModal"
+          :show="showFlamegraphDialog"
+          size="fullscreen"
+          :show-footer="false"
+          @update:show="showFlamegraphDialog = $event">
+        <template #header>
+          <button type="button" class="btn-close" @click="showFlamegraphDialog = false" aria-label="Close" />
+        </template>
+        <div
+            id="scrollable-wrapper"
+            class="px-2"
+            v-if="showFlamegraphDialog && activeVisualization"
+        >
+          <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+          <TimeSeriesChart
+              :graph-updater="graphUpdater"
+              :primary-axis-type="
+                TimeseriesEventAxeFormatter.resolveAxisFormatter(
+                  activeVisualization.useWeight,
+                  activeVisualization.eventType
+                )
+              "
+              :visible-minutes="60"
+              :zoom-enabled="true"
+              time-unit="seconds"
+          />
+          <FlamegraphComponent
+              :with-timeseries="true"
+              :use-weight="activeVisualization.useWeight"
+              :use-guardian="activeVisualization"
+              scrollableWrapperClass="scrollable-wrapper"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"
+              @loaded="scrollToTop"
+          />
         </div>
-      </div>
+      </GenericModal>
     </PageHeader>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import GuardianClient from '@/services/api/GuardianClient';
@@ -310,7 +305,7 @@ import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import * as bootstrap from 'bootstrap';
+import GenericModal from '@/components/GenericModal.vue';
 
 // Constants
 const PREREQUISITES_CATEGORY = 'Prerequisites';
@@ -341,7 +336,6 @@ const showFlamegraphDialog = ref(false);
 const activeVisualization = ref<GuardVisualization | null>(null);
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
-let modalInstance: bootstrap.Modal | null = null;
 
 // Severity priority for sorting (warnings first)
 const severityOrder: Record<string, number> = {
@@ -510,41 +504,6 @@ onMounted(() => {
       loading.value = false;
     });
 
-  // Initialize flamegraph modal
-  nextTick(() => {
-    const modalEl = document.getElementById('flamegraphModal');
-    if (modalEl) {
-      modalEl.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphDialog.value = false;
-      });
-    }
-  });
-});
-
-onUnmounted(() => {
-  if (modalInstance) {
-    modalInstance.dispose();
-    modalInstance = null;
-  }
-});
-
-// Watch for flamegraph modal visibility
-watch(showFlamegraphDialog, isVisible => {
-  if (isVisible) {
-    if (!modalInstance) {
-      const modalEl = document.getElementById('flamegraphModal');
-      if (modalEl) {
-        modalInstance = new bootstrap.Modal(modalEl);
-      }
-    }
-    if (modalInstance) {
-      modalInstance.show();
-    }
-  } else {
-    if (modalInstance) {
-      modalInstance.hide();
-    }
-  }
 });
 
 // Helper Functions
@@ -624,12 +583,6 @@ function openFlamegraph(rule: FlatRule) {
   }
 }
 
-function closeFlamegraphModal() {
-  if (modalInstance) {
-    modalInstance.hide();
-  }
-  showFlamegraphDialog.value = false;
-}
 
 function scrollToTop() {
   const wrapper = document.querySelector('.scrollable-wrapper');

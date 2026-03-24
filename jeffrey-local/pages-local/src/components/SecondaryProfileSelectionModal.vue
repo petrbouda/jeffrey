@@ -438,17 +438,17 @@ const loadAllProfiles = async () => {
     ]);
 
     const mappedQuickProfiles: ProfileListResponse[] = quickProfiles.map(p => ({
-      id: p.id,
-      name: p.name,
+      id: p.profileId!,
+      name: p.profileName || p.filename,
       projectId: QUICK_ANALYSIS_WORKSPACE_ID,
       projectName: QUICK_ANALYSIS_WORKSPACE_NAME,
       workspaceId: QUICK_ANALYSIS_WORKSPACE_ID,
       workspaceName: QUICK_ANALYSIS_WORKSPACE_NAME,
-      createdAt: p.createdAt,
+      createdAt: p.uploadedAt,
       eventSource: p.eventSource,
-      enabled: p.enabled,
+      enabled: true,
       durationInMillis: p.durationInMillis,
-      sizeInBytes: p.sizeInBytes
+      sizeInBytes: p.profileSizeInBytes
     }));
 
     allProfiles.value = [...regularProfiles, ...mappedQuickProfiles];

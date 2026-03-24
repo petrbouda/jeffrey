@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeMount, onMounted, onUnmounted, ref, watch} from 'vue';
+import {onBeforeMount, ref} from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 
 interface Props {
@@ -49,8 +49,7 @@ import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import OnlyFlamegraphGraphUpdater from "@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater";
 import TimeRange from "@/services/api/model/TimeRange";
 import TimeseriesEventAxeFormatter from "@/services/timeseries/TimeseriesEventAxeFormatter";
-// Import Bootstrap modal functionality
-import * as bootstrap from 'bootstrap';
+import GenericModal from '@/components/GenericModal.vue';
 
 const route = useRoute()
 
@@ -75,49 +74,6 @@ function scrollToTop() {
   }
 }
 
-let modalInstance: bootstrap.Modal | null = null;
-
-// Handler for modal hidden event - stored as reference for cleanup
-function handleModalHidden(event: Event) {
-  const target = event.target as HTMLElement;
-  if (target?.id === 'flamegraphModal') {
-    showDialog.value = false;
-  }
-}
-
-// Initialize modal after component is mounted
-onMounted(() => {
-  const modalEl = document.getElementById('flamegraphModal');
-  if (modalEl) {
-    modalInstance = new bootstrap.Modal(modalEl, {
-      backdrop: 'static',
-      keyboard: false
-    });
-    // Add event listener for Bootstrap modal hidden event
-    modalEl.addEventListener('hidden.bs.modal', handleModalHidden);
-  }
-});
-
-// Cleanup on component unmount
-onUnmounted(() => {
-  const modalEl = document.getElementById('flamegraphModal');
-  if (modalEl) {
-    modalEl.removeEventListener('hidden.bs.modal', handleModalHidden);
-  }
-  if (modalInstance) {
-    modalInstance.dispose();
-    modalInstance = null;
-  }
-});
-
-// Watch for changes to showDialog and control the Bootstrap modal
-watch(showDialog, (isVisible) => {
-  if (isVisible && modalInstance) {
-    modalInstance.show();
-  } else if (!isVisible && modalInstance) {
-    modalInstance.hide();
-  }
-});
 
 let primarySubSecondDataProvider: SubSecondDataProvider
 let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
@@ -272,64 +228,28 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
       :use-weight="useWeight"
   />
 
-  <!-- Bootstrap Modal with v-model:visible binding (95% size) -->
-
-  <div class="modal fade" id="flamegraphModal" tabindex="-1" aria-labelledby="flamegraphModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <SearchBarComponent
-              v-if="showDialog"
-              :graph-updater="graphUpdater"
-              :with-timeseries="false"/>
-          <FlamegraphComponent
-              v-if="showDialog"
-              :with-timeseries="false"
-              :use-weight="useWeight"
-              :use-guardian="null"
-              scrollable-wrapper-class="flamegraphModal"
-              :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"
-              @loaded="scrollToTop"/>
-        </div>
-      </div>
-    </div>
-  </div>
+  <GenericModal
+      modal-id="flamegraphModal"
+      :show="showDialog"
+      size="fullscreen"
+      :show-footer="false"
+      @update:show="showDialog = $event">
+    <template #header>
+      <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
+    </template>
+    <SearchBarComponent
+        v-if="showDialog"
+        :graph-updater="graphUpdater"
+        :with-timeseries="false"/>
+    <FlamegraphComponent
+        v-if="showDialog"
+        :with-timeseries="false"
+        :use-weight="useWeight"
+        :use-guardian="null"
+        scrollable-wrapper-class="flamegraphModal"
+        :flamegraph-tooltip="flamegraphTooltip"
+        :graph-updater="graphUpdater"
+        @loaded="scrollToTop"/>
+  </GenericModal>
 </template>
 
-<style scoped lang="scss">
-.modal-body {
-  padding-left: 5px;
-  padding-right: 5px;
-  overflow: hidden;
-  overflow-y: auto;
-}
-
-.modal-body-content {
-  overflow: auto;
-}
-
-/* Add a subtle animation to the modal */
-.modal.fade .modal-dialog {
-  transition: transform 0.3s ease-out;
-  transform: translate(0, -50px);
-}
-
-.modal.show .modal-dialog {
-  transform: none;
-}
-
-/* Custom header styling */
-.modal-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.modal-title {
-  font-weight: 600;
-}
-
-</style>

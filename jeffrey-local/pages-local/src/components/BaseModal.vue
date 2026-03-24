@@ -1,6 +1,13 @@
 <template>
-  <div class="modal fade" :id="modalId" tabindex="-1"
-       :aria-labelledby="modalId + 'Label'" aria-hidden="true">
+  <div ref="overlayRef"
+       class="modal modal-overlay"
+       :class="{ 'd-block': isVisible, 'd-none': !isVisible }"
+       :id="modalId"
+       tabindex="-1"
+       :aria-labelledby="modalId + 'Label'"
+       @keyup.esc="handleCancel"
+       @keydown.enter.prevent="handleEnterKey"
+       @click.self="handleCancel">
     <div class="modal-dialog" :class="modalSizeClass">
       <div class="modal-content modern-modal-content shadow">
         <!-- Header -->
@@ -24,7 +31,7 @@
           <!-- Main Body Content -->
           <slot name="body"></slot>
         </div>
-        
+
         <!-- Validation Errors -->
         <div v-if="validationErrors.length > 0" class="alert alert-danger mx-3 mb-3">
           <div v-for="(error, idx) in validationErrors" :key="idx">
@@ -38,9 +45,9 @@
           <button type="button" class="btn btn-light" @click="handleCancel">
             Cancel
           </button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
+          <button
+            type="button"
+            class="btn btn-primary"
             @click="handleSubmit"
             :disabled="loading"
           >
@@ -55,8 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import * as bootstrap from 'bootstrap';
+import { ref, computed, nextTick } from 'vue';
 
 interface Props {
   modalId: string;
@@ -89,14 +95,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-// Modal instance and element references
-let modalInstance: bootstrap.Modal | null = null;
-let modalElement: HTMLElement | null = null;
-
-// Validation errors
+const overlayRef = ref<HTMLElement | null>(null);
+const isVisible = ref(false);
 const validationErrors = ref<string[]>([]);
 
-// Computed modal size class
 const modalSizeClass = computed(() => {
   switch (props.size) {
     case 'sm': return 'modal-sm';
@@ -107,86 +109,44 @@ const modalSizeClass = computed(() => {
   }
 });
 
-// Handle Enter key press
-const handleKeydown = (event: KeyboardEvent) => {
-  if (props.enableEnterKey && event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
-    event.preventDefault();
+const handleEnterKey = (event: KeyboardEvent) => {
+  if (props.enableEnterKey && !event.shiftKey && !event.ctrlKey && !event.altKey) {
     handleSubmit();
   }
 };
 
-// Handle submit
 const handleSubmit = () => {
   if (!props.loading) {
     emit('submit');
   }
 };
 
-// Handle cancel
 const handleCancel = () => {
   emit('cancel');
 };
 
-// Show modal
 const showModal = () => {
-  if (modalInstance) {
-    validationErrors.value = [];
-    modalInstance.show();
-  }
+  validationErrors.value = [];
+  isVisible.value = true;
+  nextTick(() => {
+    overlayRef.value?.focus();
+    emit('shown');
+  });
 };
 
-// Hide modal
 const hideModal = () => {
-  if (modalInstance) {
-    modalInstance.hide();
-  }
+  isVisible.value = false;
+  emit('hidden');
 };
 
-// Set validation errors
 const setValidationErrors = (errors: string[]) => {
   validationErrors.value = errors;
 };
 
-// Clear validation errors
 const clearValidationErrors = () => {
   validationErrors.value = [];
 };
 
-// Initialize modal
-onMounted(() => {
-  nextTick(() => {
-    const modalEl = document.getElementById(props.modalId);
-    if (modalEl) {
-      modalElement = modalEl;
-      modalInstance = new bootstrap.Modal(modalEl);
-      
-      // Add event listeners
-      modalEl.addEventListener('shown.bs.modal', () => {
-        emit('shown');
-      });
-
-      modalEl.addEventListener('hidden.bs.modal', () => {
-        emit('hidden');
-      });
-
-      // Add Enter key listener if enabled
-      if (props.enableEnterKey) {
-        modalEl.addEventListener('keydown', handleKeydown);
-      }
-    }
-  });
-});
-
-// Cleanup event listeners
-onBeforeUnmount(() => {
-  if (modalElement) {
-    if (props.enableEnterKey) {
-      modalElement.removeEventListener('keydown', handleKeydown);
-    }
-  }
-});
-
-// Expose methods for parent components
 defineExpose({
   showModal,
   hideModal,
@@ -201,10 +161,16 @@ defineExpose({
   background: linear-gradient(135deg, #ffffff, #fafbff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.08),
     0 8px 24px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(10px);
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .modern-modal-header {
@@ -219,7 +185,7 @@ defineExpose({
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 0;
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.02);
 }
@@ -252,7 +218,7 @@ defineExpose({
   font-weight: 500;
   border-radius: 10px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   &:hover {
     background: linear-gradient(135deg, #e9ecef, #dee2e6);
     color: #495057;
@@ -267,14 +233,14 @@ defineExpose({
   font-weight: 600;
   border-radius: 10px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(94, 100, 255, 0.3),
     0 2px 4px rgba(94, 100, 255, 0.2);
-  
+
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #4c52ff, #3f46ff);
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
       0 6px 16px rgba(94, 100, 255, 0.4),
       0 3px 6px rgba(94, 100, 255, 0.3);
   }

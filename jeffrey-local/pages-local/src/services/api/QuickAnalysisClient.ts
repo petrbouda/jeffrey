@@ -82,4 +82,9 @@ export default class QuickAnalysisClient extends BasePlatformClient {
     async deleteProfile(recordingId: string): Promise<void> {
         return super.del<void>(`/recordings/${recordingId}/profile`);
     }
+
+    async listProfiles(): Promise<QuickRecording[]> {
+        const recordings = await this.listRecordings();
+        return recordings.filter(r => r.hasProfile && r.profileId);
+    }
 }

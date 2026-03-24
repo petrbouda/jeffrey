@@ -137,57 +137,46 @@
       </div>
 
       <!-- Flamegraph Modal -->
-      <div
-        class="modal fade"
-        id="flamegraphModal"
-        tabindex="-1"
-        aria-labelledby="flamegraphModalLabel"
-        aria-hidden="true"
-      >
-        <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button
-                type="button"
-                class="btn-close"
-                @click="closeFlamegraphModal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphModal">
-              <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
-              <TimeSeriesChart
-                :graph-updater="graphUpdater"
-                :primary-axis-type="
-                  TimeseriesEventAxeFormatter.resolveAxisFormatter(
-                    useWeightForModal,
-                    selectedEventCode
-                  )
-                "
-                :visible-minutes="60"
-                :zoom-enabled="true"
-                time-unit="seconds"
-              />
-              <FlamegraphComponent
-                :with-timeseries="true"
-                :use-weight="useWeightForModal"
-                :use-guardian="null"
-                scrollableWrapperClass="scrollable-wrapper"
-                :flamegraph-tooltip="flamegraphTooltip"
-                :graph-updater="graphUpdater"
-                @loaded="scrollToTop"
-              />
-            </div>
-          </div>
+      <GenericModal
+          modal-id="flamegraphModal"
+          :show="showFlamegraphModal"
+          size="fullscreen"
+          :show-footer="false"
+          @update:show="showFlamegraphModal = $event">
+        <template #header>
+          <button type="button" class="btn-close" @click="showFlamegraphModal = false" aria-label="Close"></button>
+        </template>
+        <div id="scrollable-wrapper" class="p-3" v-if="showFlamegraphModal">
+          <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
+          <TimeSeriesChart
+              :graph-updater="graphUpdater"
+              :primary-axis-type="
+                TimeseriesEventAxeFormatter.resolveAxisFormatter(
+                  useWeightForModal,
+                  selectedEventCode
+                )
+              "
+              :visible-minutes="60"
+              :zoom-enabled="true"
+              time-unit="seconds"
+          />
+          <FlamegraphComponent
+              :with-timeseries="true"
+              :use-weight="useWeightForModal"
+              :use-guardian="null"
+              scrollableWrapperClass="scrollable-wrapper"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"
+              @loaded="scrollToTop"
+          />
         </div>
-      </div>
-      <div class="modal-backdrop fade show" v-if="showFlamegraphModal"></div>
+      </GenericModal>
     </PageHeader>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -203,7 +192,7 @@ import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
-import * as bootstrap from 'bootstrap';
+import GenericModal from '@/components/GenericModal.vue';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater.ts';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip.ts';
 import ThreadWithCpuLoad from '@/services/api/model/ThreadWithCpuLoad';
@@ -241,8 +230,6 @@ const topAllocatingThreads = ref<AllocatingThread[]>([]);
 const topUserCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 const topSystemCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 
-// Modal instance for flamegraph modal
-let flamegraphModalInstance: bootstrap.Modal | null = null;
 
 // State for allocation type from ThreadStatisticsResponse
 const allocationType = ref<string>('');
@@ -332,20 +319,6 @@ const loadThreadStatistics = async (): Promise<void> => {
   }
 };
 
-const closeFlamegraphModal = () => {
-  if (flamegraphModalInstance) {
-    flamegraphModalInstance.hide();
-  }
-  showFlamegraphModal.value = false;
-};
-
-// Cleanup on component unmount
-onUnmounted(() => {
-  if (flamegraphModalInstance) {
-    flamegraphModalInstance.dispose();
-    flamegraphModalInstance = null;
-  }
-});
 
 const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Use the allocationType from ThreadStatisticsResponse instead of hardcoded value
@@ -376,38 +349,15 @@ const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Show the flamegraph modal
   showFlamegraphModal.value = true;
 
-  // Initialize the modal after the DOM is ready
-  nextTick(() => {
-    // Initialize and show the bootstrap modal
-    const modalElement = document.getElementById('flamegraphModal');
-    if (modalElement && !flamegraphModalInstance) {
-      flamegraphModalInstance = new bootstrap.Modal(modalElement);
-
-      // Add event listener to handle modal close
-      modalElement.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphModal.value = false;
-      });
-    }
-
-    if (flamegraphModalInstance) {
-      flamegraphModalInstance.show();
-    }
-
-    // Initialize the graph updater after a short delay to ensure the modal is rendered
-    setTimeout(() => {
-      graphUpdater.initialize();
-    }, 200);
-  });
+  setTimeout(() => {
+    graphUpdater.initialize();
+  }, 200);
 };
 
 const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
-  // Set up the flamegraph data for execution samples for the specific thread
   selectedEventCode.value = 'jdk.ExecutionSample';
-
-  // CPU samples don't use weight
   useWeightForModal.value = false;
 
-  // Create the flamegraph client for execution sample data
   const flamegraphClient = new PrimaryFlamegraphClient(
     profileId,
     selectedEventCode.value,
@@ -416,40 +366,17 @@ const viewThreadCpuProfile = (thread: ThreadWithCpuLoad) => {
     false,
     false,
     false,
-    thread.threadInfo // Filter by the specific thread
+    thread.threadInfo
   );
 
-  // Initialize the graph updater with the client
   graphUpdater = new FullGraphUpdater(flamegraphClient, false);
-
-  // Create tooltip for the execution sample flamegraph
   flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
 
-  // Show the flamegraph modal
   showFlamegraphModal.value = true;
 
-  // Initialize the modal after the DOM is ready
-  nextTick(() => {
-    // Initialize and show the bootstrap modal
-    const modalElement = document.getElementById('flamegraphModal');
-    if (modalElement && !flamegraphModalInstance) {
-      flamegraphModalInstance = new bootstrap.Modal(modalElement);
-
-      // Add event listener to handle modal close
-      modalElement.addEventListener('hidden.bs.modal', () => {
-        showFlamegraphModal.value = false;
-      });
-    }
-
-    if (flamegraphModalInstance) {
-      flamegraphModalInstance.show();
-    }
-
-    // Initialize the graph updater after a short delay to ensure the modal is rendered
-    setTimeout(() => {
-      graphUpdater.initialize();
-    }, 200);
-  });
+  setTimeout(() => {
+    graphUpdater.initialize();
+  }, 200);
 };
 
 const formatTimestamp = (timestamp: number): string => {

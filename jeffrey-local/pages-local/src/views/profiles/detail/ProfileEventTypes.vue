@@ -240,50 +240,42 @@
     </div>
 
     <!-- Flamegraph Modal -->
-    <div
-      class="modal fade"
-      id="flamegraphModal"
-      tabindex="-1"
-      aria-labelledby="flamegraphModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg" style="width: 95vw; max-width: 95%">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="flamegraphModalLabel">{{ selectedEventCode }}</h5>
-            <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
-          </div>
-          <div id="scrollable-wrapper" class="modal-body p-3" v-if="showFlamegraphDialog">
-            <TimeSeriesChart
-              :graph-updater="graphUpdater"
-              :primary-axis-type="AxisFormatType.NUMBER"
-              :visible-minutes="60"
-              :zoom-enabled="true"
-              time-unit="seconds"
-            />
-            <FlamegraphComponent
-              :with-timeseries="true"
-              :use-weight="false"
-              :use-guardian="null"
-              scrollableWrapperClass="scrollable-wrapper"
-              :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"
-              @loaded="scrollToTop"
-            />
-          </div>
-        </div>
+    <GenericModal
+        modal-id="flamegraphModal"
+        :show="showFlamegraphDialog"
+        :title="selectedEventCode"
+        size="fullscreen"
+        :show-footer="false"
+        @update:show="showFlamegraphDialog = $event">
+      <div id="scrollable-wrapper" class="p-3" v-if="showFlamegraphDialog">
+        <TimeSeriesChart
+            :graph-updater="graphUpdater"
+            :primary-axis-type="AxisFormatType.NUMBER"
+            :visible-minutes="60"
+            :zoom-enabled="true"
+            time-unit="seconds"
+        />
+        <FlamegraphComponent
+            :with-timeseries="true"
+            :use-weight="false"
+            :use-guardian="null"
+            scrollableWrapperClass="scrollable-wrapper"
+            :flamegraph-tooltip="flamegraphTooltip"
+            :graph-updater="graphUpdater"
+            @loaded="scrollToTop"
+        />
       </div>
-    </div>
+    </GenericModal>
   </PageHeader>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, PropType, ref, watch } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import EventViewerClient from '@/services/api/EventViewerClient';
 import EventType from '@/services/api/model/EventType';
-import * as bootstrap from 'bootstrap';
+import GenericModal from '@/components/GenericModal.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
@@ -331,7 +323,6 @@ const totalEventTypes = ref(0);
 // Flamegraph modal state
 const showFlamegraphDialog = ref(false);
 const selectedEventCode = ref<string>('');
-let modalInstance: bootstrap.Modal | null = null;
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 
@@ -362,24 +353,6 @@ onMounted(async () => {
     filterEvents();
 
     loading.value = false;
-
-    // Initialize the flamegraph modal
-    nextTick(() => {
-      const modalEl = document.getElementById('flamegraphModal');
-      if (modalEl) {
-        // We'll manually create and dispose of the modal
-        // for better control over the behavior
-        modalEl.addEventListener('hidden.bs.modal', () => {
-          showFlamegraphDialog.value = false;
-        });
-
-        // Add event listener to close button
-        const closeButton = modalEl.querySelector('.btn-close');
-        if (closeButton) {
-          closeButton.addEventListener('click', closeModal);
-        }
-      }
-    });
   } catch (err) {
     console.error('Failed to load event types:', err);
     error.value = true;
@@ -387,66 +360,28 @@ onMounted(async () => {
   }
 });
 
-// Clean up modal when component is unmounted
-onUnmounted(() => {
-  if (modalInstance) {
-    modalInstance.dispose();
-    modalInstance = null;
-  }
+// Initialize flamegraph when dialog opens
+const initFlamegraph = () => {
+  if (selectedEventCode.value) {
+    const flamegraphClient = new PrimaryFlamegraphClient(
+      profileId,
+      selectedEventCode.value,
+      false, // useThreadMode
+      false, // useWeight
+      false, // excludeNonJavaSamples
+      false, // excludeIdleSamples
+      false, // onlyUnsafeAllocationSamples
+      null // threadInfo
+    );
 
-  // Remove global event listeners
-  document.removeEventListener('hidden.bs.modal', () => {});
-});
+    graphUpdater = new FullGraphUpdater(flamegraphClient, false);
+    flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
 
-// Function to close the modal
-const closeModal = () => {
-  if (modalInstance) {
-    modalInstance.hide();
+    setTimeout(() => {
+      graphUpdater.initialize();
+    }, 200);
   }
-  showFlamegraphDialog.value = false;
 };
-
-// Watch for changes to showFlamegraphDialog to control modal visibility
-watch(showFlamegraphDialog, isVisible => {
-  if (isVisible) {
-    if (!modalInstance) {
-      const modalEl = document.getElementById('flamegraphModal');
-      if (modalEl) {
-        modalInstance = new bootstrap.Modal(modalEl);
-      }
-    }
-
-    // Initialize flamegraph components
-    if (selectedEventCode.value) {
-      const flamegraphClient = new PrimaryFlamegraphClient(
-        profileId,
-        selectedEventCode.value,
-        false, // useThreadMode
-        false, // useWeight
-        false, // excludeNonJavaSamples
-        false, // excludeIdleSamples
-        false, // onlyUnsafeAllocationSamples
-        null // threadInfo
-      );
-
-      graphUpdater = new FullGraphUpdater(flamegraphClient, false);
-      flamegraphTooltip = FlamegraphTooltipFactory.create(selectedEventCode.value, false, false);
-
-      // Delayed initialization to ensure modal is fully rendered
-      setTimeout(() => {
-        graphUpdater.initialize();
-      }, 200);
-    }
-
-    if (modalInstance) {
-      modalInstance.show();
-    }
-  } else {
-    if (modalInstance) {
-      modalInstance.hide();
-    }
-  }
-});
 
 // Calculate total events and event type counts
 const countTotalEvents = () => {
@@ -572,10 +507,8 @@ const viewEventDetails = (node: EventType) => {
 // View event flamegraph
 const viewFlamegraph = (node: EventType) => {
   if (node.data.code) {
-    // Set the event code
     selectedEventCode.value = node.data.code;
-
-    // Show the flamegraph modal
+    initFlamegraph();
     showFlamegraphDialog.value = true;
   }
 };
@@ -583,10 +516,8 @@ const viewFlamegraph = (node: EventType) => {
 // View event time series
 const viewTimeSeries = (node: EventType) => {
   if (node.data.code) {
-    // Set the event code
     selectedEventCode.value = node.data.code;
-
-    // Show the flamegraph modal
+    initFlamegraph();
     showFlamegraphDialog.value = true;
   }
 };
@@ -803,19 +734,6 @@ const filterEvents = () => {
   margin-bottom: 0;
   font-size: 0.875rem;
   color: #6c757d;
-}
-
-.modal-title {
-  font-weight: 600;
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #3f51b5;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
 }
 
 /* Responsive adjustments */

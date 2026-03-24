@@ -129,31 +129,15 @@
     </div>
 
     <!-- Create Group modal -->
-    <div v-if="showCreateGroupModal" class="qa-modal-overlay" @click.self="showCreateGroupModal = false">
-      <div class="qa-modal">
-        <div class="qa-modal-header">
-          <span class="qa-modal-title">New Group</span>
-          <button class="qa-modal-close" @click="showCreateGroupModal = false">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-        <div class="qa-modal-body">
-          <input
-              ref="groupNameInputRef"
-              v-model="newGroupName"
-              type="text"
-              class="qa-modal-input"
-              placeholder="Enter group name"
-              @keydown.enter="createGroup"
-              @keydown.escape="showCreateGroupModal = false"
-          >
-        </div>
-        <div class="qa-modal-footer">
-          <button class="qa-modal-btn-cancel" @click="showCreateGroupModal = false">Cancel</button>
-          <button class="qa-modal-btn-save" @click="createGroup" :disabled="!newGroupName.trim()">Create</button>
-        </div>
-      </div>
-    </div>
+    <EditNameModal
+        v-if="showCreateGroupModal"
+        v-model="newGroupName"
+        title="New Group"
+        placeholder="Enter group name"
+        submit-label="Create"
+        @submit="createGroup"
+        @close="showCreateGroupModal = false"
+    />
 
     <!-- Edit Profile modal -->
     <EditNameModal
@@ -164,33 +148,27 @@
     />
 
     <!-- Delete Group confirmation -->
-    <div v-if="deletingGroupId" class="qa-modal-overlay" @click.self="deletingGroupId = null">
-      <div class="qa-modal">
-        <div class="qa-modal-header">
-          <span class="qa-modal-title">Delete Group</span>
-          <button class="qa-modal-close" @click="deletingGroupId = null">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-        <div class="qa-modal-body">
-          <p class="qa-modal-warning">This will delete the group and all its recordings (including created profiles). This action cannot be undone.</p>
-        </div>
-        <div class="qa-modal-footer">
-          <button class="qa-modal-btn-cancel" @click="deletingGroupId = null">Cancel</button>
-          <button class="qa-modal-btn-danger" @click="deleteGroup">Delete</button>
-        </div>
-      </div>
-    </div>
+    <ConfirmationDialog
+        :show="!!deletingGroupId"
+        title="Delete Group"
+        message="This will delete the group and all its recordings (including created profiles). This action cannot be undone."
+        confirm-label="Delete"
+        confirm-button-class="btn-danger"
+        @confirm="deleteGroup"
+        @cancel="deletingGroupId = null"
+        @update:show="deletingGroupId = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, reactive, watch } from 'vue';
+import { computed, onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
+import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import type QuickGroup from '@/services/api/model/QuickGroup';
 import type QuickRecording from '@/services/api/model/QuickRecording';
@@ -224,8 +202,6 @@ const analyzingRecordings = ref<Set<string>>(new Set());
 // Group creation
 const showCreateGroupModal = ref(false);
 const newGroupName = ref('');
-const groupNameInputRef = ref<HTMLInputElement | null>(null);
-
 // Group deletion
 const deletingGroupId = ref<string | null>(null);
 
@@ -233,12 +209,10 @@ const deletingGroupId = ref<string | null>(null);
 const editingRecording = ref<QuickRecording | null>(null);
 const editProfileName = ref('');
 
-// Focus group name input when modal opens
-watch(showCreateGroupModal, async (val) => {
+// Reset group name when modal opens
+watch(showCreateGroupModal, (val) => {
   if (val) {
     newGroupName.value = '';
-    await nextTick();
-    groupNameInputRef.value?.focus();
   }
 });
 
@@ -661,146 +635,4 @@ const onDragEnd = () => {
 }
 
 /* Recording cards - group styles are in shared-components.css */
-
-/* Modal */
-.qa-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-}
-
-.qa-modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  width: 380px;
-  max-width: 90vw;
-  animation: modalSlideIn 0.2s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from { transform: translateY(-8px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.qa-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.qa-modal-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.qa-modal-close {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  font-size: 0.8rem;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.qa-modal-close:hover {
-  color: #374151;
-  background: #f3f4f6;
-}
-
-.qa-modal-body {
-  padding: 16px 18px;
-}
-
-.qa-modal-input {
-  width: 100%;
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 0.8rem;
-  transition: border-color 0.15s ease;
-}
-
-.qa-modal-input:focus {
-  outline: none;
-  border-color: rgba(94, 100, 255, 0.3);
-  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.05);
-}
-
-.qa-modal-warning {
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.qa-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  padding: 10px 18px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.qa-modal-btn-cancel {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  color: #374151;
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.qa-modal-btn-cancel:hover {
-  background: #e5e7eb;
-}
-
-.qa-modal-btn-save {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  border: none;
-  color: white;
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.qa-modal-btn-save:hover {
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.4);
-}
-
-.qa-modal-btn-save:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.qa-modal-btn-danger {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  border: none;
-  color: white;
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.qa-modal-btn-danger:hover {
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
-}
 </style>

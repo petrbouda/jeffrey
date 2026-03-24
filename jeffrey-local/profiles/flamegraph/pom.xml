@@ -29,10 +29,6 @@
 
     <artifactId>flamegraph</artifactId>
 
-    <properties>
-        <protobuf.version>4.34.1</protobuf.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>ch.qos.logback</groupId>

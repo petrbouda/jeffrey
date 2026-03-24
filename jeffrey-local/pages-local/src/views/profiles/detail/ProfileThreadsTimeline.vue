@@ -66,24 +66,14 @@
     </div>
   </div>
 
-  <!-- Bootstrap Modal -->
-  <div class="modal fade" 
-       :class="{ 'show d-block': infoDialogVisible }" 
-       :style="{ 'background-color': infoDialogVisible ? 'rgba(0, 0, 0, 0.5)' : 'transparent' }"
-       tabindex="-1" 
-       role="dialog" 
-       aria-labelledby="threadInfoModalLabel" 
-       :aria-hidden="!infoDialogVisible">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="threadInfoModalLabel">
-            <i class="bi bi-info-circle text-info me-2"></i>
-            Thread View Information
-          </h5>
-          <button type="button" class="btn-close" @click="infoDialogVisible = false" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
+  <GenericModal
+      modal-id="threadInfoModal"
+      :show="infoDialogVisible"
+      title="Thread View Information"
+      icon="bi-info-circle"
+      modal-dialog-class="modal-dialog-scrollable"
+      @update:show="infoDialogVisible = $event">
+    <template #default>
           <div class="info-section">
             <h5 class="section-title">Timeline</h5>
             <ul class="info-list">
@@ -157,16 +147,8 @@
               </table>
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="infoDialogVisible = false">
-            <i class="bi bi-x-circle me-1"></i>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+    </template>
+  </GenericModal>
 </template>
 
 <script setup lang="ts">
@@ -180,6 +162,7 @@ import ThreadRowData from "@/services/api/model/ThreadRowData";
 import Konva from "konva";
 import ThreadRow from "@/services/thread/ThreadRow";
 import PageHeader from '@/components/layout/PageHeader.vue';
+import GenericModal from '@/components/GenericModal.vue';
 import type { PropType } from 'vue';
 
 // Props definition

@@ -37,13 +37,13 @@
         <div class="connection-fields mb-3">
           <div class="field-hostname">
             <label class="form-label fw-medium small mb-1">Hostname</label>
-            <div class="input-group">
-              <span class="input-group-text border-end-0">
+            <div class="input-group hostname-input-group">
+              <span class="input-group-text">
                 <i class="bi bi-globe"></i>
               </span>
               <input
                   type="text"
-                  class="form-control border-start-0"
+                  class="form-control"
                   v-model="hostname"
                   placeholder="prod-jeffrey.company.com"
               />
@@ -344,6 +344,43 @@ defineExpose({
 .grpc-info-callout i {
   color: #38b2ac;
   font-size: 0.9rem;
+}
+
+/* Hostname input group - unified container border matching port field height */
+.hostname-input-group {
+  border-radius: 0.25rem;
+  overflow: hidden;
+  border: 1px solid #d8e2ef;
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-wrap: nowrap;
+  height: calc(1.5em + 0.75rem + 2px);
+}
+
+.hostname-input-group:focus-within {
+  border-color: rgba(94, 100, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.05);
+}
+
+.hostname-input-group .input-group-text {
+  border: none;
+  background: transparent;
+  color: #748194;
+  padding: 0 10px;
+}
+
+.hostname-input-group .form-control {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  height: auto;
+  padding: 0.375rem 0.75rem;
+}
+
+.hostname-input-group .form-control:focus {
+  box-shadow: none;
+  transform: none;
 }
 
 /* Connection fields layout */
