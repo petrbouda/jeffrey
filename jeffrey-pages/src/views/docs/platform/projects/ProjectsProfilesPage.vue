@@ -59,42 +59,16 @@ onMounted(() => {
           <li>Project-level comparisons are straightforward</li>
         </ul>
 
-        <DocsCallout type="tip">
-          <strong>Available in all workspaces:</strong> Profiles functionality is identical across Sandbox, Live, and Remote workspaces. There are no differences - you can create, analyze, compare, and manage profiles the same way regardless of workspace type.
-        </DocsCallout>
-
         <h2 id="where-profiles-come-from">Where Profiles Come From</h2>
-        <p>Profiles are created from recordings within the same project. The source recordings can come from different places depending on your workspace type:</p>
+        <p>Profiles are created from recordings within the same project. Recordings can come from multiple sources:</p>
 
-        <div class="workspace-panels">
-          <div class="workspace-panel sandbox">
-            <div class="panel-header">
-              <i class="bi bi-house"></i>
-              <h4>Sandbox Workspace</h4>
-            </div>
-            <div class="panel-content">
-              <p>Recordings come from <strong>manual uploads</strong>:</p>
-              <ol>
-                <li>Upload a JFR file to Recordings</li>
-                <li>Create a profile from that recording</li>
-              </ol>
-            </div>
-          </div>
-          <div class="workspace-panel live-remote">
-            <div class="panel-header">
-              <i class="bi bi-folder"></i>
-              <h4>Live / Remote Workspace</h4>
-            </div>
-            <div class="panel-content">
-              <p>Recordings can come from <strong>multiple sources</strong>:</p>
-              <ul>
-                <li><strong>Manual uploads</strong> - Same as Sandbox</li>
-                <li><strong>Repository</strong> - Recording sessions from live applications</li>
-              </ul>
-              <p class="sub-steps">From Repository: Browse sessions → Merge and Copy → Recording appears → Create profile</p>
-            </div>
-          </div>
-        </div>
+        <ul>
+          <li><strong>Manual uploads</strong> - Upload a JFR file directly to the Recordings section</li>
+          <li><strong>Repository</strong> - Recording sessions from live applications connected via a Remote workspace</li>
+          <li><strong>Quick Analysis</strong> - Upload and analyze a JFR file without creating a workspace or project</li>
+        </ul>
+
+        <p>From Repository: Browse sessions, use Merge and Copy, the recording appears in Recordings, then create a profile from it.</p>
 
         <h2 id="profile-creation-process">Profile Creation Process</h2>
         <p>To create a profile from a recording:</p>
@@ -177,7 +151,7 @@ onMounted(() => {
         </table>
 
         <DocsCallout type="warning">
-          <strong>Resource Usage:</strong> Profile initialization is CPU and memory intensive. This is why using Remote workspaces to analyze Live workspace recordings is recommended - initialization runs on your local machine instead of the server.
+          <strong>Resource Usage:</strong> Profile initialization is CPU and memory intensive. This is why using Remote workspaces to analyze recordings from the server is recommended - initialization runs on your local machine instead of the server.
         </DocsCallout>
 
         <h3>Profile Status</h3>
@@ -196,95 +170,6 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-/* Workspace Panels */
-.workspace-panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.workspace-panel {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.workspace-panel .panel-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  color: #fff;
-}
-
-.workspace-panel .panel-header i {
-  font-size: 1.1rem;
-}
-
-.workspace-panel .panel-header h4 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.workspace-panel .panel-content {
-  padding: 1rem;
-  background: #fff;
-}
-
-.workspace-panel .panel-content p {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.9rem;
-  color: #495057;
-}
-
-.workspace-panel .panel-content ol,
-.workspace-panel .panel-content ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.85rem;
-}
-
-.workspace-panel .panel-content li {
-  margin-bottom: 0.25rem;
-  color: #495057;
-}
-
-.workspace-panel .panel-content .sub-steps {
-  margin-top: 0.75rem;
-  margin-bottom: 0;
-  padding: 0.5rem 0.75rem;
-  background: #f8fafc;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-/* Sandbox panel theme */
-.workspace-panel.sandbox .panel-header {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.workspace-panel.sandbox {
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-/* Live/Remote panel theme */
-.workspace-panel.live-remote .panel-header {
-  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
-}
-
-.workspace-panel.live-remote {
-  border-color: rgba(94, 100, 255, 0.3);
-}
-
-@media (max-width: 768px) {
-  .workspace-panels {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* Process Steps */
 .process-steps {

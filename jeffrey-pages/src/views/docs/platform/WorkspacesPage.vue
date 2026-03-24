@@ -27,13 +27,11 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-are-workspaces', text: 'What are Workspaces?', level: 2 },
-  { id: 'workspace-types', text: 'Workspace Types', level: 2 },
-  { id: 'sandbox-workspace', text: 'Sandbox Workspace', level: 2 },
-  { id: 'live-workspace', text: 'Live Workspace', level: 2 },
-  { id: 'collector-only-mode', text: 'Collector-Only Mode', level: 3 },
-  { id: 'remote-workspace', text: 'Remote Workspace', level: 2 },
-  { id: 'recommended-workflows', text: 'Recommended Workflows', level: 2 },
-  { id: 'comparison', text: 'Comparison', level: 2 }
+  { id: 'how-it-works', text: 'How It Works', level: 2 },
+  { id: 'key-benefits', text: 'Key Benefits', level: 2 },
+  { id: 'how-to-create', text: 'How to Create', level: 2 },
+  { id: 'blocking', text: 'Workspace & Project Blocking', level: 2 },
+  { id: 'recommended-workflow', text: 'Recommended Workflow', level: 2 }
 ];
 
 onMounted(() => {
@@ -49,101 +47,26 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Workspaces are the top-level organizational unit in Jeffrey, helping you group related profiling projects together. Jeffrey provides three types of workspaces, each designed for different use cases.</p>
+        <p>Workspaces are the top-level organizational unit in Jeffrey. They <strong>mirror workspaces from a Jeffrey Server</strong> instance, allowing you to browse projects, download recordings, and analyze profiles locally.</p>
 
         <h2 id="what-are-workspaces">What are Workspaces?</h2>
-        <p>A workspace is a container for one or more projects. You might create separate workspaces for:</p>
+        <p>A workspace in Jeffrey Local is a remote connection to a workspace managed by Jeffrey Server. It provides access to:</p>
         <ul>
-          <li>Different applications or services</li>
-          <li>Different teams within your organization</li>
-          <li>Different environments (development, staging, production)</li>
+          <li>Projects and their recording sessions collected on the server</li>
+          <li>Repository browsing for selecting recordings to download</li>
+          <li>Profiler settings configuration for remote projects</li>
+          <li>Instance and session monitoring</li>
         </ul>
-
-        <h2 id="workspace-types">Workspace Types</h2>
-        <p>Jeffrey offers three workspace types, each optimized for specific scenarios:</p>
-
-        <div class="workspace-types-grid">
-          <div class="workspace-type-card sandbox">
-            <div class="type-icon"><i class="bi bi-house"></i></div>
-            <h4>Sandbox</h4>
-            <p>Local experimentation and investigation</p>
-          </div>
-          <div class="workspace-type-card live">
-            <div class="type-icon"><i class="bi bi-folder"></i></div>
-            <h4>Live</h4>
-            <p>Server-side recording collection</p>
-          </div>
-          <div class="workspace-type-card remote">
-            <div class="type-icon"><i class="bi bi-display"></i></div>
-            <h4>Remote</h4>
-            <p>Access recordings from remote servers</p>
-          </div>
-        </div>
-
-        <h2 id="sandbox-workspace">Sandbox Workspace</h2>
-        <p>The Sandbox workspace is designed for <strong>local experimentation and investigation</strong>. It's the simplest way to start analyzing JFR recordings on your machine.</p>
-
-        <h3>Typical Workflow</h3>
-        <ol>
-          <li>Have a JFR file locally on your machine</li>
-          <li>Upload it to your local Jeffrey instance</li>
-          <li>Create a profile and start investigation</li>
-        </ol>
-
-        <h3>Use Cases</h3>
-        <ul>
-          <li><strong>Quick local analysis</strong> - Upload and analyze JFR recordings from your machine</li>
-          <li><strong>Local storage for interesting recordings</strong> - Keep recordings categorized in projects for later access</li>
-          <li><strong>Experimentation</strong> - Test and explore without affecting other workspaces</li>
-          <li><strong>Beginners getting started</strong> - Simple one-click setup to start using Jeffrey</li>
-        </ul>
-
-        <h3>How to Create</h3>
-        <p>Click the <strong>"Sandbox Workspace"</strong> button on the home page. That's it - your workspace is ready to use.</p>
-
-        <h2 id="live-workspace">Live Workspace</h2>
-        <p>The Live workspace is designed for <strong>server-side collection of recordings</strong>. It automatically detects and stores recording sessions from your applications.</p>
-
-        <DocsCallout type="warning">
-          <strong>Resource Consideration:</strong> Profile initialization and visualization consume significant resources. Running analysis directly on servers (especially containerized environments) is <strong>not recommended</strong>. Instead, access Live workspaces remotely from your local machine.
-        </DocsCallout>
-
-        <h3>Primary Use Case</h3>
-        <ul>
-          <li>Running on a <strong>server</strong> to automatically collect and store recordings</li>
-          <li>Recordings are automatically provided to Jeffrey and accessible in LiveProject</li>
-          <li>Intended to be accessed <strong>remotely</strong> from local machines using Remote workspaces</li>
-        </ul>
-
-        <h3>Features</h3>
-        <ul>
-          <li>Automatic session and recording detection</li>
-          <li>Profiler settings synchronization</li>
-          <li>Workspace event tracking</li>
-          <li>Can be accessed remotely by other Jeffrey instances</li>
-        </ul>
-
-        <h3 id="collector-only-mode">Collector-Only Mode</h3>
 
         <DocsCallout type="info">
-          In the split architecture, Jeffrey Server inherently operates as a collection-only system — it manages workspaces, projects, instances, and recording sessions but does <strong>not</strong> perform profile analysis. Use a <strong>Remote</strong> workspace in Jeffrey Local for analysis.
+          <strong>Local analysis, remote data:</strong> All CPU-intensive profile analysis (flamegraphs, timeseries, thread analysis) runs on your local machine. The server only collects and stores recordings — keeping it lightweight.
         </DocsCallout>
 
-        <h3>How to Create</h3>
-        <p>Live workspaces are created on <strong>Jeffrey Server</strong>. Storage defaults to <code>~/.jeffrey-server/workspaces/</code>.</p>
-
-        <h2 id="remote-workspace">Remote Workspace</h2>
-        <p>The Remote workspace allows you to <strong>mirror a workspace</strong> from a Jeffrey Server instance to your Jeffrey Local. This is the <strong>recommended approach</strong> for analyzing recordings collected by the server.</p>
-
-        <DocsCallout type="info">
-          <strong>Recommended for Live Workspaces:</strong> Instead of running heavy analysis directly on your server, use a Remote workspace to connect from your local machine. This keeps your server lightweight (only collecting recordings) while all CPU-intensive profile processing and visualization happens on your local device with better resources.
-        </DocsCallout>
-
-        <h3>How It Works</h3>
+        <h2 id="how-it-works">How It Works</h2>
         <ol>
           <li>Connect to a Jeffrey Server instance via gRPC</li>
-          <li>Mirror a Live workspace to your local Jeffrey</li>
-          <li>Browse the same projects and recording sessions locally (in Repository page)</li>
+          <li>Select a workspace to mirror locally</li>
+          <li>Browse projects and recording sessions in the Repository</li>
           <li>When you find an interesting recording session:
             <ul>
               <li>Trigger "Merge and Copy" to download</li>
@@ -154,30 +77,58 @@ onMounted(() => {
           <li>Create and analyze profiles <strong>locally</strong> using your machine's resources</li>
         </ol>
 
-        <h3>Key Benefits</h3>
+        <h2 id="key-benefits">Key Benefits</h2>
         <ul>
-          <li><strong>Resource offloading</strong> - Heavy analysis runs on your local machine, not the server</li>
-          <li><strong>Selective download</strong> - Only download recordings you want to investigate</li>
-          <li><strong>Full artifacts</strong> - Downloads recordings, logs, heap dumps, perf-counters, and others</li>
-          <li><strong>Remote configuration</strong> - Configure Profiler Settings on project level</li>
+          <li><strong>Resource offloading</strong> — Heavy analysis runs on your local machine, not the server</li>
+          <li><strong>Selective download</strong> — Only download recordings you want to investigate</li>
+          <li><strong>Full artifacts</strong> — Downloads recordings, logs, heap dumps, perf-counters, and others</li>
+          <li><strong>Remote configuration</strong> — Configure Profiler Settings on project level</li>
+          <li><strong>Cost savings</strong> — Expensive profile analysis runs locally, not in cloud infrastructure</li>
         </ul>
 
-        <h3>How to Create</h3>
+        <h2 id="how-to-create">How to Create</h2>
         <p>Click <strong>"Add Remote"</strong>, enter the Jeffrey Server address (gRPC endpoint), then select which workspaces to mirror.</p>
 
-        <h2 id="recommended-workflows">Recommended Workflows</h2>
+        <DocsCallout type="tip">
+          <strong>Quick Analysis alternative:</strong> If you just want to analyze a local JFR file without connecting to a server, use <router-link to="/docs/platform/quick-analysis">Quick Analysis</router-link> instead.
+        </DocsCallout>
 
-        <h3>Quick Local Analysis (Sandbox)</h3>
-        <p><strong>Best for:</strong> Individual developers analyzing local JFR files</p>
-        <ol>
-          <li>Start Jeffrey locally</li>
-          <li>Create a Sandbox Workspace</li>
-          <li>Upload your JFR file</li>
-          <li>Create Profile and analyze</li>
-        </ol>
+        <h2 id="blocking">Workspace & Project Blocking</h2>
+        <p>Jeffrey Server supports <strong>blocking</strong> workspaces and projects to temporarily or permanently stop processing. This is useful for maintenance, cost control, or retiring old workspaces.</p>
 
-        <h3>Server + Local Analysis (Live + Remote)</h3>
-        <p><strong>Best for:</strong> Teams, CI/CD pipelines, resource-constrained servers</p>
+        <h3>Workspace Blocking Modes</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Mode</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Block</strong></td>
+              <td>Pauses all processing while keeping data intact. The workspace can be unblocked to resume.</td>
+            </tr>
+            <tr>
+              <td><strong>Block & Delete Data</strong></td>
+              <td>Stops processing and removes all project data, but keeps the workspace entry. If new events arrive after unblocking, projects are recreated automatically.</td>
+            </tr>
+            <tr>
+              <td><strong>Delete</strong></td>
+              <td>Completely removes the workspace. It can be automatically recreated if new CLI events arrive for the same workspace.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Project Blocking</h3>
+        <p>Individual projects can also be blocked independently. Blocking a project stops event processing, JFR streaming, and periodic jobs for that specific project without affecting other projects in the workspace.</p>
+
+        <DocsCallout type="info">
+          <strong>Cascading effect:</strong> Blocking a workspace affects all projects within it. Blocking at the project level provides finer-grained control when you only want to pause specific projects.
+        </DocsCallout>
+
+        <h2 id="recommended-workflow">Recommended Workflow</h2>
+        <p><strong>Best for:</strong> Teams, CI/CD pipelines, production profiling</p>
 
         <div class="workflow-diagram">
           <div class="workflow-box server">
@@ -197,7 +148,7 @@ onMounted(() => {
             <h4><i class="bi bi-laptop me-2"></i>Local Machine</h4>
             <p>Jeffrey Local + Remote Workspace</p>
             <ul>
-              <li>Mirror Live workspace</li>
+              <li>Mirror workspace</li>
               <li>Browse Repository</li>
               <li>Download interesting recordings</li>
               <li>Analyze locally</li>
@@ -208,50 +159,6 @@ onMounted(() => {
         <DocsCallout type="tip">
           <strong>Why this workflow?</strong> The server only stores recordings (low resource usage), while heavy analysis like flamegraph generation runs on your local machine. You download only the recordings you need to investigate, including all artifacts.
         </DocsCallout>
-
-        <h2 id="comparison">Comparison</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Feature</th>
-              <th>Sandbox</th>
-              <th>Live</th>
-              <th>Remote</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Best For</td>
-              <td>Local experimentation</td>
-              <td>Server-side collection</td>
-              <td>Analyzing remote recordings</td>
-            </tr>
-            <tr>
-              <td>Storage</td>
-              <td>Local database<br><small class="text-muted">only for materialized recordings</small></td>
-              <td>Database on Server</td>
-              <td>Local database<br><small class="text-muted">only for materialized recordings</small></td>
-            </tr>
-            <tr>
-              <td>Create Projects</td>
-              <td>Yes</td>
-              <td>Yes</td>
-              <td>No (read-only)</td>
-            </tr>
-            <tr>
-              <td>Network Required</td>
-              <td>No</td>
-              <td>No</td>
-              <td>Yes (gRPC)</td>
-            </tr>
-            <tr>
-              <td>Resource Usage<br><small class="text-muted">profile initialization & visualization</small></td>
-              <td>Local</td>
-              <td>Server (not recommended)</td>
-              <td>Local (recommended)</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <DocsNavFooter />
@@ -260,74 +167,6 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
-
-/* Workspace Types Grid */
-.workspace-types-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.workspace-type-card {
-  padding: 1.25rem;
-  border-radius: 8px;
-  text-align: center;
-  border: 1px solid #e2e8f0;
-}
-
-.workspace-type-card .type-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 0.75rem;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: #fff;
-}
-
-.workspace-type-card h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.workspace-type-card p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
-/* Card color themes */
-.workspace-type-card.sandbox {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-.workspace-type-card.sandbox .type-icon {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.workspace-type-card.live {
-  background: linear-gradient(135deg, rgba(94, 100, 255, 0.08) 0%, rgba(94, 100, 255, 0.03) 100%);
-  border-color: rgba(94, 100, 255, 0.3);
-}
-
-.workspace-type-card.live .type-icon {
-  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
-}
-
-.workspace-type-card.remote {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.workspace-type-card.remote .type-icon {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
 
 /* Workflow Diagram */
 .workflow-diagram {
@@ -412,10 +251,6 @@ onMounted(() => {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .workspace-types-grid {
-    grid-template-columns: 1fr;
-  }
-
   .workflow-diagram {
     flex-direction: column;
   }

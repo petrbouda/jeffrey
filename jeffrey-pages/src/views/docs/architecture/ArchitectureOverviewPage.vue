@@ -24,9 +24,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'technology-stack', text: 'Technology Stack', level: 2 },
-  { id: 'high-level-architecture', text: 'High-Level Architecture', level: 2 },
-  { id: 'domain-architecture', text: 'Domain Architecture', level: 2 }
+  { id: 'high-level-architecture', text: 'High-Level Architecture', level: 2 }
 ];
 
 onMounted(() => {
@@ -42,255 +40,151 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey consists of two applications: <strong>Jeffrey Local</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Local can also operate standalone in <strong>Sandbox mode</strong> without any server, allowing you to analyze JFR files directly without setting up the server component.</p>
-
-        <h2 id="technology-stack">Technology Stack</h2>
-
-        <div class="docs-grid docs-grid-2">
-          <div class="docs-card tech-card backend">
-            <div class="docs-card-header">
-              <i class="bi bi-server"></i>
-              <h4>Backend</h4>
-            </div>
-            <div class="docs-card-body">
-              <ul>
-                <li><strong>Java 25</strong> - Modern Java with latest features</li>
-                <li><strong>Spring Boot</strong> - Application framework</li>
-                <li><strong>Jersey</strong> - JAX-RS REST API implementation</li>
-                <li><strong>Maven</strong> - Build tool and dependency management</li>
-              </ul>
-            </div>
-          </div>
-          <div class="docs-card tech-card frontend">
-            <div class="docs-card-header">
-              <i class="bi bi-window"></i>
-              <h4>Frontend</h4>
-            </div>
-            <div class="docs-card-body">
-              <ul>
-                <li><strong>Vue 3</strong> - Reactive framework with Composition API</li>
-                <li><strong>TypeScript</strong> - Type-safe JavaScript</li>
-                <li><strong>Vite</strong> - Build tool and dev server</li>
-                <li><strong>ApexCharts</strong> - Data visualization</li>
-              </ul>
-            </div>
-          </div>
-          <div class="docs-card tech-card database">
-            <div class="docs-card-header">
-              <i class="bi bi-database"></i>
-              <h4>Database</h4>
-            </div>
-            <div class="docs-card-body">
-              <ul>
-                <li><strong>DuckDB</strong> - In-process analytical database</li>
-                <li><strong>No external DB</strong> - Zero database servers to deploy</li>
-                <li><strong>File-based</strong> - Data stored in local files</li>
-                <li><strong>SQL interface</strong> - Standard SQL queries</li>
-              </ul>
-            </div>
-          </div>
-          <div class="docs-card tech-card deployment">
-            <div class="docs-card-header">
-              <i class="bi bi-box-seam"></i>
-              <h4>Deployment</h4>
-            </div>
-            <div class="docs-card-body">
-              <ul>
-                <li><strong>Two JARs</strong> - <code>jeffrey.jar</code> (Local) and <code>jeffrey-server.jar</code> (Server)</li>
-                <li><strong>Docker</strong> - Separate containers for each application</li>
-                <li><strong>Kubernetes</strong> - Cloud-native ready</li>
-                <li><strong>Filesystem</strong> - Recording storage on disk</li>
-              </ul>
-            </div>
-          </div>
-          <div class="docs-card tech-card communication">
-            <div class="docs-card-header">
-              <i class="bi bi-arrows-angle-expand"></i>
-              <h4>Communication</h4>
-            </div>
-            <div class="docs-card-body">
-              <ul>
-                <li><strong>gRPC</strong> - Communication between Local and Server</li>
-                <li><strong>TLS</strong> - Secure channel support</li>
-                <li><strong>Protocol Buffers</strong> - Efficient binary serialization</li>
-                <li><strong>Bidirectional</strong> - Streaming and unary calls</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <p>Jeffrey consists of two applications: <strong>Jeffrey Local</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Server</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Local connects to Jeffrey Server via gRPC to access remote workspaces, and also offers <strong>Quick Analysis</strong> for analyzing JFR files directly without a server connection.</p>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
-        <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings, while Jeffrey Local provides the analysis UI and connects to the server via gRPC:</p>
+        <p>Jeffrey runs as two separate applications. Jeffrey Server collects and stores recordings from Java applications, while Jeffrey Local provides the analysis UI and connects to the server via gRPC:</p>
 
-        <div class="architecture-diagram">
-          <div class="diagram-row">
-            <div class="diagram-box browser">
-              <i class="bi bi-browser-chrome"></i>
-              <span>Browser</span>
+        <div class="arch-diagram">
+          <!-- Two apps side by side -->
+          <div class="arch-apps">
+            <!-- Jeffrey Local -->
+            <div class="arch-app local">
+              <div class="arch-app-header local-header">
+                <i class="bi bi-pc-display"></i>
+                <span>Jeffrey Local</span>
+                <small>Developer Machine</small>
+              </div>
+              <div class="arch-app-body">
+                <div class="arch-section-label">Domain</div>
+                <div class="arch-layer">
+                  <div class="arch-chip server-feat"><i class="bi bi-file-earmark-binary"></i> Recordings</div>
+                  <div class="arch-chip server-feat"><i class="bi bi-speedometer2"></i> Profiles</div>
+                </div>
+                <div class="arch-section-label">Features</div>
+                <div class="arch-layer">
+                  <div class="arch-chip analysis"><i class="bi bi-fire"></i> Flamegraph</div>
+                  <div class="arch-chip analysis"><i class="bi bi-graph-up"></i> Timeseries</div>
+                  <div class="arch-chip analysis"><i class="bi bi-stopwatch"></i> Sub-Second</div>
+                </div>
+                <div class="arch-layer">
+                  <div class="arch-chip analysis"><i class="bi bi-shield-check"></i> Guardian</div>
+                  <div class="arch-chip analysis"><i class="bi bi-clock-history"></i> Threads</div>
+                  <div class="arch-chip analysis"><i class="bi bi-database"></i> Heap Dump</div>
+                </div>
+                <div class="arch-layer">
+                  <div class="arch-chip analysis"><i class="bi bi-globe"></i> HTTP & JDBC</div>
+                  <div class="arch-chip ai"><i class="bi bi-robot"></i> AI Analysis</div>
+                  <div class="arch-chip entry"><i class="bi bi-lightning"></i> Quick Analysis</div>
+                </div>
+                <div class="arch-section-label">Storage</div>
+                <div class="arch-storage-row">
+                  <div class="arch-storage"><i class="bi bi-database"></i> DuckDB</div>
+                  <div class="arch-storage"><i class="bi bi-folder"></i> Filesystem</div>
+                </div>
+              </div>
             </div>
-            <div class="diagram-arrow">
-              <i class="bi bi-arrow-down"></i>
+
+            <!-- gRPC connection -->
+            <div class="arch-grpc-link">
+              <div class="grpc-line"></div>
+              <div class="grpc-label">
+                <i class="bi bi-arrow-left-right"></i>
+                <span>gRPC</span>
+              </div>
+              <div class="grpc-line"></div>
+            </div>
+
+            <!-- Jeffrey Server -->
+            <div class="arch-app server">
+              <div class="arch-app-header server-header">
+                <i class="bi bi-cloud"></i>
+                <span>Jeffrey Server</span>
+                <small>Kubernetes / Server</small>
+              </div>
+              <div class="arch-app-body">
+                <div class="arch-section-label">Domain</div>
+                <div class="arch-layer">
+                  <div class="arch-chip server-feat"><i class="bi bi-folder2-open"></i> Workspaces</div>
+                  <div class="arch-chip server-feat"><i class="bi bi-kanban"></i> Projects</div>
+                </div>
+                <div class="arch-layer">
+                  <div class="arch-chip server-feat"><i class="bi bi-server"></i> Instances</div>
+                  <div class="arch-chip server-feat"><i class="bi bi-record-circle"></i> Sessions</div>
+                </div>
+                <div class="arch-section-label">Features</div>
+                <div class="arch-layer">
+                  <div class="arch-chip streaming"><i class="bi bi-broadcast"></i> JFR Streaming</div>
+                  <div class="arch-chip scheduler"><i class="bi bi-clock"></i> Scheduler & Jobs</div>
+                </div>
+                <div class="arch-layer">
+                  <div class="arch-chip server-feat"><i class="bi bi-sliders"></i> Profiler Settings</div>
+                  <div class="arch-chip server-feat"><i class="bi bi-bell"></i> Alerts & Messages</div>
+                </div>
+                <div class="arch-layer">
+                  <div class="arch-chip server-feat"><i class="bi bi-lock"></i> Blocking & Lifecycle</div>
+                </div>
+                <div class="arch-section-label">Storage</div>
+                <div class="arch-storage-row">
+                  <div class="arch-storage"><i class="bi bi-database"></i> DuckDB</div>
+                  <div class="arch-storage"><i class="bi bi-folder"></i> Filesystem</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="diagram-row apps-row">
-            <div class="diagram-box container">
-              <div class="container-title">Jeffrey Local</div>
-              <div class="container-content">
-                <div class="component api">
-                  <i class="bi bi-gear"></i>
-                  <span>REST API</span>
-                  <small>/api/*</small>
-                </div>
-                <div class="component static">
-                  <i class="bi bi-file-code"></i>
-                  <span>Static Files</span>
-                  <small>Vue SPA</small>
-                </div>
-                <div class="component grpc-client">
-                  <i class="bi bi-arrows-angle-expand"></i>
-                  <span>gRPC Client</span>
-                </div>
+
+          <!-- Bottom: Shared Filesystem + Java Apps aligned under Server -->
+          <div class="arch-bottom-row">
+            <!-- Empty left spacer to align with Jeffrey Local -->
+            <div class="arch-bottom-spacer"></div>
+            <!-- Connector spacer for gRPC column -->
+            <div class="arch-bottom-connector-spacer"></div>
+            <!-- Right side: aligned under Jeffrey Server -->
+            <div class="arch-bottom-server-col">
+              <div class="arch-reads-arrow">
+                <small>reads</small>
+                <i class="bi bi-arrow-down"></i>
               </div>
-            </div>
-            <div class="diagram-connector">
-              <i class="bi bi-arrow-left-right"></i>
-              <span>gRPC</span>
-            </div>
-            <div class="diagram-box container">
-              <div class="container-title server">Jeffrey Server</div>
-              <div class="container-content">
-                <div class="component api">
-                  <i class="bi bi-gear"></i>
-                  <span>REST API</span>
-                  <small>/api/*</small>
+              <div class="arch-shared-fs">
+                <i class="bi bi-hdd-stack"></i>
+                <span>Shared Filesystem</span>
+                <small>NFS / PVC</small>
+              </div>
+              <div class="arch-write-labels-row">
+                <div class="arch-write-label cli-write">
+                  <i class="bi bi-arrow-up"></i>
+                  <small>instances & sessions</small>
                 </div>
-                <div class="component grpc-server">
-                  <i class="bi bi-hdd-rack"></i>
-                  <span>gRPC Server</span>
-                  <small>port 9090</small>
+                <div class="arch-labels-spacer"></div>
+                <div class="arch-write-label jfr-write">
+                  <i class="bi bi-arrow-up"></i>
+                  <small>JFR recordings</small>
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="diagram-row apps-row">
-            <div class="diagram-row storage-row">
-              <div class="diagram-box storage">
-                <i class="bi bi-database"></i>
-                <span>DuckDB</span>
-              </div>
-              <div class="diagram-box storage">
-                <i class="bi bi-folder"></i>
-                <span>Filesystem</span>
-              </div>
-            </div>
-            <div class="diagram-connector">
-            </div>
-            <div class="diagram-row storage-row">
-              <div class="diagram-box storage">
-                <i class="bi bi-database"></i>
-                <span>DuckDB</span>
-              </div>
-              <div class="diagram-box storage">
-                <i class="bi bi-folder"></i>
-                <span>Filesystem</span>
+              <div class="arch-containers-stack">
+                <div class="arch-cli-app-container shadow-copy"></div>
+                <div class="arch-cli-app-container primary">
+                  <div class="arch-container-note">Single Container</div>
+                  <div class="arch-cli-app-row">
+                    <div class="arch-cli">
+                      <i class="bi bi-terminal"></i>
+                      <span>Jeffrey CLI</span>
+                    </div>
+                    <div class="arch-starts-arrow">
+                      <span>runs before</span>
+                      <i class="bi bi-arrow-right"></i>
+                    </div>
+                    <div class="arch-java-app">
+                      <i class="bi bi-cpu"></i>
+                      <span>Java Application</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <h2 id="domain-architecture">Domain Architecture</h2>
-        <p>The backend is organized into two separate applications with clear responsibilities:</p>
-
-        <div class="domain-diagram">
-          <div class="domain-row">
-            <div class="domain-box platform">
-              <div class="domain-header">
-                <i class="bi bi-layers"></i>
-                <h4>Jeffrey Server</h4>
-              </div>
-              <div class="domain-body">
-                <p>Manages workspace lifecycle, recording collection, and session monitoring:</p>
-                <div class="domain-flow">
-                  <span class="flow-item">Workspaces</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Projects</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Instances</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Sessions</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Repository</span>
-                </div>
-                <p class="domain-note">+ Profiler Settings, Messages & Alerts, gRPC Services</p>
-              </div>
-            </div>
-
-            <div class="domain-connector">
-              <i class="bi bi-arrow-left-right"></i>
-              <span>gRPC communication</span>
-            </div>
-
-            <div class="domain-box profile">
-              <div class="domain-header">
-                <i class="bi bi-cpu"></i>
-                <h4>Jeffrey Local</h4>
-              </div>
-              <div class="domain-body">
-                <p>Profile analysis tool with remote connectivity:</p>
-                <div class="domain-flow">
-                  <span class="flow-item">Workspaces</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Projects</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Recordings</span>
-                  <i class="bi bi-arrow-right"></i>
-                  <span class="flow-item">Profiles</span>
-                </div>
-                <p class="domain-note">+ Remote Workspaces, AI Assistant, Flamegraph, Timeseries, Guardian</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <h3>Module Structure</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Module</th>
-              <th>Purpose</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>jeffrey-server/core-server</code></td>
-              <td>Server application: gRPC services, workspace/project management</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-local/core-local</code></td>
-              <td>Local application: REST resources, remote workspace connectivity</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-local/profiles/</code></td>
-              <td>All profile analysis modules (flamegraph, timeseries, guardian, etc.)</td>
-            </tr>
-            <tr>
-              <td><code>shared/server-api</code></td>
-              <td>gRPC protocol buffer definitions</td>
-            </tr>
-            <tr>
-              <td><code>shared/common</code></td>
-              <td>Shared utilities across modules</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-local/pages-local</code></td>
-              <td>Vue.js frontend for Jeffrey Local</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-server/pages-server</code></td>
-              <td>Vue.js frontend for Jeffrey Server</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <DocsNavFooter />
@@ -300,317 +194,433 @@ onMounted(() => {
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* Tech Cards */
-.tech-card .docs-card-body ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.85rem;
-  color: #5e6e82;
-}
-
-.tech-card .docs-card-body li {
-  margin-bottom: 0.25rem;
-}
-
-.tech-card.backend .docs-card-header i { color: #ef4444; }
-.tech-card.frontend .docs-card-header i { color: #10b981; }
-.tech-card.database .docs-card-header i { color: #f59e0b; }
-.tech-card.deployment .docs-card-header i { color: #5e64ff; }
-.tech-card.communication .docs-card-header i { color: #8b5cf6; }
-
-/* Architecture Diagram */
-.architecture-diagram {
+/* ===== HIGH-LEVEL ARCHITECTURE DIAGRAM ===== */
+.arch-diagram {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin: 1.5rem 0;
-  padding: 1.5rem;
-  background: #f8fafc;
-  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
 
-.diagram-row {
+.arch-top {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0.25rem;
 }
 
-.diagram-row.apps-row {
-  flex-direction: row;
-  gap: 1.5rem;
+.arch-client {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: #fff;
+  border: 2px solid #10b981;
+  border-radius: 24px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.arch-client i { color: #10b981; font-size: 1.1rem; }
+
+.arch-arrow-down, .arch-arrow-up {
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+/* Apps row */
+.arch-apps {
+  display: flex;
   align-items: stretch;
+  gap: 0;
   width: 100%;
 }
 
-.diagram-row.storage-row {
-  flex-direction: row;
-  gap: 1rem;
+.arch-app {
   flex: 1;
-  justify-content: center;
-}
-
-.diagram-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.75rem 1.5rem;
-  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: #fff;
 }
 
-.diagram-box.browser {
-  border-color: #10b981;
-}
-
-.diagram-box.browser i {
-  color: #10b981;
-  font-size: 1.25rem;
-}
-
-.diagram-box.container {
-  flex: 1;
-  padding: 0;
-  min-width: 220px;
-}
-
-.container-title {
-  padding: 0.5rem 1rem;
-  background: #5e64ff;
+.arch-app-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
   color: #fff;
   font-weight: 600;
   font-size: 0.85rem;
-  text-align: center;
-  border-radius: 7px 7px 0 0;
 }
 
-.container-title.server {
-  background: #8b5cf6;
-}
-
-.container-content {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.component {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 1rem;
-  background: #f8fafc;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  font-size: 0.8rem;
-}
-
-.component i {
-  font-size: 1rem;
-  color: #5e64ff;
-}
-
-.component small {
+.arch-app-header small {
+  margin-left: auto;
+  font-weight: 400;
   font-size: 0.7rem;
-  color: #6c757d;
+  opacity: 0.85;
 }
 
-.diagram-connector {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-}
+.local-header { background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%); }
+.server-header { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
 
-.diagram-connector i {
-  font-size: 1.5rem;
-  color: #8b5cf6;
-}
-
-.diagram-connector span {
-  font-size: 0.7rem;
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.diagram-box.storage {
-  min-width: 100px;
-}
-
-.diagram-box.storage i {
-  font-size: 1.25rem;
-  color: #f59e0b;
-}
-
-.diagram-arrow {
-  color: #6c757d;
-  font-size: 1rem;
-}
-
-/* Domain Diagram */
-.domain-diagram {
+.arch-app-body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin: 1.5rem 0;
+  padding: 0.75rem;
 }
 
-.domain-row {
+.arch-layer {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  align-items: stretch;
-}
-
-.domain-box {
-  flex: 1;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.domain-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.domain-header i {
-  font-size: 1rem;
-}
-
-.domain-box.platform .domain-header i { color: #5e64ff; }
-.domain-box.profile .domain-header i { color: #10b981; }
-
-.domain-header h4 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.domain-body {
-  padding: 1rem;
-  background: #fff;
-}
-
-.domain-body p {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.85rem;
-  color: #5e6e82;
-}
-
-.domain-flow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
 }
 
-.flow-item {
-  padding: 0.25rem 0.75rem;
-  background: #f0f4ff;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  color: #5e64ff;
+.arch-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.7rem;
   font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
 }
 
-.domain-flow i {
-  color: #6c757d;
-  font-size: 0.75rem;
+.arch-chip i { font-size: 0.75rem; }
+
+.arch-chip.vue { background: #d1fae5; color: #065f46; }
+.arch-chip.rest { background: #dbeafe; color: #1e40af; }
+.arch-chip.grpc-c { background: #ede9fe; color: #6d28d9; }
+.arch-chip.grpc-s { background: #ede9fe; color: #6d28d9; }
+.arch-chip.analysis { background: #fef3c7; color: #92400e; }
+.arch-chip.ai { background: #cffafe; color: #155e75; }
+.arch-chip.streaming { background: #fce7f3; color: #9d174d; }
+.arch-chip.scheduler { background: #e0e7ff; color: #3730a3; }
+.arch-chip.server-feat { background: #f3f4f6; color: #374151; }
+.arch-chip.entry { background: #ecfdf5; color: #065f46; }
+
+.arch-section-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-top: 0.15rem;
 }
 
-.domain-note {
-  margin-top: 0.75rem !important;
-  font-style: italic;
-  color: #6c757d !important;
+/* Pipeline inside app box */
+.arch-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
 }
 
-.domain-connector {
+.pipe-item {
+  padding: 0.2rem 0.45rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.pipe-item.pipe-highlight {
+  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+.pipe-arrow {
+  font-size: 0.5rem;
+  color: #9ca3af;
+}
+
+.arch-storage-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.arch-storage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #92400e;
+}
+
+/* gRPC link between apps */
+.arch-grpc-link {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0;
-  color: #6c757d;
+  padding: 0 0.5rem;
+  min-width: 80px;
 }
 
-.domain-connector i {
-  font-size: 1.5rem;
-  color: #8b5cf6;
+.grpc-line {
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 100%);
 }
 
-.domain-connector span {
-  font-size: 0.75rem;
+.grpc-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.6rem;
+  background: #ede9fe;
+  border-radius: 6px;
+  border: 1px solid #c4b5fd;
+}
+
+.grpc-label i { color: #7c3aed; font-size: 0.9rem; }
+.grpc-label span { font-size: 0.6rem; color: #6d28d9; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Bottom: Shared Filesystem + Java Apps aligned under Server */
+.arch-bottom-row {
+  display: flex;
+  width: 100%;
+  gap: 0;
+}
+
+.arch-bottom-spacer {
+  flex: 1;
+}
+
+.arch-bottom-connector-spacer {
+  min-width: 80px;
+  padding: 0 0.5rem;
+}
+
+.arch-bottom-server-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.arch-reads-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  color: #7c3aed;
+}
+
+.arch-reads-arrow i { font-size: 0.9rem; }
+
+.arch-reads-arrow small {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.arch-shared-fs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: #fff;
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.arch-shared-fs i { color: #f59e0b; font-size: 1.1rem; }
+.arch-shared-fs span { font-size: 0.8rem; font-weight: 600; color: #92400e; }
+.arch-shared-fs small { font-size: 0.65rem; color: #6c757d; margin-left: 0.25rem; }
+
+.arch-arrow-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  color: #94a3b8;
+}
+
+.arch-arrow-vertical small {
+  font-size: 0.6rem;
+  color: #94a3b8;
   font-style: italic;
 }
 
-.profile-modules {
+.arch-write-labels-row {
   display: flex;
-  align-items: stretch;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  /* match container inner padding + shadow offset */
+  padding: 0 1rem;
+  padding-right: calc(1rem + 8px);
+}
+
+.arch-labels-spacer {
+  /* matches the runs-before arrow width */
+  min-width: 70px;
+}
+
+.arch-containers-stack {
+  position: relative;
+  margin-top: 0.25rem;
+  padding-right: 8px;
+  padding-bottom: 8px;
+}
+
+.arch-cli-app-container {
+  padding: 0.5rem 1rem 0.6rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.arch-cli-app-container.shadow-copy {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 0;
+  bottom: 0;
+  padding: 0;
+  background: #f8fafc;
+}
+
+.arch-cli-app-container.primary {
+  position: relative;
+}
+
+.arch-container-note {
+  font-size: 0.6rem;
+  color: #94a3b8;
+  text-align: center;
+  font-style: italic;
+  margin-bottom: 0.35rem;
+}
+
+.arch-write-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.arch-write-label i { font-size: 0.9rem; }
+
+.arch-write-label small {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.arch-write-label.cli-write i { color: #059669; }
+.arch-write-label.cli-write small { color: #059669; }
+.arch-write-label.jfr-write i { color: #ef4444; }
+.arch-write-label.jfr-write small { color: #ef4444; }
+
+.arch-cli-app-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.75rem;
 }
 
-.module {
-  flex: 1;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
+.arch-cli {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.6rem;
+  background: #ecfdf5;
+  border: 1.5px solid #059669;
+  border-radius: 8px;
 }
 
-.module h5 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #343a40;
-}
+.arch-cli i { color: #059669; font-size: 1rem; }
+.arch-cli span { font-size: 0.65rem; font-weight: 600; color: #065f46; }
 
-.module p {
-  margin: 0 !important;
-  font-size: 0.8rem;
-}
-
-.module-arrow {
+.arch-starts-arrow {
   display: flex;
   align-items: center;
-  color: #6c757d;
+  gap: 0.25rem;
+  color: #94a3b8;
 }
 
+.arch-starts-arrow span {
+  font-size: 0.6rem;
+  font-style: italic;
+}
+
+.arch-starts-arrow i { font-size: 0.85rem; }
+
+.arch-java-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.6rem;
+  background: #fef2f2;
+  border: 1.5px solid #ef4444;
+  border-radius: 8px;
+}
+
+.arch-java-app i { color: #ef4444; font-size: 1rem; }
+.arch-java-app span { font-size: 0.65rem; font-weight: 600; color: #991b1b; }
+
+
+/* Responsive */
 @media (max-width: 768px) {
-  .profile-modules {
+  .arch-apps {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .arch-grpc-link {
+    flex-direction: row;
+    padding: 0.5rem 0;
+    min-width: auto;
+  }
+
+  .grpc-line {
+    width: 24px;
+    height: 2px;
+  }
+
+  .arch-bottom-row {
     flex-direction: column;
   }
 
-  .module-arrow {
-    transform: rotate(90deg);
-    justify-content: center;
+  .arch-bottom-spacer,
+  .arch-bottom-connector-spacer {
+    display: none;
   }
 
-  .container-content {
-    flex-direction: column;
-  }
-
-  .diagram-row.storage-row {
-    flex-direction: column;
-  }
-
-  .diagram-row.apps-row {
-    flex-direction: column;
-  }
-
-  .domain-row {
-    flex-direction: column;
-  }
 }
 </style>

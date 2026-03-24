@@ -55,8 +55,8 @@ onMounted(() => {
               <i class="bi bi-house"></i>
             </div>
             <div class="docs-card-content">
-              <h4 class="docs-title-with-badge">Quick Local Analysis <span class="docs-badge docs-badge-default">Sandbox</span></h4>
-              <p>Quickly analyze locally available JFR recordings and organize them into projects. Upload a file and start investigating within seconds.</p>
+              <h4 class="docs-title-with-badge">Quick Local Analysis <span class="docs-badge docs-badge-default">Quick Analysis</span></h4>
+              <p>Quickly analyze locally available JFR recordings. Upload a file and start investigating within seconds — no workspace or project setup required.</p>
             </div>
           </div>
           <div class="docs-card docs-card-horizontal">
@@ -64,7 +64,7 @@ onMounted(() => {
               <i class="bi bi-cloud"></i>
             </div>
             <div class="docs-card-content">
-              <h4 class="docs-title-with-badge">Recording Collection Infrastructure <span class="docs-badge docs-badge-default">Live</span></h4>
+              <h4 class="docs-title-with-badge">Recording Collection Infrastructure <span class="docs-badge docs-badge-default">Server</span></h4>
               <p>Conveniently collect JFR recordings and artifacts from running applications, especially in containerized cloud environments like Kubernetes.</p>
             </div>
           </div>
@@ -73,7 +73,7 @@ onMounted(() => {
               <i class="bi bi-pc-display"></i>
             </div>
             <div class="docs-card-content">
-              <h4 class="docs-title-with-badge">Avoid Cloud Computation Costs <span class="docs-badge docs-badge-default">Remote</span></h4>
+              <h4 class="docs-title-with-badge">Avoid Cloud Computation Costs <span class="docs-badge docs-badge-default">Workspace</span></h4>
               <p>Offload expensive profile processing from cloud infrastructure to local machines. Download recordings remotely and analyze them locally.</p>
             </div>
           </div>

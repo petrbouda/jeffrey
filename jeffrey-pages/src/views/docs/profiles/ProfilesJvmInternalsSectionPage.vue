@@ -78,6 +78,9 @@ onMounted(() => {
           <DocsFeatureItem icon="bi bi-speedometer2" title="Performance Counters">
             Hardware performance metrics when available. Shows CPU cycles, cache misses, and other low-level counters that can reveal performance bottlenecks not visible at the Java level.
           </DocsFeatureItem>
+          <DocsFeatureItem icon="bi bi-robot" title="AI Analysis">
+            AI-powered JFR analysis that examines profile data to provide performance insights, anomaly detection, and optimization recommendations. Uses the profile's DuckDB MCP server to query event data directly. Requires an AI provider (Claude or OpenAI) to be configured.
+          </DocsFeatureItem>
         </div>
 
         <DocsCallout type="tip">

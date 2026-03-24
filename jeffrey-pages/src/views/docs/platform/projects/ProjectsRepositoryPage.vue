@@ -29,8 +29,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-is-repository', text: 'What is Repository?', level: 2 },
   { id: 'merge-and-copy', text: 'Merge and Copy', level: 2 },
-  { id: 'live-vs-remote', text: 'Live vs Remote Repository', level: 2 },
-  { id: 'workspace-availability', text: 'Workspace Availability', level: 2 }
+  { id: 'how-it-works', text: 'How it Works', level: 2 }
 ];
 
 onMounted(() => {
@@ -48,8 +47,8 @@ onMounted(() => {
       <div class="docs-content">
         <p>The Repository provides access to <strong>recording sessions</strong> from live applications. It's the bridge between your running applications and Jeffrey's analysis capabilities.</p>
 
-        <DocsCallout type="warning">
-          <strong>Workspace Availability:</strong> Repository is only available in <strong>Live</strong> and <strong>Remote</strong> workspaces. Sandbox workspaces use direct file uploads instead.
+        <DocsCallout type="info">
+          <strong>Remote Workspaces:</strong> Repository is available in Remote workspaces connected to a jeffrey-server instance. It provides access to recording sessions collected on the server.
         </DocsCallout>
 
         <h2 id="what-is-repository">What is Repository?</h2>
@@ -89,7 +88,7 @@ onMounted(() => {
         </DocsCallout>
 
         <DocsCallout type="info">
-          <strong>Collector-Only Mode:</strong> In Live workspaces with collector-only mode enabled (default), <strong>Merge and Copy</strong> and <strong>Download</strong> buttons are hidden. Use a <strong>Remote</strong> workspace to access these features.
+          <strong>Collector-Only Mode:</strong> On the server side (jeffrey-server), collector-only mode is enabled by default. Use a <strong>Remote</strong> workspace to access Merge and Copy and Download features.
         </DocsCallout>
 
         <h3>After Merge and Copy</h3>
@@ -101,71 +100,11 @@ onMounted(() => {
           <li>Analysis runs on your local machine (not the server)</li>
         </ul>
 
-        <h2 id="live-vs-remote">Live vs Remote Repository</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Aspect</th>
-              <th>Live Workspace</th>
-              <th>Remote Workspace</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Data source</td>
-              <td>Local filesystem</td>
-              <td>Remote Jeffrey server</td>
-            </tr>
-            <tr>
-              <td>Session detection</td>
-              <td>Automatic (file watcher)</td>
-              <td>Synced from remote</td>
-            </tr>
-            <tr>
-              <td>Merge and Copy</td>
-              <td>Local file copy</td>
-              <td>Network download</td>
-            </tr>
-            <tr>
-              <td>Use case</td>
-              <td>Direct server access</td>
-              <td>Remote analysis from local machine</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Repository availability depends on workspace type:</p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Workspace</th>
-              <th>Repository</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Sandbox</strong></td>
-              <td><i class="bi bi-x-lg text-muted"></i> Not available</td>
-              <td>Designed for manual file uploads</td>
-            </tr>
-            <tr>
-              <td><strong>Live</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Shows local recording sessions</td>
-            </tr>
-            <tr>
-              <td><strong>Remote</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Mirrors remote Live workspace</td>
-            </tr>
-          </tbody>
-        </table>
+        <h2 id="how-it-works">How it Works</h2>
+        <p>The Repository in a Remote workspace connects to the jeffrey-server to access recording sessions. Sessions are detected automatically on the server side and synced to your local machine through the Remote workspace connection. When you use Merge and Copy, the recording data is downloaded over the network to your local Recordings section.</p>
 
         <DocsCallout type="tip">
-          <strong>Recommended workflow:</strong> Use a Live workspace on your server to collect recordings, then connect from a Remote workspace on your local machine to download and analyze them. This keeps the server lightweight while you use your local machine's resources for analysis.
+          <strong>Recommended workflow:</strong> Deploy jeffrey-server to collect recordings from your applications, then connect from a Remote workspace on your local machine to download and analyze them. This keeps the server lightweight while you use your local machine's resources for analysis.
         </DocsCallout>
       </div>
 

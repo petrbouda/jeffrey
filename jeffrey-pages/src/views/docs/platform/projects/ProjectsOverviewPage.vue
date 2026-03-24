@@ -100,63 +100,41 @@ onMounted(() => {
         </div>
 
         <h2 id="feature-availability">Feature Availability</h2>
-        <p>Not all features are available in every workspace type:</p>
+        <p>Each project in a Remote workspace provides the following features:</p>
 
         <table>
           <thead>
             <tr>
               <th>Feature</th>
-              <th>Sandbox</th>
-              <th>Live</th>
-              <th>Remote</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><i class="bi bi-file-earmark-text me-2"></i>Profiles</td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
+              <td>Analyzed recordings ready for investigation</td>
             </tr>
             <tr>
               <td><i class="bi bi-record-circle me-2"></i>Recordings</td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
+              <td>Raw JFR files uploaded or downloaded from the server</td>
             </tr>
             <tr>
               <td><i class="bi bi-folder me-2"></i>Repository</td>
-              <td><i class="bi bi-x-lg text-muted"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
+              <td>Recording sessions from live applications on the remote server</td>
             </tr>
             <tr>
               <td><i class="bi bi-cpu me-2"></i>Profiler Settings</td>
-              <td><i class="bi bi-x-lg text-muted"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-            </tr>
-            <tr>
-              <td><i class="bi bi-calendar-check me-2"></i>Scheduler</td>
-              <td><i class="bi bi-x-lg text-muted"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-x-lg text-muted"></i></td>
+              <td>Async-Profiler agent configuration on the remote server</td>
             </tr>
             <tr>
               <td><i class="bi bi-bell me-2"></i>Alerts & Messages</td>
-              <td><i class="bi bi-x-lg text-muted"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
-              <td><i class="bi bi-check-lg text-success"></i></td>
+              <td>Important events from recordings on the remote server</td>
             </tr>
           </tbody>
         </table>
 
         <DocsCallout type="tip">
-          <strong>Sandbox is simplest:</strong> If you just want to upload and analyze JFR files locally, Sandbox provides everything you need with Profiles and Recordings.
-        </DocsCallout>
-
-        <DocsCallout type="info">
-          <strong>Collector-Only Mode:</strong> In Live workspaces with <strong>collector-only mode</strong> enabled (default), Profiles and Recordings are hidden from the sidebar. This is the recommended server configuration — use a Remote workspace for analysis. Disable with <code>jeffrey.project.live.collector-only-mode-enabled=false</code>.
+          <strong>Quick Analysis:</strong> If you just want to upload and analyze JFR files locally without connecting to a server, use Quick Analysis for a streamlined workflow.
         </DocsCallout>
 
         <h2 id="creating-projects">Creating Projects</h2>

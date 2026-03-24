@@ -108,6 +108,20 @@ onMounted(() => {
                 </div>
                 <p>Get workspace details by ID</p>
               </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>BlockWorkspace</code>
+                </div>
+                <p>Block workspace with mode: BLOCK, BLOCK_AND_DELETE_DATA, or DELETE</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>UnblockWorkspace</code>
+                </div>
+                <p>Resume processing for a blocked workspace</p>
+              </div>
             </div>
           </div>
 
@@ -138,6 +152,20 @@ onMounted(() => {
                   <code>DeleteProject</code>
                 </div>
                 <p>Delete project by ID</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>BlockProject</code>
+                </div>
+                <p>Stop event processing and streaming for a project</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>UnblockProject</code>
+                </div>
+                <p>Resume event processing for a blocked project</p>
               </div>
             </div>
           </div>

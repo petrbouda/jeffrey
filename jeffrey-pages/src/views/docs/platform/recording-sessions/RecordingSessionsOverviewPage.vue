@@ -46,8 +46,8 @@ onMounted(() => {
       <div class="docs-content">
         <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing JFR recordings and associated artifacts collected during application execution.</p>
 
-        <DocsCallout type="warning">
-          <strong>Workspace Availability:</strong> Recording Sessions are only available in <strong>Live</strong> and <strong>Remote</strong> workspaces through the <router-link to="/docs/concepts/projects/repository">Repository</router-link> feature.
+        <DocsCallout type="info">
+          <strong>Remote Workspaces:</strong> Recording Sessions are available in Remote workspaces through the <router-link to="/docs/concepts/projects/repository">Repository</router-link> feature, providing access to sessions collected on the connected jeffrey-server.
         </DocsCallout>
 
         <h2 id="what-are-recording-sessions">What are Recording Sessions?</h2>
@@ -135,34 +135,7 @@ onMounted(() => {
         </figure>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Recording Sessions are visible through the Repository feature:</p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Workspace</th>
-              <th>Recording Sessions</th>
-              <th>Source</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Sandbox</strong></td>
-              <td><i class="bi bi-x-lg text-muted"></i> Not available</td>
-              <td>Manual file uploads only</td>
-            </tr>
-            <tr>
-              <td><strong>Live</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Local filesystem (auto-detected)</td>
-            </tr>
-            <tr>
-              <td><strong>Remote</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Synced from remote Live workspace</td>
-            </tr>
-          </tbody>
-        </table>
+        <p>Recording Sessions are available in <strong>Remote workspaces</strong> through the Repository feature. Sessions are synced from the connected jeffrey-server, where they are automatically detected on the server's filesystem.</p>
       </div>
 
       <DocsNavFooter />

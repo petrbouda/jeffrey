@@ -117,6 +117,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/platform/WorkspacesPage.vue')
       },
       {
+        path: 'platform/quick-analysis',
+        name: 'DocsQuickAnalysis',
+        component: () => import('@/views/docs/platform/QuickAnalysisPage.vue')
+      },
+      {
         path: 'platform/projects',
         name: 'DocsProjects',
         component: () => import('@/views/docs/platform/projects/ProjectsOverviewPage.vue')

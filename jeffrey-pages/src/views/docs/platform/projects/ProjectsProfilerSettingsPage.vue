@@ -45,10 +45,10 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Profiler Settings configure the <strong>Async-Profiler agent</strong> used for <strong>Recording Collection</strong> in Live workspaces, controlling what events are recorded and how profiling is performed.</p>
+        <p>Profiler Settings configure the <strong>Async-Profiler agent</strong> used for <strong>Recording Collection</strong> on the jeffrey-server, controlling what events are recorded and how profiling is performed.</p>
 
-        <DocsCallout type="warning">
-          <strong>Workspace Availability:</strong> Profiler Settings are only available in <strong>Live</strong> and <strong>Remote</strong> workspaces. They configure the Async-Profiler agent that collects recordings from running applications.
+        <DocsCallout type="info">
+          <strong>Remote Workspaces:</strong> Profiler Settings are available in Remote workspaces connected to a jeffrey-server instance. They configure the Async-Profiler agent that collects recordings from running applications on the server.
         </DocsCallout>
 
         <h2 id="what-are-profiler-settings">What are Profiler Settings?</h2>
@@ -220,34 +220,7 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Profiler Settings availability depends on workspace type:</p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Workspace</th>
-              <th>Profiler Settings</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Sandbox</strong></td>
-              <td><i class="bi bi-x-lg text-muted"></i> Not available</td>
-              <td>No agent connection - manual uploads only</td>
-            </tr>
-            <tr>
-              <td><strong>Live</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Configures local profiler agents</td>
-            </tr>
-            <tr>
-              <td><strong>Remote</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Configures agents on remote server</td>
-            </tr>
-          </tbody>
-        </table>
+        <p>Profiler Settings are available in <strong>Remote workspaces</strong> connected to a jeffrey-server instance. They allow you to configure profiler agents on the remote server from your local machine.</p>
       </div>
 
       <DocsNavFooter />

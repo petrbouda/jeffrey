@@ -54,7 +54,7 @@ onMounted(async () => {
 <style scoped>
 .hero-header {
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 70%, #5e64ff 100%);
-  padding: 28px 0;
+  padding: 16px 0;
   position: relative;
   overflow: hidden;
 }

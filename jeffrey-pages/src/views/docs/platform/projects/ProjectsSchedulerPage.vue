@@ -46,12 +46,12 @@ onMounted(() => {
       <div class="docs-content">
         <p>The Scheduler runs <strong>automated background jobs</strong> for continuous profiling scenarios, handling housekeeping tasks and synchronization.</p>
 
-        <DocsCallout type="warning">
-          <strong>Workspace Availability:</strong> Scheduler is only available in <strong>Live</strong> workspaces. It manages server-side automation for continuous profiling scenarios.
+        <DocsCallout type="info">
+          <strong>Server-Side Feature:</strong> The Scheduler runs on the jeffrey-server. You can view and manage scheduled jobs through a Remote workspace, but the jobs themselves execute on the server.
         </DocsCallout>
 
         <h2 id="what-is-scheduler">What is Scheduler?</h2>
-        <p>In a Live workspace running on a server, various background tasks need to run automatically to manage repository data, compress recordings, and detect session completions. The Scheduler manages these jobs, running them on configurable schedules to keep your profiling infrastructure healthy.</p>
+        <p>On the jeffrey-server, various background tasks need to run automatically to manage repository data, compress recordings, and detect session completions. The Scheduler manages these jobs, running them on configurable schedules to keep your profiling infrastructure healthy.</p>
 
         <h2 id="available-jobs">Available Jobs</h2>
 
@@ -128,37 +128,10 @@ onMounted(() => {
         </div>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Scheduler availability depends on workspace type:</p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Workspace</th>
-              <th>Scheduler</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Sandbox</strong></td>
-              <td><i class="bi bi-x-lg text-muted"></i> Not available</td>
-              <td>Manual uploads only - no automation needed</td>
-            </tr>
-            <tr>
-              <td><strong>Live</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Server-side automation for continuous profiling</td>
-            </tr>
-            <tr>
-              <td><strong>Remote</strong></td>
-              <td><i class="bi bi-x-lg text-muted"></i> Not available</td>
-              <td>Jobs run on the remote server, not locally</td>
-            </tr>
-          </tbody>
-        </table>
+        <p>The Scheduler runs on the jeffrey-server and manages server-side automation for continuous profiling. Jobs execute on the server regardless of how you access them.</p>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces:</strong> When using Remote workspaces, the scheduler runs on the remote Live workspace's server. You don't need local scheduling - you're just mirroring and downloading data.
+          <strong>Remote workspaces:</strong> When using a Remote workspace, you can view and manage scheduled jobs on the connected jeffrey-server. The jobs themselves always run on the server.
         </DocsCallout>
       </div>
 

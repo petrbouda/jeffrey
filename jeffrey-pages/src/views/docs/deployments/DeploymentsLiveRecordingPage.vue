@@ -104,7 +104,7 @@ java @/tmp/jvm.args -jar my-application.jar`;
         </ul>
 
         <DocsCallout type="info">
-          <strong>Live Workspace:</strong> A Live workspace monitors a directory for new recording sessions and automatically imports them as they appear.
+          <strong>Recording Collection:</strong> Jeffrey Server monitors a directory for new recording sessions and automatically imports them as they appear.
         </DocsCallout>
 
         <h2 id="architecture">Architecture</h2>
@@ -125,7 +125,7 @@ java @/tmp/jvm.args -jar my-application.jar`;
                       │
 ┌─────────────────────┴───────────────────────────┐
 │                   Jeffrey                       │
-│  - Live Workspace configured                    │
+│  - Workspace configured                         │
 │  - Scheduler polls for new sessions             │
 │  - Auto-creates profiles from recordings        │
 └─────────────────────────────────────────────────┘</code></pre>

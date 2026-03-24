@@ -30,6 +30,7 @@ const headings = [
   { id: 'recording-contents', text: 'Recording Contents', level: 2 },
   { id: 'jfr-sources', text: 'JFR Sources', level: 2 },
   { id: 'uploading-recordings', text: 'Uploading Recordings', level: 2 },
+  { id: 'recording-groups', text: 'Recording Groups', level: 2 },
   { id: 'creating-profiles', text: 'Creating Profiles', level: 2 }
 ];
 
@@ -121,6 +122,18 @@ onMounted(() => {
 
         <DocsCallout type="tip">
           <strong>Repository recordings:</strong> In Live and Remote workspaces, you can also create recordings from the Repository. These recordings include all artifacts captured during the session, not just the JFR file.
+        </DocsCallout>
+
+        <h2 id="recording-groups">Recording Groups</h2>
+        <p>Recordings can be organized into <strong>groups</strong> for better management when a project contains many recordings:</p>
+        <ul>
+          <li><strong>Create groups</strong> - Add named groups to categorize recordings (e.g., by date, scenario, or environment)</li>
+          <li><strong>Move recordings</strong> - Drag or move recordings between groups to keep them organized</li>
+          <li><strong>Delete groups</strong> - Remove a group when it's no longer needed</li>
+        </ul>
+
+        <DocsCallout type="tip">
+          <strong>Organization strategy:</strong> Use groups to separate recordings by investigation topic, deployment version, or time period. This makes it easier to find specific recordings when your project accumulates many files.
         </DocsCallout>
 
         <h2 id="creating-profiles">Creating Profiles</h2>

@@ -25,15 +25,8 @@ import pbouda.jeffrey.local.core.LocalJeffreyDirs;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.workspace.RemoteWorkspacesManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
-import pbouda.jeffrey.local.core.client.GrpcServerConnection;
+import pbouda.jeffrey.local.core.client.CachedRemoteClientsFactory;
 import pbouda.jeffrey.local.core.client.RemoteClients;
-import pbouda.jeffrey.local.core.client.RemoteDiscoveryClient;
-import pbouda.jeffrey.local.core.client.RemoteInstancesClient;
-import pbouda.jeffrey.local.core.client.RemoteMessagesClient;
-import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
-import pbouda.jeffrey.local.core.client.RemoteProjectsClient;
-import pbouda.jeffrey.local.core.client.RemoteRecordingStreamClient;
-import pbouda.jeffrey.local.core.client.RemoteRepositoryClient;
 import pbouda.jeffrey.local.core.manager.workspace.RemoteWorkspaceManager;
 import pbouda.jeffrey.local.persistence.repository.JdbcWorkspaceRepository;
 import pbouda.jeffrey.local.persistence.repository.JdbcWorkspacesRepository;
@@ -78,19 +71,8 @@ public class RemoteWorkspaceConfiguration {
                 remoteClientsFactory);
     }
 
-    @Bean
-    public RemoteClients.Factory remoteClientsFactory() {
-        return address -> {
-            GrpcServerConnection connection = new GrpcServerConnection(address);
-
-            return new RemoteClients(
-                    new RemoteDiscoveryClient(connection),
-                    new RemoteRepositoryClient(connection),
-                    new RemoteRecordingStreamClient(connection),
-                    new RemoteProfilerClient(connection),
-                    new RemoteMessagesClient(connection),
-                    new RemoteInstancesClient(connection),
-                    new RemoteProjectsClient(connection));
-        };
+    @Bean(destroyMethod = "close")
+    public CachedRemoteClientsFactory remoteClientsFactory() {
+        return new CachedRemoteClientsFactory();
     }
 }

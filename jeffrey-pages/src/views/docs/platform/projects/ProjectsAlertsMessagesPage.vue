@@ -47,8 +47,8 @@ onMounted(() => {
       <div class="docs-content">
         <p>Alerts and Messages surface <strong>important events</strong> from your JFR recordings, helping you stay informed about critical issues in your applications.</p>
 
-        <DocsCallout type="warning">
-          <strong>Workspace Availability:</strong> Alerts and Messages are only available in <strong>Live</strong> and <strong>Remote</strong> workspaces where continuous monitoring is relevant.
+        <DocsCallout type="info">
+          <strong>Remote Workspaces:</strong> Alerts and Messages are available in Remote workspaces connected to a jeffrey-server instance, where continuous monitoring of running applications is relevant.
         </DocsCallout>
 
         <h2 id="what-are-alerts-messages">What are Alerts & Messages?</h2>
@@ -131,38 +131,7 @@ onMounted(() => {
         <p>Both views support filtering by severity, session, and search. The Alerts view shows a severity summary bar with counts for each level, while the Messages view includes a time series chart showing message distribution over time.</p>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Alerts and Messages availability depends on workspace type:</p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Workspace</th>
-              <th>Alerts & Messages</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Sandbox</strong></td>
-              <td><i class="bi bi-x-lg text-muted"></i> Not available</td>
-              <td>Designed for one-time analysis, not monitoring</td>
-            </tr>
-            <tr>
-              <td><strong>Live</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>Continuous monitoring of running applications</td>
-            </tr>
-            <tr>
-              <td><strong>Remote</strong></td>
-              <td><i class="bi bi-check-lg text-success"></i> Available</td>
-              <td>View alerts from remote server</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <DocsCallout type="tip">
-          <strong>Sandbox alternative:</strong> When analyzing recordings in Sandbox, you can still see important events by browsing the JFR Event Viewer - they just won't appear in dedicated Alerts/Messages views.
-        </DocsCallout>
+        <p>Alerts and Messages are available in <strong>Remote workspaces</strong> connected to a jeffrey-server instance, providing continuous monitoring of running applications and the ability to view alerts from the remote server.</p>
       </div>
 
       <DocsNavFooter />

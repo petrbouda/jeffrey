@@ -60,6 +60,7 @@ export const docsNavigation: DocSection[] = [
     icon: 'bi-layers',
     children: [
       { title: 'Workspaces', path: 'workspaces' },
+      { title: 'Quick Analysis', path: 'quick-analysis' },
       {
         title: 'Projects',
         path: 'projects',

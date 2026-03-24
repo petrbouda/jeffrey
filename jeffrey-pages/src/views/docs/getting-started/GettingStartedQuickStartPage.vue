@@ -27,7 +27,6 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'start-jeffrey', text: 'Start Jeffrey', level: 2 },
-  { id: 'create-workspace', text: 'Create a Sandbox Workspace', level: 2 },
   { id: 'upload-recording', text: 'Upload a Recording', level: 2 },
   { id: 'analyze-profile', text: 'Analyze Your Profile', level: 2 }
 ];
@@ -61,20 +60,12 @@ onMounted(() => {
 
         <p>Then open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.</p>
 
-        <h2 id="create-workspace">Create a Sandbox Workspace</h2>
-        <p>The Sandbox Workspace is designed for local experimentation and investigation. To create one:</p>
-        <ol>
-          <li>Click "Sandbox Workspace" on the home page</li>
-          <li>This creates a workspace for your local projects and recordings</li>
-          <li>Create a new project within the sandbox workspace</li>
-        </ol>
-
         <h2 id="upload-recording">Upload a Recording</h2>
-        <p>Within your project, upload your JFR recording:</p>
+        <p>Use <strong>Quick Analysis</strong> to analyze your first JFR recording:</p>
         <ol>
-          <li>Navigate to "Recordings" section</li>
+          <li>Click <strong>"Quick Analysis"</strong> on the home page</li>
           <li>Upload your <code>.jfr</code> file</li>
-          <li>Click "Create Profile" to initialize analysis</li>
+          <li>Click <strong>"Analyze"</strong> to create a profile</li>
         </ol>
 
         <DocsCallout type="info">
