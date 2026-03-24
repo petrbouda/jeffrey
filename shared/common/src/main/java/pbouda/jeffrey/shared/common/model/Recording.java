@@ -26,21 +26,27 @@ public record Recording(
         String id,
         String recordingName,
         String projectId,
-        String folderId,
+        String groupId,
         RecordingEventSource eventSource,
         Instant createdAt,
         Instant recordingStartedAt,
         Instant recordingFinishedAt,
         boolean hasProfile,
+        String profileId,
+        String profileName,
         List<RecordingFile> files) {
 
     public Duration recordingDuration() {
+        if (recordingStartedAt == null || recordingFinishedAt == null) {
+            return Duration.ZERO;
+        }
         return Duration.between(recordingStartedAt, recordingFinishedAt);
     }
 
     public Recording withFiles(List<RecordingFile> files) {
         return new Recording(
-                id, recordingName, projectId, folderId, eventSource, createdAt,
-                recordingStartedAt, recordingFinishedAt, hasProfile, List.copyOf(files));
+                id, recordingName, projectId, groupId, eventSource, createdAt,
+                recordingStartedAt, recordingFinishedAt, hasProfile, profileId, profileName,
+                List.copyOf(files));
     }
 }

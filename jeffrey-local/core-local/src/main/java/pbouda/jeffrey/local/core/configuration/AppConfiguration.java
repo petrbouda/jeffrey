@@ -35,8 +35,6 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.local.persistence.DuckDBLocalCorePersistenceProvider;
 import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
-import pbouda.jeffrey.local.persistence.repository.JdbcProfilesListRepository;
-import pbouda.jeffrey.local.persistence.repository.ProfilesListRepository;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
@@ -146,7 +144,6 @@ public class AppConfiguration {
     public ProfilesManager.Factory profilesManager(
             Clock applicationClock,
             LocalCoreRepositories localCoreRepositories,
-            ProfilesListRepository profilesListRepository,
             ProfileManager.Factory profileFactory,
             RecordingStorage recordingStorage,
             ProfileInitializer profileInitializer) {
@@ -156,8 +153,7 @@ public class AppConfiguration {
                         applicationClock,
                         projectInfo,
                         localCoreRepositories,
-                        profilesListRepository,
-                        localCoreRepositories.newProjectRecordingRepository(projectInfo.id()),
+                        localCoreRepositories.newRecordingRepository(projectInfo.id()),
                         recordingStorage.projectRecordingStorage(projectInfo.id()),
                         profileFactory,
                         profileInitializer);
@@ -195,12 +191,8 @@ public class AppConfiguration {
                 applicationClock,
                 projectInfo,
                 recordingStorage.projectRecordingStorage(projectInfo.id()),
-                localCoreRepositories.newProjectRecordingRepository(projectInfo.id()),
+                localCoreRepositories.newRecordingRepository(projectInfo.id()),
                 new JfrRecordingInformationParser(jeffreyDirs));
     }
 
-    @Bean
-    public ProfilesListRepository profilesListRepository(DatabaseClientProvider databaseClientProvider) {
-        return new JdbcProfilesListRepository(databaseClientProvider);
-    }
 }

@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.local.core.persistence;
 
-public record NewRecording(String recordingName, String filename, String folderId) {
+public record NewRecording(String recordingName, String filename, String groupId) {
 }

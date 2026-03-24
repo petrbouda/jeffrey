@@ -19,7 +19,7 @@
 package pbouda.jeffrey.local.core.manager.workspace;
 
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.local.persistence.model.WorkspaceAddress;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +31,7 @@ public interface WorkspacesManager {
             String workspaceSourceId,
             String name,
             String description,
-            WorkspaceLocation baseLocation) {
+            WorkspaceAddress address) {
 
         public static Builder builder() {
             return new Builder();
@@ -42,7 +42,7 @@ public interface WorkspacesManager {
             private String workspaceSourceId;
             private String name;
             private String description;
-            private WorkspaceLocation workspaceBaseLocation;
+            private WorkspaceAddress address;
 
             public Builder workspaceId(String workspaceId) {
                 this.workspaceId = workspaceId;
@@ -64,8 +64,8 @@ public interface WorkspacesManager {
                 return this;
             }
 
-            public Builder baseLocation(WorkspaceLocation baseLocation) {
-                this.workspaceBaseLocation = baseLocation;
+            public Builder address(WorkspaceAddress address) {
+                this.address = address;
                 return this;
             }
 
@@ -75,7 +75,7 @@ public interface WorkspacesManager {
                         workspaceSourceId,
                         name,
                         description,
-                        workspaceBaseLocation);
+                        address);
             }
         }
     }

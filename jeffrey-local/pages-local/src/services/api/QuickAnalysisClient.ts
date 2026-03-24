@@ -62,6 +62,10 @@ export default class QuickAnalysisClient extends BasePlatformClient {
         return super.get<QuickRecording[]>('/recordings');
     }
 
+    async moveRecordingToGroup(recordingId: string, groupId: string | null): Promise<void> {
+        return super.put<void>(`/recordings/${recordingId}/group`, { groupId });
+    }
+
     async deleteRecording(recordingId: string): Promise<void> {
         return super.del<void>(`/recordings/${recordingId}`);
     }

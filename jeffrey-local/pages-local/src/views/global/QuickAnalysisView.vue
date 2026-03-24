@@ -65,25 +65,30 @@
         <div v-if="groupedSections.length > 0" class="qa-profile-list">
           <template v-for="section in groupedSections" :key="section.id">
             <div class="qa-group">
-              <div class="qa-group-header" @click="section.collapsed = !section.collapsed">
-                <i :class="section.collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-down'" class="qa-group-chevron"></i>
-                <span class="qa-group-name">{{ section.name }}</span>
-                <span class="qa-group-count">{{ section.recordings.length }}</span>
-                <div v-if="section.id" class="qa-group-actions" @click.stop>
-                  <button class="qa-action-btn qa-action-delete" @click="confirmDeleteGroup(section.id)" title="Delete group">
+              <div class="recording-group-header"
+                  :class="{ 'recording-group-drop-target': dragOverGroupId === (section.id ?? '__ungrouped__') }"
+                  @click="section.collapsed = !section.collapsed"
+                  @dragover="onDragOver($event, section.id)"
+                  @dragleave="onDragLeave($event, section.id)"
+                  @drop="onDrop($event, section.id)">
+                <i :class="section.collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-down'" class="recording-group-chevron"></i>
+                <span class="recording-group-name">{{ section.name }}</span>
+                <span class="recording-group-count">{{ section.recordings.length }}</span>
+                <div v-if="section.id" class="recording-group-actions" @click.stop>
+                  <button class="recording-group-action-btn recording-group-action-delete" @click="confirmDeleteGroup(section.id)" title="Delete group">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </div>
-              <div v-if="!section.collapsed && section.recordings.length === 0" class="qa-group-empty">
+              <div v-if="!section.collapsed && section.recordings.length === 0" class="recording-group-empty">
                 <span>No recordings</span>
               </div>
-              <div v-if="!section.collapsed && section.recordings.length > 0" class="qa-group-items">
+              <div v-if="!section.collapsed && section.recordings.length > 0" class="recording-group-items">
                 <RecordingCard
                     v-for="recording in section.recordings"
                     :key="recording.id"
                     :recording-id="recording.id"
-                    :name="recording.filename"
+                    :name="recording.profileName ?? recording.filename"
                     :size-in-bytes="recording.sizeInBytes"
                     :duration-in-millis="recording.durationInMillis"
                     :uploaded-at="recording.uploadedAt"
@@ -92,12 +97,14 @@
                     :profile-id="recording.profileId"
                     :profile-size-in-bytes="recording.profileSizeInBytes"
                     :analyzing="analyzingRecordings.has(recording.id)"
+                    :draggable="true"
                     @click="handleCardClick(recording)"
                     @create-profile="analyzeRecording(recording.id)"
                     @open-profile="openProfile(recording)"
                     @edit-profile="startEditProfile(recording)"
                     @delete-profile="deleteProfileFromRecording(recording.id)"
                     @delete-recording="deleteRecording(recording.id)"
+                    @dragend="onDragEnd"
                 />
               </div>
             </div>
@@ -149,31 +156,12 @@
     </div>
 
     <!-- Edit Profile modal -->
-    <div v-if="editingRecording" class="qa-modal-overlay" @click.self="editingRecording = null">
-      <div class="qa-modal">
-        <div class="qa-modal-header">
-          <span class="qa-modal-title">Edit Profile</span>
-          <button class="qa-modal-close" @click="editingRecording = null">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-        <div class="qa-modal-body">
-          <input
-              ref="editProfileInputRef"
-              v-model="editProfileName"
-              type="text"
-              class="qa-modal-input"
-              placeholder="Enter profile name"
-              @keydown.enter="updateProfileName"
-              @keydown.escape="editingRecording = null"
-          >
-        </div>
-        <div class="qa-modal-footer">
-          <button class="qa-modal-btn-cancel" @click="editingRecording = null">Cancel</button>
-          <button class="qa-modal-btn-save" @click="updateProfileName" :disabled="!editProfileName.trim()">Update</button>
-        </div>
-      </div>
-    </div>
+    <EditNameModal
+        v-if="editingRecording"
+        v-model="editProfileName"
+        @submit="updateProfileName"
+        @close="editingRecording = null"
+    />
 
     <!-- Delete Group confirmation -->
     <div v-if="deletingGroupId" class="qa-modal-overlay" @click.self="deletingGroupId = null">
@@ -202,6 +190,7 @@ import { useRouter } from 'vue-router';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
+import EditNameModal from '@/components/EditNameModal.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import type QuickGroup from '@/services/api/model/QuickGroup';
 import type QuickRecording from '@/services/api/model/QuickRecording';
@@ -243,15 +232,6 @@ const deletingGroupId = ref<string | null>(null);
 // Profile editing
 const editingRecording = ref<QuickRecording | null>(null);
 const editProfileName = ref('');
-const editProfileInputRef = ref<HTMLInputElement | null>(null);
-
-// Focus edit profile input when modal opens
-watch(editingRecording, async (val) => {
-  if (val) {
-    await nextTick();
-    editProfileInputRef.value?.focus();
-  }
-});
 
 // Focus group name input when modal opens
 watch(showCreateGroupModal, async (val) => {
@@ -456,7 +436,7 @@ const deleteGroup = async () => {
 // Profile edit
 const startEditProfile = (recording: QuickRecording) => {
   editingRecording.value = recording;
-  editProfileName.value = recording.filename;
+  editProfileName.value = recording.profileName ?? recording.filename;
 };
 
 const updateProfileName = async () => {
@@ -507,6 +487,44 @@ const loadData = async () => {
 onMounted(() => {
   loadData();
 });
+
+// --- Drag and Drop ---
+const dragOverGroupId = ref<string | null>(null);
+
+const onDragOver = (event: DragEvent, groupId: string | null) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  dragOverGroupId.value = groupId ?? '__ungrouped__';
+};
+
+const onDragLeave = (event: DragEvent, groupId: string | null) => {
+  const related = event.relatedTarget as HTMLElement | null;
+  const current = event.currentTarget as HTMLElement;
+  if (!related || !current.contains(related)) {
+    const key = groupId ?? '__ungrouped__';
+    if (dragOverGroupId.value === key) dragOverGroupId.value = null;
+  }
+};
+
+const onDrop = async (event: DragEvent, targetGroupId: string | null) => {
+  event.preventDefault();
+  dragOverGroupId.value = null;
+  const recordingId = event.dataTransfer?.getData('text/plain');
+  if (!recordingId) return;
+  const recording = allRecordings.value.find(r => r.id === recordingId);
+  if (!recording) return;
+  if ((recording.groupId || null) === targetGroupId) return;
+  recording.groupId = targetGroupId; // optimistic update
+  try {
+    await quickAnalysisClient.moveRecordingToGroup(recordingId, targetGroupId);
+  } catch {
+    await loadData();
+  }
+};
+
+const onDragEnd = () => {
+  dragOverGroupId.value = null;
+};
 </script>
 
 <style scoped>
@@ -642,75 +660,7 @@ onMounted(() => {
   gap: 2px;
 }
 
-/* Group headers */
-.qa-group-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.15s ease;
-}
-
-.qa-group-header:hover {
-  background: #f3f4f6;
-}
-
-.qa-group-chevron {
-  font-size: 0.65rem;
-  color: #9ca3af;
-  transition: transform 0.15s ease;
-}
-
-.qa-group-name {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.qa-group-count {
-  font-size: 0.65rem;
-  color: #9ca3af;
-  background: #f3f4f6;
-  padding: 0 6px;
-  border-radius: 8px;
-}
-
-.qa-group-empty {
-  padding: 8px 8px 8px 20px;
-  font-size: 0.72rem;
-  color: #b6c1d2;
-  font-style: italic;
-}
-
-.qa-group-actions {
-  margin-left: auto;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.qa-group-header:hover .qa-group-actions {
-  opacity: 1;
-}
-
-/* Recording cards */
-.qa-group-items {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-left: 12px;
-  margin-top: 6px;
-  margin-bottom: 6px;
-  animation: groupExpand 0.2s ease-out;
-}
-
-@keyframes groupExpand {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* Recording cards - group styles are in shared-components.css */
 
 /* Modal */
 .qa-modal-overlay {

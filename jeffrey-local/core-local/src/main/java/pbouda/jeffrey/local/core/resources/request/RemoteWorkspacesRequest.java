@@ -20,5 +20,5 @@ package pbouda.jeffrey.local.core.resources.request;
 
 import java.util.List;
 
-public record RemoteWorkspacesRequest(String remoteUrl, List<String> workspaceIds) {
+public record RemoteWorkspacesRequest(String hostname, int port, List<String> workspaceIds) {
 }

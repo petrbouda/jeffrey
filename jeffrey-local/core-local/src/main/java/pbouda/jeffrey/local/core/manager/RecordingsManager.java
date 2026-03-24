@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.local.core.manager;
 
-import pbouda.jeffrey.local.persistence.model.RecordingFolder;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 import pbouda.jeffrey.shared.common.model.Recording;
 
 import java.nio.file.Path;
@@ -29,13 +29,15 @@ public interface RecordingsManager {
 
     List<Recording> all();
 
-    void createFolder(String folderName);
+    void createGroup(String groupName);
 
-    List<RecordingFolder> allRecordingFolders();
+    List<RecordingGroup> allRecordingGroups();
 
-    void deleteFolder(String folderId);
+    void deleteGroup(String groupId);
 
     void delete(String recordingId);
+
+    void moveRecordingToGroup(String recordingId, String groupId);
 
     Optional<Path> findRecordingFile(String recordingId, String fileId);
 }

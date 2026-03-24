@@ -28,46 +28,47 @@
 CREATE TABLE IF NOT EXISTS workspaces
 (
     workspace_id        VARCHAR PRIMARY KEY,
-    base_location       VARCHAR NOT NULL
+    hostname            VARCHAR NOT NULL,
+    port                INTEGER NOT NULL DEFAULT 443
 );
 
 --
 -- RECORDING TABLES
+-- Used by both project recordings (project_id set) and quick analysis recordings (project_id NULL).
 --
 
 CREATE TABLE IF NOT EXISTS recordings
 (
-    project_id            VARCHAR NOT NULL,
-    id                    VARCHAR NOT NULL,
+    id                    VARCHAR NOT NULL PRIMARY KEY,
+    project_id            VARCHAR,
     recording_name        VARCHAR NOT NULL,
-    folder_id             VARCHAR,
+    group_id              VARCHAR,
     event_source          VARCHAR NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
-    recording_started_at  TIMESTAMPTZ NOT NULL,
-    recording_finished_at TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (project_id, id)
+    recording_started_at  TIMESTAMPTZ,
+    recording_finished_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS recording_files
 (
-    project_id     VARCHAR NOT NULL,
+    id             VARCHAR NOT NULL PRIMARY KEY,
+    project_id     VARCHAR,
     recording_id   VARCHAR NOT NULL,
-    id             VARCHAR NOT NULL,
     filename       VARCHAR NOT NULL,
     supported_type VARCHAR NOT NULL,
+    file_path      VARCHAR,
     uploaded_at    TIMESTAMPTZ NOT NULL,
-    size_in_bytes  BIGINT  NOT NULL,
-    PRIMARY KEY (project_id, id)
+    size_in_bytes  BIGINT  NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_recording_files_recording_id ON recording_files(project_id, recording_id);
+CREATE INDEX IF NOT EXISTS idx_recording_files_recording_id ON recording_files(recording_id);
 
-CREATE TABLE IF NOT EXISTS recording_folders
+CREATE TABLE IF NOT EXISTS recording_groups
 (
-    project_id VARCHAR NOT NULL,
-    id         VARCHAR NOT NULL,
+    id         VARCHAR NOT NULL PRIMARY KEY,
+    project_id VARCHAR,
     name       VARCHAR NOT NULL,
-    PRIMARY KEY (project_id, id)
+    created_at TIMESTAMPTZ
 );
 
 --
@@ -78,14 +79,14 @@ CREATE TABLE IF NOT EXISTS recording_folders
 CREATE TABLE IF NOT EXISTS profiles
 (
     profile_id            VARCHAR NOT NULL,
-    project_id            VARCHAR NOT NULL,
-    workspace_id          VARCHAR NOT NULL,
+    project_id            VARCHAR,
+    workspace_id          VARCHAR,
     profile_name          VARCHAR NOT NULL,
     event_source          VARCHAR NOT NULL,
     created_at            TIMESTAMPTZ  NOT NULL,
-    recording_id          VARCHAR NOT NULL,
-    recording_started_at  TIMESTAMPTZ NOT NULL,
-    recording_finished_at TIMESTAMPTZ NOT NULL,
+    recording_id          VARCHAR,
+    recording_started_at  TIMESTAMPTZ,
+    recording_finished_at TIMESTAMPTZ,
     enabled_at            TIMESTAMPTZ,
     PRIMARY KEY (profile_id)
 );
@@ -102,45 +103,3 @@ CREATE TABLE IF NOT EXISTS profiler_settings
     UNIQUE (workspace_id, project_id)
 );
 
---
--- QUICK PROFILES TABLE
---
-
-CREATE TABLE IF NOT EXISTS quick_profiles
-(
-    profile_id            VARCHAR NOT NULL,
-    profile_name          VARCHAR NOT NULL,
-    group_name            VARCHAR,
-    event_source          VARCHAR NOT NULL,
-    created_at            TIMESTAMPTZ NOT NULL,
-    profiling_started_at  TIMESTAMPTZ NOT NULL,
-    profiling_finished_at TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (profile_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_quick_profiles_group ON quick_profiles(group_name);
-
---
--- QUICK ANALYSIS TABLES
---
-
-CREATE TABLE IF NOT EXISTS quick_groups (
-    group_id   VARCHAR NOT NULL PRIMARY KEY,
-    group_name VARCHAR NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS quick_recordings (
-    recording_id          VARCHAR NOT NULL PRIMARY KEY,
-    filename              VARCHAR NOT NULL,
-    group_id              VARCHAR REFERENCES quick_groups(group_id),
-    event_source          VARCHAR NOT NULL,
-    file_path             VARCHAR NOT NULL,
-    size_in_bytes         BIGINT NOT NULL,
-    uploaded_at           TIMESTAMPTZ NOT NULL,
-    profiling_started_at  TIMESTAMPTZ,
-    profiling_finished_at TIMESTAMPTZ,
-    profile_id            VARCHAR
-);
-
-CREATE INDEX IF NOT EXISTS idx_quick_recordings_group ON quick_recordings(group_id);

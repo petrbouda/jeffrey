@@ -3,15 +3,14 @@ import {computed, onMounted, onUnmounted, ref} from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectRecordingClient from '@/services/api/ProjectRecordingClient';
-import ProjectRecordingFolderClient from '@/services/api/ProjectRecordingFolderClient';
+import ProjectRecordingGroupClient from '@/services/api/ProjectRecordingGroupClient';
 import {ToastService} from '@/services/ToastService';
 import Recording from "@/services/api/model/Recording.ts";
-import RecordingFolder from "@/services/api/model/RecordingFolder.ts";
+import RecordingGroup from "@/services/api/model/RecordingGroup.ts";
 import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
 import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
 import MessageBus from "@/services/MessageBus";
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
-import Badge from '@/components/Badge.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
 import RecordingFileGroupList from '@/components/RecordingFileGroupList.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
@@ -19,6 +18,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import BaseModal from '@/components/BaseModal.vue';
+import EditNameModal from '@/components/EditNameModal.vue';
 import '@/styles/shared-components.css';
 
 const toast = ToastService;
@@ -26,16 +26,16 @@ const recordings = ref<Recording[]>([]);
 const loading = ref(true);
 const deleteRecordingDialog = ref(false);
 const recordingToDelete = ref<Recording | null>();
-const deleteFolderDialog = ref(false);
-const folderToDelete = ref<RecordingFolder | null>();
+const deleteGroupDialog = ref(false);
+const groupToDelete = ref<RecordingGroup | null>();
 
 // Services
 let projectProfileClient: ProjectProfileClient;
 let projectRecordingClient: ProjectRecordingClient;
-let projectRecordingFolderClient: ProjectRecordingFolderClient;
+let projectRecordingGroupClient: ProjectRecordingGroupClient;
 
-// Track expanded folders
-const expandedFolders = ref<Set<string>>(new Set());
+// Track expanded groups
+const expandedGroups = ref<Set<string>>(new Set());
 
 // Track expanded recording files sections
 const expandedRecordingFiles = ref<Set<string>>(new Set());
@@ -44,10 +44,8 @@ const router = useRouter();
 const { workspaceId, projectId, generateProfileUrl } = useNavigation();
 
 // --- Profile Management State ---
-const editProfileModal = ref<InstanceType<typeof BaseModal>>();
+const editingRecording = ref<Recording | null>(null);
 const editProfileName = ref('');
-const selectedProfileId = ref('');
-const updatingProfile = ref(false);
 const pollInterval = ref<number | null>(null);
 
 // Persistent storage for deleting profiles
@@ -73,18 +71,18 @@ const removeDeletingProfile = (profileId: string) => {
 // Track profile creation states for each recording
 const profileCreationStates = ref<Map<string, boolean>>(new Map());
 
-const folders = ref<RecordingFolder[]>([]);
-const newFolderName = ref('');
-const createFolderModal = ref<InstanceType<typeof BaseModal>>();
+const groups = ref<RecordingGroup[]>([]);
+const newGroupName = ref('');
+const createGroupModal = ref<InstanceType<typeof BaseModal>>();
 
 onMounted(async () => {
   if (!workspaceId.value || !projectId.value) return;
 
   projectProfileClient = new ProjectProfileClient(workspaceId.value, projectId.value);
   projectRecordingClient = new ProjectRecordingClient(workspaceId.value, projectId.value);
-  projectRecordingFolderClient = new ProjectRecordingFolderClient(workspaceId.value, projectId.value);
+  projectRecordingGroupClient = new ProjectRecordingGroupClient(workspaceId.value, projectId.value);
 
-  expandedFolders.value.add('root');
+  expandedGroups.value.add('root');
 
   await loadData();
 
@@ -124,14 +122,14 @@ const downloadFile = async (recordingId: string, fileId: string) => {
 
 const loadData = async () => {
   // Only show loader on initial load, not on refreshes
-  const isInitialLoad = recordings.value.length === 0 && folders.value.length === 0;
+  const isInitialLoad = recordings.value.length === 0 && groups.value.length === 0;
   if (isInitialLoad) {
     loading.value = true;
   }
   try {
-    const [recordingsData, foldersData] = await Promise.all([
+    const [recordingsData, groupsData] = await Promise.all([
       projectRecordingClient.list(),
-      projectRecordingFolderClient.list()
+      projectRecordingGroupClient.list()
     ]);
 
     // Restore deleting state from storage
@@ -143,7 +141,7 @@ const loadData = async () => {
     });
 
     recordings.value = recordingsData;
-    folders.value = foldersData;
+    groups.value = groupsData;
   } catch (error: any) {
     toast.error('Failed to load data', error.message);
   } finally {
@@ -153,34 +151,34 @@ const loadData = async () => {
   }
 };
 
-// Organize recordings by folders
+// Organize recordings by groups
 const organizedRecordings = computed(() => {
-  const validFolderIds = new Set(folders.value.map(folder => folder.id));
+  const validGroupIds = new Set(groups.value.map(group => group.id));
 
   const rootRecordings = recordings.value.filter(recording =>
-      recording.folderId == null || !validFolderIds.has(recording.folderId))
+      recording.groupId == null || !validGroupIds.has(recording.groupId))
       .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
-  const folderRecordings = new Map<string, Recording[]>();
+  const groupRecordings = new Map<string, Recording[]>();
 
   recordings.value.forEach(recording => {
-    const folderId = recording.folderId;
-    if (folderId && validFolderIds.has(folderId)) {
-      if (!folderRecordings.has(folderId)) {
-        folderRecordings.set(folderId, []);
+    const groupId = recording.groupId;
+    if (groupId && validGroupIds.has(groupId)) {
+      if (!groupRecordings.has(groupId)) {
+        groupRecordings.set(groupId, []);
       }
-      folderRecordings.get(folderId)?.push(recording);
+      groupRecordings.get(groupId)?.push(recording);
     }
   });
 
-  folderRecordings.forEach((folderRecs, folderId) => {
-    folderRecordings.set(
-      folderId,
-      folderRecs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+  groupRecordings.forEach((groupRecs, groupId) => {
+    groupRecordings.set(
+      groupId,
+      groupRecs.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
     );
   });
 
-  return { rootRecordings, folderRecordings };
+  return { rootRecordings, groupRecordings };
 });
 
 // --- Profile Actions ---
@@ -225,37 +223,19 @@ const createProfile = async (recording: Recording) => {
 
 const editProfile = (recording: Recording) => {
   if (!recording.profileId || !recording.profileName) return;
-  selectedProfileId.value = recording.profileId;
+  editingRecording.value = recording;
   editProfileName.value = recording.profileName;
-  editProfileModal.value?.showModal();
-};
-
-const closeEditModal = () => {
-  editProfileModal.value?.hideModal();
 };
 
 const updateProfile = async () => {
-  if (!editProfileName.value || editProfileName.value.trim() === '') {
-    editProfileModal.value?.setValidationErrors(['Profile name cannot be empty']);
-    return;
-  }
-
-  updatingProfile.value = true;
+  if (!editingRecording.value || !editProfileName.value.trim()) return;
 
   try {
-    await projectProfileClient.update(selectedProfileId.value, editProfileName.value.trim());
-
-    const updatedName = editProfileName.value;
-    selectedProfileId.value = '';
-    editProfileName.value = '';
-    editProfileModal.value?.hideModal();
-
+    await projectProfileClient.update(editingRecording.value.profileId!, editProfileName.value.trim());
+    editingRecording.value = null;
     await loadData();
-  } catch (error) {
-    console.error('Failed to update profile:', error);
-    editProfileModal.value?.setValidationErrors([error instanceof Error ? error.message : 'Failed to update profile']);
-  } finally {
-    updatingProfile.value = false;
+  } catch {
+    // Toast shown by HttpInterceptor
   }
 };
 
@@ -381,43 +361,43 @@ const deleteRecording = async () => {
   }
 };
 
-const confirmDeleteFolder = (folder: RecordingFolder) => {
-  folderToDelete.value = folder;
-  deleteFolderDialog.value = true;
+const confirmDeleteGroup = (group: RecordingGroup) => {
+  groupToDelete.value = group;
+  deleteGroupDialog.value = true;
 };
 
-const deleteFolder = async () => {
-  if (!folderToDelete.value) return;
+const deleteGroup = async () => {
+  if (!groupToDelete.value) return;
 
   try {
-    await projectRecordingFolderClient.delete(folderToDelete.value.id);
+    await projectRecordingGroupClient.delete(groupToDelete.value.id);
     await loadData();
-    deleteFolderDialog.value = false;
-    folderToDelete.value = null;
+    deleteGroupDialog.value = false;
+    groupToDelete.value = null;
   } catch (error: any) {
     toast.error('Delete Failed', error.message);
   }
 };
 
-const createFolder = async () => {
-  if (!newFolderName.value.trim()) {
-    createFolderModal.value?.setValidationErrors(['Folder name cannot be empty']);
+const createGroup = async () => {
+  if (!newGroupName.value.trim()) {
+    createGroupModal.value?.setValidationErrors(['Group name cannot be empty']);
     return;
   }
 
   try {
-    await projectRecordingFolderClient.create(newFolderName.value.trim());
-    newFolderName.value = '';
-    createFolderModal.value?.hideModal();
+    await projectRecordingGroupClient.create(newGroupName.value.trim());
+    newGroupName.value = '';
+    createGroupModal.value?.hideModal();
     await loadData();
   } catch (error: any) {
-    createFolderModal.value?.setValidationErrors([error.message || 'Failed to create folder']);
+    createGroupModal.value?.setValidationErrors([error.message || 'Failed to create group']);
   }
 };
 
-const openCreateFolderDialog = () => {
-  newFolderName.value = '';
-  createFolderModal.value?.showModal();
+const openCreateGroupDialog = () => {
+  newGroupName.value = '';
+  createGroupModal.value?.showModal();
 };
 
 const isRecordingCreatingProfile = (recordingId: string): boolean => {
@@ -438,20 +418,59 @@ const navigateToProfile = (recording: Recording) => {
   selectProfile();
   router.push(generateProfileUrl('overview', recording.profileId));
 };
+
+// --- Drag and Drop ---
+const dragOverGroupId = ref<string | null>(null);
+
+const onDragOver = (event: DragEvent, groupId: string | null) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  dragOverGroupId.value = groupId ?? '__ungrouped__';
+};
+
+const onDragLeave = (event: DragEvent, groupId: string | null) => {
+  const related = event.relatedTarget as HTMLElement | null;
+  const current = event.currentTarget as HTMLElement;
+  if (!related || !current.contains(related)) {
+    const key = groupId ?? '__ungrouped__';
+    if (dragOverGroupId.value === key) dragOverGroupId.value = null;
+  }
+};
+
+const onDrop = async (event: DragEvent, targetGroupId: string | null) => {
+  event.preventDefault();
+  dragOverGroupId.value = null;
+  const recordingId = event.dataTransfer?.getData('text/plain');
+  if (!recordingId) return;
+  const recording = recordings.value.find(r => r.id === recordingId);
+  if (!recording) return;
+  if ((recording.groupId || null) === targetGroupId) return;
+  recording.groupId = targetGroupId; // optimistic update
+  try {
+    await projectRecordingClient.moveToGroup(recordingId, targetGroupId);
+  } catch (error: any) {
+    toast.error('Move Failed', error.message);
+    await loadData();
+  }
+};
+
+const onDragEnd = () => {
+  dragOverGroupId.value = null;
+};
 </script>
 
 <template>
   <PageHeader
     title="Recordings"
-    description="Manage recordings and their profiles. Organize with folders and create profiles for performance analysis."
+    description="Manage recordings and their profiles. Organize with groups and create profiles for performance analysis."
     icon="bi-record-circle"
   >
     <!-- Recordings Header Bar -->
     <div class="col-12">
       <SectionHeaderBar :text="`Recordings (${recordings.length})`">
         <template #actions>
-          <button class="btn btn-primary btn-sm" @click="openCreateFolderDialog">
-            <i class="bi bi-folder-plus me-1"></i>New Folder
+          <button class="btn btn-primary btn-sm" @click="openCreateGroupDialog">
+            <i class="bi bi-folder-plus me-1"></i>New Group
           </button>
         </template>
       </SectionHeaderBar>
@@ -462,50 +481,38 @@ const navigateToProfile = (recording: Recording) => {
       <LoadingState v-if="loading" message="Loading recordings..." />
 
       <EmptyState
-        v-else-if="recordings.length === 0 && folders.length === 0"
+        v-else-if="recordings.length === 0 && groups.length === 0"
         icon="bi-folder-x"
         title="No Recordings Available"
         description="Recordings from sessions will appear here."
       />
 
       <div v-else>
-            <!-- Folders with their recordings -->
-            <div v-for="folder in folders" :key="`folder-group-${folder.id}`" class="mb-3">
-              <!-- Folder header -->
-              <div class="folder-row p-3 rounded"
-                  @click="expandedFolders.has(folder.id) ? expandedFolders.delete(folder.id) : expandedFolders.add(folder.id)">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="d-flex align-items-center">
-                    <i class="bi fs-5 me-2 text-primary" :class="expandedFolders.has(folder.id) ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                    <div class="fw-bold">
-                      <i class="bi me-2"
-                         :class="expandedFolders.has(folder.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                      {{ folder.name }}
-                      <Badge
-                        :value="`${organizedRecordings.folderRecordings.get(folder.id)?.length || 0} recording${(organizedRecordings.folderRecordings.get(folder.id)?.length || 0) !== 1 ? 's' : ''}`"
-                        variant="primary"
-                        size="xs"
-                        class="ms-2"
-                      />
-                    </div>
-                  </div>
-                  <div class="d-flex">
-                    <button
-                        class="action-btn action-menu-btn action-danger-btn"
-                        @click.stop="confirmDeleteFolder(folder)"
-                        title="Delete folder and all its recordings">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
+            <!-- Groups with their recordings -->
+            <div v-for="group in groups" :key="`group-${group.id}`">
+              <div class="recording-group-header"
+                  :class="{ 'recording-group-drop-target': dragOverGroupId === group.id }"
+                  @click="expandedGroups.has(group.id) ? expandedGroups.delete(group.id) : expandedGroups.add(group.id)"
+                  @dragover="onDragOver($event, group.id)"
+                  @dragleave="onDragLeave($event, group.id)"
+                  @drop="onDrop($event, group.id)">
+                <i :class="expandedGroups.has(group.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" class="recording-group-chevron"></i>
+                <span class="recording-group-name">{{ group.name }}</span>
+                <span class="recording-group-count">{{ organizedRecordings.groupRecordings.get(group.id)?.length || 0 }}</span>
+                <div class="recording-group-actions" @click.stop>
+                  <button class="recording-group-action-btn recording-group-action-delete"
+                      @click="confirmDeleteGroup(group)"
+                      title="Delete group and all its recordings">
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
               </div>
 
-              <!-- Folder recordings (shown when expanded) -->
-              <div v-if="expandedFolders.has(folder.id)" class="ps-4 pt-2">
+              <!-- Group recordings (shown when expanded) -->
+              <div v-if="expandedGroups.has(group.id)" class="recording-group-items">
                 <RecordingCard
-                    v-for="recording in organizedRecordings.folderRecordings.get(folder.id) || []"
+                    v-for="recording in organizedRecordings.groupRecordings.get(group.id) || []"
                     :key="`recording-${recording.id}`"
-                    class="mb-2"
                     :recording-id="recording.id"
                     :name="recording.profileName || recording.name"
                     :size-in-bytes="recording.sizeInBytes"
@@ -521,6 +528,7 @@ const navigateToProfile = (recording: Recording) => {
                     :deleting-profile="isProfileDeleting(recording)"
                     :expandable="true"
                     :expanded="expandedRecordingFiles.has(recording.id)"
+                    :draggable="true"
                     @click="handleRecordingCardClick(recording)"
                     @create-profile="createProfile(recording)"
                     @open-profile="navigateToProfile(recording)"
@@ -528,6 +536,7 @@ const navigateToProfile = (recording: Recording) => {
                     @delete-profile="deleteProfile(recording)"
                     @toggle-expand="toggleRecordingFiles(recording)"
                     @delete-recording="confirmDeleteRecording(recording)"
+                    @dragend="onDragEnd"
                 >
                   <template #expanded-content>
                     <RecordingFileGroupList
@@ -542,23 +551,30 @@ const navigateToProfile = (recording: Recording) => {
                     </div>
                   </template>
                 </RecordingCard>
+
+                <div v-if="(organizedRecordings.groupRecordings.get(group.id)?.length || 0) === 0" class="recording-group-empty">
+                  <span>No recordings</span>
+                </div>
               </div>
             </div>
 
-
-            <!-- Root Recordings -->
-            <div v-if="organizedRecordings.rootRecordings.length > 0" class="mt-3">
-              <div class="mb-3" v-if="folders.length > 0">
-                <div class="root-recordings-bar d-flex align-items-center px-3">
-                  <span class="root-header-text">Root Recordings ({{ organizedRecordings.rootRecordings.length }})</span>
-                </div>
+            <!-- Ungrouped Recordings -->
+            <div v-if="organizedRecordings.rootRecordings.length > 0">
+              <div class="recording-group-header"
+                  :class="{ 'recording-group-drop-target': dragOverGroupId === '__ungrouped__' }"
+                  @click="expandedGroups.has('root') ? expandedGroups.delete('root') : expandedGroups.add('root')"
+                  @dragover="onDragOver($event, null)"
+                  @dragleave="onDragLeave($event, null)"
+                  @drop="onDrop($event, null)">
+                <i :class="expandedGroups.has('root') ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" class="recording-group-chevron"></i>
+                <span class="recording-group-name">Ungrouped</span>
+                <span class="recording-group-count">{{ organizedRecordings.rootRecordings.length }}</span>
               </div>
 
-              <div class="root-recordings-list">
+              <div v-if="expandedGroups.has('root')" class="recording-group-items">
                 <RecordingCard
                     v-for="recording in organizedRecordings.rootRecordings"
                     :key="recording.id"
-                    class="mb-2"
                     :recording-id="recording.id"
                     :name="recording.profileName || recording.name"
                     :size-in-bytes="recording.sizeInBytes"
@@ -574,6 +590,7 @@ const navigateToProfile = (recording: Recording) => {
                     :deleting-profile="isProfileDeleting(recording)"
                     :expandable="true"
                     :expanded="expandedRecordingFiles.has(recording.id)"
+                    :draggable="true"
                     @click="handleRecordingCardClick(recording)"
                     @create-profile="createProfile(recording)"
                     @open-profile="navigateToProfile(recording)"
@@ -581,6 +598,7 @@ const navigateToProfile = (recording: Recording) => {
                     @delete-profile="deleteProfile(recording)"
                     @toggle-expand="toggleRecordingFiles(recording)"
                     @delete-recording="confirmDeleteRecording(recording)"
+                    @dragend="onDragEnd"
                 >
                   <template #expanded-content>
                     <RecordingFileGroupList
@@ -613,222 +631,54 @@ const navigateToProfile = (recording: Recording) => {
         @confirm="deleteRecording"
       />
 
-      <!-- Delete Folder Confirmation Dialog -->
+      <!-- Delete Group Confirmation Dialog -->
       <ConfirmationDialog
-        v-model:show="deleteFolderDialog"
-        title="Confirm Delete Folder"
-        :message="folderToDelete ? `Are you sure you want to delete the folder: ${folderToDelete.name}?` : 'Are you sure you want to delete this folder?'"
-        sub-message="This will also delete all recordings within the folder."
-        confirm-label="Delete Folder"
+        v-model:show="deleteGroupDialog"
+        title="Confirm Delete Group"
+        :message="groupToDelete ? `Are you sure you want to delete the group: ${groupToDelete.name}?` : 'Are you sure you want to delete this group?'"
+        sub-message="This will also delete all recordings within the group."
+        confirm-label="Delete Group"
         confirm-button-class="btn-danger"
-        confirm-button-id="deleteFolderButton"
-        modal-id="deleteFolderModal"
-        @confirm="deleteFolder"
+        confirm-button-id="deleteGroupButton"
+        modal-id="deleteGroupModal"
+        @confirm="deleteGroup"
       />
 
-
-
-      <!-- Create Folder Dialog -->
+      <!-- Create Group Dialog -->
       <BaseModal
-        ref="createFolderModal"
-        modal-id="createFolderModal"
-        title="Create New Folder"
+        ref="createGroupModal"
+        modal-id="createGroupModal"
+        title="Create New Group"
         icon="bi-folder-plus"
         primary-button-text="Create"
-        @submit="createFolder"
+        @submit="createGroup"
       >
         <template #body>
           <div class="form-group">
-            <label for="newFolderNameInput" class="form-label">Folder Name</label>
+            <label for="newGroupNameInput" class="form-label">Group Name</label>
             <input
                 type="text"
                 class="form-control"
-                id="newFolderNameInput"
-                v-model="newFolderName"
-                placeholder="Enter folder name"
-                @keyup.enter="createFolder"
+                id="newGroupNameInput"
+                v-model="newGroupName"
+                placeholder="Enter group name"
             >
           </div>
         </template>
       </BaseModal>
 
       <!-- Edit Profile Modal -->
-      <BaseModal
-        ref="editProfileModal"
-        modal-id="editProfileModal"
-        title="Edit Profile"
-        icon="bi-pencil"
-        primary-button-text="Update"
-        :loading="updatingProfile"
-        @submit="updateProfile"
-        @cancel="closeEditModal"
-      >
-        <template #body>
-          <div class="mb-3">
-            <label for="editProfileName" class="form-label">Profile Name</label>
-            <input
-                type="text"
-                class="form-control"
-                id="editProfileName"
-                v-model="editProfileName"
-                @keyup.enter="updateProfile"
-                placeholder="Enter profile name"
-            >
-          </div>
-        </template>
-      </BaseModal>
+      <EditNameModal
+          v-if="editingRecording"
+          v-model="editProfileName"
+          @submit="updateProfile"
+          @close="editingRecording = null"
+      />
   </PageHeader>
 </template>
 
 <style scoped>
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.d-block {
-  display: block !important;
-}
-
 .btn-sm i {
   font-size: 0.8rem;
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-
-/* Folder structure styles */
-.folder-row {
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border: 1px solid #eee;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.folder-row:hover {
-  background-color: rgba(94, 100, 255, 0.03);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
-}
-
-.ps-4 {
-  padding-left: 2.5rem !important;
-}
-
-/* Icons for folder expansion */
-.bi-folder2, .bi-folder2-open {
-  color: #5e64ff !important;
-}
-
-.folder-row .bi-chevron-right,
-.folder-row .bi-chevron-down {
-  transition: transform 0.2s ease;
-}
-
-.folder-row:hover .bi-chevron-right {
-  transform: translateX(2px);
-}
-
-/* Action button styling */
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-  border: none;
-  border-radius: 4px;
-  height: 28px;
-  width: 28px;
-  padding: 0;
-  font-size: 0.85rem;
-  transition: all 0.15s ease;
-}
-
-.action-menu-btn {
-  color: #5e64ff;
-  background-color: rgba(94, 100, 255, 0.1);
-  border-radius: 4px;
-  height: 30px;
-  width: 30px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.action-menu-btn:hover {
-  background-color: rgba(94, 100, 255, 0.18);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-}
-
-.action-menu-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.action-danger-btn {
-  color: #fff;
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
-
-.action-danger-btn:hover:not(:disabled) {
-  background-color: #c82333;
-  border-color: #bd2130;
-  color: #fff;
-}
-
-/* Action info button style */
-.action-info-btn {
-  color: #fff;
-  background-color: #5e64ff;
-  border-color: #5e64ff;
-}
-
-.action-info-btn:hover:not(:disabled) {
-  background-color: #4a50e3;
-  border-color: #4a50e3;
-  color: #fff;
-}
-
-/* Root recordings bar styling */
-.root-recordings-bar {
-  background: white;
-  border: 1px solid #4a50e2;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.15);
-  position: relative;
-  height: 31px;
-}
-
-.root-header-text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #4a50e2;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-}
-
-/* Profile creation button loading state */
-.btn-outline-success {
-  color: #198754;
-  border-color: #198754;
-  background-color: transparent;
-  position: relative;
-}
-
-.btn-outline-success:disabled {
-  background-color: rgba(25, 135, 84, 0.05);
-  border-color: rgba(25, 135, 84, 0.3);
-  color: rgba(25, 135, 84, 0.7);
-}
-
-.btn-outline-success .spinner-border-sm {
-  width: 0.875rem;
-  height: 0.875rem;
-  border-width: 0.1em;
 }
 </style>

@@ -24,12 +24,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import pbouda.jeffrey.local.persistence.repository.ProfilesListRepository;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.local.persistence.repository.ProfileRepository;
-import pbouda.jeffrey.local.persistence.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.local.persistence.repository.RecordingRepository;
 import pbouda.jeffrey.shared.common.model.*;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
@@ -56,11 +55,9 @@ class ProfilesManagerImplTest {
     @Mock
     private LocalCoreRepositories localCoreRepositories;
     @Mock
-    private ProfilesListRepository profilesListRepository;
-    @Mock
     private ProfileInitializer profileInitializer;
     @Mock
-    private ProjectRecordingRepository projectRecordingRepository;
+    private RecordingRepository projectRecordingRepository;
     @Mock
     private ProjectRecordingStorage projectRecordingStorage;
     @Mock
@@ -71,7 +68,7 @@ class ProfilesManagerImplTest {
     @BeforeEach
     void setUp() {
         manager = new ProfilesManagerImpl(
-                FIXED_CLOCK, PROJECT_INFO, localCoreRepositories, profilesListRepository,
+                FIXED_CLOCK, PROJECT_INFO, localCoreRepositories,
                 projectRecordingRepository, projectRecordingStorage,
                 profileManagerFactory, profileInitializer);
     }
@@ -81,7 +78,7 @@ class ProfilesManagerImplTest {
 
         @Test
         void returnsEmptyList_whenNoProfiles() {
-            when(profilesListRepository.findAllByProject("proj-1")).thenReturn(List.of());
+            when(localCoreRepositories.findAllProfilesByProject("proj-1")).thenReturn(List.of());
 
             List<? extends ProfileManager> result = manager.allProfiles();
 
@@ -95,7 +92,7 @@ class ProfilesManagerImplTest {
                     RecordingEventSource.JDK, NOW, NOW, NOW, true, "rec-1");
             ProfileManager mockManager = mock(ProfileManager.class);
 
-            when(profilesListRepository.findAllByProject("proj-1")).thenReturn(List.of(profile));
+            when(localCoreRepositories.findAllProfilesByProject("proj-1")).thenReturn(List.of(profile));
             when(profileManagerFactory.apply(profile)).thenReturn(mockManager);
 
             List<? extends ProfileManager> result = manager.allProfiles();
@@ -152,7 +149,7 @@ class ProfilesManagerImplTest {
         void throwsIllegalArgument_whenRecordingFileNotInStorage() {
             Recording recording = new Recording(
                     "rec-1", "recording.jfr", "proj-1", null,
-                    RecordingEventSource.JDK, NOW, NOW, NOW, false, List.of());
+                    RecordingEventSource.JDK, NOW, NOW, NOW, false, null, null, List.of());
 
             when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));
             when(projectRecordingStorage.findRecording("rec-1")).thenReturn(Optional.empty());
@@ -164,7 +161,7 @@ class ProfilesManagerImplTest {
         void returnsCompletableFuture_whenRecordingAndFileExist() {
             Recording recording = new Recording(
                     "rec-1", "recording.jfr", "proj-1", null,
-                    RecordingEventSource.JDK, NOW, NOW, NOW, false, List.of());
+                    RecordingEventSource.JDK, NOW, NOW, NOW, false, null, null, List.of());
             java.nio.file.Path recordingPath = java.nio.file.Path.of("/recordings/rec-1/recording.jfr");
 
             when(projectRecordingRepository.findById("rec-1")).thenReturn(Optional.of(recording));

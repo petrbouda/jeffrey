@@ -18,18 +18,30 @@
 
 package pbouda.jeffrey.local.persistence;
 
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.local.persistence.repository.*;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.persistence.GroupLabel;
+import pbouda.jeffrey.shared.persistence.StatementLabel;
+import pbouda.jeffrey.shared.persistence.client.DatabaseClient;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
+import java.util.List;
 
 public class JdbcLocalCoreRepositories implements LocalCoreRepositories {
 
+    //language=SQL
+    private static final String SELECT_ALL_PROFILES =
+            "SELECT * FROM profiles WHERE project_id = :project_id";
+
     private final DatabaseClientProvider databaseClientProvider;
+    private final DatabaseClient profilesDatabaseClient;
     private final Clock clock;
 
     public JdbcLocalCoreRepositories(DatabaseClientProvider databaseClientProvider, Clock clock) {
         this.databaseClientProvider = databaseClientProvider;
+        this.profilesDatabaseClient = databaseClientProvider.provide(GroupLabel.PROFILES);
         this.clock = clock;
     }
 
@@ -39,7 +51,16 @@ public class JdbcLocalCoreRepositories implements LocalCoreRepositories {
     }
 
     @Override
-    public ProjectRecordingRepository newProjectRecordingRepository(String projectId) {
-        return new JdbcProjectRecordingRepository(projectId, databaseClientProvider);
+    public RecordingRepository newRecordingRepository(String projectId) {
+        return new JdbcRecordingRepository(projectId, databaseClientProvider);
+    }
+
+    @Override
+    public List<ProfileInfo> findAllProfilesByProject(String projectId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId);
+
+        return profilesDatabaseClient.query(
+                StatementLabel.FIND_ALL_PROFILES, SELECT_ALL_PROFILES, paramSource, Mappers.profileInfoMapper());
     }
 }

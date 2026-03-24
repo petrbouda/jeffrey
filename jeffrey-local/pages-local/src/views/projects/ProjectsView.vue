@@ -144,7 +144,6 @@
             <ProjectCard
               :project="project"
               :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"
-              :is-orphaned="project.isOrphaned"
             />
           </div>
         </div>

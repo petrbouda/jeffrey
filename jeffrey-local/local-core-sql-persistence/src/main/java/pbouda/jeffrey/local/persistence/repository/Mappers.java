@@ -24,7 +24,7 @@ import pbouda.jeffrey.shared.common.model.Recording;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.local.persistence.model.RecordingFolder;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -56,12 +56,14 @@ public abstract class Mappers {
                     rs.getString("id"),
                     rs.getString("recording_name"),
                     rs.getString("project_id"),
-                    rs.getString("folder_id"),
+                    rs.getString("group_id"),
                     RecordingEventSource.valueOf(rs.getString("event_source")),
                     Mappers.instant(rs, "created_at"),
                     Mappers.instant(rs, "recording_started_at"),
                     Mappers.instant(rs, "recording_finished_at"),
                     rs.getBoolean("has_profile"),
+                    rs.getString("profile_id"),
+                    rs.getString("profile_name"),
                     List.of());
         };
     }
@@ -73,14 +75,15 @@ public abstract class Mappers {
                     rs.getString("recording_id"),
                     rs.getString("filename"),
                     SupportedRecordingFile.ofType(rs.getString("supported_type")),
+                    rs.getString("file_path"),
                     Mappers.instant(rs, "uploaded_at"),
                     rs.getLong("size_in_bytes"));
         };
     }
 
-    public static RowMapper<RecordingFolder> projectRecordingFolderMapper() {
+    public static RowMapper<RecordingGroup> projectRecordingGroupMapper() {
         return (rs, _) -> {
-            return new RecordingFolder(rs.getString("id"), rs.getString("name"));
+            return new RecordingGroup(rs.getString("id"), rs.getString("name"), Mappers.instant(rs, "created_at"));
         };
     }
 

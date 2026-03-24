@@ -25,10 +25,10 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.local.persistence.model.WorkspaceAddress;
 
 import javax.net.ssl.SSLException;
 import java.io.Closeable;
-import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -38,31 +38,24 @@ public class GrpcServerConnection implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrpcServerConnection.class);
 
-    private final URI location;
+    private final WorkspaceAddress address;
     private final ManagedChannel channel;
 
-    public GrpcServerConnection(URI location) {
-        String host = location.getHost();
-        boolean tls = "https".equalsIgnoreCase(location.getScheme());
-        int port = location.getPort() > 0 ? location.getPort() : (tls ? 443 : 80);
-        this.location = location;
+    public GrpcServerConnection(WorkspaceAddress address) {
+        this.address = address;
 
-        NettyChannelBuilder builder = NettyChannelBuilder.forAddress(host, port);
-        if (tls) {
-            try {
-                SslContext sslContext = GrpcSslContexts.forClient()
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .build();
+        NettyChannelBuilder builder = NettyChannelBuilder.forAddress(address.hostname(), address.port());
+        try {
+            SslContext sslContext = GrpcSslContexts.forClient()
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .build();
 
-                builder.sslContext(sslContext);
-            } catch (SSLException e) {
-                throw new RuntimeException("Failed to create TLS context for gRPC connection: " + location, e);
-            }
-        } else {
-            builder.usePlaintext();
+            builder.sslContext(sslContext);
+        } catch (SSLException e) {
+            throw new RuntimeException("Failed to create TLS context for gRPC connection: " + address, e);
         }
         this.channel = builder.build();
-        LOG.info("Created gRPC connection: target={}:{} tls={}", host, port, tls);
+        LOG.info("Created gRPC connection: target={}:{}", address.hostname(), address.port());
     }
 
     /**
@@ -72,17 +65,17 @@ public class GrpcServerConnection implements Closeable {
         return channel;
     }
 
-    public URI location() {
-        return location;
+    public WorkspaceAddress address() {
+        return address;
     }
 
     @Override
     public void close() {
-        LOG.info("Shutting down gRPC connection: location={}", location);
+        LOG.info("Shutting down gRPC connection: address={}", address);
         try {
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            LOG.warn("gRPC channel shutdown interrupted, forcing shutdown: location={}", location);
+            LOG.warn("gRPC channel shutdown interrupted, forcing shutdown: address={}", address);
             channel.shutdownNow();
             Thread.currentThread().interrupt();
         }

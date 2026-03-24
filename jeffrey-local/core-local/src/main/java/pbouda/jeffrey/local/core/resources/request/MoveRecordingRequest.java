@@ -16,26 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.persistence.repository;
+package pbouda.jeffrey.local.core.resources.request;
 
-import pbouda.jeffrey.local.persistence.model.QuickRecordingInfo;
-
-import java.util.List;
-import java.util.Optional;
-
-public interface QuickRecordingRepository {
-
-    void insert(QuickRecordingInfo recording);
-
-    Optional<QuickRecordingInfo> findById(String recordingId);
-
-    List<QuickRecordingInfo> findAll();
-
-    List<QuickRecordingInfo> findByGroupId(String groupId);
-
-    void updateProfileId(String recordingId, String profileId);
-
-    void delete(String recordingId);
-
-    void deleteByGroupId(String groupId);
+public record MoveRecordingRequest(String groupId) {
 }

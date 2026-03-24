@@ -106,7 +106,7 @@ public class WorkspaceProjectsResource {
     public List<ProjectResponse> projects() {
         var result = projectsManager.findAll().stream()
                 .map(ProjectManager::detailedInfo)
-                .map(d -> Mappers.toProjectResponse(d, false))
+                .map(Mappers::toProjectResponse)
                 .toList();
         LOG.debug("Listed projects: workspaceId={} count={}", workspaceInfo.id(), result.size());
         return result;

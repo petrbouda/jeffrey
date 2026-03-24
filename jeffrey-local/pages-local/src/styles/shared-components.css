@@ -379,3 +379,105 @@
   color: var(--color-text-muted, #6b7280);
   margin-bottom: 1rem;
 }
+
+/* ===========================================
+   Recording Group Headers
+   Used in: RecordingsList, QuickAnalysisView
+   =========================================== */
+.recording-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.recording-group-header:hover {
+  background: #f3f4f6;
+}
+
+.recording-group-drop-target {
+  background: rgba(94, 100, 255, 0.06);
+  outline: 2px dashed #5e64ff;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.recording-group-drop-target .recording-group-name {
+  color: #5e64ff;
+}
+
+.recording-group-chevron {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  transition: transform 0.15s ease;
+}
+
+.recording-group-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recording-group-count {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 0 6px;
+  border-radius: 8px;
+}
+
+.recording-group-empty {
+  padding: 8px 8px 8px 20px;
+  font-size: 0.72rem;
+  color: #b6c1d2;
+  font-style: italic;
+}
+
+.recording-group-actions {
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.recording-group-header:hover .recording-group-actions {
+  opacity: 1;
+}
+
+.recording-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 12px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+  animation: recordingGroupExpand 0.2s ease-out;
+}
+
+@keyframes recordingGroupExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.recording-group-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.recording-group-action-delete:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}

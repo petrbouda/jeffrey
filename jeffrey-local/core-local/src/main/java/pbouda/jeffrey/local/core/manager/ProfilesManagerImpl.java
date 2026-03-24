@@ -20,12 +20,11 @@ package pbouda.jeffrey.local.core.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.local.persistence.repository.ProfilesListRepository;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.local.persistence.repository.ProfileRepository;
-import pbouda.jeffrey.local.persistence.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.local.persistence.repository.RecordingRepository;
 import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.Schedulers;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -47,9 +46,8 @@ public class ProfilesManagerImpl implements ProfilesManager {
     private final Clock clock;
     private final ProjectInfo projectInfo;
     private final LocalCoreRepositories localCoreRepositories;
-    private final ProfilesListRepository profilesListRepository;
     private final ProfileInitializer profileInitializer;
-    private final ProjectRecordingRepository projectRecordingRepository;
+    private final RecordingRepository projectRecordingRepository;
     private final ProjectRecordingStorage projectRecordingStorage;
     private final ProfileManager.Factory profileManagerFactory;
 
@@ -57,15 +55,13 @@ public class ProfilesManagerImpl implements ProfilesManager {
             Clock clock,
             ProjectInfo projectInfo,
             LocalCoreRepositories localCoreRepositories,
-            ProfilesListRepository profilesListRepository,
-            ProjectRecordingRepository projectRecordingRepository,
+            RecordingRepository projectRecordingRepository,
             ProjectRecordingStorage projectRecordingStorage,
             ProfileManager.Factory profileManagerFactory,
             ProfileInitializer profileInitializer) {
         this.clock = clock;
         this.projectInfo = projectInfo;
         this.localCoreRepositories = localCoreRepositories;
-        this.profilesListRepository = profilesListRepository;
         this.projectRecordingRepository = projectRecordingRepository;
         this.projectRecordingStorage = projectRecordingStorage;
         this.profileManagerFactory = profileManagerFactory;
@@ -74,7 +70,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
 
     @Override
     public List<? extends ProfileManager> allProfiles() {
-        return profilesListRepository.findAllByProject(projectInfo.id()).stream()
+        return localCoreRepositories.findAllProfilesByProject(projectInfo.id()).stream()
                 .map(profileManagerFactory)
                 .toList();
     }
@@ -112,7 +108,7 @@ public class ProfilesManagerImpl implements ProfilesManager {
         // Create an empty profile to be able to see profile initialization progress
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
 
-        var insertProfile = new ProfileRepository.InsertProfile(
+        var insertProfile = ProfileRepository.InsertProfile.projectProfile(
                 projectInfo.id(),
                 projectInfo.workspaceId(),
                 recording.recordingName(),

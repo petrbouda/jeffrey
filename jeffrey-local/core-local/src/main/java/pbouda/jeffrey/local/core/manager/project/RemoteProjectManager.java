@@ -77,7 +77,7 @@ public class RemoteProjectManager implements ProjectManager {
         return new RecordingsManagerImpl(
                 projectInfo,
                 recordingInitializerFactory.apply(projectInfo),
-                localCoreRepositories.newProjectRecordingRepository(projectInfo.id()));
+                localCoreRepositories.newRecordingRepository(projectInfo.id()));
     }
 
     @Override

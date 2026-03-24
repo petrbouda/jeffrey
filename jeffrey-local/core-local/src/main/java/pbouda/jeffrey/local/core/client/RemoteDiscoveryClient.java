@@ -22,12 +22,11 @@ import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.api.v1.*;
-import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.local.core.resources.response.PublicApiInfoResponse;
+import pbouda.jeffrey.local.core.resources.response.RemoteProjectResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import pbouda.jeffrey.shared.common.InstantUtils;
@@ -94,14 +93,14 @@ public class RemoteDiscoveryClient {
         }
     }
 
-    public List<ProjectResponse> allProjects(String workspaceId) {
+    public List<RemoteProjectResponse> allProjects(String workspaceId) {
         ListProjectsResponse response = projectStub.listProjects(
                 ListProjectsRequest.newBuilder()
                         .setWorkspaceId(workspaceId)
                         .build());
 
         return response.getProjectsList().stream()
-                .map(RemoteDiscoveryClient::toProjectResponse)
+                .map(RemoteDiscoveryClient::toRemoteProjectResponse)
                 .toList();
     }
 
@@ -110,7 +109,7 @@ public class RemoteDiscoveryClient {
                 proto.getId(),
                 proto.getName(),
                 proto.getDescription(),
-                WorkspaceLocation.of(connection.location()),
+                connection.address(),
                 Instant.ofEpochMilli(proto.getCreatedAt()),
                 fromProtoStatus(proto.getStatus()),
                 proto.getProjectCount());
@@ -126,8 +125,8 @@ public class RemoteDiscoveryClient {
                 fromProtoStatus(proto.getStatus()));
     }
 
-    private static ProjectResponse toProjectResponse(ProjectInfo proto) {
-        return new ProjectResponse(
+    private static RemoteProjectResponse toRemoteProjectResponse(ProjectInfo proto) {
+        return new RemoteProjectResponse(
                 proto.getId(),
                 proto.getOriginId().isEmpty() ? null : proto.getOriginId(),
                 proto.getName(),
@@ -136,13 +135,7 @@ public class RemoteDiscoveryClient {
                 proto.getCreatedAt() != 0 ? InstantUtils.formatInstant(Instant.ofEpochMilli(proto.getCreatedAt())) : null,
                 proto.getWorkspaceId(),
                 fromProtoRecordingStatus(proto.getStatus()),
-                0,
-                0,
                 proto.getSessionCount(),
-                null,
-                false,
-                false,
-                false,
                 proto.getIsBlocked());
     }
 

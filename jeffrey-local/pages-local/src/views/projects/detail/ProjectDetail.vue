@@ -145,13 +145,9 @@ import Badge from '@/components/Badge.vue';
 import ProjectClient from "@/services/api/ProjectClient.ts";
 import Project from "@/services/api/model/Project.ts";
 import { useNavigation } from '@/composables/useNavigation';
-import { useCollectorOnlyMode } from '@/composables/useCollectorOnlyMode';
-
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
-
-const { collectorOnlyMode, setCollectorOnlyMode } = useCollectorOnlyMode();
 
 const projectInfo = ref<Project | null>(null);
 const sidebarCollapsed = ref(false);
@@ -251,7 +247,6 @@ async function initializeProject() {
 
     // Fetch project data
     projectInfo.value = await projectClient.get();
-    setCollectorOnlyMode(projectId.value, projectInfo.value.collectorOnlyModeEnabled);
 
     // Check for initializing profiles
     await checkInitializingProfiles();

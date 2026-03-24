@@ -29,7 +29,7 @@ import pbouda.jeffrey.local.core.persistence.NewRecordingHolder;
 import pbouda.jeffrey.provider.profile.RecordingInformationParser;
 import pbouda.jeffrey.local.core.persistence.NewRecording;
 import pbouda.jeffrey.provider.profile.model.recording.RecordingInformation;
-import pbouda.jeffrey.local.persistence.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.local.persistence.repository.RecordingRepository;
 import pbouda.jeffrey.storage.recording.api.ProjectRecordingStorage;
 
 import java.nio.file.Path;
@@ -39,7 +39,7 @@ import java.util.List;
 
 public class ProjectRecordingInitializerImpl implements ProjectRecordingInitializer {
 
-    private final ProjectRecordingRepository recordingRepository;
+    private final RecordingRepository recordingRepository;
     private final ProjectRecordingStorage recordingStorage;
     private final RecordingInformationParser recordingInformationParser;
     private final Clock clock;
@@ -49,7 +49,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
             Clock clock,
             ProjectInfo projectInfo,
             ProjectRecordingStorage recordingStorage,
-            ProjectRecordingRepository recordingRepository,
+            RecordingRepository recordingRepository,
             RecordingInformationParser recordingInformationParser) {
 
         this.clock = clock;
@@ -65,10 +65,10 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
         Path targetPath = recordingStorage.uploadTarget(recordingId, newRecording.filename());
 
         Runnable uploadCompleteCallback = () -> {
-            if (newRecording.folderId() != null) {
-                boolean folderExists = recordingRepository.folderExists(newRecording.folderId());
-                if (!folderExists) {
-                    throw new RuntimeException("Folder does not exist: " + newRecording.folderId());
+            if (newRecording.groupId() != null) {
+                boolean groupExists = recordingRepository.groupExists(newRecording.groupId());
+                if (!groupExists) {
+                    throw new RuntimeException("Group does not exist: " + newRecording.groupId());
                 }
             }
 
@@ -82,12 +82,12 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         recordingId,
                         newRecording.recordingName(),
                         projectInfo.id(),
-                        newRecording.folderId(),
+                        newRecording.groupId(),
                         information.eventSource(),
                         createdAt,
                         information.recordingStartedAt(),
                         information.recordingFinishedAt(),
-                        false,
+                        false, null, null,
                         List.of());
 
                 RecordingFile recordingFile = new RecordingFile(
@@ -95,6 +95,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         recordingId,
                         newRecording.filename(),
                         SupportedRecordingFile.of(newRecording.filename()),
+                        null,
                         createdAt,
                         FileSystemUtils.size(targetPath));
 
@@ -116,6 +117,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                             recordingId,
                             additionalFile.name(),
                             additionalFile.fileType(),
+                            null,
                             createdAt,
                             additionalFile.size());
 
@@ -137,10 +139,10 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
         Path targetPath = recordingStorage.uploadTarget(recordingId, newRecording.filename());
 
         Runnable uploadCompleteCallback = () -> {
-            if (newRecording.folderId() != null) {
-                boolean folderExists = recordingRepository.folderExists(newRecording.folderId());
-                if (!folderExists) {
-                    throw new RuntimeException("Folder does not exist: " + newRecording.folderId());
+            if (newRecording.groupId() != null) {
+                boolean groupExists = recordingRepository.groupExists(newRecording.groupId());
+                if (!groupExists) {
+                    throw new RuntimeException("Group does not exist: " + newRecording.groupId());
                 }
             }
 
@@ -154,12 +156,12 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         recordingId,
                         newRecording.recordingName(),
                         projectInfo.id(),
-                        newRecording.folderId(),
+                        newRecording.groupId(),
                         information.eventSource(),
                         createdAt,
                         information.recordingStartedAt(),
                         information.recordingFinishedAt(),
-                        false,
+                        false, null, null,
                         List.of());
 
                 RecordingFile recordingFile = new RecordingFile(
@@ -167,6 +169,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         recordingId,
                         newRecording.filename(),
                         SupportedRecordingFile.of(newRecording.filename()),
+                        null,
                         createdAt,
                         FileSystemUtils.size(targetPath));
 
@@ -185,6 +188,7 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                             recordingId,
                             filename,
                             SupportedRecordingFile.of(filename),
+                            null,
                             createdAt,
                             FileSystemUtils.size(additionalFilePath));
 

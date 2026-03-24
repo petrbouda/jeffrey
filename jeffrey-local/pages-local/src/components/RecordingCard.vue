@@ -36,6 +36,7 @@ interface Props {
   deletingProfile?: boolean;
   expandable?: boolean;
   expanded?: boolean;
+  draggable?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -45,6 +46,7 @@ const props = withDefaults(defineProps<Props>(), {
   deletingProfile: false,
   expandable: false,
   expanded: false,
+  draggable: false,
 });
 
 const emit = defineEmits<{
@@ -55,6 +57,7 @@ const emit = defineEmits<{
   (e: 'delete-profile'): void;
   (e: 'delete-recording'): void;
   (e: 'toggle-expand'): void;
+  (e: 'dragend'): void;
 }>();
 
 const isTransitional = () =>
@@ -64,6 +67,12 @@ const handleClick = () => {
   if (!isTransitional()) {
     emit('click');
   }
+};
+
+const onDragStart = (event: DragEvent) => {
+  if (!props.draggable || !event.dataTransfer) return;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', props.recordingId);
 };
 
 const formatRelativeTime = (dateString: string) => {
@@ -192,6 +201,17 @@ const formatRelativeTime = (dateString: string) => {
         >
           <i class="bi bi-trash"></i>
         </button>
+        <div
+            v-if="draggable"
+            class="rec-card__drag-handle"
+            draggable="true"
+            title="Drag to move to another group"
+            @dragstart="onDragStart"
+            @dragend="emit('dragend')"
+            @click.stop
+        >
+          <i class="bi bi-grip-vertical"></i>
+        </div>
       </div>
     </div>
 
@@ -474,6 +494,29 @@ const formatRelativeTime = (dateString: string) => {
 
 .rec-card__action-btn:active {
   transform: scale(0.92);
+}
+
+/* Drag handle */
+.rec-card__drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  color: #c8ccd4;
+  cursor: grab;
+  transition: all 0.15s ease;
+  font-size: 1rem;
+}
+
+.rec-card__drag-handle:hover {
+  background: rgba(94, 100, 255, 0.1);
+  color: #5e64ff;
+}
+
+.rec-card__drag-handle:active {
+  cursor: grabbing;
 }
 
 /* Expanded content */

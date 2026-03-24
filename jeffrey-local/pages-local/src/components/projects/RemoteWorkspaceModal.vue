@@ -27,22 +27,47 @@
     </template>
 
     <template #body>
-      <!-- Phase 1: URL Input -->
+      <!-- Phase 1: Connection Input -->
       <div v-if="!showWorkspaceSelection">
-        <FormInput
-            v-model="remoteUrl"
-            label="External Jeffrey API URL"
-            icon="bi-globe"
-            placeholder="https://prod-jeffrey.company.com"
-            @input="validateUrl"
-        />
+        <div class="grpc-info-callout mb-3">
+          <i class="bi bi-hdd-network me-2"></i>
+          <span>Enter the gRPC endpoint of the remote Jeffrey Server</span>
+        </div>
+
+        <div class="connection-fields mb-3">
+          <div class="field-hostname">
+            <label class="form-label fw-medium small mb-1">Hostname</label>
+            <div class="input-group">
+              <span class="input-group-text border-end-0">
+                <i class="bi bi-globe"></i>
+              </span>
+              <input
+                  type="text"
+                  class="form-control border-start-0"
+                  v-model="hostname"
+                  placeholder="prod-jeffrey.company.com"
+              />
+            </div>
+          </div>
+          <div class="field-port">
+            <label class="form-label fw-medium small mb-1">Port</label>
+            <input
+                type="number"
+                class="form-control text-end port-input"
+                v-model.number="port"
+                placeholder="443"
+                min="1"
+                max="65535"
+            />
+          </div>
+        </div>
 
         <div class="d-flex justify-content-end mb-3">
           <button
               type="button"
               class="btn btn-outline-info"
               @click="loadRemoteWorkspaces"
-              :disabled="!urlValid || loadingWorkspaces"
+              :disabled="!connectionValid || loadingWorkspaces"
           >
             <span v-if="loadingWorkspaces" class="spinner-border spinner-border-sm me-2" role="status"></span>
             <i v-else class="bi bi-cloud-arrow-down me-1"></i>
@@ -59,7 +84,7 @@
             Select Workspaces to Connect
           </label>
           <p class="text-muted small mb-3">
-            Choose one or more workspaces from <strong>{{ remoteUrl }}</strong> to connect remotely.
+            Choose one or more workspaces from <strong>{{ displayAddress }}</strong> to connect remotely.
           </p>
         </div>
 
@@ -119,7 +144,7 @@
               @click="goBackToUrlInput"
           >
             <i class="bi bi-arrow-left me-1"></i>
-            Change URL
+            Change Address
           </button>
         </div>
       </div>
@@ -135,7 +160,6 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue';
 import BaseModal from '@/components/BaseModal.vue';
-import FormInput from '@/components/form/FormInput.vue';
 import Badge from '@/components/Badge.vue';
 import Workspace from '@/services/api/model/Workspace';
 import ToastService from '@/services/ToastService';
@@ -165,21 +189,26 @@ const {
 } = useModal(modalRef);
 
 // Form states
-const remoteUrl = ref('');
+const hostname = ref('');
+const port = ref(443);
 const showWorkspaceSelection = ref(false);
 const loadingWorkspaces = ref(false);
 const remoteWorkspaces = ref<Workspace[]>([]);
 const selectedWorkspaceIds = ref<string[]>([]);
 const errorMessage = ref('');
 
-// URL validation
-const urlValid = computed(() => {
-  return remoteUrl.value.trim().length > 0;
+// Connection validation
+const connectionValid = computed(() => {
+  return hostname.value.trim().length > 0 && port.value >= 1 && port.value <= 65535;
 });
+
+// Display address for Phase 2
+const displayAddress = computed(() => `${hostname.value}:${port.value}`);
 
 // Reset form
 const resetForm = () => {
-  remoteUrl.value = '';
+  hostname.value = '';
+  port.value = 443;
   showWorkspaceSelection.value = false;
   loadingWorkspaces.value = false;
   remoteWorkspaces.value = [];
@@ -193,19 +222,10 @@ const closeModal = () => {
   emit('modal-closed');
 };
 
-// Validate URL input
-const validateUrl = () => {
-  errorMessage.value = '';
-  // Remove trailing slash if present
-  if (remoteUrl.value.endsWith('/')) {
-    remoteUrl.value = remoteUrl.value.slice(0, -1);
-  }
-};
-
 // Load remote workspaces
 const loadRemoteWorkspaces = async () => {
-  if (!urlValid.value) {
-    errorMessage.value = 'Please enter a URL';
+  if (!connectionValid.value) {
+    errorMessage.value = 'Please enter a valid hostname and port';
     return;
   }
 
@@ -214,7 +234,7 @@ const loadRemoteWorkspaces = async () => {
 
   try {
     // Call the backend API to get available workspaces to add as remote
-    remoteWorkspaces.value = await remoteWorkspaceClient.listRemote(remoteUrl.value.trim());
+    remoteWorkspaces.value = await remoteWorkspaceClient.listRemote(hostname.value.trim(), port.value);
     showWorkspaceSelection.value = true;
 
     if (remoteWorkspaces.value.length === 0) {
@@ -270,7 +290,8 @@ const mirrorWorkspace = async () => {
         }
 
         await remoteWorkspaceClient.createRemote(
-            remoteUrl.value.trim(),
+            hostname.value.trim(),
+            port.value,
             selectedWorkspaceIds.value
         );
 
@@ -308,6 +329,49 @@ defineExpose({
 </script>
 
 <style scoped>
+/* gRPC info callout */
+.grpc-info-callout {
+  background: linear-gradient(135deg, #f0fdfa, #ccfbf1);
+  border: 1px solid rgba(56, 178, 172, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: #285e61;
+  display: flex;
+  align-items: center;
+}
+
+.grpc-info-callout i {
+  color: #38b2ac;
+  font-size: 0.9rem;
+}
+
+/* Connection fields layout */
+.connection-fields {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.field-hostname {
+  flex: 1;
+}
+
+.field-port {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.port-input {
+  -moz-appearance: textfield;
+}
+
+.port-input::-webkit-outer-spin-button,
+.port-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Remote workspace selection styling */
 .remote-workspaces-grid {
   display: flex;

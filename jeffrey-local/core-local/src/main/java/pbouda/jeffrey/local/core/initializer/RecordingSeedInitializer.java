@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
+import pbouda.jeffrey.shared.common.model.Recording;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,7 +58,7 @@ public class RecordingSeedInitializer implements ApplicationRunner {
         }
 
         Set<String> existingFilenames = quickAnalysisManager.listRecordings().stream()
-                .map(r -> r.filename())
+                .map(Recording::recordingName)
                 .collect(Collectors.toSet());
 
         int imported = 0;

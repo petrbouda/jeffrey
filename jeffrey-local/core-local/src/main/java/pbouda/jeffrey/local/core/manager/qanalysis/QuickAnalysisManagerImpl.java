@@ -21,12 +21,10 @@ package pbouda.jeffrey.local.core.manager.qanalysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.LocalJeffreyDirs;
-import pbouda.jeffrey.local.persistence.model.QuickGroupInfo;
-import pbouda.jeffrey.local.persistence.model.QuickProfileInfo;
-import pbouda.jeffrey.local.persistence.model.QuickRecordingInfo;
-import pbouda.jeffrey.local.persistence.repository.QuickGroupRepository;
-import pbouda.jeffrey.local.persistence.repository.QuickProfileRepository;
-import pbouda.jeffrey.local.persistence.repository.QuickRecordingRepository;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
+import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import pbouda.jeffrey.local.persistence.repository.ProfileRepository;
+import pbouda.jeffrey.local.persistence.repository.RecordingRepository;
 import pbouda.jeffrey.profile.ProfileInitializer;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.provider.profile.RecordingInformationParser;
@@ -34,7 +32,10 @@ import pbouda.jeffrey.provider.profile.model.recording.RecordingInformation;
 import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
+import pbouda.jeffrey.shared.common.model.Recording;
 import pbouda.jeffrey.shared.common.model.RecordingEventSource;
+import pbouda.jeffrey.shared.common.model.RecordingFile;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,9 +57,8 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     private final RecordingInformationParser recordingInformationParser;
     private final ProfileInitializer profileInitializer;
     private final ProfileManager.Factory profileManagerFactory;
-    private final QuickProfileRepository quickProfileRepository;
-    private final QuickGroupRepository quickGroupRepository;
-    private final QuickRecordingRepository quickRecordingRepository;
+    private final LocalCoreRepositories localCoreRepositories;
+    private final RecordingRepository recordingRepository;
 
     public QuickAnalysisManagerImpl(
             Clock clock,
@@ -66,49 +66,40 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
             RecordingInformationParser recordingInformationParser,
             ProfileInitializer profileInitializer,
             ProfileManager.Factory profileManagerFactory,
-            QuickProfileRepository quickProfileRepository,
-            QuickGroupRepository quickGroupRepository,
-            QuickRecordingRepository quickRecordingRepository) {
+            LocalCoreRepositories localCoreRepositories) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.recordingInformationParser = recordingInformationParser;
         this.profileInitializer = profileInitializer;
         this.profileManagerFactory = profileManagerFactory;
-        this.quickProfileRepository = quickProfileRepository;
-        this.quickGroupRepository = quickGroupRepository;
-        this.quickRecordingRepository = quickRecordingRepository;
+        this.localCoreRepositories = localCoreRepositories;
+        this.recordingRepository = localCoreRepositories.newRecordingRepository(null);
     }
 
     // --- Group operations ---
 
     @Override
     public String createGroup(String groupName) {
-        String groupId = IDGenerator.generate();
-        Instant createdAt = clock.instant();
-
-        QuickGroupInfo group = new QuickGroupInfo(groupId, groupName, createdAt);
-        quickGroupRepository.insert(group);
-
+        String groupId = recordingRepository.insertGroup(groupName);
         LOG.info("Quick analysis group created: groupId={} groupName={}", groupId, groupName);
         return groupId;
     }
 
     @Override
-    public List<QuickGroupInfo> listGroups() {
-        return quickGroupRepository.findAll();
+    public List<RecordingGroup> listGroups() {
+        return recordingRepository.findAllRecordingGroups();
     }
 
     @Override
     public void deleteGroup(String groupId) {
-        List<QuickRecordingInfo> recordings = quickRecordingRepository.findByGroupId(groupId);
+        List<Recording> recordings = recordingRepository.findRecordingsByGroupId(groupId);
 
-        for (QuickRecordingInfo recording : recordings) {
+        for (Recording recording : recordings) {
             deleteRecordingInternal(recording);
         }
 
-        quickRecordingRepository.deleteByGroupId(groupId);
-        quickGroupRepository.delete(groupId);
+        recordingRepository.deleteGroup(groupId);
 
         LOG.info("Quick analysis group deleted: groupId={} recordingsDeleted={}", groupId, recordings.size());
     }
@@ -116,8 +107,14 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     // --- Recording operations ---
 
     @Override
+    public void moveRecordingToGroup(String recordingId, String groupId) {
+        LOG.debug("Moving quick recording to group: recordingId={} groupId={}", recordingId, groupId);
+        recordingRepository.updateRecordingGroup(recordingId, groupId);
+    }
+
+    @Override
     public String uploadRecording(String filename, InputStream inputStream, String groupId) {
-        if (groupId != null && quickGroupRepository.findById(groupId).isEmpty()) {
+        if (groupId != null && recordingRepository.findGroupById(groupId).isEmpty()) {
             throw new IllegalArgumentException("Group not found: " + groupId);
         }
 
@@ -156,29 +153,35 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
             }
         }
 
-        QuickRecordingInfo recording = new QuickRecordingInfo(
-                recordingId, filename, groupId, eventSource,
-                targetPath.toString(), sizeInBytes, uploadedAt,
-                profilingStartedAt, profilingFinishedAt, null);
+        Recording recording = new Recording(
+                recordingId, filename, null, groupId, eventSource, uploadedAt,
+                profilingStartedAt, profilingFinishedAt,
+                false, null, null, List.of());
 
-        quickRecordingRepository.insert(recording);
+        String recordingFileId = IDGenerator.generate();
+        RecordingFile recordingFile = new RecordingFile(
+                recordingFileId, recordingId, filename,
+                SupportedRecordingFile.of(filename),
+                targetPath.toString(), uploadedAt, sizeInBytes);
+
+        recordingRepository.insertRecording(recording, recordingFile);
 
         LOG.info("Quick analysis recording uploaded: recordingId={} filename={} groupId={}", recordingId, filename, groupId);
         return recordingId;
     }
 
     @Override
-    public List<QuickRecordingInfo> listRecordings() {
-        return quickRecordingRepository.findAll();
+    public List<Recording> listRecordings() {
+        return recordingRepository.findAllRecordings();
     }
 
     @Override
     public void deleteRecording(String recordingId) {
-        QuickRecordingInfo recording = quickRecordingRepository.findById(recordingId)
+        Recording recording = recordingRepository.findRecording(recordingId)
                 .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
 
         deleteRecordingInternal(recording);
-        quickRecordingRepository.delete(recordingId);
+        recordingRepository.deleteRecordingWithFiles(recordingId);
 
         LOG.info("Quick analysis recording deleted: recordingId={}", recordingId);
     }
@@ -187,28 +190,27 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
     @Override
     public String analyzeRecording(String recordingId) {
-        QuickRecordingInfo recording = quickRecordingRepository.findById(recordingId)
+        Recording recording = recordingRepository.findRecording(recordingId)
                 .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
 
         if (recording.hasProfile()) {
             return recording.profileId();
         }
 
+        RecordingFile file = recording.files().getFirst();
         String profileId;
         if (recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
-            profileId = analyzeHeapDump(recording);
+            profileId = analyzeHeapDump(recording, file);
         } else {
-            profileId = analyzeJfr(recording);
+            profileId = analyzeJfr(recording, file);
         }
-
-        quickRecordingRepository.updateProfileId(recordingId, profileId);
 
         LOG.info("Quick analysis recording analyzed: recordingId={} profileId={}", recordingId, profileId);
         return profileId;
     }
 
-    private String analyzeJfr(QuickRecordingInfo recording) {
-        Path filePath = Path.of(recording.filePath());
+    private String analyzeJfr(Recording recording, RecordingFile file) {
+        Path filePath = Path.of(file.filePath());
         if (!Files.exists(filePath)) {
             throw new IllegalArgumentException("Recording file does not exist: " + filePath);
         }
@@ -219,34 +221,35 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         RecordingInformation recordingInfo = recordingInformationParser.provide(filePath);
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, recording.filename(),
+                profileId, null, null, file.filename(),
                 recordingInfo.eventSource(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt(),
-                createdAt, false, null);
+                createdAt, false, recording.id());
 
         profileInitializer.initialize(profileInfo, null, filePath);
 
-        QuickProfileInfo quickInfo = new QuickProfileInfo(
-                profileId, recording.filename(), null,
-                recordingInfo.eventSource(),
-                createdAt,
+        ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
+        profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(
+                file.filename(),
+                recordingInfo.eventSource(), createdAt,
+                recording.id(),
                 recordingInfo.recordingStartedAt(),
-                recordingInfo.recordingFinishedAt());
+                recordingInfo.recordingFinishedAt()));
+        profileRepository.enableProfile(createdAt);
 
-        quickProfileRepository.insert(quickInfo);
         return profileId;
     }
 
-    private String analyzeHeapDump(QuickRecordingInfo recording) {
+    private String analyzeHeapDump(Recording recording, RecordingFile file) {
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
 
         Path heapDumpAnalysisPath = jeffreyDirs.quickHeapDumpAnalysisDir(profileId);
         FileSystemUtils.createDirectories(heapDumpAnalysisPath);
 
-        Path sourcePath = Path.of(recording.filePath());
-        Path targetPath = heapDumpAnalysisPath.resolve(recording.filename());
+        Path sourcePath = Path.of(file.filePath());
+        Path targetPath = heapDumpAnalysisPath.resolve(file.filename());
 
         try {
             Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
@@ -255,16 +258,18 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         }
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, recording.filename(),
+                profileId, null, null, file.filename(),
                 RecordingEventSource.HEAP_DUMP,
-                createdAt, createdAt, createdAt, true, null);
+                createdAt, createdAt, createdAt, true, recording.id());
 
-        QuickProfileInfo quickInfo = new QuickProfileInfo(
-                profileId, recording.filename(), null,
-                RecordingEventSource.HEAP_DUMP,
-                createdAt, createdAt, createdAt);
+        ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
+        profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(
+                file.filename(),
+                RecordingEventSource.HEAP_DUMP, createdAt,
+                recording.id(),
+                createdAt, createdAt));
+        profileRepository.enableProfile(createdAt);
 
-        quickProfileRepository.insert(quickInfo);
         profileManagerFactory.apply(profileInfo);
 
         return profileId;
@@ -272,13 +277,13 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
     @Override
     public void updateProfileName(String profileId, String profileName) {
-        quickProfileRepository.updateProfileName(profileId, profileName);
+        localCoreRepositories.newProfileRepository(profileId).update(profileName);
         LOG.info("Quick analysis profile renamed: profileId={} newName={}", profileId, profileName);
     }
 
     @Override
     public void deleteProfile(String recordingId) {
-        QuickRecordingInfo recording = quickRecordingRepository.findById(recordingId)
+        Recording recording = recordingRepository.findRecording(recordingId)
                 .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
 
         if (!recording.hasProfile()) {
@@ -286,7 +291,6 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         }
 
         deleteProfileInternal(recording.profileId());
-        quickRecordingRepository.updateProfileId(recordingId, null);
 
         LOG.info("Quick analysis profile deleted: recordingId={} profileId={}", recordingId, recording.profileId());
     }
@@ -295,24 +299,21 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
     @Override
     public Optional<ProfileManager> profile(String profileId) {
-        return quickProfileRepository.find(profileId)
-                .map(QuickProfileInfo::toProfileInfo)
+        return localCoreRepositories.newProfileRepository(profileId).find()
                 .map(profileManagerFactory);
     }
 
     // --- Internal helpers ---
 
-    private void deleteRecordingInternal(QuickRecordingInfo recording) {
+    private void deleteRecordingInternal(Recording recording) {
         if (recording.hasProfile()) {
             deleteProfileInternal(recording.profileId());
         }
 
-        Path recordingFile = Path.of(recording.filePath());
-        if (Files.exists(recordingFile)) {
-            try {
-                Files.delete(recordingFile);
-            } catch (IOException e) {
-                LOG.warn("Failed to delete recording file: path={}", recordingFile, e);
+        if (!recording.files().isEmpty()) {
+            RecordingFile file = recording.files().getFirst();
+            if (file.filePath() != null) {
+                FileSystemUtils.removeFile(Path.of(file.filePath()));
             }
         }
     }
@@ -320,7 +321,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     private void deleteProfileInternal(String profileId) {
         Path profileDir = jeffreyDirs.quickProfileDir(profileId);
 
-        quickProfileRepository.delete(profileId);
+        localCoreRepositories.newProfileRepository(profileId).delete();
 
         if (Files.exists(profileDir)) {
             FileSystemUtils.removeDirectory(profileDir);

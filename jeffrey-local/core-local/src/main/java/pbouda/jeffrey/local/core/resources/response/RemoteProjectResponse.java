@@ -16,7 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.core.resources.request;
+package pbouda.jeffrey.local.core.resources.response;
 
-public record CreateFolderRequest(String folderName) {
+import pbouda.jeffrey.shared.common.model.repository.RecordingStatus;
+
+public record RemoteProjectResponse(
+        String id,
+        String originId,
+        String name,
+        String label,
+        String namespace,
+        String createdAt,
+        String workspaceId,
+        RecordingStatus status,
+        int sessionCount,
+        boolean isBlocked) {
 }

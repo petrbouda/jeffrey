@@ -16,20 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.persistence.repository;
+package pbouda.jeffrey.local.persistence.model;
 
-import pbouda.jeffrey.local.persistence.model.QuickGroupInfo;
+import java.time.Instant;
 
-import java.util.List;
-import java.util.Optional;
-
-public interface QuickGroupRepository {
-
-    void insert(QuickGroupInfo group);
-
-    Optional<QuickGroupInfo> findById(String groupId);
-
-    List<QuickGroupInfo> findAll();
-
-    void delete(String groupId);
+public record RecordingGroup(String id, String name, Instant createdAt) {
 }

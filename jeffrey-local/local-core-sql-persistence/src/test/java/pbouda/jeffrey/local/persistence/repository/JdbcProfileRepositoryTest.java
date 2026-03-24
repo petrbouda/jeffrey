@@ -71,7 +71,7 @@ class JdbcProfileRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/recording/insert-project-with-recordings.sql");
             JdbcProfileRepository repository = new JdbcProfileRepository("new-profile-001", provider);
 
-            ProfileRepository.InsertProfile insertProfile = new ProfileRepository.InsertProfile(
+            ProfileRepository.InsertProfile insertProfile = ProfileRepository.InsertProfile.projectProfile(
                     "proj-001",
                     "ws-001",
                     "New Profile",

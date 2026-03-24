@@ -16,26 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.persistence.repository;
+package pbouda.jeffrey.local.core.resources.request;
 
-import pbouda.jeffrey.local.persistence.model.QuickProfileInfo;
-
-import java.util.List;
-import java.util.Optional;
-
-public interface QuickProfileRepository {
-
-    void insert(QuickProfileInfo profile);
-
-    Optional<QuickProfileInfo> find(String profileId);
-
-    List<QuickProfileInfo> findAll();
-
-    List<String> findDistinctGroups();
-
-    void updateGroupName(String profileId, String groupName);
-
-    void updateProfileName(String profileId, String profileName);
-
-    void delete(String profileId);
+public record CreateGroupRequest(String groupName) {
 }

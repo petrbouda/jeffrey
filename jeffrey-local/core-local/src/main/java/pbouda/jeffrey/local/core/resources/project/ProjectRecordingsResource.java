@@ -27,10 +27,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.RecordingsManager;
-import pbouda.jeffrey.local.core.resources.request.CreateFolderRequest;
+import pbouda.jeffrey.local.core.resources.request.CreateGroupRequest;
+import pbouda.jeffrey.local.core.resources.request.MoveRecordingRequest;
 import pbouda.jeffrey.local.core.resources.response.RecordingFileResponse;
 import pbouda.jeffrey.local.core.resources.response.RecordingsResponse;
-import pbouda.jeffrey.local.persistence.model.RecordingFolder;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.shared.common.InstantUtils;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -91,7 +92,7 @@ public class ProjectRecordingsResource {
                             sizeInBytesTotal,
                             rec.recordingDuration().toMillis(),
                             InstantUtils.formatInstant(rec.createdAt()),
-                            rec.folderId(),
+                            rec.groupId(),
                             rec.eventSource().name(),
                             profileInfo != null,
                             profileInfo != null ? profileInfo.id() : null,
@@ -115,26 +116,35 @@ public class ProjectRecordingsResource {
     }
 
     @POST
-    @Path("/folders")
-    public Response createFolder(CreateFolderRequest request) {
-        LOG.debug("Creating recording folder: folderName={}", request.folderName());
-        recordingsManager.createFolder(request.folderName());
+    @Path("/groups")
+    public Response createGroup(CreateGroupRequest request) {
+        LOG.debug("Creating recording group: groupName={}", request.groupName());
+        recordingsManager.createGroup(request.groupName());
         return Response.status(Response.Status.CREATED).build();
     }
 
     @GET
-    @Path("/folders")
-    public List<RecordingFolder> findAllFolders() {
-        var result = recordingsManager.allRecordingFolders();
-        LOG.debug("Listed recording folders: projectId={} count={}", projectInfo.id(), result.size());
+    @Path("/groups")
+    public List<RecordingGroup> findAllGroups() {
+        var result = recordingsManager.allRecordingGroups();
+        LOG.debug("Listed recording groups: projectId={} count={}", projectInfo.id(), result.size());
         return result;
     }
 
     @DELETE
-    @Path("/folders/{folderId}")
-    public void deleteFolder(@PathParam("folderId") String folderId) {
-        LOG.debug("Deleting recording folder: folderId={}", folderId);
-        recordingsManager.deleteFolder(folderId);
+    @Path("/groups/{groupId}")
+    public void deleteGroup(@PathParam("groupId") String groupId) {
+        LOG.debug("Deleting recording group: groupId={}", groupId);
+        recordingsManager.deleteGroup(groupId);
+    }
+
+    @PUT
+    @Path("/{recordingId}/group")
+    public void moveRecordingToGroup(
+            @PathParam("recordingId") String recordingId,
+            MoveRecordingRequest request) {
+        LOG.debug("Moving recording to group: recordingId={} groupId={}", recordingId, request.groupId());
+        recordingsManager.moveRecordingToGroup(recordingId, request.groupId());
     }
 
     @DELETE

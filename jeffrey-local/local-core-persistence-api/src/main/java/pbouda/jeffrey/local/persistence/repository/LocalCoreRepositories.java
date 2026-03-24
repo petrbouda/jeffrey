@@ -18,6 +18,10 @@
 
 package pbouda.jeffrey.local.persistence.repository;
 
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
+
+import java.util.List;
+
 /**
  * Factory interface for platform-level repositories shared between local and server deployments.
  * Provides access to repositories for profiles and recordings.
@@ -26,6 +30,8 @@ public interface LocalCoreRepositories {
 
     ProfileRepository newProfileRepository(String profileId);
 
-    ProjectRecordingRepository newProjectRecordingRepository(String projectId);
+    RecordingRepository newRecordingRepository(String projectId);
+
+    List<ProfileInfo> findAllProfilesByProject(String projectId);
 
 }

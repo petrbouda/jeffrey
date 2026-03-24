@@ -18,7 +18,8 @@
 
 package pbouda.jeffrey.local.core.client;
 
-import java.net.URI;
+import pbouda.jeffrey.local.persistence.model.WorkspaceAddress;
+
 import java.util.function.Function;
 
 public record RemoteClients(
@@ -32,6 +33,6 @@ public record RemoteClients(
 ) {
 
     @FunctionalInterface
-    public interface Factory extends Function<URI, RemoteClients> {
+    public interface Factory extends Function<WorkspaceAddress, RemoteClients> {
     }
 }

@@ -18,8 +18,9 @@
 
 package pbouda.jeffrey.local.core.resources.response;
 
-import pbouda.jeffrey.local.persistence.model.QuickRecordingInfo;
 import pbouda.jeffrey.shared.common.InstantUtils;
+import pbouda.jeffrey.shared.common.model.Recording;
+import pbouda.jeffrey.shared.common.model.RecordingFile;
 
 public record QuickRecordingResponse(
         String id,
@@ -31,19 +32,23 @@ public record QuickRecordingResponse(
         long durationInMillis,
         String profileId,
         boolean hasProfile,
-        long profileSizeInBytes) {
+        long profileSizeInBytes,
+        String profileName) {
 
-    public static QuickRecordingResponse from(QuickRecordingInfo info, long profileSizeInBytes) {
+    public static QuickRecordingResponse from(Recording recording, long profileSizeInBytes) {
+        RecordingFile file = recording.files().isEmpty() ? null : recording.files().getFirst();
+
         return new QuickRecordingResponse(
-                info.recordingId(),
-                info.filename(),
-                info.groupId(),
-                info.eventSource().name(),
-                info.sizeInBytes(),
-                InstantUtils.formatInstant(info.uploadedAt()),
-                info.duration().toMillis(),
-                info.profileId(),
-                info.hasProfile(),
-                profileSizeInBytes);
+                recording.id(),
+                file != null ? file.filename() : recording.recordingName(),
+                recording.groupId(),
+                recording.eventSource().name(),
+                file != null ? file.sizeInBytes() : 0,
+                InstantUtils.formatInstant(recording.createdAt()),
+                recording.recordingDuration().toMillis(),
+                recording.profileId(),
+                recording.hasProfile(),
+                profileSizeInBytes,
+                recording.profileName());
     }
 }

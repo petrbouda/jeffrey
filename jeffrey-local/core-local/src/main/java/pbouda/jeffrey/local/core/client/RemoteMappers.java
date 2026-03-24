@@ -20,35 +20,29 @@ package pbouda.jeffrey.local.core.client;
 
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.local.core.manager.project.ProjectManager.DetailedProjectInfo;
-import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
+import pbouda.jeffrey.local.core.resources.response.RemoteProjectResponse;
 import pbouda.jeffrey.shared.common.InstantUtils;
-
-import java.util.Optional;
 
 public abstract class RemoteMappers {
 
-    public static DetailedProjectInfo toDetailedProjectInfo(
-            ProjectResponse response, Optional<ProjectInfo> liveProject) {
-
+    public static DetailedProjectInfo toDetailedProjectInfo(RemoteProjectResponse response) {
         return new DetailedProjectInfo(
-                toProjectInfo(response, liveProject),
+                toProjectInfo(response),
                 response.status(),
-                response.profileCount(),
-                response.recordingCount(),
+                0,
+                0,
                 response.sessionCount(),
-                response.eventSource(),
-                liveProject.isEmpty(),
-                false,
+                null,
                 response.isBlocked());
     }
 
-    private static ProjectInfo toProjectInfo(ProjectResponse response, Optional<ProjectInfo> liveProject) {
+    private static ProjectInfo toProjectInfo(RemoteProjectResponse response) {
         return new ProjectInfo(
                 response.id(),
                 response.id(),
                 response.name(),
                 response.label(),
-                liveProject.map(ProjectInfo::namespace).orElse(null),
+                null,
                 response.workspaceId(),
                 InstantUtils.parseInstant(response.createdAt()),
                 null,

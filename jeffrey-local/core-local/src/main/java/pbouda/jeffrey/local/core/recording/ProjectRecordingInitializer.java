@@ -38,7 +38,7 @@ public interface ProjectRecordingInitializer {
      * Initializes a new recording and provides a {@link NewRecordingHolder} that contains resources
      * for managing the recording's lifecycle. It allows copying some additional files to the recording as well.
      *
-     * @param recording       the details of the recording including filename, folder ID, and input stream
+     * @param recording       the details of the recording including filename, group ID, and input stream
      * @param additionalFiles a list of additional files to be associated with the recording
      * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */
@@ -49,7 +49,7 @@ public interface ProjectRecordingInitializer {
      * for managing the recording's lifecycle. Only recording can be uploaded using the returned holder,
      * no additional files will be copied.
      *
-     * @param recording the details of the recording including filename, folder ID, and input stream
+     * @param recording the details of the recording including filename, group ID, and input stream
      * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */
     default NewRecordingHolder newRecording(NewRecording recording) {
@@ -60,7 +60,7 @@ public interface ProjectRecordingInitializer {
      * Initializes a new recording and provides a {@link NewRecordingHolder} that contains resources
      * for managing the recording's lifecycle. It allows copying additional files (by path) to the recording.
      *
-     * @param recording           the details of the recording including filename, folder ID, and input stream
+     * @param recording           the details of the recording including filename, group ID, and input stream
      * @param additionalFilePaths paths to additional files to be associated with the recording
      * @return a {@link NewRecordingHolder} that provides access to the output stream for uploading recording files.
      */

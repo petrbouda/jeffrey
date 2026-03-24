@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -17,23 +17,23 @@
  */
 
 import BasePlatformClient from '@/services/api/BasePlatformClient';
-import RecordingFolder from "@/services/api/model/RecordingFolder.ts";
+import RecordingGroup from "@/services/api/model/RecordingGroup.ts";
 
-export default class ProjectRecordingFolderClient extends BasePlatformClient {
+export default class ProjectRecordingGroupClient extends BasePlatformClient {
 
     constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/recordings/folders`);
+        super(`/workspaces/${workspaceId}/projects/${projectId}/recordings/groups`);
     }
 
-    async create(folderName: string): Promise<RecordingFolder> {
+    async create(groupName: string): Promise<RecordingGroup> {
         const requestBody = {
-            folderName: folderName
+            groupName: groupName
         }
-        return super.post<RecordingFolder>('', requestBody);
+        return super.post<RecordingGroup>('', requestBody);
     }
 
-    async list(): Promise<RecordingFolder[]> {
-        return super.get<RecordingFolder[]>();
+    async list(): Promise<RecordingGroup[]> {
+        return super.get<RecordingGroup[]>();
     }
 
     async delete(id: string) {

@@ -32,9 +32,6 @@ export default class Project {
         public recordingCount: number,
         public sessionCount: number,
         public eventSource: RecordingEventSource,
-        public isVirtual: boolean,
-        public isOrphaned: boolean,
-        public collectorOnlyModeEnabled: boolean,
         public isBlocked: boolean) {
     }
 

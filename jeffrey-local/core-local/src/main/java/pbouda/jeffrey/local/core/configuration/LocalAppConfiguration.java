@@ -35,15 +35,12 @@ import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
-import pbouda.jeffrey.local.persistence.repository.JdbcQuickGroupRepository;
-import pbouda.jeffrey.local.persistence.repository.JdbcQuickProfileRepository;
-import pbouda.jeffrey.local.persistence.repository.JdbcQuickRecordingRepository;
+import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.local.core.LocalJeffreyDirs;
-import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
 
@@ -73,7 +70,7 @@ public class LocalAppConfiguration {
             LocalJeffreyDirs jeffreyDirs,
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
-            DatabaseClientProvider databaseClientProvider,
+            LocalCoreRepositories localCoreRepositories,
             @Value("${jeffrey.local.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         ProfilePersistenceProvider quickProvider =
@@ -94,9 +91,7 @@ public class LocalAppConfiguration {
                 new JfrRecordingInformationParser(jeffreyDirs),
                 quickAnalysisProfileInitializer,
                 profileManagerFactory,
-                new JdbcQuickProfileRepository(databaseClientProvider),
-                new JdbcQuickGroupRepository(databaseClientProvider),
-                new JdbcQuickRecordingRepository(databaseClientProvider));
+                localCoreRepositories);
     }
 
     @Bean

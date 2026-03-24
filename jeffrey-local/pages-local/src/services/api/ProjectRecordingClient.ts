@@ -34,6 +34,10 @@ export default class ProjectRecordingClient extends BasePlatformClient {
         return super.del<void>(`/${id}`);
     }
 
+    async moveToGroup(recordingId: string, groupId: string | null): Promise<void> {
+        return super.put<void>(`/${recordingId}/group`, { groupId });
+    }
+
     async downloadFile(recordingId: string, fileId: string): Promise<void> {
         const downloadUrl = this.baseUrl + "/" + recordingId + "/files/" + encodeURIComponent(fileId) + "/download";
         return HttpUtils.downloadFile(downloadUrl, fileId);

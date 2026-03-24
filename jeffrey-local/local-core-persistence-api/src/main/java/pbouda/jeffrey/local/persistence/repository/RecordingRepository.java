@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,12 +20,12 @@ package pbouda.jeffrey.local.persistence.repository;
 
 import pbouda.jeffrey.shared.common.model.Recording;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
-import pbouda.jeffrey.local.persistence.model.RecordingFolder;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ProjectRecordingRepository {
+public interface RecordingRepository {
 
     /**
      * Finds a recording by its ID.
@@ -44,30 +44,30 @@ public interface ProjectRecordingRepository {
     /**
      * Finds all recordings in the project.
      *
-     * @return a list of recordings with their associated folders
+     * @return a list of recordings
      */
     List<Recording> findAllRecordings();
 
     /**
-     * Creates a new folder in the project.
+     * Creates a new group in the project.
      *
-     * @param folderName the name of the folder
+     * @param groupName the name of the group
      */
-    String insertFolder(String folderName);
+    String insertGroup(String groupName);
 
     /**
-     * Deletes a folder by its ID.
+     * Deletes a group by its ID.
      *
-     * @param folderId the ID of the folder to delete
+     * @param groupId the ID of the group to delete
      */
-    void deleteFolder(String folderId);
+    void deleteGroup(String groupId);
 
     /**
-     * Finds all recording folders in the project.
+     * Finds all recording groups in the project.
      *
-     * @return a list of recording folders
+     * @return a list of recording groups
      */
-    List<RecordingFolder> findAllRecordingFolders();
+    List<RecordingGroup> findAllRecordingGroups();
 
     /**
      * Finds a recording by its ID.
@@ -92,10 +92,34 @@ public interface ProjectRecordingRepository {
     void insertRecordingFile(RecordingFile recordingFile);
 
     /**
-     * Checks if the folder exists.
+     * Checks if the group exists.
      *
-     * @param folderId the ID of the folder to check
-     * @return true if the folder exists, false otherwise
+     * @param groupId the ID of the group to check
+     * @return true if the group exists, false otherwise
      */
-    boolean folderExists(String folderId);
+    boolean groupExists(String groupId);
+
+    /**
+     * Moves a recording to a different group, or to ungrouped if groupId is null.
+     *
+     * @param recordingId the ID of the recording to move
+     * @param groupId     the target group ID, or null to ungroup
+     */
+    void updateRecordingGroup(String recordingId, String groupId);
+
+    /**
+     * Finds a group by its ID.
+     *
+     * @param groupId the ID of the group to find
+     * @return the group if it exists, otherwise empty
+     */
+    Optional<RecordingGroup> findGroupById(String groupId);
+
+    /**
+     * Finds all recordings belonging to a specific group.
+     *
+     * @param groupId the ID of the group
+     * @return a list of recordings in the group
+     */
+    List<Recording> findRecordingsByGroupId(String groupId);
 }

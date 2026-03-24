@@ -41,7 +41,6 @@ import {useNavigation} from '@/composables/useNavigation';
 const props = defineProps<{
   project: Project;
   workspaceId: string;
-  isOrphaned?: boolean;
 }>();
 
 const {navigateToProject} = useNavigation();
@@ -53,27 +52,21 @@ const moveToProject = (projectId: string) => {
 // Border color class
 const getBorderClass = computed(() => {
   if (props.project.isBlocked) return 'border-blocked';
-  if (props.isOrphaned) return 'border-orphaned';
   return 'border-default';
 });
 
-// Show warning icon for orphaned, virtual, or blocked projects
+// Show warning icon for blocked projects
 const showCriticalWarning = computed(() => {
-  return props.isOrphaned || props.project.isVirtual || props.project.isBlocked;
+  return props.project.isBlocked;
 });
 
 const getCriticalWarningIcon = computed(() => {
   if (props.project.isBlocked) return 'bi bi-slash-circle-fill';
-  if (props.isOrphaned) return 'bi bi-exclamation-triangle-fill';
-  if (props.project.isVirtual) return 'bi bi-cloud-arrow-down-fill';
   return '';
 });
 
 const getCriticalWarningTooltip = computed(() => {
   if (props.project.isBlocked) return 'Project is blocked - no events are being processed';
-  if (props.isOrphaned) return 'Project is orphaned - original remote project was removed';
-  if (props.project.isVirtual)
-    return 'Virtual project - click to create local copy';
   return '';
 });
 
@@ -130,10 +123,6 @@ const formatStatus = (status: RecordingStatus): string => {
 /* Border Color Classes */
 .border-default {
   border-left-color: #5e64ff;
-}
-
-.border-orphaned {
-  border-left-color: #f97316;
 }
 
 .border-blocked {

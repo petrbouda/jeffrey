@@ -29,11 +29,11 @@ import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.local.core.resources.response.AnalyzeResponse;
 import pbouda.jeffrey.local.core.resources.response.QuickGroupResponse;
 import pbouda.jeffrey.local.core.resources.response.QuickRecordingResponse;
-import pbouda.jeffrey.local.persistence.model.QuickGroupInfo;
-import pbouda.jeffrey.local.persistence.model.QuickRecordingInfo;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.resources.ProfileResource;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
+import pbouda.jeffrey.shared.common.model.Recording;
 
 import java.io.InputStream;
 import java.util.List;
@@ -74,15 +74,15 @@ public class QuickAnalysisResource {
     @Path("/groups")
     @Produces(MediaType.APPLICATION_JSON)
     public List<QuickGroupResponse> listGroups() {
-        List<QuickGroupInfo> groups = quickAnalysisManager.listGroups();
-        List<QuickRecordingInfo> recordings = quickAnalysisManager.listRecordings();
+        List<RecordingGroup> groups = quickAnalysisManager.listGroups();
+        List<Recording> recordings = quickAnalysisManager.listRecordings();
 
         Map<String, Long> countByGroup = recordings.stream()
                 .filter(r -> r.groupId() != null)
-                .collect(Collectors.groupingBy(QuickRecordingInfo::groupId, Collectors.counting()));
+                .collect(Collectors.groupingBy(Recording::groupId, Collectors.counting()));
 
         return groups.stream()
-                .map(g -> QuickGroupResponse.from(g, countByGroup.getOrDefault(g.groupId(), 0L).intValue()))
+                .map(g -> QuickGroupResponse.from(g, countByGroup.getOrDefault(g.id(), 0L).intValue()))
                 .toList();
     }
 
@@ -123,15 +123,26 @@ public class QuickAnalysisResource {
                 .toList();
     }
 
-    private QuickRecordingResponse toRecordingResponse(QuickRecordingInfo info) {
+    private QuickRecordingResponse toRecordingResponse(Recording recording) {
         long profileSizeInBytes = 0;
-        if (info.hasProfile()) {
-            ProfileManager profileManager = quickAnalysisManager.profile(info.profileId()).orElse(null);
+        if (recording.hasProfile()) {
+            ProfileManager profileManager = quickAnalysisManager.profile(recording.profileId()).orElse(null);
             if (profileManager != null) {
                 profileSizeInBytes = profileManager.sizeInBytes();
             }
         }
-        return QuickRecordingResponse.from(info, profileSizeInBytes);
+        return QuickRecordingResponse.from(recording, profileSizeInBytes);
+    }
+
+    @PUT
+    @Path("/recordings/{recordingId}/group")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response moveRecordingToGroup(
+            @PathParam("recordingId") String recordingId,
+            MoveToGroupRequest request) {
+        LOG.debug("Moving quick recording to group: recordingId={} groupId={}", recordingId, request.groupId());
+        quickAnalysisManager.moveRecordingToGroup(recordingId, request.groupId());
+        return Response.ok().build();
     }
 
     @DELETE
@@ -160,8 +171,8 @@ public class QuickAnalysisResource {
             throw new BadRequestException("Profile name is required");
         }
 
-        QuickRecordingInfo recording = quickAnalysisManager.listRecordings().stream()
-                .filter(r -> r.recordingId().equals(recordingId))
+        Recording recording = quickAnalysisManager.listRecordings().stream()
+                .filter(r -> r.id().equals(recordingId))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Recording not found: " + recordingId));
 
@@ -198,6 +209,8 @@ public class QuickAnalysisResource {
     public record UploadRecordingResponse(String recordingId) {}
 
     public record UpdateProfileRequest(String name) {}
+
+    public record MoveToGroupRequest(String groupId) {}
 
     // --- Helpers ---
 

@@ -42,8 +42,6 @@ import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.net.URI;
-
 @Configuration
 @Import(AppConfiguration.class)
 public class RemoteWorkspaceConfiguration {
@@ -64,12 +62,11 @@ public class RemoteWorkspaceConfiguration {
             LocalCoreRepositories localCoreRepositories) {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
-            URI baseUri = workspaceInfo.baseLocation().toUri();
             return new RemoteWorkspaceManager(
                     jeffreyDirs,
                     workspaceInfo,
                     new JdbcWorkspaceRepository(workspaceInfo.id(), databaseClientProvider),
-                    remoteClientsFactory.apply(baseUri),
+                    remoteClientsFactory.apply(workspaceInfo.address()),
                     profilesManagerFactory,
                     recordingInitializerFactory,
                     localCoreRepositories);
@@ -83,8 +80,8 @@ public class RemoteWorkspaceConfiguration {
 
     @Bean
     public RemoteClients.Factory remoteClientsFactory() {
-        return remoteUrl -> {
-            GrpcServerConnection connection = new GrpcServerConnection(remoteUrl);
+        return address -> {
+            GrpcServerConnection connection = new GrpcServerConnection(address);
 
             return new RemoteClients(
                     new RemoteDiscoveryClient(connection),

@@ -27,4 +27,5 @@ export default interface QuickRecording {
     profileId: string | null;
     hasProfile: boolean;
     profileSizeInBytes: number;
+    profileName: string | null;
 }

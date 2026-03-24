@@ -39,22 +39,7 @@ public interface ProjectManager {
             int recordingCount,
             int sessionCount,
             RecordingEventSource eventSource,
-            boolean isVirtual,
-            boolean isOrphaned,
             boolean isBlocked) {
-
-        public DetailedProjectInfo orphaned() {
-            return new DetailedProjectInfo(
-                    projectInfo,
-                    status,
-                    profileCount,
-                    recordingCount,
-                    sessionCount,
-                    eventSource,
-                    isVirtual,
-                    true,
-                    isBlocked);
-        }
     }
 
     @FunctionalInterface

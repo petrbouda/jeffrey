@@ -97,8 +97,10 @@ public class JdbcProfileRepository implements ProfileRepository {
                 .addValue("event_source", profile.eventSource().name())
                 .addValue("created_at", profile.createdAt().atOffset(ZoneOffset.UTC))
                 .addValue("recording_id", profile.recordingId())
-                .addValue("recording_started_at", profile.recordingStartedAt().atOffset(ZoneOffset.UTC))
-                .addValue("recording_finished_at", profile.recordingFinishedAt().atOffset(ZoneOffset.UTC));
+                .addValue("recording_started_at", profile.recordingStartedAt() != null
+                        ? profile.recordingStartedAt().atOffset(ZoneOffset.UTC) : null)
+                .addValue("recording_finished_at", profile.recordingFinishedAt() != null
+                        ? profile.recordingFinishedAt().atOffset(ZoneOffset.UTC) : null);
 
         databaseClient.insert(StatementLabel.INSERT_PROFILE, INSERT_PROFILE, params);
     }

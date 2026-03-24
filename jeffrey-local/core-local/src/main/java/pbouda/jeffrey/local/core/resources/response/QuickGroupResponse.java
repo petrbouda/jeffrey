@@ -18,7 +18,7 @@
 
 package pbouda.jeffrey.local.core.resources.response;
 
-import pbouda.jeffrey.local.persistence.model.QuickGroupInfo;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 import pbouda.jeffrey.shared.common.InstantUtils;
 
 public record QuickGroupResponse(
@@ -27,11 +27,11 @@ public record QuickGroupResponse(
         String createdAt,
         int recordingCount) {
 
-    public static QuickGroupResponse from(QuickGroupInfo info, int recordingCount) {
+    public static QuickGroupResponse from(RecordingGroup group, int recordingCount) {
         return new QuickGroupResponse(
-                info.groupId(),
-                info.groupName(),
-                InstantUtils.formatInstant(info.createdAt()),
+                group.id(),
+                group.name(),
+                InstantUtils.formatInstant(group.createdAt()),
                 recordingCount);
     }
 }

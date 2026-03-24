@@ -18,7 +18,6 @@
 
 package pbouda.jeffrey.local.persistence.model;
 
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.time.Instant;
@@ -27,13 +26,13 @@ public record RemoteWorkspaceInfo(
         String id,
         String name,
         String description,
-        WorkspaceLocation baseLocation,
+        WorkspaceAddress address,
         Instant createdAt,
         WorkspaceStatus status,
         int projectCount) {
 
     public RemoteWorkspaceInfo withStatus(WorkspaceStatus newStatus) {
         return new RemoteWorkspaceInfo(
-                id, name, description, baseLocation, createdAt, newStatus, projectCount);
+                id, name, description, address, createdAt, newStatus, projectCount);
     }
 }

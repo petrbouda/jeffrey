@@ -18,9 +18,9 @@
 
 package pbouda.jeffrey.local.core.manager.qanalysis;
 
-import pbouda.jeffrey.local.persistence.model.QuickGroupInfo;
-import pbouda.jeffrey.local.persistence.model.QuickRecordingInfo;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
 import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.shared.common.model.Recording;
 
 import java.io.InputStream;
 import java.util.List;
@@ -31,14 +31,16 @@ public interface QuickAnalysisManager {
     // Group operations
     String createGroup(String groupName);
 
-    List<QuickGroupInfo> listGroups();
+    List<RecordingGroup> listGroups();
 
     void deleteGroup(String groupId);
 
     // Recording operations
     String uploadRecording(String filename, InputStream inputStream, String groupId);
 
-    List<QuickRecordingInfo> listRecordings();
+    void moveRecordingToGroup(String recordingId, String groupId);
+
+    List<Recording> listRecordings();
 
     void deleteRecording(String recordingId);
 

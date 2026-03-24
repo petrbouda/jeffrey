@@ -30,7 +30,7 @@ export default class Recording {
         public recordingFiles: RecordingFile[],
         public path?: string,
         public hasProfile?: boolean,
-        public folderId?: string | null,
+        public groupId?: string | null,
         public profileId?: string | null,
         public profileName?: string | null,
         public profileEnabled?: boolean,

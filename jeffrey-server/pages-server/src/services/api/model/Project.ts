@@ -17,7 +17,6 @@
  */
 
 import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 
 export default class Project {
     constructor(
@@ -27,17 +26,10 @@ export default class Project {
         public label: string | null,
         public namespace: string | null,
         public createdAt: string,
-        public profileCount: number,
         public workspaceId: string,
         public status: RecordingStatus,
-        public recordingCount: number,
         public sessionCount: number,
-        public jobCount: number,
-        public alertCount: number,
-        public eventSource: RecordingEventSource,
-        public isVirtual: boolean,
-        public isOrphaned: boolean,
-        public collectorOnlyModeEnabled: boolean) {
+        public isBlocked: boolean) {
     }
 
     static displayName(project: Project): string {

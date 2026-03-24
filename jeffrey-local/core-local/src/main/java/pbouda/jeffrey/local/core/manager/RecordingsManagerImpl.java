@@ -21,8 +21,8 @@ package pbouda.jeffrey.local.core.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import pbouda.jeffrey.local.persistence.model.RecordingFolder;
-import pbouda.jeffrey.local.persistence.repository.ProjectRecordingRepository;
+import pbouda.jeffrey.local.persistence.model.RecordingGroup;
+import pbouda.jeffrey.local.persistence.repository.RecordingRepository;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 import pbouda.jeffrey.shared.common.model.Recording;
 import pbouda.jeffrey.shared.common.model.RecordingFile;
@@ -37,48 +37,54 @@ public class RecordingsManagerImpl implements RecordingsManager {
 
     private final ProjectInfo projectInfo;
     private final ProjectRecordingInitializer recordingInitializer;
-    private final ProjectRecordingRepository projectRecordingRepository;
+    private final RecordingRepository recordingRepository;
 
     public RecordingsManagerImpl(
             ProjectInfo projectInfo,
             ProjectRecordingInitializer recordingInitializer,
-            ProjectRecordingRepository projectRecordingRepository) {
+            RecordingRepository recordingRepository) {
 
         this.projectInfo = projectInfo;
         this.recordingInitializer = recordingInitializer;
-        this.projectRecordingRepository = projectRecordingRepository;
+        this.recordingRepository = recordingRepository;
     }
 
     @Override
     public List<Recording> all() {
-        return projectRecordingRepository.findAllRecordings();
+        return recordingRepository.findAllRecordings();
     }
 
     @Override
-    public void createFolder(String folderName) {
-        LOG.debug("Creating recording folder: folderName={} projectId={}", folderName, projectInfo.id());
-        projectRecordingRepository.insertFolder(folderName);
+    public void createGroup(String groupName) {
+        LOG.debug("Creating recording group: groupName={} projectId={}", groupName, projectInfo.id());
+        recordingRepository.insertGroup(groupName);
     }
 
     @Override
-    public List<RecordingFolder> allRecordingFolders() {
-        return projectRecordingRepository.findAllRecordingFolders();
+    public List<RecordingGroup> allRecordingGroups() {
+        return recordingRepository.findAllRecordingGroups();
     }
 
     @Override
-    public void deleteFolder(String folderId) {
-        projectRecordingRepository.deleteFolder(folderId);
+    public void deleteGroup(String groupId) {
+        recordingRepository.deleteGroup(groupId);
     }
 
     @Override
     public void delete(String recordingId) {
         LOG.debug("Deleting recording: recordingId={} projectId={}", recordingId, projectInfo.id());
-        projectRecordingRepository.deleteRecordingWithFiles(recordingId);
+        recordingRepository.deleteRecordingWithFiles(recordingId);
+    }
+
+    @Override
+    public void moveRecordingToGroup(String recordingId, String groupId) {
+        LOG.debug("Moving recording to group: recordingId={} groupId={} projectId={}", recordingId, groupId, projectInfo.id());
+        recordingRepository.updateRecordingGroup(recordingId, groupId);
     }
 
     @Override
     public Optional<Path> findRecordingFile(String recordingId, String fileId) {
-        Optional<Recording> recordingOpt = projectRecordingRepository.findRecording(recordingId);
+        Optional<Recording> recordingOpt = recordingRepository.findRecording(recordingId);
         if (recordingOpt.isEmpty()) {
             return Optional.empty();
         }

@@ -29,7 +29,7 @@ import pbouda.jeffrey.local.core.manager.project.RemoteProjectManager;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.local.core.client.RemoteMappers;
-import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
+import pbouda.jeffrey.local.core.resources.response.RemoteProjectResponse;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
 
@@ -65,7 +65,7 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public List<ProjectManager> findAll() {
-        List<ProjectResponse> remoteProjects;
+        List<RemoteProjectResponse> remoteProjects;
         try {
             remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id());
         } catch (Exception e) {
@@ -75,14 +75,14 @@ public class RemoteProjectsManager implements ProjectsManager {
 
         return remoteProjects.stream()
                 .map(remoteProject -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(remoteProject, Optional.empty())))
+                        RemoteMappers.toDetailedProjectInfo(remoteProject)))
                 .toList();
     }
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
         // In remote-only mode, we look up the project from the remote server
-        List<ProjectResponse> remoteProjects;
+        List<RemoteProjectResponse> remoteProjects;
         try {
             remoteProjects = remoteClients.discovery().allProjects(workspaceInfo.id());
         } catch (Exception e) {
@@ -94,7 +94,7 @@ public class RemoteProjectsManager implements ProjectsManager {
                 .filter(p -> p.id().equals(projectId))
                 .findFirst()
                 .map(remoteProject -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(remoteProject, Optional.empty())));
+                        RemoteMappers.toDetailedProjectInfo(remoteProject)));
     }
 
     private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {

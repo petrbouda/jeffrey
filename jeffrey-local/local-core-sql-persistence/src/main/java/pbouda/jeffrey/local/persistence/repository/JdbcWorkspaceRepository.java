@@ -34,7 +34,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     //language=SQL
     private static final String DELETE_WORKSPACE_CASCADE = """
-            DELETE FROM recording_folders WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
+            DELETE FROM recording_groups WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
             DELETE FROM recording_files WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
             DELETE FROM recordings WHERE project_id IN (SELECT DISTINCT project_id FROM profiles WHERE workspace_id = '%workspace_id%');
             DELETE FROM profiler_settings WHERE workspace_id = '%workspace_id%';

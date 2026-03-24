@@ -16,17 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.local.persistence.repository;
+package pbouda.jeffrey.local.persistence.model;
 
-import pbouda.jeffrey.shared.common.model.ProfileInfo;
+public record WorkspaceAddress(String hostname, int port) {
 
-import java.util.List;
-
-/**
- * Repository for listing profiles belonging to a project.
- * Local-only replacement for the server's ProjectRepository.findAllProfiles().
- */
-public interface ProfilesListRepository {
-
-    List<ProfileInfo> findAllByProject(String projectId);
+    @Override
+    public String toString() {
+        return hostname + ":" + port;
+    }
 }

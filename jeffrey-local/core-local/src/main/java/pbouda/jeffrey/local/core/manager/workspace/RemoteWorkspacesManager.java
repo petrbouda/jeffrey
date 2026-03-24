@@ -51,7 +51,7 @@ public final class RemoteWorkspacesManager implements WorkspacesManager {
     public RemoteWorkspaceInfo create(CreateWorkspaceRequest request) {
         LOG.debug("Creating remote workspace: name={}", request.name());
         RemoteClients remoteClients =
-                remoteClientsFactory.apply(request.baseLocation().toUri());
+                remoteClientsFactory.apply(request.address());
 
         WorkspaceResult result = remoteClients.discovery().workspace(request.workspaceId());
         return switch (result.status()) {

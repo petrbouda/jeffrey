@@ -21,7 +21,7 @@ package pbouda.jeffrey.local.persistence.repository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
-import pbouda.jeffrey.shared.common.model.workspace.WorkspaceLocation;
+import pbouda.jeffrey.local.persistence.model.WorkspaceAddress;
 import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import pbouda.jeffrey.shared.persistence.GroupLabel;
 import pbouda.jeffrey.shared.persistence.StatementLabel;
@@ -49,8 +49,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO workspaces (workspace_id, base_location)
-            VALUES (:workspace_id, :base_location)""";
+            INSERT INTO workspaces (workspace_id, hostname, port)
+            VALUES (:workspace_id, :hostname, :port)""";
 
     private final DatabaseClient databaseClient;
 
@@ -80,7 +80,8 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     public RemoteWorkspaceInfo create(RemoteWorkspaceInfo workspaceInfo) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("workspace_id", workspaceInfo.id())
-                .addValue("base_location", workspaceInfo.baseLocation() != null ? workspaceInfo.baseLocation().toString() : null);
+                .addValue("hostname", workspaceInfo.address().hostname())
+                .addValue("port", workspaceInfo.address().port());
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT, params);
         return workspaceInfo;
@@ -92,13 +93,11 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
      */
     private static RowMapper<RemoteWorkspaceInfo> connectionMapper() {
         return (rs, _) -> {
-            String baseLocation = rs.getString("base_location");
-
             return new RemoteWorkspaceInfo(
                     rs.getString("workspace_id"),
                     null,
                     null,
-                    baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
+                    new WorkspaceAddress(rs.getString("hostname"), rs.getInt("port")),
                     Instant.EPOCH,
                     WorkspaceStatus.UNKNOWN,
                     0);

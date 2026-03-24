@@ -26,7 +26,7 @@ public record RecordingsResponse(
         long sizeInBytes,
         long durationInMillis,
         String uploadedAt,
-        String folderId,
+        String groupId,
         String sourceType,
         boolean hasProfile,
         String profileId,

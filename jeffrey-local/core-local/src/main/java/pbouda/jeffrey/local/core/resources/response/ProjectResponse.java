@@ -34,8 +34,5 @@ public record ProjectResponse(
         int recordingCount,
         int sessionCount,
         RecordingEventSource eventSource,
-        boolean isVirtual,
-        boolean isOrphaned,
-        boolean collectorOnlyModeEnabled,
         boolean isBlocked) {
 }

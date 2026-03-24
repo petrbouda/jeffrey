@@ -117,7 +117,7 @@ public class ProjectResource {
     public ProjectResponse infoResource() {
         LOG.debug("Fetching project info: projectId={}", projectManager.info().id());
         DetailedProjectInfo detail = projectManager.detailedInfo();
-        return Mappers.toProjectResponse(detail, false);
+        return Mappers.toProjectResponse(detail);
     }
 
     @DELETE
