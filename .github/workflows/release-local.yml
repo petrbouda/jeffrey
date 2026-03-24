@@ -38,7 +38,7 @@ jobs:
         context: ./docker-context
         file: ./docker/Dockerfile-local
         push: true
-        platforms: linux/amd64
+        platforms: linux/amd64,linux/arm64
         tags: petrbouda/jeffrey:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey:latest
 
     - name: Build and push jeffrey-examples (local with examples)
@@ -47,5 +47,5 @@ jobs:
         context: ./docker-context
         file: ./docker/Dockerfile-local-examples
         push: true
-        platforms: linux/amd64
+        platforms: linux/amd64,linux/arm64
         tags: petrbouda/jeffrey-examples:${{ steps.version.outputs.VERSION }},petrbouda/jeffrey-examples:latest
