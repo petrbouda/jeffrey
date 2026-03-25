@@ -6,7 +6,16 @@ Build and deploy the jeffrey-pages documentation site to petrbouda.github.io.
 
 Execute these steps in order:
 
-### 1. Build the Frontend
+### 1. Documentation Sync Check
+
+Before building, run the `docs-sync-checker` agent to audit documentation accuracy. This agent compares user-visible features in the frontend against documentation pages and reports any gaps.
+
+- Launch the `docs-sync-checker` agent and wait for the report
+- If issues are found, present them to the user with suggested fixes
+- Apply any fixes the user approves
+- Only proceed to step 2 after the user confirms they are ready to build and deploy
+
+### 2. Build the Frontend
 
 ```bash
 cd ./jeffrey-pages && npm run build
@@ -17,7 +26,7 @@ Verify the build completed successfully by checking that `dist/` contains:
 - `assets/` directory
 - `images/` directory
 
-### 2. Clean Destination
+### 3. Clean Destination
 
 Remove old files from the GitHub Pages repository:
 
@@ -28,7 +37,7 @@ rm -rf ../petrbouda.github.io/assets
 rm -rf ../petrbouda.github.io/images
 ```
 
-### 3. Copy New Files
+### 4. Copy New Files
 
 Copy the built files to the destination:
 
@@ -38,7 +47,7 @@ cp -r jeffrey-pages/dist/assets ../petrbouda.github.io/
 cp -r jeffrey-pages/dist/images ../petrbouda.github.io/
 ```
 
-### 4. Git Commit and Push
+### 5. Git Commit and Push
 
 Commit and push the changes:
 

@@ -412,17 +412,17 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>jeffrey.local.ai.provider</code></td>
-            <td><code>claude</code></td>
-            <td>AI provider: <code>claude</code> for Claude models, <code>chatgpt</code> for GPT/O1/O3 models, <code>none</code> to disable</td>
+            <td><code>none</code></td>
+            <td>AI provider: <code>claude</code> for Claude models, <code>openai</code> for GPT/O1/O3 models, <code>none</code> to disable</td>
           </tr>
           <tr>
             <td><code>jeffrey.local.ai.model</code></td>
-            <td><code>claude-opus-4-5-20251101</code></td>
-            <td>AI model name. Claude: <code>claude-opus-4-5-20251101</code>, <code>claude-sonnet-4-5-20250929</code>, <code>claude-sonnet-4-20250514</code>. ChatGPT: <code>gpt-4o</code>, <code>gpt-4o-mini</code>, <code>o3-mini</code></td>
+            <td><code>claude-opus-4-6</code></td>
+            <td>AI model name. Claude: <code>claude-opus-4-6</code>, <code>claude-sonnet-4-6</code>, <code>claude-sonnet-4-20250514</code>. OpenAI: <code>gpt-4o</code>, <code>gpt-4o-mini</code>, <code>o3-mini</code></td>
           </tr>
           <tr>
             <td><code>jeffrey.local.ai.max-tokens</code></td>
-            <td><code>4096</code></td>
+            <td><code>128000</code></td>
             <td>Maximum tokens in AI response</td>
           </tr>
         </tbody>

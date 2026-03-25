@@ -113,9 +113,9 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>jeffrey.local.ai.provider</code></td>
-            <td><code>claude</code></td>
+            <td><code>none</code></td>
             <td>
-              AI provider: <code>claude</code>, <code>chatgpt</code>, or <code>none</code> (disabled)
+              AI provider: <code>claude</code>, <code>openai</code>, or <code>none</code> (disabled)
             </td>
           </tr>
           <tr>

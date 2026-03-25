@@ -43,6 +43,7 @@ import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.local.core.LocalJeffreyDirs;
 
+import java.nio.file.Path;
 import java.time.Clock;
 
 /**
@@ -101,6 +102,6 @@ public class LocalAppConfiguration {
             QuickAnalysisManager quickAnalysisManager,
             @Value("${jeffrey.local.seed.recordings.dir:/jeffrey-examples}") String seedDir) {
 
-        return new RecordingSeedInitializer(quickAnalysisManager, seedDir);
+        return new RecordingSeedInitializer(quickAnalysisManager, Path.of(seedDir));
     }
 }

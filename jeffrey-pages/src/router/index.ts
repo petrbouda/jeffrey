@@ -122,6 +122,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/platform/QuickAnalysisPage.vue')
       },
       {
+        path: 'platform/event-log',
+        name: 'DocsEventLog',
+        component: () => import('@/views/docs/platform/EventLogPage.vue')
+      },
+      {
         path: 'platform/projects',
         name: 'DocsProjects',
         component: () => import('@/views/docs/platform/projects/ProjectsOverviewPage.vue')
@@ -155,6 +160,11 @@ const routes: RouteRecordRaw[] = [
         path: 'platform/recording-sessions/lifecycle',
         name: 'DocsRecordingSessionsLifecycle',
         component: () => import('@/views/docs/platform/recording-sessions/RecordingSessionsLifecyclePage.vue')
+      },
+      {
+        path: 'platform/projects/instances',
+        name: 'DocsProjectsInstances',
+        component: () => import('@/views/docs/platform/projects/ProjectsInstancesPage.vue')
       },
       {
         path: 'platform/projects/profiler-settings',

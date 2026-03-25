@@ -1,6 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="LocalApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <module name="core-local" />
+    <option name="PROGRAM_PARAMETERS" value="--jeffrey.local.seed.recordings.enabled=true" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="pbouda.jeffrey.local.core.LocalApplication" />
     <option name="VM_PARAMETERS" value="-XX:+CrashOnOutOfMemoryError -agentpath:$USER_HOME$/.sdkman/candidates/java/current/lib/libasyncProfiler.dylib=start,event=cpu,alloc,lock,chunksize=5m,jfrsync=default,file=profile.jfr" />
     <extension name="coverage">

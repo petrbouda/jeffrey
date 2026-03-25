@@ -61,6 +61,7 @@ export const docsNavigation: DocSection[] = [
     children: [
       { title: 'Workspaces', path: 'workspaces' },
       { title: 'Quick Analysis', path: 'quick-analysis' },
+      { title: 'Event Log', path: 'event-log' },
       {
         title: 'Projects',
         path: 'projects',
@@ -69,6 +70,7 @@ export const docsNavigation: DocSection[] = [
           { title: 'Profiles', path: 'projects/profiles' },
           { title: 'Recordings', path: 'projects/recordings' },
           { title: 'Repository', path: 'projects/repository' },
+          { title: 'Instances', path: 'projects/instances' },
           { title: 'Profiler Settings', path: 'projects/profiler-settings' },
           { title: 'Scheduler', path: 'projects/scheduler' },
           { title: 'Alerts & Messages', path: 'projects/alerts-messages' }

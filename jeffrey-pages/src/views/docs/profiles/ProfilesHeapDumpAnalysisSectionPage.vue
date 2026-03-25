@@ -106,9 +106,6 @@ onMounted(() => {
           <DocsFeatureItem icon="bi bi-collection" title="Collection Analysis">
             Analyzes Java collections (Lists, Maps, Sets) for overhead and efficiency. Identifies empty collections consuming memory, oversized collections with low fill rates, and collections that could benefit from resizing.
           </DocsFeatureItem>
-          <DocsFeatureItem icon="bi bi-bar-chart" title="Biggest Objects">
-            Top objects ranked by retained size. Quickly identifies the largest memory consumers in the heap, useful as a starting point for memory optimization.
-          </DocsFeatureItem>
         </div>
 
         <h3>Understanding Memory Sizes</h3>

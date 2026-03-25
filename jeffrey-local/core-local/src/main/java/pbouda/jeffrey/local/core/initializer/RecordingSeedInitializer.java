@@ -38,18 +38,19 @@ public class RecordingSeedInitializer implements ApplicationRunner {
     private static final Logger LOG = LoggerFactory.getLogger(RecordingSeedInitializer.class);
 
     private final QuickAnalysisManager quickAnalysisManager;
-    private final String seedDir;
+    private final Path seedPath;
 
-    public RecordingSeedInitializer(QuickAnalysisManager quickAnalysisManager, String seedDir) {
+    public RecordingSeedInitializer(QuickAnalysisManager quickAnalysisManager, Path seedPath) {
         this.quickAnalysisManager = quickAnalysisManager;
-        this.seedDir = seedDir;
+        this.seedPath = seedPath;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        Path seedPath = Path.of(seedDir);
+        LOG.info("Seeding of recordings started: {}", seedPath);
+
         if (!Files.isDirectory(seedPath)) {
-            LOG.debug("Seed recordings directory does not exist, skipping: path={}", seedPath);
+            LOG.warn("Seed recordings directory does not exist, skipping: path={}", seedPath);
             return;
         }
 
