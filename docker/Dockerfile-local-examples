@@ -11,6 +11,4 @@ RUN mkdir /app
 COPY jeffrey.jar /app/
 COPY --from=recordings /recordings /jeffrey-examples
 
-ENV JEFFREY_LOCAL_SEED_RECORDINGS_DIR=/jeffrey-examples
-
-ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar"]
+ENTRYPOINT ["java", "-jar", "/app/jeffrey.jar", "--jeffrey.local.seed.recordings.enabled=true"]

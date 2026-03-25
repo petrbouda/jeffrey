@@ -47,10 +47,6 @@ public class RecordingSeedInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (seedDir == null || seedDir.isBlank()) {
-            return;
-        }
-
         Path seedPath = Path.of(seedDir);
         if (!Files.isDirectory(seedPath)) {
             LOG.debug("Seed recordings directory does not exist, skipping: path={}", seedPath);

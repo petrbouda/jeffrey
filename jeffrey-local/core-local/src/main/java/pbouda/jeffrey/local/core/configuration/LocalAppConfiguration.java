@@ -19,6 +19,7 @@
 package pbouda.jeffrey.local.core.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pbouda.jeffrey.local.core.initializer.RecordingSeedInitializer;
@@ -95,9 +96,10 @@ public class LocalAppConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "jeffrey.local.seed.recordings.enabled", havingValue = "true")
     public RecordingSeedInitializer recordingSeedInitializer(
             QuickAnalysisManager quickAnalysisManager,
-            @Value("${jeffrey.local.seed.recordings-dir:}") String seedDir) {
+            @Value("${jeffrey.local.seed.recordings.dir:/jeffrey-examples}") String seedDir) {
 
         return new RecordingSeedInitializer(quickAnalysisManager, seedDir);
     }
