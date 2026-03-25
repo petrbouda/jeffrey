@@ -24,18 +24,26 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.shared.common.model.Recording;
+import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RecordingSeedInitializer implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingSeedInitializer.class);
+
+    private static final Set<SupportedRecordingFile> SEED_FILE_TYPES = Set.of(
+            SupportedRecordingFile.JFR,
+            SupportedRecordingFile.JFR_LZ4,
+            SupportedRecordingFile.HEAP_DUMP,
+            SupportedRecordingFile.HEAP_DUMP_GZ
+    );
 
     private final QuickAnalysisManager quickAnalysisManager;
     private final Path seedPath;
@@ -54,9 +62,9 @@ public class RecordingSeedInitializer implements ApplicationRunner {
             return;
         }
 
-        Set<String> existingFilenames = quickAnalysisManager.listRecordings().stream()
+        List<String> existingFilenames = quickAnalysisManager.listRecordings().stream()
                 .map(Recording::recordingName)
-                .collect(Collectors.toSet());
+                .toList();
 
         int imported = 0;
 
@@ -86,7 +94,6 @@ public class RecordingSeedInitializer implements ApplicationRunner {
     }
 
     private static boolean isRecordingFile(Path path) {
-        String name = path.getFileName().toString().toLowerCase();
-        return name.endsWith(".jfr") || name.endsWith(".hprof") || name.endsWith(".hprof.gz");
+        return SEED_FILE_TYPES.contains(SupportedRecordingFile.of(path));
     }
 }
