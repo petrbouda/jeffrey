@@ -23,7 +23,7 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
@@ -171,13 +171,13 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
         return builder.build();
     }
 
-    private static pbouda.jeffrey.api.v1.InstanceStatus toProtoInstanceStatus(
+    private static pbouda.jeffrey.server.api.v1.InstanceStatus toProtoInstanceStatus(
             ProjectInstanceInfo.ProjectInstanceStatus status) {
         return switch (status) {
-            case PENDING -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_PENDING;
-            case ACTIVE -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_ACTIVE;
-            case FINISHED -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_FINISHED;
-            case EXPIRED -> pbouda.jeffrey.api.v1.InstanceStatus.INSTANCE_STATUS_EXPIRED;
+            case PENDING -> pbouda.jeffrey.server.api.v1.InstanceStatus.INSTANCE_STATUS_PENDING;
+            case ACTIVE -> pbouda.jeffrey.server.api.v1.InstanceStatus.INSTANCE_STATUS_ACTIVE;
+            case FINISHED -> pbouda.jeffrey.server.api.v1.InstanceStatus.INSTANCE_STATUS_FINISHED;
+            case EXPIRED -> pbouda.jeffrey.server.api.v1.InstanceStatus.INSTANCE_STATUS_EXPIRED;
         };
     }
 }

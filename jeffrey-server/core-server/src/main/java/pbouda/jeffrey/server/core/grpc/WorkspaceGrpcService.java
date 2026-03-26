@@ -23,7 +23,7 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
@@ -65,7 +65,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     @Override
     public void listWorkspaces(ListWorkspacesRequest request, StreamObserver<ListWorkspacesResponse> responseObserver) {
         try {
-            List<pbouda.jeffrey.api.v1.WorkspaceInfo> workspaces = workspacesManager.findAll().stream()
+            List<pbouda.jeffrey.server.api.v1.WorkspaceInfo> workspaces = workspacesManager.findAll().stream()
                     .map(WorkspaceManager::resolveInfo)
                     .map(WorkspaceGrpcService::toProto)
                     .toList();
@@ -157,8 +157,8 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
                         .asRuntimeException());
     }
 
-    static pbouda.jeffrey.api.v1.WorkspaceInfo toProto(WorkspaceInfo info) {
-        return pbouda.jeffrey.api.v1.WorkspaceInfo.newBuilder()
+    static pbouda.jeffrey.server.api.v1.WorkspaceInfo toProto(WorkspaceInfo info) {
+        return pbouda.jeffrey.server.api.v1.WorkspaceInfo.newBuilder()
                 .setId(info.id())
                 .setName(info.name())
                 .setDescription(info.description() != null ? info.description() : "")
@@ -169,11 +169,11 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
                 .build();
     }
 
-    private static pbouda.jeffrey.api.v1.WorkspaceStatus toProtoStatus(WorkspaceStatus status) {
+    private static pbouda.jeffrey.server.api.v1.WorkspaceStatus toProtoStatus(WorkspaceStatus status) {
         return switch (status) {
-            case AVAILABLE -> pbouda.jeffrey.api.v1.WorkspaceStatus.WORKSPACE_STATUS_AVAILABLE;
-            case UNAVAILABLE -> pbouda.jeffrey.api.v1.WorkspaceStatus.WORKSPACE_STATUS_UNAVAILABLE;
-            case OFFLINE, UNKNOWN -> pbouda.jeffrey.api.v1.WorkspaceStatus.WORKSPACE_STATUS_INCOMPATIBLE;
+            case AVAILABLE -> pbouda.jeffrey.server.api.v1.WorkspaceStatus.WORKSPACE_STATUS_AVAILABLE;
+            case UNAVAILABLE -> pbouda.jeffrey.server.api.v1.WorkspaceStatus.WORKSPACE_STATUS_UNAVAILABLE;
+            case OFFLINE, UNKNOWN -> pbouda.jeffrey.server.api.v1.WorkspaceStatus.WORKSPACE_STATUS_INCOMPATIBLE;
         };
     }
 }

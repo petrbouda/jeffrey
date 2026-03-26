@@ -67,7 +67,8 @@ public class CachedRemoteClientsFactory implements RemoteClients.Factory, Closea
                 new RemoteProfilerClient(connection),
                 new RemoteMessagesClient(connection),
                 new RemoteInstancesClient(connection),
-                new RemoteProjectsClient(connection));
+                new RemoteProjectsClient(connection),
+                new RemoteWorkspaceEventsClient(connection));
 
         return new CachedEntry(connection, clients);
     }

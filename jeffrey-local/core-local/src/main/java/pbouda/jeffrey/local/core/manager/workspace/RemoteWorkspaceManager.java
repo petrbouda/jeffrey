@@ -26,6 +26,7 @@ import pbouda.jeffrey.local.core.client.RemoteDiscoveryClient;
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
 import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
+import pbouda.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.local.persistence.repository.WorkspaceRepository;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
@@ -96,6 +97,11 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 profilesManagerFactory,
                 recordingInitializerFactory,
                 localCoreRepositories);
+    }
+
+    @Override
+    public List<WorkspaceEventResponse> events() {
+        return remoteClients.workspaceEvents().getEvents(workspaceInfo.id());
     }
 
     @Override

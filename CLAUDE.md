@@ -215,7 +215,8 @@ jeffrey/
 - **Naming**: PascalCase for classes, camelCase for methods/fields
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Jersey/JAX-RS with `@Path` annotations, constructor injection (not `@Autowired`)
-- **gRPC**: Proto files in `shared/server-api/`, implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
+- **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`, `@RestController`) or `@Autowired`. Always register beans explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit.
+- **gRPC**: Proto files in `shared/server-api/` (package `pbouda.jeffrey.server.api.v1`), implementations in `jeffrey-server/core-server/.../grpc/`, clients in `jeffrey-local/core-local/.../client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data
 - **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)

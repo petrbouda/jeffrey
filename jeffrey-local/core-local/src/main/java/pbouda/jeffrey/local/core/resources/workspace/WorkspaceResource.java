@@ -76,7 +76,7 @@ public class WorkspaceResource {
     @GET
     @Path("/events")
     public List<WorkspaceEventResponse> events() {
-        // Events are not available in jeffrey-local (remote-only mode)
-        return List.of();
+        LOG.debug("Fetching workspace events: workspaceId={}", workspaceInfo.id());
+        return workspaceManager.events();
     }
 }

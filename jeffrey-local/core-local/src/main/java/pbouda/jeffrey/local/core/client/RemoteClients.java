@@ -29,7 +29,8 @@ public record RemoteClients(
         RemoteProfilerClient profiler,
         RemoteMessagesClient messages,
         RemoteInstancesClient instances,
-        RemoteProjectsClient projects
+        RemoteProjectsClient projects,
+        RemoteWorkspaceEventsClient workspaceEvents
 ) {
 
     @FunctionalInterface

@@ -20,7 +20,7 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.local.core.resources.response.InstanceResponse;
 import pbouda.jeffrey.local.core.resources.response.InstanceSessionResponse;
 
@@ -107,7 +107,7 @@ public class RemoteInstancesClient {
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null);
     }
 
-    private static String fromProtoInstanceStatus(pbouda.jeffrey.api.v1.InstanceStatus status) {
+    private static String fromProtoInstanceStatus(pbouda.jeffrey.server.api.v1.InstanceStatus status) {
         return switch (status) {
             case INSTANCE_STATUS_PENDING -> "PENDING";
             case INSTANCE_STATUS_ACTIVE -> "ACTIVE";

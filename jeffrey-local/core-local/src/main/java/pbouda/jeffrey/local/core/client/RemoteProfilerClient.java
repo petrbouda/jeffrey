@@ -20,7 +20,7 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import pbouda.jeffrey.shared.common.model.EffectiveProfilerSettings.SettingsLevel;
 import pbouda.jeffrey.shared.common.model.ProfilerInfo;
@@ -110,7 +110,7 @@ public class RemoteProfilerClient {
         LOG.debug("Deleted profiler settings at level via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
     }
 
-    private static SettingsLevel fromProtoLevel(pbouda.jeffrey.api.v1.SettingsLevel level) {
+    private static SettingsLevel fromProtoLevel(pbouda.jeffrey.server.api.v1.SettingsLevel level) {
         return switch (level) {
             case SETTINGS_LEVEL_PROJECT -> SettingsLevel.PROJECT;
             case SETTINGS_LEVEL_WORKSPACE -> SettingsLevel.WORKSPACE;

@@ -21,7 +21,7 @@ package pbouda.jeffrey.local.core.client;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.local.core.resources.response.PublicApiInfoResponse;
 import pbouda.jeffrey.local.core.resources.response.RemoteProjectResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
@@ -77,7 +77,7 @@ public class RemoteDiscoveryClient {
                             .setWorkspaceId(workspaceId)
                             .build());
 
-            pbouda.jeffrey.api.v1.WorkspaceInfo proto = response.getWorkspace();
+            pbouda.jeffrey.server.api.v1.WorkspaceInfo proto = response.getWorkspace();
             RemoteWorkspaceInfo info = toWorkspaceInfo(proto);
             return WorkspaceResult.of(info);
         } catch (StatusRuntimeException e) {
@@ -104,7 +104,7 @@ public class RemoteDiscoveryClient {
                 .toList();
     }
 
-    private RemoteWorkspaceInfo toWorkspaceInfo(pbouda.jeffrey.api.v1.WorkspaceInfo proto) {
+    private RemoteWorkspaceInfo toWorkspaceInfo(pbouda.jeffrey.server.api.v1.WorkspaceInfo proto) {
         return new RemoteWorkspaceInfo(
                 proto.getId(),
                 proto.getName(),
@@ -115,7 +115,7 @@ public class RemoteDiscoveryClient {
                 proto.getProjectCount());
     }
 
-    private static WorkspaceResponse toWorkspaceResponse(pbouda.jeffrey.api.v1.WorkspaceInfo proto) {
+    private static WorkspaceResponse toWorkspaceResponse(pbouda.jeffrey.server.api.v1.WorkspaceInfo proto) {
         return new WorkspaceResponse(
                 proto.getId(),
                 proto.getName(),
@@ -139,7 +139,7 @@ public class RemoteDiscoveryClient {
                 proto.getIsBlocked());
     }
 
-    private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.api.v1.RecordingStatus status) {
+    private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.server.api.v1.RecordingStatus status) {
         return switch (status) {
             case RECORDING_STATUS_ACTIVE -> RecordingStatus.ACTIVE;
             case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;
@@ -147,7 +147,7 @@ public class RemoteDiscoveryClient {
         };
     }
 
-    private static WorkspaceStatus fromProtoStatus(pbouda.jeffrey.api.v1.WorkspaceStatus status) {
+    private static WorkspaceStatus fromProtoStatus(pbouda.jeffrey.server.api.v1.WorkspaceStatus status) {
         return switch (status) {
             case WORKSPACE_STATUS_AVAILABLE -> WorkspaceStatus.AVAILABLE;
             case WORKSPACE_STATUS_UNAVAILABLE -> WorkspaceStatus.UNAVAILABLE;

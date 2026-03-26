@@ -25,20 +25,13 @@ import org.glassfish.jersey.logging.LoggingFeature.Verbosity;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.media.sse.SseFeature;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@Component
 @ApplicationPath("/api")
 public class JerseyConfig extends ResourceConfig {
 
-    @Autowired
-    public JerseyConfig(
-            @Value("${jeffrey.local.logging.http-access.enabled:false}") boolean isAccessLoggingEnabled) {
+    public JerseyConfig(boolean isAccessLoggingEnabled) {
 
         // Scan for resources in core and profile-management modules
         packages("pbouda.jeffrey.resources", "pbouda.jeffrey.profile.resources");

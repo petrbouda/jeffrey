@@ -26,12 +26,10 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import pbouda.jeffrey.shared.common.exception.ErrorCode;
 import pbouda.jeffrey.shared.common.exception.ErrorResponse;
 import pbouda.jeffrey.shared.common.exception.ErrorType;
 
-@Component
 @ApplicationPath("/api")
 public class JerseyConfig extends ResourceConfig {
 

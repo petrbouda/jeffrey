@@ -23,7 +23,7 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.server.persistence.repository.ProfilerRepository;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.core.manager.ProfilerSettingsManager;

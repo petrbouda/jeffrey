@@ -54,7 +54,8 @@ public class GrpcServerConfiguration {
             MessagesGrpcService messagesGrpcService,
             ProfilerSettingsGrpcService profilerSettingsGrpcService,
             RepositoryGrpcService repositoryGrpcService,
-            RecordingDownloadGrpcService recordingDownloadGrpcService) {
+            RecordingDownloadGrpcService recordingDownloadGrpcService,
+            WorkspaceEventsGrpcService workspaceEventsGrpcService) {
 
         return ServerBuilder.forPort(grpcPort)
                 .addService(workspaceGrpcService)
@@ -64,6 +65,7 @@ public class GrpcServerConfiguration {
                 .addService(profilerSettingsGrpcService)
                 .addService(repositoryGrpcService)
                 .addService(recordingDownloadGrpcService)
+                .addService(workspaceEventsGrpcService)
                 .build();
     }
 

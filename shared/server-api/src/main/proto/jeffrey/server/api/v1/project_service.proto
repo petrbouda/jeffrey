@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package jeffrey.api.v1;
+package jeffrey.server.api.v1;
 
-option java_package = "pbouda.jeffrey.api.v1";
+option java_package = "pbouda.jeffrey.server.api.v1";
 option java_multiple_files = true;
 
-import "jeffrey/api/v1/common.proto";
+import "jeffrey/server/api/v1/common.proto";
 
 // Manages projects within a workspace — listing, deletion, and blocking.
 // Projects represent monitored applications and are auto-created from

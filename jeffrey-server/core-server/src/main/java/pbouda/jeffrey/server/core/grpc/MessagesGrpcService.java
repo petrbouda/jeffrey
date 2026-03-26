@@ -23,7 +23,7 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
@@ -122,13 +122,13 @@ public class MessagesGrpcService extends MessagesServiceGrpc.MessagesServiceImpl
                 .build();
     }
 
-    private static pbouda.jeffrey.api.v1.Severity toProtoSeverity(
+    private static pbouda.jeffrey.server.api.v1.Severity toProtoSeverity(
             pbouda.jeffrey.shared.common.model.Severity severity) {
         return switch (severity) {
-            case CRITICAL -> pbouda.jeffrey.api.v1.Severity.SEVERITY_CRITICAL;
-            case HIGH -> pbouda.jeffrey.api.v1.Severity.SEVERITY_HIGH;
-            case MEDIUM -> pbouda.jeffrey.api.v1.Severity.SEVERITY_MEDIUM;
-            case LOW -> pbouda.jeffrey.api.v1.Severity.SEVERITY_LOW;
+            case CRITICAL -> pbouda.jeffrey.server.api.v1.Severity.SEVERITY_CRITICAL;
+            case HIGH -> pbouda.jeffrey.server.api.v1.Severity.SEVERITY_HIGH;
+            case MEDIUM -> pbouda.jeffrey.server.api.v1.Severity.SEVERITY_MEDIUM;
+            case LOW -> pbouda.jeffrey.server.api.v1.Severity.SEVERITY_LOW;
         };
     }
 }

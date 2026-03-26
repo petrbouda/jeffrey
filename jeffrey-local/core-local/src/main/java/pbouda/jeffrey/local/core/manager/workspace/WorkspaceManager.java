@@ -19,9 +19,11 @@
 package pbouda.jeffrey.local.core.manager.workspace;
 
 import pbouda.jeffrey.local.core.client.RemoteProfilerClient;
+import pbouda.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.local.persistence.model.RemoteWorkspaceInfo;
 import pbouda.jeffrey.local.core.manager.project.ProjectsManager;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -60,6 +62,16 @@ public interface WorkspaceManager {
      */
     default Optional<RemoteProfilerClient> profilerClient() {
         return Optional.empty();
+    }
+
+    /**
+     * Returns workspace events for this workspace.
+     * Only remote workspaces have events; local workspaces return an empty list.
+     *
+     * @return list of workspace event responses
+     */
+    default List<WorkspaceEventResponse> events() {
+        return List.of();
     }
 
     /**

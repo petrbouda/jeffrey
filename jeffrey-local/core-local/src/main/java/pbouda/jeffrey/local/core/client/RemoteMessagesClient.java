@@ -20,7 +20,7 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.local.core.resources.response.ImportantMessageResponse;
 
 import java.util.List;
@@ -91,7 +91,7 @@ public class RemoteMessagesClient {
                 proto.getCreatedAt());
     }
 
-    private static String fromProtoSeverity(pbouda.jeffrey.api.v1.Severity severity) {
+    private static String fromProtoSeverity(pbouda.jeffrey.server.api.v1.Severity severity) {
         return switch (severity) {
             case SEVERITY_CRITICAL -> "CRITICAL";
             case SEVERITY_HIGH -> "HIGH";

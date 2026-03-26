@@ -18,9 +18,11 @@
 
 package pbouda.jeffrey.local.core.configuration;
 
-import jakarta.annotation.PostConstruct;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.local.core.resources.JerseyConfig;
 import pbouda.jeffrey.local.core.resources.RootInternalResource;
 
 /**
@@ -29,14 +31,11 @@ import pbouda.jeffrey.local.core.resources.RootInternalResource;
 @Configuration
 public class LocalJerseyConfigurer {
 
-    private final ResourceConfig resourceConfig;
-
-    public LocalJerseyConfigurer(ResourceConfig resourceConfig) {
-        this.resourceConfig = resourceConfig;
-    }
-
-    @PostConstruct
-    public void configure() {
-        resourceConfig.register(RootInternalResource.class);
+    @Bean
+    public ResourceConfig jerseyConfig(
+            @Value("${jeffrey.local.logging.http-access.enabled:false}") boolean isAccessLoggingEnabled) {
+        JerseyConfig config = new JerseyConfig(isAccessLoggingEnabled);
+        config.register(RootInternalResource.class);
+        return config;
     }
 }

@@ -20,7 +20,7 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.local.core.resources.response.RecordingSessionResponse;
 import pbouda.jeffrey.local.core.resources.response.RepositoryFileResponse;
 import pbouda.jeffrey.local.core.resources.response.RepositoryStatisticsResponse;
@@ -142,7 +142,7 @@ public class RemoteRepositoryClient {
                 fromProtoRecordingStatus(proto.getStatus()));
     }
 
-    private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.api.v1.RecordingStatus status) {
+    private static RecordingStatus fromProtoRecordingStatus(pbouda.jeffrey.server.api.v1.RecordingStatus status) {
         return switch (status) {
             case RECORDING_STATUS_ACTIVE -> RecordingStatus.ACTIVE;
             case RECORDING_STATUS_FINISHED -> RecordingStatus.FINISHED;

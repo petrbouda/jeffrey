@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package jeffrey.server.api.v1;
+
+option java_package = "pbouda.jeffrey.server.api.v1";
+option java_multiple_files = true;
+
+// Provides access to workspace events.
+// Events are always scoped to a single workspace — never returned across all workspaces.
+service WorkspaceEventsService {
+  // Gets events for a single workspace, optionally filtered by event type.
+  rpc GetWorkspaceEvents(GetWorkspaceEventsRequest) returns (GetWorkspaceEventsResponse);
+}
+
+message GetWorkspaceEventsRequest {
+  // The workspace to retrieve events for (required).
+  string workspace_id = 1;
+  // Optional filter by event type name (e.g., "PROJECT_CREATED").
+  optional string event_type = 2;
+}
+
+message GetWorkspaceEventsResponse {
+  repeated WorkspaceEventInfo events = 1;
+}
+
+// A workspace event produced by the system (e.g., project created, session finished).
+message WorkspaceEventInfo {
+  // Sequential event identifier from the persistent queue.
+  int64 event_id = 1;
+  // Original event identifier from the source.
+  string origin_event_id = 2;
+  // Project associated with this event.
+  string project_id = 3;
+  // Workspace this event belongs to.
+  string workspace_id = 4;
+  // Event type name (e.g., "PROJECT_CREATED", "PROJECT_DELETED").
+  string event_type = 5;
+  // JSON-serialized event content.
+  string content = 6;
+  // Timestamp when the event originally occurred (epoch millis).
+  int64 origin_created_at = 7;
+  // Timestamp when the event was replicated to the queue (epoch millis).
+  int64 created_at = 8;
+  // User or system that created the event.
+  string created_by = 9;
+}

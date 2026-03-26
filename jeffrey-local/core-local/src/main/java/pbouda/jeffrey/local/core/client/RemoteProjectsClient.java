@@ -20,10 +20,10 @@ package pbouda.jeffrey.local.core.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pbouda.jeffrey.api.v1.BlockProjectRequest;
-import pbouda.jeffrey.api.v1.DeleteProjectRequest;
-import pbouda.jeffrey.api.v1.ProjectServiceGrpc;
-import pbouda.jeffrey.api.v1.UnblockProjectRequest;
+import pbouda.jeffrey.server.api.v1.BlockProjectRequest;
+import pbouda.jeffrey.server.api.v1.DeleteProjectRequest;
+import pbouda.jeffrey.server.api.v1.ProjectServiceGrpc;
+import pbouda.jeffrey.server.api.v1.UnblockProjectRequest;
 
 public class RemoteProjectsClient {
 

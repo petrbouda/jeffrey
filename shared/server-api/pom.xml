@@ -109,7 +109,7 @@
                             <executable>bash</executable>
                             <arguments>
                                 <argument>-c</argument>
-                                <argument>mkdir -p ${project.build.outputDirectory} &amp;&amp; protoc --doc_out=${project.build.outputDirectory} --doc_opt=json,grpc-api-docs.json -I${project.basedir}/src/main/proto ${project.basedir}/src/main/proto/jeffrey/api/v1/*.proto</argument>
+                                <argument>mkdir -p ${project.build.outputDirectory} &amp;&amp; protoc --doc_out=${project.build.outputDirectory} --doc_opt=json,grpc-api-docs.json -I${project.basedir}/src/main/proto ${project.basedir}/src/main/proto/jeffrey/server/api/v1/*.proto</argument>
                             </arguments>
                         </configuration>
                     </execution>

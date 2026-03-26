@@ -23,7 +23,7 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import pbouda.jeffrey.api.v1.*;
+import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.server.core.manager.RepositoryManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
@@ -222,15 +222,15 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
                 .build();
     }
 
-    private static pbouda.jeffrey.api.v1.RecordingStatus toProtoRecordingStatus(
+    private static pbouda.jeffrey.server.api.v1.RecordingStatus toProtoRecordingStatus(
             pbouda.jeffrey.shared.common.model.repository.RecordingStatus status) {
         if (status == null) {
-            return pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+            return pbouda.jeffrey.server.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
         }
         return switch (status) {
-            case ACTIVE -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
-            case FINISHED -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
-            case UNKNOWN -> pbouda.jeffrey.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+            case ACTIVE -> pbouda.jeffrey.server.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
+            case FINISHED -> pbouda.jeffrey.server.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
+            case UNKNOWN -> pbouda.jeffrey.server.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
         };
     }
 

@@ -18,9 +18,10 @@
 
 package pbouda.jeffrey.server.core.configuration;
 
-import jakarta.annotation.PostConstruct;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pbouda.jeffrey.server.core.resources.JerseyConfig;
 import pbouda.jeffrey.server.core.resources.RootInternalResource;
 
 /**
@@ -29,14 +30,10 @@ import pbouda.jeffrey.server.core.resources.RootInternalResource;
 @Configuration
 public class ServerJerseyConfigurer {
 
-    private final ResourceConfig resourceConfig;
-
-    public ServerJerseyConfigurer(ResourceConfig resourceConfig) {
-        this.resourceConfig = resourceConfig;
-    }
-
-    @PostConstruct
-    public void configure() {
-        resourceConfig.register(RootInternalResource.class);
+    @Bean
+    public ResourceConfig jerseyConfig() {
+        JerseyConfig config = new JerseyConfig();
+        config.register(RootInternalResource.class);
+        return config;
     }
 }
