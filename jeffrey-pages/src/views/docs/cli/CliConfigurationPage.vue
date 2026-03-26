@@ -65,10 +65,8 @@ messaging { enabled = true }
 alerting { enabled = true }
 streaming { max-age = "2d" }
 heartbeat { enabled = true }
-jdk-java-options {
-  enabled = true
-  additional-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"
-}`;
+jdk-java-options { enabled = true }
+additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFFREY_CURRENT_SESSION>>/jeffrey-app.log"`;
 </script>
 
 <template>
@@ -229,8 +227,14 @@ jdk-java-options {
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
             <h4>JDK Java Options</h4>
-            <p>Sets <code>JDK_JAVA_OPTIONS</code> environment variable with all JVM flags. The JVM picks this up automatically.</p>
-            <code>jdk-java-options { enabled = true, additional-options = "-Xmx2g" }</code>
+            <p>Exports <code>JDK_JAVA_OPTIONS</code> environment variable. The JVM picks this up automatically.</p>
+            <code>jdk-java-options { enabled = true }</code>
+          </div>
+          <div class="feature-card jdk-options">
+            <div class="feature-icon"><i class="bi bi-plus-circle"></i></div>
+            <h4>Additional JVM Options</h4>
+            <p>Extra JVM flags added to the argfile and profiler settings, independent of <code>JDK_JAVA_OPTIONS</code> export.</p>
+            <code>additional-jvm-options = "-Xmx2g -Xms2g"</code>
           </div>
         </div>
 

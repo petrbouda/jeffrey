@@ -57,7 +57,8 @@ public class InitConfig {
             jvm-logging { enabled = false, command = "" }
             agent-path = ""
             jfc-settings-path = ""
-            jdk-java-options { enabled = false, additional-options = "" }
+            jdk-java-options { enabled = false }
+            additional-jvm-options = ""
             debug-non-safepoints { enabled = true }
             env-file = ""
             arg-file = ""
@@ -151,10 +152,9 @@ public class InitConfig {
         Config jdkCfg = resolved.getConfig("jdk-java-options");
         JdkJavaOptionsConfig jdkJavaOptions = new JdkJavaOptionsConfig();
         jdkJavaOptions.setEnabled(jdkCfg.getBoolean("enabled"));
-        if (jdkCfg.hasPath("additional-options")) {
-            jdkJavaOptions.setAdditionalOptions(jdkCfg.getString("additional-options"));
-        }
         config.setJdkJavaOptions(jdkJavaOptions);
+
+        config.setAdditionalJvmOptions(resolved.getString("additional-jvm-options"));
 
         Config dnsCfg = resolved.getConfig("debug-non-safepoints");
         DebugNonSafepointsConfig debugNonSafepoints = new DebugNonSafepointsConfig();
@@ -180,6 +180,7 @@ public class InitConfig {
     private HeapDumpConfig heapDump;
     private JvmLoggingConfig jvmLogging;
     private JdkJavaOptionsConfig jdkJavaOptions;
+    private String additionalJvmOptions;
     private DebugNonSafepointsConfig debugNonSafepoints;
     private Map<String, Object> attributes;
 
@@ -432,7 +433,6 @@ public class InitConfig {
 
     public static class JdkJavaOptionsConfig {
         private boolean enabled;
-        private String additionalOptions;
 
         public boolean isEnabled() {
             return enabled;
@@ -440,14 +440,6 @@ public class InitConfig {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
-        }
-
-        public String getAdditionalOptions() {
-            return additionalOptions;
-        }
-
-        public void setAdditionalOptions(String additionalOptions) {
-            this.additionalOptions = additionalOptions;
         }
     }
 
@@ -537,10 +529,11 @@ public class InitConfig {
     }
 
     public String getAdditionalJvmOptions() {
-        if (jdkJavaOptions != null && !isNullOrBlank(jdkJavaOptions.getAdditionalOptions())) {
-            return jdkJavaOptions.getAdditionalOptions();
-        }
-        return null;
+        return nullIfBlank(additionalJvmOptions);
+    }
+
+    public void setAdditionalJvmOptions(String additionalJvmOptions) {
+        this.additionalJvmOptions = additionalJvmOptions;
     }
 
     public String getJvmLoggingCommand() {

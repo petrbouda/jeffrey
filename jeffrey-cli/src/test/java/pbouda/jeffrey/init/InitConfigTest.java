@@ -111,7 +111,6 @@ class InitConfigTest {
 
             assertNotNull(config.getJdkJavaOptions());
             assertTrue(config.getJdkJavaOptions().isEnabled());
-            assertEquals("-Xmx1200m -Xms1200m", config.getJdkJavaOptions().getAdditionalOptions());
             assertTrue(config.isJdkJavaOptionsEnabled());
             assertEquals("-Xmx1200m -Xms1200m", config.getAdditionalJvmOptions());
         }

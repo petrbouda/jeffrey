@@ -77,7 +77,7 @@ onMounted(() => {
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Server exposes 7 gRPC services defined in <code>shared/server-api/src/main/proto/jeffrey/api/v1/</code>.</p>
+        <p>Jeffrey Server exposes 8 gRPC services defined in <code>shared/server-api/src/main/proto/jeffrey/server/api/v1/</code>.</p>
 
         <div class="endpoint-groups">
           <!-- WorkspaceService -->
@@ -349,6 +349,23 @@ onMounted(() => {
                   <code>GetAlerts</code>
                 </div>
                 <p>Get alert messages</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- WorkspaceEventsService -->
+          <div class="endpoint-group">
+            <div class="group-header">
+              <i class="bi bi-journal-text"></i>
+              <h4>WorkspaceEventsService</h4>
+            </div>
+            <div class="group-body">
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetWorkspaceEvents</code>
+                </div>
+                <p>Get events for a workspace with optional event type filter</p>
               </div>
             </div>
           </div>
