@@ -20,7 +20,6 @@ package pbouda.jeffrey.server.core.grpc;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.ServerServiceDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,11 +28,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import pbouda.jeffrey.server.core.manager.workspace.WorkspacesManager;
+import pbouda.jeffrey.server.core.workspace.WorkspaceEventReader;
+import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Clock;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Configuration
 public class GrpcServerConfiguration {
@@ -48,24 +50,20 @@ public class GrpcServerConfiguration {
 
     @Bean
     public Server grpcServer(
-            WorkspaceGrpcService workspaceGrpcService,
-            ProjectGrpcService projectGrpcService,
-            InstanceGrpcService instanceGrpcService,
-            MessagesGrpcService messagesGrpcService,
-            ProfilerSettingsGrpcService profilerSettingsGrpcService,
-            RepositoryGrpcService repositoryGrpcService,
-            RecordingDownloadGrpcService recordingDownloadGrpcService,
-            WorkspaceEventsGrpcService workspaceEventsGrpcService) {
+            WorkspacesManager workspacesManager,
+            WorkspaceEventReader workspaceEventReader,
+            ServerPlatformRepositories platformRepositories,
+            Clock clock) {
 
         return ServerBuilder.forPort(grpcPort)
-                .addService(workspaceGrpcService)
-                .addService(projectGrpcService)
-                .addService(instanceGrpcService)
-                .addService(messagesGrpcService)
-                .addService(profilerSettingsGrpcService)
-                .addService(repositoryGrpcService)
-                .addService(recordingDownloadGrpcService)
-                .addService(workspaceEventsGrpcService)
+                .addService(new WorkspaceGrpcService(workspacesManager, clock))
+                .addService(new ProjectGrpcService(workspacesManager))
+                .addService(new InstanceGrpcService(workspacesManager, clock))
+                .addService(new MessagesGrpcService(workspacesManager))
+                .addService(new ProfilerSettingsGrpcService(workspacesManager, platformRepositories))
+                .addService(new RepositoryGrpcService(workspacesManager, clock))
+                .addService(new RecordingDownloadGrpcService(workspacesManager))
+                .addService(new WorkspaceEventsGrpcService(workspaceEventReader))
                 .build();
     }
 

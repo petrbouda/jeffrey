@@ -22,7 +22,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 import pbouda.jeffrey.server.core.manager.workspace.WorkspaceManager;
@@ -33,7 +32,6 @@ import pbouda.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 import java.time.Clock;
 import java.util.List;
 
-@Component
 public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceImplBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceGrpcService.class);

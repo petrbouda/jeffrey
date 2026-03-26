@@ -22,7 +22,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import pbouda.jeffrey.server.api.v1.*;
 import pbouda.jeffrey.server.core.manager.RepositoryManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectManager;
@@ -35,7 +34,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 
-@Component
 public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServiceImplBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryGrpcService.class);
