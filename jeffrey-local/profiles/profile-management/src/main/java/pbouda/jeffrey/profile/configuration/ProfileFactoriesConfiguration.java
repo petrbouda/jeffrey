@@ -36,6 +36,7 @@ import pbouda.jeffrey.profile.heapdump.SimpleHeapLoader;
 import pbouda.jeffrey.profile.manager.*;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializerImpl;
+import pbouda.jeffrey.profile.manager.custom.GrpcManager;
 import pbouda.jeffrey.profile.manager.custom.HttpManager;
 import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.manager.custom.JdbcStatementManager;
@@ -186,6 +187,7 @@ public class ProfileFactoriesConfiguration {
             JdbcPoolManager.Factory jdbcPoolManagerFactory,
             JdbcStatementManager.Factory jdbcStatementManagerFactory,
             HttpManager.Factory httpManagerFactory,
+            GrpcManager.Factory grpcManagerFactory,
             MethodTracingManager.Factory methodTracingManagerFactory) {
 
         return profileManager -> new ProfileCustomManagerImpl(
@@ -193,6 +195,7 @@ public class ProfileFactoriesConfiguration {
                 jdbcPoolManagerFactory,
                 jdbcStatementManagerFactory,
                 httpManagerFactory,
+                grpcManagerFactory,
                 methodTracingManagerFactory);
     }
 

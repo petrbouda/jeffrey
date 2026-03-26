@@ -49,6 +49,8 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
         this.featureChecks = List.of(
                 FeatureCheckers.HTTP_SERVER_DASHBOARD,
                 FeatureCheckers.HTTP_CLIENT_DASHBOARD,
+                FeatureCheckers.GRPC_SERVER_DASHBOARD,
+                FeatureCheckers.GRPC_CLIENT_DASHBOARD,
                 FeatureCheckers.JDBC_STATEMENTS_DASHBOARD,
                 FeatureCheckers.JDBC_POOL_DASHBOARD,
                 FeatureCheckers.TRACING_DASHBOARD,

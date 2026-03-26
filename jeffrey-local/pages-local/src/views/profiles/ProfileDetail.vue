@@ -347,6 +347,66 @@
               </div>
 
               <div class="nav-section">
+                <div class="nav-section-title">gRPC SERVER</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/profiles/${profileId}/application/grpc/overview?mode=server`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/grpc/overview') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('grpc-server') }"
+                  >
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Overview</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/application/grpc/services?mode=server`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/grpc/services') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('grpc-server') }"
+                  >
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Service Details</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/application/grpc/traffic?mode=server`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/grpc/traffic') && ($route.query.mode === 'server' || !$route.query.mode), 'disabled-feature': isFeatureDisabled('grpc-server') }"
+                  >
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Traffic</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">gRPC CLIENT</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/profiles/${profileId}/application/grpc/overview?mode=client`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/grpc/overview') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('grpc-client') }"
+                  >
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Overview</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/application/grpc/services?mode=client`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/grpc/services') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('grpc-client') }"
+                  >
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Service Details</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/application/grpc/traffic?mode=client`"
+                      class="nav-item"
+                      :class="{ 'active': $route.path.includes('/application/grpc/traffic') && $route.query.mode === 'client', 'disabled-feature': isFeatureDisabled('grpc-client') }"
+                  >
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Traffic</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
                 <div class="nav-section-title">DATABASE</div>
                 <div class="nav-items">
                   <router-link
@@ -744,6 +804,8 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'container': FeatureType.CONTAINER_DASHBOARD,
     'http-server': FeatureType.HTTP_SERVER_DASHBOARD,
     'http-client': FeatureType.HTTP_CLIENT_DASHBOARD,
+    'grpc-server': FeatureType.GRPC_SERVER_DASHBOARD,
+    'grpc-client': FeatureType.GRPC_CLIENT_DASHBOARD,
     'jdbc-statements': FeatureType.JDBC_STATEMENTS_DASHBOARD,
     'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
     'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,

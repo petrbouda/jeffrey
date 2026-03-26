@@ -30,6 +30,7 @@ public record ContainerConfiguration(
         Long memorySoftLimit,
         Long memoryLimit,
         Long swapMemoryLimit,
-        Long hostTotalMemory
+        Long hostTotalMemory,
+        Long hostTotalSwapMemory
 ) {
 }

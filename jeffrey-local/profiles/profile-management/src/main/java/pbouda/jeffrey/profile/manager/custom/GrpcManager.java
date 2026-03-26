@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,31 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.profile.manager;
+package pbouda.jeffrey.profile.manager.custom;
 
-import pbouda.jeffrey.profile.manager.custom.GrpcManager;
-import pbouda.jeffrey.profile.manager.custom.HttpManager;
-import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
-import pbouda.jeffrey.profile.manager.custom.JdbcStatementManager;
-import pbouda.jeffrey.profile.manager.custom.MethodTracingManager;
+import pbouda.jeffrey.profile.manager.custom.model.grpc.GrpcOverviewData;
+import pbouda.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
+import pbouda.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
+import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.function.Function;
 
-public interface ProfileCustomManager {
+public interface GrpcManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileManager, ProfileCustomManager> {
+    interface Factory extends Function<ProfileInfo, GrpcManager> {
     }
 
-    ProfileManager parent();
+    GrpcOverviewData overviewData();
 
-    JdbcPoolManager jdbcPoolManager();
+    GrpcOverviewData overviewData(String service);
 
-    JdbcStatementManager jdbcStatementManager();
+    GrpcServiceDetailData serviceDetailData(String service);
 
-    HttpManager httpManager();
+    GrpcTrafficData trafficData();
 
-    GrpcManager grpcManager();
-
-    MethodTracingManager methodTracingManager();
+    GrpcTrafficData trafficData(String service);
 }

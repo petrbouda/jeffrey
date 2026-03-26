@@ -56,6 +56,7 @@ public class GrpcServerConfiguration {
             Clock clock) {
 
         return ServerBuilder.forPort(grpcPort)
+                .intercept(new JfrGrpcServerInterceptor())
                 .addService(new WorkspaceGrpcService(workspacesManager, clock))
                 .addService(new ProjectGrpcService(workspacesManager))
                 .addService(new InstanceGrpcService(workspacesManager, clock))

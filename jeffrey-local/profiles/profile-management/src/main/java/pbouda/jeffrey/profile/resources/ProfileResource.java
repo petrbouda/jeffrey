@@ -130,6 +130,11 @@ public class ProfileResource {
         return new HttpOverviewResource(profileManager.custom().httpManager());
     }
 
+    @Path("/grpc/overview")
+    public GrpcOverviewResource grpcOverviewResource() {
+        return new GrpcOverviewResource(profileManager.custom().grpcManager());
+    }
+
     @Path("/method-tracing")
     public MethodTracingResource methodTracingResource() {
         return new MethodTracingResource(profileManager.custom().methodTracingManager());

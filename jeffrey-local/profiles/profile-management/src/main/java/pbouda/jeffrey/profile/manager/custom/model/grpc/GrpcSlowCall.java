@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,18 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-enum FeatureType {
-    HTTP_SERVER_DASHBOARD = "HTTP_SERVER_DASHBOARD",
-    HTTP_CLIENT_DASHBOARD = "HTTP_CLIENT_DASHBOARD",
-    GRPC_SERVER_DASHBOARD = "GRPC_SERVER_DASHBOARD",
-    GRPC_CLIENT_DASHBOARD = "GRPC_CLIENT_DASHBOARD",
-    JDBC_STATEMENTS_DASHBOARD = "JDBC_STATEMENTS_DASHBOARD",
-    JDBC_POOL_DASHBOARD = "JDBC_POOL_DASHBOARD",
-    CONTAINER_DASHBOARD = "CONTAINER_DASHBOARD",
-    PERF_COUNTERS_DASHBOARD = "PERF_COUNTERS_DASHBOARD",
-    TRACING_DASHBOARD = "TRACING_DASHBOARD",
-    AI_ANALYSIS = "AI_ANALYSIS",
-    HEAP_DUMP = "HEAP_DUMP",
-}
+package pbouda.jeffrey.profile.manager.custom.model.grpc;
 
-export default FeatureType;
+public record GrpcSlowCall(
+        String service,
+        String method,
+        long responseTime,
+        String status,
+        long requestSize,
+        long responseSize,
+        String host,
+        int port,
+        long timestamp) {
+}

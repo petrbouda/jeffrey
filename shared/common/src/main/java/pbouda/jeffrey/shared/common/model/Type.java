@@ -107,6 +107,10 @@ public record Type(String code, boolean calculated) {
     public static final Type HTTP_SERVER_EXCHANGE = new Type(EventTypeName.HTTP_SERVER_EXCHANGE);
     public static final Type HTTP_CLIENT_EXCHANGE = new Type(EventTypeName.HTTP_CLIENT_EXCHANGE);
 
+    // gRPC events
+    public static final Type GRPC_SERVER_EXCHANGE = new Type(EventTypeName.GRPC_SERVER_EXCHANGE);
+    public static final Type GRPC_CLIENT_EXCHANGE = new Type(EventTypeName.GRPC_CLIENT_EXCHANGE);
+
     // Container events
     public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
     public static final Type CONTAINER_CPU_THROTTLING = new Type(EventTypeName.CONTAINER_CPU_THROTTLING);
@@ -176,6 +180,8 @@ public record Type(String code, boolean calculated) {
                 POOLED_JDBC_CONNECTION_CREATED,
                 HTTP_SERVER_EXCHANGE,
                 HTTP_CLIENT_EXCHANGE,
+                GRPC_SERVER_EXCHANGE,
+                GRPC_CLIENT_EXCHANGE,
                 JDBC_INSERT,
                 JDBC_UPDATE,
                 JDBC_DELETE,

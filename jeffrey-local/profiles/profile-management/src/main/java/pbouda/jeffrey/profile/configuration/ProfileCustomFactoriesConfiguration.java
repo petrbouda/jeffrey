@@ -23,6 +23,7 @@ import pbouda.jeffrey.profile.manager.custom.*;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
+import pbouda.jeffrey.shared.common.model.Type;
 
 import javax.sql.DataSource;
 
@@ -62,6 +63,17 @@ public class ProfileCustomFactoriesConfiguration {
             DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new HttpManagerImpl(
                     profileInfo, repositories.newEventStreamRepository(dataSource));
+        };
+    }
+
+    @Bean
+    public GrpcManager.Factory grpcServerManagerFactory() {
+        return profileInfo -> {
+            DataSource dataSource = databaseManagerResolver.open(profileInfo);
+            return new GrpcManagerImpl(
+                    profileInfo,
+                    repositories.newEventStreamRepository(dataSource),
+                    Type.GRPC_SERVER_EXCHANGE);
         };
     }
 

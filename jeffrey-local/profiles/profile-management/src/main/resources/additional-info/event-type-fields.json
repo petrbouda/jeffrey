@@ -443,7 +443,8 @@
     "memorySoftLimit" : "Memory Soft Limit",
     "memoryLimit" : "Memory Limit",
     "swapMemoryLimit" : "Memory and Swap Limit",
-    "hostTotalMemory" : "Container Host Total Memory"
+    "hostTotalMemory" : "Container Host Total Memory",
+    "hostTotalSwapMemory" : "Container Host Total Swap Memory"
   }
 }, {
   "type" : "jdk.MetaspaceAllocationFailure",
@@ -1022,5 +1023,31 @@
     "pid" : "Process Id",
     "directory" : "Directory",
     "command" : "Command"
+  }
+}, {
+  "type" : "jeffrey.GrpcServerExchange",
+  "fields" : {
+    "startTime" : "Start Time",
+    "service" : "Service Name",
+    "method" : "Method Name",
+    "remoteHost" : "Remote Address",
+    "remotePort" : "Remote Port",
+    "status" : "Status Code",
+    "authority" : "Authority",
+    "requestSize" : "Request Size",
+    "responseSize" : "Response Size"
+  }
+}, {
+  "type" : "jeffrey.GrpcClientExchange",
+  "fields" : {
+    "startTime" : "Start Time",
+    "service" : "Service Name",
+    "method" : "Method Name",
+    "remoteHost" : "Remote Address",
+    "remotePort" : "Remote Port",
+    "status" : "Status Code",
+    "authority" : "Authority",
+    "requestSize" : "Request Size",
+    "responseSize" : "Response Size"
   }
 } ]

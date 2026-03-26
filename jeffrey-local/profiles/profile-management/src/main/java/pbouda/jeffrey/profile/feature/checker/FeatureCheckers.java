@@ -46,6 +46,12 @@ public abstract class FeatureCheckers {
     public static final FeatureChecker HTTP_CLIENT_DASHBOARD =
             new SamplesFeatureChecker(FeatureType.HTTP_CLIENT_DASHBOARD, Type.HTTP_CLIENT_EXCHANGE);
 
+    public static final FeatureChecker GRPC_SERVER_DASHBOARD =
+            new SamplesFeatureChecker(FeatureType.GRPC_SERVER_DASHBOARD, Type.GRPC_SERVER_EXCHANGE);
+
+    public static final FeatureChecker GRPC_CLIENT_DASHBOARD =
+            new SamplesFeatureChecker(FeatureType.GRPC_CLIENT_DASHBOARD, Type.GRPC_CLIENT_EXCHANGE);
+
     public static final FeatureChecker JDBC_STATEMENTS_DASHBOARD =
             new SamplesFeatureChecker(FeatureType.JDBC_STATEMENTS_DASHBOARD, JDBC_STATEMENT_TYPES);
 

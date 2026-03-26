@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.profile.manager;
 
+import pbouda.jeffrey.profile.manager.custom.GrpcManager;
 import pbouda.jeffrey.profile.manager.custom.HttpManager;
 import pbouda.jeffrey.profile.manager.custom.JdbcPoolManager;
 import pbouda.jeffrey.profile.manager.custom.JdbcStatementManager;
@@ -29,6 +30,7 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
     private final JdbcPoolManager.Factory jdbcPoolManagerFactory;
     private final JdbcStatementManager.Factory jdbcStatementManagerFactory;
     private final HttpManager.Factory httpManagerFactory;
+    private final GrpcManager.Factory grpcManagerFactory;
     private final MethodTracingManager.Factory methodTracingManagerFactory;
 
     public ProfileCustomManagerImpl(
@@ -36,12 +38,14 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
             JdbcPoolManager.Factory jdbcPoolManagerFactory,
             JdbcStatementManager.Factory jdbcStatementManagerFactory,
             HttpManager.Factory httpManagerFactory,
+            GrpcManager.Factory grpcManagerFactory,
             MethodTracingManager.Factory methodTracingManagerFactory) {
 
         this.parent = parent;
         this.jdbcPoolManagerFactory = jdbcPoolManagerFactory;
         this.jdbcStatementManagerFactory = jdbcStatementManagerFactory;
         this.httpManagerFactory = httpManagerFactory;
+        this.grpcManagerFactory = grpcManagerFactory;
         this.methodTracingManagerFactory = methodTracingManagerFactory;
     }
 
@@ -63,6 +67,11 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
     @Override
     public HttpManager httpManager() {
         return httpManagerFactory.apply(parent.info());
+    }
+
+    @Override
+    public GrpcManager grpcManager() {
+        return grpcManagerFactory.apply(parent.info());
     }
 
     @Override

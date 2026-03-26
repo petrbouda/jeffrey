@@ -41,7 +41,7 @@
           <pre class="mt-2 mb-0 bg-light p-2 rounded"><code>&lt;dependency&gt;
     &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
     &lt;artifactId&gt;jeffrey-events&lt;/artifactId&gt;
-    &lt;version&gt;0.2.1&lt;/version&gt;
+    &lt;version&gt;0.10.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
         </div>
       </div>

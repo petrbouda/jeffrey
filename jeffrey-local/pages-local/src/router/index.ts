@@ -277,6 +277,24 @@ const profileChildRoutes = [
     name: 'profile-application-method-tracing-cumulated',
     component: () => import('@/views/profiles/detail/application/ProfileMethodTracingCumulated.vue'),
     meta: { layout: 'profile' }
+  },
+  {
+    path: 'application/grpc/overview',
+    name: 'profile-application-grpc-overview',
+    component: () => import('@/views/profiles/detail/application/ProfileGrpcOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'application/grpc/services',
+    name: 'profile-application-grpc-services',
+    component: () => import('@/views/profiles/detail/application/ProfileGrpcServices.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'application/grpc/traffic',
+    name: 'profile-application-grpc-traffic',
+    component: () => import('@/views/profiles/detail/application/ProfileGrpcTraffic.vue'),
+    meta: { layout: 'profile' }
   }
 ];
 

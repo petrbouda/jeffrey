@@ -95,6 +95,10 @@ public abstract class EventTypeName {
     public static final String HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange";
     public static final String HTTP_CLIENT_EXCHANGE = "jeffrey.HttpClientExchange";
 
+    // gRPC events
+    public static final String GRPC_SERVER_EXCHANGE = "jeffrey.GrpcServerExchange";
+    public static final String GRPC_CLIENT_EXCHANGE = "jeffrey.GrpcClientExchange";
+
     // Streaming events
     public static final String MESSAGE = "jeffrey.Message";
     public static final String ALERT = "jeffrey.Alert";
