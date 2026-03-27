@@ -209,12 +209,10 @@ const metricsData = computed(() => {
         {
           label: 'P99',
           value: FormattingService.formatDuration2Units(header.p99Duration),
-          color: '#EA4335'
         },
         {
           label: 'P95',
           value: FormattingService.formatDuration2Units(header.p95Duration),
-          color: '#EA4335'
         }
       ]
     },

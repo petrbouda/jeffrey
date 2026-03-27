@@ -125,26 +125,26 @@ const onSortChange = (sortKey: string) => {
 
 /* Method Display styling */
 .method-display {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  background: #f7fafc;
-  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  padding: 0.45rem 0.75rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
+  gap: 8px;
   max-width: 100%;
 }
 
 .method-icon {
   color: #5e64ff;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  opacity: 0.7;
 }
 
 .method-name {
-  font-family: 'Courier New', monospace;
-  color: #2d3748;
-  font-weight: 500;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
 </style>

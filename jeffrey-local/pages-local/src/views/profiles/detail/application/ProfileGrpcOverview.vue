@@ -26,32 +26,38 @@
 
       <!-- Dashboard content -->
       <div v-if="grpcOverviewData" class="dashboard-container">
-        <!-- gRPC Overview Cards -->
-        <div class="mb-4">
-          <StatsTable :metrics="metricsData"/>
-        </div>
+        <ChartSectionWithTabs
+            :tabs="tabs"
+            :full-width="true"
+            id-prefix="grpc-overview-"
+        >
+          <template #stats>
+            <StatsTable :metrics="metricsData"/>
+            <GrpcServiceList
+                :services="grpcOverviewData?.services || []"
+                :selected-service="selectedService"
+                @service-click="navigateToService"/>
+          </template>
 
-        <!-- gRPC Metrics Timeline -->
-        <GrpcTimeseries
-            :response-time-data="grpcOverviewData?.responseTimeSerie.data || []"
-            :call-count-data="grpcOverviewData?.callCountSerie.data || []"/>
+          <template #performance>
+            <GrpcTimeseries
+                :response-time-data="grpcOverviewData?.responseTimeSerie.data || []"
+                :call-count-data="grpcOverviewData?.callCountSerie.data || []"/>
+          </template>
 
-        <!-- Service List -->
-        <GrpcServiceList
-            :services="grpcOverviewData?.services || []"
-            :selected-service="selectedService"
-            @service-click="navigateToService"/>
+          <template #distribution>
+            <GrpcDistributionCharts
+                :status-codes="grpcOverviewData?.statusCodes || []"
+                :services="grpcOverviewData?.services || []"
+                :total-calls="grpcOverviewData?.header.callCount || 0"/>
+          </template>
 
-        <!-- Status Code and Service Distribution -->
-        <GrpcDistributionCharts
-            :status-codes="grpcOverviewData?.statusCodes || []"
-            :services="grpcOverviewData?.services || []"
-            :total-calls="grpcOverviewData?.header.callCount || 0"/>
-
-        <!-- Slowest gRPC Calls -->
-        <GrpcSlowestCalls
-            :calls="getSortedSlowCalls()"
-            :total-call-count="grpcOverviewData?.header.callCount || 0"/>
+          <template #slowest>
+            <GrpcSlowestCalls
+                :calls="getSortedSlowCalls()"
+                :total-call-count="grpcOverviewData?.header.callCount || 0"/>
+          </template>
+        </ChartSectionWithTabs>
       </div>
 
       <!-- No data state -->
@@ -67,6 +73,7 @@
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import GrpcTimeseries from '@/components/grpc/GrpcTimeseries.vue';
 import GrpcDistributionCharts from '@/components/grpc/GrpcDistributionCharts.vue';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
@@ -90,6 +97,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
+
+// Tab definitions
+const tabs = [
+  {id: 'stats', label: 'Overview', icon: 'grid-3x3-gap'},
+  {id: 'performance', label: 'Performance', icon: 'speedometer2'},
+  {id: 'distribution', label: 'Distribution', icon: 'pie-chart'},
+  {id: 'slowest', label: 'Slowest Calls', icon: 'clock-history'}
+];
 
 // Reactive state
 const grpcOverviewData = ref<GrpcOverviewData | null>(null);
@@ -118,13 +133,6 @@ const metricsData = computed(() => {
       title: 'Total Calls',
       value: header.callCount || 0,
       variant: 'info' as const,
-      breakdown: [
-        {
-          label: 'Calls',
-          value: header.callCount || 0,
-          color: '#4285F4'
-        }
-      ]
     },
     {
       icon: 'clock-fill',
@@ -135,12 +143,10 @@ const metricsData = computed(() => {
         {
           label: 'P99',
           value: FormattingService.formatDuration2Units(header.p99ResponseTime),
-          color: '#FBBC05'
         },
         {
           label: 'P95',
           value: FormattingService.formatDuration2Units(header.p95ResponseTime),
-          color: '#FBBC05'
         }
       ]
     },

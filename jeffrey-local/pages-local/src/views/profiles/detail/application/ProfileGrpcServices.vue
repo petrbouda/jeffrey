@@ -13,14 +13,14 @@
       <!-- Service Display with Navigation -->
       <div v-if="selectedServiceForDetail" class="service-display-large">
         <div class="service-content">
-          <i class="bi bi-hdd-network me-2"></i>
-          <span class="service-name">{{ decodeURIComponent(selectedServiceForDetail) }}</span>
+          <i class="bi bi-hdd-network service-icon"></i>
+          <span class="service-package">{{ getPackageName(decodeURIComponent(selectedServiceForDetail)) }}</span>
+          <span class="service-simple-name">{{ getSimpleName(decodeURIComponent(selectedServiceForDetail)) }}</span>
         </div>
-
         <button @click="clearServiceSelection"
                 class="btn btn-secondary service-back-button">
-          <i class="bi bi-arrow-left me-2"></i>
-          All Services
+          <i class="bi bi-arrow-left me-1"></i>
+          Back
         </button>
       </div>
 
@@ -40,38 +40,43 @@
 
       <!-- Single Service Dashboard content -->
       <div v-if="selectedServiceForDetail && serviceDetailData" class="dashboard-container">
-        <!-- Service Overview Cards -->
-        <div class="mb-4">
-          <StatsTable :metrics="serviceMetricsData"/>
-        </div>
+        <ChartSectionWithTabs
+            :tabs="serviceTabs"
+            :full-width="true"
+            id-prefix="grpc-service-"
+        >
+          <template #stats>
+            <StatsTable :metrics="serviceMetricsData"/>
+            <GrpcMethodList
+                :methods="serviceDetailData.methods || []"/>
+          </template>
 
-        <!-- Method Breakdown -->
-        <GrpcMethodList
-            :methods="serviceDetailData.methods || []"/>
+          <template #timeseries>
+            <GrpcTimeseries
+                :response-time-data="serviceDetailData.responseTimeSerie.data"
+                :call-count-data="serviceDetailData.callCountSerie.data"/>
+          </template>
 
-        <!-- gRPC Metrics Timeline -->
-        <GrpcTimeseries
-            v-if="serviceDetailData"
-            :response-time-data="serviceDetailData.responseTimeSerie.data"
-            :call-count-data="serviceDetailData.callCountSerie.data"/>
+          <template #distribution>
+            <div class="distribution-container">
+              <PieChart
+                  title="Status Code Distribution"
+                  icon="pie-chart"
+                  :data="serviceStatusCodeData"
+                  :total="serviceDetailData.header.callCount || 0"
+                  :color-mapping="statusCodeColorMapping"
+                  :value-formatter="(val: number) => val + ' calls'"
+              />
+            </div>
+          </template>
 
-        <!-- Status Code Distribution for this Service -->
-        <div class="distribution-container">
-          <PieChart
-              title="Status Code Distribution"
-              icon="pie-chart"
-              :data="serviceStatusCodeData"
-              :total="serviceDetailData.header.callCount || 0"
-              :color-mapping="statusCodeColorMapping"
-              :value-formatter="(val: number) => val + ' calls'"
-          />
-        </div>
-
-        <!-- Slowest gRPC Calls -->
-        <GrpcSlowestCalls
-            :calls="slowestCalls"
-            :total-call-count="serviceDetailData.header.callCount || 0"
-            :max-displayed="20"/>
+          <template #slowest>
+            <GrpcSlowestCalls
+                :calls="slowestCalls"
+                :total-call-count="serviceDetailData.header.callCount || 0"
+                :max-displayed="20"/>
+          </template>
+        </ChartSectionWithTabs>
       </div>
 
       <!-- Service List -->
@@ -95,6 +100,7 @@
 import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import PageHeader from '@/components/layout/PageHeader.vue';
+import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import GrpcTimeseries from '@/components/grpc/GrpcTimeseries.vue';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
@@ -120,6 +126,14 @@ const props = withDefaults(defineProps<Props>(), {
 const route = useRoute();
 const router = useRouter();
 
+// Tab definitions for service detail view
+const serviceTabs = [
+  {id: 'stats', label: 'Overview', icon: 'grid-3x3-gap'},
+  {id: 'timeseries', label: 'Timeseries', icon: 'graph-up'},
+  {id: 'distribution', label: 'Distribution', icon: 'pie-chart'},
+  {id: 'slowest', label: 'Slowest Calls', icon: 'clock-history'}
+];
+
 // Reactive state
 const grpcOverviewData = ref<GrpcOverviewData | null>(null);
 const serviceDetailData = ref<GrpcServiceDetailData | null>(null);
@@ -130,6 +144,17 @@ const selectedServiceForDetail = ref<string | null>(null);
 
 // Get mode from query parameter, default to 'server'
 const mode = (route.query.mode as 'client' | 'server') || 'server';
+
+// Service name helpers
+const getPackageName = (fullName: string): string => {
+  const lastDot = fullName.lastIndexOf('.');
+  return lastDot >= 0 ? fullName.substring(0, lastDot + 1) : '';
+};
+
+const getSimpleName = (fullName: string): string => {
+  const lastDot = fullName.lastIndexOf('.');
+  return lastDot >= 0 ? fullName.substring(lastDot + 1) : fullName;
+};
 
 // Check if gRPC dashboard is disabled
 const isGrpcDashboardDisabled = computed(() => {
@@ -304,47 +329,54 @@ watch(() => route.query.service, (newService) => {
 
 <style scoped>
 .service-display-large {
-  background: #f8f9ff;
-  border: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9ff, #f1f5f9);
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  margin: 1.5rem 0;
-  padding: 1rem 0;
+  margin: 0 0 1.5rem 0;
+  padding: 0.75rem 1rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
 }
 
 .service-content {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2c3e50;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
   flex: 1;
   min-width: 0;
-  padding-left: 1rem;
 }
 
-.service-name {
-  font-family: 'Courier New', monospace;
+.service-icon {
+  color: #5e64ff;
   font-size: 1rem;
-  font-weight: 500;
+  opacity: 0.7;
+  align-self: center;
+  margin-right: 4px;
+}
+
+.service-package {
+  color: #64748b;
+  font-weight: 400;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.service-simple-name {
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .service-back-button {
   flex-shrink: 0;
   white-space: nowrap;
-  margin-right: 1rem;
 }
 
 .distribution-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2rem;
 }
 
 @media (max-width: 768px) {

@@ -11,19 +11,23 @@
         <setting name="enabled">true</setting>
     </event>
 
-    <!--  Disable other Jeffrey events  -->
+    <!--  Disable gRPC events (handled by AsyncProfiler with jfrsync)  -->
+    <event name="jeffrey.GrpcServerExchange">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.GrpcClientExchange">
+        <setting name="enabled">false</setting>
+    </event>
+
+    <!--  Disable HTTP events (handled by AsyncProfiler with jfrsync)  -->
     <event name="jeffrey.HttpClientExchange">
         <setting name="enabled">false</setting>
     </event>
     <event name="jeffrey.HttpServerExchange">
         <setting name="enabled">false</setting>
     </event>
-    <event name="jeffrey.HttpServerExchange">
-        <setting name="enabled">false</setting>
-    </event>
-    <event name="jeffrey.AcquiringPooledJdbcConnectionTimeout">
-        <setting name="enabled">false</setting>
-    </event>
+
+    <!--  Disable JDBC Pool events (handled by AsyncProfiler with jfrsync)  -->
     <event name="jeffrey.JdbcPoolStatistics">
         <setting name="enabled">false</setting>
     </event>
@@ -36,22 +40,27 @@
     <event name="jeffrey.PooledJdbcConnectionCreated">
         <setting name="enabled">false</setting>
     </event>
-    <event name="jeffrey.JdbcDelete">
+    <event name="jeffrey.AcquiringPooledJdbcConnectionTimeout">
         <setting name="enabled">false</setting>
     </event>
-    <event name="jeffrey.JdbcExecute">
-        <setting name="enabled">false</setting>
-    </event>
+
+    <!--  Disable JDBC Statement events (handled by AsyncProfiler with jfrsync)  -->
     <event name="jeffrey.JdbcInsert">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcUpdate">
+        <setting name="enabled">false</setting>
+    </event>
+    <event name="jeffrey.JdbcDelete">
         <setting name="enabled">false</setting>
     </event>
     <event name="jeffrey.JdbcQuery">
         <setting name="enabled">false</setting>
     </event>
-    <event name="jeffrey.JdbcStream">
+    <event name="jeffrey.JdbcExecute">
         <setting name="enabled">false</setting>
     </event>
-    <event name="jeffrey.JdbcUpdate">
+    <event name="jeffrey.JdbcStream">
         <setting name="enabled">false</setting>
     </event>
 </configuration>

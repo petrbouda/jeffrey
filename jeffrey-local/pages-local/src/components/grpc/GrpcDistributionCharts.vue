@@ -16,6 +16,7 @@
         icon="diagram-3"
         :data="serviceData"
         :total="totalCalls"
+        :show-data-labels="false"
         :value-formatter="(val: number) => val + ' calls'"
     />
   </div>
@@ -71,11 +72,16 @@ const statusCodeData = computed(() =>
     }))
 );
 
+const shortServiceName = (fullName: string): string => {
+  const lastDot = fullName.lastIndexOf('.');
+  return lastDot >= 0 ? fullName.substring(lastDot + 1) : fullName;
+};
+
 const serviceData = computed(() =>
     props.services
         .sort((a, b) => b.callCount - a.callCount)
         .map(service => ({
-          label: service.service,
+          label: shortServiceName(service.service),
           value: service.callCount
         }))
 );

@@ -30,8 +30,11 @@
 
       <template #item-title="{ item }">
         <div class="service-display" :title="item.service">
-          <i class="bi bi-hdd-network me-2 service-icon"></i>
-          <span class="service-name">{{ item.service }}</span>
+          <i class="bi bi-hdd-network service-icon"></i>
+          <div class="service-text">
+            <span class="service-package">{{ getPackageName(item.service) }}</span>
+            <span class="service-name">{{ getSimpleName(item.service) }}</span>
+          </div>
         </div>
       </template>
     </MetricsList>
@@ -57,6 +60,17 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   serviceClick: [service: string]
 }>();
+
+// Service name helpers
+const getPackageName = (fullName: string): string => {
+  const lastDot = fullName.lastIndexOf('.');
+  return lastDot >= 0 ? fullName.substring(0, lastDot + 1) : '';
+};
+
+const getSimpleName = (fullName: string): string => {
+  const lastDot = fullName.lastIndexOf('.');
+  return lastDot >= 0 ? fullName.substring(lastDot + 1) : fullName;
+};
 
 // Reactive state
 const showAllServices = ref(false);
@@ -159,26 +173,37 @@ const onSortChange = (sortKey: string) => {
 
 /* Service Display styling */
 .service-display {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  background: #f7fafc;
-  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  padding: 0.45rem 0.75rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  max-width: 100%;
+  gap: 8px;
 }
 
 .service-icon {
   color: #5e64ff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.service-text {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.service-package {
+  color: #64748b;
+  font-weight: 400;
+  font-size: 0.82rem;
+  font-style: italic;
 }
 
 .service-name {
-  font-family: 'Courier New', monospace;
-  color: #2d3748;
-  font-weight: 500;
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 0.82rem;
 }
 </style>

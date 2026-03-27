@@ -21,10 +21,12 @@ interface Props {
   total: number;
   colorMapping?: (label: string, index: number) => string;
   valueFormatter?: (value: number) => string;
+  showDataLabels?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  valueFormatter: (value: number) => value + ' items'
+  valueFormatter: (value: number) => value + ' items',
+  showDataLabels: true
 });
 
 // Chart ref
@@ -80,8 +82,11 @@ const createChart = async () => {
       }
     },
     dataLabels: {
-      enabled: true,
-      formatter: (val: number) => Math.round(val) + '%'
+      enabled: props.showDataLabels === true,
+      formatter: (val: number) => Math.round(val) + '%',
+      style: {
+        fontSize: props.showDataLabels ? '14px' : '0px'
+      }
     },
     tooltip: {
       y: {
@@ -111,7 +116,7 @@ const createChart = async () => {
 
 // Watch for prop changes and recreate chart
 watch(
-  () => [props.data, props.total, props.title],
+  () => [props.data, props.total, props.title, props.showDataLabels],
   async () => {
     await nextTick();
     // Add a small delay to ensure DOM is fully rendered

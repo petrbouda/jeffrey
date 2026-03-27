@@ -26,25 +26,32 @@
 
       <!-- Dashboard content -->
       <div v-if="trafficData" class="dashboard-container">
-        <!-- Traffic Overview Cards -->
-        <div class="mb-4">
-          <StatsTable :metrics="metricsData"/>
-        </div>
+        <ChartSectionWithTabs
+            :tabs="tabs"
+            :full-width="true"
+            id-prefix="grpc-traffic-"
+            @tab-change="onTabChange"
+        >
+          <template #stats>
+            <StatsTable :metrics="metricsData"/>
+          </template>
 
-        <!-- Size Timeseries -->
-        <GrpcSizeTimeseries
-            :request-size-data="trafficData?.requestSizeSerie.data || []"
-            :response-size-data="trafficData?.responseSizeSerie.data || []"/>
+          <template #size-over-time>
+            <GrpcSizeTimeseries
+                :request-size-data="trafficData?.requestSizeSerie.data || []"
+                :response-size-data="trafficData?.responseSizeSerie.data || []"/>
+          </template>
 
-        <!-- Size Distribution Histogram -->
-        <ChartSection title="Message Size Distribution" icon="bar-chart" :full-width="true">
-          <div ref="histogramChartRef" class="apex-chart"></div>
-        </ChartSection>
+          <template #size-distribution>
+            <div ref="histogramChartRef" class="apex-chart"></div>
+          </template>
 
-        <!-- Largest gRPC Calls -->
-        <GrpcLargestCalls
-            :calls="getSortedLargestCalls()"
-            :total-call-count="trafficData?.header.callCount || 0"/>
+          <template #largest>
+            <GrpcLargestCalls
+                :calls="getSortedLargestCalls()"
+                :total-call-count="trafficData?.header.callCount || 0"/>
+          </template>
+        </ChartSectionWithTabs>
       </div>
 
       <!-- No data state -->
@@ -61,7 +68,7 @@ import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
-import ChartSection from '@/components/ChartSection.vue';
+import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import GrpcSizeTimeseries from '@/components/grpc/GrpcSizeTimeseries.vue';
 import GrpcLargestCalls from '@/components/grpc/GrpcLargestCalls.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
@@ -82,6 +89,14 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
+
+// Tab definitions
+const tabs = [
+  {id: 'stats', label: 'Overview', icon: 'grid-3x3-gap'},
+  {id: 'size-over-time', label: 'Size Over Time', icon: 'graph-up'},
+  {id: 'size-distribution', label: 'Size Distribution', icon: 'bar-chart'},
+  {id: 'largest', label: 'Largest Calls', icon: 'box-seam'}
+];
 
 // Reactive state
 const trafficData = ref<GrpcTrafficData | null>(null);
@@ -169,6 +184,16 @@ const client = new ProfileGrpcClient(mode, route.params.profileId as string);
 const getSortedLargestCalls = () => {
   if (!trafficData.value) return [];
   return [...trafficData.value.largestCalls].sort((a, b) => b.totalSize - a.totalSize);
+};
+
+// Handle tab change — render histogram when switching to the distribution tab
+const onTabChange = async (tabIndex: number) => {
+  if (tabIndex === 1 && trafficData.value?.sizeBuckets?.length) {
+    await nextTick();
+    setTimeout(async () => {
+      await createHistogramChart();
+    }, 100);
+  }
 };
 
 // Create histogram chart for size distribution
@@ -290,11 +315,6 @@ const loadTrafficData = async () => {
 
     // Wait for DOM updates
     await nextTick();
-
-    // Create histogram chart after data loads
-    setTimeout(async () => {
-      await createHistogramChart();
-    }, 100);
 
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';

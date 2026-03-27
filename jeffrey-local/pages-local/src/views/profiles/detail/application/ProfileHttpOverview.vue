@@ -135,12 +135,10 @@ const metricsData = computed(() => {
         {
           label: 'P99',
           value: FormattingService.formatDuration2Units(header.p99ResponseTime),
-          color: '#FBBC05'
         },
         {
           label: 'P95',
           value: FormattingService.formatDuration2Units(header.p95ResponseTime),
-          color: '#FBBC05'
         }
       ]
     },
