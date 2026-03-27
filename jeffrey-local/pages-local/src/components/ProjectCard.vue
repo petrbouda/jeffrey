@@ -116,8 +116,9 @@ const formatStatus = (status: RecordingStatus): string => {
 
 .project-card-compact:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #d1d5db;
+  box-shadow: 0 6px 16px rgba(94, 100, 255, 0.12);
+  border-color: rgba(94, 100, 255, 0.25);
+  border-left-color: #4c52ff;
 }
 
 /* Border Color Classes */

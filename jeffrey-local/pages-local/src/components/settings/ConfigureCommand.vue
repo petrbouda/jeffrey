@@ -20,14 +20,6 @@
       <div class="command-actions">
         <button
           type="button"
-          class="btn-open-builder"
-          @click="$emit('open-builder')"
-        >
-          <i class="bi bi-ui-checks"></i>
-          Open Builder
-        </button>
-        <button
-          type="button"
           class="btn-clear-command"
           @click="clearCommand"
           :disabled="!localCommand.trim()"
@@ -60,7 +52,6 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
-  'open-builder': [];
   'accept-command': [command: string];
   'clear': [];
 }>();
@@ -145,7 +136,6 @@ const clearCommand = () => {
   align-items: center;
 }
 
-.btn-open-builder,
 .btn-clear-command,
 .btn-next-step {
   display: flex;
@@ -158,19 +148,6 @@ const clearCommand = () => {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
-}
-
-.btn-open-builder {
-  background: linear-gradient(135deg, #faf5ff, #f3e8ff);
-  border: 1px solid rgba(147, 51, 234, 0.3);
-  color: #581c87;
-}
-
-.btn-open-builder:hover {
-  background: linear-gradient(135deg, #9333ea, #7c3aed);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.3);
 }
 
 .btn-clear-command {

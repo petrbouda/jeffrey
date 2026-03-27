@@ -8,126 +8,96 @@
     <LoadingState v-if="isLoading" message="Loading project settings..."/>
 
     <template v-else>
-      <!-- General Settings Section -->
-      <div class="settings-section mb-4">
-        <div class="section-header">
-          <i class="bi bi-pencil-square section-icon"></i>
-          <h6 class="section-title">General Settings</h6>
-        </div>
-
-        <form @submit.prevent="saveChanges">
-          <div class="form-field">
-            <label for="projectName" class="form-field-label">Project Name</label>
+      <!-- Top Row: General + Blocking -->
+      <div class="settings-grid">
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <i class="bi bi-pencil-square"></i>
+            <h6>General</h6>
+          </div>
+          <form @submit.prevent="saveChanges">
+            <label class="field-label">Project Name</label>
             <input
                 type="text"
-                class="form-control settings-input"
-                id="projectName"
+                class="field-input"
                 v-model="projectName"
                 @input="checkForChanges"
             >
-            <div class="form-field-help">The name of your project that will appear in the dashboard.</div>
-          </div>
-
-          <div class="settings-actions">
             <button
                 type="submit"
-                class="btn-action btn-action-primary"
-                :disabled="!hasChanges"
+                class="settings-btn settings-btn-primary"
+                :disabled="!hasChanges || isSaving"
             >
-              <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status"
-                    aria-hidden="true"></span>
+              <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               <i v-else class="bi bi-check-lg"></i>
               {{ isSaving ? 'Saving...' : 'Save Changes' }}
             </button>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <i class="bi bi-slash-circle settings-icon-amber"></i>
+            <h6>Blocking</h6>
           </div>
-        </form>
+          <div class="toggle-row">
+            <div class="toggle-row-label">
+              <span class="toggle-row-title">Block project</span>
+              <span class="toggle-row-desc">Stops all event processing</span>
+            </div>
+            <button
+                class="toggle-track"
+                :class="{ on: isBlocked }"
+                @click="isBlocked ? unblockProject() : blockProject()"
+                :disabled="isBlockingAction"
+                type="button"
+            >
+              <span class="toggle-thumb"></span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Project Blocking Section -->
-      <div class="settings-section blocking-section mb-4">
-        <div class="section-header blocking-header">
-          <i class="bi bi-slash-circle section-icon blocking-icon"></i>
-          <h6 class="section-title blocking-title">Project Blocking</h6>
+      <!-- Streaming Section (full width) -->
+      <div class="settings-card streaming-card">
+        <div class="settings-card-header">
+          <i class="bi bi-broadcast settings-icon-blue"></i>
+          <h6>Streaming</h6>
         </div>
-
-        <p class="blocking-description">
-          Blocking a project stops all event processing, streaming, and periodic maintenance.
-          Existing data is preserved. Events arriving while blocked are permanently discarded.
-        </p>
-
-        <button
-            v-if="!isBlocked"
-            type="button"
-            class="btn-action btn-action-warning"
-            @click="blockProject"
-            :disabled="isBlockingAction"
-        >
-          <span v-if="isBlockingAction" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          <i v-else class="bi bi-slash-circle"></i>
-          {{ isBlockingAction ? 'Blocking...' : 'Block Project' }}
-        </button>
-
-        <button
-            v-else
-            type="button"
-            class="btn-action btn-action-primary"
-            @click="unblockProject"
-            :disabled="isBlockingAction"
-        >
-          <span v-if="isBlockingAction" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          <i v-else class="bi bi-check-circle"></i>
-          {{ isBlockingAction ? 'Unblocking...' : 'Unblock Project' }}
-        </button>
-      </div>
-
-      <!-- Streaming Section -->
-      <div class="settings-section streaming-section mb-4">
-        <div class="section-header streaming-header">
-          <i class="bi bi-broadcast section-icon streaming-icon"></i>
-          <h6 class="section-title streaming-title">Streaming</h6>
-        </div>
-
-        <p class="streaming-description">
-          Control JFR event streaming for this project. When not set, inherits from the workspace or global setting.
-        </p>
-
-        <div class="streaming-status" :class="effectiveStreamingEnabled ? 'streaming-status-enabled' : 'streaming-status-disabled'">
-          <i :class="effectiveStreamingEnabled ? 'bi bi-broadcast' : 'bi bi-broadcast'" class="streaming-status-icon"></i>
+        <div class="streaming-status" :class="effectiveStreamingEnabled ? 'streaming-status-on' : 'streaming-status-off'">
+          <span class="streaming-dot" :class="effectiveStreamingEnabled ? 'dot-on' : 'dot-off'"></span>
           <span>
-            Streaming is effectively <strong>{{ effectiveStreamingEnabled ? 'enabled' : 'disabled' }}</strong>
-            <span class="streaming-level-badge" :class="'streaming-level-' + effectiveStreamingLevel?.toLowerCase()">
-              {{ effectiveStreamingLevel }}
-            </span>
+            Streaming is <strong>{{ effectiveStreamingEnabled ? 'enabled' : 'disabled' }}</strong>
+          </span>
+          <span v-if="effectiveStreamingLevel" class="streaming-badge" :class="'streaming-badge-' + effectiveStreamingLevel.toLowerCase()">
+            {{ effectiveStreamingLevel }}
           </span>
         </div>
-
         <div class="streaming-actions">
           <button
               type="button"
-              class="btn-action btn-action-primary"
+              class="settings-btn settings-btn-primary"
               @click="enableStreaming"
               :disabled="isStreamingAction || streamingEnabled === true"
           >
             <span v-if="isStreamingAction && pendingStreamingState === true" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             <i v-else class="bi bi-broadcast"></i>
-            Enable Streaming
+            Enable
           </button>
-
           <button
               type="button"
-              class="btn-action btn-action-warning"
+              class="settings-btn settings-btn-outline"
               @click="disableStreaming"
               :disabled="isStreamingAction || streamingEnabled === false"
           >
             <span v-if="isStreamingAction && pendingStreamingState === false" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             <i v-else class="bi bi-broadcast"></i>
-            Disable Streaming
+            Disable
           </button>
-
           <button
               v-if="streamingEnabled !== null && streamingEnabled !== undefined"
               type="button"
-              class="btn-action btn-action-outline"
+              class="settings-btn settings-btn-outline"
               @click="resetStreaming"
               :disabled="isStreamingAction"
           >
@@ -138,25 +108,22 @@
         </div>
       </div>
 
-      <!-- Danger Zone Section -->
-      <div class="settings-section danger-section">
-        <div class="section-header danger-header">
-          <i class="bi bi-exclamation-triangle-fill section-icon danger-icon"></i>
-          <h6 class="section-title danger-title">Danger Zone</h6>
+      <!-- Danger Zone Bar -->
+      <div class="danger-bar">
+        <div class="danger-bar-left">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>
+            <span class="danger-bar-title">Danger Zone</span>
+            <span class="danger-bar-desc">Permanently delete this project and all its data</span>
+          </div>
         </div>
-
-        <p class="danger-description">
-          Actions in this section can lead to permanent data loss. Please proceed with caution.
-        </p>
-
         <button
             type="button"
-            class="btn-action btn-action-danger"
+            class="settings-btn settings-btn-danger"
             @click="openDeleteConfirmation"
             :disabled="isDeleting"
         >
-          <span v-if="isDeleting" class="spinner-border spinner-border-sm" role="status"
-                aria-hidden="true"></span>
+          <span v-if="isDeleting" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           <i v-else class="bi bi-trash3"></i>
           {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
         </button>
@@ -427,317 +394,291 @@ async function deleteProject() {
 </script>
 
 <style scoped>
-/* Settings Section */
-.settings-section {
-  background: white;
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* Grid layout */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
 }
 
-.section-icon {
-  color: #5e64ff;
-  font-size: 1rem;
+/* Card */
+.settings-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
 }
 
-.section-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-/* Form Field */
-.form-field {
-  margin-bottom: 20px;
-  max-width: 500px;
-}
-
-.form-field-label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.settings-input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid rgba(94, 100, 255, 0.15);
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: #ffffff;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #374151;
-}
-
-.settings-input:focus {
-  outline: none;
-  border-color: rgba(94, 100, 255, 0.3);
-  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.05);
-}
-
-.form-field-help {
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin-top: 6px;
-}
-
-.settings-actions {
+.settings-card-header {
   display: flex;
-  justify-content: flex-start;
-  padding-top: 16px;
-  border-top: 1px solid rgba(94, 100, 255, 0.08);
-  margin-top: 8px;
-}
-
-/* Action Buttons */
-.btn-action {
-  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-action-primary {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.3);
-}
-
-.btn-action-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4c52ff, #3f46ff);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(94, 100, 255, 0.4);
-}
-
-.btn-action-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-action-danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.btn-action-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
-}
-
-.btn-action-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Blocking Section */
-.blocking-section {
-  background: linear-gradient(135deg, #ffffff, #fffbeb);
-  border-color: rgba(245, 158, 11, 0.12);
-}
-
-.blocking-header {
-  border-bottom-color: rgba(245, 158, 11, 0.12);
-}
-
-.blocking-icon {
-  color: #f59e0b;
-}
-
-.blocking-title {
-  color: #92400e;
-}
-
-.blocking-description {
-  color: #6b7280;
-  font-size: 0.9rem;
   margin-bottom: 16px;
 }
 
-.btn-action-warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+.settings-card-header i {
+  font-size: 0.9rem;
+  color: var(--color-primary);
 }
 
-.btn-action-warning:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+.settings-card-header h6 {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 0;
 }
 
-.btn-action-warning:disabled {
+.settings-icon-amber {
+  color: var(--color-warning) !important;
+}
+
+.settings-icon-blue {
+  color: var(--color-info) !important;
+}
+
+/* Form */
+.field-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.field-input {
+  width: 100%;
+  padding: var(--input-padding-y) var(--input-padding-x);
+  border: 1px solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  font-size: var(--input-font-size);
+  background: var(--input-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  margin-bottom: 12px;
+}
+
+.field-input:focus {
+  border-color: var(--input-focus-border-color);
+  box-shadow: var(--input-focus-shadow);
+}
+
+/* Buttons */
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border: none;
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.settings-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.settings-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.settings-btn-outline {
+  background: var(--color-white);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.settings-btn-outline:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-input);
+}
+
+.settings-btn-danger {
+  background: var(--color-danger);
+  color: var(--color-white);
+}
+
+.settings-btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-row-title {
+  display: block;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.toggle-row-desc {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--color-border-input);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+}
+
+.toggle-track.on {
+  background: var(--color-warning);
+}
+
+.toggle-track:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Streaming Section */
-.streaming-section {
-  background: linear-gradient(135deg, #ffffff, #f0f9ff);
-  border-color: rgba(59, 130, 246, 0.12);
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+  pointer-events: none;
 }
 
-.streaming-header {
-  border-bottom-color: rgba(59, 130, 246, 0.12);
+.toggle-track.on .toggle-thumb {
+  transform: translateX(20px);
 }
 
-.streaming-icon {
-  color: #3b82f6;
-}
-
-.streaming-title {
-  color: #1e40af;
-}
-
-.streaming-description {
-  color: #6b7280;
-  font-size: 0.9rem;
+/* Streaming card */
+.streaming-card {
   margin-bottom: 16px;
 }
 
 .streaming-status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  margin-bottom: 16px;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  margin-bottom: 14px;
 }
 
-.streaming-status-enabled {
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.2);
-  color: #166534;
+.streaming-status-on {
+  background: var(--color-success-light);
+  border: 1px solid rgba(0, 210, 122, 0.2);
+  color: #0a6640;
 }
 
-.streaming-status-disabled {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: #991b1b;
+.streaming-status-off {
+  background: var(--color-danger-light);
+  border: 1px solid rgba(230, 55, 87, 0.2);
+  color: #8b1a2b;
 }
 
-.streaming-status-icon {
-  font-size: 1.1rem;
+.streaming-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.streaming-status-enabled .streaming-status-icon {
-  color: #22c55e;
+.dot-on {
+  background: var(--color-success);
 }
 
-.streaming-status-disabled .streaming-status-icon {
-  color: #ef4444;
+.dot-off {
+  background: var(--color-danger);
 }
 
-.streaming-level-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
+.streaming-badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-left: 6px;
-  vertical-align: middle;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  margin-left: 4px;
 }
 
-.streaming-level-project {
-  background: rgba(34, 197, 94, 0.12);
-  color: #166534;
+.streaming-badge-global {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--color-text);
 }
 
-.streaming-level-workspace {
-  background: rgba(59, 130, 246, 0.12);
-  color: #1e40af;
+.streaming-badge-workspace {
+  background: rgba(57, 175, 209, 0.1);
+  color: var(--color-info-hover);
 }
 
-.streaming-level-global {
-  background: rgba(107, 114, 128, 0.12);
-  color: #374151;
+.streaming-badge-project {
+  background: var(--color-success-light);
+  color: #0a6640;
 }
 
 .streaming-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.btn-action-outline {
-  background: white;
-  color: #374151;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+/* Danger bar */
+.danger-bar {
+  background: var(--color-bg-card);
+  border: 1px solid rgba(230, 55, 87, 0.15);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.btn-action-outline:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: rgba(0, 0, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.danger-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.btn-action-outline:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.danger-bar-left > i {
+  color: var(--color-danger);
+  font-size: 1rem;
 }
 
-/* Danger Zone */
-.danger-section {
-  background: linear-gradient(135deg, #ffffff, #fff8f8);
-  border-color: rgba(239, 68, 68, 0.12);
+.danger-bar-title {
+  display: block;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: #8b1a2b;
 }
 
-.danger-header {
-  border-bottom-color: rgba(239, 68, 68, 0.12);
+.danger-bar-desc {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
-
-.danger-icon {
-  color: #ef4444;
-}
-
-.danger-title {
-  color: #991b1b;
-}
-
-.danger-description {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
-}
-
-/* Delete Confirmation Modal */
-.modal.show {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-backdrop {
-  z-index: 1040;
-}
-
-.modal {
-  z-index: 1050;
-}
-
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="command-builder pt-4">
+  <div class="command-builder pt-3">
     <div class="step-header">
       <div class="step-header-status header-primary clickable-header" @click="toggleHelp">
         <div class="step-type-info">
@@ -1442,6 +1442,7 @@ generateConfig();
   font-size: 0.7rem;
   letter-spacing: 0.06em;
   color: #5e64ff;
+  flex-shrink: 0;
 }
 
 .token-chip-value {
@@ -1449,8 +1450,10 @@ generateConfig();
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 0.76rem;
-  white-space: nowrap;
   color: #1f2937;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  min-width: 0;
 }
 
 .token-chip[title] {

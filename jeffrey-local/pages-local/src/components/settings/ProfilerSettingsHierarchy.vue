@@ -10,136 +10,51 @@
 
     <div v-else>
       <!-- Active Command Display -->
-      <div v-if="activeCommand" class="config-output-section">
-        <div class="config-output">
-          <div class="config-output-header">
-            <div class="config-breadcrumbs">
-              <!-- Global -->
-              <div
-                class="breadcrumb-item"
-                :class="{ 'active': activeLevel === 'global' }"
-                @click="navigateToBreadcrumb('global')"
-              >
-                <i class="bi bi-globe2"></i>
-                <span>Global</span>
-              </div>
-
-              <!-- Workspace -->
-              <template v-if="activeLevel === 'workspace' || activeLevel === 'project'">
-                <i class="bi bi-chevron-right breadcrumb-separator"></i>
-                <div
-                  class="breadcrumb-item"
-                  :class="{ 'active': activeLevel === 'workspace' }"
-                  @click="navigateToBreadcrumb('workspace')"
-                >
-                  <i class="bi bi-folder-fill"></i>
-                  <span>{{ getWorkspaceName(activeWorkspaceId) }}</span>
-                </div>
-              </template>
-
-              <!-- Project -->
-              <template v-if="activeLevel === 'project'">
-                <i class="bi bi-chevron-right breadcrumb-separator"></i>
-                <div
-                  class="breadcrumb-item active"
-                >
-                  <i class="bi bi-diagram-3-fill"></i>
-                  <span>{{ activeProjectName }}</span>
-                </div>
-              </template>
-            </div>
-
-            <div class="config-actions">
-              <button
-                v-if="canDeleteCurrentConfig"
-                class="action-button delete-button"
-                @click.stop="deleteCurrentConfig"
-                title="Delete custom settings"
-              >
-                <i class="bi bi-trash"></i>
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
-          <div class="config-output-content" @click="copyCommand" title="Click to copy command">
-            <div class="compact-output">
-              <div class="config-output-text">
-                {{ activeCommand }}
-              </div>
-              <div class="config-output-copy-hint">
-                <i class="bi bi-clipboard"></i>
-                <span>Click to copy</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CommandDisplay
+          v-if="activeCommand"
+          :command="activeCommand"
+          :deletable="canDeleteCurrentConfig"
+          @delete="deleteCurrentConfig"
+      >
+        <template #header-left>
+          <SettingsBreadcrumbs :items="activeCommandBreadcrumbs"/>
+        </template>
+      </CommandDisplay>
 
       <!-- Uses Global Settings Note -->
-      <div v-if="showUsesGlobalNote" class="config-output-section">
-        <div class="config-output config-output-info">
-          <div class="config-output-header">
-            <div class="config-breadcrumbs">
-              <!-- Global -->
-              <div
-                class="breadcrumb-item"
-                @click="navigateToBreadcrumb('global')"
-              >
-                <i class="bi bi-globe2"></i>
-                <span>Global</span>
-              </div>
-
-              <!-- Workspace -->
-              <i class="bi bi-chevron-right breadcrumb-separator"></i>
-              <div class="breadcrumb-item active">
-                <i class="bi bi-folder-fill"></i>
-                <span>{{ usesGlobalWorkspaceName }}</span>
-              </div>
-            </div>
-
-            <div class="config-actions">
-              <!-- No delete button for workspaces using global settings -->
+      <CommandDisplay v-if="showUsesGlobalNote" :command="null">
+        <template #header-left>
+          <SettingsBreadcrumbs :items="[
+            {icon: 'bi-globe2', label: 'Global', onClick: () => navigateToBreadcrumb('global')},
+            {icon: 'bi-folder-fill', label: usesGlobalWorkspaceName, active: true},
+          ]"/>
+        </template>
+        <template #content>
+          <div class="info-message">
+            <i class="bi bi-arrow-up-circle"></i>
+            <div>
+              <strong>Uses Global Settings</strong>
+              <p>No custom configuration set. Inherits from Global level.</p>
             </div>
           </div>
-          <div class="config-output-content-info">
-            <div class="uses-global-note">
-              <i class="bi bi-arrow-up-circle"></i>
-              <div class="uses-global-text">
-                <strong>Uses Global Settings</strong>
-                <p>No custom configuration set. Inherits from Global level.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </template>
+      </CommandDisplay>
 
       <!-- No Global Settings Note -->
-      <div v-if="activeLevel === 'global' && !activeCommand" class="config-output-section">
-        <div class="config-output config-output-info">
-          <div class="config-output-header">
-            <div class="config-breadcrumbs">
-              <!-- Global -->
-              <div class="breadcrumb-item active">
-                <i class="bi bi-globe2"></i>
-                <span>Global</span>
-              </div>
-            </div>
-
-            <div class="config-actions">
-              <!-- No delete button for global settings -->
+      <CommandDisplay v-if="activeLevel === 'global' && !activeCommand" :command="null">
+        <template #header-left>
+          <SettingsBreadcrumbs :items="[{icon: 'bi-globe2', label: 'Global', active: true}]"/>
+        </template>
+        <template #content>
+          <div class="info-message">
+            <i class="bi bi-info-circle"></i>
+            <div>
+              <strong>No Global Settings Configured</strong>
+              <p>No global configuration has been set. Configure settings in the 'Configure' tab to apply them globally.</p>
             </div>
           </div>
-          <div class="config-output-content-info">
-            <div class="uses-global-note">
-              <i class="bi bi-info-circle"></i>
-              <div class="uses-global-text">
-                <strong>No Global Settings Configured</strong>
-                <p>No global configuration has been set. Configure settings in the 'Configure' tab to apply them globally.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </template>
+      </CommandDisplay>
 
       <!-- Global Settings -->
       <div class="scope-options">
@@ -229,6 +144,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
+import CommandDisplay from '@/components/settings/CommandDisplay.vue';
+import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
+import type {BreadcrumbItem} from '@/components/settings/SettingsBreadcrumbs.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
 import ProjectsClient from '@/services/api/ProjectsClient';
@@ -273,15 +191,22 @@ const selectedWorkspaceName = computed(() => {
   return workspace?.name || 'Unknown Workspace';
 });
 
-const activeCommandIcon = computed(() => {
-  if (activeLevel.value === 'global') {
-    return 'bi-globe2';
-  } else if (activeLevel.value === 'workspace') {
-    return 'bi-folder-fill';
-  } else if (activeLevel.value === 'project') {
-    return 'bi-diagram-3-fill';
+const activeCommandBreadcrumbs = computed<BreadcrumbItem[]>(() => {
+  const items: BreadcrumbItem[] = [
+    {icon: 'bi-globe2', label: 'Global', active: activeLevel.value === 'global', onClick: () => navigateToBreadcrumb('global')},
+  ];
+  if (activeLevel.value === 'workspace' || activeLevel.value === 'project') {
+    items.push({
+      icon: 'bi-folder-fill',
+      label: getWorkspaceName(activeWorkspaceId.value),
+      active: activeLevel.value === 'workspace',
+      onClick: () => navigateToBreadcrumb('workspace'),
+    });
   }
-  return 'bi-gear-fill';
+  if (activeLevel.value === 'project') {
+    items.push({icon: 'bi-diagram-3-fill', label: activeProjectName.value, active: true});
+  }
+  return items;
 });
 
 const canDeleteCurrentConfig = computed(() => {
@@ -368,18 +293,6 @@ const deleteCurrentConfig = async () => {
     const project = projectsWithOverrides.value.find(p => p.id === activeProjectId.value);
     if (project) {
       await handleProjectDelete(project);
-    }
-  }
-};
-
-const copyCommand = async () => {
-  if (activeCommand.value) {
-    try {
-      await navigator.clipboard.writeText(activeCommand.value);
-      ToastService.success('Copied!', 'Command copied to clipboard');
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      ToastService.error('Copy Failed', 'Could not copy to clipboard');
     }
   }
 };
@@ -597,6 +510,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .loading-state {
@@ -612,255 +527,37 @@ onMounted(async () => {
   justify-content: center;
 }
 
-/* Command Display - Modern & Compact Design */
-.config-output-section {
-  margin-bottom: 20px;
-}
-
-.config-output {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 2px solid rgba(94, 100, 255, 0.12);
-  border-radius: 10px;
-  overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.04);
-  cursor: pointer;
-}
-
-.config-output:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  box-shadow: 0 4px 16px rgba(94, 100, 255, 0.15);
-  transform: translateY(-1px);
-}
-
-.config-output.config-output-info {
-  cursor: default;
-}
-
-.config-output.config-output-info:hover {
-  transform: none;
-}
-
-.config-output-header {
-  background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(94, 100, 255, 0.15);
-  min-height: 42px;
-  gap: 12px;
-}
-
-/* Breadcrumbs */
-.config-breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-}
-
-.breadcrumb-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-}
-
-.breadcrumb-item i {
-  font-size: 0.85rem;
-  color: #5e64ff;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.breadcrumb-item:hover {
-  background: rgba(94, 100, 255, 0.08);
-  color: #374151;
-}
-
-.breadcrumb-item:hover i {
-  opacity: 1;
-}
-
-.breadcrumb-item.active {
-  color: #1f2937;
-  font-weight: 600;
-  cursor: default;
-  background: rgba(94, 100, 255, 0.1);
-}
-
-.breadcrumb-item.active i {
-  opacity: 1;
-  color: #5e64ff;
-}
-
-.breadcrumb-separator {
-  font-size: 0.7rem;
-  color: #9ca3af;
-  flex-shrink: 0;
-}
-
-/* Action Buttons */
-.config-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.action-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-}
-
-.action-button i {
-  font-size: 0.8rem;
-}
-
-.delete-button {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
-  color: #dc2626;
-  border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-.delete-button:hover {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  border-color: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-}
-
-.delete-button:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(220, 38, 38, 0.3);
-}
-
-.config-output-content {
-  padding: 12px 14px;
-  background: rgba(94, 100, 255, 0.02);
-  cursor: pointer;
-}
-
-.config-output-content-info {
-  padding: 12px 14px;
-  background: rgba(94, 100, 255, 0.02);
-}
-
-.compact-output {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.compact-output .config-output-text {
-  margin: 0;
-  padding: 10px 12px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.1);
-  border-radius: 6px;
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: #374151;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-weight: 500;
-  word-break: break-all;
-  white-space: pre-wrap;
-  transition: all 0.15s ease;
-}
-
-.compact-output .config-output-text:hover {
-  background: rgba(94, 100, 255, 0.08);
-  border-color: rgba(94, 100, 255, 0.2);
-}
-
-.compact-output .config-output-copy-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: center;
-  margin-top: 8px;
-  padding: 6px 12px;
-  color: #6b7280;
-  font-size: 0.75rem;
-  opacity: 0;
-  transition: all 0.2s ease;
-  border-radius: 4px;
-}
-
-.compact-output .config-output-copy-hint i {
-  font-size: 0.85rem;
-}
-
-.config-output-content:hover .config-output-copy-hint {
-  opacity: 1;
-  background: rgba(94, 100, 255, 0.05);
-  color: #5e64ff;
-}
-
-/* Uses Global Note */
-.uses-global-note {
+/* Info Message (inside CommandDisplay content slot) */
+.info-message {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 10px 12px;
-  background: rgba(94, 100, 255, 0.05);
-  border: 1px solid rgba(94, 100, 255, 0.1);
-  border-radius: 6px;
-  transition: all 0.15s ease;
 }
 
-.uses-global-note:hover {
-  background: rgba(94, 100, 255, 0.08);
-  border-color: rgba(94, 100, 255, 0.2);
-}
-
-.uses-global-note > i {
-  font-size: 1.3rem;
-  color: #5e64ff;
-  margin-top: 2px;
+.info-message > i {
+  font-size: 1.2rem;
+  color: var(--color-primary, #5e64ff);
+  margin-top: 1px;
   flex-shrink: 0;
 }
 
-.uses-global-text {
-  flex: 1;
-}
-
-.uses-global-text strong {
+.info-message strong {
   display: block;
-  font-size: 0.85rem;
-  color: #1f2937;
+  font-size: var(--font-size-base, 0.875rem);
+  color: var(--color-dark, #0b1727);
   margin-bottom: 4px;
-  font-weight: 600;
 }
 
-.uses-global-text p {
-  font-size: 0.8rem;
-  color: #6b7280;
+.info-message p {
+  font-size: var(--font-size-sm, 0.7rem);
+  color: var(--color-text-muted, #748194);
   line-height: 1.5;
   margin: 0;
 }
 
 /* Scope Options - matching Apply Configuration */
 .scope-options {
+  margin-top: 20px;
   margin-bottom: 20px;
 }
 
