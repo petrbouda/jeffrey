@@ -80,13 +80,6 @@
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
                 </router-link>
-                <div
-                    v-else
-                    class="nav-item disabled-feature"
-                    title="Scheduler is not available in this workspace type">
-                  <i class="bi bi-calendar-check"></i>
-                  <span>Scheduler</span>
-                </div>
                 <router-link
                     :to="generateProjectUrl('alerts')"
                     class="nav-item"
