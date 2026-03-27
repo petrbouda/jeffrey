@@ -22,6 +22,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import pbouda.jeffrey.local.core.resources.request.ProjectSettingsUpdateRequest;
+import pbouda.jeffrey.local.core.resources.request.StreamingUpdateRequest;
 import pbouda.jeffrey.local.core.resources.response.ProjectSettingsResponse;
 import pbouda.jeffrey.shared.common.model.ProjectInfo;
 
@@ -33,21 +34,27 @@ public class ProjectSettingsResource {
     private final Consumer<String> nameUpdater;
     private final Runnable blocker;
     private final Runnable unblocker;
+    private final Consumer<Boolean> streamingUpdater;
+    private final Boolean workspaceStreamingEnabled;
 
     public ProjectSettingsResource(
             ProjectInfo projectInfo,
             Consumer<String> nameUpdater,
             Runnable blocker,
-            Runnable unblocker) {
+            Runnable unblocker,
+            Consumer<Boolean> streamingUpdater,
+            Boolean workspaceStreamingEnabled) {
         this.projectInfo = projectInfo;
         this.nameUpdater = nameUpdater;
         this.blocker = blocker;
         this.unblocker = unblocker;
+        this.streamingUpdater = streamingUpdater;
+        this.workspaceStreamingEnabled = workspaceStreamingEnabled;
     }
 
     @GET
     public ProjectSettingsResponse settings() {
-        return new ProjectSettingsResponse(projectInfo);
+        return ProjectSettingsResponse.create(projectInfo, workspaceStreamingEnabled);
     }
 
     @POST
@@ -67,5 +74,11 @@ public class ProjectSettingsResource {
     @Path("/unblock")
     public void unblock() {
         unblocker.run();
+    }
+
+    @POST
+    @Path("/streaming")
+    public void updateStreaming(StreamingUpdateRequest request) {
+        streamingUpdater.accept(request.streamingEnabled());
     }
 }

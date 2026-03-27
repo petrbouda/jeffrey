@@ -59,7 +59,7 @@ export function useNavigation() {
    * Navigate to a profile using simplified URL pattern.
    */
   const navigateToProfile = (profileId: string) => {
-    router.push(`/profiles/${profileId}`);
+    router.push(`/profiles/${profileId}/overview`);
   };
 
   /**

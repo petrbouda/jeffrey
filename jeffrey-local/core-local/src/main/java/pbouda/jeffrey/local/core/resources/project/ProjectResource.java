@@ -59,7 +59,9 @@ public class ProjectResource {
                 projectManager.info(),
                 projectManager::updateName,
                 projectManager::block,
-                projectManager::unblock);
+                projectManager::unblock,
+                projectManager::updateStreamingEnabled,
+                projectManager.workspaceStreamingEnabled());
     }
 
     @Path("/profiles")

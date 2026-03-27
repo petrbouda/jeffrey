@@ -169,6 +169,25 @@ public class ServerProjectManager implements ProjectManager {
     }
 
     @Override
+    public void updateStreamingEnabled(Boolean enabled) {
+        projectRepository.updateStreamingEnabled(enabled);
+
+        // When streaming is explicitly disabled, stop active consumers
+        if (Boolean.FALSE.equals(enabled)) {
+            ProjectRepositoryRepository repoRepository =
+                    platformRepositories.newProjectRepositoryRepository(projectInfo.id());
+            List<ProjectInstanceSessionInfo> unfinishedSessions = repoRepository.findUnfinishedSessions();
+            for (ProjectInstanceSessionInfo session : unfinishedSessions) {
+                jfrStreamingConsumerManager.unregisterConsumer(session.sessionId());
+            }
+            LOG.info("Updated project streaming to disabled: projectId={} stoppedStreams={}",
+                    projectInfo.id(), unfinishedSessions.size());
+        } else {
+            LOG.info("Updated project streaming: projectId={} enabled={}", projectInfo.id(), enabled);
+        }
+    }
+
+    @Override
     public void delete(WorkspaceEventCreator createdBy) {
         LOG.debug("Deleting project: projectId={}", info().id());
 

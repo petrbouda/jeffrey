@@ -1,5 +1,5 @@
 <template>
-  <section class="dashboard-section">
+  <ChartSection title="HTTP Endpoints" icon="signpost-2" :full-width="true">
     <MetricsList
       :items="displayedEndpoints"
       :metrics="endpointMetrics"
@@ -40,13 +40,14 @@
         </div>
       </template>
     </MetricsList>
-  </section>
+  </ChartSection>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import MetricsList from '@/components/MetricsList.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import type { MetricDefinition, SortOption } from '@/components/MetricsList.vue';
 
 interface Endpoint {
@@ -207,10 +208,6 @@ const onSortChange = (sortKey: string) => {
 </script>
 
 <style scoped>
-.dashboard-section {
-  margin-bottom: 2rem;
-}
-
 /* URI Display styling */
 .uri-display {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

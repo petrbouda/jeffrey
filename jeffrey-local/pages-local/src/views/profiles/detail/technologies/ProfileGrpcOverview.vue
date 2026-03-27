@@ -8,8 +8,6 @@
     />
 
     <div v-else>
-      <PageHeader :title="mode === 'client' ? 'gRPC Client Exchange' : 'gRPC Server Exchange'" icon="bi-hdd-network"/>
-
       <!-- Loading state -->
       <div v-if="isLoading" class="p-4 text-center">
         <div class="spinner-border" role="status">
@@ -26,38 +24,13 @@
 
       <!-- Dashboard content -->
       <div v-if="grpcOverviewData" class="dashboard-container">
-        <ChartSectionWithTabs
-            :tabs="tabs"
-            :full-width="true"
-            id-prefix="grpc-overview-"
-        >
-          <template #stats>
-            <StatsTable :metrics="metricsData"/>
-            <GrpcServiceList
-                :services="grpcOverviewData?.services || []"
-                :selected-service="selectedService"
-                @service-click="navigateToService"/>
-          </template>
-
-          <template #performance>
-            <GrpcTimeseries
-                :response-time-data="grpcOverviewData?.responseTimeSerie.data || []"
-                :call-count-data="grpcOverviewData?.callCountSerie.data || []"/>
-          </template>
-
-          <template #distribution>
-            <GrpcDistributionCharts
-                :status-codes="grpcOverviewData?.statusCodes || []"
-                :services="grpcOverviewData?.services || []"
-                :total-calls="grpcOverviewData?.header.callCount || 0"/>
-          </template>
-
-          <template #slowest>
-            <GrpcSlowestCalls
-                :calls="getSortedSlowCalls()"
-                :total-call-count="grpcOverviewData?.header.callCount || 0"/>
-          </template>
-        </ChartSectionWithTabs>
+        <div class="mb-4">
+          <StatsTable :metrics="metricsData"/>
+        </div>
+        <GrpcServiceList
+            :services="grpcOverviewData?.services || []"
+            :selected-service="selectedService"
+            @service-click="navigateToService"/>
       </div>
 
       <!-- No data state -->
@@ -72,12 +45,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
-import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
-import GrpcTimeseries from '@/components/grpc/GrpcTimeseries.vue';
-import GrpcDistributionCharts from '@/components/grpc/GrpcDistributionCharts.vue';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
-import GrpcSlowestCalls from '@/components/grpc/GrpcSlowestCalls.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type {GrpcOverviewData} from '@/services/api/ProfileGrpcClient';
 import StatsTable from '@/components/StatsTable.vue';
@@ -97,14 +65,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const route = useRoute();
 const router = useRouter();
-
-// Tab definitions
-const tabs = [
-  {id: 'stats', label: 'Overview', icon: 'grid-3x3-gap'},
-  {id: 'performance', label: 'Performance', icon: 'speedometer2'},
-  {id: 'distribution', label: 'Distribution', icon: 'pie-chart'},
-  {id: 'slowest', label: 'Slowest Calls', icon: 'clock-history'}
-];
 
 // Reactive state
 const grpcOverviewData = ref<GrpcOverviewData | null>(null);
@@ -188,18 +148,10 @@ const metricsData = computed(() => {
 const client = new ProfileGrpcClient(mode, route.params.profileId as string);
 
 
-// Helper functions
-const getSortedSlowCalls = () => {
-  if (!grpcOverviewData.value) return [];
-
-  // Sort slow calls by response time in descending order (slowest first)
-  return [...grpcOverviewData.value.slowCalls].sort((a, b) => b.responseTime - a.responseTime);
-};
-
 // Navigation method
 const navigateToService = (service: string) => {
   router.push({
-    name: 'profile-application-grpc-services',
+    name: 'profile-technologies-grpc-services',
     query: {service: encodeURIComponent(service), mode: mode}
   });
 };

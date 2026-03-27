@@ -68,5 +68,13 @@ public interface ProjectManager {
 
     void unblock();
 
+    /**
+     * Updates the streaming enabled flag for this project.
+     *
+     * @param enabled {@code true} to force-enable, {@code false} to force-disable,
+     *                {@code null} to inherit from workspace/global setting.
+     */
+    void updateStreamingEnabled(Boolean enabled);
+
     void delete(WorkspaceEventCreator createdBy);
 }

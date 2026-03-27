@@ -110,6 +110,11 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public void updateStreamingEnabled(Boolean streamingEnabled) {
+        remoteClients.discovery().updateWorkspaceStreaming(workspaceInfo.id(), streamingEnabled);
+    }
+
+    @Override
     public void delete() {
         List<String> profileIds = workspaceRepository.delete();
 

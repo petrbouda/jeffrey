@@ -1,5 +1,5 @@
 <template>
-  <section class="dashboard-section">
+  <ChartSection title="gRPC Methods" icon="gear" :full-width="true">
     <MetricsList
         :items="methods"
         :metrics="methodMetrics"
@@ -24,13 +24,14 @@
         </div>
       </template>
     </MetricsList>
-  </section>
+  </ChartSection>
 </template>
 
 <script setup lang="ts">
 import {ref} from 'vue';
 import FormattingService from '@/services/FormattingService';
 import MetricsList from '@/components/MetricsList.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import type {MetricDefinition, SortOption} from '@/components/MetricsList.vue';
 import type {GrpcMethodInfo} from '@/services/api/ProfileGrpcClient';
 
@@ -119,10 +120,6 @@ const onSortChange = (sortKey: string) => {
 </script>
 
 <style scoped>
-.dashboard-section {
-  margin-bottom: 2rem;
-}
-
 /* Method Display styling */
 .method-display {
   font-size: 0.85rem;

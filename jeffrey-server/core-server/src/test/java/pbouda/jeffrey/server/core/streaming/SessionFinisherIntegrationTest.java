@@ -70,7 +70,7 @@ class SessionFinisherIntegrationTest {
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, null, "Test Project", "Label 1", null,
             WORKSPACE_ID,
-            Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false);
+            Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false, null);
 
     private static JdbcProjectRepositoryRepository createRepository(MutableClock clock, DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);

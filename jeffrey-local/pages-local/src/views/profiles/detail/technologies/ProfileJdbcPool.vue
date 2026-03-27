@@ -8,8 +8,6 @@
     />
 
     <div v-else>
-      <PageHeader title="JDBC Connection Pools" icon="bi-layers" />
-
       <!-- Loading state -->
       <div v-if="isLoading" class="p-4 text-center">
         <div class="spinner-border" role="status">
@@ -171,7 +169,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import ChartSection from '@/components/ChartSection.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';

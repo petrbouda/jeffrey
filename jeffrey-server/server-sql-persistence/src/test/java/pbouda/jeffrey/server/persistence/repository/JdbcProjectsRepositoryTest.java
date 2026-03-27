@@ -129,7 +129,8 @@ class JdbcProjectsRepositoryTest {
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
                     Map.of(),
-                    false
+                    false,
+                    null
             );
             CreateProject createProject = new CreateProject(projectInfo, new GraphVisualization(0.1));
 
@@ -161,7 +162,8 @@ class JdbcProjectsRepositoryTest {
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
                     Map.of(),
-                    false
+                    false,
+                    null
             );
             CreateProject createProject = new CreateProject(projectInfo, new GraphVisualization(0.1));
 

@@ -31,5 +31,6 @@ public record ProjectInfo(
         Instant createdAt,
         Instant originCreatedAt,
         Map<String, String> attributes,
-        boolean blocked) {
+        boolean blocked,
+        Boolean streamingEnabled) {
 }

@@ -217,83 +217,173 @@ const profileChildRoutes = [
     component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
     meta: { layout: 'profile' }
   },
-  // Application mode routes
+  // Technologies mode routes
   {
-    path: 'application/http/overview',
-    name: 'profile-application-http-overview',
-    component: () => import('@/views/profiles/detail/application/ProfileHttpOverview.vue'),
+    path: 'technologies/hub',
+    name: 'profile-technologies-hub',
+    component: () => import('@/views/profiles/detail/technologies/ProfileTechnologiesHub.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/http/endpoints',
-    name: 'profile-application-http-endpoints',
-    component: () => import('@/views/profiles/detail/application/ProfileHttpEndpoints.vue'),
+    path: 'technologies/http/overview',
+    name: 'profile-technologies-http-overview',
+    component: () => import('@/views/profiles/detail/technologies/ProfileHttpOverview.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/jdbc',
-    name: 'profile-application-jdbc',
-    component: () => import('@/views/profiles/detail/application/ProfileJdbc.vue'),
+    path: 'technologies/http/timeseries',
+    name: 'profile-technologies-http-timeseries',
+    component: () => import('@/views/profiles/detail/technologies/ProfileHttpTimeseries.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/jdbc/overview',
-    name: 'profile-application-jdbc-overview',
-    component: () => import('@/views/profiles/detail/application/ProfileJdbcOverview.vue'),
+    path: 'technologies/http/distribution',
+    name: 'profile-technologies-http-distribution',
+    component: () => import('@/views/profiles/detail/technologies/ProfileHttpDistribution.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/jdbc/statement-groups',
-    name: 'profile-application-jdbc-statement-groups',
-    component: () => import('@/views/profiles/detail/application/ProfileJdbcStatementGroups.vue'),
+    path: 'technologies/http/slowest',
+    name: 'profile-technologies-http-slowest',
+    component: () => import('@/views/profiles/detail/technologies/ProfileHttpSlowestRequests.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/jdbc-pool',
-    name: 'profile-application-jdbc-pool',
-    component: () => import('@/views/profiles/detail/application/ProfileJdbcPool.vue'),
+    path: 'technologies/http/endpoints',
+    name: 'profile-technologies-http-endpoints',
+    component: () => import('@/views/profiles/detail/technologies/ProfileHttpEndpoints.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/method-tracing/overview',
-    name: 'profile-application-method-tracing-overview',
-    component: () => import('@/views/profiles/detail/application/ProfileMethodTracingOverview.vue'),
+    path: 'technologies/jdbc',
+    name: 'profile-technologies-jdbc',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbc.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/method-tracing/flamegraph',
-    name: 'profile-application-method-tracing-flamegraph',
-    component: () => import('@/views/profiles/detail/application/ProfileMethodTracingFlamegraph.vue'),
+    path: 'technologies/jdbc/overview',
+    name: 'profile-technologies-jdbc-overview',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcOverview.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/method-tracing/slowest',
-    name: 'profile-application-method-tracing-slowest',
-    component: () => import('@/views/profiles/detail/application/ProfileMethodTracingSlowest.vue'),
+    path: 'technologies/jdbc/timeseries',
+    name: 'profile-technologies-jdbc-timeseries',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcTimeseries.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/method-tracing/cumulated',
-    name: 'profile-application-method-tracing-cumulated',
-    component: () => import('@/views/profiles/detail/application/ProfileMethodTracingCumulated.vue'),
+    path: 'technologies/jdbc/distribution',
+    name: 'profile-technologies-jdbc-distribution',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcDistribution.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/grpc/overview',
-    name: 'profile-application-grpc-overview',
-    component: () => import('@/views/profiles/detail/application/ProfileGrpcOverview.vue'),
+    path: 'technologies/jdbc/slowest-statements',
+    name: 'profile-technologies-jdbc-slowest-statements',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcSlowestStatements.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/grpc/services',
-    name: 'profile-application-grpc-services',
-    component: () => import('@/views/profiles/detail/application/ProfileGrpcServices.vue'),
+    path: 'technologies/jdbc/statement-groups',
+    name: 'profile-technologies-jdbc-statement-groups',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcStatementGroups.vue'),
     meta: { layout: 'profile' }
   },
   {
-    path: 'application/grpc/traffic',
-    name: 'profile-application-grpc-traffic',
-    component: () => import('@/views/profiles/detail/application/ProfileGrpcTraffic.vue'),
+    path: 'technologies/jdbc-pool',
+    name: 'profile-technologies-jdbc-pool',
+    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcPool.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/method-tracing/timeseries',
+    name: 'profile-technologies-method-tracing-timeseries',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingTimeseries.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/method-tracing/distribution',
+    name: 'profile-technologies-method-tracing-distribution',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingDistribution.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/method-tracing/overview',
+    name: 'profile-technologies-method-tracing-overview',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/method-tracing/flamegraph',
+    name: 'profile-technologies-method-tracing-flamegraph',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingFlamegraph.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/method-tracing/slowest',
+    name: 'profile-technologies-method-tracing-slowest',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingSlowest.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/method-tracing/cumulated',
+    name: 'profile-technologies-method-tracing-cumulated',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingCumulated.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/overview',
+    name: 'profile-technologies-grpc-overview',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/timeseries',
+    name: 'profile-technologies-grpc-timeseries',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcTimeseries.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/distribution',
+    name: 'profile-technologies-grpc-distribution',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcDistribution.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/slowest',
+    name: 'profile-technologies-grpc-slowest',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcSlowestCalls.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/services',
+    name: 'profile-technologies-grpc-services',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcServices.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/traffic',
+    name: 'profile-technologies-grpc-traffic',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcTraffic.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/size-timeseries',
+    name: 'profile-technologies-grpc-size-timeseries',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcSizeTimeseries.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/size-distribution',
+    name: 'profile-technologies-grpc-size-distribution',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcSizeDistribution.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/grpc/largest',
+    name: 'profile-technologies-grpc-largest',
+    component: () => import('@/views/profiles/detail/technologies/ProfileGrpcLargestCalls.vue'),
     meta: { layout: 'profile' }
   }
 ];

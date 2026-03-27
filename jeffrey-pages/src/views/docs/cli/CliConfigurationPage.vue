@@ -45,7 +45,6 @@ project {
 const fullConfig = `jeffrey-home = "/opt/jeffrey"
 profiler-path = "/opt/async-profiler/libasyncProfiler.so"
 agent-path = "/opt/jeffrey/libs/current/jeffrey-agent.jar"
-jfc-settings-path = "/opt/jeffrey/jfc"
 arg-file = "/tmp/jvm.args"
 project {
     workspace-id = "production"
@@ -143,11 +142,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>agent-path</code></td>
               <td>No</td>
               <td>Path to <code>jeffrey-agent.jar</code>. Auto-resolved from <code>libs/current/</code> when <code>jeffrey-home</code> is set.</td>
-            </tr>
-            <tr>
-              <td><code>jfc-settings-path</code></td>
-              <td>No</td>
-              <td>Path to the directory containing JFC settings files for flight recorder configuration.</td>
             </tr>
             <tr>
               <td><code>env-file</code></td>

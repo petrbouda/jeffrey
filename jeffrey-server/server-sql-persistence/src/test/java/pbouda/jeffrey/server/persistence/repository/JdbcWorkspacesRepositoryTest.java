@@ -137,7 +137,8 @@ class JdbcWorkspacesRepositoryTest {
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
                     0,
-                    false
+                    false,
+                    null
             );
 
             WorkspaceInfo result = repository.create(input);

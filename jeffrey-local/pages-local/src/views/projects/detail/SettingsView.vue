@@ -80,6 +80,64 @@
         </button>
       </div>
 
+      <!-- Streaming Section -->
+      <div class="settings-section streaming-section mb-4">
+        <div class="section-header streaming-header">
+          <i class="bi bi-broadcast section-icon streaming-icon"></i>
+          <h6 class="section-title streaming-title">Streaming</h6>
+        </div>
+
+        <p class="streaming-description">
+          Control JFR event streaming for this project. When not set, inherits from the workspace or global setting.
+        </p>
+
+        <div class="streaming-status" :class="effectiveStreamingEnabled ? 'streaming-status-enabled' : 'streaming-status-disabled'">
+          <i :class="effectiveStreamingEnabled ? 'bi bi-broadcast' : 'bi bi-broadcast'" class="streaming-status-icon"></i>
+          <span>
+            Streaming is effectively <strong>{{ effectiveStreamingEnabled ? 'enabled' : 'disabled' }}</strong>
+            <span class="streaming-level-badge" :class="'streaming-level-' + effectiveStreamingLevel?.toLowerCase()">
+              {{ effectiveStreamingLevel }}
+            </span>
+          </span>
+        </div>
+
+        <div class="streaming-actions">
+          <button
+              type="button"
+              class="btn-action btn-action-primary"
+              @click="enableStreaming"
+              :disabled="isStreamingAction || streamingEnabled === true"
+          >
+            <span v-if="isStreamingAction && pendingStreamingState === true" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <i v-else class="bi bi-broadcast"></i>
+            Enable Streaming
+          </button>
+
+          <button
+              type="button"
+              class="btn-action btn-action-warning"
+              @click="disableStreaming"
+              :disabled="isStreamingAction || streamingEnabled === false"
+          >
+            <span v-if="isStreamingAction && pendingStreamingState === false" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <i v-else class="bi bi-broadcast"></i>
+            Disable Streaming
+          </button>
+
+          <button
+              v-if="streamingEnabled !== null && streamingEnabled !== undefined"
+              type="button"
+              class="btn-action btn-action-outline"
+              @click="resetStreaming"
+              :disabled="isStreamingAction"
+          >
+            <span v-if="isStreamingAction && pendingStreamingState === null" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <i v-else class="bi bi-arrow-counterclockwise"></i>
+            Reset to Inherited
+          </button>
+        </div>
+      </div>
+
       <!-- Danger Zone Section -->
       <div class="settings-section danger-section">
         <div class="section-header danger-header">
@@ -185,6 +243,13 @@ const hasChanges = ref(false);
 const isBlocked = ref(false);
 const isBlockingAction = ref(false);
 
+// Streaming state
+const streamingEnabled = ref<boolean | null | undefined>(undefined);
+const effectiveStreamingEnabled = ref(true);
+const effectiveStreamingLevel = ref<string | undefined>(undefined);
+const isStreamingAction = ref(false);
+const pendingStreamingState = ref<boolean | null>(null);
+
 // Delete project state
 const isDeleting = ref(false);
 const showDeleteConfirmation = ref(false);
@@ -198,6 +263,9 @@ onMounted(async () => {
     originalProjectName.value = settings.name;
     projectName.value = settings.name;
     isBlocked.value = settings.blocked;
+    streamingEnabled.value = settings.streamingEnabled;
+    effectiveStreamingEnabled.value = settings.effectiveStreamingEnabled ?? true;
+    effectiveStreamingLevel.value = settings.effectiveStreamingLevel;
     isLoading.value = false;
   } catch (error) {
     console.error('Failed to load project settings:', error);
@@ -260,6 +328,65 @@ async function unblockProject() {
     ToastService.error('Error', 'Failed to unblock project');
   } finally {
     isBlockingAction.value = false;
+  }
+}
+
+// Enable streaming
+async function enableStreaming() {
+  try {
+    isStreamingAction.value = true;
+    pendingStreamingState.value = true;
+    await settingsClient.updateStreaming(true);
+    streamingEnabled.value = true;
+    effectiveStreamingEnabled.value = true;
+    effectiveStreamingLevel.value = 'PROJECT';
+    ToastService.success('Streaming Enabled', 'Streaming has been explicitly enabled for this project.');
+  } catch (error) {
+    console.error('Failed to enable streaming:', error);
+    ToastService.error('Error', 'Failed to enable streaming');
+  } finally {
+    isStreamingAction.value = false;
+    pendingStreamingState.value = null;
+  }
+}
+
+// Disable streaming
+async function disableStreaming() {
+  try {
+    isStreamingAction.value = true;
+    pendingStreamingState.value = false;
+    await settingsClient.updateStreaming(false);
+    streamingEnabled.value = false;
+    effectiveStreamingEnabled.value = false;
+    effectiveStreamingLevel.value = 'PROJECT';
+    ToastService.success('Streaming Disabled', 'Streaming has been explicitly disabled for this project.');
+  } catch (error) {
+    console.error('Failed to disable streaming:', error);
+    ToastService.error('Error', 'Failed to disable streaming');
+  } finally {
+    isStreamingAction.value = false;
+    pendingStreamingState.value = null;
+  }
+}
+
+// Reset streaming to inherited
+async function resetStreaming() {
+  try {
+    isStreamingAction.value = true;
+    pendingStreamingState.value = null;
+    await settingsClient.updateStreaming(null);
+    streamingEnabled.value = null;
+    // Re-fetch to get the correct effective state after reset
+    const settings = await settingsClient.get();
+    effectiveStreamingEnabled.value = settings.effectiveStreamingEnabled ?? true;
+    effectiveStreamingLevel.value = settings.effectiveStreamingLevel;
+    ToastService.success('Streaming Reset', 'Streaming setting has been reset to inherit from workspace/global.');
+  } catch (error) {
+    console.error('Failed to reset streaming:', error);
+    ToastService.error('Error', 'Failed to reset streaming setting');
+  } finally {
+    isStreamingAction.value = false;
+    pendingStreamingState.value = null;
   }
 }
 
@@ -462,6 +589,116 @@ async function deleteProject() {
 }
 
 .btn-action-warning:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Streaming Section */
+.streaming-section {
+  background: linear-gradient(135deg, #ffffff, #f0f9ff);
+  border-color: rgba(59, 130, 246, 0.12);
+}
+
+.streaming-header {
+  border-bottom-color: rgba(59, 130, 246, 0.12);
+}
+
+.streaming-icon {
+  color: #3b82f6;
+}
+
+.streaming-title {
+  color: #1e40af;
+}
+
+.streaming-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.streaming-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+.streaming-status-enabled {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: #166534;
+}
+
+.streaming-status-disabled {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #991b1b;
+}
+
+.streaming-status-icon {
+  font-size: 1.1rem;
+}
+
+.streaming-status-enabled .streaming-status-icon {
+  color: #22c55e;
+}
+
+.streaming-status-disabled .streaming-status-icon {
+  color: #ef4444;
+}
+
+.streaming-level-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.streaming-level-project {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.streaming-level-workspace {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1e40af;
+}
+
+.streaming-level-global {
+  background: rgba(107, 114, 128, 0.12);
+  color: #374151;
+}
+
+.streaming-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-action-outline {
+  background: white;
+  color: #374151;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-action-outline:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action-outline:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

@@ -204,19 +204,22 @@ public class ServerAppConfiguration {
             ServerJeffreyDirs jeffreyDirs,
             ServerPlatformRepositories platformRepositories,
             Clock clock,
-            FileHeartbeatReader fileHeartbeatReader) {
+            FileHeartbeatReader fileHeartbeatReader,
+            @Value("${jeffrey.server.platform.streaming.enabled:true}") boolean streamingEnabled) {
 
         return new JfrStreamingConsumerManager(
-                jeffreyDirs, platformRepositories, clock, fileHeartbeatReader);
+                jeffreyDirs, platformRepositories, clock, fileHeartbeatReader, streamingEnabled);
     }
 
     @Bean
     public JfrStreamingInitializer jfrStreamingInitializer(
             JfrStreamingConsumerManager jfrStreamingConsumerManager,
             WorkspacesManager workspacesManager,
-            ServerPlatformRepositories platformRepositories) {
+            ServerPlatformRepositories platformRepositories,
+            @Value("${jeffrey.server.platform.streaming.enabled:true}") boolean streamingEnabled) {
 
-        return new JfrStreamingInitializer(jfrStreamingConsumerManager, workspacesManager, platformRepositories);
+        return new JfrStreamingInitializer(
+                jfrStreamingConsumerManager, workspacesManager, platformRepositories, streamingEnabled);
     }
 
     @Bean

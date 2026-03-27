@@ -36,7 +36,8 @@ public abstract class Mappers {
                 info.description(),
                 info.createdAt().toEpochMilli(),
                 info.projectCount(),
-                info.status());
+                info.status(),
+                info.streamingEnabled());
     }
 
     public static WorkspaceEventResponse toEventResponse(WorkspaceEvent event) {

@@ -1,5 +1,5 @@
 <template>
-  <section class="dashboard-section">
+  <ChartSection title="Statement Groups" icon="collection" :full-width="true">
     <MetricsList
       :items="displayedGroups"
       :metrics="groupMetrics"
@@ -35,7 +35,7 @@
         </div>
       </template>
     </MetricsList>
-  </section>
+  </ChartSection>
 </template>
 
 <script setup lang="ts">
@@ -43,6 +43,7 @@ import { ref, computed } from 'vue';
 import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
 import FormattingService from "@/services/FormattingService.ts";
 import MetricsList from '@/components/MetricsList.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import type { MetricDefinition, SortOption } from '@/components/MetricsList.vue';
 
 interface Props {
@@ -165,10 +166,6 @@ const onSortChange = (sortKey: string) => {
 </script>
 
 <style scoped>
-.dashboard-section {
-  margin-bottom: 2rem;
-}
-
 /* Group name display styling */
 .group-name-display {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

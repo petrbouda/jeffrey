@@ -8,7 +8,7 @@
     />
 
     <div v-else>
-      <PageHeader title="Endpoint Details" icon="bi-share" />
+      <HttpOverviewStats v-if="httpOverviewData" :header="httpOverviewData.header"/>
 
     <!-- URI Display with Navigation -->
     <div v-if="selectedUriForDetail" class="uri-display-large">
@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
@@ -154,7 +154,7 @@ const parseUri = (uri: string) => {
 const selectUriForDetail = (uri: string) => {
   selectedUriForDetail.value = uri;
   router.push({
-    name: 'profile-application-http-endpoints',
+    name: 'profile-technologies-http-endpoints',
     query: {uri: encodeURIComponent(uri), mode: mode}
   });
 };
@@ -162,7 +162,7 @@ const selectUriForDetail = (uri: string) => {
 const clearUriSelection = () => {
   selectedUriForDetail.value = null;
   router.push({
-    name: 'profile-application-http-endpoints',
+    name: 'profile-technologies-http-endpoints',
     query: {mode: mode}
   });
 };

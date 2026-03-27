@@ -26,9 +26,39 @@ public record ProjectSettingsResponse(
         String name,
         String description,
         String createdAt,
-        boolean blocked) {
+        boolean blocked,
+        Boolean streamingEnabled,
+        boolean effectiveStreamingEnabled,
+        String effectiveStreamingLevel) {
 
-    public ProjectSettingsResponse(ProjectInfo projectInfo) {
-        this(projectInfo.id(), projectInfo.name(), null, InstantUtils.formatInstant(projectInfo.createdAt()), projectInfo.blocked());
+    /**
+     * Resolves the effective streaming state from project > workspace > global hierarchy.
+     */
+    public static ProjectSettingsResponse create(ProjectInfo projectInfo, Boolean workspaceStreamingEnabled) {
+        Boolean projectStreaming = projectInfo.streamingEnabled();
+
+        boolean effectiveEnabled;
+        String level;
+
+        if (projectStreaming != null) {
+            effectiveEnabled = projectStreaming;
+            level = "PROJECT";
+        } else if (workspaceStreamingEnabled != null) {
+            effectiveEnabled = workspaceStreamingEnabled;
+            level = "WORKSPACE";
+        } else {
+            effectiveEnabled = true;
+            level = "GLOBAL";
+        }
+
+        return new ProjectSettingsResponse(
+                projectInfo.id(),
+                projectInfo.name(),
+                null,
+                InstantUtils.formatInstant(projectInfo.createdAt()),
+                projectInfo.blocked(),
+                projectStreaming,
+                effectiveEnabled,
+                level);
     }
 }

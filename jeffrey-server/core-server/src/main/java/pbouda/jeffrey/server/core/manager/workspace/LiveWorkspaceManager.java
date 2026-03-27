@@ -128,6 +128,12 @@ public class LiveWorkspaceManager implements WorkspaceManager {
     }
 
     @Override
+    public void updateStreamingEnabled(Boolean enabled) {
+        workspaceRepository.updateStreamingEnabled(enabled);
+        LOG.info("Updated workspace streaming: workspaceId={} enabled={}", workspaceInfo.id(), enabled);
+    }
+
+    @Override
     public RemoteWorkspaceRepository remoteWorkspaceRepository() {
         Path workspacePath = resolveInfo().location().toPath();
         if (!FileSystemUtils.isDirectory(workspacePath)) {

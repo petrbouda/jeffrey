@@ -148,6 +148,26 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
         }
     }
 
+    @Override
+    public void updateWorkspaceStreaming(UpdateWorkspaceStreamingRequest request, StreamObserver<UpdateWorkspaceStreamingResponse> responseObserver) {
+        try {
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+            Boolean streamingEnabled = request.hasStreamingEnabled() ? request.getStreamingEnabled() : null;
+            workspace.updateStreamingEnabled(streamingEnabled);
+
+            LOG.info("Updated workspace streaming via gRPC: workspaceId={} streamingEnabled={}",
+                    request.getWorkspaceId(), streamingEnabled);
+
+            responseObserver.onNext(UpdateWorkspaceStreamingResponse.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to update workspace streaming: workspaceId={}", request.getWorkspaceId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
     private WorkspaceManager findWorkspace(String workspaceId) {
         return workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Status.NOT_FOUND
@@ -156,15 +176,20 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     }
 
     static pbouda.jeffrey.server.api.v1.WorkspaceInfo toProto(WorkspaceInfo info) {
-        return pbouda.jeffrey.server.api.v1.WorkspaceInfo.newBuilder()
+        var builder = pbouda.jeffrey.server.api.v1.WorkspaceInfo.newBuilder()
                 .setId(info.id())
                 .setName(info.name())
                 .setDescription(info.description() != null ? info.description() : "")
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setProjectCount(info.projectCount())
                 .setStatus(toProtoStatus(info.status()))
-                .setIsBlocked(info.blocked())
-                .build();
+                .setIsBlocked(info.blocked());
+
+        if (info.streamingEnabled() != null) {
+            builder.setStreamingEnabled(info.streamingEnabled());
+        }
+
+        return builder.build();
     }
 
     private static pbouda.jeffrey.server.api.v1.WorkspaceStatus toProtoStatus(WorkspaceStatus status) {

@@ -22,8 +22,6 @@
     <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
     <div v-else>
-      <PageHeader title="Slowest Method Traces" icon="bi-hourglass-split" />
-
       <!-- Loading State -->
       <LoadingState v-if="loading" message="Loading slowest traces..." />
 
@@ -40,17 +38,11 @@
 
     <div v-else class="dashboard-container">
       <!-- Stats Summary -->
-      <div class="mb-4">
-        <StatsTable :metrics="metricsData" />
-      </div>
+      <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
 
       <!-- Slowest Traces Table -->
-      <div class="table-card">
-        <div class="table-header">
-          <h4>
-            <i class="bi bi-list-ol me-2"></i>
-            Slowest Method Invocations
-          </h4>
+      <ChartSection title="Slowest Method Invocations" icon="list-ol" :full-width="true">
+        <template #header-actions>
           <div class="search-box">
             <i class="bi bi-search search-icon"></i>
             <input
@@ -63,7 +55,7 @@
               <i class="bi bi-x"></i>
             </button>
           </div>
-        </div>
+        </template>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead>
@@ -99,7 +91,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </ChartSection>
     </div>
     </div>
   </div>
@@ -109,15 +101,16 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
-import StatsTable from '@/components/StatsTable.vue';
+import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import type MethodTracingSlowestData from '@/services/api/model/MethodTracingSlowestData';
+import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
@@ -143,69 +136,8 @@ const isTracingDisabled = computed(() => {
 const loading = ref(true);
 const error = ref<string | null>(null);
 const slowestData = ref<MethodTracingSlowestData | null>(null);
+const overviewData = ref<MethodTracingOverviewData | null>(null);
 const searchQuery = ref('');
-
-// Computed metrics for StatsTable
-const metricsData = computed(() => {
-  if (!slowestData.value) return [];
-  const header = slowestData.value.header;
-  const traces = slowestData.value.slowestTraces;
-  const slowest = traces[0];
-
-  // Compute avg duration from traces
-  const totalDuration = traces.reduce((sum, t) => sum + t.duration, 0);
-  const avgDuration = traces.length > 0 ? totalDuration / traces.length : 0;
-
-  return [
-    {
-      icon: 'hourglass-split',
-      title: 'Slowest Trace',
-      value: slowest ? FormattingService.formatDuration2Units(slowest.duration) : '-',
-      variant: 'danger' as const,
-      breakdown: slowest
-        ? [
-            {
-              label: 'Method',
-              value: getShortMethodName(slowest.className, slowest.methodName),
-              color: '#EA4335'
-            }
-          ]
-        : []
-    },
-    {
-      icon: 'clock-fill',
-      title: 'P99 Duration',
-      value: FormattingService.formatDuration2Units(header.p99Duration),
-      variant: 'warning' as const,
-      breakdown: [
-        {
-          label: 'P95',
-          value: FormattingService.formatDuration2Units(header.p95Duration),
-          color: '#FBBC05'
-        }
-      ]
-    },
-    {
-      icon: 'exclamation-triangle',
-      title: 'Unique Methods',
-      value: header.uniqueMethodCount,
-      variant: 'info' as const,
-      breakdown: [
-        {
-          label: 'Shown Traces',
-          value: traces.length,
-          color: '#4285F4'
-        }
-      ]
-    },
-    {
-      icon: 'stopwatch',
-      title: 'Avg Duration',
-      value: FormattingService.formatDuration2Units(avgDuration),
-      variant: 'highlight' as const
-    }
-  ];
-});
 
 const maxDuration = computed(() => {
   if (!slowestData.value || slowestData.value.slowestTraces.length === 0) return 1;
@@ -247,10 +179,6 @@ const getDurationClass = (duration: number) => {
   return 'duration-normal';
 };
 
-function getShortMethodName(className: string, methodName: string): string {
-  return methodName || className.split('.').pop() || className;
-}
-
 // Load data
 async function loadData() {
   loading.value = true;
@@ -258,7 +186,12 @@ async function loadData() {
 
   try {
     const client = new ProfileMethodTracingClient(profileId);
-    slowestData.value = await client.getSlowest();
+    const [slowest, overview] = await Promise.all([
+      client.getSlowest(),
+      client.getOverview()
+    ]);
+    slowestData.value = slowest;
+    overviewData.value = overview;
   } catch (e: unknown) {
     console.error('Failed to load slowest traces data:', e);
     error.value = 'Failed to load slowest traces data. Please try again.';
@@ -278,30 +211,6 @@ onMounted(() => {
 <style scoped>
 .dashboard-container {
   padding: 0;
-}
-
-.table-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e9ecef;
-  gap: 1rem;
-}
-
-.table-header h4 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1rem;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .search-box {

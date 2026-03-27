@@ -8,7 +8,8 @@
     />
 
     <div v-else>
-      <PageHeader title="JDBC Statement Groups" icon="bi-collection" />
+      <JdbcOverviewStats v-if="jdbcOverviewData" :jdbc-header="jdbcOverviewData.header" />
+      <JdbcOverviewStats v-else-if="singleGroupData" :jdbc-header="singleGroupData.header" />
 
       <!-- Group Display with Navigation -->
       <div v-if="selectedGroupForDetail" class="group-display-large">
@@ -210,8 +211,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import JdbcGroupList from '@/components/jdbc/JdbcGroupList.vue';
+import JdbcOverviewStats from '@/components/jdbc/JdbcOverviewStats.vue';
 import JdbcDashboardSection from '@/components/jdbc/JdbcDashboardSection.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
@@ -323,7 +324,7 @@ const slowestStatementsTabs = computed(() => {
 const selectGroupForDetail = (group: string) => {
   selectedGroupForDetail.value = group;
   router.push({
-    name: 'profile-application-jdbc-statement-groups',
+    name: 'profile-technologies-jdbc-statement-groups',
     query: { group: encodeURIComponent(group) }
   });
 };
@@ -339,7 +340,7 @@ const clearGroupSelection = () => {
   activeTimelineTab.value = 'total';
   activeSlowestTab.value = 'total';
   router.push({
-    name: 'profile-application-jdbc-statement-groups'
+    name: 'profile-technologies-jdbc-statement-groups'
   });
 };
 

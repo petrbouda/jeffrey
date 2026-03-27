@@ -20,10 +20,12 @@ package pbouda.jeffrey.local.core.resources.workspace;
 
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspaceManager;
+import pbouda.jeffrey.local.core.resources.request.StreamingUpdateRequest;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
@@ -78,5 +80,12 @@ public class WorkspaceResource {
     public List<WorkspaceEventResponse> events() {
         LOG.debug("Fetching workspace events: workspaceId={}", workspaceInfo.id());
         return workspaceManager.events();
+    }
+
+    @POST
+    @Path("/streaming")
+    public void updateStreaming(StreamingUpdateRequest request) {
+        LOG.debug("Updating workspace streaming: workspaceId={} streamingEnabled={}", workspaceInfo.id(), request.streamingEnabled());
+        workspaceManager.updateStreamingEnabled(request.streamingEnabled());
     }
 }

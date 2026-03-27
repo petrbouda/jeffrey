@@ -149,6 +149,27 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
         }
     }
 
+    @Override
+    public void updateProjectStreaming(UpdateProjectStreamingRequest request, StreamObserver<UpdateProjectStreamingResponse> responseObserver) {
+        try {
+            ProjectManager project = findProject(request.getWorkspaceId(), request.getProjectId());
+            Boolean streamingEnabled = request.hasStreamingEnabled() ? request.getStreamingEnabled() : null;
+            project.updateStreamingEnabled(streamingEnabled);
+
+            LOG.info("Updated project streaming via gRPC: workspaceId={} projectId={} streamingEnabled={}",
+                    request.getWorkspaceId(), request.getProjectId(), streamingEnabled);
+
+            responseObserver.onNext(UpdateProjectStreamingResponse.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (io.grpc.StatusRuntimeException e) {
+            responseObserver.onError(e);
+        } catch (Exception e) {
+            LOG.error("Failed to update project streaming: workspaceId={} projectId={}",
+                    request.getWorkspaceId(), request.getProjectId(), e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asRuntimeException());
+        }
+    }
+
     private WorkspaceManager findWorkspace(String workspaceId) {
         return workspacesManager.findById(workspaceId)
                 .orElseThrow(() -> Status.NOT_FOUND
@@ -167,7 +188,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     static ProjectInfo toProto(DetailedProjectInfo detail) {
         pbouda.jeffrey.shared.common.model.ProjectInfo info = detail.projectInfo();
 
-        return ProjectInfo.newBuilder()
+        var builder = ProjectInfo.newBuilder()
                 .setId(info.id())
                 .setOriginId(info.originId() != null ? info.originId() : "")
                 .setName(info.name())
@@ -177,8 +198,13 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
                 .setWorkspaceId(info.workspaceId())
                 .setStatus(toProtoRecordingStatus(detail.status()))
                 .setSessionCount(detail.sessionCount())
-                .setIsBlocked(detail.isBlocked())
-                .build();
+                .setIsBlocked(detail.isBlocked());
+
+        if (info.streamingEnabled() != null) {
+            builder.setStreamingEnabled(info.streamingEnabled());
+        }
+
+        return builder.build();
     }
 
     private static pbouda.jeffrey.server.api.v1.RecordingStatus toProtoRecordingStatus(

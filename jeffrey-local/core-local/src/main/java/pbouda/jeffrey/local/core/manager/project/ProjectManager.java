@@ -70,5 +70,15 @@ public interface ProjectManager {
 
     void unblock();
 
+    void updateStreamingEnabled(Boolean streamingEnabled);
+
+    /**
+     * Returns the workspace-level streaming enabled override for the workspace
+     * that contains this project.
+     *
+     * @return workspace streaming flag, or null if not set (inherit from global)
+     */
+    Boolean workspaceStreamingEnabled();
+
     void delete(WorkspaceEventCreator createdBy);
 }

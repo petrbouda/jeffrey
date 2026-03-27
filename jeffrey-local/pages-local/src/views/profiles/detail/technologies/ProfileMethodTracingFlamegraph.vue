@@ -24,7 +24,10 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
+import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
+import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
+import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
@@ -51,6 +54,9 @@ const isTracingDisabled = computed(() => {
   return props.disabledFeatures.includes(FeatureType.TRACING_DASHBOARD);
 });
 
+// Overview data for stats
+const overviewData = ref<MethodTracingOverviewData | null>(null);
+
 // Flamegraph infrastructure
 let graphUpdater: GraphUpdater;
 let flamegraphTooltip: FlamegraphTooltip;
@@ -71,10 +77,18 @@ function scrollToTop() {
   }
 }
 
-onBeforeMount(() => {
+onBeforeMount(async () => {
   // Only initialize flamegraph if the feature is not disabled
   if (isTracingDisabled.value) {
     return;
+  }
+
+  // Load overview data for stats
+  try {
+    const tracingClient = new ProfileMethodTracingClient(profileId);
+    overviewData.value = await tracingClient.getOverview();
+  } catch (e) {
+    console.error('Failed to load method tracing overview:', e);
   }
 
   const flamegraphClient = new PrimaryFlamegraphClient(
@@ -104,6 +118,9 @@ onBeforeMount(() => {
     <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
     <div v-else style="padding-left: 5px; padding-right: 5px">
+      <!-- Stats Cards -->
+      <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
+
       <!-- Search Bar with Mode Controls -->
       <SearchBarComponent
         :graph-updater="graphUpdater"

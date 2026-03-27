@@ -22,6 +22,9 @@ export default class SettingsResponse {
         public name: string,
         public description: string,
         public createdAt: string,
-        public blocked: boolean){
+        public blocked: boolean,
+        public streamingEnabled?: boolean | null,
+        public effectiveStreamingEnabled?: boolean,
+        public effectiveStreamingLevel?: string){
     }
 }

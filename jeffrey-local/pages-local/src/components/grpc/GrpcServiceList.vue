@@ -1,5 +1,5 @@
 <template>
-  <section class="dashboard-section">
+  <ChartSection title="gRPC Services" icon="hdd-network" :full-width="true">
     <MetricsList
         :items="displayedServices"
         :metrics="serviceMetrics"
@@ -38,13 +38,14 @@
         </div>
       </template>
     </MetricsList>
-  </section>
+  </ChartSection>
 </template>
 
 <script setup lang="ts">
 import {ref, computed} from 'vue';
 import FormattingService from '@/services/FormattingService';
 import MetricsList from '@/components/MetricsList.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import type {MetricDefinition, SortOption} from '@/components/MetricsList.vue';
 import type {GrpcServiceInfo} from '@/services/api/ProfileGrpcClient';
 
@@ -167,10 +168,6 @@ const onSortChange = (sortKey: string) => {
 </script>
 
 <style scoped>
-.dashboard-section {
-  margin-bottom: 2rem;
-}
-
 /* Service Display styling */
 .service-display {
   background: linear-gradient(135deg, #f8fafc, #f1f5f9);

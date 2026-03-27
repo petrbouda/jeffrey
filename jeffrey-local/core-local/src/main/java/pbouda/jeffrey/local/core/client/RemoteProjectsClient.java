@@ -24,6 +24,7 @@ import pbouda.jeffrey.server.api.v1.BlockProjectRequest;
 import pbouda.jeffrey.server.api.v1.DeleteProjectRequest;
 import pbouda.jeffrey.server.api.v1.ProjectServiceGrpc;
 import pbouda.jeffrey.server.api.v1.UnblockProjectRequest;
+import pbouda.jeffrey.server.api.v1.UpdateProjectStreamingRequest;
 
 public class RemoteProjectsClient {
 
@@ -60,5 +61,19 @@ public class RemoteProjectsClient {
                 .build());
 
         LOG.debug("Unblocked project via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
+    }
+
+    public void updateStreamingEnabled(String workspaceId, String projectId, Boolean streamingEnabled) {
+        UpdateProjectStreamingRequest.Builder builder = UpdateProjectStreamingRequest.newBuilder()
+                .setWorkspaceId(workspaceId)
+                .setProjectId(projectId);
+
+        if (streamingEnabled != null) {
+            builder.setStreamingEnabled(streamingEnabled);
+        }
+
+        stub.updateProjectStreaming(builder.build());
+
+        LOG.debug("Updated project streaming via gRPC: workspaceId={} projectId={} streamingEnabled={}", workspaceId, projectId, streamingEnabled);
     }
 }

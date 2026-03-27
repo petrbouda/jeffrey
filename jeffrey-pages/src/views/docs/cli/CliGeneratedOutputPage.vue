@@ -71,8 +71,6 @@ profiler-path = "/tmp/jeffrey/libs/current/libasyncProfiler.so"
 
 agent-path = "/tmp/jeffrey/libs/current/jeffrey-agent.jar"
 
-jfc-settings-path = "/tmp/jeffrey/jfc"
-
 # Output files
 arg-file = "/tmp/jvm.args"
 

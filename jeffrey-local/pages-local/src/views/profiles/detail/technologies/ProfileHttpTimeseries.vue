@@ -1,0 +1,81 @@
+<template>
+  <div>
+    <CustomDisabledFeatureAlert
+        v-if="isHttpDashboardDisabled"
+        :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+        eventType="HTTP exchange"
+    />
+
+    <div v-else>
+      <div v-if="isLoading" class="p-4 text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <div v-else-if="error" class="p-4 text-center">
+        <div class="alert alert-danger" role="alert">
+          Error loading HTTP data: {{ error }}
+        </div>
+      </div>
+
+      <div v-if="httpOverviewData" class="dashboard-container">
+        <HttpOverviewStats :header="httpOverviewData.header"/>
+        <HttpTimeseries
+            :response-time-data="httpOverviewData.responseTimeSerie.data || []"
+            :request-count-data="httpOverviewData.requestCountSerie.data || []"/>
+      </div>
+
+      <div v-else-if="!isLoading && !error" class="p-4 text-center">
+        <h3 class="text-muted">No HTTP Data Available</h3>
+        <p class="text-muted">No HTTP exchange events found for this profile</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {computed, nextTick, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
+import ProfileHttpClient from '@/services/api/ProfileHttpClient';
+import HttpOverviewData from '@/services/api/model/HttpOverviewData';
+import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
+import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
+import FeatureType from '@/services/api/model/FeatureType';
+
+interface Props {
+  disabledFeatures?: FeatureType[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabledFeatures: () => []
+});
+
+const route = useRoute();
+const httpOverviewData = ref<HttpOverviewData | null>(null);
+const isLoading = ref(true);
+const error = ref<string | null>(null);
+
+const mode = (route.query.mode as 'client' | 'server') || 'server';
+
+const isHttpDashboardDisabled = computed(() => {
+  const featureType = mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
+  return props.disabledFeatures.includes(featureType);
+});
+
+const client = new ProfileHttpClient(mode, route.params.profileId as string);
+
+onMounted(async () => {
+  if (isHttpDashboardDisabled.value) return;
+  try {
+    isLoading.value = true;
+    httpOverviewData.value = await client.getOverview();
+    await nextTick();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error occurred';
+  } finally {
+    isLoading.value = false;
+  }
+});
+</script>

@@ -30,5 +30,6 @@ public record RemoteProjectResponse(
         String workspaceId,
         RecordingStatus status,
         int sessionCount,
-        boolean isBlocked) {
+        boolean isBlocked,
+        Boolean streamingEnabled) {
 }

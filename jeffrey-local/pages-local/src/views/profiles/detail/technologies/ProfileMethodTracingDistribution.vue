@@ -1,6 +1,6 @@
 <!--
   ~ Jeffrey
-  ~ Copyright (C) 2025 Petr Bouda
+  ~ Copyright (C) 2026 Petr Bouda
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU Affero General Public License as published by
@@ -22,8 +22,6 @@
     <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
     <div v-else>
-      <PageHeader title="Method Tracing Overview" icon="bi-speedometer2" />
-
       <!-- Loading State -->
       <LoadingState v-if="loading" message="Loading method tracing data..." />
 
@@ -41,50 +39,24 @@
       <!-- Dashboard content -->
       <div v-else class="dashboard-container">
         <!-- Stats Cards -->
-        <div class="mb-4">
-          <StatsTable :metrics="metricsData" />
-        </div>
-
-        <!-- Timeseries Chart -->
-        <ChartSection
-          v-if="durationTimeseries && countTimeseries"
-          title="Method Tracing Timeline"
-          icon="graph-up"
-          :full-width="true"
-          container-class="apex-chart-container"
-        >
-          <TimeSeriesChart
-            :primary-data="durationTimeseries"
-            primary-title="Total Duration"
-            :secondary-data="countTimeseries"
-            secondary-title="Invocation Count"
-            :visible-minutes="60"
-            :independentSecondaryAxis="true"
-            :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
-            :secondary-axis-type="AxisFormatType.NUMBER"
-          />
-        </ChartSection>
+        <MethodTracingOverviewStats :header="overviewData.header" />
 
         <!-- Method Distribution Charts -->
-        <div class="row">
-          <div class="col-md-6">
-            <PieChart
-              title="Top Methods by Invocations"
-              icon="bar-chart-line"
-              :data="methodsByCount"
-              :total="totalInvocations"
-              :value-formatter="formatCount"
-            />
-          </div>
-          <div class="col-md-6">
-            <PieChart
-              title="Top Methods by Duration"
-              icon="clock"
-              :data="methodsByDuration"
-              :total="totalDuration"
-              :value-formatter="formatDuration"
-            />
-          </div>
+        <div class="distribution-container">
+          <PieChart
+            title="Top Methods by Invocations"
+            icon="bar-chart-line"
+            :data="methodsByCount"
+            :total="totalInvocations"
+            :value-formatter="formatCount"
+          />
+          <PieChart
+            title="Top Methods by Duration"
+            icon="clock"
+            :data="methodsByDuration"
+            :total="totalDuration"
+            :value-formatter="formatDuration"
+          />
         </div>
       </div>
     </div>
@@ -95,19 +67,15 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
-import StatsTable from '@/components/StatsTable.vue';
-import ChartSection from '@/components/ChartSection.vue';
-import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PieChart from '@/components/PieChart.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
+import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
-import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import FeatureType from '@/services/api/model/FeatureType';
 
 // Define props
@@ -135,16 +103,6 @@ const error = ref<string | null>(null);
 const overviewData = ref<MethodTracingOverviewData | null>(null);
 
 // Computed properties
-const durationTimeseries = computed(() => {
-  if (!overviewData.value?.durationTimeseries) return null;
-  return overviewData.value.durationTimeseries.data;
-});
-
-const countTimeseries = computed(() => {
-  if (!overviewData.value?.countTimeseries) return null;
-  return overviewData.value.countTimeseries.data;
-});
-
 const methodsByCount = computed(() => {
   if (!overviewData.value) return [];
   return overviewData.value.topMethodsByCount.slice(0, 6).map(m => ({
@@ -167,63 +125,6 @@ const totalInvocations = computed(() => {
 
 const totalDuration = computed(() => {
   return overviewData.value?.header.totalDuration ?? 0;
-});
-
-const metricsData = computed(() => {
-  if (!overviewData.value) return [];
-  const header = overviewData.value.header;
-
-  return [
-    {
-      icon: 'play-circle',
-      title: 'Total Invocations',
-      value: FormattingService.formatNumber(header.totalInvocations),
-      variant: 'info' as const,
-      breakdown: [
-        {
-          label: 'Unique Methods',
-          value: header.uniqueMethodCount,
-          color: '#4285F4'
-        }
-      ]
-    },
-    {
-      icon: 'stopwatch',
-      title: 'Total Duration',
-      value: FormattingService.formatDuration2Units(header.totalDuration),
-      variant: 'highlight' as const,
-      breakdown: [
-        {
-          label: 'Avg',
-          value: FormattingService.formatDuration2Units(header.avgDuration),
-          color: '#FBBC05'
-        }
-      ]
-    },
-    {
-      icon: 'clock-fill',
-      title: 'Response Time',
-      value: FormattingService.formatDuration2Units(header.maxDuration),
-      variant: 'warning' as const,
-      breakdown: [
-        {
-          label: 'P99',
-          value: FormattingService.formatDuration2Units(header.p99Duration),
-        },
-        {
-          label: 'P95',
-          value: FormattingService.formatDuration2Units(header.p95Duration),
-        }
-      ]
-    },
-    {
-      icon: 'collection',
-      title: 'Unique Methods',
-      value: header.uniqueMethodCount,
-      variant: 'success' as const,
-      breakdown: []
-    }
-  ];
 });
 
 // Helper functions
@@ -263,5 +164,17 @@ onMounted(() => {
 <style scoped>
 .dashboard-container {
   padding: 0;
+}
+
+.distribution-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .distribution-container {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

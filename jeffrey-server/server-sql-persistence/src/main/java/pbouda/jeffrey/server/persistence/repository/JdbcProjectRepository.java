@@ -48,6 +48,10 @@ public class JdbcProjectRepository implements ProjectRepository {
             "UPDATE projects SET blocked = false WHERE project_id = :project_id";
 
     //language=SQL
+    private static final String UPDATE_STREAMING_ENABLED =
+            "UPDATE projects SET streaming_enabled = :streaming_enabled WHERE project_id = :project_id";
+
+    //language=SQL
     private static final String DELETE_PROJECT_CASCADE = """
             DELETE FROM schedulers WHERE project_id = '%project_id%';
             DELETE FROM project_instance_sessions WHERE repository_id IN (SELECT repository_id FROM repositories WHERE project_id = '%project_id%');
@@ -104,5 +108,14 @@ public class JdbcProjectRepository implements ProjectRepository {
                 .addValue("project_id", projectId);
 
         databaseClient.update(StatementLabel.UNBLOCK_PROJECT, UNBLOCK_PROJECT, paramSource);
+    }
+
+    @Override
+    public void updateStreamingEnabled(Boolean enabled) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("project_id", projectId)
+                .addValue("streaming_enabled", enabled);
+
+        databaseClient.update(StatementLabel.UPDATE_PROJECT_STREAMING, UPDATE_STREAMING_ENABLED, paramSource);
     }
 }

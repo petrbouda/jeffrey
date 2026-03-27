@@ -30,6 +30,11 @@ service ProjectService {
   // Events that arrived while blocked were discarded and will not be replayed.
   // Active streaming does not automatically resume for previously stopped sessions.
   rpc UnblockProject(UnblockProjectRequest) returns (UnblockProjectResponse);
+
+  // Updates the streaming enabled flag for a project.
+  // Setting streaming_enabled overrides the workspace/global setting for this project.
+  // Omitting streaming_enabled resets to inherit from workspace/global.
+  rpc UpdateProjectStreaming(UpdateProjectStreamingRequest) returns (UpdateProjectStreamingResponse);
 }
 
 message ListProjectsRequest {
@@ -71,6 +76,15 @@ message UnblockProjectRequest {
 
 message UnblockProjectResponse {}
 
+message UpdateProjectStreamingRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  // The streaming override. If not set, resets to inherit from workspace/global.
+  optional bool streaming_enabled = 3;
+}
+
+message UpdateProjectStreamingResponse {}
+
 // Detailed information about a project and its current state.
 message ProjectInfo {
   // Internal unique identifier for the project.
@@ -94,4 +108,7 @@ message ProjectInfo {
   // Whether the project is blocked. Blocked projects do not process events,
   // run streaming, or execute periodic jobs.
   bool is_blocked = 10;
+  // Project-level streaming override. If not set, inherits from the workspace/global setting.
+  // If set to true/false, overrides the workspace and global settings for this project.
+  optional bool streaming_enabled = 11;
 }

@@ -47,7 +47,8 @@ public abstract class RemoteMappers {
                 InstantUtils.parseInstant(response.createdAt()),
                 null,
                 null,
-                false
+                response.isBlocked(),
+                response.streamingEnabled()
         );
     }
 }

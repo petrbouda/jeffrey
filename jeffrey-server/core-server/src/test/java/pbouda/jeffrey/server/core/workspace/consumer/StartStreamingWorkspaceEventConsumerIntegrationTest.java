@@ -68,7 +68,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
             PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", "Label 1", null,
-            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false);
+            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), false, null);
 
     private static final RepositoryInfo REPOSITORY_INFO = new RepositoryInfo(
             REPOSITORY_ID, RepositoryType.ASYNC_PROFILER, null, "ws-001", "proj-001");
@@ -125,7 +125,7 @@ class StartStreamingWorkspaceEventConsumerIntegrationTest {
             ArgumentCaptor<ProjectInstanceSessionInfo> sessionCaptor =
                     ArgumentCaptor.forClass(ProjectInstanceSessionInfo.class);
             verify(streamingConsumerManager).registerConsumer(
-                    eq(REPOSITORY_INFO), sessionCaptor.capture(), any(), eq(PROJECT_INFO));
+                    eq(REPOSITORY_INFO), sessionCaptor.capture(), any(), eq(PROJECT_INFO), any());
 
             ProjectInstanceSessionInfo captured = sessionCaptor.getValue();
             assertEquals(SESSION_ID, captured.sessionId());

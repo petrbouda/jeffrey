@@ -52,4 +52,12 @@ public interface ProjectRepository {
      * Unblock the project — resumes event processing and periodic jobs.
      */
     void unblock();
+
+    /**
+     * Update the streaming enabled flag for this project.
+     *
+     * @param enabled {@code true} to force-enable, {@code false} to force-disable,
+     *                {@code null} to inherit from workspace/global setting.
+     */
+    void updateStreamingEnabled(Boolean enabled);
 }

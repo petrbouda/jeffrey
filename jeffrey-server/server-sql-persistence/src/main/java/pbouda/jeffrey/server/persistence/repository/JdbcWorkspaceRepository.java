@@ -45,6 +45,10 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
             DELETE FROM workspaces WHERE workspace_id = '%workspace_id%'""";
 
     //language=SQL
+    private static final String UPDATE_STREAMING_ENABLED =
+            "UPDATE workspaces SET streaming_enabled = :streaming_enabled WHERE workspace_id = :workspace_id";
+
+    //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID = """
             SELECT * FROM projects p
             JOIN workspaces w ON p.workspace_id = w.workspace_id
@@ -76,6 +80,14 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     public void delete() {
         String sql = DELETE_WORKSPACE.replaceAll("%workspace_id%", workspaceId);
         databaseClient.delete(StatementLabel.DELETE_WORKSPACE, sql);
+    }
+
+    @Override
+    public void updateStreamingEnabled(Boolean enabled) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("workspace_id", this.workspaceId)
+                .addValue("streaming_enabled", enabled);
+        databaseClient.update(StatementLabel.UPDATE_WORKSPACE_STREAMING, UPDATE_STREAMING_ENABLED, params);
     }
 
     @Override

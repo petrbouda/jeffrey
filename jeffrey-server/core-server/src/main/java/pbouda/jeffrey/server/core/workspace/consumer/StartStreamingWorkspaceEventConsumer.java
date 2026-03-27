@@ -24,6 +24,7 @@ import pbouda.jeffrey.server.core.manager.project.ProjectManager;
 import pbouda.jeffrey.server.core.manager.project.ProjectsManager;
 import pbouda.jeffrey.server.core.scheduler.job.descriptor.ProjectsSynchronizerJobDescriptor;
 import pbouda.jeffrey.server.core.streaming.JfrStreamingConsumerManager;
+import pbouda.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import pbouda.jeffrey.shared.common.model.workspace.event.SessionCreatedEventContent;
 import pbouda.jeffrey.server.persistence.repository.ServerPlatformRepositories;
 import pbouda.jeffrey.server.persistence.repository.ProjectRepositoryRepository;
@@ -85,9 +86,15 @@ public class StartStreamingWorkspaceEventConsumer implements WorkspaceEventConsu
                 event.createdAt(),
                 null);
 
+        Boolean workspaceStreamingEnabled = platformRepositories.newWorkspacesRepository()
+                .find(projectManager.info().workspaceId())
+                .map(WorkspaceInfo::streamingEnabled)
+                .orElse(null);
+
         ProjectRepositoryRepository repoRepository =
                 platformRepositories.newProjectRepositoryRepository(projectManager.info().id());
-        streamingConsumerManager.registerConsumer(repositoryInfo, sessionInfo, repoRepository, projectManager.info());
+        streamingConsumerManager.registerConsumer(
+                repositoryInfo, sessionInfo, repoRepository, projectManager.info(), workspaceStreamingEnabled);
     }
 
     @Override

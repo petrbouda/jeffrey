@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS workspaces
     location            VARCHAR,
     base_location       VARCHAR,
     created_at          TIMESTAMPTZ NOT NULL,
-    blocked             BOOLEAN NOT NULL DEFAULT false
+    blocked             BOOLEAN NOT NULL DEFAULT false,
+    streaming_enabled   BOOLEAN
 );
 
 --
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS projects
     attributes              VARCHAR NOT NULL,
     graph_visualization     VARCHAR NOT NULL,
     blocked                 BOOLEAN NOT NULL DEFAULT false,
+    streaming_enabled       BOOLEAN,
     PRIMARY KEY (project_id)
 );
 

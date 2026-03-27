@@ -62,6 +62,14 @@
             <i class="bi bi-eye-slash"></i>
           </button>
           <button
+              class="context-btn"
+              :class="getStreamingButtonClass()"
+              @click="cycleWorkspaceStreaming"
+              :title="getStreamingTooltip()"
+          >
+            <i class="bi bi-broadcast"></i>
+          </button>
+          <button
               class="context-btn danger"
               @click="handleDeleteWorkspace()"
               :disabled="!canDeleteWorkspace()"
@@ -454,6 +462,55 @@ const handleDeleteWorkspace = () => {
   showDeleteWorkspaceModal.value = true;
 };
 
+// Get workspace streaming button CSS class
+const getStreamingButtonClass = (): string => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return '';
+  if (workspace.streamingEnabled === true) return 'streaming-enabled';
+  if (workspace.streamingEnabled === false) return 'streaming-disabled';
+  return '';
+};
+
+// Get workspace streaming tooltip
+const getStreamingTooltip = (): string => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return '';
+  if (workspace.streamingEnabled === true) return 'Streaming: enabled (click to disable)';
+  if (workspace.streamingEnabled === false) return 'Streaming: disabled (click to reset to inherited)';
+  return 'Streaming: inherited from global (click to enable)';
+};
+
+// Cycle workspace streaming: null -> true -> false -> null
+const cycleWorkspaceStreaming = async () => {
+  const workspace = getSelectedWorkspace();
+  if (!workspace) return;
+
+  let nextState: boolean | null;
+  if (workspace.streamingEnabled === null || workspace.streamingEnabled === undefined) {
+    nextState = true;
+  } else if (workspace.streamingEnabled === true) {
+    nextState = false;
+  } else {
+    nextState = null;
+  }
+
+  try {
+    await workspaceClient.updateStreaming(workspace.id, nextState);
+    workspace.streamingEnabled = nextState;
+
+    if (nextState === true) {
+      ToastService.success('Streaming Enabled', 'Workspace streaming has been enabled.');
+    } else if (nextState === false) {
+      ToastService.success('Streaming Disabled', 'Workspace streaming has been disabled.');
+    } else {
+      ToastService.success('Streaming Reset', 'Workspace streaming reset to inherit from global.');
+    }
+  } catch (error) {
+    console.error('Failed to update workspace streaming:', error);
+    ToastService.error('Error', 'Failed to update workspace streaming setting.');
+  }
+};
+
 // Confirm workspace deletion
 const confirmDeleteWorkspace = async () => {
   const workspace = getSelectedWorkspace();
@@ -721,6 +778,34 @@ const confirmDeleteWorkspace = async () => {
       transform: none;
       box-shadow: none;
     }
+  }
+}
+
+.context-btn.streaming-enabled {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #16a34a;
+
+  &:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white;
+    border-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+  }
+}
+
+.context-btn.streaming-disabled {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  border-color: rgba(156, 163, 175, 0.3);
+  color: #9ca3af;
+
+  &:hover {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    border-color: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.25);
   }
 }
 

@@ -8,8 +8,6 @@
     />
 
     <div v-else>
-      <PageHeader :title="mode === 'client' ? 'HTTP Client Exchange' : 'HTTP Server Exchange'" icon="bi-globe"/>
-
       <!-- Loading state -->
       <div v-if="isLoading" class="p-4 text-center">
         <div class="spinner-border" role="status">
@@ -66,7 +64,6 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, ref} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
@@ -196,7 +193,7 @@ const getSortedSlowRequests = () => {
 // Navigation method
 const navigateToUri = (uri: string) => {
   router.push({
-    name: 'profile-application-http-endpoints',
+    name: 'profile-technologies-http-endpoints',
     query: {uri: encodeURIComponent(uri), mode: mode}
   });
 };

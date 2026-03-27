@@ -43,32 +43,41 @@ public class JfrStreamingInitializer implements ApplicationListener<ApplicationR
     private final JfrStreamingConsumerManager consumerManager;
     private final WorkspacesManager workspacesManager;
     private final ServerPlatformRepositories platformRepositories;
+    private final boolean globalStreamingEnabled;
 
     public JfrStreamingInitializer(
             JfrStreamingConsumerManager consumerManager,
             WorkspacesManager workspacesManager,
-            ServerPlatformRepositories platformRepositories) {
+            ServerPlatformRepositories platformRepositories,
+            boolean globalStreamingEnabled) {
 
         this.consumerManager = consumerManager;
         this.workspacesManager = workspacesManager;
         this.platformRepositories = platformRepositories;
+        this.globalStreamingEnabled = globalStreamingEnabled;
     }
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
+        if (!globalStreamingEnabled) {
+            LOG.info("Streaming globally disabled, skipping initialization");
+            return;
+        }
+
         LOG.info("Initializing JFR streaming consumers for active sessions...");
 
         int count = 0;
         for (WorkspaceManager workspace : workspacesManager.findAllActive()) {
+            Boolean workspaceStreamingEnabled = workspace.localInfo().streamingEnabled();
             for (ProjectManager project : workspace.projectsManager().findAllActive()) {
-                count += initializeProjectConsumers(project);
+                count += initializeProjectConsumers(project, workspaceStreamingEnabled);
             }
         }
 
         LOG.info("Initialized JFR streaming consumers: count={}", count);
     }
 
-    private int initializeProjectConsumers(ProjectManager project) {
+    private int initializeProjectConsumers(ProjectManager project, Boolean workspaceStreamingEnabled) {
         ProjectRepositoryRepository repoRepository =
                 platformRepositories.newProjectRepositoryRepository(project.info().id());
 
@@ -82,7 +91,8 @@ public class JfrStreamingInitializer implements ApplicationListener<ApplicationR
 
         int count = 0;
         for (ProjectInstanceSessionInfo session : unfinishedSessions) {
-            consumerManager.registerConsumer(repositoryInfo, session, repoRepository, project.info());
+            consumerManager.registerConsumer(
+                    repositoryInfo, session, repoRepository, project.info(), workspaceStreamingEnabled);
             count++;
         }
 

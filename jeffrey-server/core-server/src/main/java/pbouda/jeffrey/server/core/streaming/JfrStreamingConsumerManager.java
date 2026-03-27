@@ -55,35 +55,54 @@ public class JfrStreamingConsumerManager implements Closeable {
     private final ServerPlatformRepositories platformRepositories;
     private final Clock clock;
     private final FileHeartbeatReader fileHeartbeatReader;
+    private final boolean globalStreamingEnabled;
 
     public JfrStreamingConsumerManager(
             ServerJeffreyDirs jeffreyDirs,
             ServerPlatformRepositories platformRepositories,
             Clock clock,
-            FileHeartbeatReader fileHeartbeatReader) {
+            FileHeartbeatReader fileHeartbeatReader,
+            boolean globalStreamingEnabled) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.clock = clock;
         this.fileHeartbeatReader = fileHeartbeatReader;
+        this.globalStreamingEnabled = globalStreamingEnabled;
     }
 
     /**
      * Registers a new streaming consumer for the given session.
-     * Only registers if no consumer already exists for this session.
+     * Only registers if no consumer already exists for this session,
+     * and if streaming is enabled according to the three-tier hierarchy
+     * (global > workspace > project).
      *
-     * @param repositoryInfo       information about the repository
-     * @param sessionInfo          information about the session
-     * @param repositoryRepository project repository for persisting heartbeat data
-     * @param projectInfo          project that owns this session (used for session-finished events)
+     * @param repositoryInfo          information about the repository
+     * @param sessionInfo             information about the session
+     * @param repositoryRepository    project repository for persisting heartbeat data
+     * @param projectInfo             project that owns this session (used for session-finished events)
+     * @param workspaceStreamingEnabled workspace-level streaming override (null = inherit)
      */
     public void registerConsumer(
             RepositoryInfo repositoryInfo,
             ProjectInstanceSessionInfo sessionInfo,
             ProjectRepositoryRepository repositoryRepository,
-            ProjectInfo projectInfo) {
+            ProjectInfo projectInfo,
+            Boolean workspaceStreamingEnabled) {
 
         String sessionId = sessionInfo.sessionId();
+
+        boolean effectiveEnabled = StreamingEnabledResolver.resolve(
+                globalStreamingEnabled,
+                workspaceStreamingEnabled,
+                projectInfo.streamingEnabled());
+
+        if (!effectiveEnabled) {
+            LOG.info("Streaming disabled, skipping consumer registration: sessionId={} projectId={}",
+                    sessionId, projectInfo.id());
+            return;
+        }
+
         if (consumers.containsKey(sessionId)) {
             LOG.debug("Consumer already registered: sessionId={}", sessionId);
             return;

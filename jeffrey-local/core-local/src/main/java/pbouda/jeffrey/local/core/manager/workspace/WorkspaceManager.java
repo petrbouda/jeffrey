@@ -75,6 +75,16 @@ public interface WorkspaceManager {
     }
 
     /**
+     * Updates the streaming enabled override for this workspace.
+     * Only remote workspaces support this; local workspaces throw UnsupportedOperationException.
+     *
+     * @param streamingEnabled true to enable, false to disable, null to reset to global default
+     */
+    default void updateStreamingEnabled(Boolean streamingEnabled) {
+        throw new UnsupportedOperationException("Streaming settings are not supported for this workspace type");
+    }
+
+    /**
      * Deletes the workspace from the repository.
      */
     void delete();

@@ -66,4 +66,12 @@ export default class WorkspaceClient extends BasePlatformClient {
     async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
         return super.get<WorkspaceEvent[]>(`/${workspaceId}/events`);
     }
+
+    /**
+     * Update streaming enabled setting for a workspace
+     * POST /api/workspaces/{workspaceId}/streaming
+     */
+    async updateStreaming(workspaceId: string, streamingEnabled: boolean | null): Promise<void> {
+        return super.post<void>(`/${workspaceId}/streaming`, { streamingEnabled });
+    }
 }

@@ -83,7 +83,8 @@ public final class LiveWorkspacesManager implements WorkspacesManager {
                 clock.instant(),
                 WorkspaceStatus.UNKNOWN,
                 0,
-                false
+                false,
+                null
         );
 
         return workspacesRepository.create(workspaceInfo);

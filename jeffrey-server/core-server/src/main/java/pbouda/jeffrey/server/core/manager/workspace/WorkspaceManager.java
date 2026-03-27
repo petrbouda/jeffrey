@@ -77,6 +77,14 @@ public interface WorkspaceManager {
     void unblock();
 
     /**
+     * Updates the streaming enabled flag for this workspace.
+     *
+     * @param enabled {@code true} to force-enable, {@code false} to force-disable,
+     *                {@code null} to inherit from global setting.
+     */
+    void updateStreamingEnabled(Boolean enabled);
+
+    /**
      * Creates and returns a remote workspace repository instance for this workspace.
      *
      * @return the remote workspace repository

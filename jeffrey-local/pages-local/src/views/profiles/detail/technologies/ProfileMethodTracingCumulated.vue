@@ -22,7 +22,6 @@
     <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
     <div v-else>
-      <PageHeader title="Cumulated Traces" icon="bi-layers" />
 
       <!-- Mode Toggle -->
       <div class="controls-bar mb-4">
@@ -65,17 +64,11 @@
     <!-- Data Content -->
     <div v-else>
       <!-- Stats Summary -->
-      <div class="mb-4">
-        <StatsTable :metrics="metricsData" />
-      </div>
+      <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
 
       <!-- Cumulated Data Table -->
-      <div class="table-card">
-        <div class="table-header">
-          <h4>
-            <i class="bi bi-list-ol me-2"></i>
-            {{ tableTitle }}
-          </h4>
+      <ChartSection :title="tableTitle" icon="list-ol" :full-width="true">
+        <template #header-actions>
           <div class="search-box">
             <i class="bi bi-search search-icon"></i>
             <input
@@ -92,7 +85,7 @@
               <i class="bi bi-x"></i>
             </button>
           </div>
-        </div>
+        </template>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead>
@@ -136,7 +129,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </ChartSection>
     </div>
     </div>
   </div>
@@ -146,15 +139,16 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PageHeader from '@/components/layout/PageHeader.vue';
-import StatsTable from '@/components/StatsTable.vue';
+import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeatureAlert.vue';
+import ChartSection from '@/components/ChartSection.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
 import type MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumulatedData';
+import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import type CumulatedStats from '@/services/api/model/CumulatedStats';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -181,6 +175,7 @@ const isTracingDisabled = computed(() => {
 const loading = ref(true);
 const error = ref<string | null>(null);
 const data = ref<MethodTracingCumulatedData | null>(null);
+const overviewData = ref<MethodTracingOverviewData | null>(null);
 const mode = ref<'method' | 'class'>('method');
 const searchQuery = ref('');
 
@@ -199,51 +194,6 @@ const filteredItems = computed(() => {
     const methodMatch = item.methodName?.toLowerCase().includes(query) ?? false;
     return classMatch || methodMatch;
   });
-});
-
-const metricsData = computed(() => {
-  if (!data.value) return [];
-
-  // Find max values from items
-  const maxSingleDuration = data.value.items.reduce((max, item) => Math.max(max, item.maxDuration), 0);
-  const maxTotalDuration = data.value.items.reduce((max, item) => Math.max(max, item.totalDuration), 0);
-
-  return [
-    {
-      icon: 'play-circle',
-      title: 'Total Invocations',
-      value: FormattingService.formatNumber(data.value.totalInvocations),
-      variant: 'info' as const,
-      breakdown: []
-    },
-    {
-      icon: 'stopwatch',
-      title: 'Total Duration',
-      value: FormattingService.formatDuration2Units(data.value.totalDuration),
-      variant: 'highlight' as const,
-      breakdown: []
-    },
-    {
-      icon: 'hourglass-split',
-      title: 'Max Duration',
-      value: FormattingService.formatDuration2Units(maxSingleDuration),
-      variant: 'warning' as const,
-      breakdown: [
-        {
-          label: 'Max Total',
-          value: FormattingService.formatDuration2Units(maxTotalDuration),
-          color: '#EA4335'
-        }
-      ]
-    },
-    {
-      icon: 'collection',
-      title: mode.value === 'method' ? 'Unique Methods' : 'Unique Classes',
-      value: data.value.uniqueCount,
-      variant: 'success' as const,
-      breakdown: []
-    }
-  ];
 });
 
 // Methods
@@ -276,7 +226,12 @@ async function loadData() {
 
   try {
     const client = new ProfileMethodTracingClient(profileId);
-    data.value = await client.getCumulated(mode.value);
+    const [cumulated, overview] = await Promise.all([
+      client.getCumulated(mode.value),
+      client.getOverview()
+    ]);
+    data.value = cumulated;
+    overviewData.value = overview;
   } catch (e: unknown) {
     console.error('Failed to load cumulated traces:', e);
     error.value = 'Failed to load cumulated traces. Please try again.';
@@ -396,30 +351,6 @@ onMounted(() => {
 .clear-btn:hover {
   background: rgba(0, 0, 0, 0.1);
   color: #202124;
-}
-
-.table-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e9ecef;
-  gap: 1rem;
-}
-
-.table-header h4 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1rem;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .method-cell {

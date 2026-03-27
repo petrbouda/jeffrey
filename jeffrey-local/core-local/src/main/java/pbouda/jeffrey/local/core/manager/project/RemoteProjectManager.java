@@ -148,6 +148,19 @@ public class RemoteProjectManager implements ProjectManager {
     }
 
     @Override
+    public Boolean workspaceStreamingEnabled() {
+        return workspaceInfo.streamingEnabled();
+    }
+
+    @Override
+    public void updateStreamingEnabled(Boolean streamingEnabled) {
+        remoteClients.projects().updateStreamingEnabled(
+                workspaceInfo.id(),
+                detailedProjectInfo.projectInfo().id(),
+                streamingEnabled);
+    }
+
+    @Override
     public void delete(WorkspaceEventCreator createdBy) {
         remoteClients.projects().deleteProject(
                 workspaceInfo.id(),

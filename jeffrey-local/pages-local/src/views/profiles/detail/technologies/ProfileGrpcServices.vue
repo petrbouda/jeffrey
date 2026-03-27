@@ -8,7 +8,7 @@
     />
 
     <div v-else>
-      <PageHeader title="Service Details" icon="bi-diagram-3"/>
+      <GrpcOverviewStats v-if="grpcOverviewData" :header="grpcOverviewData.header"/>
 
       <!-- Service Display with Navigation -->
       <div v-if="selectedServiceForDetail" class="service-display-large">
@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import GrpcTimeseries from '@/components/grpc/GrpcTimeseries.vue';
@@ -272,7 +272,7 @@ const statusCodeColorMapping = (label: string): string => {
 const selectServiceForDetail = (service: string) => {
   selectedServiceForDetail.value = service;
   router.push({
-    name: 'profile-application-grpc-services',
+    name: 'profile-technologies-grpc-services',
     query: {service: encodeURIComponent(service), mode: mode}
   });
 };
@@ -280,7 +280,7 @@ const selectServiceForDetail = (service: string) => {
 const clearServiceSelection = () => {
   selectedServiceForDetail.value = null;
   router.push({
-    name: 'profile-application-grpc-services',
+    name: 'profile-technologies-grpc-services',
     query: {mode: mode}
   });
 };

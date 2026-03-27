@@ -7,6 +7,9 @@
             <i v-if="icon" :class="`bi bi-${icon} me-2`"></i>
             {{ title }}
           </h4>
+          <div v-if="$slots['header-actions']" class="chart-header-actions">
+            <slot name="header-actions"></slot>
+          </div>
         </div>
         <div class="chart-container" :class="containerClass">
           <slot></slot>
@@ -43,7 +46,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 .chart-card {
   background: white;
-  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
@@ -52,8 +56,17 @@ const props = withDefaults(defineProps<Props>(), {
 }
 
 .chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.chart-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .chart-header h4 {
