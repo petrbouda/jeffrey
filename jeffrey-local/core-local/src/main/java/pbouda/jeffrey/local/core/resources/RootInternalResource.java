@@ -84,10 +84,6 @@ public class RootInternalResource {
         return new ProfilerResource(workspacesManager);
     }
 
-    @Path("/simulate")
-    public SimulateResource simulateResource() {
-        return new SimulateResource();
-    }
 
     @Path("/profiles")
     public ProfilesResource profilesResource() {
