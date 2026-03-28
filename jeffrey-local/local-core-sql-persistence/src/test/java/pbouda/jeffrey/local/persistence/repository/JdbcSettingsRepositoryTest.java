@@ -40,9 +40,9 @@ class JdbcSettingsRepositoryTest {
         void insertsNewSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "provider", "claude", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
 
-            Optional<Setting> result = repository.find("ai", "provider");
+            Optional<Setting> result = repository.find("ai", "jeffrey.local.ai.provider");
             assertTrue(result.isPresent());
             assertEquals("claude", result.get().value());
             assertFalse(result.get().secret());
@@ -52,10 +52,10 @@ class JdbcSettingsRepositoryTest {
         void updatesExistingSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "provider", "claude", false));
-            repository.upsert(new Setting("ai", "provider", "chatgpt", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "chatgpt", false));
 
-            Optional<Setting> result = repository.find("ai", "provider");
+            Optional<Setting> result = repository.find("ai", "jeffrey.local.ai.provider");
             assertTrue(result.isPresent());
             assertEquals("chatgpt", result.get().value());
         }
@@ -64,9 +64,9 @@ class JdbcSettingsRepositoryTest {
         void insertsSecretSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "api-key", "encrypted-value", true));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.api-key", "encrypted-value", true));
 
-            Optional<Setting> result = repository.find("ai", "api-key");
+            Optional<Setting> result = repository.find("ai", "jeffrey.local.ai.api-key");
             assertTrue(result.isPresent());
             assertTrue(result.get().secret());
             assertEquals("encrypted-value", result.get().value());
@@ -80,7 +80,7 @@ class JdbcSettingsRepositoryTest {
         void returnsEmptyWhenNotFound(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            Optional<Setting> result = repository.find("nonexistent", "key");
+            Optional<Setting> result = repository.find("nonexistent", "nonexistent.key");
             assertTrue(result.isEmpty());
         }
     }
@@ -92,9 +92,9 @@ class JdbcSettingsRepositoryTest {
         void returnsAllSettings(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "provider", "claude", false));
-            repository.upsert(new Setting("ai", "model", "opus", false));
-            repository.upsert(new Setting("general", "log-level", "DEBUG", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.model", "opus", false));
+            repository.upsert(new Setting("logging", "logging.level.pbouda.jeffrey", "DEBUG", false));
 
             List<Setting> all = repository.findAll();
             assertEquals(3, all.size());
@@ -116,9 +116,9 @@ class JdbcSettingsRepositoryTest {
         void returnsOnlyMatchingCategory(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "provider", "claude", false));
-            repository.upsert(new Setting("ai", "model", "opus", false));
-            repository.upsert(new Setting("general", "log-level", "DEBUG", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.model", "opus", false));
+            repository.upsert(new Setting("logging", "logging.level.pbouda.jeffrey", "DEBUG", false));
 
             List<Setting> aiSettings = repository.findByCategory("ai");
             assertEquals(2, aiSettings.size());
@@ -133,13 +133,13 @@ class JdbcSettingsRepositoryTest {
         void deletesSingleSetting(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "provider", "claude", false));
-            repository.upsert(new Setting("ai", "model", "opus", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.model", "opus", false));
 
-            repository.delete("ai", "provider");
+            repository.delete("ai", "jeffrey.local.ai.provider");
 
-            assertTrue(repository.find("ai", "provider").isEmpty());
-            assertTrue(repository.find("ai", "model").isPresent());
+            assertTrue(repository.find("ai", "jeffrey.local.ai.provider").isEmpty());
+            assertTrue(repository.find("ai", "jeffrey.local.ai.model").isPresent());
         }
     }
 
@@ -150,14 +150,14 @@ class JdbcSettingsRepositoryTest {
         void deletesAllInCategory(DataSource dataSource) {
             JdbcSettingsRepository repository = createRepository(dataSource);
 
-            repository.upsert(new Setting("ai", "provider", "claude", false));
-            repository.upsert(new Setting("ai", "model", "opus", false));
-            repository.upsert(new Setting("general", "log-level", "DEBUG", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
+            repository.upsert(new Setting("ai", "jeffrey.local.ai.model", "opus", false));
+            repository.upsert(new Setting("logging", "logging.level.pbouda.jeffrey", "DEBUG", false));
 
             repository.deleteByCategory("ai");
 
             assertTrue(repository.findByCategory("ai").isEmpty());
-            assertEquals(1, repository.findByCategory("general").size());
+            assertEquals(1, repository.findByCategory("logging").size());
         }
     }
 

@@ -19,60 +19,80 @@
 package pbouda.jeffrey.local.core.resources;
 
 import jakarta.ws.rs.*;
+import pbouda.jeffrey.local.core.configuration.SettingDescriptor;
+import pbouda.jeffrey.local.core.configuration.SettingsMetadata;
 import pbouda.jeffrey.local.core.manager.SettingsManager;
 import pbouda.jeffrey.local.core.resources.request.SettingsRequest;
 import pbouda.jeffrey.local.core.resources.response.SettingsResponse;
-import pbouda.jeffrey.shared.common.encryption.MachineFingerprint;
 
 import java.util.List;
 import java.util.Map;
 
 public class SettingsResource {
 
-    private final SettingsManager settingsManager;
+    private static final String MASK = "****";
 
-    public SettingsResource(SettingsManager settingsManager) {
+    private final SettingsManager settingsManager;
+    private final SettingsMetadata settingsMetadata;
+
+    public SettingsResource(SettingsManager settingsManager, SettingsMetadata settingsMetadata) {
         this.settingsManager = settingsManager;
+        this.settingsMetadata = settingsMetadata;
     }
 
     @GET
     public List<SettingsResponse> findAll() {
-        return settingsManager.findAll().stream()
-                .map(s -> new SettingsResponse(s.category(), s.key(), s.value(), s.secret()))
+        return settingsMetadata.descriptors().stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     @GET
     @Path("{category}")
     public List<SettingsResponse> findByCategory(@PathParam("category") String category) {
-        return settingsManager.findByCategory(category).stream()
-                .map(s -> new SettingsResponse(s.category(), s.key(), s.value(), s.secret()))
+        return settingsMetadata.byCategory(category).stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     @PUT
-    @Path("{category}/{key}")
+    @Path("{category}/{name: .+}")
     public void upsert(
             @PathParam("category") String category,
-            @PathParam("key") String key,
+            @PathParam("name") String name,
             SettingsRequest request) {
 
-        settingsManager.upsert(category, key, request.value(), request.secret());
-    }
+        if (!settingsMetadata.isKnown(name)) {
+            throw new NotFoundException("Unknown setting: " + name);
+        }
 
-    @DELETE
-    @Path("{category}/{key}")
-    public void delete(
-            @PathParam("category") String category,
-            @PathParam("key") String key) {
-
-        settingsManager.delete(category, key);
+        settingsManager.upsert(category, name, request.value(), request.secret());
     }
 
     @GET
-    @Path("encryption/mode")
-    public Map<String, String> encryptionMode() {
-        MachineFingerprint.BindingMode mode = settingsManager.getBindingMode();
-        return Map.of("mode", mode.name());
+    @Path("status")
+    public Map<String, Object> status() {
+        return Map.of(
+                "restartRequired", settingsManager.isRestartRequired(),
+                "encryptionMode", settingsManager.getBindingMode().name()
+        );
+    }
+
+    private SettingsResponse toResponse(SettingDescriptor descriptor) {
+        String value = settingsManager.getResolvedValue(descriptor.name());
+        if (descriptor.secret()) {
+            value = maskValue(value);
+        }
+        return new SettingsResponse(descriptor.category(), descriptor.name(), value, descriptor.secret());
+    }
+
+    private static String maskValue(String value) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+        if (value.length() <= 8) {
+            return MASK;
+        }
+        return value.substring(0, 4) + MASK + value.substring(value.length() - 4);
     }
 }

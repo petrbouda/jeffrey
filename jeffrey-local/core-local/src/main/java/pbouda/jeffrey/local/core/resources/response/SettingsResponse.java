@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.local.core.resources.response;
 
-public record SettingsResponse(String category, String key, String value, boolean secret) {
+public record SettingsResponse(String category, String name, String value, boolean secret) {
 }

@@ -33,25 +33,25 @@ public class JdbcSettingsRepository implements SettingsRepository {
 
     //language=SQL
     private static final String SELECT_ALL =
-            "SELECT * FROM settings ORDER BY category, key";
+            "SELECT * FROM settings ORDER BY category, name";
 
     //language=SQL
     private static final String SELECT_BY_CATEGORY =
-            "SELECT * FROM settings WHERE category = :category ORDER BY key";
+            "SELECT * FROM settings WHERE category = :category ORDER BY name";
 
     //language=SQL
-    private static final String SELECT_BY_CATEGORY_AND_KEY =
-            "SELECT * FROM settings WHERE category = :category AND key = :key";
+    private static final String SELECT_BY_CATEGORY_AND_NAME =
+            "SELECT * FROM settings WHERE category = :category AND name = :name";
 
     //language=SQL
     private static final String UPSERT = """
-            INSERT INTO settings (category, key, value, secret)
-            VALUES (:category, :key, :value, :secret)
-            ON CONFLICT (category, key) DO UPDATE SET value = :value, secret = :secret""";
+            INSERT INTO settings (category, name, value, secret)
+            VALUES (:category, :name, :value, :secret)
+            ON CONFLICT (category, name) DO UPDATE SET value = :value, secret = :secret""";
 
     //language=SQL
     private static final String DELETE =
-            "DELETE FROM settings WHERE category = :category AND key = :key";
+            "DELETE FROM settings WHERE category = :category AND name = :name";
 
     //language=SQL
     private static final String DELETE_BY_CATEGORY =
@@ -85,14 +85,14 @@ public class JdbcSettingsRepository implements SettingsRepository {
     }
 
     @Override
-    public Optional<Setting> find(String category, String key) {
+    public Optional<Setting> find(String category, String name) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("category", category)
-                .addValue("key", key);
+                .addValue("name", name);
 
         return databaseClient.querySingle(
                 StatementLabel.FIND_SETTING,
-                SELECT_BY_CATEGORY_AND_KEY,
+                SELECT_BY_CATEGORY_AND_NAME,
                 params,
                 settingMapper());
     }
@@ -101,7 +101,7 @@ public class JdbcSettingsRepository implements SettingsRepository {
     public void upsert(Setting setting) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("category", setting.category())
-                .addValue("key", setting.key())
+                .addValue("name", setting.name())
                 .addValue("value", setting.value())
                 .addValue("secret", setting.secret());
 
@@ -109,10 +109,10 @@ public class JdbcSettingsRepository implements SettingsRepository {
     }
 
     @Override
-    public void delete(String category, String key) {
+    public void delete(String category, String name) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("category", category)
-                .addValue("key", key);
+                .addValue("name", name);
 
         databaseClient.update(StatementLabel.DELETE_SETTING, DELETE, params);
     }
@@ -128,7 +128,7 @@ public class JdbcSettingsRepository implements SettingsRepository {
     private static RowMapper<Setting> settingMapper() {
         return (rs, _) -> new Setting(
                 rs.getString("category"),
-                rs.getString("key"),
+                rs.getString("name"),
                 rs.getString("value"),
                 rs.getBoolean("secret"));
     }

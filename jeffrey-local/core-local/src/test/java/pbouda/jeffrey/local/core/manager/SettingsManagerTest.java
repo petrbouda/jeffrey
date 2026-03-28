@@ -24,16 +24,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
 import pbouda.jeffrey.local.persistence.model.Setting;
 import pbouda.jeffrey.local.persistence.repository.SettingsRepository;
 import pbouda.jeffrey.shared.common.encryption.MachineFingerprint;
 import pbouda.jeffrey.shared.common.encryption.SecretEncryptor;
 
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,13 +45,16 @@ class SettingsManagerTest {
     @Mock
     private MachineFingerprint machineFingerprint;
 
+    @Mock
+    private Environment environment;
+
     private SettingsManager manager;
 
     @BeforeEach
     void setUp() {
         when(machineFingerprint.resolve()).thenReturn(
                 new MachineFingerprint.Result("test-fingerprint", MachineFingerprint.BindingMode.MACHINE_BOUND));
-        manager = new SettingsManager(settingsRepository, secretEncryptor, machineFingerprint);
+        manager = new SettingsManager(settingsRepository, secretEncryptor, machineFingerprint, environment);
     }
 
     @Nested
@@ -62,9 +62,9 @@ class SettingsManagerTest {
 
         @Test
         void storesPlainValueForNonSecret() {
-            manager.upsert("ai", "provider", "claude", false);
+            manager.upsert("ai", "jeffrey.local.ai.provider", "claude", false);
 
-            verify(settingsRepository).upsert(new Setting("ai", "provider", "claude", false));
+            verify(settingsRepository).upsert(new Setting("ai", "jeffrey.local.ai.provider", "claude", false));
             verifyNoInteractions(secretEncryptor);
         }
 
@@ -72,84 +72,10 @@ class SettingsManagerTest {
         void encryptsValueForSecret() {
             when(secretEncryptor.encrypt("sk-ant-api03-key")).thenReturn("encrypted-base64");
 
-            manager.upsert("ai", "api-key", "sk-ant-api03-key", true);
+            manager.upsert("ai", "jeffrey.local.ai.api-key", "sk-ant-api03-key", true);
 
             verify(secretEncryptor).encrypt("sk-ant-api03-key");
-            verify(settingsRepository).upsert(new Setting("ai", "api-key", "encrypted-base64", true));
-        }
-    }
-
-    @Nested
-    class GetDecryptedValue {
-
-        @Test
-        void decryptsSecretValue() {
-            when(settingsRepository.find("ai", "api-key")).thenReturn(
-                    Optional.of(new Setting("ai", "api-key", "encrypted-base64", true)));
-            when(secretEncryptor.decrypt("encrypted-base64")).thenReturn("sk-ant-api03-key");
-
-            Optional<String> result = manager.getDecryptedValue("ai", "api-key");
-
-            assertTrue(result.isPresent());
-            assertEquals("sk-ant-api03-key", result.get());
-        }
-
-        @Test
-        void returnsPlainValueForNonSecret() {
-            when(settingsRepository.find("ai", "provider")).thenReturn(
-                    Optional.of(new Setting("ai", "provider", "claude", false)));
-
-            Optional<String> result = manager.getDecryptedValue("ai", "provider");
-
-            assertTrue(result.isPresent());
-            assertEquals("claude", result.get());
-            verifyNoInteractions(secretEncryptor);
-        }
-
-        @Test
-        void returnsEmptyWhenNotFound() {
-            when(settingsRepository.find("ai", "missing")).thenReturn(Optional.empty());
-
-            Optional<String> result = manager.getDecryptedValue("ai", "missing");
-
-            assertTrue(result.isEmpty());
-        }
-    }
-
-    @Nested
-    class FindAll {
-
-        @Test
-        void masksSecretValues() {
-            when(settingsRepository.findAll()).thenReturn(List.of(
-                    new Setting("ai", "provider", "claude", false),
-                    new Setting("ai", "api-key", "encrypted-base64", true)
-            ));
-            when(secretEncryptor.decrypt("encrypted-base64")).thenReturn("sk-ant-api03-longkey1234");
-
-            List<Setting> result = manager.findAll();
-
-            assertEquals(2, result.size());
-
-            Setting provider = result.stream().filter(s -> "provider".equals(s.key())).findFirst().orElseThrow();
-            assertEquals("claude", provider.value());
-            assertFalse(provider.secret());
-
-            Setting apiKey = result.stream().filter(s -> "api-key".equals(s.key())).findFirst().orElseThrow();
-            assertTrue(apiKey.secret());
-            assertTrue(apiKey.value().contains("****"));
-            assertNotEquals("sk-ant-api03-longkey1234", apiKey.value());
-        }
-    }
-
-    @Nested
-    class DeleteSetting {
-
-        @Test
-        void delegatesToRepository() {
-            manager.delete("ai", "provider");
-
-            verify(settingsRepository).delete("ai", "provider");
+            verify(settingsRepository).upsert(new Setting("ai", "jeffrey.local.ai.api-key", "encrypted-base64", true));
         }
     }
 
@@ -166,7 +92,7 @@ class SettingsManagerTest {
             when(machineFingerprint.resolve()).thenReturn(
                     new MachineFingerprint.Result("user-only", MachineFingerprint.BindingMode.USER_BOUND));
 
-            SettingsManager fallbackManager = new SettingsManager(settingsRepository, secretEncryptor, machineFingerprint);
+            SettingsManager fallbackManager = new SettingsManager(settingsRepository, secretEncryptor, machineFingerprint, environment);
             assertEquals(MachineFingerprint.BindingMode.USER_BOUND, fallbackManager.getBindingMode());
         }
     }

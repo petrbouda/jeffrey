@@ -16,9 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface Setting {
-    category: string
-    name: string
-    value: string
-    secret: boolean
+package pbouda.jeffrey.local.core.configuration;
+
+import java.util.List;
+
+/**
+ * Holds the complete list of known settings parsed from settings-mappings.conf.
+ */
+public record SettingsMetadata(List<SettingDescriptor> descriptors) {
+
+    public boolean isKnown(String name) {
+        return descriptors.stream().anyMatch(d -> d.name().equals(name));
+    }
+
+    public List<SettingDescriptor> byCategory(String category) {
+        return descriptors.stream()
+                .filter(d -> d.category().equals(category))
+                .toList();
+    }
 }

@@ -32,15 +32,11 @@ export default class SettingsClient extends BasePlatformClient {
         return super.get<Setting[]>(`/${category}`)
     }
 
-    upsert(category: string, key: string, value: string, secret: boolean): Promise<void> {
-        return super.put<void>(`/${category}/${key}`, { value, secret })
+    upsert(category: string, name: string, value: string, secret: boolean): Promise<void> {
+        return super.put<void>(`/${category}/${name}`, { value, secret })
     }
 
-    remove(category: string, key: string): Promise<void> {
-        return super.del<void>(`/${category}/${key}`)
-    }
-
-    fetchEncryptionMode(): Promise<{ mode: string }> {
-        return super.get<{ mode: string }>('/encryption/mode')
+    fetchStatus(): Promise<{ restartRequired: boolean, encryptionMode: string }> {
+        return super.get<{ restartRequired: boolean, encryptionMode: string }>('/status')
     }
 }

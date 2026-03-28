@@ -20,100 +20,62 @@ package pbouda.jeffrey.local.core.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import pbouda.jeffrey.local.persistence.model.Setting;
 import pbouda.jeffrey.local.persistence.repository.SettingsRepository;
-import pbouda.jeffrey.shared.common.encryption.EncryptionException;
 import pbouda.jeffrey.shared.common.encryption.MachineFingerprint;
 import pbouda.jeffrey.shared.common.encryption.SecretEncryptor;
 
-import java.util.List;
-import java.util.Optional;
-
 /**
  * Business logic for application settings. Handles encryption/decryption of secrets
- * and masking of secret values in responses.
+ * and provides access to resolved setting values from the Spring Environment.
  */
 public class SettingsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsManager.class);
 
-    private static final String MASK = MASK;
-
     private final SettingsRepository settingsRepository;
     private final SecretEncryptor secretEncryptor;
+    private final Environment environment;
     private final MachineFingerprint.BindingMode bindingMode;
+
+    private volatile boolean restartRequired;
 
     public SettingsManager(
             SettingsRepository settingsRepository,
             SecretEncryptor secretEncryptor,
-            MachineFingerprint machineFingerprint) {
+            MachineFingerprint machineFingerprint,
+            Environment environment) {
 
         this.settingsRepository = settingsRepository;
         this.secretEncryptor = secretEncryptor;
+        this.environment = environment;
         this.bindingMode = machineFingerprint.resolve().mode();
-    }
-
-    /**
-     * Returns all settings with secret values masked.
-     */
-    public List<Setting> findAll() {
-        return settingsRepository.findAll().stream()
-                .map(this::maskIfSecret)
-                .toList();
-    }
-
-    /**
-     * Returns settings for a category with secret values masked.
-     */
-    public List<Setting> findByCategory(String category) {
-        return settingsRepository.findByCategory(category).stream()
-                .map(this::maskIfSecret)
-                .toList();
-    }
-
-    /**
-     * Returns the decrypted value of a setting (for internal use, e.g., AI configuration).
-     */
-    public Optional<String> getDecryptedValue(String category, String key) {
-        return settingsRepository.find(category, key)
-                .map(setting -> {
-                    if (setting.secret()) {
-                        try {
-                            return secretEncryptor.decrypt(setting.value());
-                        } catch (EncryptionException e) {
-                            LOG.warn("Failed to decrypt setting, clearing value: category={} key={}", category, key);
-                            settingsRepository.delete(category, key);
-                            return null;
-                        }
-                    }
-                    return setting.value();
-                });
-    }
-
-    /**
-     * Returns the plain value of a non-secret setting.
-     */
-    public Optional<String> getValue(String category, String key) {
-        return settingsRepository.find(category, key)
-                .map(Setting::value);
     }
 
     /**
      * Upserts a setting. If the setting is marked as secret, encrypts the value before storing.
      */
-    public void upsert(String category, String key, String value, boolean secret) {
+    public void upsert(String category, String name, String value, boolean secret) {
         String storedValue = secret ? secretEncryptor.encrypt(value) : value;
-        settingsRepository.upsert(new Setting(category, key, storedValue, secret));
+        settingsRepository.upsert(new Setting(category, name, storedValue, secret));
+        restartRequired = true;
 
-        LOG.info("Setting updated: category={} key={} secret={}", category, key, secret);
+        LOG.info("Setting updated: category={} name={} secret={}", category, name, secret);
     }
 
     /**
-     * Deletes a setting.
+     * Returns the current resolved value of a setting from the Spring Environment.
      */
-    public void delete(String category, String key) {
-        settingsRepository.delete(category, key);
-        LOG.info("Setting deleted: category={} key={}", category, key);
+    public String getResolvedValue(String name) {
+        return environment.getProperty(name, "");
+    }
+
+    /**
+     * Returns whether settings have been modified since startup and a restart is needed.
+     */
+    public boolean isRestartRequired() {
+        return restartRequired;
     }
 
     /**
@@ -121,26 +83,5 @@ public class SettingsManager {
      */
     public MachineFingerprint.BindingMode getBindingMode() {
         return bindingMode;
-    }
-
-    private Setting maskIfSecret(Setting setting) {
-        if (!setting.secret()) {
-            return setting;
-        }
-
-        try {
-            String decrypted = secretEncryptor.decrypt(setting.value());
-            String masked = maskValue(decrypted);
-            return new Setting(setting.category(), setting.key(), masked, true);
-        } catch (EncryptionException e) {
-            return new Setting(setting.category(), setting.key(), MASK, true);
-        }
-    }
-
-    private static String maskValue(String value) {
-        if (value.length() <= 8) {
-            return MASK;
-        }
-        return value.substring(0, 4) + MASK + value.substring(value.length() - 4);
     }
 }

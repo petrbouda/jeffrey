@@ -21,10 +21,10 @@ package pbouda.jeffrey.local.persistence.model;
 /**
  * Represents a single application setting stored in the database.
  *
- * @param category logical grouping (e.g., "ai", "general")
- * @param key      setting name within category (e.g., "provider", "api-key")
+ * @param category logical grouping (e.g., "ai", "logging")
+ * @param name     full Spring property name (e.g., "jeffrey.local.ai.provider")
  * @param value    plain text for regular settings, Base64-encoded ciphertext for secrets
  * @param secret   whether the value is encrypted
  */
-public record Setting(String category, String key, String value, boolean secret) {
+public record Setting(String category, String name, String value, boolean secret) {
 }

@@ -29,11 +29,11 @@ public interface SettingsRepository {
 
     List<Setting> findByCategory(String category);
 
-    Optional<Setting> find(String category, String key);
+    Optional<Setting> find(String category, String name);
 
     void upsert(Setting setting);
 
-    void delete(String category, String key);
+    void delete(String category, String name);
 
     void deleteByCategory(String category);
 }

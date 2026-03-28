@@ -111,10 +111,10 @@ CREATE TABLE IF NOT EXISTS profiler_settings
 
 CREATE TABLE IF NOT EXISTS settings
 (
-    category  VARCHAR NOT NULL,
-    key       VARCHAR NOT NULL,
-    value     VARCHAR NOT NULL,
-    secret    BOOLEAN NOT NULL DEFAULT false,
-    PRIMARY KEY (category, key)
+    category VARCHAR NOT NULL,
+    name     VARCHAR NOT NULL,
+    value    VARCHAR NOT NULL,
+    secret   BOOLEAN NOT NULL DEFAULT false,
+    PRIMARY KEY (category, name)
 );
 

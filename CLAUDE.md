@@ -330,6 +330,7 @@ jeffrey/
 - Local Core migrations: `jeffrey-local/local-core-sql-persistence/src/main/resources/db/migration/local/core/V001__init.sql`
 - Server migrations: `jeffrey-server/server-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
 - Profile migrations: `jeffrey-local/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
+- **Migration policy**: Never create new migration files (V002, V003, etc.). Always modify the existing V001 file directly. The database is recreated from scratch on each startup.
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
 - JSONB `fields` column in the `events` table contains event-specific data — see `/jfr-event-fields` skill for full field reference per event type
 

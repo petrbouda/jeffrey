@@ -16,9 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface Setting {
-    category: string
-    name: string
-    value: string
-    secret: boolean
+package pbouda.jeffrey.local.core.configuration;
+
+/**
+ * Metadata for a single setting parsed from the HOCON file.
+ *
+ * @param category     logical grouping (e.g., "ai", "logging")
+ * @param name         full Spring property name (e.g., "jeffrey.local.ai.provider")
+ * @param defaultValue default value from HOCON (empty string for secrets)
+ * @param secret       whether this setting holds an encrypted value
+ */
+public record SettingDescriptor(String category, String name, String defaultValue, boolean secret) {
 }

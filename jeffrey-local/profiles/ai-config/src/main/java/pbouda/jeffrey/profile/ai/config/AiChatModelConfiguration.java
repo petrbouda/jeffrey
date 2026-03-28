@@ -72,7 +72,7 @@ public class AiChatModelConfiguration {
     private ChatModel createAnthropicChatModel(String apiKey, String modelName, int maxTokens) {
         LOG.info("Creating Anthropic ChatModel: model={} maxTokens={}", modelName, maxTokens);
 
-        var client = AnthropicSetup.setupSyncClient(apiKey, null, null, null, null, null);
+        var client = AnthropicSetup.setupSyncClient(null, apiKey, null, null, null, null);
 
         AnthropicChatOptions options = AnthropicChatOptions.builder()
                 .model(modelName)
