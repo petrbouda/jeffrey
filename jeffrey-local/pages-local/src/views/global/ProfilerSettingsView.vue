@@ -2,52 +2,40 @@
   <div>
     <MainCard>
       <template #header>
-        <PageHeader icon="bi bi-gear" title="Profiler Settings">
-          <template #actions>
-            <div class="header-tabs">
-              <button
-                class="header-tab"
-                :class="{ 'active': viewMode === 'configure' }"
-                @click="viewMode = 'configure'">
-                <i class="bi bi-gear-fill"></i>
-                <span>Configure</span>
-              </button>
-              <button
-                class="header-tab"
-                :class="{ 'active': viewMode === 'view' }"
-                @click="viewMode = 'view'">
-                <i class="bi bi-eye-fill"></i>
-                <span>View</span>
-              </button>
-            </div>
-          </template>
-        </PageHeader>
+        <PageHeader icon="bi bi-gear" title="Profiler Settings" />
       </template>
 
-      <!-- VIEW MODE -->
-        <div v-if="viewMode === 'view'">
-          <ProfilerSettingsHierarchy/>
-        </div>
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button
+            :class="['tab-item', { 'tab-item--active': activeTab === 'manual' }]"
+            @click="activeTab = 'manual'; currentStep = 1"
+        >
+          Manual
+        </button>
+        <button
+            :class="['tab-item', { 'tab-item--active': activeTab === 'builder' }]"
+            @click="activeTab = 'builder'; currentStep = 1"
+        >
+          Visual Builder
+        </button>
+        <button
+            :class="['tab-item', { 'tab-item--active': activeTab === 'view' }]"
+            @click="activeTab = 'view'"
+        >
+          View
+        </button>
+      </div>
 
-        <!-- CONFIGURE MODE -->
-        <div v-if="viewMode === 'configure'">
-          <!-- Step 1: Command Configuration -->
-          <div v-if="currentStep === 1">
-            <!-- Tab Bar -->
-            <div class="tab-bar">
-              <button
-                  :class="['tab-item', { 'tab-item--active': activeTab === 'manual' }]"
-                  @click="activeTab = 'manual'"
-              >
-                Manual
-              </button>
-              <button
-                  :class="['tab-item', { 'tab-item--active': activeTab === 'builder' }]"
-                  @click="activeTab = 'builder'"
-              >
-                Visual Builder
-              </button>
-            </div>
+      <!-- VIEW MODE -->
+      <div v-if="activeTab === 'view'">
+        <ProfilerSettingsHierarchy/>
+      </div>
+
+      <!-- CONFIGURE MODE -->
+      <div v-if="activeTab === 'manual' || activeTab === 'builder'">
+        <!-- Step 1: Command Configuration -->
+        <div v-if="currentStep === 1">
 
             <!-- Tab Content -->
             <div class="tab-content">
@@ -260,14 +248,11 @@ const globalProfilerClient = new GlobalProfilerClient();
 const projectsClient = new ProjectsClient();
 import type Project from '@/services/api/model/Project';
 
-// Mode management
-const viewMode = ref<'view' | 'configure'>('configure');
-
 // Step management (1: Configure Command, 2: Apply)
 const currentStep = ref(1);
 
-// Step 1: Command Configuration
-const activeTab = ref<'manual' | 'builder'>('manual');
+// Tab management (manual, builder, view)
+const activeTab = ref<'manual' | 'builder' | 'view'>('manual');
 const finalCommand = ref('');
 
 // Step 2: Application Scope
@@ -438,51 +423,6 @@ onMounted(() => {
 
 <style scoped>
 @import '@/styles/shared-components.css';
-
-/* Header Tabs */
-.header-tabs {
-  display: flex;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 3px;
-  border-radius: var(--radius-base);
-  border: 1px solid var(--color-border);
-}
-
-.header-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  white-space: nowrap;
-}
-
-.header-tab i {
-  font-size: 0.75rem;
-}
-
-.header-tab:hover:not(.active) {
-  background: var(--color-bg-hover);
-  color: var(--color-text);
-}
-
-.header-tab.active {
-  background: var(--color-primary);
-  color: var(--color-white);
-  box-shadow: 0 2px 6px rgba(94, 100, 255, 0.25);
-}
-
-.header-tab.active i {
-  color: var(--color-white);
-}
 
 /* Tab Bar */
 .tab-bar {
@@ -761,17 +701,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .header-tabs {
-    width: 100%;
-    justify-content: center;
-  }
-
   .scope-option-cards {
     grid-template-columns: 1fr;
   }
