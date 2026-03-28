@@ -443,58 +443,6 @@ onMounted(async () => {
 <style scoped>
 @import '@/styles/shared-components.css';
 
-.page-filter-select {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 4px 24px 4px 10px;
-  font-size: 0.75rem;
-  color: #374151;
-  cursor: pointer;
-  height: 30px;
-  transition: border-color 0.15s ease;
-  appearance: auto;
-}
-
-.page-filter-select:focus {
-  border-color: #5e64ff;
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  outline: none;
-}
-
-.page-search {
-  display: flex;
-  align-items: center;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 4px 10px;
-  width: 160px;
-  height: 30px;
-  transition: all 0.15s ease;
-}
-
-.page-search:focus-within {
-  border-color: #5e64ff;
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: white;
-}
-
-.page-search i {
-  font-size: 0.7rem;
-  color: #9ca3af;
-  margin-right: 6px;
-}
-
-.page-search input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 0.75rem;
-  color: #374151;
-  width: 100%;
-}
-
 /* Workspace Cards Grid */
 .workspace-cards-grid {
   display: grid;

@@ -18,25 +18,24 @@
 
 <template>
   <div>
-    <MainCard :no-padding="true">
+    <MainCard>
       <template #header>
-        <!-- Header with integrated toolbar -->
-        <div class="qa-header">
-        <div class="qa-header-info">
-          <i class="bi bi-lightning-charge qa-header-icon"></i>
-          <span class="qa-header-title">Quick Analysis</span>
-          <span v-if="allRecordings.length > 0" class="qa-count-badge">{{ allRecordings.length }}</span>
-        </div>
-        <div class="qa-header-actions">
-          <div v-if="allRecordings.length > 0" class="qa-search">
-            <i class="bi bi-search"></i>
-            <input v-model="searchText" type="text" placeholder="Search...">
+        <div class="page-header">
+          <div class="page-header-info">
+            <i class="bi bi-lightning-charge page-header-icon"></i>
+            <span class="page-header-title">Quick Analysis</span>
+            <span v-if="allRecordings.length > 0" class="page-header-badge">{{ allRecordings.length }}</span>
           </div>
-          <button class="qa-new-group-btn" @click="showCreateGroupModal = true">
-            <i class="bi bi-folder-plus"></i>
-            New Group
-          </button>
-        </div>
+          <div class="page-header-actions">
+            <div v-if="allRecordings.length > 0" class="page-search">
+              <i class="bi bi-search"></i>
+              <input v-model="searchText" type="text" placeholder="Search...">
+            </div>
+            <button class="page-header-btn" @click="showCreateGroupModal = true">
+              <i class="bi bi-folder-plus"></i>
+              New Group
+            </button>
+          </div>
         </div>
       </template>
 
@@ -507,114 +506,15 @@ const onDragEnd = () => {
 <style scoped>
 @import '@/styles/shared-components.css';
 
-/* Header */
-.qa-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 16px 16px 0 0;
-  gap: 12px;
-}
-
-.qa-header-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.qa-header-icon {
-  font-size: 1.1rem;
-  color: #5e64ff;
-}
-
-.qa-header-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.qa-count-badge {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.qa-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.qa-search {
-  display: flex;
-  align-items: center;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 4px 10px;
-  width: 160px;
-  height: 30px;
-  transition: all 0.15s ease;
-}
-
-.qa-search:focus-within {
-  border-color: #5e64ff;
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  background: white;
-}
-
-.qa-search i {
-  font-size: 0.7rem;
-  color: #9ca3af;
-  margin-right: 6px;
-}
-
-.qa-search input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 0.75rem;
-  color: #374151;
-  width: 100%;
-}
-
-.qa-new-group-btn {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-  height: 30px;
-}
-
-.qa-new-group-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(94, 100, 255, 0.35);
-}
 
 /* Upload section */
 .qa-upload-section {
-  padding: 0 20px;
   border-bottom: 1px solid rgba(94, 100, 255, 0.06);
 }
 
 /* Error */
 .qa-error {
-  margin: 0 20px 8px;
+  margin-bottom: 8px;
   padding: 8px 12px;
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -624,11 +524,6 @@ const onDragEnd = () => {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-/* Recording list */
-.qa-profiles {
-  padding: 8px 20px 16px;
 }
 
 .qa-profile-list {
