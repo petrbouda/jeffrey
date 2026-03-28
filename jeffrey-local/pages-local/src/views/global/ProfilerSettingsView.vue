@@ -428,7 +428,6 @@ onMounted(() => {
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 20px;
 }
 
 .tab-item {
@@ -499,7 +498,7 @@ onMounted(() => {
 
 /* Scope Section */
 .scope-section {
-  margin-top: 0;
+  margin-top: 20px;
 }
 
 .scope-title {
