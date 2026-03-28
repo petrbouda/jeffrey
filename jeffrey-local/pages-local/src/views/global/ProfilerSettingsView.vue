@@ -1,6 +1,6 @@
 <template>
   <div>
-    <MainCard :no-padding="true">
+    <MainCard>
       <template #header>
         <!-- Header with tabs -->
         <div class="page-header">
@@ -27,9 +27,7 @@
         </div>
       </template>
 
-      <!-- Content Area -->
-      <div class="content-area">
-        <!-- VIEW MODE -->
+      <!-- VIEW MODE -->
         <div v-if="viewMode === 'view'">
           <ProfilerSettingsHierarchy/>
         </div>
@@ -241,7 +239,6 @@
           </div>
         </div>
         <!-- END CONFIGURE MODE -->
-      </div>
     </MainCard>
   </div>
 </template>
