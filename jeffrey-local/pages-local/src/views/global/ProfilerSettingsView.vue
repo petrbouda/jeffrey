@@ -33,7 +33,7 @@
       </div>
 
       <!-- CONFIGURE MODE -->
-      <div v-if="activeTab === 'manual' || activeTab === 'builder'" class="tab-panel">
+      <div v-if="activeTab === 'manual' || activeTab === 'builder'"
         <!-- Step 1: Command Configuration -->
         <div v-if="currentStep === 1">
 

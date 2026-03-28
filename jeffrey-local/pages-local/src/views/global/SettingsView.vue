@@ -1,6 +1,10 @@
 <template>
   <div>
     <MainCard>
+    <template #header>
+      <PageHeader icon="bi bi-sliders" title="Settings" />
+    </template>
+
     <!-- Restart Banner -->
     <div v-if="showRestartBanner" class="restart-banner">
       <i class="bi bi-exclamation-triangle"></i>
@@ -145,6 +149,7 @@ import '@/styles/form-utilities.css'
 import { computed, onMounted, ref, watch } from 'vue'
 import SettingsClient from '@/services/api/SettingsClient'
 import MainCard from '@/components/MainCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import type Setting from '@/services/api/model/Setting'
 
 const client = new SettingsClient()
