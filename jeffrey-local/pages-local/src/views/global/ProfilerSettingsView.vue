@@ -441,34 +441,6 @@ onMounted(() => {
 <style scoped>
 @import '@/styles/shared-components.css';
 
-/* Page Header */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
-  gap: 12px;
-}
-
-.page-header-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.page-header-icon {
-  font-size: 1.1rem;
-  color: var(--color-primary);
-}
-
-.page-header-title {
-  font-size: 0.95rem;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-}
-
 /* Header Tabs */
 .header-tabs {
   display: flex;

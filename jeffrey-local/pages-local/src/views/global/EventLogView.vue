@@ -441,49 +441,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Page Header */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 16px 16px 0 0;
-  gap: 12px;
-}
-
-.page-header-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.page-header-icon {
-  font-size: 1.1rem;
-  color: #5e64ff;
-}
-
-.page-header-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.page-header-badge {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+@import '@/styles/shared-components.css';
 
 .page-filter-select {
   background: #f3f4f6;
@@ -542,15 +500,6 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
   gap: 12px;
-}
-
-.page-header-badge {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
-  color: white;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 600;
 }
 
 /* Events List */
