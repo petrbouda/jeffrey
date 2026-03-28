@@ -642,12 +642,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     @Override
-    public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
+    public DominatorTreeResponse getDominatorTreeChildren(long objectId, int offset, int limit) {
         Optional<HeapDumpConfig> configOpt = getHeapDumpConfig();
         boolean compressedOops = configOpt.map(HeapDumpConfig::compressedOops).orElse(false);
         long totalOvercount = configOpt.map(HeapDumpConfig::totalOvercount).orElse(0L);
         return getHeap()
-                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, limit, compressedOops, totalOvercount))
+                .map(heap -> dominatorTreeAnalyzer.getChildren(heap, objectId, offset, limit, compressedOops, totalOvercount))
                 .orElse(new DominatorTreeResponse(List.of(), 0, false, false));
     }
 

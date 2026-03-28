@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Collects a machine-specific fingerprint used to derive encryption keys for secrets.
@@ -114,7 +115,7 @@ public class MachineFingerprint {
 
         String output;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            output = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+            output = reader.lines().collect(Collectors.joining("\n"));
         }
 
         int exitCode = process.waitFor();
@@ -158,7 +159,7 @@ public class MachineFingerprint {
 
         String output;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            output = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
+            output = reader.lines().collect(Collectors.joining("\n"));
         }
 
         int exitCode = process.waitFor();

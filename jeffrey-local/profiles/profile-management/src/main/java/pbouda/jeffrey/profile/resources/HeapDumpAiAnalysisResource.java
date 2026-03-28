@@ -161,7 +161,7 @@ public class HeapDumpAiAnalysisResource {
 
         @Override
         public pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
-            return manager.getDominatorTreeChildren(objectId, limit);
+            return manager.getDominatorTreeChildren(objectId, 0, limit);
         }
 
         @Override

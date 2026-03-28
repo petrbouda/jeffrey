@@ -25,6 +25,7 @@ import org.glassfish.jersey.logging.LoggingFeature.Verbosity;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.media.sse.SseFeature;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,6 +33,8 @@ import java.util.logging.Logger;
 public class JerseyConfig extends ResourceConfig {
 
     public JerseyConfig(boolean isAccessLoggingEnabled) {
+
+        property(ServerProperties.WADL_FEATURE_DISABLE, true);
 
         // Scan for resources in core and profile-management modules
         packages("pbouda.jeffrey.resources", "pbouda.jeffrey.profile.resources");

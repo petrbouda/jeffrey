@@ -44,6 +44,27 @@
           </thead>
           <tbody>
           <tr v-for="(item, index) in treeData" :key="item.node.objectId + '-' + item.depth + '-' + index">
+            <!-- Load More row -->
+            <template v-if="item.isLoadMore">
+              <td colspan="5">
+                <div class="d-flex align-items-center gap-3" :style="{ paddingLeft: item.depth * 1.5 + 'rem' }">
+                  <span class="expand-placeholder me-1"></span>
+                  <span v-if="item.loading" class="spinner-border spinner-border-sm spinner-inline text-muted"></span>
+                  <template v-else>
+                    <button class="btn btn-load-more" @click="loadMoreChildren(item, index)">
+                      <i class="bi bi-plus-circle me-1"></i>
+                      Load 50 more
+                    </button>
+                    <button class="btn btn-load-more" @click="loadAllChildren(item, index)">
+                      <i class="bi bi-arrow-down-circle me-1"></i>
+                      Load all
+                    </button>
+                  </template>
+                </div>
+              </td>
+            </template>
+            <!-- Normal node row -->
+            <template v-else>
             <!-- Class Name with expand/collapse -->
             <td>
               <div class="d-flex align-items-center" :style="{ paddingLeft: item.depth * 1.5 + 'rem' }">
@@ -104,6 +125,7 @@
                   @show-g-c-root-path="openGCRootPathModal"
               />
             </td>
+            </template>
           </tr>
           </tbody>
         </table>
@@ -143,6 +165,10 @@ interface TreeItem {
   expanded: boolean;
   loading: boolean;
   childCount: number;
+  hasMore: boolean;
+  loadedCount: number;
+  isLoadMore?: boolean;
+  loadMoreParentObjectId?: number;
 }
 
 const route = useRoute();
@@ -212,6 +238,21 @@ const getBarColor = (percent: number): string => {
   return '#4285F4';
 };
 
+const CHILDREN_PAGE_SIZE = 50;
+const LOAD_ALL_LIMIT = 100000;
+
+const createLoadMoreItem = (parentObjectId: number, depth: number): TreeItem => ({
+  node: { objectId: 0, className: '', objectParams: {}, fieldName: null, shallowSize: 0, retainedSize: 0, retainedPercent: 0, hasChildren: false, gcRootKind: null },
+  depth,
+  expanded: false,
+  loading: false,
+  childCount: 0,
+  hasMore: false,
+  loadedCount: 0,
+  isLoadMore: true,
+  loadMoreParentObjectId: parentObjectId
+});
+
 const toggleExpand = async (item: TreeItem, index: number) => {
   if (item.expanded) {
     // Collapse: remove all children at deeper depth following this item
@@ -225,26 +266,121 @@ const toggleExpand = async (item: TreeItem, index: number) => {
     }
     treeData.value.splice(index + 1, removeCount);
     item.expanded = false;
+    item.childCount = 0;
+    item.hasMore = false;
+    item.loadedCount = 0;
   } else {
-    // Expand: load children and insert after this item
+    // Expand: load first page of children
     item.loading = true;
     try {
-      const response: DominatorTreeResponse = await client.getDominatorTreeChildren(item.node.objectId, 50);
+      const response: DominatorTreeResponse = await client.getDominatorTreeChildren(item.node.objectId, 0, CHILDREN_PAGE_SIZE);
       const children: TreeItem[] = response.nodes.map(node => ({
         node,
         depth: item.depth + 1,
         expanded: false,
         loading: false,
-        childCount: 0
+        childCount: 0,
+        hasMore: false,
+        loadedCount: 0
       }));
+
+      if (response.hasMore) {
+        children.push(createLoadMoreItem(item.node.objectId, item.depth + 1));
+      }
+
       treeData.value.splice(index + 1, 0, ...children);
       item.expanded = true;
       item.childCount = children.length;
+      item.hasMore = response.hasMore;
+      item.loadedCount = response.nodes.length;
     } catch (err) {
       console.error('Error loading dominator tree children:', err);
     } finally {
       item.loading = false;
     }
+  }
+};
+
+const findParent = (loadMoreIndex: number, parentObjectId: number): { item: TreeItem; index: number } | null => {
+  for (let i = loadMoreIndex - 1; i >= 0; i--) {
+    if (treeData.value[i].node.objectId === parentObjectId) {
+      return { item: treeData.value[i], index: i };
+    }
+  }
+  return null;
+};
+
+const loadMoreChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) => {
+  const parent = findParent(loadMoreIndex, loadMoreItem.loadMoreParentObjectId!);
+  if (!parent) return;
+
+  loadMoreItem.loading = true;
+  try {
+    const offset = parent.item.loadedCount;
+    const response: DominatorTreeResponse = await client.getDominatorTreeChildren(
+        parent.item.node.objectId, offset, CHILDREN_PAGE_SIZE
+    );
+
+    const newChildren: TreeItem[] = response.nodes.map(node => ({
+      node,
+      depth: loadMoreItem.depth,
+      expanded: false,
+      loading: false,
+      childCount: 0,
+      hasMore: false,
+      loadedCount: 0
+    }));
+
+    // Remove the current "Load More" row
+    treeData.value.splice(loadMoreIndex, 1);
+
+    // Insert new children at the same position
+    if (response.hasMore) {
+      newChildren.push(createLoadMoreItem(parent.item.node.objectId, loadMoreItem.depth));
+    }
+    treeData.value.splice(loadMoreIndex, 0, ...newChildren);
+
+    parent.item.childCount += newChildren.length - (response.hasMore ? 0 : 1);
+    parent.item.loadedCount += response.nodes.length;
+    parent.item.hasMore = response.hasMore;
+  } catch (err) {
+    console.error('Error loading more dominator tree children:', err);
+  } finally {
+    loadMoreItem.loading = false;
+  }
+};
+
+const loadAllChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) => {
+  const parent = findParent(loadMoreIndex, loadMoreItem.loadMoreParentObjectId!);
+  if (!parent) return;
+
+  loadMoreItem.loading = true;
+  try {
+    const offset = parent.item.loadedCount;
+    const response: DominatorTreeResponse = await client.getDominatorTreeChildren(
+        parent.item.node.objectId, offset, LOAD_ALL_LIMIT
+    );
+
+    const newChildren: TreeItem[] = response.nodes.map(node => ({
+      node,
+      depth: loadMoreItem.depth,
+      expanded: false,
+      loading: false,
+      childCount: 0,
+      hasMore: false,
+      loadedCount: 0
+    }));
+
+    // Remove the "Load More" row and insert all remaining children
+    treeData.value.splice(loadMoreIndex, 1, ...newChildren);
+
+    parent.item.childCount += newChildren.length - 1;
+    parent.item.loadedCount += response.nodes.length;
+    parent.item.hasMore = false;
+  } catch (err) {
+    console.error('Error loading all dominator tree children:', err);
+  } finally {
+    loadMoreItem.loading = false;
   }
 };
 
@@ -294,7 +430,9 @@ const loadData = async () => {
       depth: 0,
       expanded: false,
       loading: false,
-      childCount: 0
+      childCount: 0,
+      hasMore: false,
+      loadedCount: 0
     }));
 
   } catch (err) {
@@ -459,6 +597,28 @@ onMounted(() => {
   width: 12px;
   height: 12px;
   border-width: 1.5px;
+}
+
+.btn-load-more {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: #6f42c1;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-load-more:hover {
+  background-color: rgba(111, 66, 193, 0.1);
+}
+
+.btn-load-more i {
+  font-size: 0.75rem;
 }
 
 .progress {

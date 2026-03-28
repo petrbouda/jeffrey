@@ -150,8 +150,8 @@ export default class HeapDumpClient extends BaseProfileClient {
         return this.get<DominatorTreeResponse>('/dominator-tree', { limit });
     }
 
-    public getDominatorTreeChildren(objectId: number, limit: number = 50): Promise<DominatorTreeResponse> {
-        return this.get<DominatorTreeResponse>(`/dominator-tree/${objectId}/children`, { limit });
+    public getDominatorTreeChildren(objectId: number, offset: number = 0, limit: number = 50): Promise<DominatorTreeResponse> {
+        return this.get<DominatorTreeResponse>(`/dominator-tree/${objectId}/children`, { offset, limit });
     }
 
     // --- Collection Analysis ---

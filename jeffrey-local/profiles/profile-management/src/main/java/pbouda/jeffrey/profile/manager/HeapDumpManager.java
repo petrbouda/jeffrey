@@ -267,10 +267,11 @@ public interface HeapDumpManager {
      * Get children of a dominator tree node (objects retained by the given object).
      *
      * @param objectId the parent object ID
+     * @param offset   number of children to skip (for pagination)
      * @param limit    maximum number of children to return
      * @return dominator tree response with children
      */
-    DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit);
+    DominatorTreeResponse getDominatorTreeChildren(long objectId, int offset, int limit);
 
     // --- Collection Analysis ---
 

@@ -376,9 +376,10 @@ public class HeapDumpResource {
     @Path("/dominator-tree/{objectId}/children")
     public DominatorTreeResponse getDominatorTreeChildren(
             @PathParam("objectId") long objectId,
+            @QueryParam("offset") @DefaultValue("0") int offset,
             @QueryParam("limit") @DefaultValue("50") int limit) {
-        LOG.debug("Fetching dominator tree children: objectId={} limit={}", objectId, limit);
-        return heapDumpManager.getDominatorTreeChildren(objectId, limit);
+        LOG.debug("Fetching dominator tree children: objectId={} offset={} limit={}", objectId, offset, limit);
+        return heapDumpManager.getDominatorTreeChildren(objectId, offset, limit);
     }
 
     // --- Collection Analysis ---

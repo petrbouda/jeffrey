@@ -202,7 +202,7 @@
     </div>
 
     <!-- AI Assistant Not Configured Panel -->
-    <div v-if="!aiAvailable && !oqlLoading" class="ai-config-panel" :class="{ 'ai-config-minimized': aiPanelMinimized }">
+    <div v-if="aiChecked && !aiAvailable && !oqlLoading" class="ai-config-panel" :class="{ 'ai-config-minimized': aiPanelMinimized }">
       <button class="ai-config-toggle" @click="aiPanelMinimized = !aiPanelMinimized">
         <span>{{ aiPanelMinimized ? 'Show' : 'Hide' }}</span>
         <i class="bi" :class="aiPanelMinimized ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
@@ -343,6 +343,7 @@ const sortDirection = ref<'asc' | 'desc'>('desc');
 const showAssistant = ref(false);
 const assistantExpanded = ref(false);  // Start minimized so button is visible on page load
 const aiAvailable = ref(false);
+const aiChecked = ref(false);
 const aiPanelMinimized = ref(sessionStorage.getItem('oql-ai-panel-minimized') === 'true');
 
 // Persist minimized state in session storage
@@ -516,6 +517,8 @@ const checkAiAvailability = async () => {
     aiAvailable.value = status.available;
   } catch {
     aiAvailable.value = false;
+  } finally {
+    aiChecked.value = true;
   }
 };
 
