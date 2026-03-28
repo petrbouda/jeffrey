@@ -103,3 +103,18 @@ CREATE TABLE IF NOT EXISTS profiler_settings
     UNIQUE (workspace_id, project_id)
 );
 
+--
+-- APPLICATION SETTINGS TABLE
+-- Stores user-configurable application settings as key-value pairs grouped by category.
+-- Secret values (e.g., API keys) are stored encrypted with machine-bound AES-256-GCM.
+--
+
+CREATE TABLE IF NOT EXISTS settings
+(
+    category  VARCHAR NOT NULL,
+    key       VARCHAR NOT NULL,
+    value     VARCHAR NOT NULL,
+    secret    BOOLEAN NOT NULL DEFAULT false,
+    PRIMARY KEY (category, key)
+);
+

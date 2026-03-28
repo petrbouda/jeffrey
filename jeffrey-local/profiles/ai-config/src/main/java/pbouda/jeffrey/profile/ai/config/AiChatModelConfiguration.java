@@ -39,6 +39,10 @@ import org.springframework.context.annotation.Bean;
  * based on {@code jeffrey.ai.provider} property.
  * <p>
  * Active when {@code jeffrey.ai.provider} is set to a real provider (not {@code none}).
+ * <p>
+ * Database-stored settings are injected into the Spring Environment on startup
+ * by {@code SettingsConfiguration}, so they are available via {@code @Value} annotations
+ * and {@code @ConditionalOnExpression} without this class needing to depend on persistence.
  */
 @ConditionalOnExpression("'${jeffrey.local.ai.provider:none}' != 'none'")
 public class AiChatModelConfiguration {

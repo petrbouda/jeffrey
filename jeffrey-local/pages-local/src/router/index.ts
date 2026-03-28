@@ -431,6 +431,11 @@ const router = createRouter({
           name: 'profiler-settings',
           component: () => import('@/views/global/ProfilerSettingsView.vue')
         },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/views/global/SettingsView.vue')
+        },
       ]
     },
     // Legacy redirect for old projects URL

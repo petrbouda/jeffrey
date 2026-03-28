@@ -259,4 +259,14 @@ public enum StatementLabel {
      */
     DELETE_ALL_CACHE,
 
+    /**
+     * {@link GroupLabel#SETTINGS}
+     */
+    FIND_ALL_SETTINGS,
+    FIND_SETTINGS_BY_CATEGORY,
+    FIND_SETTING,
+    UPSERT_SETTING,
+    DELETE_SETTING,
+    DELETE_SETTINGS_BY_CATEGORY,
+
 }

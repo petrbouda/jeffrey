@@ -25,6 +25,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
+import pbouda.jeffrey.local.core.manager.SettingsManager;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.local.core.client.RemoteClients;
@@ -45,6 +46,7 @@ public class RootInternalResource {
     private final LocalCoreRepositories localCoreRepositories;
     private final ProfileResourceFactory profileResourceFactory;
     private final Optional<QuickAnalysisManager> quickAnalysisManager;
+    private final SettingsManager settingsManager;
     private final Clock clock;
 
     @Inject
@@ -54,6 +56,7 @@ public class RootInternalResource {
             LocalCoreRepositories localCoreRepositories,
             ProfileResourceFactory profileResourceFactory,
             Optional<QuickAnalysisManager> quickAnalysisManager,
+            SettingsManager settingsManager,
             Clock clock) {
 
         this.remoteClientsFactory = remoteClientsFactory;
@@ -61,6 +64,7 @@ public class RootInternalResource {
         this.localCoreRepositories = localCoreRepositories;
         this.profileResourceFactory = profileResourceFactory;
         this.quickAnalysisManager = quickAnalysisManager;
+        this.settingsManager = settingsManager;
         this.clock = clock;
     }
 
@@ -99,6 +103,11 @@ public class RootInternalResource {
         return new QuickAnalysisResource(
                 quickAnalysisManager.orElse(null),
                 profileResourceFactory);
+    }
+
+    @Path("/settings")
+    public SettingsResource settingsResource() {
+        return new SettingsResource(settingsManager);
     }
 
     @GET

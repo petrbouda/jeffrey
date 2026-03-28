@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,33 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package pbouda.jeffrey.shared.persistence;
-
-public enum GroupLabel {
-    INTERNAL_PROFILES,
-    GLOBAL_SCHEDULERS,
-    PROFILER,
-    PROJECT_RECORDINGS,
-    INTERNAL_RECORDINGS,
-    PROFILE_CACHE,
-    PROFILE_EVENTS,
-    PROFILE_EVENT_TYPES,
-    PROFILE_GRAPHS,
-    PROFILES,
-    PROJECTS,
-    SINGLE_PROJECT,
-    PROJECT_REPOSITORIES,
-    PROJECT_SCHEDULERS,
-    EVENT_WRITERS,
-    NATIVE_LEAK_EVENTS,
-    WORKSPACES,
-    EXTERNAL_WORKSPACES,
-    ALLOCATING_THREADS,
-    INFRASTRUCTURE,
-    PROJECT_INSTANCES,
-    PERSISTENT_QUEUE,
-    MESSAGES,
-    ALERTS,
-    PROFILE_FRAMES,
-    SETTINGS,
+export default interface Setting {
+    category: string
+    key: string
+    value: string
+    secret: boolean
 }
