@@ -11,6 +11,7 @@
     0 4px 20px rgba(0, 0, 0, 0.04),
     0 1px 3px rgba(0, 0, 0, 0.02);
   backdrop-filter: blur(10px);
+  overflow: hidden;
 }
 
 .main-card-content {
