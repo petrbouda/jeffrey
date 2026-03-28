@@ -3,13 +3,7 @@
     <!-- Workspace Selector -->
     <MainCard>
       <template #header>
-        <div class="page-header">
-          <div class="page-header-info">
-            <i class="bi bi-collection page-header-icon"></i>
-            <span class="page-header-title">Workspaces</span>
-            <span v-if="workspaces.length > 0" class="page-header-badge">{{ workspaces.length }}</span>
-          </div>
-        </div>
+        <PageHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length" />
       </template>
       <div class="workspace-cards-grid">
         <WorkspaceSelectionCard
@@ -27,13 +21,8 @@
     <!-- Events Timeline -->
     <MainCard>
       <template #header>
-        <div class="page-header">
-          <div class="page-header-info">
-            <i class="bi bi-clock-history page-header-icon"></i>
-            <span class="page-header-title">Events Timeline</span>
-            <span v-if="filteredEvents.length > 0" class="page-header-badge">{{ filteredEvents.length }}</span>
-          </div>
-          <div class="page-header-actions">
+        <PageHeader icon="bi bi-clock-history" title="Events Timeline" :badge="filteredEvents.length">
+          <template #actions>
             <select class="page-filter-select" v-model="selectedEventType" @change="filterEvents">
               <option value="">All Events</option>
               <option value="PROJECT_CREATED">Project Created</option>
@@ -47,8 +36,8 @@
               <i class="bi bi-search"></i>
               <input v-model="searchQuery" type="text" placeholder="Search..." @input="filterEvents">
             </div>
-          </div>
-        </div>
+          </template>
+        </PageHeader>
       </template>
 
         <!-- Loading indicator -->
@@ -202,6 +191,7 @@ import BaseModal from '@/components/BaseModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MainCard from '@/components/MainCard.vue';
+import PageHeader from '@/components/PageHeader.vue';
 
 // Workspaces data
 const workspaces = ref<any[]>([]);

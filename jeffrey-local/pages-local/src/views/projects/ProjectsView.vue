@@ -3,19 +3,14 @@
     <!-- Workspace Selector (only show in root workspace selection mode) -->
     <MainCard v-if="!isWorkspaceScoped">
       <template #header>
-        <div class="page-header">
-          <div class="page-header-info">
-            <i class="bi bi-collection page-header-icon"></i>
-            <span class="page-header-title">Workspaces</span>
-            <span v-if="workspaces.length > 0" class="page-header-badge">{{ workspaces.length }}</span>
-          </div>
-          <div class="page-header-actions">
+        <PageHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length">
+          <template #actions>
             <button class="page-header-btn" @click="remoteWorkspaceModal?.showModal()">
               <i class="bi bi-plus-lg"></i>
               Add Workspace
             </button>
-          </div>
-        </div>
+          </template>
+        </PageHeader>
       </template>
       <div class="workspace-cards-grid">
         <WorkspaceSelectionCard
@@ -190,6 +185,7 @@
 import {computed, onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MainCard from '@/components/MainCard.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';

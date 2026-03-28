@@ -20,13 +20,8 @@
   <div>
     <MainCard>
       <template #header>
-        <div class="page-header">
-          <div class="page-header-info">
-            <i class="bi bi-lightning-charge page-header-icon"></i>
-            <span class="page-header-title">Quick Analysis</span>
-            <span v-if="allRecordings.length > 0" class="page-header-badge">{{ allRecordings.length }}</span>
-          </div>
-          <div class="page-header-actions">
+        <PageHeader icon="bi bi-lightning-charge" title="Quick Analysis" :badge="allRecordings.length">
+          <template #actions>
             <div v-if="allRecordings.length > 0" class="page-search">
               <i class="bi bi-search"></i>
               <input v-model="searchText" type="text" placeholder="Search...">
@@ -35,8 +30,8 @@
               <i class="bi bi-folder-plus"></i>
               New Group
             </button>
-          </div>
-        </div>
+          </template>
+        </PageHeader>
       </template>
 
       <!-- Upload panel -->
@@ -168,6 +163,7 @@ import { useRouter } from 'vue-router';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
 import MainCard from '@/components/MainCard.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';

@@ -2,29 +2,26 @@
   <div>
     <MainCard>
       <template #header>
-        <!-- Header with tabs -->
-        <div class="page-header">
-        <div class="page-header-info">
-          <i class="bi bi-gear page-header-icon"></i>
-          <span class="page-header-title">Profiler Settings</span>
-        </div>
-        <div class="header-tabs">
-          <button
-            class="header-tab"
-            :class="{ 'active': viewMode === 'configure' }"
-            @click="viewMode = 'configure'">
-            <i class="bi bi-gear-fill"></i>
-            <span>Configure</span>
-          </button>
-          <button
-            class="header-tab"
-            :class="{ 'active': viewMode === 'view' }"
-            @click="viewMode = 'view'">
-            <i class="bi bi-eye-fill"></i>
-            <span>View</span>
-          </button>
-        </div>
-        </div>
+        <PageHeader icon="bi bi-gear" title="Profiler Settings">
+          <template #actions>
+            <div class="header-tabs">
+              <button
+                class="header-tab"
+                :class="{ 'active': viewMode === 'configure' }"
+                @click="viewMode = 'configure'">
+                <i class="bi bi-gear-fill"></i>
+                <span>Configure</span>
+              </button>
+              <button
+                class="header-tab"
+                :class="{ 'active': viewMode === 'view' }"
+                @click="viewMode = 'view'">
+                <i class="bi bi-eye-fill"></i>
+                <span>View</span>
+              </button>
+            </div>
+          </template>
+        </PageHeader>
       </template>
 
       <!-- VIEW MODE -->
@@ -252,6 +249,7 @@ import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHierarchy.vue';
 import MainCard from '@/components/MainCard.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import type Workspace from '@/services/api/model/Workspace';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
