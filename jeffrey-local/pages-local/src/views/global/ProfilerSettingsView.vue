@@ -450,8 +450,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: var(--color-light);
-  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
   gap: 12px;
 }
 
