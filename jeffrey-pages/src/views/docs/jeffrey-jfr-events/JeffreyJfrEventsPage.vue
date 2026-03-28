@@ -67,6 +67,13 @@ onMounted(() => {
             </div>
           </div>
           <div class="event-card">
+            <div class="event-icon"><i class="bi bi-hdd-network"></i></div>
+            <div class="event-content">
+              <h4>gRPC Events</h4>
+              <p>Capture gRPC service calls including method name, status code, response time, and payload sizes. Available for both server-side and client-side calls, enabling analysis of service-to-service communication.</p>
+            </div>
+          </div>
+          <div class="event-card">
             <div class="event-icon"><i class="bi bi-database"></i></div>
             <div class="event-content">
               <h4>Database Events</h4>

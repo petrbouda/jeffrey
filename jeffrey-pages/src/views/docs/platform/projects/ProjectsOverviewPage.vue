@@ -67,32 +67,32 @@ onMounted(() => {
         <p>Each project includes several features accessible from the sidebar. Click on any feature to learn more:</p>
 
         <div class="features-grid">
-          <router-link to="/docs/concepts/projects/profiles" class="feature-card profiles">
+          <router-link to="/docs/platform/projects/profiles" class="feature-card profiles">
             <div class="feature-icon"><i class="bi bi-file-earmark-text"></i></div>
             <h4>Profiles</h4>
             <p>Analyzed recordings ready for investigation</p>
           </router-link>
-          <router-link to="/docs/concepts/projects/recordings" class="feature-card recordings">
+          <router-link to="/docs/platform/projects/recordings" class="feature-card recordings">
             <div class="feature-icon"><i class="bi bi-record-circle"></i></div>
             <h4>Recordings</h4>
             <p>Raw JFR files uploaded to Jeffrey</p>
           </router-link>
-          <router-link to="/docs/concepts/projects/repository" class="feature-card repository">
+          <router-link to="/docs/platform/projects/repository" class="feature-card repository">
             <div class="feature-icon"><i class="bi bi-folder"></i></div>
             <h4>Repository</h4>
             <p>Recording sessions from live applications</p>
           </router-link>
-          <router-link to="/docs/concepts/projects/profiler-settings" class="feature-card settings">
+          <router-link to="/docs/platform/projects/profiler-settings" class="feature-card settings">
             <div class="feature-icon"><i class="bi bi-cpu"></i></div>
             <h4>Profiler Settings</h4>
             <p>JVM agent configuration</p>
           </router-link>
-          <router-link to="/docs/concepts/projects/scheduler" class="feature-card scheduler">
+          <router-link to="/docs/platform/projects/scheduler" class="feature-card scheduler">
             <div class="feature-icon"><i class="bi bi-calendar-check"></i></div>
             <h4>Scheduler</h4>
             <p>Automated background jobs</p>
           </router-link>
-          <router-link to="/docs/concepts/projects/alerts-messages" class="feature-card alerts">
+          <router-link to="/docs/platform/projects/alerts-messages" class="feature-card alerts">
             <div class="feature-icon"><i class="bi bi-bell"></i></div>
             <h4>Alerts & Messages</h4>
             <p>Important events from recordings</p>

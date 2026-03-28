@@ -94,7 +94,7 @@ export const docsNavigation: DocSection[] = [
     children: [
       { title: 'Overview', path: 'overview' },
       { title: 'JVM Internals Section', path: 'jvm-internals' },
-      { title: 'Application Section', path: 'application' },
+      { title: 'Technologies Section', path: 'application' },
       { title: 'Visualization Section', path: 'visualization' },
       { title: 'Heap Dump Section', path: 'heap-dump-analysis' },
       { title: 'Tools Section', path: 'tools' }
