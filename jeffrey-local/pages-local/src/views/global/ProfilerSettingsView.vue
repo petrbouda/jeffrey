@@ -28,12 +28,12 @@
       </div>
 
       <!-- VIEW MODE -->
-      <div v-if="activeTab === 'view'">
+      <div v-if="activeTab === 'view'" class="tab-panel">
         <ProfilerSettingsHierarchy/>
       </div>
 
       <!-- CONFIGURE MODE -->
-      <div v-if="activeTab === 'manual' || activeTab === 'builder'">
+      <div v-if="activeTab === 'manual' || activeTab === 'builder'" class="tab-panel">
         <!-- Step 1: Command Configuration -->
         <div v-if="currentStep === 1">
 
@@ -451,8 +451,11 @@ onMounted(() => {
   border-bottom-color: var(--color-primary);
 }
 
+.tab-panel {
+  margin-top: 20px;
+}
+
 .tab-content {
-  padding-top: 0;
   min-width: 0;
   overflow-x: hidden;
 }
