@@ -38,7 +38,6 @@
       <div class="content-header-with-toggle">
         <div>
           <h3>AI Configuration</h3>
-          <p>Configure the AI assistant for JFR analysis, heap dump analysis, and OQL suggestions. Changes require a restart.</p>
         </div>
         <div class="toggle-area">
           <span class="toggle-label">Enable AI</span>
