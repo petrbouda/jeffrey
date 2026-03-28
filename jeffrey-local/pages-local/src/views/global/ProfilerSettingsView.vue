@@ -428,6 +428,7 @@ onMounted(() => {
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--color-border);
+  margin-bottom: 20px;
 }
 
 .tab-item {
