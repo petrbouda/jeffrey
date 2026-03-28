@@ -857,11 +857,4 @@ const confirmDeleteWorkspace = async () => {
   }
 }
 
-/* Workspace Cards Grid */
-.workspace-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
-  gap: 12px;
-}
-
 </style>

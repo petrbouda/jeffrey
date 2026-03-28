@@ -159,6 +159,13 @@
   width: 100%;
 }
 
+/* Workspace Cards Grid */
+.workspace-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
+  gap: 12px;
+}
+
 /* Danger Zone Card Variant */
 .danger-card {
   background: linear-gradient(135deg, #ffffff, #fff8f8);
