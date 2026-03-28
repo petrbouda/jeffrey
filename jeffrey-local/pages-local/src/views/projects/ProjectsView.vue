@@ -1,92 +1,92 @@
 <template>
   <div>
     <!-- Workspace Selector (only show in root workspace selection mode) -->
-    <div v-if="!isWorkspaceScoped" class="main-card mb-4">
-      <div class="page-header">
-        <div class="page-header-info">
-          <i class="bi bi-collection page-header-icon"></i>
-          <span class="page-header-title">Workspaces</span>
-          <span v-if="workspaces.length > 0" class="page-header-badge">{{ workspaces.length }}</span>
-        </div>
-        <div class="page-header-actions">
-          <button class="page-header-btn" @click="remoteWorkspaceModal?.showModal()">
-            <i class="bi bi-plus-lg"></i>
-            Add Workspace
-          </button>
-        </div>
-      </div>
-      <div class="main-card-content">
-        <div class="workspace-cards-grid">
-          <WorkspaceSelectionCard
-            v-for="workspace in workspaces"
-            :key="workspace.id"
-            :name="workspace.name ?? workspace.id"
-            :description="getWorkspaceDescription(workspace)"
-            :selected="selectedWorkspace === workspace.id"
-            :badge-value="getWorkspaceProjectCount(workspace.id)"
-            :status="workspace.status"
-            :show-status-badges="true"
-            @select="handleWorkspaceClick(workspace.id)"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div class="main-card mb-4">
-      <!-- Compact Workspace Context Bar (sticky header) -->
-      <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar" :class="getContextBarClass">
-        <div class="context-bar-info">
-          <span class="workspace-name">{{ getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id }}</span>
-          <span class="context-divider">•</span>
-          <span class="workspace-meta">{{ getProjectCountText() }}</span>
-          <span class="context-divider">•</span>
-          <span class="workspace-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
-        </div>
-        <div class="context-bar-actions">
-          <div class="context-search">
-            <i class="bi bi-search"></i>
-            <input
-                type="text"
-                v-model="searchQuery"
-                placeholder="Search..."
-                @input="filterProjects"
-            >
+    <MainCard v-if="!isWorkspaceScoped">
+      <template #header>
+        <div class="page-header">
+          <div class="page-header-info">
+            <i class="bi bi-collection page-header-icon"></i>
+            <span class="page-header-title">Workspaces</span>
+            <span v-if="workspaces.length > 0" class="page-header-badge">{{ workspaces.length }}</span>
           </div>
-          <button
-              v-if="hasBlockedProjects"
-              class="context-btn"
-              :class="{ active: showBlockedProjects }"
-              @click="toggleBlockedProjects"
-              :title="showBlockedProjects ? 'Hide blocked projects' : 'Show blocked projects'"
-          >
-            <i class="bi bi-eye-slash"></i>
-          </button>
-          <button
-              class="context-btn"
-              :class="getStreamingButtonClass()"
-              @click="cycleWorkspaceStreaming"
-              :title="getStreamingTooltip()"
-          >
-            <i class="bi bi-broadcast"></i>
-          </button>
-          <button
-              class="context-btn danger"
-              @click="handleDeleteWorkspace()"
-              :disabled="!canDeleteWorkspace()"
-              :title="getDeleteTooltip()"
-          >
-            <i class="bi bi-trash"></i>
-          </button>
+          <div class="page-header-actions">
+            <button class="page-header-btn" @click="remoteWorkspaceModal?.showModal()">
+              <i class="bi bi-plus-lg"></i>
+              Add Workspace
+            </button>
+          </div>
         </div>
+      </template>
+      <div class="workspace-cards-grid">
+        <WorkspaceSelectionCard
+          v-for="workspace in workspaces"
+          :key="workspace.id"
+          :name="workspace.name ?? workspace.id"
+          :description="getWorkspaceDescription(workspace)"
+          :selected="selectedWorkspace === workspace.id"
+          :badge-value="getWorkspaceProjectCount(workspace.id)"
+          :status="workspace.status"
+          :show-status-badges="true"
+          @select="handleWorkspaceClick(workspace.id)"
+        />
       </div>
+    </MainCard>
 
-      <!-- Empty State (no workspace selected) -->
-      <div v-else class="workspace-context-empty">
-        <i class="bi bi-folder"></i>
-        <span>Select a workspace to view projects</span>
-      </div>
+    <MainCard>
+      <template #header>
+        <!-- Compact Workspace Context Bar (sticky header) -->
+        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar" :class="getContextBarClass">
+          <div class="context-bar-info">
+            <span class="workspace-name">{{ getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id }}</span>
+            <span class="context-divider">•</span>
+            <span class="workspace-meta">{{ getProjectCountText() }}</span>
+            <span class="context-divider">•</span>
+            <span class="workspace-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
+          </div>
+          <div class="context-bar-actions">
+            <div class="context-search">
+              <i class="bi bi-search"></i>
+              <input
+                  type="text"
+                  v-model="searchQuery"
+                  placeholder="Search..."
+                  @input="filterProjects"
+              >
+            </div>
+            <button
+                v-if="hasBlockedProjects"
+                class="context-btn"
+                :class="{ active: showBlockedProjects }"
+                @click="toggleBlockedProjects"
+                :title="showBlockedProjects ? 'Hide blocked projects' : 'Show blocked projects'"
+            >
+              <i class="bi bi-eye-slash"></i>
+            </button>
+            <button
+                class="context-btn"
+                :class="getStreamingButtonClass()"
+                @click="cycleWorkspaceStreaming"
+                :title="getStreamingTooltip()"
+            >
+              <i class="bi bi-broadcast"></i>
+            </button>
+            <button
+                class="context-btn danger"
+                @click="handleDeleteWorkspace()"
+                :disabled="!canDeleteWorkspace()"
+                :title="getDeleteTooltip()"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
 
-      <div class="main-card-content">
+        <!-- Empty State (no workspace selected) -->
+        <div v-else class="workspace-context-empty">
+          <i class="bi bi-folder"></i>
+          <span>Select a workspace to view projects</span>
+        </div>
+      </template>
         <!-- Offline Workspace Info -->
         <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="workspace-offline-info mb-4">
           <div class="alert alert-danger d-flex align-items-center">
@@ -165,8 +165,7 @@
               ? 'Remote workspace is offline. Projects would be shown here when the connection is restored.'
               : 'Projects in this workspace are synchronized from external source'"
         />
-      </div>
-    </div>
+    </MainCard>
   </div>
 
   <!-- Modal Components -->
@@ -190,6 +189,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
+import MainCard from '@/components/MainCard.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';

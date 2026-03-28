@@ -1,54 +1,55 @@
 <template>
   <div>
     <!-- Workspace Selector -->
-    <div class="main-card mb-4">
-      <div class="page-header">
-        <div class="page-header-info">
-          <i class="bi bi-collection page-header-icon"></i>
-          <span class="page-header-title">Workspaces</span>
-          <span v-if="workspaces.length > 0" class="page-header-badge">{{ workspaces.length }}</span>
-        </div>
-      </div>
-      <div class="main-card-content">
-        <div class="workspace-cards-grid">
-          <WorkspaceSelectionCard
-            v-for="workspace in workspaces"
-            :key="workspace.id"
-            :name="workspace.name"
-            :description="getWorkspaceDescription(workspace)"
-            :selected="selectedWorkspace === workspace.id"
-            :badge-value="getWorkspaceEventCount(workspace.id)"
-            @select="selectWorkspace(workspace.id)"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Events Timeline -->
-    <div class="main-card mb-4">
-      <div class="page-header">
-        <div class="page-header-info">
-          <i class="bi bi-clock-history page-header-icon"></i>
-          <span class="page-header-title">Events Timeline</span>
-          <span v-if="filteredEvents.length > 0" class="page-header-badge">{{ filteredEvents.length }}</span>
-        </div>
-        <div class="page-header-actions">
-          <select class="page-filter-select" v-model="selectedEventType" @change="filterEvents">
-            <option value="">All Events</option>
-            <option value="PROJECT_CREATED">Project Created</option>
-            <option value="PROJECT_DELETED">Project Deleted</option>
-            <option value="PROJECT_INSTANCE_CREATED">Instance Created</option>
-            <option value="PROJECT_INSTANCE_SESSION_CREATED">Session Created</option>
-            <option value="PROJECT_INSTANCE_SESSION_DELETED">Session Deleted</option>
-            <option value="PROJECT_INSTANCE_SESSION_FINISHED">Session Finished</option>
-          </select>
-          <div class="page-search">
-            <i class="bi bi-search"></i>
-            <input v-model="searchQuery" type="text" placeholder="Search..." @input="filterEvents">
+    <MainCard>
+      <template #header>
+        <div class="page-header">
+          <div class="page-header-info">
+            <i class="bi bi-collection page-header-icon"></i>
+            <span class="page-header-title">Workspaces</span>
+            <span v-if="workspaces.length > 0" class="page-header-badge">{{ workspaces.length }}</span>
           </div>
         </div>
+      </template>
+      <div class="workspace-cards-grid">
+        <WorkspaceSelectionCard
+          v-for="workspace in workspaces"
+          :key="workspace.id"
+          :name="workspace.name"
+          :description="getWorkspaceDescription(workspace)"
+          :selected="selectedWorkspace === workspace.id"
+          :badge-value="getWorkspaceEventCount(workspace.id)"
+          @select="selectWorkspace(workspace.id)"
+        />
       </div>
-      <div class="main-card-content">
+    </MainCard>
+
+    <!-- Events Timeline -->
+    <MainCard>
+      <template #header>
+        <div class="page-header">
+          <div class="page-header-info">
+            <i class="bi bi-clock-history page-header-icon"></i>
+            <span class="page-header-title">Events Timeline</span>
+            <span v-if="filteredEvents.length > 0" class="page-header-badge">{{ filteredEvents.length }}</span>
+          </div>
+          <div class="page-header-actions">
+            <select class="page-filter-select" v-model="selectedEventType" @change="filterEvents">
+              <option value="">All Events</option>
+              <option value="PROJECT_CREATED">Project Created</option>
+              <option value="PROJECT_DELETED">Project Deleted</option>
+              <option value="PROJECT_INSTANCE_CREATED">Instance Created</option>
+              <option value="PROJECT_INSTANCE_SESSION_CREATED">Session Created</option>
+              <option value="PROJECT_INSTANCE_SESSION_DELETED">Session Deleted</option>
+              <option value="PROJECT_INSTANCE_SESSION_FINISHED">Session Finished</option>
+            </select>
+            <div class="page-search">
+              <i class="bi bi-search"></i>
+              <input v-model="searchQuery" type="text" placeholder="Search..." @input="filterEvents">
+            </div>
+          </div>
+        </div>
+      </template>
 
         <!-- Loading indicator -->
         <LoadingState v-if="loading" message="Loading workspace events..." />
@@ -127,8 +128,7 @@
           title="No Events Found"
           :description="selectedWorkspace ? 'No events found for the selected workspace.' : 'No events match your current filters.'"
         />
-      </div>
-    </div>
+    </MainCard>
 
     <!-- Event Details Modal -->
     <BaseModal
@@ -201,7 +201,7 @@ import Badge from '@/components/Badge.vue';
 import BaseModal from '@/components/BaseModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import '@/styles/shared-components.css';
+import MainCard from '@/components/MainCard.vue';
 
 // Workspaces data
 const workspaces = ref<any[]>([]);

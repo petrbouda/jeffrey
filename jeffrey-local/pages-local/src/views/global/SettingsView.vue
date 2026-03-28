@@ -1,5 +1,6 @@
 <template>
   <div>
+    <MainCard>
     <!-- Restart Banner -->
     <div v-if="showRestartBanner" class="restart-banner">
       <i class="bi bi-exclamation-triangle"></i>
@@ -135,6 +136,7 @@
         </button>
       </div>
     </div>
+    </MainCard>
   </div>
 </template>
 
@@ -142,6 +144,7 @@
 import '@/styles/form-utilities.css'
 import { computed, onMounted, ref, watch } from 'vue'
 import SettingsClient from '@/services/api/SettingsClient'
+import MainCard from '@/components/MainCard.vue'
 import type Setting from '@/services/api/model/Setting'
 
 const client = new SettingsClient()
@@ -359,10 +362,7 @@ async function saveGeneralSettings() {
 }
 
 .settings-content {
-  background: var(--color-bg-card, #fff);
-  border-radius: 10px;
-  padding: 28px;
-  border: 1px solid var(--color-border, #e2e8f0);
+  padding-top: 4px;
 }
 
 .content-header {

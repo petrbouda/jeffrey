@@ -18,9 +18,10 @@
 
 <template>
   <div>
-    <div class="main-card mb-4">
-      <!-- Header with integrated toolbar -->
-      <div class="qa-header">
+    <MainCard :no-padding="true">
+      <template #header>
+        <!-- Header with integrated toolbar -->
+        <div class="qa-header">
         <div class="qa-header-info">
           <i class="bi bi-lightning-charge qa-header-icon"></i>
           <span class="qa-header-title">Quick Analysis</span>
@@ -36,7 +37,8 @@
             New Group
           </button>
         </div>
-      </div>
+        </div>
+      </template>
 
       <!-- Upload panel -->
       <div class="qa-upload-section">
@@ -126,7 +128,7 @@
             title="No recordings match your search"
         />
       </div>
-    </div>
+    </MainCard>
 
     <!-- Create Group modal -->
     <EditNameModal
@@ -166,6 +168,7 @@ import { computed, onMounted, ref, reactive, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
+import MainCard from '@/components/MainCard.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';

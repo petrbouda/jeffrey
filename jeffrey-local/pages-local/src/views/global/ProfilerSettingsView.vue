@@ -1,8 +1,9 @@
 <template>
   <div>
-    <div class="settings-card main-settings-card">
-      <!-- Header with tabs -->
-      <div class="page-header">
+    <MainCard :no-padding="true">
+      <template #header>
+        <!-- Header with tabs -->
+        <div class="page-header">
         <div class="page-header-info">
           <i class="bi bi-gear page-header-icon"></i>
           <span class="page-header-title">Profiler Settings</span>
@@ -23,7 +24,8 @@
             <span>View</span>
           </button>
         </div>
-      </div>
+        </div>
+      </template>
 
       <!-- Content Area -->
       <div class="content-area">
@@ -240,7 +242,7 @@
         </div>
         <!-- END CONFIGURE MODE -->
       </div>
-    </div>
+    </MainCard>
   </div>
 </template>
 
@@ -252,6 +254,7 @@ import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHierarchy.vue';
+import MainCard from '@/components/MainCard.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import type Workspace from '@/services/api/model/Workspace';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
@@ -440,26 +443,6 @@ onMounted(() => {
 
 <style scoped>
 @import '@/styles/shared-components.css';
-
-/* Main card */
-.main-settings-card {
-  margin-bottom: var(--spacing-4);
-}
-
-.settings-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.content-area {
-  padding: 20px 24px;
-  min-width: 0;
-  overflow: hidden;
-}
 
 /* Page Header */
 .page-header {
