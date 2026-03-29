@@ -218,12 +218,6 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'heap-dump/comparison',
-    name: 'profile-heap-dump-comparison',
-    component: () => import('@/views/profiles/detail/ProfileHeapDumpComparison.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'tools/rename-frames',
     name: 'profile-tools-rename-frames',
     component: () => import('@/views/profiles/detail/ProfileToolsRenameFrames.vue'),

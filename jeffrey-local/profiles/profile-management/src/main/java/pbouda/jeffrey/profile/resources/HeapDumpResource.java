@@ -546,21 +546,4 @@ public class HeapDumpResource {
         heapDumpManager.runClassLoaderAnalysis();
     }
 
-    // --- Heap Dump Comparison ---
-
-    /**
-     * Compare two class histograms from different heap dumps.
-     * The frontend provides both histograms from two different profiles.
-     *
-     * @param request comparison request with baseline and current histograms
-     * @return comparison report with per-class deltas
-     */
-    @POST
-    @Path("/compare")
-    public HeapDumpComparisonReport compare(HeapDumpComparisonRequest request) {
-        LOG.debug("Comparing heap dump histograms: baselineClasses={} currentClasses={}",
-                request.baseline().size(), request.current().size());
-        return heapDumpManager.compareHistograms(request);
-    }
-
 }

@@ -25,8 +25,6 @@ import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
-import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonReport;
-import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonRequest;
 import pbouda.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
@@ -407,16 +405,5 @@ public interface HeapDumpManager {
      * Run class loader analysis and save results to JSON file.
      */
     void runClassLoaderAnalysis();
-
-    // --- Heap Dump Comparison ---
-
-    /**
-     * Compare two class histograms from different heap dumps.
-     * The comparison identifies classes that grew, shrank, appeared, or disappeared.
-     *
-     * @param request comparison request containing baseline and current histograms
-     * @return comparison report with per-class deltas
-     */
-    HeapDumpComparisonReport compareHistograms(HeapDumpComparisonRequest request);
 
 }

@@ -38,7 +38,6 @@ import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsRep
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type DuplicateObjectsReport from '@/services/api/model/DuplicateObjectsReport';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
-import type { HeapDumpComparisonReport, HeapDumpComparisonRequest } from '@/services/api/model/HeapDumpComparisonReport';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 
 export default class HeapDumpClient extends BaseProfileClient {
@@ -247,12 +246,6 @@ export default class HeapDumpClient extends BaseProfileClient {
 
     public runClassLoaderAnalysis(): Promise<void> {
         return this.post<void>('/classloader-analysis/run', {});
-    }
-
-    // --- Heap Dump Comparison ---
-
-    public compareHistograms(request: HeapDumpComparisonRequest): Promise<HeapDumpComparisonReport> {
-        return this.post<HeapDumpComparisonReport>('/compare', request);
     }
 
     // --- Thread Stack ---

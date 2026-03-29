@@ -683,11 +683,20 @@
                     <i class="bi bi-stars"></i>
                     <span>AI Analysis</span>
                   </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/oql`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-terminal"></i>
+                    <span>OQL Query</span>
+                  </router-link>
                 </div>
               </div>
 
               <div class="nav-section">
-                <div class="nav-section-title">OBJECT ANALYSIS</div>
+                <div class="nav-section-title">MEMORY ANALYSIS</div>
                 <div class="nav-items">
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/histogram`"
@@ -707,39 +716,6 @@
                     <i class="bi bi-diagram-2"></i>
                     <span>Dominator Tree</span>
                   </router-link>
-                  <router-link
-                      :to="`/profiles/${profileId}/heap-dump/biggest-collections`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-collection-fill"></i>
-                    <span>Biggest Collections</span>
-                  </router-link>
-                  <router-link
-                      :to="`/profiles/${profileId}/heap-dump/duplicate-objects`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-copy"></i>
-                    <span>Duplicate Objects</span>
-                  </router-link>
-                  <router-link
-                      :to="`/profiles/${profileId}/heap-dump/string-analysis`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-fonts"></i>
-                    <span>String Analysis</span>
-                  </router-link>
-                </div>
-              </div>
-
-              <div class="nav-section">
-                <div class="nav-section-title">MEMORY DIAGNOSTICS</div>
-                <div class="nav-items">
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/leak-suspects`"
                       class="nav-item"
@@ -776,6 +752,33 @@
                     <i class="bi bi-collection"></i>
                     <span>Collection Analysis</span>
                   </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/biggest-collections`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-collection-fill"></i>
+                    <span>Biggest Collections</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/duplicate-objects`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-copy"></i>
+                    <span>Duplicate Objects</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/string-analysis`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-fonts"></i>
+                    <span>String Analysis</span>
+                  </router-link>
                 </div>
               </div>
 
@@ -803,29 +806,6 @@
                 </div>
               </div>
 
-              <div class="nav-section">
-                <div class="nav-section-title">TOOLS</div>
-                <div class="nav-items">
-                  <router-link
-                      :to="`/profiles/${profileId}/heap-dump/oql`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-terminal"></i>
-                    <span>OQL Query</span>
-                  </router-link>
-                  <router-link
-                      :to="`/profiles/${profileId}/heap-dump/comparison`"
-                      class="nav-item"
-                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
-                      active-class="active"
-                  >
-                    <i class="bi bi-arrow-left-right"></i>
-                    <span>Heap Comparison</span>
-                  </router-link>
-                </div>
-              </div>
             </template>
 
             <!-- Tools Mode Menu -->

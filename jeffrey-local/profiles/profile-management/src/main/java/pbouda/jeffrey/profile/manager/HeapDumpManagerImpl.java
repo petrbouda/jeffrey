@@ -35,7 +35,6 @@ import pbouda.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.InstanceDetailAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.InstanceTreeAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.DuplicateObjectAnalyzer;
-import pbouda.jeffrey.profile.heapdump.analyzer.HeapDumpComparisonAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.LeakSuspectsAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
 import pbouda.jeffrey.profile.heapdump.analyzer.PathToGCRootAnalyzer;
@@ -44,8 +43,6 @@ import pbouda.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
-import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonReport;
-import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonRequest;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
@@ -144,8 +141,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final LeakSuspectsAnalyzer leakSuspectsAnalyzer;
     private final DuplicateObjectAnalyzer duplicateObjectAnalyzer;
     private final ClassLoaderAnalyzer classLoaderAnalyzer;
-    private final HeapDumpComparisonAnalyzer comparisonAnalyzer;
-
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
             HeapLoader heapLoader,
@@ -174,7 +169,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer();
         this.duplicateObjectAnalyzer = new DuplicateObjectAnalyzer();
         this.classLoaderAnalyzer = new ClassLoaderAnalyzer();
-        this.comparisonAnalyzer = new HeapDumpComparisonAnalyzer();
     }
 
     @Override
@@ -820,18 +814,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             ClassLoaderReport report = classLoaderAnalyzer.analyze(heap);
             writeJsonFile(CLASSLOADER_ANALYSIS_FILE, report, "Class loader analysis");
         });
-    }
-
-    // --- Heap Dump Comparison ---
-
-    @Override
-    public HeapDumpComparisonReport compareHistograms(HeapDumpComparisonRequest request) {
-        return comparisonAnalyzer.compare(
-                request.baseline(),
-                request.current(),
-                request.baselineTotalBytes(),
-                request.currentTotalBytes()
-        );
     }
 
     // --- JSON I/O helpers ---
