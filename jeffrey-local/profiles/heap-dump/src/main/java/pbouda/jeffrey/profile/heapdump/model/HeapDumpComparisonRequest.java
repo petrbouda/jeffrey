@@ -21,21 +21,17 @@ package pbouda.jeffrey.profile.heapdump.model;
 import java.util.List;
 
 /**
- * Report analyzing Java collection fill ratios and wasted memory.
+ * Request to compare two class histograms from different heap dumps.
  *
- * @param totalCollections total number of analyzed collection instances
- * @param totalEmptyCount  total number of empty collections
- * @param totalWastedBytes total estimated bytes wasted across all collections
- * @param overallFillDistribution aggregated fill distribution across all types
- * @param byType           per-collection-type statistics
- * @param wasteByClass     per-owner-class waste breakdown, sorted by wasted bytes descending
+ * @param baseline           class histogram entries from the baseline (older) heap dump
+ * @param current            class histogram entries from the current (newer) heap dump
+ * @param baselineTotalBytes total heap size in bytes of the baseline heap dump
+ * @param currentTotalBytes  total heap size in bytes of the current heap dump
  */
-public record CollectionAnalysisReport(
-        int totalCollections,
-        int totalEmptyCount,
-        long totalWastedBytes,
-        FillDistribution overallFillDistribution,
-        List<CollectionStats> byType,
-        List<ClassWasteEntry> wasteByClass
+public record HeapDumpComparisonRequest(
+        List<ClassHistogramEntry> baseline,
+        List<ClassHistogramEntry> current,
+        long baselineTotalBytes,
+        long currentTotalBytes
 ) {
 }

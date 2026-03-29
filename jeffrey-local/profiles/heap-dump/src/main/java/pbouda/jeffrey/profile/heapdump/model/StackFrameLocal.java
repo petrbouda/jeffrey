@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,8 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export default interface AiStatusResponse {
-    enabled: boolean;
-    provider: string | null;
-    configured: boolean;
+package pbouda.jeffrey.profile.heapdump.model;
+
+/**
+ * A local variable or reference on a thread's stack frame.
+ *
+ * @param objectId    the object ID of the referenced instance
+ * @param className   the class name of the referenced instance
+ * @param fieldName   the name of the local variable (if available)
+ * @param shallowSize the shallow size of the referenced instance in bytes
+ */
+public record StackFrameLocal(
+        long objectId,
+        String className,
+        String fieldName,
+        long shallowSize
+) {
 }

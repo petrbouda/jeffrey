@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -32,6 +32,12 @@ import pbouda.jeffrey.profile.heapdump.model.OQLResultEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -42,13 +48,37 @@ public class OQLQueryExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(OQLQueryExecutor.class);
     private static final int MAX_RESULTS = 10000;
+    private static final long QUERY_TIMEOUT_SECONDS = 300;
+
+    private static final ExecutorService QUERY_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
-     * Execute an OQL query against the heap.
+     * Execute an OQL query against the heap with a timeout guard.
+     * If the query exceeds {@link #QUERY_TIMEOUT_SECONDS}, it is interrupted and an error result is returned.
      */
     public OQLQueryResult execute(Heap heap, OQLQueryRequest request) {
         long startTime = System.currentTimeMillis();
 
+        Future<OQLQueryResult> future = QUERY_EXECUTOR.submit(() -> executeInternal(heap, request, startTime));
+
+        try {
+            return future.get(QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            long elapsedMs = elapsed(startTime);
+            LOG.warn("OQL query timed out: query={} timeoutSeconds={} elapsedMs={}",
+                    truncate(request.query(), 100), QUERY_TIMEOUT_SECONDS, elapsedMs);
+            return OQLQueryResult.error("Query timed out after " + QUERY_TIMEOUT_SECONDS + " seconds", elapsedMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return OQLQueryResult.error("Query was interrupted", elapsed(startTime));
+        } catch (ExecutionException e) {
+            LOG.error("Unexpected error executing OQL query: query={}", truncate(request.query(), 100), e.getCause());
+            return OQLQueryResult.error("Unexpected error: " + e.getCause().getMessage(), elapsed(startTime));
+        }
+    }
+
+    private OQLQueryResult executeInternal(Heap heap, OQLQueryRequest request, long startTime) {
         try {
             OQLEngine engine = new OQLEngine(heap);
             List<Object> collected = collectResults(engine, request);

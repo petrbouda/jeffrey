@@ -18,20 +18,20 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
-import java.util.Map;
-
 /**
- * Summary of GC roots in the heap.
+ * Summary information about a single class loader instance.
  *
- * @param rootsByType map of GC root type to count
- * @param totalRoots  total number of GC roots
+ * @param objectId              the object ID of the class loader instance (0 for bootstrap class loader)
+ * @param classLoaderClassName  the class name of the class loader (e.g. "java.net.URLClassLoader")
+ * @param classCount            number of classes loaded by this class loader
+ * @param totalClassSize        total shallow size of all classes loaded by this class loader
+ * @param retainedSize          retained size of the class loader instance (0 if not computed)
  */
-public record GCRootSummary(
-        Map<String, Long> rootsByType,
-        long totalRoots
+public record ClassLoaderInfo(
+        long objectId,
+        String classLoaderClassName,
+        int classCount,
+        long totalClassSize,
+        long retainedSize
 ) {
-    /**
-     * An empty GC root summary with no roots.
-     */
-    public static final GCRootSummary EMPTY = new GCRootSummary(Map.of(), 0);
 }

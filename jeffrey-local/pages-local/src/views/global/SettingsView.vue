@@ -38,9 +38,6 @@
     <!-- AI Configuration Tab -->
     <div v-if="activeTab === 'ai'" class="settings-content">
       <div class="content-header-with-toggle">
-        <div>
-          <h3>AI Configuration</h3>
-        </div>
         <div class="toggle-area">
           <span class="toggle-label">Enable AI</span>
           <label class="toggle-switch">

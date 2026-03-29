@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,7 @@ import pbouda.jeffrey.profile.heapdump.HeapLoader;
 import pbouda.jeffrey.profile.heapdump.SimpleHeapLoader;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassHistogramAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.ClassInstanceBrowserAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.ClassLoaderAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.CollectionAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.CompressedOopsCorrector;
 import pbouda.jeffrey.profile.heapdump.analyzer.DominatorTreeAnalyzer;
@@ -33,6 +34,8 @@ import pbouda.jeffrey.profile.heapdump.analyzer.GCRootAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.HeapSummaryAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.InstanceDetailAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.InstanceTreeAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.DuplicateObjectAnalyzer;
+import pbouda.jeffrey.profile.heapdump.analyzer.HeapDumpComparisonAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.LeakSuspectsAnalyzer;
 import pbouda.jeffrey.profile.heapdump.analyzer.OQLQueryExecutor;
 import pbouda.jeffrey.profile.heapdump.analyzer.PathToGCRootAnalyzer;
@@ -41,6 +44,8 @@ import pbouda.jeffrey.profile.heapdump.analyzer.ThreadAnalyzer;
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonReport;
+import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonRequest;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
@@ -50,14 +55,18 @@ import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.JvmStringFlag;
+import pbouda.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import pbouda.jeffrey.profile.heapdump.model.BiggestObjectEntry;
 import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
+import pbouda.jeffrey.profile.heapdump.model.ClassLoaderReport;
+import pbouda.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import pbouda.jeffrey.profile.common.event.GCHeapConfiguration;
 import pbouda.jeffrey.profile.common.event.GarbageCollectorType;
 import pbouda.jeffrey.provider.profile.model.JvmFlag;
@@ -94,6 +103,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private static final String COLLECTION_ANALYSIS_FILE = "collection-analysis.json";
     private static final String BIGGEST_OBJECTS_FILE = "biggest-objects.json";
     private static final String LEAK_SUSPECTS_FILE = "leak-suspects.json";
+    private static final String DUPLICATE_OBJECTS_FILE = "duplicate-objects.json";
+    private static final String BIGGEST_COLLECTIONS_FILE = "biggest-collections.json";
+    private static final String CLASSLOADER_ANALYSIS_FILE = "classloader-analysis.json";
     private static final String HEAP_DUMP_CONFIG_FILE = "heap-dump-config.json";
 
     private static final long COMPRESSED_OOPS_MAX_HEAP = 32L * 1024 * 1024 * 1024;
@@ -130,6 +142,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final CollectionAnalyzer collectionAnalyzer;
     private final ClassInstanceBrowserAnalyzer classInstanceBrowserAnalyzer;
     private final LeakSuspectsAnalyzer leakSuspectsAnalyzer;
+    private final DuplicateObjectAnalyzer duplicateObjectAnalyzer;
+    private final ClassLoaderAnalyzer classLoaderAnalyzer;
+    private final HeapDumpComparisonAnalyzer comparisonAnalyzer;
 
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
@@ -157,6 +172,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         this.collectionAnalyzer = new CollectionAnalyzer();
         this.classInstanceBrowserAnalyzer = new ClassInstanceBrowserAnalyzer();
         this.leakSuspectsAnalyzer = new LeakSuspectsAnalyzer();
+        this.duplicateObjectAnalyzer = new DuplicateObjectAnalyzer();
+        this.classLoaderAnalyzer = new ClassLoaderAnalyzer();
+        this.comparisonAnalyzer = new HeapDumpComparisonAnalyzer();
     }
 
     @Override
@@ -239,10 +257,18 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     @Override
+    public List<ThreadStackFrame> getThreadStack(long threadObjectId) {
+        return getHeap().map(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            return threadAnalyzer.analyzeThreadStack(heap, threadObjectId, oops.compressedOops);
+        }).orElse(List.of());
+    }
+
+    @Override
     public GCRootSummary getGCRootSummary() {
         return getHeap()
                 .map(gcRootAnalyzer::analyze)
-                .orElse(null);
+                .orElse(GCRootSummary.EMPTY);
     }
 
     @Override
@@ -282,6 +308,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         deleteJsonFile(COLLECTION_ANALYSIS_FILE, "Collection analysis");
         deleteJsonFile(LEAK_SUSPECTS_FILE, "Leak suspects");
         deleteJsonFile(BIGGEST_OBJECTS_FILE, "Biggest objects");
+        deleteJsonFile(BIGGEST_COLLECTIONS_FILE, "Biggest collections");
+        deleteJsonFile(DUPLICATE_OBJECTS_FILE, "Duplicate objects");
+        deleteJsonFile(CLASSLOADER_ANALYSIS_FILE, "Class loader analysis");
         deleteJsonFile(HEAP_DUMP_CONFIG_FILE, "Heap dump config");
     }
 
@@ -427,15 +456,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             LOG.error("Failed to sanitize heap dump: profileId={} path={}", profileInfo.id(), heapPath.get(), e);
             throw new JeffreyException(ErrorType.INTERNAL, ErrorCode.HEAP_DUMP_CORRUPTED,
                     "Failed to sanitize heap dump: " + e.getMessage(), e);
-        }
-    }
-
-    private void deleteCorruptedHeapDump(Path path) {
-        try {
-            FileSystemUtils.removeDirectory(heapDumpAnalysisPath);
-            LOG.info("Deleted corrupted heap dump analysis folder: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath);
-        } catch (RuntimeException e) {
-            LOG.warn("Failed to delete corrupted heap dump analysis folder: profileId={} path={}", profileInfo.id(), heapDumpAnalysisPath, e);
         }
     }
 
@@ -732,11 +752,86 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                     .toList();
 
             long totalRetained = entries.stream().mapToLong(BiggestObjectEntry::retainedSize).sum();
-            long totalHeapSize = heap.getSummary().getTotalLiveBytes();
+            long totalHeapSize = CompressedOopsCorrector.correctedTotalHeap(
+                    heap.getSummary().getTotalLiveBytes(), oops.compressedOops, oops.totalOvercount);
 
             BiggestObjectsReport report = new BiggestObjectsReport(totalHeapSize, totalRetained, entries);
             writeJsonFile(BIGGEST_OBJECTS_FILE, report, "Biggest objects");
         });
+    }
+
+    // --- Biggest Collections ---
+
+    @Override
+    public boolean biggestCollectionsExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(BIGGEST_COLLECTIONS_FILE));
+    }
+
+    @Override
+    public BiggestCollectionsReport getBiggestCollections() {
+        return readJsonFile(BIGGEST_COLLECTIONS_FILE, BiggestCollectionsReport.class).orElse(null);
+    }
+
+    @Override
+    public void runBiggestCollections(int topN) {
+        getHeap().ifPresent(heap -> {
+            OopsConfig oops = resolveOopsConfig(heap);
+            BiggestCollectionsReport report = collectionAnalyzer.analyzeBiggestCollections(
+                    heap, topN, oops.compressedOops);
+            writeJsonFile(BIGGEST_COLLECTIONS_FILE, report, "Biggest collections");
+        });
+    }
+
+    // --- Duplicate Objects ---
+
+    @Override
+    public boolean duplicateObjectsExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(DUPLICATE_OBJECTS_FILE));
+    }
+
+    @Override
+    public DuplicateObjectsReport getDuplicateObjects() {
+        return readJsonFile(DUPLICATE_OBJECTS_FILE, DuplicateObjectsReport.class).orElse(null);
+    }
+
+    @Override
+    public void runDuplicateObjects(int topN) {
+        getHeap().ifPresent(heap -> {
+            DuplicateObjectsReport report = duplicateObjectAnalyzer.analyze(heap, topN);
+            writeJsonFile(DUPLICATE_OBJECTS_FILE, report, "Duplicate objects");
+        });
+    }
+
+    // --- Class Loader Analysis ---
+
+    @Override
+    public boolean classLoaderAnalysisExists() {
+        return Files.exists(heapDumpAnalysisPath.resolve(CLASSLOADER_ANALYSIS_FILE));
+    }
+
+    @Override
+    public ClassLoaderReport getClassLoaderAnalysis() {
+        return readJsonFile(CLASSLOADER_ANALYSIS_FILE, ClassLoaderReport.class).orElse(null);
+    }
+
+    @Override
+    public void runClassLoaderAnalysis() {
+        getHeap().ifPresent(heap -> {
+            ClassLoaderReport report = classLoaderAnalyzer.analyze(heap);
+            writeJsonFile(CLASSLOADER_ANALYSIS_FILE, report, "Class loader analysis");
+        });
+    }
+
+    // --- Heap Dump Comparison ---
+
+    @Override
+    public HeapDumpComparisonReport compareHistograms(HeapDumpComparisonRequest request) {
+        return comparisonAnalyzer.compare(
+                request.baseline(),
+                request.current(),
+                request.baselineTotalBytes(),
+                request.currentTotalBytes()
+        );
     }
 
     // --- JSON I/O helpers ---

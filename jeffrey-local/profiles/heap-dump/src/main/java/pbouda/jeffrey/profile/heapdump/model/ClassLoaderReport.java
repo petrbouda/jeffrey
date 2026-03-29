@@ -21,21 +21,20 @@ package pbouda.jeffrey.profile.heapdump.model;
 import java.util.List;
 
 /**
- * Report analyzing Java collection fill ratios and wasted memory.
+ * Report summarizing class loader analysis including class loader inventory
+ * and duplicate class detection for identifying class loader leaks.
  *
- * @param totalCollections total number of analyzed collection instances
- * @param totalEmptyCount  total number of empty collections
- * @param totalWastedBytes total estimated bytes wasted across all collections
- * @param overallFillDistribution aggregated fill distribution across all types
- * @param byType           per-collection-type statistics
- * @param wasteByClass     per-owner-class waste breakdown, sorted by wasted bytes descending
+ * @param totalClassLoaders   total number of distinct class loaders found
+ * @param totalClasses        total number of loaded classes
+ * @param duplicateClassCount number of classes loaded by more than one class loader
+ * @param classLoaders        list of class loader summaries sorted by class count descending
+ * @param duplicateClasses    list of classes loaded by multiple class loaders sorted by loader count descending
  */
-public record CollectionAnalysisReport(
-        int totalCollections,
-        int totalEmptyCount,
-        long totalWastedBytes,
-        FillDistribution overallFillDistribution,
-        List<CollectionStats> byType,
-        List<ClassWasteEntry> wasteByClass
+public record ClassLoaderReport(
+        int totalClassLoaders,
+        int totalClasses,
+        int duplicateClassCount,
+        List<ClassLoaderInfo> classLoaders,
+        List<DuplicateClassInfo> duplicateClasses
 ) {
 }

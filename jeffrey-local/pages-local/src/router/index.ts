@@ -200,6 +200,30 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'heap-dump/biggest-collections',
+    name: 'profile-heap-dump-biggest-collections',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpBiggestCollections.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/duplicate-objects',
+    name: 'profile-heap-dump-duplicate-objects',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpDuplicateObjects.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/classloader-analysis',
+    name: 'profile-heap-dump-classloader-analysis',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpClassLoaderAnalysis.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'heap-dump/comparison',
+    name: 'profile-heap-dump-comparison',
+    component: () => import('@/views/profiles/detail/ProfileHeapDumpComparison.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'tools/rename-frames',
     name: 'profile-tools-rename-frames',
     component: () => import('@/views/profiles/detail/ProfileToolsRenameFrames.vue'),

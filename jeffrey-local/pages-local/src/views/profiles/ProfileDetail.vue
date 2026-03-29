@@ -687,7 +687,7 @@
               </div>
 
               <div class="nav-section">
-                <div class="nav-section-title">ANALYSIS</div>
+                <div class="nav-section-title">OBJECT ANALYSIS</div>
                 <div class="nav-items">
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/histogram`"
@@ -708,22 +708,22 @@
                     <span>Dominator Tree</span>
                   </router-link>
                   <router-link
-                      :to="`/profiles/${profileId}/heap-dump/gc-root-path`"
+                      :to="`/profiles/${profileId}/heap-dump/biggest-collections`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
-                    <i class="bi bi-signpost-2"></i>
-                    <span>Path to GC Root</span>
+                    <i class="bi bi-collection-fill"></i>
+                    <span>Biggest Collections</span>
                   </router-link>
                   <router-link
-                      :to="`/profiles/${profileId}/heap-dump/collection-analysis`"
+                      :to="`/profiles/${profileId}/heap-dump/duplicate-objects`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
-                    <i class="bi bi-collection"></i>
-                    <span>Collection Analysis</span>
+                    <i class="bi bi-copy"></i>
+                    <span>Duplicate Objects</span>
                   </router-link>
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/string-analysis`"
@@ -734,6 +734,12 @@
                     <i class="bi bi-fonts"></i>
                     <span>String Analysis</span>
                   </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">MEMORY DIAGNOSTICS</div>
+                <div class="nav-items">
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/leak-suspects`"
                       class="nav-item"
@@ -744,13 +750,13 @@
                     <span>Leak Suspects</span>
                   </router-link>
                   <router-link
-                      :to="`/profiles/${profileId}/heap-dump/oql`"
+                      :to="`/profiles/${profileId}/heap-dump/gc-root-path`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
                       active-class="active"
                   >
-                    <i class="bi bi-terminal"></i>
-                    <span>OQL Query</span>
+                    <i class="bi bi-signpost-2"></i>
+                    <span>Path to GC Root</span>
                   </router-link>
                   <router-link
                       :to="`/profiles/${profileId}/heap-dump/gc-roots`"
@@ -762,6 +768,21 @@
                     <span>GC Roots</span>
                   </router-link>
                   <router-link
+                      :to="`/profiles/${profileId}/heap-dump/collection-analysis`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-collection"></i>
+                    <span>Collection Analysis</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">RUNTIME</div>
+                <div class="nav-items">
+                  <router-link
                       :to="`/profiles/${profileId}/heap-dump/threads`"
                       class="nav-item"
                       :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
@@ -769,6 +790,39 @@
                   >
                     <i class="bi bi-cpu"></i>
                     <span>Threads</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/classloader-analysis`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-diagram-2"></i>
+                    <span>Class Loaders</span>
+                  </router-link>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <div class="nav-section-title">TOOLS</div>
+                <div class="nav-items">
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/oql`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-terminal"></i>
+                    <span>OQL Query</span>
+                  </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/heap-dump/comparison`"
+                      class="nav-item"
+                      :class="{ 'disabled-feature': isFeatureDisabled('heap-dump') }"
+                      active-class="active"
+                  >
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Heap Comparison</span>
                   </router-link>
                 </div>
               </div>
@@ -800,8 +854,16 @@
     <!-- Main Content -->
     <div class="detail-main-content" :class="{ 'no-sidebar': isTechnologiesHub }">
 
+      <!-- Heap Dump Profile Info (replaces comparison bar for heap-dump-only profiles) -->
+      <div class="heap-dump-profile-info mb-3" v-if="selectedMode === 'HeapDump' && profile">
+        <i class="bi bi-file-earmark"></i>
+        <span class="profile-name">{{ profile.name }}</span>
+        <span class="info-separator">&middot;</span>
+        <span class="profile-meta">{{ profileId }}</span>
+      </div>
+
       <!-- Compact Differential Analysis Bar -->
-      <div class="compact-comparison-bar mb-3" v-if="!sidebarCollapsed && comparisonPanelVisible">
+      <div class="compact-comparison-bar mb-3" v-if="selectedMode !== 'HeapDump' && !sidebarCollapsed && comparisonPanelVisible">
         <div class="comparison-cards">
           <!-- Primary Profile -->
           <div class="compact-card primary">
@@ -1238,6 +1300,39 @@ onUnmounted(() => {
 .tech-header-title i {
   color: var(--color-primary);
   font-size: var(--font-size-md);
+}
+
+/* Heap Dump Profile Info */
+.heap-dump-profile-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  margin: 0 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.heap-dump-profile-info .bi-file-earmark {
+  color: var(--color-primary);
+  font-size: var(--font-size-base);
+}
+
+.heap-dump-profile-info .profile-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  font-size: var(--font-size-base);
+}
+
+.heap-dump-profile-info .info-separator {
+  color: var(--color-text-light);
+}
+
+.heap-dump-profile-info .profile-meta {
+  color: var(--color-text-muted);
 }
 
 /* Compact Comparison Bar */

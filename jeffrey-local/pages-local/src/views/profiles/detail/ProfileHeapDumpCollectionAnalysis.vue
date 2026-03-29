@@ -76,88 +76,59 @@
         :tabs="analysisTabs"
         :full-width="true"
         id-prefix="collection-"
-        @tab-change="onTabChange"
     >
       <!-- Overview Tab -->
       <template #overview>
         <div class="row">
           <div class="col-md-6">
-            <div class="card h-100">
-              <div class="card-body">
-                <h6 class="card-title">Fill Distribution</h6>
-                <div ref="fillChartRef" style="height: 250px;"></div>
-                <table class="table table-sm legend-table mb-0" v-if="report">
+            <DonutChartCard
+                v-if="report"
+                title="Fill Distribution"
+                :series="fillChartSeries"
+                :labels="fillChartLabels"
+                :colors="fillChartColors"
+                :legend-items="fillLegendItems"
+                :total-value="FormattingService.formatNumber(report.totalCollections)"
+                :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' collections'"
+            />
+          </div>
+          <div class="col-md-6">
+            <BasePanel title="Summary">
+              <div class="summary-table" v-if="report">
+                <table class="table table-sm mb-0">
                   <tbody>
                     <tr>
-                      <td><span class="legend-dot" style="background-color: #EA4335;"></span></td>
-                      <td>Empty (0%)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.empty) }}</td>
+                      <td class="text-muted">Total Collections</td>
+                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.totalCollections) }}</td>
                     </tr>
                     <tr>
-                      <td><span class="legend-dot" style="background-color: #FBBC05;"></span></td>
-                      <td>Low (1-25%)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.low) }}</td>
+                      <td class="text-muted">Empty Collections</td>
+                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.totalEmptyCount) }}</td>
                     </tr>
                     <tr>
-                      <td><span class="legend-dot" style="background-color: #4285F4;"></span></td>
-                      <td>Medium (26-75%)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.medium) }}</td>
+                      <td class="text-muted">Empty Ratio</td>
+                      <td class="text-end font-monospace">{{ emptyRatio }}%</td>
                     </tr>
                     <tr>
-                      <td><span class="legend-dot" style="background-color: #34A853;"></span></td>
-                      <td>High (76-99%)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.high) }}</td>
+                      <td class="text-muted">Wasted Memory</td>
+                      <td class="text-end font-monospace">{{ FormattingService.formatBytes(report.totalWastedBytes) }}</td>
                     </tr>
                     <tr>
-                      <td><span class="legend-dot" style="background-color: #185ABC;"></span></td>
-                      <td>Full (100%)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.full) }}</td>
+                      <td class="text-muted">Under-utilized (Empty + Low)</td>
+                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.empty + report.overallFillDistribution.low) }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">Well-utilized (High + Full)</td>
+                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.high + report.overallFillDistribution.full) }}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-muted">Collection Types</td>
+                      <td class="text-end font-monospace">{{ report.byType.length }}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card h-100">
-              <div class="card-body">
-                <h6 class="card-title">Summary</h6>
-                <div class="summary-table" v-if="report">
-                  <table class="table table-sm mb-0">
-                    <tbody>
-                      <tr>
-                        <td class="text-muted">Total Collections</td>
-                        <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.totalCollections) }}</td>
-                      </tr>
-                      <tr>
-                        <td class="text-muted">Empty Collections</td>
-                        <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.totalEmptyCount) }}</td>
-                      </tr>
-                      <tr>
-                        <td class="text-muted">Empty Ratio</td>
-                        <td class="text-end font-monospace">{{ emptyRatio }}%</td>
-                      </tr>
-                      <tr>
-                        <td class="text-muted">Wasted Memory</td>
-                        <td class="text-end font-monospace">{{ FormattingService.formatBytes(report.totalWastedBytes) }}</td>
-                      </tr>
-                      <tr>
-                        <td class="text-muted">Under-utilized (Empty + Low)</td>
-                        <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.empty + report.overallFillDistribution.low) }}</td>
-                      </tr>
-                      <tr>
-                        <td class="text-muted">Well-utilized (High + Full)</td>
-                        <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.high + report.overallFillDistribution.full) }}</td>
-                      </tr>
-                      <tr>
-                        <td class="text-muted">Collection Types</td>
-                        <td class="text-end font-monospace">{{ report.byType.length }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            </BasePanel>
           </div>
         </div>
       </template>
@@ -257,6 +228,64 @@
         <div v-else class="text-center text-muted py-5">
           <i class="bi bi-collection fs-1 mb-3 d-block"></i>
           <p>No collection type data available.</p>
+        </div>
+      </template>
+
+      <!-- Waste by Class Tab -->
+      <template #waste-by-class>
+        <div v-if="report && report.wasteByClass && report.wasteByClass.length > 0">
+          <div class="filter-controls mb-3">
+            <div class="row align-items-center">
+              <div class="col-auto ms-auto">
+                <small class="text-muted">Showing {{ report.wasteByClass.length }} owner classes</small>
+              </div>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th style="width: 50%;">Owner Class</th>
+                  <th class="text-end" style="width: 120px;">Collections</th>
+                  <th class="text-end" style="width: 100px;">Empty</th>
+                  <th class="text-end" style="width: 120px;">Wasted</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(entry, index) in sortedWasteByClass" :key="index">
+                  <td class="text-muted">{{ index + 1 }}</td>
+                  <td>
+                    <div class="class-info">
+                      <div class="class-name-line">
+                        <code class="class-name">{{ simpleClassName(entry.ownerClassName) }}</code>
+                        <span class="package-name">{{ packageName(entry.ownerClassName) }}</span>
+                      </div>
+                      <div class="detail-line" v-if="Object.keys(entry.collectionTypeCounts).length > 0">
+                        <template
+                            v-for="(typeName, typeIndex) in Object.keys(entry.collectionTypeCounts).sort((a, b) => entry.collectionTypeCounts[b] - entry.collectionTypeCounts[a])"
+                            :key="typeName"
+                        >
+                          <span v-if="typeIndex > 0" class="detail-sep">&middot;</span>
+                          <span class="field-tag">{{ simpleClassName(typeName) }}</span>
+                          <span class="text-muted">{{ FormattingService.formatNumber(entry.collectionTypeCounts[typeName]) }}</span>
+                        </template>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.collectionCount) }}</td>
+                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.emptyCount) }}</td>
+                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.wastedBytes) }}</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-center text-muted py-5">
+          <i class="bi bi-building fs-1 mb-3 d-block"></i>
+          <p>No waste-by-class data available.</p>
         </div>
       </template>
 
@@ -414,10 +443,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -425,6 +453,9 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DonutChartCard from '@/components/DonutChartCard.vue';
+import type { LegendItem } from '@/components/DonutChartCard.vue';
+import BasePanel from '@/components/BasePanel.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import CollectionAnalysisReport, { CollectionStats } from '@/services/api/model/CollectionAnalysisReport';
 import FormattingService from '@/services/FormattingService';
@@ -440,26 +471,44 @@ const cacheReady = ref(false);
 const analysisExists = ref(false);
 const analysisRunning = ref(false);
 const report = ref<CollectionAnalysisReport | null>(null);
-const activeTab = ref('overview');
 
 // Sort state for by-type table
 const typeSortColumn = ref('totalWastedBytes');
 const typeSortDirection = ref<'asc' | 'desc'>('desc');
-
-const fillChartRef = ref<HTMLElement | null>(null);
-let fillChart: ApexCharts | null = null;
 
 let client: HeapDumpClient;
 
 const analysisTabs = [
   { id: 'overview', label: 'Overview', icon: 'pie-chart' },
   { id: 'by-type', label: 'By Type', icon: 'list-ul' },
+  { id: 'waste-by-class', label: 'Waste by Class', icon: 'building' },
   { id: 'how-it-works', label: 'How It Works', icon: 'info-circle' }
 ];
 
 const emptyRatio = computed(() => {
   if (!report.value || report.value.totalCollections === 0) return '0.0';
   return ((report.value.totalEmptyCount / report.value.totalCollections) * 100).toFixed(1);
+});
+
+const fillChartLabels = ['Empty (0%)', 'Low (1-25%)', 'Medium (26-75%)', 'High (76-99%)', 'Full (100%)'];
+const fillChartColors = ['#EA4335', '#FBBC05', '#4285F4', '#34A853', '#185ABC'];
+
+const fillChartSeries = computed(() => {
+  if (!report.value) return [];
+  const dist = report.value.overallFillDistribution;
+  return [dist.empty, dist.low, dist.medium, dist.high, dist.full];
+});
+
+const fillLegendItems = computed<LegendItem[]>(() => {
+  if (!report.value) return [];
+  const dist = report.value.overallFillDistribution;
+  return [
+    { color: '#EA4335', label: 'Empty (0%)', value: FormattingService.formatNumber(dist.empty) },
+    { color: '#FBBC05', label: 'Low (1-25%)', value: FormattingService.formatNumber(dist.low) },
+    { color: '#4285F4', label: 'Medium (26-75%)', value: FormattingService.formatNumber(dist.medium) },
+    { color: '#34A853', label: 'High (76-99%)', value: FormattingService.formatNumber(dist.high) },
+    { color: '#185ABC', label: 'Full (100%)', value: FormattingService.formatNumber(dist.full) }
+  ];
 });
 
 const summaryMetrics = computed(() => {
@@ -469,13 +518,10 @@ const summaryMetrics = computed(() => {
       icon: 'collection',
       title: 'Total Collections',
       value: FormattingService.formatNumber(report.value.totalCollections),
-      variant: 'highlight' as const
-    },
-    {
-      icon: 'x-circle',
-      title: 'Empty Collections',
-      value: FormattingService.formatNumber(report.value.totalEmptyCount),
-      variant: 'warning' as const
+      variant: 'highlight' as const,
+      breakdown: [
+        { label: 'Empty', value: FormattingService.formatNumber(report.value.totalEmptyCount), color: '#FBBC05' }
+      ]
     },
     {
       icon: 'hdd',
@@ -526,6 +572,41 @@ const toggleTypeSort = (column: string) => {
   }
 };
 
+// Sort state for waste-by-class table
+const wasteSortColumn = ref('wastedBytes');
+const wasteSortDirection = ref<'asc' | 'desc'>('desc');
+
+const sortedWasteByClass = computed(() => {
+  if (!report.value || !report.value.wasteByClass) return [];
+  const entries = [...report.value.wasteByClass];
+  const direction = wasteSortDirection.value === 'asc' ? 1 : -1;
+
+  switch (wasteSortColumn.value) {
+    case 'ownerClassName':
+      entries.sort((a, b) => direction * a.ownerClassName.localeCompare(b.ownerClassName));
+      break;
+    case 'collectionCount':
+      entries.sort((a, b) => direction * (a.collectionCount - b.collectionCount));
+      break;
+    case 'emptyCount':
+      entries.sort((a, b) => direction * (a.emptyCount - b.emptyCount));
+      break;
+    case 'wastedBytes':
+      entries.sort((a, b) => direction * (a.wastedBytes - b.wastedBytes));
+      break;
+  }
+  return entries;
+});
+
+const toggleWasteSort = (column: string) => {
+  if (wasteSortColumn.value === column) {
+    wasteSortDirection.value = wasteSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    wasteSortColumn.value = column;
+    wasteSortDirection.value = column === 'ownerClassName' ? 'asc' : 'desc';
+  }
+};
+
 const simpleClassName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');
   return lastDot > 0 ? name.substring(lastDot + 1) : name;
@@ -539,68 +620,6 @@ const packageName = (name: string): string => {
 const getTypePercentage = (entry: CollectionStats): number => {
   if (maxTypeWasted.value === 0) return 0;
   return (entry.totalWastedBytes / maxTypeWasted.value) * 100;
-};
-
-const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
-  activeTab.value = tab.id;
-  if (tab.id === 'overview') {
-    nextTick(() => {
-      renderCharts();
-    });
-  }
-};
-
-const renderCharts = () => {
-  if (!report.value) return;
-
-  if (fillChartRef.value) {
-    if (fillChart) {
-      fillChart.destroy();
-    }
-
-    const dist = report.value.overallFillDistribution;
-    const fillOptions = {
-      chart: {
-        type: 'donut' as const,
-        height: 250
-      },
-      series: [dist.empty, dist.low, dist.medium, dist.high, dist.full],
-      labels: ['Empty (0%)', 'Low (1-25%)', 'Medium (26-75%)', 'High (76-99%)', 'Full (100%)'],
-      colors: ['#EA4335', '#FBBC05', '#4285F4', '#34A853', '#185ABC'],
-      legend: {
-        show: false
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (val: number) => val.toFixed(1) + '%'
-      },
-      tooltip: {
-        y: {
-          formatter: (val: number) => FormattingService.formatNumber(val) + ' collections'
-        }
-      },
-      plotOptions: {
-        pie: {
-          donut: {
-            labels: {
-              show: true,
-              value: {
-                formatter: (val: string) => FormattingService.formatNumber(Number(val))
-              },
-              total: {
-                show: true,
-                label: 'Total',
-                formatter: () => FormattingService.formatNumber(report.value!.totalCollections)
-              }
-            }
-          }
-        }
-      }
-    };
-
-    fillChart = new ApexCharts(fillChartRef.value, fillOptions);
-    fillChart.render();
-  }
 };
 
 const runAnalysis = async () => {
@@ -619,11 +638,6 @@ const loadAnalysis = async () => {
   analysisExists.value = await client.collectionAnalysisExists();
   if (analysisExists.value) {
     report.value = await client.getCollectionAnalysis();
-    nextTick(() => {
-      setTimeout(() => {
-        renderCharts();
-      }, 100);
-    });
   }
 };
 
@@ -663,16 +677,6 @@ const loadData = async () => {
   }
 };
 
-watch(report, () => {
-  if (report.value && activeTab.value === 'overview') {
-    nextTick(() => {
-      setTimeout(() => {
-        renderCharts();
-      }, 100);
-    });
-  }
-});
-
 onMounted(() => {
   scrollToTop();
   loadData();
@@ -686,8 +690,32 @@ onMounted(() => {
 
 .class-info {
   display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.class-name-line {
+  display: flex;
   align-items: baseline;
   gap: 0.4rem;
+}
+
+.detail-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  margin-top: 1px;
+}
+
+.detail-sep {
+  color: #adb5bd;
+  user-select: none;
+}
+
+.field-tag {
+  color: #6f42c1;
+  font-style: italic;
 }
 
 .class-name {
@@ -704,31 +732,6 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.legend-table {
-  margin-top: 0.5rem;
-}
-
-.legend-table td {
-  padding: 0.25rem 0.5rem;
-  border: none;
-}
-
-.legend-table td:first-child {
-  width: 20px;
-  padding-right: 0;
-}
-
-.legend-table td:last-child {
-  text-align: right;
-}
-
-.legend-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
 }
 
 .table-card {
@@ -779,17 +782,6 @@ onMounted(() => {
 
 .font-monospace {
   font-size: 0.8rem;
-}
-
-.card {
-  border: 1px solid #dee2e6;
-}
-
-.card-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 1rem;
 }
 
 .summary-table .table td {
@@ -1046,6 +1038,11 @@ onMounted(() => {
   border-radius: 3px;
   font-size: 0.9em;
   color: #bf360c;
+}
+
+.collection-type-badge {
+  font-size: 0.75rem;
+  color: #495057;
 }
 
 /* Darker warning colors */

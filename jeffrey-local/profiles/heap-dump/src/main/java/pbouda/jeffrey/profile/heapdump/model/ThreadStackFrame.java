@@ -21,21 +21,19 @@ package pbouda.jeffrey.profile.heapdump.model;
 import java.util.List;
 
 /**
- * Report analyzing Java collection fill ratios and wasted memory.
+ * Represents a single stack frame from a thread's stack trace with associated local variable references.
  *
- * @param totalCollections total number of analyzed collection instances
- * @param totalEmptyCount  total number of empty collections
- * @param totalWastedBytes total estimated bytes wasted across all collections
- * @param overallFillDistribution aggregated fill distribution across all types
- * @param byType           per-collection-type statistics
- * @param wasteByClass     per-owner-class waste breakdown, sorted by wasted bytes descending
+ * @param className  the fully qualified class name of the method
+ * @param methodName the method name
+ * @param sourceFile the source file name (may be null)
+ * @param lineNumber the line number in the source file (-1 if unavailable)
+ * @param locals     list of local variable object references on this frame
  */
-public record CollectionAnalysisReport(
-        int totalCollections,
-        int totalEmptyCount,
-        long totalWastedBytes,
-        FillDistribution overallFillDistribution,
-        List<CollectionStats> byType,
-        List<ClassWasteEntry> wasteByClass
+public record ThreadStackFrame(
+        String className,
+        String methodName,
+        String sourceFile,
+        int lineNumber,
+        List<StackFrameLocal> locals
 ) {
 }

@@ -21,21 +21,16 @@ package pbouda.jeffrey.profile.heapdump.model;
 import java.util.List;
 
 /**
- * Report analyzing Java collection fill ratios and wasted memory.
+ * Report containing the biggest individual collections in the heap,
+ * ranked both by element count and by retained size.
  *
- * @param totalCollections total number of analyzed collection instances
- * @param totalEmptyCount  total number of empty collections
- * @param totalWastedBytes total estimated bytes wasted across all collections
- * @param overallFillDistribution aggregated fill distribution across all types
- * @param byType           per-collection-type statistics
- * @param wasteByClass     per-owner-class waste breakdown, sorted by wasted bytes descending
+ * @param totalCollectionsAnalyzed total number of collection instances analyzed
+ * @param byElementCount           top N biggest collections sorted by element count descending
+ * @param byRetainedSize           top N biggest collections sorted by retained size descending
  */
-public record CollectionAnalysisReport(
-        int totalCollections,
-        int totalEmptyCount,
-        long totalWastedBytes,
-        FillDistribution overallFillDistribution,
-        List<CollectionStats> byType,
-        List<ClassWasteEntry> wasteByClass
+public record BiggestCollectionsReport(
+        int totalCollectionsAnalyzed,
+        List<BiggestCollectionEntry> byElementCount,
+        List<BiggestCollectionEntry> byRetainedSize
 ) {
 }

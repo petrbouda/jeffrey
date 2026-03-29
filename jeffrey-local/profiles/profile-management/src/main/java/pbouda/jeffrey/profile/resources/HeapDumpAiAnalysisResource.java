@@ -28,6 +28,22 @@ import pbouda.jeffrey.profile.ai.heapmcp.model.HeapDumpAnalysisResponse;
 import pbouda.jeffrey.profile.ai.heapmcp.model.HeapDumpChatMessage;
 import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.heapmcp.tools.HeapDumpToolsDelegate;
+import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
+import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
+import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
+import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
+import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
+import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
+import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
+import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
+import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
+import pbouda.jeffrey.profile.heapdump.model.SortBy;
+import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.profile.manager.HeapDumpManager;
 
 import java.util.List;
@@ -57,8 +73,7 @@ public class HeapDumpAiAnalysisResource {
         return new StatusResponse(
                 assistantService.isAvailable(),
                 assistantService.getProviderName(),
-                assistantService.getModelName()
-        );
+                assistantService.getModelName());
     }
 
     @POST
@@ -74,17 +89,10 @@ public class HeapDumpAiAnalysisResource {
         return assistantService.analyze(delegate, analysisRequest);
     }
 
-    public record StatusResponse(
-            boolean available,
-            String provider,
-            String model
-    ) {
+    public record StatusResponse(boolean available, String provider, String model) {
     }
 
-    public record ChatRequest(
-            String message,
-            List<HeapDumpChatMessage> history
-    ) {
+    public record ChatRequest(String message, List<HeapDumpChatMessage> history) {
     }
 
     /**
@@ -93,17 +101,17 @@ public class HeapDumpAiAnalysisResource {
     private record HeapDumpManagerDelegate(HeapDumpManager manager) implements HeapDumpToolsDelegate {
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.HeapSummary getSummary() {
+        public HeapSummary getSummary() {
             return manager.getSummary();
         }
 
         @Override
-        public List<pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry> getClassHistogram(int topN, pbouda.jeffrey.profile.heapdump.model.SortBy sortBy) {
+        public List<ClassHistogramEntry> getClassHistogram(int topN, SortBy sortBy) {
             return manager.getClassHistogram(topN, sortBy);
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport getBiggestObjects(int topN) {
+        public BiggestObjectsReport getBiggestObjects(int topN) {
             if (!manager.biggestObjectsExists()) {
                 return null;
             }
@@ -111,7 +119,7 @@ public class HeapDumpAiAnalysisResource {
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport getLeakSuspects() {
+        public LeakSuspectsReport getLeakSuspects() {
             if (!manager.leakSuspectsExists()) {
                 return null;
             }
@@ -119,7 +127,7 @@ public class HeapDumpAiAnalysisResource {
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport getStringAnalysis() {
+        public StringAnalysisReport getStringAnalysis() {
             if (!manager.stringAnalysisExists()) {
                 return null;
             }
@@ -127,7 +135,7 @@ public class HeapDumpAiAnalysisResource {
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport getCollectionAnalysis() {
+        public CollectionAnalysisReport getCollectionAnalysis() {
             if (!manager.collectionAnalysisExists()) {
                 return null;
             }
@@ -135,47 +143,47 @@ public class HeapDumpAiAnalysisResource {
         }
 
         @Override
-        public List<pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo> getThreads() {
+        public List<HeapThreadInfo> getThreads() {
             return manager.getThreads();
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.GCRootSummary getGCRootSummary() {
+        public GCRootSummary getGCRootSummary() {
             return manager.getGCRootSummary();
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize) {
+        public ClassInstancesResponse getClassInstances(String className, int limit, int offset, boolean includeRetainedSize) {
             return manager.getClassInstances(className, limit, offset, includeRetainedSize);
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize) {
+        public InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize) {
             return manager.getInstanceDetail(objectId, includeRetainedSize);
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse getDominatorTreeRoots(int limit) {
+        public DominatorTreeResponse getDominatorTreeRoots(int limit) {
             return manager.getDominatorTreeRoots(limit);
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
+        public DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit) {
             return manager.getDominatorTreeChildren(objectId, 0, limit);
         }
 
         @Override
-        public List<pbouda.jeffrey.profile.heapdump.model.GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths) {
+        public List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths) {
             return manager.getPathsToGCRoot(objectId, excludeWeakRefs, maxPaths);
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
+        public InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
             return manager.getReferrers(objectId, limit, offset);
         }
 
         @Override
-        public pbouda.jeffrey.profile.heapdump.model.OQLQueryResult executeQuery(pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest request) {
+        public OQLQueryResult executeQuery(OQLQueryRequest request) {
             return manager.executeQuery(request);
         }
     }

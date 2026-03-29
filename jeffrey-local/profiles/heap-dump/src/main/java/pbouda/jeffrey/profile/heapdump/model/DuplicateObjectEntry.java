@@ -18,20 +18,20 @@
 
 package pbouda.jeffrey.profile.heapdump.model;
 
-import java.util.Map;
-
 /**
- * Summary of GC roots in the heap.
+ * Represents a single group of duplicate objects found in the heap.
  *
- * @param rootsByType map of GC root type to count
- * @param totalRoots  total number of GC roots
+ * @param className       the fully qualified class name of the duplicated object
+ * @param contentPreview  a short preview of the content (e.g., first bytes as hex, or boxed value)
+ * @param duplicateCount  number of instances with identical content
+ * @param individualSize  size of a single instance in bytes
+ * @param totalWastedBytes bytes wasted by duplicates (individualSize * (duplicateCount - 1))
  */
-public record GCRootSummary(
-        Map<String, Long> rootsByType,
-        long totalRoots
+public record DuplicateObjectEntry(
+        String className,
+        String contentPreview,
+        int duplicateCount,
+        long individualSize,
+        long totalWastedBytes
 ) {
-    /**
-     * An empty GC root summary with no roots.
-     */
-    public static final GCRootSummary EMPTY = new GCRootSummary(Map.of(), 0);
 }

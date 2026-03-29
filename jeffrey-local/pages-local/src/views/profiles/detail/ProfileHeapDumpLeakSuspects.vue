@@ -160,7 +160,6 @@ import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import LeakSuspectsReport, { LeakSuspect } from '@/services/api/model/LeakSuspectsReport';
 import FormattingService from '@/services/FormattingService';
-
 const route = useRoute();
 const router = useRouter();
 const profileId = route.params.profileId as string;
@@ -213,6 +212,7 @@ const getBarClass = (suspect: LeakSuspect): string => {
   if (suspect.heapPercentage >= 15) return 'bg-warning';
   return 'bg-info';
 };
+
 
 const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
   treeModalObjectId.value = objectId;

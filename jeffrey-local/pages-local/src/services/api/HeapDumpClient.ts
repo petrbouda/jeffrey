@@ -34,7 +34,12 @@ import CollectionAnalysisReport from '@/services/api/model/CollectionAnalysisRep
 import ClassInstancesResponse from '@/services/api/model/ClassInstancesResponse';
 import LeakSuspectsReport from '@/services/api/model/LeakSuspectsReport';
 import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
+import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
+import type DuplicateObjectsReport from '@/services/api/model/DuplicateObjectsReport';
+import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
+import type { HeapDumpComparisonReport, HeapDumpComparisonRequest } from '@/services/api/model/HeapDumpComparisonReport';
+import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 
 export default class HeapDumpClient extends BaseProfileClient {
 
@@ -200,6 +205,60 @@ export default class HeapDumpClient extends BaseProfileClient {
 
     public runBiggestObjects(topN: number = 20): Promise<void> {
         return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
+    }
+
+    // --- Biggest Collections ---
+
+    public biggestCollectionsExists(): Promise<boolean> {
+        return this.get<boolean>('/biggest-collections/exists');
+    }
+
+    public getBiggestCollections(): Promise<BiggestCollectionsReport> {
+        return this.get<BiggestCollectionsReport>('/biggest-collections');
+    }
+
+    public runBiggestCollections(topN: number = 50): Promise<void> {
+        return this.post<void>(`/biggest-collections/run?topN=${topN}`, {});
+    }
+
+    // --- Duplicate Objects ---
+
+    public duplicateObjectsExists(): Promise<boolean> {
+        return this.get<boolean>('/duplicate-objects/exists');
+    }
+
+    public getDuplicateObjects(): Promise<DuplicateObjectsReport> {
+        return this.get<DuplicateObjectsReport>('/duplicate-objects');
+    }
+
+    public runDuplicateObjects(topN: number = 100): Promise<void> {
+        return this.post<void>(`/duplicate-objects/run?topN=${topN}`, {});
+    }
+
+    // --- Class Loader Analysis ---
+
+    public classLoaderAnalysisExists(): Promise<boolean> {
+        return this.get<boolean>('/classloader-analysis/exists');
+    }
+
+    public getClassLoaderAnalysis(): Promise<ClassLoaderReport> {
+        return this.get<ClassLoaderReport>('/classloader-analysis');
+    }
+
+    public runClassLoaderAnalysis(): Promise<void> {
+        return this.post<void>('/classloader-analysis/run', {});
+    }
+
+    // --- Heap Dump Comparison ---
+
+    public compareHistograms(request: HeapDumpComparisonRequest): Promise<HeapDumpComparisonReport> {
+        return this.post<HeapDumpComparisonReport>('/compare', request);
+    }
+
+    // --- Thread Stack ---
+
+    public getThreadStack(objectId: number): Promise<ThreadStackFrame[]> {
+        return this.get<ThreadStackFrame[]>(`/threads/${objectId}/stack`);
     }
 
 }

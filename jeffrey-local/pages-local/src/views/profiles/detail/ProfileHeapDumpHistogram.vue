@@ -120,7 +120,6 @@ import HeapDumpClient from '@/services/api/HeapDumpClient';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import FormattingService from '@/services/FormattingService';
-
 const route = useRoute();
 
 const profileId = route.params.profileId as string;

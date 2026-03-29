@@ -15,10 +15,19 @@ export interface CollectionStats {
     fillDistribution: FillDistribution;
 }
 
+export interface ClassWasteEntry {
+    ownerClassName: string;
+    collectionCount: number;
+    emptyCount: number;
+    wastedBytes: number;
+    collectionTypeCounts: Record<string, number>;
+}
+
 export default interface CollectionAnalysisReport {
     totalCollections: number;
     totalEmptyCount: number;
     totalWastedBytes: number;
     overallFillDistribution: FillDistribution;
     byType: CollectionStats[];
+    wasteByClass: ClassWasteEntry[];
 }

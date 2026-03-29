@@ -82,48 +82,30 @@
       <template #overview>
         <div class="row">
           <div class="col-md-6">
-            <div class="card h-100">
-              <div class="card-body">
-                <h6 class="card-title">Memory Status</h6>
-                <div ref="memoryChartRef" style="height: 200px;"></div>
-                <table class="table table-sm legend-table mb-0" v-if="report">
-                  <tbody>
-                    <tr>
-                      <td><span class="legend-dot" style="background-color: #FBBC05;"></span></td>
-                      <td>Potential Savings</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatBytes(report.potentialSavings) }}</td>
-                    </tr>
-                    <tr>
-                      <td><span class="legend-dot" style="background-color: #4285F4;"></span></td>
-                      <td>Unique + Shared</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatBytes(report.totalStringShallowSize - report.potentialSavings) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DonutChartCard
+                v-if="report"
+                title="Memory Status"
+                :series="[report.potentialSavings, report.totalStringShallowSize - report.potentialSavings]"
+                :labels="['Potential Savings', 'Unique + Shared']"
+                :colors="['#FBBC05', '#4285F4']"
+                :legend-items="memoryLegendItems"
+                total-label="Total"
+                :total-value="FormattingService.formatBytes(report.totalStringShallowSize)"
+                :tooltip-formatter="(val) => FormattingService.formatBytes(val)"
+            />
           </div>
           <div class="col-md-6">
-            <div class="card h-100">
-              <div class="card-body">
-                <h6 class="card-title">String Array Sharing</h6>
-                <div ref="arrayChartRef" style="height: 200px;"></div>
-                <table class="table table-sm legend-table mb-0" v-if="report">
-                  <tbody>
-                    <tr>
-                      <td><span class="legend-dot" style="background-color: #34A853;"></span></td>
-                      <td>Shared Arrays</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.sharedArrays) }}</td>
-                    </tr>
-                    <tr>
-                      <td><span class="legend-dot" style="background-color: #4285F4;"></span></td>
-                      <td>Unique Arrays</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.uniqueArrays - report.sharedArrays) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DonutChartCard
+                v-if="report"
+                title="String Array Sharing"
+                :series="[report.sharedArrays, report.uniqueArrays - report.sharedArrays]"
+                :labels="['Shared Arrays', 'Unique Arrays']"
+                :colors="['#34A853', '#4285F4']"
+                :legend-items="arrayLegendItems"
+                total-label="Total Arrays"
+                :total-value="FormattingService.formatNumber(report.uniqueArrays)"
+                :tooltip-formatter="(val) => FormattingService.formatNumber(val)"
+            />
           </div>
         </div>
       </template>
@@ -482,10 +464,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -493,11 +474,12 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DonutChartCard from '@/components/DonutChartCard.vue';
+import type { LegendItem } from '@/components/DonutChartCard.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import StringAnalysisReport, { JvmStringFlag } from '@/services/api/model/StringAnalysisReport';
 import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEntry';
 import FormattingService from '@/services/FormattingService';
-
 const route = useRoute();
 
 const profileId = route.params.profileId as string;
@@ -518,11 +500,6 @@ const dedupSortDirection = ref<'asc' | 'desc'>('desc');
 // Sort state for opportunities table
 const oppSortColumn = ref('savings');
 const oppSortDirection = ref<'asc' | 'desc'>('desc');
-
-const memoryChartRef = ref<HTMLElement | null>(null);
-const arrayChartRef = ref<HTMLElement | null>(null);
-let memoryChart: ApexCharts | null = null;
-let arrayChart: ApexCharts | null = null;
 
 let client: HeapDumpClient;
 
@@ -565,6 +542,22 @@ const summaryMetrics = computed(() => {
       value: FormattingService.formatBytes(report.value.totalStringShallowSize),
       variant: 'info' as const
     }
+  ];
+});
+
+const memoryLegendItems = computed<LegendItem[]>(() => {
+  if (!report.value) return [];
+  return [
+    { color: '#FBBC05', label: 'Potential Savings', value: FormattingService.formatBytes(report.value.potentialSavings) },
+    { color: '#4285F4', label: 'Unique + Shared', value: FormattingService.formatBytes(report.value.totalStringShallowSize - report.value.potentialSavings) }
+  ];
+});
+
+const arrayLegendItems = computed<LegendItem[]>(() => {
+  if (!report.value) return [];
+  return [
+    { color: '#34A853', label: 'Shared Arrays', value: FormattingService.formatNumber(report.value.sharedArrays) },
+    { color: '#4285F4', label: 'Unique Arrays', value: FormattingService.formatNumber(report.value.uniqueArrays - report.value.sharedArrays) }
   ];
 });
 
@@ -659,121 +652,9 @@ const getFlagValueClass = (flag: JvmStringFlag): string => {
   return 'font-monospace';
 };
 
+
 const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
   activeTab.value = tab.id;
-  if (tab.id === 'overview') {
-    nextTick(() => {
-      renderCharts();
-    });
-  }
-};
-
-const renderCharts = () => {
-  if (!report.value) return;
-
-  // Memory Status Pie Chart
-  if (memoryChartRef.value) {
-    if (memoryChart) {
-      memoryChart.destroy();
-    }
-
-    const memoryOptions = {
-      chart: {
-        type: 'donut' as const,
-        height: 250
-      },
-      series: [
-        report.value.potentialSavings,
-        report.value.totalStringShallowSize - report.value.potentialSavings
-      ],
-      labels: ['Potential Savings', 'Unique + Shared'],
-      colors: ['#FBBC05', '#4285F4'],
-      legend: {
-        show: false
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (val: number) => val.toFixed(1) + '%'
-      },
-      tooltip: {
-        y: {
-          formatter: (val: number) => FormattingService.formatBytes(val)
-        }
-      },
-      plotOptions: {
-        pie: {
-          donut: {
-            labels: {
-              show: true,
-              value: {
-                formatter: (val: string) => FormattingService.formatBytes(Number(val))
-              },
-              total: {
-                show: true,
-                label: 'Total',
-                formatter: () => FormattingService.formatBytes(report.value!.totalStringShallowSize)
-              }
-            }
-          }
-        }
-      }
-    };
-
-    memoryChart = new ApexCharts(memoryChartRef.value, memoryOptions);
-    memoryChart.render();
-  }
-
-  // Array Sharing Pie Chart
-  if (arrayChartRef.value) {
-    if (arrayChart) {
-      arrayChart.destroy();
-    }
-
-    const arrayOptions = {
-      chart: {
-        type: 'donut' as const,
-        height: 250
-      },
-      series: [
-        report.value.sharedArrays,
-        report.value.uniqueArrays - report.value.sharedArrays
-      ],
-      labels: ['Shared Arrays', 'Unique Arrays'],
-      colors: ['#34A853', '#4285F4'],
-      legend: {
-        show: false
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (val: number) => val.toFixed(1) + '%'
-      },
-      tooltip: {
-        y: {
-          formatter: (val: number) => FormattingService.formatNumber(val)
-        }
-      },
-      plotOptions: {
-        pie: {
-          donut: {
-            labels: {
-              show: true,
-              value: {
-                formatter: (val: string) => FormattingService.formatNumber(Number(val))
-              },
-              total: {
-                show: true,
-                label: 'Total Arrays',
-                formatter: () => FormattingService.formatNumber(report.value!.uniqueArrays)
-              }
-            }
-          }
-        }
-      }
-    };
-
-    arrayChart = new ApexCharts(arrayChartRef.value, arrayOptions);
-    arrayChart.render();
-  }
 };
 
 const runAnalysis = async () => {
@@ -792,13 +673,6 @@ const loadAnalysis = async () => {
   analysisExists.value = await client.stringAnalysisExists();
   if (analysisExists.value) {
     report.value = await client.getStringAnalysis();
-    // Wait for Vue to render the template and then for refs to be available
-    nextTick(() => {
-      // Additional delay to ensure DOM is fully rendered after v-else switches
-      setTimeout(() => {
-        renderCharts();
-      }, 100);
-    });
   }
 };
 
@@ -838,16 +712,6 @@ const loadData = async () => {
   }
 };
 
-watch(report, () => {
-  if (report.value && activeTab.value === 'overview') {
-    nextTick(() => {
-      setTimeout(() => {
-        renderCharts();
-      }, 100);
-    });
-  }
-});
-
 onMounted(() => {
   scrollToTop();
   loadData();
@@ -875,31 +739,6 @@ onMounted(() => {
   font-size: 0.8rem;
   background-color: transparent;
   color: #495057;
-}
-
-.legend-table {
-  margin-top: 0.5rem;
-}
-
-.legend-table td {
-  padding: 0.25rem 0.5rem;
-  border: none;
-}
-
-.legend-table td:first-child {
-  width: 20px;
-  padding-right: 0;
-}
-
-.legend-table td:last-child {
-  text-align: right;
-}
-
-.legend-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
 }
 
 .table-card {
@@ -950,17 +789,6 @@ onMounted(() => {
 
 .font-monospace {
   font-size: 0.8rem;
-}
-
-.card {
-  border: 1px solid #dee2e6;
-}
-
-.card-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 1rem;
 }
 
 /* About Tab Styles */

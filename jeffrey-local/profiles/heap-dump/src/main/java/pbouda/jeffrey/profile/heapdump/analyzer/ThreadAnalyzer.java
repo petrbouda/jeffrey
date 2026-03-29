@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,17 +18,25 @@
 
 package pbouda.jeffrey.profile.heapdump.analyzer;
 
+import org.netbeans.lib.profiler.heap.GCRoot;
 import org.netbeans.lib.profiler.heap.Heap;
 import org.netbeans.lib.profiler.heap.Instance;
 import org.netbeans.lib.profiler.heap.JavaClass;
+import org.netbeans.lib.profiler.heap.JavaFrameGCRoot;
 import org.netbeans.lib.profiler.heap.PrimitiveArrayInstance;
+import org.netbeans.lib.profiler.heap.ThreadObjectGCRoot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
+import pbouda.jeffrey.profile.heapdump.model.StackFrameLocal;
+import pbouda.jeffrey.profile.heapdump.model.ThreadStackFrame;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Analyzes Thread objects in a heap dump.
@@ -76,6 +84,98 @@ public class ThreadAnalyzer {
         }
 
         return threads;
+    }
+
+    /**
+     * Analyze the stack trace of a specific thread, collecting local variable references per frame.
+     *
+     * @param heap             the loaded heap dump
+     * @param threadObjectId   the object ID of the Thread instance
+     * @param compressedOops   whether compressed oops correction should be applied to sizes
+     * @return list of stack frames with their local variable references
+     */
+    @SuppressWarnings("unchecked")
+    public List<ThreadStackFrame> analyzeThreadStack(Heap heap, long threadObjectId, boolean compressedOops) {
+        // Find the ThreadObjectGCRoot for this thread
+        ThreadObjectGCRoot threadGCRoot = findThreadGCRoot(heap, threadObjectId);
+        if (threadGCRoot == null) {
+            LOG.debug("No thread GC root found for thread: objectId={}", threadObjectId);
+            return List.of();
+        }
+
+        StackTraceElement[] stackTrace = threadGCRoot.getStackTrace();
+        if (stackTrace == null || stackTrace.length == 0) {
+            LOG.debug("No stack trace available for thread: objectId={}", threadObjectId);
+            return List.of();
+        }
+
+        // Collect JavaFrameGCRoot instances grouped by frame number for this thread
+        Map<Integer, List<JavaFrameGCRoot>> frameRootsByIndex = new HashMap<>();
+        Collection<GCRoot> gcRoots = (Collection<GCRoot>) heap.getGCRoots();
+        for (GCRoot root : gcRoots) {
+            if (root instanceof JavaFrameGCRoot jfRoot) {
+                ThreadObjectGCRoot ownerThread = jfRoot.getThreadGCRoot();
+                if (ownerThread != null && ownerThread.getInstance() != null
+                        && ownerThread.getInstance().getInstanceId() == threadObjectId) {
+                    int frameNumber = jfRoot.getFrameNumber();
+                    frameRootsByIndex.computeIfAbsent(frameNumber, k -> new ArrayList<>()).add(jfRoot);
+                }
+            }
+        }
+
+        // Build ThreadStackFrame for each stack trace element
+        List<ThreadStackFrame> frames = new ArrayList<>(stackTrace.length);
+        for (int i = 0; i < stackTrace.length; i++) {
+            StackTraceElement ste = stackTrace[i];
+            List<StackFrameLocal> locals = new ArrayList<>();
+
+            List<JavaFrameGCRoot> frameRoots = frameRootsByIndex.getOrDefault(i, List.of());
+            for (JavaFrameGCRoot frameRoot : frameRoots) {
+                Instance localInstance = frameRoot.getInstance();
+                if (localInstance == null) {
+                    continue;
+                }
+
+                long shallowSize = CompressedOopsCorrector.correctedShallowSize(localInstance, compressedOops);
+                locals.add(new StackFrameLocal(
+                        localInstance.getInstanceId(),
+                        localInstance.getJavaClass().getName(),
+                        null,
+                        shallowSize
+                ));
+            }
+
+            frames.add(new ThreadStackFrame(
+                    ste.getClassName(),
+                    ste.getMethodName(),
+                    ste.getFileName(),
+                    ste.getLineNumber(),
+                    locals
+            ));
+        }
+
+        LOG.debug("Thread stack analyzed: objectId={} frames={} totalLocals={}",
+                threadObjectId, frames.size(),
+                frames.stream().mapToInt(f -> f.locals().size()).sum());
+
+        return frames;
+    }
+
+    /**
+     * Find the ThreadObjectGCRoot associated with a specific thread instance.
+     */
+    @SuppressWarnings("unchecked")
+    private ThreadObjectGCRoot findThreadGCRoot(Heap heap, long threadObjectId) {
+        Collection<GCRoot> gcRoots = (Collection<GCRoot>) heap.getGCRoots();
+        for (GCRoot root : gcRoots) {
+            if (root instanceof ThreadObjectGCRoot threadRoot) {
+                Instance threadInstance = threadRoot.getInstance();
+                if (threadInstance != null && threadInstance.getInstanceId() == threadObjectId) {
+                    return threadRoot;
+                }
+            }
+        }
+        return null;
     }
 
     private HeapThreadInfo extractThreadInfo(Instance threadInstance, boolean includeRetainedSize) {

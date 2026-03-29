@@ -120,14 +120,15 @@ public class StringAnalyzer {
                 memorySavedByDedup += (long) (strings.size() - 1) * arraySize;
 
                 alreadyDeduplicated.add(new StringDeduplicationEntry(
-                        getStringValue(strings.get(0)),
+                        truncate(getStringValue(strings.get(0), false), MAX_CONTENT_LENGTH),
                         strings.size(),
                         arraySize,
                         (long) (strings.size() - 1) * arraySize
                 ));
             } else {
                 // Single use - check for same content with different arrays
-                String content = getStringValue(strings.get(0));
+                // Use full (non-truncated) content for equality to avoid false positives
+                String content = getStringValue(strings.get(0), false);
                 if (content != null) {
                     contentToStrings
                             .computeIfAbsent(content, k -> new ArrayList<>())
@@ -149,7 +150,7 @@ public class StringAnalyzer {
                 potentialSavings += savings;
 
                 opportunities.add(new StringDeduplicationEntry(
-                        entry.getKey(),
+                        truncate(entry.getKey(), MAX_CONTENT_LENGTH),
                         entry.getValue().size(),
                         arraySize,
                         savings
@@ -183,8 +184,11 @@ public class StringAnalyzer {
     /**
      * Extract String value from heap dump instance.
      * Java 9+ compact strings: byte[] value + byte coder (0=LATIN1, 1=UTF16)
+     *
+     * @param stringInstance the String instance from the heap
+     * @param truncateResult if true, truncate to MAX_CONTENT_LENGTH for display purposes
      */
-    private String getStringValue(Instance stringInstance) {
+    private String getStringValue(Instance stringInstance, boolean truncateResult) {
         try {
             Object valueField = stringInstance.getValueOfField("value");
             if (!(valueField instanceof PrimitiveArrayInstance array)) {
@@ -206,7 +210,7 @@ public class StringAnalyzer {
                     ? new String(bytes, StandardCharsets.ISO_8859_1)
                     : new String(bytes, StandardCharsets.UTF_16LE);
 
-            return truncate(result, MAX_CONTENT_LENGTH);
+            return truncateResult ? truncate(result, MAX_CONTENT_LENGTH) : result;
 
         } catch (Exception e) {
             return null;

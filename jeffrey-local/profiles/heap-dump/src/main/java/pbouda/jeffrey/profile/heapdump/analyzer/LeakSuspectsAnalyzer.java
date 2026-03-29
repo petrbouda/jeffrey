@@ -46,6 +46,8 @@ public class LeakSuspectsAnalyzer {
     private static final double CLASS_TOTAL_THRESHOLD = 0.15;   // 15% of heap by class total
     private static final int MAX_SUSPECTS = 10;
     private static final int TOP_CLASSES_TO_CHECK = 50;
+    private static final int MAX_INSTANCES_FULL_SCAN = 1000;
+    private static final int SAMPLING_SIZE = 200;
 
     /**
      * Analyze the heap and identify potential leak suspects.
@@ -95,15 +97,26 @@ public class LeakSuspectsAnalyzer {
                 Instance largest = null;
                 long largestRetained = 0;
 
-                // For classes with few instances, check individual retained sizes
-                if (instanceCount <= 100) {
-                    for (Instance inst : instances) {
-                        long retained = CompressedOopsCorrector.correctedRetainedSize(
-                                inst.getRetainedSize(), compressedOops, correctionRatio);
-                        if (retained > largestRetained) {
-                            largestRetained = retained;
-                            largest = inst;
-                        }
+                // For manageable instance counts, do a full scan
+                // For very large classes, sample to avoid excessive computation
+                List<Instance> toScan;
+                if (instanceCount <= MAX_INSTANCES_FULL_SCAN) {
+                    toScan = instances;
+                } else {
+                    // Sample: take first, last, and evenly-spaced instances
+                    toScan = new ArrayList<>(SAMPLING_SIZE);
+                    int step = Math.max(1, instanceCount / SAMPLING_SIZE);
+                    for (int i = 0; i < instanceCount && toScan.size() < SAMPLING_SIZE; i += step) {
+                        toScan.add(instances.get(i));
+                    }
+                }
+
+                for (Instance inst : toScan) {
+                    long retained = CompressedOopsCorrector.correctedRetainedSize(
+                            inst.getRetainedSize(), compressedOops, correctionRatio);
+                    if (retained > largestRetained) {
+                        largestRetained = retained;
+                        largest = inst;
                     }
                 }
 

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -20,22 +20,28 @@ package pbouda.jeffrey.profile.manager;
 
 import pbouda.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import pbouda.jeffrey.profile.heapdump.model.ClassInstancesResponse;
+import pbouda.jeffrey.profile.heapdump.model.ClassLoaderReport;
 import pbouda.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import pbouda.jeffrey.profile.heapdump.model.GCRootPath;
 import pbouda.jeffrey.profile.heapdump.model.GCRootSummary;
+import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonReport;
+import pbouda.jeffrey.profile.heapdump.model.HeapDumpComparisonRequest;
 import pbouda.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import pbouda.jeffrey.profile.heapdump.model.HeapSummary;
 import pbouda.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import pbouda.jeffrey.profile.heapdump.model.InstanceDetail;
 import pbouda.jeffrey.profile.heapdump.model.InstanceTreeResponse;
+import pbouda.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import pbouda.jeffrey.profile.heapdump.model.BiggestObjectsReport;
+import pbouda.jeffrey.profile.heapdump.model.DuplicateObjectsReport;
 import pbouda.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import pbouda.jeffrey.profile.heapdump.model.OQLQueryResult;
 import pbouda.jeffrey.profile.heapdump.model.SortBy;
 import pbouda.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import pbouda.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
+import pbouda.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.io.InputStream;
@@ -114,6 +120,14 @@ public interface HeapDumpManager {
      * @return list of thread info
      */
     List<HeapThreadInfo> getThreads(boolean includeRetainedSize);
+
+    /**
+     * Get the stack trace of a specific thread with local variable references per frame.
+     *
+     * @param threadObjectId the object ID of the Thread instance
+     * @return list of stack frames with their local variable references
+     */
+    List<ThreadStackFrame> getThreadStack(long threadObjectId);
 
     /**
      * Get GC root summary.
@@ -338,5 +352,71 @@ public interface HeapDumpManager {
      * @param topN number of biggest objects to include
      */
     void runBiggestObjects(int topN);
+
+    // --- Duplicate Objects ---
+
+    /**
+     * Check if duplicate objects analysis results exist for this profile.
+     */
+    boolean duplicateObjectsExists();
+
+    /**
+     * Get the pre-computed duplicate objects report.
+     */
+    DuplicateObjectsReport getDuplicateObjects();
+
+    /**
+     * Run duplicate objects analysis and save results to JSON file.
+     *
+     * @param topN number of top duplicate groups to include
+     */
+    void runDuplicateObjects(int topN);
+
+    // --- Biggest Collections ---
+
+    /**
+     * Check if biggest collections analysis results exist for this profile.
+     */
+    boolean biggestCollectionsExists();
+
+    /**
+     * Get the pre-computed biggest collections report.
+     */
+    BiggestCollectionsReport getBiggestCollections();
+
+    /**
+     * Run biggest collections analysis and save results to JSON file.
+     *
+     * @param topN number of top entries to include in each ranking
+     */
+    void runBiggestCollections(int topN);
+
+    // --- Class Loader Analysis ---
+
+    /**
+     * Check if class loader analysis results exist for this profile.
+     */
+    boolean classLoaderAnalysisExists();
+
+    /**
+     * Get the pre-computed class loader analysis report.
+     */
+    ClassLoaderReport getClassLoaderAnalysis();
+
+    /**
+     * Run class loader analysis and save results to JSON file.
+     */
+    void runClassLoaderAnalysis();
+
+    // --- Heap Dump Comparison ---
+
+    /**
+     * Compare two class histograms from different heap dumps.
+     * The comparison identifies classes that grew, shrank, appeared, or disappeared.
+     *
+     * @param request comparison request containing baseline and current histograms
+     * @return comparison report with per-class deltas
+     */
+    HeapDumpComparisonReport compareHistograms(HeapDumpComparisonRequest request);
 
 }

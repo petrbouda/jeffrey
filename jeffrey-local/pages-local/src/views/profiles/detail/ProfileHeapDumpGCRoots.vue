@@ -39,76 +39,37 @@
       >
         <!-- Overview Tab -->
         <template #overview>
-          <!-- Distribution Chart and Table Grid -->
-          <div class="content-grid">
+          <div class="row">
             <!-- Pie Chart -->
-            <PieChart
-                v-if="chartData.length > 0"
-                title="Root Type Distribution"
-                icon="pie-chart"
-                :data="chartData"
-                :total="gcRootData.totalRoots"
-                :color-mapping="getChartColor"
-                :value-formatter="formatRootCount"
-            />
+            <div class="col-md-6">
+              <DonutChartCard
+                  v-if="gcRootData"
+                  title="Root Type Distribution"
+                  :series="chartSeries"
+                  :labels="chartLabels"
+                  :colors="chartColors"
+                  :legend-items="chartLegendItems"
+                  :total-value="FormattingService.formatNumber(gcRootData.totalRoots)"
+                  :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
+              />
+            </div>
 
-            <!-- Data Table -->
-            <div class="table-section">
-              <div class="section-header">
-                <h4>
-                  <i class="bi bi-table me-2"></i>
-                  Root Type Breakdown
-                </h4>
-              </div>
-              <div class="table-card">
-                <div class="table-responsive">
-                  <table class="table table-sm table-hover mb-0">
-                    <thead>
-                    <tr>
-                      <SortableTableHeader
-                          column="type"
-                          label="Root Type"
-                          :sort-column="sortColumn"
-                          :sort-direction="sortDirection"
-                          @sort="toggleSort"
-                      />
-                      <SortableTableHeader
-                          column="count"
-                          label="Count"
-                          :sort-column="sortColumn"
-                          :sort-direction="sortDirection"
-                          align="end"
-                          width="120px"
-                          @sort="toggleSort"
-                      />
-                      <th style="width: 250px;">Distribution</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr v-for="item in sortedRootsArray" :key="item.type">
-                      <td>
-                        <div class="d-flex align-items-center">
-                          <span class="type-indicator" :style="{ backgroundColor: getRootTypeColor(item.type) }"></span>
-                          {{ formatRootType(item.type) }}
-                        </div>
-                      </td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(item.count) }}</td>
-                      <td>
-                        <div class="d-flex align-items-center gap-2">
-                          <div class="progress flex-grow-1" style="height: 8px;">
-                            <div
-                                class="progress-bar"
-                                :style="{ width: getRootPercentage(item.count) + '%', backgroundColor: getRootTypeColor(item.type) }"
-                            ></div>
-                          </div>
-                          <small class="text-muted percentage-label">{{ getRootPercentage(item.count).toFixed(1) }}%</small>
-                        </div>
-                      </td>
-                    </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            <!-- Breakdown Table -->
+            <div class="col-md-6">
+              <BasePanel title="Root Type Breakdown">
+                <table class="table table-sm mb-0">
+                  <tbody>
+                  <tr v-for="item in sortedRootsArray" :key="item.type">
+                    <td style="width: 16px; padding-right: 0;">
+                      <span class="legend-dot" :style="{ backgroundColor: getRootTypeColor(item.type) }"></span>
+                    </td>
+                    <td>{{ formatRootType(item.type) }}</td>
+                    <td class="text-end font-monospace">{{ FormattingService.formatNumber(item.count) }}</td>
+                    <td class="text-end text-muted" style="width: 60px;">{{ getRootPercentage(item.count).toFixed(1) }}%</td>
+                  </tr>
+                  </tbody>
+                </table>
+              </BasePanel>
             </div>
           </div>
         </template>
@@ -274,10 +235,11 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import PieChart from '@/components/PieChart.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
-import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import DonutChartCard from '@/components/DonutChartCard.vue';
+import type { LegendItem } from '@/components/DonutChartCard.vue';
+import BasePanel from '@/components/BasePanel.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import FormattingService from '@/services/FormattingService';
@@ -324,15 +286,21 @@ const summaryMetrics = computed(() => {
   ];
 });
 
-// Chart data for PieChart
-const chartData = computed(() => {
+const chartEntries = computed(() => {
   if (!gcRootData.value) return [];
-  return Object.entries(gcRootData.value.rootsByType)
-      .sort((a, b) => b[1] - a[1])
-      .map(([type, count]) => ({
-        label: formatRootType(type),
-        value: count
-      }));
+  return Object.entries(gcRootData.value.rootsByType).sort((a, b) => b[1] - a[1]);
+});
+
+const chartSeries = computed(() => chartEntries.value.map(([, count]) => count));
+const chartLabels = computed(() => chartEntries.value.map(([type]) => formatRootType(type)));
+const chartColors = computed(() => chartEntries.value.map(([type]) => getRootTypeColor(type)));
+
+const chartLegendItems = computed<LegendItem[]>(() => {
+  return chartEntries.value.map(([type, count]) => ({
+    color: getRootTypeColor(type),
+    label: formatRootType(type),
+    value: FormattingService.formatNumber(count)
+  }));
 });
 
 const sortedRootsArray = computed(() => {
@@ -381,14 +349,6 @@ const getRootTypeColor = (type: string): string => {
   const types = Object.keys(gcRootData.value.rootsByType);
   const index = types.indexOf(type);
   return rootTypeColors[index % rootTypeColors.length];
-};
-
-const getChartColor = (_label: string, index: number): string => {
-  return rootTypeColors[index % rootTypeColors.length];
-};
-
-const formatRootCount = (value: number): string => {
-  return FormattingService.formatNumber(value) + ' roots';
 };
 
 const scrollToTop = () => {
@@ -440,107 +400,22 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
-.content-grid :deep(.dashboard-section) {
-  margin-bottom: 0;
-}
-
-.content-grid :deep(.charts-grid) {
-  height: 100%;
-}
-
-.content-grid :deep(.chart-card) {
-  height: 100%;
-}
-
-@media (max-width: 1200px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.table-section {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.section-header {
-  padding: 1rem 1.5rem;
-  background: white;
-  border: 1px solid #dee2e6;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.section-header h4 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.table-card {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  overflow: auto;
-  flex: 1;
-}
-
-.table thead th {
-  background-color: #fafbfc;
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
 .table td {
   font-size: 0.85rem;
-  padding: 0.75rem;
+  padding: 0.5rem 0.5rem;
   vertical-align: middle;
   border-bottom: 1px solid #f0f0f0;
 }
 
-.table tbody tr:hover {
-  background-color: rgba(66, 133, 244, 0.04);
-}
-
 .table tbody tr:last-child td {
   border-bottom: none;
-}
-
-.type-indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 0.5rem;
-  flex-shrink: 0;
-}
-
-.progress {
-  background-color: #e9ecef;
-}
-
-.progress-bar {
-  transition: width 0.3s ease;
-}
-
-.percentage-label {
-  min-width: 50px;
-  text-align: right;
-}
-
-.font-monospace {
 }
 
 /* About Tab Styles */

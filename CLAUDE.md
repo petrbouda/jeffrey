@@ -213,6 +213,7 @@ jeffrey/
 ### Java Backend
 - **Package Structure**: `pbouda.jeffrey.local.*` for local deployment, `pbouda.jeffrey.server.*` for server deployment, `pbouda.jeffrey.profile.*` for profiles, `pbouda.jeffrey.*` for shared modules
 - **Naming**: PascalCase for classes, camelCase for methods/fields
+- **Imports**: Always use import statements; never use fully qualified class names inline in code
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Jersey/JAX-RS with `@Path` annotations, constructor injection (not `@Autowired`)
 - **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`, `@RestController`) or `@Autowired`. Always register beans explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit.

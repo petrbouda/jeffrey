@@ -43,7 +43,7 @@ export function useHeapDumpAiAnalysis(profileId: string) {
     const currentInput = ref('');
 
     // Computed
-    const isAvailable = computed(() => status.value?.available ?? false);
+    const isAvailable = computed(() => (status.value?.enabled && status.value?.configured) ?? false);
 
     const hasMessages = computed(() => messages.value.length > 0);
 

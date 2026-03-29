@@ -514,7 +514,7 @@ const checkAiAvailability = async () => {
   try {
     const aiClient = new OqlAssistantClient(profileId);
     const status = await aiClient.getStatus();
-    aiAvailable.value = status.available;
+    aiAvailable.value = status.enabled && status.configured;
   } catch {
     aiAvailable.value = false;
   } finally {

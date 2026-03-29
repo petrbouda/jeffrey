@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -140,6 +140,19 @@ public class HeapDumpResource {
             @QueryParam("includeRetained") @DefaultValue("false") boolean includeRetainedSize) {
         LOG.debug("Fetching heap dump threads: includeRetained={}", includeRetainedSize);
         return heapDumpManager.getThreads(includeRetainedSize);
+    }
+
+    /**
+     * Get the stack trace of a specific thread with local variable references per frame.
+     *
+     * @param objectId the object ID of the Thread instance
+     */
+    @GET
+    @Path("/threads/{objectId}/stack")
+    public List<ThreadStackFrame> getThreadStack(
+            @PathParam("objectId") long objectId) {
+        LOG.debug("Fetching thread stack: objectId={}", objectId);
+        return heapDumpManager.getThreadStack(objectId);
     }
 
     /**
@@ -462,6 +475,92 @@ public class HeapDumpResource {
     public void runBiggestObjects(@QueryParam("topN") @DefaultValue("20") int topN) {
         LOG.debug("Running biggest objects analysis: topN={}", topN);
         heapDumpManager.runBiggestObjects(topN);
+    }
+
+    // --- Biggest Collections ---
+
+    @GET
+    @Path("/biggest-collections/exists")
+    public boolean biggestCollectionsExists() {
+        LOG.debug("Checking biggest collections existence");
+        return heapDumpManager.biggestCollectionsExists();
+    }
+
+    @GET
+    @Path("/biggest-collections")
+    public BiggestCollectionsReport getBiggestCollections() {
+        LOG.debug("Fetching biggest collections");
+        return heapDumpManager.getBiggestCollections();
+    }
+
+    @POST
+    @Path("/biggest-collections/run")
+    public void runBiggestCollections(@QueryParam("topN") @DefaultValue("50") int topN) {
+        LOG.debug("Running biggest collections analysis: topN={}", topN);
+        heapDumpManager.runBiggestCollections(topN);
+    }
+
+    // --- Duplicate Objects ---
+
+    @GET
+    @Path("/duplicate-objects/exists")
+    public boolean duplicateObjectsExists() {
+        LOG.debug("Checking duplicate objects existence");
+        return heapDumpManager.duplicateObjectsExists();
+    }
+
+    @GET
+    @Path("/duplicate-objects")
+    public DuplicateObjectsReport getDuplicateObjects() {
+        LOG.debug("Fetching duplicate objects");
+        return heapDumpManager.getDuplicateObjects();
+    }
+
+    @POST
+    @Path("/duplicate-objects/run")
+    public void runDuplicateObjects(@QueryParam("topN") @DefaultValue("100") int topN) {
+        LOG.debug("Running duplicate objects analysis: topN={}", topN);
+        heapDumpManager.runDuplicateObjects(topN);
+    }
+
+    // --- Class Loader Analysis ---
+
+    @GET
+    @Path("/classloader-analysis/exists")
+    public boolean classLoaderAnalysisExists() {
+        LOG.debug("Checking class loader analysis existence");
+        return heapDumpManager.classLoaderAnalysisExists();
+    }
+
+    @GET
+    @Path("/classloader-analysis")
+    public ClassLoaderReport getClassLoaderAnalysis() {
+        LOG.debug("Fetching class loader analysis");
+        return heapDumpManager.getClassLoaderAnalysis();
+    }
+
+    @POST
+    @Path("/classloader-analysis/run")
+    public void runClassLoaderAnalysis() {
+        LOG.debug("Running class loader analysis");
+        heapDumpManager.runClassLoaderAnalysis();
+    }
+
+    // --- Heap Dump Comparison ---
+
+    /**
+     * Compare two class histograms from different heap dumps.
+     * The frontend provides both histograms from two different profiles.
+     *
+     * @param request comparison request with baseline and current histograms
+     * @return comparison report with per-class deltas
+     */
+    @POST
+    @Path("/compare")
+    public HeapDumpComparisonReport compare(HeapDumpComparisonRequest request) {
+        LOG.debug("Comparing heap dump histograms: baselineClasses={} currentClasses={}",
+                request.baseline().size(), request.current().size());
+        return heapDumpManager.compareHistograms(request);
     }
 
 }

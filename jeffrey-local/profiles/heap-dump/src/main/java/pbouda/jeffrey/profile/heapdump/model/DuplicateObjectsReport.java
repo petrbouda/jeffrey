@@ -21,21 +21,16 @@ package pbouda.jeffrey.profile.heapdump.model;
 import java.util.List;
 
 /**
- * Report analyzing Java collection fill ratios and wasted memory.
+ * Complete report for duplicate object analysis in a heap dump.
+ * Detects byte[], char[], and boxed-type instances with identical content.
  *
- * @param totalCollections total number of analyzed collection instances
- * @param totalEmptyCount  total number of empty collections
- * @param totalWastedBytes total estimated bytes wasted across all collections
- * @param overallFillDistribution aggregated fill distribution across all types
- * @param byType           per-collection-type statistics
- * @param wasteByClass     per-owner-class waste breakdown, sorted by wasted bytes descending
+ * @param totalInstancesAnalyzed total number of instances examined across all analyzed classes
+ * @param totalWastedBytes       total bytes wasted by all detected duplicates
+ * @param duplicates             list of duplicate object groups sorted by wasted bytes descending
  */
-public record CollectionAnalysisReport(
-        int totalCollections,
-        int totalEmptyCount,
+public record DuplicateObjectsReport(
+        long totalInstancesAnalyzed,
         long totalWastedBytes,
-        FillDistribution overallFillDistribution,
-        List<CollectionStats> byType,
-        List<ClassWasteEntry> wasteByClass
+        List<DuplicateObjectEntry> duplicates
 ) {
 }

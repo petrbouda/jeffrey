@@ -8,8 +8,8 @@
             <i class="bi-cpu"></i>
             {{ status.provider }}
           </span>
-          <span v-if="status.model" class="model-badge">
-            {{ status.model }}
+          <span v-if="status.configured" class="model-badge">
+            configured
           </span>
         </template>
         <span v-else class="status-badge unavailable">

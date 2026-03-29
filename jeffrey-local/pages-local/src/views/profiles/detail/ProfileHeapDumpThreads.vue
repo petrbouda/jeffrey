@@ -75,35 +75,81 @@
                   width="140px"
                   @sort="toggleSort"
               />
+              <th style="width: 90px;"></th>
             </tr>
             </thead>
             <tbody>
-            <tr v-for="(thread, index) in filteredThreads" :key="thread.objectId">
-              <td class="text-muted">{{ index + 1 }}</td>
-              <td class="thread-cell">
-                <div class="thread-header">
-                  <span class="thread-name">{{ thread.name }}</span>
-                  <InstanceActionButtons
-                      :object-id="thread.objectId"
-                      :show-gc-root-path="false"
-                      @show-referrers="openTreeModal($event, 'REFERRERS')"
-                      @show-reachables="openTreeModal($event, 'REACHABLES')"
-                  />
-                </div>
-                <div class="thread-meta">
-                  <span class="meta-label">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
-                  <span class="meta-separator">•</span>
-                  <span class="meta-label" :class="'priority-' + getPriorityClass(thread.priority)">
-                    Priority {{ thread.priority }}
+            <template v-for="(thread, index) in filteredThreads" :key="thread.objectId">
+              <tr>
+                <td class="text-muted">{{ index + 1 }}</td>
+                <td class="thread-cell">
+                  <div class="thread-header">
+                    <span class="thread-name">{{ thread.name }}</span>
+                    <InstanceActionButtons
+                        :object-id="thread.objectId"
+                        :show-gc-root-path="false"
+                        @show-referrers="openTreeModal($event, 'REFERRERS')"
+                        @show-reachables="openTreeModal($event, 'REACHABLES')"
+                    />
+                  </div>
+                  <div class="thread-meta">
+                    <span class="meta-label">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
+                    <span class="meta-separator">•</span>
+                    <span class="meta-label" :class="'priority-' + getPriorityClass(thread.priority)">
+                      Priority {{ thread.priority }}
+                    </span>
+                  </div>
+                </td>
+                <td v-if="hasRetainedSize" class="text-end align-middle">
+                  <span class="retained-size font-monospace text-warning">
+                    {{ thread.retainedSize != null ? FormattingService.formatBytes(thread.retainedSize) : '-' }}
                   </span>
-                </div>
-              </td>
-              <td v-if="hasRetainedSize" class="text-end align-middle">
-                <span class="retained-size">
-                  {{ thread.retainedSize != null ? FormattingService.formatBytes(thread.retainedSize) : '-' }}
-                </span>
-              </td>
-            </tr>
+                </td>
+                <td class="text-center align-middle">
+                  <button class="btn btn-sm btn-outline-secondary" @click="toggleStack(thread.objectId)">
+                    <i class="bi" :class="expandedThread === thread.objectId ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                    Stack
+                  </button>
+                </td>
+              </tr>
+              <!-- Stack expansion row -->
+              <tr v-if="expandedThread === thread.objectId" class="stack-expansion-row">
+                <td :colspan="columnCount">
+                  <div class="stack-container">
+                    <div v-if="stackLoading" class="text-center py-3">
+                      <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                      <span class="ms-2 text-muted small">Loading stack frames...</span>
+                    </div>
+                    <div v-else-if="stackFrames.length === 0" class="text-muted small py-2">
+                      No stack frames available for this thread.
+                    </div>
+                    <div v-else class="stack-frames">
+                      <div v-for="(frame, frameIndex) in stackFrames" :key="frameIndex" class="stack-frame">
+                        <div class="stack-frame-line">
+                          <span class="frame-index text-muted">{{ frameIndex }}</span>
+                          <span class="frame-method">
+                            <code class="frame-class">{{ frame.className }}</code>.<code class="frame-method-name">{{ frame.methodName }}</code>
+                          </span>
+                          <span v-if="frame.sourceFile" class="frame-source text-muted">
+                            ({{ frame.sourceFile }}<span v-if="frame.lineNumber > 0">:{{ frame.lineNumber }}</span>)
+                          </span>
+                        </div>
+                        <div v-if="frame.locals && frame.locals.length > 0" class="stack-locals">
+                          <div v-for="local in frame.locals" :key="local.objectId" class="stack-local">
+                            <i class="bi bi-dot"></i>
+                            <span class="local-field">{{ local.fieldName }}</span>:
+                            <span class="local-class">{{ local.className }}</span>
+                            <span class="local-size text-muted">({{ FormattingService.formatBytes(local.shallowSize) }})</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
             </tbody>
           </table>
         </div>
@@ -142,6 +188,7 @@ import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
+import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
@@ -160,6 +207,9 @@ const sortDirection = ref<'asc' | 'desc'>('desc');
 const showTreeModal = ref(false);
 const selectedObjectId = ref<number | null>(null);
 const treeMode = ref<'REFERRERS' | 'REACHABLES'>('REFERRERS');
+const expandedThread = ref<number | null>(null);
+const stackFrames = ref<ThreadStackFrame[]>([]);
+const stackLoading = ref(false);
 
 let client: HeapDumpClient;
 
@@ -248,6 +298,30 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
   selectedObjectId.value = objectId;
   treeMode.value = mode;
   showTreeModal.value = true;
+};
+
+// Column count: #, Thread, (optional Retained Size), Stack button
+const columnCount = computed(() => hasRetainedSize.value ? 4 : 3);
+
+const toggleStack = async (objectId: number) => {
+  if (expandedThread.value === objectId) {
+    expandedThread.value = null;
+    stackFrames.value = [];
+    return;
+  }
+
+  expandedThread.value = objectId;
+  stackFrames.value = [];
+  stackLoading.value = true;
+
+  try {
+    stackFrames.value = await client.getThreadStack(objectId);
+  } catch (err) {
+    console.error('Error loading thread stack:', err);
+    stackFrames.value = [];
+  } finally {
+    stackLoading.value = false;
+  }
 };
 
 const scrollToTop = () => {
@@ -442,5 +516,94 @@ onMounted(() => {
 .empty-state {
   background: white;
   border: 1px solid #dee2e6;
+}
+
+/* Stack Expansion */
+.stack-expansion-row td {
+  background-color: #f8f9fa !important;
+  padding: 0 !important;
+}
+
+.stack-expansion-row:hover td {
+  background-color: #f8f9fa !important;
+}
+
+.stack-container {
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.stack-frames {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.stack-frame {
+  padding: 0.15rem 0;
+}
+
+.stack-frame-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.frame-index {
+  font-size: 0.7rem;
+  min-width: 1.5rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.frame-class {
+  color: #495057;
+  background-color: transparent;
+  font-size: 0.75rem;
+}
+
+.frame-method-name {
+  color: #6f42c1;
+  font-weight: 600;
+  background-color: transparent;
+  font-size: 0.75rem;
+}
+
+.frame-source {
+  font-size: 0.7rem;
+}
+
+.stack-locals {
+  margin-left: 2.5rem;
+  padding: 0.15rem 0;
+}
+
+.stack-local {
+  font-size: 0.7rem;
+  color: #6c757d;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.stack-local i {
+  flex-shrink: 0;
+}
+
+.local-field {
+  color: #0d6efd;
+  font-weight: 500;
+}
+
+.local-class {
+  color: #495057;
+}
+
+.local-size {
+  font-size: 0.65rem;
+}
+
+.text-warning {
+  color: #b8860b !important;
 }
 </style>

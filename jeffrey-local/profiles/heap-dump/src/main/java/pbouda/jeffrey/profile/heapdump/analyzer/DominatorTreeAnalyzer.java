@@ -63,6 +63,43 @@ public class DominatorTreeAnalyzer {
     private record CandidateEntry(Instance instance, long retainedSize, String fieldName) {
     }
 
+    // Cached per-heap state to avoid expensive recomputation on every call
+    private Heap cachedHeap;
+    private DominatorTreeReflection cachedReflection;
+    private Map<Long, String> cachedGcRootKindMap;
+    private OQLEngine cachedOQLEngine;
+
+    private DominatorTreeReflection getReflection(Heap heap) {
+        if (cachedHeap != heap) {
+            rebuildCache(heap);
+        }
+        return cachedReflection;
+    }
+
+    private Map<Long, String> getGcRootKindMap(Heap heap) {
+        if (cachedHeap != heap) {
+            rebuildCache(heap);
+        }
+        return cachedGcRootKindMap;
+    }
+
+    private OQLEngine getOQLEngine(Heap heap) {
+        if (cachedHeap != heap) {
+            rebuildCache(heap);
+        }
+        return cachedOQLEngine;
+    }
+
+    private synchronized void rebuildCache(Heap heap) {
+        if (cachedHeap == heap) {
+            return;
+        }
+        cachedReflection = new DominatorTreeReflection(heap);
+        cachedGcRootKindMap = buildGcRootKindMap(heap);
+        cachedOQLEngine = new OQLEngine(heap);
+        cachedHeap = heap;
+    }
+
     /**
      * Computes the total overcount across all instances in the heap.
      * @see CompressedOopsCorrector#computeTotalOvercount(Heap)
@@ -95,8 +132,7 @@ public class DominatorTreeAnalyzer {
             limit = DEFAULT_LIMIT;
         }
 
-        OQLEngine engine = new OQLEngine(heap);
-        InstanceValueFormatter formatter = new InstanceValueFormatter(engine);
+        InstanceValueFormatter formatter = new InstanceValueFormatter(getOQLEngine(heap));
         long totalHeapSize = heap.getSummary().getTotalLiveBytes();
 
         // Compute heap-wide correction ratio for compressed oops
@@ -124,6 +160,14 @@ public class DominatorTreeAnalyzer {
         PriorityQueue<CandidateEntry> minHeap = new PriorityQueue<>(
                 overselectLimit + 1, Comparator.comparingLong(CandidateEntry::retainedSize));
 
+        // Trigger retained size computation for the first instance to ensure dominator tree is built
+        if (!candidates.isEmpty()) {
+            List<Instance> firstInstances = (List<Instance>) candidates.get(0).getInstances();
+            if (!firstInstances.isEmpty()) {
+                firstInstances.get(0).getRetainedSize();
+            }
+        }
+
         for (JavaClass javaClass : candidates) {
             List<Instance> instances = (List<Instance>) javaClass.getInstances();
             for (Instance instance : instances) {
@@ -141,7 +185,8 @@ public class DominatorTreeAnalyzer {
             }
         }
 
-        // Filter out entries whose referrer is also a candidate (dominated objects)
+        // Filter out entries that are truly dominated by another candidate
+        DominatorTreeReflection reflection = getReflection(heap);
         Set<Long> candidateIds = new HashSet<>();
         for (CandidateEntry entry : minHeap) {
             candidateIds.add(entry.instance().getInstanceId());
@@ -149,7 +194,7 @@ public class DominatorTreeAnalyzer {
 
         List<CandidateEntry> filtered = new ArrayList<>();
         for (CandidateEntry entry : minHeap) {
-            if (!isDominatedByCandidate(entry.instance(), candidateIds)) {
+            if (!isDominatedByCandidate(entry.instance(), candidateIds, reflection)) {
                 filtered.add(entry);
             }
         }
@@ -160,8 +205,8 @@ public class DominatorTreeAnalyzer {
             filtered = filtered.subList(0, limit);
         }
 
-        // Build GC root kind map for annotating nodes
-        Map<Long, String> gcRootKindMap = buildGcRootKindMap(heap);
+        // Use cached GC root kind map for annotating nodes
+        Map<Long, String> gcRootKindMap = getGcRootKindMap(heap);
 
         // Build DominatorNode only for the final set
         List<DominatorNode> nodes = new ArrayList<>(filtered.size());
@@ -218,8 +263,7 @@ public class DominatorTreeAnalyzer {
             return new DominatorTreeResponse(List.of(), 0, compressedOops, false);
         }
 
-        OQLEngine engine = new OQLEngine(heap);
-        InstanceValueFormatter formatter = new InstanceValueFormatter(engine);
+        InstanceValueFormatter formatter = new InstanceValueFormatter(getOQLEngine(heap));
         long totalHeapSize = heap.getSummary().getTotalLiveBytes();
 
         // Compute heap-wide correction ratio for compressed oops
@@ -258,8 +302,8 @@ public class DominatorTreeAnalyzer {
             }
         }
 
-        // Phase 2: Get true dominated children from the dominator tree via reflection
-        DominatorTreeReflection reflection = new DominatorTreeReflection(heap);
+        // Phase 2: Get true dominated children from the dominator tree via reflection (cached)
+        DominatorTreeReflection reflection = getReflection(heap);
         List<Long> dominatedIds = reflection.isAvailable()
                 ? reflection.findDominatedChildren(objectId)
                 : List.of();
@@ -314,8 +358,8 @@ public class DominatorTreeAnalyzer {
         int toIndex = Math.min(offset + limit, totalCount);
         List<CandidateEntry> page = allSorted.subList(fromIndex, toIndex);
 
-        // Build GC root kind map for annotating nodes
-        Map<Long, String> gcRootKindMap = buildGcRootKindMap(heap);
+        // Use cached GC root kind map for annotating nodes
+        Map<Long, String> gcRootKindMap = getGcRootKindMap(heap);
 
         // Phase 6: Format the results for this page
         List<DominatorNode> children = new ArrayList<>(page.size());
@@ -345,8 +389,31 @@ public class DominatorTreeAnalyzer {
         return new DominatorTreeResponse(children, totalHeapSize, compressedOops, hasMore);
     }
 
+    /**
+     * Checks if an instance is truly dominated by another candidate using the dominator tree.
+     * Falls back to referrer heuristic when reflection is unavailable.
+     */
     @SuppressWarnings("unchecked")
-    private boolean isDominatedByCandidate(Instance instance, Set<Long> candidateIds) {
+    private boolean isDominatedByCandidate(Instance instance, Set<Long> candidateIds,
+                                           DominatorTreeReflection reflection) {
+        long instanceId = instance.getInstanceId();
+
+        if (reflection.isAvailable()) {
+            // Use true dominator: check if the immediate dominator is in the candidate set
+            long idom = reflection.getIdom(instanceId);
+            if (idom > 0) {
+                return candidateIds.contains(idom);
+            }
+            // idom == -1 means single-parent; check the sole referrer
+            List<Value> references = (List<Value>) instance.getReferences();
+            if (references.size() == 1) {
+                Instance referrer = references.get(0).getDefiningInstance();
+                return referrer != null && candidateIds.contains(referrer.getInstanceId());
+            }
+            return false;
+        }
+
+        // Fallback: referrer heuristic (original behavior)
         List<Value> references = (List<Value>) instance.getReferences();
         for (Value ref : references) {
             Instance referrer = ref.getDefiningInstance();

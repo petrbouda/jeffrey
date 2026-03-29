@@ -18,7 +18,7 @@
 
 <template>
   <div class="detail-panel" :class="{ open: isOpen }">
-    <div class="panel-backdrop" @click="$emit('close')"></div>
+    <div class="panel-backdrop" @click="closePanel"></div>
     <div class="panel-content">
       <!-- Header -->
       <div class="panel-header">
@@ -26,9 +26,30 @@
           <i class="bi bi-info-circle me-2"></i>
           Instance Details
         </div>
-        <button class="btn-icon" @click="$emit('close')" title="Close panel">
+        <button class="btn-icon" @click="closePanel" title="Close panel">
           <i class="bi bi-x-lg"></i>
         </button>
+      </div>
+
+      <!-- Navigation Breadcrumb -->
+      <div v-if="navigationHistory.length > 0" class="instance-breadcrumb">
+        <button class="btn btn-sm btn-outline-secondary me-2" @click="navigateBack" title="Go back">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <nav aria-label="Instance navigation">
+          <ol class="breadcrumb mb-0">
+            <li v-for="(entry, index) in navigationHistory" :key="index"
+                class="breadcrumb-item">
+              <a href="#" @click.prevent="navigateToHistoryEntry(index)"
+                 class="text-decoration-none" :title="entry.className">
+                {{ simpleClassName(entry.className) }}
+              </a>
+            </li>
+            <li class="breadcrumb-item active">
+              {{ currentClassName }}
+            </li>
+          </ol>
+        </nav>
       </div>
 
       <!-- Loading State -->
@@ -129,7 +150,7 @@
                   <td class="field-nav-cell">
                     <a v-if="field.referencedObjectId"
                        href="#" class="nav-icon-link"
-                       @click.prevent="$emit('navigate', field.referencedObjectId)"
+                       @click.prevent="navigateToInstance(field.referencedObjectId)"
                        title="Navigate to instance">
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>
@@ -174,7 +195,7 @@
                   <td class="field-nav-cell">
                     <a v-if="field.referencedObjectId"
                        href="#" class="nav-icon-link"
-                       @click.prevent="$emit('navigate', field.referencedObjectId)"
+                       @click.prevent="navigateToInstance(field.referencedObjectId)"
                        title="Navigate to instance">
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>
@@ -197,6 +218,11 @@ import type HeapDumpClient from '@/services/api/HeapDumpClient';
 import type InstanceDetail from '@/services/api/model/InstanceDetail';
 import type InstanceField from '@/services/api/model/InstanceField';
 
+interface HistoryEntry {
+  objectId: number;
+  className: string;
+}
+
 interface Props {
   isOpen: boolean;
   objectId: number | null;
@@ -213,6 +239,49 @@ const emit = defineEmits<{
 const loading = ref(false);
 const error = ref<string | null>(null);
 const instance = ref<InstanceDetail | null>(null);
+
+// Navigation history
+const navigationHistory = ref<HistoryEntry[]>([]);
+const internalObjectId = ref<number | null>(null);
+
+const currentClassName = computed(() => {
+  if (instance.value) {
+    return simpleClassName(instance.value.className);
+  }
+  return '';
+});
+
+function navigateToInstance(newObjectId: number) {
+  if (instance.value) {
+    navigationHistory.value.push({
+      objectId: instance.value.objectId,
+      className: instance.value.className
+    });
+  }
+  internalObjectId.value = newObjectId;
+  loadInstanceDetail();
+}
+
+function navigateBack() {
+  if (navigationHistory.value.length > 0) {
+    const previous = navigationHistory.value.pop()!;
+    internalObjectId.value = previous.objectId;
+    loadInstanceDetail();
+  }
+}
+
+function navigateToHistoryEntry(index: number) {
+  const entry = navigationHistory.value[index];
+  navigationHistory.value = navigationHistory.value.slice(0, index);
+  internalObjectId.value = entry.objectId;
+  loadInstanceDetail();
+}
+
+function closePanel() {
+  navigationHistory.value = [];
+  internalObjectId.value = null;
+  emit('close');
+}
 
 const simpleType = (fullType: string): string => {
   const lastDot = fullType.lastIndexOf('.');
@@ -271,13 +340,14 @@ const copyFullValue = async () => {
 };
 
 const loadInstanceDetail = async () => {
-  if (!props.client || !props.objectId) return;
+  const activeObjectId = internalObjectId.value;
+  if (!props.client || !activeObjectId) return;
 
   loading.value = true;
   error.value = null;
 
   try {
-    instance.value = await props.client.getInstanceDetail(props.objectId, true);
+    instance.value = await props.client.getInstanceDetail(activeObjectId, true);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load instance details';
     console.error('Error loading instance details:', err);
@@ -286,12 +356,16 @@ const loadInstanceDetail = async () => {
   }
 };
 
-// Load instance details when panel opens or objectId changes
+// When the prop objectId changes from outside, reset history and sync internal state
 watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => {
   if (isOpen && objectId) {
+    navigationHistory.value = [];
+    internalObjectId.value = objectId;
     await loadInstanceDetail();
   } else if (!isOpen) {
     instance.value = null;
+    navigationHistory.value = [];
+    internalObjectId.value = null;
   }
 }, { immediate: true });
 </script>
@@ -373,6 +447,50 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 .btn-icon:hover {
   background-color: #e9ecef;
   color: #212529;
+}
+
+.instance-breadcrumb {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--color-light, #f9fafd);
+  border-bottom: 1px solid var(--color-border, #eaedf1);
+  font-size: 0.8rem;
+  min-height: 0;
+}
+
+.instance-breadcrumb .btn {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.instance-breadcrumb .breadcrumb {
+  font-size: 0.75rem;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.instance-breadcrumb .breadcrumb-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.instance-breadcrumb .breadcrumb-item a {
+  color: var(--color-primary, #5e64ff);
+}
+
+.instance-breadcrumb .breadcrumb-item a:hover {
+  color: var(--color-primary-hover, #4c52db);
+  text-decoration: underline !important;
+}
+
+.instance-breadcrumb .breadcrumb-item.active {
+  color: var(--color-text, #5e6e82);
+  font-weight: 600;
 }
 
 .loading-state,

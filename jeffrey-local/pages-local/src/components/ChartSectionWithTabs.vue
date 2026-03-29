@@ -86,19 +86,18 @@ const setActiveTab = (index: number) => {
 
 <style scoped>
 .dashboard-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .chart-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -107,55 +106,80 @@ const setActiveTab = (index: number) => {
 }
 
 .chart-header {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #e9ecef;
 }
 
 .chart-header h4 {
   margin: 0;
   color: #2c3e50;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
 .chart-container-with-tabs {
-  min-height: 200px;
+  min-height: 100px;
 }
 
 .dashboard-tabs {
   background-color: #fff;
-  border-radius: 0 0 12px 12px;
-  flex-grow: 1;
+  border-radius: 0 0 8px 8px;
 }
 
 .nav-tabs {
-  border-bottom: 1px solid #e9ecef;
-  padding: 0 1rem;
+  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  padding: 0;
+  gap: 0;
+  margin: 0;
 }
 
 .nav-tabs .nav-link {
-  margin-bottom: -1px;
+  margin-bottom: -2px;
   border-radius: 0;
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
-  color: #6c757d;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #718096);
   border: none;
-  border-bottom: 2px solid transparent;
+  background: none;
+  position: relative;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nav-tabs .nav-link i {
+  font-size: 0.85rem;
+}
+
+.nav-tabs .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: transparent;
+  transition: background 0.2s;
 }
 
 .nav-tabs .nav-link.active {
   background-color: transparent;
-  color: #0d6efd;
-  border-bottom: 2px solid #0d6efd;
+  color: var(--color-primary, #5e64ff);
+}
+
+.nav-tabs .nav-link.active::after {
+  background: var(--color-primary, #5e64ff);
 }
 
 .nav-tabs .nav-link:hover:not(.active) {
   border-color: transparent;
-  color: #212529;
+  color: var(--color-text, #4a5568);
 }
 
 .tab-content {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 @media (max-width: 768px) {

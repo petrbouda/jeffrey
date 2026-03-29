@@ -89,6 +89,7 @@ const formatRelativeTime = (dateString: string) => {
         'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
         'rec-card--analyzing': analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
         'rec-card--deleting': deletingProfile,
+        'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
       }"
       @click="handleClick"
   >
@@ -228,18 +229,18 @@ const formatRelativeTime = (dateString: string) => {
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  border-left: 3px dashed #d1d5db;
+  border-left: 3px dashed #86efac;
   background: #fafbfc;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .rec-card:hover {
-  border-color: rgba(94, 100, 255, 0.3);
-  border-left-color: #5e64ff;
+  border-color: rgba(34, 197, 94, 0.3);
+  border-left-color: #22c55e;
   border-left-style: solid;
-  background: linear-gradient(135deg, #f0f2ff, #f8f9ff);
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.12);
+  background: linear-gradient(135deg, #f0fdf4, #f7fdf9);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.12);
 }
 
 /* Analyzed state */
@@ -278,6 +279,51 @@ const formatRelativeTime = (dateString: string) => {
   border-left-color: #dc2626;
   background: #fafbfc;
   box-shadow: none;
+}
+
+/* Heap dump: not analyzed */
+.rec-card--heap-dump {
+  border-left: 3px dashed #c4b5fd;
+}
+
+.rec-card--heap-dump:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  border-left-color: #8b5cf6;
+  border-left-style: solid;
+  background: linear-gradient(135deg, #f5f3ff, #faf5ff);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.12);
+}
+
+/* Heap dump: analyzed */
+.rec-card--heap-dump.rec-card--analyzed {
+  border-left: 3px solid #8b5cf6;
+  background: linear-gradient(135deg, #faf5ff, #ffffff);
+}
+
+.rec-card--heap-dump.rec-card--analyzed:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  border-left-color: #7c3aed;
+  background: linear-gradient(135deg, #f3e8ff, #f5f3ff);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+
+.rec-card--heap-dump.rec-card--analyzed .rec-card__icon {
+  color: #8b5cf6;
+}
+
+.rec-card--heap-dump.rec-card--analyzed .rec-card__btn--open {
+  color: #8b5cf6;
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.rec-card--heap-dump:hover .rec-card__btn--open {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border-color: transparent;
+}
+
+.rec-card--heap-dump.rec-card--analyzed .rec-card__profile-info {
+  color: #8b5cf6;
 }
 
 @keyframes rec-card-pulse {
@@ -430,7 +476,7 @@ const formatRelativeTime = (dateString: string) => {
   border: 1px solid rgba(0, 210, 122, 0.3);
 }
 
-.rec-card:hover .rec-card__btn--open {
+.rec-card:not(.rec-card--heap-dump):hover .rec-card__btn--open {
   background: linear-gradient(135deg, #00d27a, #00b368);
   color: white;
   border-color: transparent;

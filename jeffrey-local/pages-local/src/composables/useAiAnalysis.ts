@@ -44,7 +44,7 @@ export function useAiAnalysis(profileId: string) {
     const canModify = ref(false);
 
     // Computed
-    const isAvailable = computed(() => status.value?.available ?? false);
+    const isAvailable = computed(() => (status.value?.enabled && status.value?.configured) ?? false);
 
     const hasMessages = computed(() => messages.value.length > 0);
 
