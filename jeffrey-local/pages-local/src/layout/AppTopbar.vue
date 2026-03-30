@@ -19,10 +19,10 @@
         <!-- Back to Profiles/Home button (only shown on profile pages) -->
         <button v-if="isProfilePage"
                 class="topbar-back-btn me-2"
-                @click="isQuickAnalysisProfile ? $router.push('/quick-analysis') : $router.push(generateProjectUrl('profiles'))"
-                :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to profiles'">
+                @click="isQuickAnalysisProfile ? $router.push('/quick-analysis') : $router.push(generateProjectUrl('recordings'))"
+                :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to Recordings'">
           <i class="bi bi-arrow-return-left"></i>
-          <span>{{ isQuickAnalysisProfile ? 'Quick Analysis' : 'Profiles' }}</span>
+          <span>{{ isQuickAnalysisProfile ? 'Quick Analysis' : 'Recordings' }}</span>
         </button>
 
         <!-- Back to Workspaces button (only shown on project pages) -->

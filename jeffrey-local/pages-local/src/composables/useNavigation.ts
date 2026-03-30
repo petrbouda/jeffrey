@@ -63,13 +63,13 @@ export function useNavigation() {
   };
 
   /**
-   * Navigate back to the project's profiles list.
+   * Navigate back to the project's recordings list.
    * Uses workspaceId/projectId from profileStore when using simplified URLs.
    */
-  const navigateToProjectProfiles = (wsId?: string, pId?: string) => {
+  const navigateToProjectRecordings = (wsId?: string, pId?: string) => {
     const targetWorkspaceId = wsId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    router.push(`/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/profiles`);
+    router.push(`/workspaces/${targetWorkspaceId}/projects/${targetProjectId}/recordings`);
   };
 
   const generateProjectUrl = (path: string, pId?: string, wsId?: string) => {
@@ -118,7 +118,7 @@ export function useNavigation() {
     navigateToWorkspaceProjects,
     navigateToProject,
     navigateToProfile,
-    navigateToProjectProfiles,
+    navigateToProjectRecordings,
     navigateToInstance,
 
     // URL generators

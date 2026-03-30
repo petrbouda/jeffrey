@@ -27,10 +27,10 @@ import pbouda.jeffrey.shared.persistence.StatementLabel;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
@@ -44,6 +44,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     private final StatementLabel statementLabel;
 
     private final List<T> batch = new ArrayList<>();
+    private final List<CompletableFuture<Void>> pendingBatches = new ArrayList<>();
 
     public DuckDBBatchingWriter(
             Executor executor,
@@ -84,7 +85,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
         }
 
         List<T> copiedBatch = List.copyOf(batch);
-        executor.execute(() -> {
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
 
             try (Connection conn = dataSource.getConnection()) {
@@ -98,13 +99,29 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
             LOG.debug("Batch of items has been flushed: type={} size={} elapsed_ms={}",
                     tableName, copiedBatch.size(), millis);
-        });
+        }, executor);
 
+        pendingBatches.removeIf(CompletableFuture::isDone);
+        pendingBatches.add(future);
         this.batch.clear();
     }
 
     @Override
     public void close() {
         sendBatch(batch);
+        awaitPendingBatches();
+    }
+
+    private void awaitPendingBatches() {
+        if (pendingBatches.isEmpty()) {
+            return;
+        }
+
+        try {
+            CompletableFuture.allOf(pendingBatches.toArray(CompletableFuture[]::new)).join();
+        } catch (Exception e) {
+            LOG.error("Failed to await pending batches: type={}", tableName, e);
+        }
+        pendingBatches.clear();
     }
 }

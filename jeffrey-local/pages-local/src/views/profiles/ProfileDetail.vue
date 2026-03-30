@@ -956,7 +956,7 @@ import FeatureType from "@/services/api/model/FeatureType";
 import { profileStore, ProfileWithContext } from "@/stores/profileStore";
 const route = useRoute();
 const router = useRouter();
-const {workspaceId, projectId, navigateToProjectProfiles} = useNavigation();
+const {workspaceId, projectId, navigateToProjectRecordings} = useNavigation();
 const profileId = route.params.profileId as string;
 
 const profile = ref<Profile | null>(null);
@@ -1135,7 +1135,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load profile:', error);
     ToastService.error('Failed to load profile', 'Error occurred while loading profile details');
-    navigateToProjectProfiles();
+    navigateToProjectRecordings();
   } finally {
     loading.value = false;
   }
