@@ -24,13 +24,14 @@ interface Props {
   name: string;
   sizeInBytes: number;
   durationInMillis: number;
-  uploadedAt: string;
+  uploadedAt: number;
   sourceType?: string;
   fileCount?: number;
   hasProfile: boolean;
   profileId?: string | null;
   profileEnabled?: boolean;
   profileSizeInBytes?: number;
+  profileModified?: boolean;
   analyzing?: boolean;
   creatingProfile?: boolean;
   deletingProfile?: boolean;
@@ -41,6 +42,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   profileEnabled: true,
+  profileModified: false,
   analyzing: false,
   creatingProfile: false,
   deletingProfile: false,
@@ -75,9 +77,7 @@ const onDragStart = (event: DragEvent) => {
   event.dataTransfer.setData('text/plain', props.recordingId);
 };
 
-const formatRelativeTime = (dateString: string) => {
-  const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-  const timestamp = new Date(utcString).getTime();
+const formatRelativeTime = (timestamp: number) => {
   return FormattingService.formatRelativeTime(timestamp);
 };
 </script>
@@ -121,6 +121,13 @@ const formatRelativeTime = (dateString: string) => {
             <span class="rec-card__profile-info">
               <i class="bi bi-check-circle-fill"></i>
               Profile: {{ FormattingService.formatBytes(profileSizeInBytes) }}
+            </span>
+          </template>
+          <template v-if="hasProfile && profileModified">
+            <span class="rec-card__sep">&middot;</span>
+            <span class="rec-card__modified">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              Modified
             </span>
           </template>
         </div>
@@ -409,6 +416,19 @@ const formatRelativeTime = (dateString: string) => {
 
 .rec-card__profile-info i {
   font-size: 0.7rem;
+}
+
+.rec-card__modified {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #dc6803;
+}
+
+.rec-card__modified i {
+  font-size: 0.65rem;
 }
 
 /* Files toggle button (line 2) */

@@ -246,7 +246,7 @@ jeffrey/
 - **Logging**: Use SLF4J with structured key-value format:
   - Pattern: `"Description of what happened: key1={} key2={} key3={}"`
   - No commas between key-value pairs
-  - Example: `LOG.warn("Chunk extends beyond file, truncating: chunkIndex={} position={} claimedSize={}", index, pos, size)`
+  - Example: `LOG.warn("Chunk extends beyond file, truncating: chunk_index={} position={} claimed_size={}", index, pos, size)`
 - **Time Handling**: Always use `java.time.Clock` instead of `Instant.now()` or `System.currentTimeMillis()`:
   - Inject `Clock` as a constructor parameter for testability
   - Use `clock.instant()` to get the current time

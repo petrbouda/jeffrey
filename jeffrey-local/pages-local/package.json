@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore",
     "format": "prettier --write \"**/*.{js,vue,ts,d.ts}\"",
-    "proto:generate": "node_modules/.bin/pbjs -t static-module -w es6 -o src/proto/flamegraph.js ../service/flamegraph/src/main/proto/flamegraph.proto && node_modules/.bin/pbts -o src/proto/flamegraph.d.ts src/proto/flamegraph.js",
+    "proto:generate": "node_modules/.bin/pbjs -t static-module -w es6 -o src/proto/flamegraph.js ../profiles/flamegraph/src/main/proto/flamegraph.proto && node_modules/.bin/pbts -o src/proto/flamegraph.d.ts src/proto/flamegraph.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

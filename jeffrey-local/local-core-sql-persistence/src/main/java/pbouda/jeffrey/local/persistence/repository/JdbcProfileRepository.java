@@ -67,6 +67,10 @@ public class JdbcProfileRepository implements ProfileRepository {
             "UPDATE profiles SET profile_name = :profile_name WHERE profile_id = :profile_id";
 
     //language=SQL
+    private static final String MARK_MODIFIED =
+            "UPDATE profiles SET modified = true WHERE profile_id = :profile_id";
+
+    //language=SQL
     private static final String DELETE_PROFILE =
             "DELETE FROM profiles WHERE profile_id = :profile_id";
 
@@ -124,6 +128,14 @@ public class JdbcProfileRepository implements ProfileRepository {
 
         // Return the updated profile info
         return find().orElseThrow(() -> new RuntimeException("Profile not found after update"));
+    }
+
+    @Override
+    public void markModified() {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("profile_id", profileId);
+
+        databaseClient.update(StatementLabel.MARK_PROFILE_MODIFIED, MARK_MODIFIED, paramSource);
     }
 
     @Override

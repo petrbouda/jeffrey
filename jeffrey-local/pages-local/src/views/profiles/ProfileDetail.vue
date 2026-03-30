@@ -811,7 +811,7 @@
             <!-- Tools Mode Menu -->
             <template v-else-if="selectedMode === 'Tools'">
               <div class="nav-section">
-                <div class="nav-section-title">FRAME DATA</div>
+                <div class="nav-section-title">TRANSFORM</div>
                 <div class="nav-items">
                   <router-link
                       :to="`/profiles/${profileId}/tools/rename-frames`"
@@ -821,8 +821,17 @@
                     <i class="bi bi-pencil-square"></i>
                     <span>Rename Frames</span>
                   </router-link>
+                  <router-link
+                      :to="`/profiles/${profileId}/tools/collapse-frames`"
+                      class="nav-item"
+                      active-class="active"
+                  >
+                    <i class="bi bi-layers"></i>
+                    <span>Collapse Frames</span>
+                  </router-link>
                 </div>
               </div>
+
             </template>
 
           </div>
@@ -851,6 +860,7 @@
               <div class="card-title">
                 <span>{{ profile?.name || 'Loading...' }}</span>
                 <span class="card-label">PRIMARY</span>
+                <span v-if="profile?.modified" class="card-label modified">MODIFIED</span>
               </div>
               <div class="card-meta">
                 <span class="meta-item">
@@ -1418,6 +1428,11 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
+}
+
+.card-label.modified {
+  color: #92400e;
+  background: #fef3c7;
 }
 
 .vs-divider {

@@ -222,6 +222,7 @@ public class DiffgraphProtoFormatter {
             case BLOCKING_OBJECT_SYNTHETIC ->
                     pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
             case LAMBDA_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_LAMBDA_SYNTHETIC;
+            case COLLAPSED_SYNTHETIC -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_COLLAPSED_SYNTHETIC;
             case HIGHLIGHTED_WARNING -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;
             case UNKNOWN -> pbouda.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_UNKNOWN;
         };

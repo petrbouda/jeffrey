@@ -17,21 +17,18 @@
  */
 
 import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
 
 export default class Project {
     constructor(
         public id: string,
         public name: string,
         public label: string | null,
-        public namespace: string | null,
-        public createdAt: string,
+        public createdAt: number,
         public profileCount: number,
         public workspaceId: string,
         public status: RecordingStatus,
         public recordingCount: number,
         public sessionCount: number,
-        public eventSource: RecordingEventSource,
         public isBlocked: boolean) {
     }
 

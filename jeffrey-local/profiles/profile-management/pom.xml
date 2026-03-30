@@ -75,6 +75,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>profile-thread</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tools</artifactId>
+        </dependency>
 
         <!-- Persistence (transitive: profile-persistence-api) -->
         <dependency>

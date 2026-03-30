@@ -92,6 +92,7 @@
                     :has-profile="recording.hasProfile"
                     :profile-id="recording.profileId"
                     :profile-size-in-bytes="recording.profileSizeInBytes"
+                    :profile-modified="recording.profileModified"
                     :analyzing="analyzingRecordings.has(recording.id)"
                     :draggable="true"
                     @click="handleCardClick(recording)"
@@ -241,16 +242,24 @@ const groupedSections = computed(() => {
 
   const sections: GroupSection[] = [];
 
-  // Named groups first (sorted by name)
+  // Named groups first (sorted by newest recording, then by name)
+  const newestUpload = (groupId: string) => {
+    const recs = groupMap.get(groupId);
+    if (!recs || recs.length === 0) return 0;
+    return Math.max(...recs.map(r => r.uploadedAt));
+  };
   const groupIds = [...groupMap.keys()]
       .filter((k): k is string => k !== null)
-      .sort((a, b) => (groupNameMap.get(a) || '').localeCompare(groupNameMap.get(b) || ''));
+      .sort((a, b) => newestUpload(b) - newestUpload(a));
 
   for (const groupId of groupIds) {
     sections.push(reactive({
       id: groupId,
       name: groupNameMap.get(groupId) || 'Unknown Group',
-      recordings: groupMap.get(groupId)!,
+      recordings: groupMap.get(groupId)!.sort((a, b) => {
+          if (a.hasProfile !== b.hasProfile) return a.hasProfile ? -1 : 1;
+          return b.uploadedAt - a.uploadedAt;
+        }),
       collapsed: false,
     }));
   }
@@ -272,7 +281,10 @@ const groupedSections = computed(() => {
     sections.push(reactive({
       id: null,
       name: 'Ungrouped',
-      recordings: groupMap.get(null)!,
+      recordings: groupMap.get(null)!.sort((a, b) => {
+          if (a.hasProfile !== b.hasProfile) return a.hasProfile ? -1 : 1;
+          return b.uploadedAt - a.uploadedAt;
+        }),
       collapsed: false,
     }));
   }

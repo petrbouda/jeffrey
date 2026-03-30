@@ -76,8 +76,8 @@ const getStatusClass = computed(() => {
   return `status-${props.project.status.toLowerCase()}`;
 });
 
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',

@@ -225,7 +225,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
                 recordingInfo.eventSource(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt(),
-                createdAt, false, recording.id());
+                createdAt, false, false, recording.id());
 
         profileInitializer.initialize(profileInfo, null, filePath);
 
@@ -260,7 +260,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, null, null, file.filename(),
                 RecordingEventSource.HEAP_DUMP,
-                createdAt, createdAt, createdAt, true, recording.id());
+                createdAt, createdAt, createdAt, true, false, recording.id());
 
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
         profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(

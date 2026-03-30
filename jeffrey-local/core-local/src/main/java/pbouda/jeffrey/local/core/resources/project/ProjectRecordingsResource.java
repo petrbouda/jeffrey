@@ -91,13 +91,14 @@ public class ProjectRecordingsResource {
                             rec.recordingName(),
                             sizeInBytesTotal,
                             rec.recordingDuration().toMillis(),
-                            InstantUtils.formatInstant(rec.createdAt()),
+                            rec.createdAt().toEpochMilli(),
                             rec.groupId(),
                             rec.eventSource().name(),
                             profileInfo != null,
                             profileInfo != null ? profileInfo.id() : null,
                             profileInfo != null ? profileInfo.name() : null,
                             profileInfo != null && profileInfo.enabled(),
+                            profileInfo != null && profileInfo.modified(),
                             profileManager != null ? profileManager.sizeInBytes() : 0,
                             recordingFiles);
                 })

@@ -44,5 +44,6 @@ public enum GroupLabel {
     MESSAGES,
     ALERTS,
     PROFILE_FRAMES,
+    PROFILE_TOOLS,
     SETTINGS,
 }

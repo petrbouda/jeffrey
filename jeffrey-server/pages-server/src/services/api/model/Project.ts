@@ -21,15 +21,11 @@ import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
 export default class Project {
     constructor(
         public id: string,
-        public originId: string,
         public name: string,
         public label: string | null,
-        public namespace: string | null,
         public createdAt: string,
         public workspaceId: string,
-        public status: RecordingStatus,
-        public sessionCount: number,
-        public isBlocked: boolean) {
+        public status: RecordingStatus) {
     }
 
     static displayName(project: Project): string {

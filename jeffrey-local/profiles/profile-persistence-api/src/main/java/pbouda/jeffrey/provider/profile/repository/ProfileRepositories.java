@@ -84,4 +84,13 @@ public interface ProfileRepositories {
      * @return a new frame repository for the profile
      */
     ProfileFrameRepository newFrameRepository(DataSource dataSource);
+
+    /**
+     * Creates a tools repository for profile data transformation operations
+     * (collapse frames, remove frames, trim time range).
+     *
+     * @param dataSource the profile database connection
+     * @return a new tools repository for the profile
+     */
+    ProfileToolsRepository newToolsRepository(DataSource dataSource);
 }

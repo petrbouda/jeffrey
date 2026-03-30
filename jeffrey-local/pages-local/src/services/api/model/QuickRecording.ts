@@ -22,10 +22,11 @@ export default interface QuickRecording {
     groupId: string | null;
     eventSource: string;
     sizeInBytes: number;
-    uploadedAt: string;
+    uploadedAt: number;
     durationInMillis: number;
     profileId: string | null;
     hasProfile: boolean;
     profileSizeInBytes: number;
+    profileModified: boolean;
     profileName: string | null;
 }

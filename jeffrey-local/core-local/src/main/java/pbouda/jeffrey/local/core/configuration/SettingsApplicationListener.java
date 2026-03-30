@@ -23,8 +23,12 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.boot.context.event.ApplicationContextInitializedEvent;
+import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.event.GenericApplicationListener;
+import org.springframework.core.Ordered;
+import org.springframework.core.ResolvableType;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import pbouda.jeffrey.shared.common.encryption.EncryptionException;
@@ -44,7 +48,14 @@ import java.util.Map;
 
 /**
  * Resolves all application settings and injects them into the Spring Environment
- * before any {@code @Bean} or {@code @ConditionalOnExpression} is evaluated.
+ * before {@code LoggingApplicationListener} configures log levels.
+ *
+ * <p>Listens to two events:
+ * <ol>
+ *   <li>{@code ApplicationEnvironmentPreparedEvent} — injects settings into the Environment
+ *       (runs before {@code LoggingApplicationListener} at order {@code HIGHEST_PRECEDENCE + 20})</li>
+ *   <li>{@code ApplicationContextInitializedEvent} — registers {@code SettingsMetadata} as a singleton bean</li>
+ * </ol>
  *
  * <p>Resolution order:
  * <ol>
@@ -52,27 +63,46 @@ import java.util.Map;
  *   <li>Database overrides for all settings (both properties and secrets)</li>
  *   <li>Secret values are decrypted before injection</li>
  * </ol>
- *
- * <p>This is the single source of truth for settings injection into the Environment.
  */
-public class SettingsContextInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+public class SettingsApplicationListener implements GenericApplicationListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SettingsContextInitializer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SettingsApplicationListener.class);
 
+    private static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 15;
     private static final String DEFAULT_HOME_DIR = System.getProperty("user.home") + "/.jeffrey-local";
     private static final String DB_FILENAME = "jeffrey-data.db";
+
+    private SettingsMetadata settingsMetadata;
 
     private record DbSetting(String name, String value, boolean secret) {
     }
 
     @Override
-    public void initialize(ConfigurableApplicationContext applicationContext) {
-        ConfigurableEnvironment environment = applicationContext.getEnvironment();
+    public int getOrder() {
+        return ORDER;
+    }
 
-        SettingsMetadata metadata = loadSettingsMetadata();
-        applicationContext.getBeanFactory().registerSingleton("settingsMetadata", metadata);
+    @Override
+    public boolean supportsEventType(ResolvableType eventType) {
+        Class<?> type = eventType.getRawClass();
+        return type != null && (
+                ApplicationEnvironmentPreparedEvent.class.isAssignableFrom(type) ||
+                ApplicationContextInitializedEvent.class.isAssignableFrom(type));
+    }
 
-        if (metadata.descriptors().isEmpty()) {
+    @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof ApplicationEnvironmentPreparedEvent envEvent) {
+            onEnvironmentPrepared(envEvent.getEnvironment());
+        } else if (event instanceof ApplicationContextInitializedEvent ctxEvent) {
+            onContextInitialized(ctxEvent);
+        }
+    }
+
+    private void onEnvironmentPrepared(ConfigurableEnvironment environment) {
+        settingsMetadata = loadSettingsMetadata();
+
+        if (settingsMetadata.descriptors().isEmpty()) {
             return;
         }
 
@@ -82,7 +112,7 @@ public class SettingsContextInitializer implements ApplicationContextInitializer
         Map<String, Object> properties = new HashMap<>();
 
         // Start with HOCON defaults (properties + empty-string secret defaults)
-        for (SettingDescriptor descriptor : metadata.descriptors()) {
+        for (SettingDescriptor descriptor : settingsMetadata.descriptors()) {
             properties.put(descriptor.name(), descriptor.defaultValue());
         }
 
@@ -111,6 +141,13 @@ public class SettingsContextInitializer implements ApplicationContextInitializer
             environment.getPropertySources()
                     .addFirst(new MapPropertySource("jeffrey-db-settings", properties));
             LOG.info("Injected settings into Spring Environment: keys={}", properties.keySet());
+        }
+    }
+
+    private void onContextInitialized(ApplicationContextInitializedEvent event) {
+        if (settingsMetadata != null) {
+            event.getApplicationContext().getBeanFactory()
+                    .registerSingleton("settingsMetadata", settingsMetadata);
         }
     }
 

@@ -61,6 +61,11 @@ public interface ProfileRepository {
     ProfileInfo update(String name);
 
     /**
+     * Marks the profile as modified by tools (rename frames, collapse frames, etc.).
+     */
+    void markModified();
+
+    /**
      * Delete the profile metadata from the platform database.
      */
     void delete();

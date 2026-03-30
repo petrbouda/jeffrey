@@ -32,6 +32,7 @@ public enum FrameType {
     ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)"),
     LAMBDA_SYNTHETIC("Lambda (Synthetic)"),
+    COLLAPSED_SYNTHETIC("Collapsed", false, "Collapsed (Synthetic)", true),
     UNKNOWN("Unknown", false, "Unknown"),
     HIGHLIGHTED_WARNING("Highlighted Warning");
 
@@ -79,7 +80,7 @@ public enum FrameType {
 
     public static FrameType fromCode(String code) {
         for (FrameType value : VALUES) {
-            if (value.name().equals(code) || value.code.equalsIgnoreCase(code)) {
+            if (value.name().equals(code) || (value.code != null && value.code.equalsIgnoreCase(code))) {
                 return value;
             }
         }

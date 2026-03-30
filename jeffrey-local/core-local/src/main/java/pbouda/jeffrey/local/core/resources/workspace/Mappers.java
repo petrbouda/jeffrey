@@ -25,7 +25,7 @@ import pbouda.jeffrey.local.core.manager.project.ProjectManager.DetailedProjectI
 import pbouda.jeffrey.local.core.resources.response.ProjectResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceEventResponse;
 import pbouda.jeffrey.local.core.resources.response.WorkspaceResponse;
-import pbouda.jeffrey.shared.common.InstantUtils;
+
 
 public abstract class Mappers {
 
@@ -62,7 +62,7 @@ public abstract class Mappers {
                 projectInfo.name(),
                 projectInfo.label(),
                 projectInfo.namespace(),
-                InstantUtils.formatInstant(projectInfo.createdAt()),
+                projectInfo.createdAt().toEpochMilli(),
                 projectInfo.workspaceId(),
                 detail.status(),
                 detail.profileCount(),

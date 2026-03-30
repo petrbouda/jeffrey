@@ -31,6 +31,7 @@ export default class FrameColorResolver {
         'ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC': '#00B4D8',
         'BLOCKING_OBJECT_SYNTHETIC': '#e17e5a',
         'LAMBDA_SYNTHETIC': '#b3c6ff',
+        'COLLAPSED_SYNTHETIC': '#E8D5F5',
         'UNKNOWN': '#000000',
     };
 
@@ -48,6 +49,7 @@ export default class FrameColorResolver {
         'ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC': 'Allocated Outside TLAB (Synthetic)',
         'BLOCKING_OBJECT_SYNTHETIC': 'Blocking Object (Synthetic)',
         'LAMBDA_SYNTHETIC': 'Lambda (Synthetic)',
+        'COLLAPSED_SYNTHETIC': 'Collapsed (Synthetic)',
         'UNKNOWN': 'Unknown',
         'HIGHLIGHTED_WARNING': 'Highlighted Warning',
     };

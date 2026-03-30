@@ -30,6 +30,7 @@ public record ProfileWithContextResponse(
         String createdAt,
         RecordingEventSource eventSource,
         boolean enabled,
+        boolean modified,
         long durationInMillis,
         long sizeInBytes) {
 }

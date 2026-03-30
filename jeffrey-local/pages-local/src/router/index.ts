@@ -224,6 +224,12 @@ const profileChildRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'tools/collapse-frames',
+    name: 'profile-tools-collapse-frames',
+    component: () => import('@/views/profiles/detail/ProfileToolsCollapseFrames.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'container/configuration',
     name: 'profile-container-configuration',
     component: () => import('@/views/profiles/detail/ProfileContainerConfiguration.vue'),

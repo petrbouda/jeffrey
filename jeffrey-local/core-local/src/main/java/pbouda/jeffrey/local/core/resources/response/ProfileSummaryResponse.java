@@ -29,6 +29,7 @@ public record ProfileSummaryResponse(
         String createdAt,
         RecordingEventSource eventSource,
         boolean enabled,
+        boolean modified,
         long durationInMillis,
         long sizeInBytes) {
 
@@ -40,6 +41,7 @@ public record ProfileSummaryResponse(
                 InstantUtils.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource(),
                 profileInfo.enabled(),
+                profileInfo.modified(),
                 profileInfo.duration().toMillis(),
                 profileManager.sizeInBytes());
     }
@@ -51,6 +53,7 @@ public record ProfileSummaryResponse(
                 InstantUtils.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource(),
                 profileInfo.enabled(),
+                profileInfo.modified(),
                 profileInfo.duration().toMillis(),
                 sizeInBytes);
     }

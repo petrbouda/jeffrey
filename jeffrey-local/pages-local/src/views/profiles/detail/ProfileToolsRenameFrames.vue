@@ -46,7 +46,7 @@
             />
           </div>
         </div>
-        <div class="col-auto d-flex align-items-center" style="margin-top: 1.4rem;">
+        <div class="col-auto d-flex" style="margin-top: 1.4rem; height: 38px; align-items: center;">
           <i class="bi bi-arrow-right text-muted"></i>
         </div>
         <div class="col">

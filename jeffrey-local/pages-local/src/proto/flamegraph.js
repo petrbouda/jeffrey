@@ -1842,6 +1842,7 @@ export const pbouda = $root.pbouda = (() => {
                             case 12:
                             case 13:
                             case 14:
+                            case 15:
                                 break;
                             }
                         if (message.leftWeight != null && message.hasOwnProperty("leftWeight"))
@@ -1972,6 +1973,10 @@ export const pbouda = $root.pbouda = (() => {
                         case "FRAME_TYPE_HIGHLIGHTED_WARNING":
                         case 14:
                             message.type = 14;
+                            break;
+                        case "FRAME_TYPE_COLLAPSED_SYNTHETIC":
+                        case 15:
+                            message.type = 15;
                             break;
                         }
                         if (object.leftWeight != null)
@@ -2155,6 +2160,7 @@ export const pbouda = $root.pbouda = (() => {
                  * @property {number} FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC=12 FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC value
                  * @property {number} FRAME_TYPE_LAMBDA_SYNTHETIC=13 FRAME_TYPE_LAMBDA_SYNTHETIC value
                  * @property {number} FRAME_TYPE_HIGHLIGHTED_WARNING=14 FRAME_TYPE_HIGHLIGHTED_WARNING value
+                 * @property {number} FRAME_TYPE_COLLAPSED_SYNTHETIC=15 FRAME_TYPE_COLLAPSED_SYNTHETIC value
                  */
                 proto.FrameType = (function() {
                     const valuesById = {}, values = Object.create(valuesById);
@@ -2173,6 +2179,7 @@ export const pbouda = $root.pbouda = (() => {
                     values[valuesById[12] = "FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC"] = 12;
                     values[valuesById[13] = "FRAME_TYPE_LAMBDA_SYNTHETIC"] = 13;
                     values[valuesById[14] = "FRAME_TYPE_HIGHLIGHTED_WARNING"] = 14;
+                    values[valuesById[15] = "FRAME_TYPE_COLLAPSED_SYNTHETIC"] = 15;
                     return values;
                 })();
 

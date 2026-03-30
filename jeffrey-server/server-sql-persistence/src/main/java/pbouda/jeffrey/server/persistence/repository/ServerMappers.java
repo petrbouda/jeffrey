@@ -59,6 +59,7 @@ public abstract class ServerMappers {
                     ServerMappers.instant(rs, "recording_finished_at"),
                     ServerMappers.instant(rs, "created_at"),
                     safeParseTimestamp(rs.getLong("enabled_at")) != null,
+                    false,
                     null);
         };
     }

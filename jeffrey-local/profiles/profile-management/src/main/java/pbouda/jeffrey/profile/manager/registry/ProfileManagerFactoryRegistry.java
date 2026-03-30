@@ -23,6 +23,8 @@ import pbouda.jeffrey.profile.manager.ProfileConfigurationManager;
 import pbouda.jeffrey.profile.manager.ProfileCustomManager;
 import pbouda.jeffrey.profile.manager.ProfileFeaturesManager;
 import pbouda.jeffrey.profile.manager.ProfileToolsManager;
+import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager;
+
 
 public record ProfileManagerFactoryRegistry(
         VisualizationFactories visualization,
@@ -32,5 +34,6 @@ public record ProfileManagerFactoryRegistry(
         ProfileFeaturesManager.Factory features,
         AdditionalFilesManager.Factory additionalFiles,
         ProfileToolsManager.Factory tools,
+        CollapseFramesManager.Factory collapseFrames,
         ProfileCustomManager.Factory custom) {
 }

@@ -34,6 +34,10 @@ import pbouda.jeffrey.profile.guardian.ParsingGuardianProvider;
 import pbouda.jeffrey.profile.heapdump.HeapLoader;
 import pbouda.jeffrey.profile.heapdump.SimpleHeapLoader;
 import pbouda.jeffrey.profile.manager.*;
+import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager;
+import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManagerImpl;
+
+
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializerImpl;
 import pbouda.jeffrey.profile.manager.custom.GrpcManager;
@@ -141,6 +145,16 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
+    public CollapseFramesManager.Factory collapseFramesManagerFactory() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new CollapseFramesManagerImpl(
+                    profileRepositories.newToolsRepository(profileDb),
+                    profileRepositories.newProfileCacheRepository(profileDb));
+        };
+    }
+
+    @Bean
     public ProfileManagerFactoryRegistry profileManagerFactoryRegistry(
             VisualizationFactories visualizationFactories,
             AnalysisFactories analysisFactories,
@@ -149,6 +163,7 @@ public class ProfileFactoriesConfiguration {
             ProfileFeaturesManager.Factory featuresFactory,
             AdditionalFilesManager.Factory additionalFilesFactory,
             ProfileToolsManager.Factory toolsFactory,
+            CollapseFramesManager.Factory collapseFramesFactory,
             ProfileCustomManager.Factory customFactory) {
 
         return new ProfileManagerFactoryRegistry(
@@ -159,6 +174,7 @@ public class ProfileFactoriesConfiguration {
                 featuresFactory,
                 additionalFilesFactory,
                 toolsFactory,
+                collapseFramesFactory,
                 customFactory);
     }
 

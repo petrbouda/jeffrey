@@ -18,6 +18,9 @@
 
 package pbouda.jeffrey.profile.manager;
 
+import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager;
+
+
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 
 import java.util.function.Function;
@@ -68,9 +71,13 @@ public interface ProfileManager {
 
     ProfileToolsManager toolsManager();
 
+    CollapseFramesManager collapseFramesManager();
+
     ProfileCustomManager custom();
 
     ProfileInfo updateName(String name);
+
+    void markModified();
 
     /**
      * Returns the total size of the profile directory in bytes.

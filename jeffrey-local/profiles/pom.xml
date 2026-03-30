@@ -47,6 +47,7 @@
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>
+        <module>tools</module>
         <module>duckdb-ai-mcp</module>
         <module>heap-dump-ai-mcp</module>
     </modules>
@@ -143,6 +144,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>heap-dump-ai-mcp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>tools</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- Service modules that profile depends on -->

@@ -21,6 +21,9 @@ package pbouda.jeffrey.profile.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
+import pbouda.jeffrey.profile.tools.collapse.CollapseFramesManager;
+
+
 import pbouda.jeffrey.local.persistence.repository.ProfileRepository;
 import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
@@ -149,6 +152,13 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public CollapseFramesManager collapseFramesManager() {
+        return registry.collapseFrames().apply(profileInfo);
+    }
+
+
+
+    @Override
     public ProfileCustomManager custom() {
         return registry.custom().apply(this);
     }
@@ -162,6 +172,11 @@ public class ProfileManagerImpl implements ProfileManager {
                 profileInfo.projectId(), profileInfo.id(), profileInfo.name(), name);
 
         return updatedProfile;
+    }
+
+    @Override
+    public void markModified() {
+        this.profileRepository.markModified();
     }
 
     @Override

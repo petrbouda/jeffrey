@@ -25,13 +25,14 @@ public record RecordingsResponse(
         String name,
         long sizeInBytes,
         long durationInMillis,
-        String uploadedAt,
+        long uploadedAt,
         String groupId,
         String sourceType,
         boolean hasProfile,
         String profileId,
         String profileName,
         boolean profileEnabled,
+        boolean profileModified,
         long profileSizeInBytes,
         List<RecordingFileResponse> recordingFiles) {
 }

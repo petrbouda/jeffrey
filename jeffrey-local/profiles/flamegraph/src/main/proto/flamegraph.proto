@@ -93,6 +93,7 @@ enum FrameType {
     FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC = 12;
     FRAME_TYPE_LAMBDA_SYNTHETIC = 13;
     FRAME_TYPE_HIGHLIGHTED_WARNING = 14;
+    FRAME_TYPE_COLLAPSED_SYNTHETIC = 15;
 }
 
 // Position information for source code navigation

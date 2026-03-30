@@ -171,7 +171,10 @@ public class ProfileResource {
 
     @Path("/tools")
     public ToolsResource toolsResource() {
-        return new ToolsResource(profileManager.toolsManager());
+        return new ToolsResource(
+                profileManager,
+                profileManager.toolsManager(),
+                profileManager.collapseFramesManager());
     }
 
     @Path("/ai-analysis")

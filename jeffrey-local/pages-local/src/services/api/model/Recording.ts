@@ -25,7 +25,7 @@ export default class Recording {
         public name: string,
         public sizeInBytes: number,
         public durationInMillis: number,
-        public uploadedAt: string,
+        public uploadedAt: number,
         public sourceType: string,
         public recordingFiles: RecordingFile[],
         public path?: string,
@@ -34,6 +34,7 @@ export default class Recording {
         public profileId?: string | null,
         public profileName?: string | null,
         public profileEnabled?: boolean,
+        public profileModified?: boolean,
         public profileSizeInBytes?: number,
     ) {
     }

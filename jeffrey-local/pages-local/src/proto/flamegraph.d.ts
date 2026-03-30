@@ -797,7 +797,8 @@ export namespace pbouda {
                     FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC = 11,
                     FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC = 12,
                     FRAME_TYPE_LAMBDA_SYNTHETIC = 13,
-                    FRAME_TYPE_HIGHLIGHTED_WARNING = 14
+                    FRAME_TYPE_HIGHLIGHTED_WARNING = 14,
+                    FRAME_TYPE_COLLAPSED_SYNTHETIC = 15
                 }
 
                 /** Properties of a FramePosition. */

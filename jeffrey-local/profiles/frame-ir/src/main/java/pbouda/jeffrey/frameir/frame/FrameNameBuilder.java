@@ -39,6 +39,7 @@ public class FrameNameBuilder {
                 JfrClass jfrClass = frame.method().clazz();
                 yield jfrClass.className() + "#" + frame.method().methodName();
             }
+            case COLLAPSED_SYNTHETIC -> frame.method().clazz().className();
             case CPP, KERNEL, NATIVE -> frame.method().methodName();
             case THREAD_NAME_SYNTHETIC -> methodNameBasedThread(thread);
             case UNKNOWN -> throw new IllegalArgumentException("Unknown Frame occurred in JFR");

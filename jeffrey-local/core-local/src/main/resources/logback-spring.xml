@@ -18,6 +18,7 @@
 
 <configuration>
     <logger name="org.flywaydb" level="WARN" />
+    <logger name="org.openjdk.jmc.flightrecorder.internal.parser" level="ERROR" />
 
     <springProperty scope="context" name="HOME_DIR" source="jeffrey.local.home.dir"
                     defaultValue="${user.home}/.jeffrey-local"/>

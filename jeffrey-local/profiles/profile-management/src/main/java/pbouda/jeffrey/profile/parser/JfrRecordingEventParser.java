@@ -33,6 +33,8 @@ import pbouda.jeffrey.profile.parser.chunk.JfrParser;
 import pbouda.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.profile.parser.data.JfrSpecificDataProvider;
 
+import java.time.Duration;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
@@ -72,10 +74,17 @@ public class JfrRecordingEventParser implements RecordingEventParser {
             return new JfrEventReader(eventWriter.newSingleThreadedWriter());
         };
 
+        long start = System.nanoTime();
         JdkRecordingIterators.parallelAndWait(recordings, eventProcessor);
+        LOG.debug("Parsing JFR recordings completed: duration_in_sec={}",
+                Duration.ofNanos(System.nanoTime() - start).toSeconds());
+
+        start = System.nanoTime();
         List<RecordingTypeSpecificData> recordingTypeSpecificData = specificDataProviders.stream()
                 .map(provider -> provider.provide(recordings))
                 .toList();
+        LOG.debug("Collecting specific data completed: duration_in_sec={}",
+                Duration.ofNanos(System.nanoTime() - start).toSeconds());
 
         return new ParserResult(recordingTypeSpecificData);
     }

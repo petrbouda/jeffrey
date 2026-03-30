@@ -125,13 +125,15 @@ public class QuickAnalysisResource {
 
     private QuickRecordingResponse toRecordingResponse(Recording recording) {
         long profileSizeInBytes = 0;
+        boolean profileModified = false;
         if (recording.hasProfile()) {
             ProfileManager profileManager = quickAnalysisManager.profile(recording.profileId()).orElse(null);
             if (profileManager != null) {
                 profileSizeInBytes = profileManager.sizeInBytes();
+                profileModified = profileManager.info().modified();
             }
         }
-        return QuickRecordingResponse.from(recording, profileSizeInBytes);
+        return QuickRecordingResponse.from(recording, profileSizeInBytes, profileModified);
     }
 
     @PUT

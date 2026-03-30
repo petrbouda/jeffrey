@@ -31,7 +31,7 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
-import pbouda.jeffrey.local.core.configuration.SettingsContextInitializer;
+import pbouda.jeffrey.local.core.configuration.SettingsApplicationListener;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 
 @SpringBootApplication
@@ -52,7 +52,7 @@ public class LocalApplication implements WebMvcConfigurer {
     private static void runApplication(String[] args) {
         SpringApplication app = new SpringApplication(LocalApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
-        app.addInitializers(new SettingsContextInitializer());
+        app.addListeners(new SettingsApplicationListener());
         app.run(args);
     }
 

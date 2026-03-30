@@ -84,15 +84,17 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
     @Override
     public void deleteRecordingWithFiles(String recordingId) {
-        String projectCondition = projectId != null
-                ? "project_id = '" + projectId + "'"
-                : "project_id IS NULL";
-
+        // Avoid using 'project_id IS NULL' in DELETE — triggers a DuckDB ART index bug.
+        // Recording IDs are UUIDs (globally unique), so the project_id filter is redundant for deletes.
         //language=sql
-        String sql = "DELETE FROM recording_files WHERE " + projectCondition + " AND recording_id = '" + recordingId + "';"
-                + "DELETE FROM recordings WHERE " + projectCondition + " AND id = '" + recordingId + "'";
+        String deleteFilesSql = "DELETE FROM recording_files WHERE recording_id = :recording_id";
+        //language=sql
+        String deleteRecordingSql = "DELETE FROM recordings WHERE id = :recording_id";
 
-        databaseClient.delete(StatementLabel.DELETE_RECORDING, sql);
+        var params = new MapSqlParameterSource().addValue("recording_id", recordingId);
+
+        databaseClient.delete(StatementLabel.DELETE_RECORDING_FILES, deleteFilesSql, params);
+        databaseClient.delete(StatementLabel.DELETE_RECORDING, deleteRecordingSql, params);
     }
 
     @Override
@@ -259,8 +261,8 @@ public class JdbcRecordingRepository implements RecordingRepository {
         recordingIds.forEach(this::deleteRecordingWithFiles);
 
         //language=sql
-        String deleteGroupSql = "DELETE FROM recording_groups WHERE " + projectIdCondition + " AND id = :group_id";
-        databaseClient.delete(StatementLabel.DELETE_GROUP, deleteGroupSql, params);
+        String deleteGroupSql = "DELETE FROM recording_groups WHERE id = :group_id";
+        databaseClient.delete(StatementLabel.DELETE_GROUP, deleteGroupSql, new MapSqlParameterSource().addValue("group_id", groupId));
     }
 
     @Override

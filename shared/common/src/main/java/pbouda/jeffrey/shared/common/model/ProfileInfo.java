@@ -44,6 +44,7 @@ public record ProfileInfo(
         Instant profilingFinishedAt,
         Instant createdAt,
         boolean enabled,
+        boolean modified,
         String recordingId) {
 
     public Duration duration() {

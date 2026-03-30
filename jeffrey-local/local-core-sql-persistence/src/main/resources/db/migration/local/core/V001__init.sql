@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS profiles
     recording_started_at  TIMESTAMPTZ,
     recording_finished_at TIMESTAMPTZ,
     enabled_at            TIMESTAMPTZ,
+    modified              BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (profile_id)
 );
 

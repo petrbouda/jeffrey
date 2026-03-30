@@ -150,6 +150,7 @@ public class ProfilesResource {
                 InstantUtils.formatInstant(profileInfo.createdAt()),
                 profileInfo.eventSource(),
                 profileInfo.enabled(),
+                profileInfo.modified(),
                 profileInfo.duration().toMillis(),
                 profileManager.sizeInBytes());
     }
