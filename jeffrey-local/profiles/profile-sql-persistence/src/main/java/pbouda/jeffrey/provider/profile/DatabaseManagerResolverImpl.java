@@ -29,25 +29,14 @@ import javax.sql.DataSource;
  */
 public class DatabaseManagerResolverImpl implements DatabaseManagerResolver {
 
-    private final DatabaseManager regularProfilesManager;
-    private final DatabaseManager quickAnalysisManager;
+    private final DatabaseManager databaseManager;
 
-    public DatabaseManagerResolverImpl(
-            DatabaseManager regularProfilesManager,
-            DatabaseManager quickAnalysisManager) {
-        this.regularProfilesManager = regularProfilesManager;
-        this.quickAnalysisManager = quickAnalysisManager;
+    public DatabaseManagerResolverImpl(DatabaseManager databaseManager) {
+        this.databaseManager = databaseManager;
     }
 
     @Override
     public DataSource open(ProfileInfo profileInfo) {
-        if (isQuickAnalysisProfile(profileInfo)) {
-            return quickAnalysisManager.open(profileInfo.id());
-        }
-        return regularProfilesManager.open(profileInfo.id());
-    }
-
-    private boolean isQuickAnalysisProfile(ProfileInfo profileInfo) {
-        return profileInfo.projectId() == null;
+        return databaseManager.open(profileInfo.id());
     }
 }

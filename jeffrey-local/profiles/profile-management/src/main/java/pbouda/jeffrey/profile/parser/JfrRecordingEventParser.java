@@ -20,20 +20,14 @@ package pbouda.jeffrey.profile.parser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
+import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
+import pbouda.jeffrey.profile.parser.chunk.JfrParser;
+import pbouda.jeffrey.provider.profile.EventWriter;
+import pbouda.jeffrey.provider.profile.RecordingEventParser;
 import pbouda.jeffrey.shared.common.compression.Lz4Compressor;
 import pbouda.jeffrey.shared.common.filesystem.TempDirFactory;
 import pbouda.jeffrey.shared.common.filesystem.TempDirectory;
-import pbouda.jeffrey.jfrparser.jdk.EventProcessor;
-import pbouda.jeffrey.jfrparser.jdk.JdkRecordingIterators;
-import pbouda.jeffrey.provider.profile.EventWriter;
-import pbouda.jeffrey.provider.profile.RecordingEventParser;
-import pbouda.jeffrey.provider.profile.model.parser.ParserResult;
-import pbouda.jeffrey.provider.profile.model.parser.RecordingTypeSpecificData;
-import pbouda.jeffrey.profile.parser.chunk.JfrParser;
-import pbouda.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
-import pbouda.jeffrey.profile.parser.data.JfrSpecificDataProvider;
-
-import java.time.Duration;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -51,12 +45,8 @@ public class JfrRecordingEventParser implements RecordingEventParser {
         this.lz4Compressor = lz4Compressor;
     }
 
-    private final List<JfrSpecificDataProvider> specificDataProviders =
-            List.of(new AutoAnalysisDataProvider());
-
-
     @Override
-    public ParserResult start(EventWriter eventWriter, Path recording) {
+    public void start(EventWriter eventWriter, Path recording) {
         try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
             LOG.info("Created the profile's temporary folder: {}", tempDir.path());
 
@@ -65,27 +55,10 @@ public class JfrRecordingEventParser implements RecordingEventParser {
                     : recording;
 
             List<Path> recordingChunks = JfrParser.disassemble(decompressed, tempDir.path().resolve("chunks"));
-            return _start(eventWriter, recordingChunks);
+            Supplier<EventProcessor<Void>> eventProcessor =
+                    () -> new JfrEventReader(eventWriter.newSingleThreadedWriter());
+
+            JdkRecordingIterators.parallelAndWait(recordingChunks, eventProcessor);
         }
-    }
-
-    private ParserResult _start(EventWriter eventWriter, List<Path> recordings) {
-        Supplier<EventProcessor<Void>> eventProcessor = () -> {
-            return new JfrEventReader(eventWriter.newSingleThreadedWriter());
-        };
-
-        long start = System.nanoTime();
-        JdkRecordingIterators.parallelAndWait(recordings, eventProcessor);
-        LOG.debug("Parsing JFR recordings completed: duration_in_sec={}",
-                Duration.ofNanos(System.nanoTime() - start).toSeconds());
-
-        start = System.nanoTime();
-        List<RecordingTypeSpecificData> recordingTypeSpecificData = specificDataProviders.stream()
-                .map(provider -> provider.provide(recordings))
-                .toList();
-        LOG.debug("Collecting specific data completed: duration_in_sec={}",
-                Duration.ofNanos(System.nanoTime() - start).toSeconds());
-
-        return new ParserResult(recordingTypeSpecificData);
     }
 }

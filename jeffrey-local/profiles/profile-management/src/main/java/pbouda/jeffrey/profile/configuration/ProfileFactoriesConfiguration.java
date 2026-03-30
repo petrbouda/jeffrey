@@ -18,10 +18,10 @@
 
 package pbouda.jeffrey.profile.configuration;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.beans.factory.annotation.Qualifier;
 import pbouda.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
 import pbouda.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
 import pbouda.jeffrey.generator.subsecond.db.api.DbBasedSubSecondGeneratorImpl;
@@ -54,7 +54,7 @@ import pbouda.jeffrey.profile.settings.ActiveSettingsProvider;
 import pbouda.jeffrey.profile.settings.CachedActiveSettingsProvider;
 import pbouda.jeffrey.profile.thread.CachingThreadProvider;
 import pbouda.jeffrey.profile.thread.DbBasedThreadProvider;
-import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
@@ -66,11 +66,18 @@ import pbouda.jeffrey.shared.persistence.DatabaseManager;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 
 import javax.sql.DataSource;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 @Import(ProfileCustomFactoriesConfiguration.class)
 public class ProfileFactoriesConfiguration {
+
+    public static final String RECORDINGS_PATH = "recordings-path";
+    public static final String PROFILES_PATH = "profiles-path";
 
     private final ProfileRepositories profileRepositories;
     private final DatabaseManager profileDatabaseProvider;
@@ -180,22 +187,15 @@ public class ProfileFactoriesConfiguration {
 
     @Bean
     public ProfileManager.Factory profileManager(
-            LocalCoreRepositories localCoreRepositories,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
             ProfileManagerFactoryRegistry registry,
-            @Qualifier("profilesBaseDir") Path profilesBaseDir,
-            @Qualifier("quickProfilesBaseDir") Path quickProfilesBaseDir) {
+            @Qualifier(PROFILES_PATH) Path profilesPath) {
 
-        return profileInfo -> {
-            // Route to correct base directory based on profile type
-            Path baseDir = profileInfo.projectId() == null
-                    ? quickProfilesBaseDir
-                    : profilesBaseDir;
-            return new ProfileManagerImpl(
-                    profileInfo,
-                    localCoreRepositories.newProfileRepository(profileInfo.id()),
-                    registry,
-                    baseDir);
-        };
+        return profileInfo -> new ProfileManagerImpl(
+                profileInfo,
+                localCorePersistenceProvider.localCoreRepositories().newProfileRepository(profileInfo.id()),
+                registry,
+                profilesPath);
     }
 
     @Bean
@@ -216,12 +216,38 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory() {
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
+            RecordingStorage recordingStorage,
+            @Qualifier(RECORDINGS_PATH) Path recordingsPath) {
+
         return profileInfo -> {
             var profileDb = databaseManagerResolver.open(profileInfo);
             ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
-            return new AutoAnalysisManagerImpl(cacheRepository);
+
+            Supplier<Optional<Path>> recordingPathResolver;
+            if (profileInfo.projectId() != null) {
+                recordingPathResolver = () -> recordingStorage
+                        .projectRecordingStorage(profileInfo.projectId())
+                        .findRecording(profileInfo.recordingId());
+            } else {
+                recordingPathResolver = () -> findQuickRecording(recordingsPath, profileInfo.recordingId());
+            }
+
+            return new AutoAnalysisManagerImpl(cacheRepository, recordingPathResolver);
         };
+    }
+
+    private static Optional<Path> findQuickRecording(Path recordingsPath, String recordingId) {
+        if (recordingId == null || !Files.exists(recordingsPath)) {
+            return Optional.empty();
+        }
+        try (var stream = Files.list(recordingsPath)) {
+            return stream
+                    .filter(p -> p.getFileName().toString().startsWith(recordingId + "-"))
+                    .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     @Bean
@@ -386,21 +412,21 @@ public class ProfileFactoriesConfiguration {
     @Bean
     public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
             RecordingStorage recordingStorage,
-            @Qualifier("profilesBaseDir") Path profilesBaseDir,
-            @Qualifier("quickProfilesBaseDir") Path quickProfilesBaseDir) {
+            @Qualifier(PROFILES_PATH) Path profilesPath) {
         return profileInfo -> {
+            Path heapDumpAnalysisPath = profilesPath
+                    .resolve(profileInfo.id())
+                    .resolve("heap-dump-analysis");
+
             // Quick Analysis profiles don't have a project - return no-op implementation
             if (profileInfo.projectId() == null) {
-                Path heapDumpAnalysisPath = quickProfilesBaseDir
-                        .resolve(profileInfo.id())
-                        .resolve("heap-dump-analysis");
                 return new NoOpAdditionalFilesManager(heapDumpAnalysisPath);
             }
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new AdditionalFilesManagerImpl(
                     profileRepositories.newProfileCacheRepository(profileDb),
                     recordingStorage.projectRecordingStorage(profileInfo.projectId()),
-                    profilesBaseDir.resolve(profileInfo.id()).resolve("heap-dump-analysis"));
+                    heapDumpAnalysisPath);
         };
     }
 

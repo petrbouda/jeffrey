@@ -29,26 +29,24 @@ import pbouda.jeffrey.local.core.manager.ProfilesManager;
 import pbouda.jeffrey.local.core.manager.ProfilesManagerImpl;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializerImpl;
-import pbouda.jeffrey.profile.ProfileInitializer;
-import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
-import pbouda.jeffrey.profile.manager.ProfileManager;
-import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.local.persistence.DuckDBLocalCorePersistenceProvider;
 import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import pbouda.jeffrey.profile.ProfileInitializer;
+import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
+import pbouda.jeffrey.profile.configuration.ProfilesConfiguration;
+import pbouda.jeffrey.profile.manager.ProfileManager;
+import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.StringUtils;
-import pbouda.jeffrey.shared.common.filesystem.FileSystemUtils;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
@@ -92,27 +90,9 @@ public class AppConfiguration {
 
     @Bean
     public DatabaseManagerResolver databaseManagerResolver(
-            ProfilePersistenceProvider profilePersistenceProvider,
-            Clock clock,
-            LocalJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.local.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
+            ProfilePersistenceProvider profilePersistenceProvider) {
 
-        ProfilePersistenceProvider quickAnalysisProvider =
-                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.quickProfiles(), frameResolutionMode);
-
-        return new DatabaseManagerResolverImpl(
-                profilePersistenceProvider.databaseManager(),
-                quickAnalysisProvider.databaseManager());
-    }
-
-    @Bean
-    public LocalCoreRepositories platformRepositories(LocalCorePersistenceProvider localCorePersistenceProvider) {
-        return localCorePersistenceProvider.localCoreRepositories();
-    }
-
-    @Bean
-    public DatabaseClientProvider databaseClientProvider(LocalCorePersistenceProvider localCorePersistenceProvider) {
-        return localCorePersistenceProvider.databaseClientProvider();
+        return new DatabaseManagerResolverImpl(profilePersistenceProvider.databaseManager());
     }
 
     @Bean
@@ -130,63 +110,49 @@ public class AppConfiguration {
         return jeffreyDirs;
     }
 
-    @Bean("profilesBaseDir")
-    public Path profilesBaseDir(LocalJeffreyDirs jeffreyDirs) {
-        return jeffreyDirs.profiles();
-    }
-
-    @Bean("quickProfilesBaseDir")
-    public Path quickProfilesBaseDir(LocalJeffreyDirs jeffreyDirs) {
-        return jeffreyDirs.quickProfiles();
-    }
-
     @Bean
     public ProfilesManager.Factory profilesManager(
             Clock applicationClock,
-            LocalCoreRepositories localCoreRepositories,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
             ProfileManager.Factory profileFactory,
             RecordingStorage recordingStorage,
             ProfileInitializer profileInitializer) {
 
+        LocalCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
         return projectInfo ->
                 new ProfilesManagerImpl(
                         applicationClock,
                         projectInfo,
                         localCoreRepositories,
-                        localCoreRepositories.newRecordingRepository(projectInfo.id()),
                         recordingStorage.projectRecordingStorage(projectInfo.id()),
                         profileFactory,
                         profileInitializer);
     }
 
+    @Bean(ProfileFactoriesConfiguration.PROFILES_PATH)
+    public Path profilesPath(LocalJeffreyDirs jeffreyDirs) {
+        return jeffreyDirs.profiles();
+    }
+
+    @Bean(ProfileFactoriesConfiguration.RECORDINGS_PATH)
+    public Path recordingsPath(LocalJeffreyDirs jeffreyDirs) {
+        return jeffreyDirs.recordings();
+    }
+
     @Bean
-    public RecordingStorage projectRecordingStorage(
-            LocalJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.local.project.recording-storage.path:}") String recordingStoragePath) {
-
-        Path recordingsPath = recordingStoragePath.isEmpty()
-                ? jeffreyDirs.homeDir().resolve("recordings")
-                : Path.of(recordingStoragePath);
-
-        if (Files.exists(recordingsPath) && !Files.isDirectory(recordingsPath)) {
-            throw new IllegalArgumentException("Recordings path must be a directory");
-        } else if (!Files.exists(recordingsPath)) {
-            FileSystemUtils.createDirectories(recordingsPath);
-        }
-
-        List<SupportedRecordingFile> supportedTypes =
-                List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR);
-
-        return new FilesystemRecordingStorage(recordingsPath, supportedTypes);
+    public RecordingStorage projectRecordingStorage(LocalJeffreyDirs jeffreyDirs) {
+        return new FilesystemRecordingStorage(
+                jeffreyDirs.recordings(), List.of(SupportedRecordingFile.JFR_LZ4, SupportedRecordingFile.JFR));
     }
 
     @Bean
     public ProjectRecordingInitializer.Factory projectRecordingInitializer(
             Clock applicationClock,
             RecordingStorage recordingStorage,
-            LocalCoreRepositories localCoreRepositories,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
             LocalJeffreyDirs jeffreyDirs) {
 
+        LocalCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
         return projectInfo -> new ProjectRecordingInitializerImpl(
                 applicationClock,
                 projectInfo,
@@ -194,5 +160,4 @@ public class AppConfiguration {
                 localCoreRepositories.newRecordingRepository(projectInfo.id()),
                 new JfrRecordingInformationParser(jeffreyDirs));
     }
-
 }

@@ -252,6 +252,10 @@ jeffrey/
   - Use `clock.instant()` to get the current time
   - Example: `private final Clock clock; ... Instant now = clock.instant();`
   - This allows tests to use fixed time via `Clock.fixed()` for deterministic behavior
+- **Elapsed Time Measuring**: Use `pbouda.jeffrey.shared.common.measure.Measuring` utility instead of manual `System.nanoTime()` bookkeeping:
+  - `Measuring.r(runnable)` — runs a `Runnable`, returns `Duration`
+  - `Measuring.s(supplier)` — runs a `Supplier<T>`, returns `Elapsed<T>` (duration + result)
+  - Example: `Duration elapsed = Measuring.r(() -> doWork()); LOG.debug("Work completed: duration_in_sec={}", elapsed.toSeconds());`
 
 ### Frontend (Vue/TypeScript)
 - **Components**: PascalCase for component names

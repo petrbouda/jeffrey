@@ -32,4 +32,6 @@ public interface AutoAnalysisManager {
 
     List<AutoAnalysisResult> analysisResults();
 
+    List<AutoAnalysisResult> generate();
+
 }

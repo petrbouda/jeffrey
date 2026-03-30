@@ -55,14 +55,13 @@ public class ProfilesManagerImpl implements ProfilesManager {
             Clock clock,
             ProjectInfo projectInfo,
             LocalCoreRepositories localCoreRepositories,
-            RecordingRepository projectRecordingRepository,
             ProjectRecordingStorage projectRecordingStorage,
             ProfileManager.Factory profileManagerFactory,
             ProfileInitializer profileInitializer) {
         this.clock = clock;
         this.projectInfo = projectInfo;
         this.localCoreRepositories = localCoreRepositories;
-        this.projectRecordingRepository = projectRecordingRepository;
+        this.projectRecordingRepository = localCoreRepositories.newRecordingRepository(projectInfo.id());
         this.projectRecordingStorage = projectRecordingStorage;
         this.profileManagerFactory = profileManagerFactory;
         this.profileInitializer = profileInitializer;

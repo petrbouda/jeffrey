@@ -31,7 +31,7 @@ import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
 import pbouda.jeffrey.local.core.client.RemoteClients;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
-import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 
 import java.time.Clock;
 import java.util.Map;
@@ -44,7 +44,7 @@ public class RootInternalResource {
 
     private final Optional<RemoteClients.Factory> remoteClientsFactory;
     private final WorkspacesManager workspacesManager;
-    private final LocalCoreRepositories localCoreRepositories;
+    private final LocalCorePersistenceProvider localCorePersistenceProvider;
     private final ProfileResourceFactory profileResourceFactory;
     private final Optional<QuickAnalysisManager> quickAnalysisManager;
     private final SettingsManager settingsManager;
@@ -55,7 +55,7 @@ public class RootInternalResource {
     public RootInternalResource(
             Optional<RemoteClients.Factory> remoteClientsFactory,
             WorkspacesManager workspacesManager,
-            LocalCoreRepositories localCoreRepositories,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
             ProfileResourceFactory profileResourceFactory,
             Optional<QuickAnalysisManager> quickAnalysisManager,
             SettingsManager settingsManager,
@@ -64,7 +64,7 @@ public class RootInternalResource {
 
         this.remoteClientsFactory = remoteClientsFactory;
         this.workspacesManager = workspacesManager;
-        this.localCoreRepositories = localCoreRepositories;
+        this.localCorePersistenceProvider = localCorePersistenceProvider;
         this.profileResourceFactory = profileResourceFactory;
         this.quickAnalysisManager = quickAnalysisManager;
         this.settingsManager = settingsManager;
@@ -98,7 +98,7 @@ public class RootInternalResource {
         return new ProfilesResource(
                 workspacesManager,
                 quickAnalysisManager.orElse(null),
-                localCoreRepositories,
+                localCorePersistenceProvider.localCoreRepositories(),
                 profileResourceFactory);
     }
 

@@ -25,11 +25,8 @@ import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.provider.profile.EventWriter;
 import pbouda.jeffrey.provider.profile.RecordingEventParser;
-import pbouda.jeffrey.provider.profile.model.parser.ParserResult;
-import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
 import pbouda.jeffrey.provider.profile.repository.ProfileInfoRepository;
 import pbouda.jeffrey.provider.profile.repository.ProfileRepositories;
-import pbouda.jeffrey.shared.common.IDGenerator;
 import pbouda.jeffrey.shared.common.model.ProfileInfo;
 import pbouda.jeffrey.shared.persistence.DataSourceUtils;
 import pbouda.jeffrey.shared.persistence.DatabaseManager;
@@ -91,15 +88,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
             // Parse recording and store events into the database
             EventWriter eventWriter = eventWriterFactory.create(dataSource);
-            ParserResult parserResult = recordingEventParser.start(eventWriter, recordingPath);
+            recordingEventParser.start(eventWriter, recordingPath);
             eventWriter.onComplete();
-
-            // Store JFR Specific Data into the cache
-            // Direct parsing of decompressed and dechunked JFR files
-            // e.g. AutoAnalysisDataProvider
-            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(dataSource);
-            parserResult.specificData()
-                    .forEach(data -> cacheRepository.put(data.key(), data.content()));
 
             ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 

@@ -32,37 +32,35 @@ import pbouda.jeffrey.local.persistence.repository.JdbcWorkspaceRepository;
 import pbouda.jeffrey.local.persistence.repository.JdbcWorkspacesRepository;
 import pbouda.jeffrey.local.persistence.repository.WorkspacesRepository;
 import pbouda.jeffrey.local.core.recording.ProjectRecordingInitializer;
-import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
-import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 
 @Configuration
 @Import(AppConfiguration.class)
 public class RemoteWorkspaceConfiguration {
 
     @Bean
-    public WorkspacesRepository localWorkspacesRepository(DatabaseClientProvider databaseClientProvider) {
-        return new JdbcWorkspacesRepository(databaseClientProvider);
+    public WorkspacesRepository localWorkspacesRepository(LocalCorePersistenceProvider localCorePersistenceProvider) {
+        return new JdbcWorkspacesRepository(localCorePersistenceProvider.databaseClientProvider());
     }
 
     @Bean
     public RemoteWorkspacesManager remoteWorkspacesManager(
             LocalJeffreyDirs jeffreyDirs,
-            DatabaseClientProvider databaseClientProvider,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
             WorkspacesRepository localWorkspacesRepository,
             RemoteClients.Factory remoteClientsFactory,
             ProfilesManager.Factory profilesManagerFactory,
-            ProjectRecordingInitializer.Factory recordingInitializerFactory,
-            LocalCoreRepositories localCoreRepositories) {
+            ProjectRecordingInitializer.Factory recordingInitializerFactory) {
 
         WorkspaceManager.Factory workspaceManagerFactory = workspaceInfo -> {
             return new RemoteWorkspaceManager(
                     jeffreyDirs,
                     workspaceInfo,
-                    new JdbcWorkspaceRepository(workspaceInfo.id(), databaseClientProvider),
+                    new JdbcWorkspaceRepository(workspaceInfo.id(), localCorePersistenceProvider.databaseClientProvider()),
                     remoteClientsFactory.apply(workspaceInfo.address()),
                     profilesManagerFactory,
                     recordingInitializerFactory,
-                    localCoreRepositories);
+                    localCorePersistenceProvider.localCoreRepositories());
         };
 
         return new RemoteWorkspacesManager(

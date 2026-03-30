@@ -22,11 +22,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.shared.common.CacheKey;
+import pbouda.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
 import pbouda.jeffrey.provider.profile.repository.ProfileCacheRepository;
+import pbouda.jeffrey.shared.common.CacheKey;
 
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
 
@@ -37,21 +41,36 @@ public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
             };
 
     private final ProfileCacheRepository cacheRepository;
+    private final Supplier<Optional<Path>> recordingPathResolver;
 
-    public AutoAnalysisManagerImpl(ProfileCacheRepository cacheRepository) {
+    public AutoAnalysisManagerImpl(
+            ProfileCacheRepository cacheRepository,
+            Supplier<Optional<Path>> recordingPathResolver) {
+
         this.cacheRepository = cacheRepository;
+        this.recordingPathResolver = recordingPathResolver;
     }
 
     @Override
     public List<AutoAnalysisResult> analysisResults() {
-        Optional<List<AutoAnalysisResult>> results = cacheRepository.get(
-                CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE);
+        return cacheRepository.get(CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE)
+                .orElse(List.of());
+    }
 
-        if (results.isPresent()) {
-            return results.get();
-        } else {
-            LOG.warn("Auto Analysis is missing in the cache database.");
-            return List.of();
-        }
+    @Override
+    public List<AutoAnalysisResult> generate() {
+        Path recordingPath = recordingPathResolver.get()
+                .orElseThrow(() -> new IllegalStateException("Recording file not found"));
+
+        LOG.info("Generating auto analysis on-demand: recording={}", recordingPath);
+
+        List<AutoAnalysisResult> results = AutoAnalysisDataProvider.generate(recordingPath).stream()
+                .sorted(Comparator.comparing(a -> a.severity().order()))
+                .toList();
+
+        cacheRepository.put(CacheKey.PROFILE_AUTO_ANALYSIS, results);
+        LOG.info("Auto analysis completed and cached: results={}", results.size());
+
+        return results;
     }
 }

@@ -29,11 +29,9 @@ public class LocalJeffreyDirs implements TempDirFactory {
     private static final String JEFFREY_DB_FILE = "jeffrey.db";
     private static final String WORKSPACES_DIR = "workspaces";
     private static final String PROFILES_DIR = "profiles";
+    private static final String RECORDINGS_DIR = "recordings";
+    public static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump-analysis";
     private static final String TMP_DIR = "tmp";
-    private static final String HEAP_DUMP_ANALYSIS_DIR = "heap-dump-analysis";
-    private static final String QUICK_PROFILES_DIR = "quick-profiles";
-    private static final String QUICK_RECORDINGS_DIR = "quick-recordings";
-
     private final Path homeDir;
     private final Path tempDir;
 
@@ -48,6 +46,8 @@ public class LocalJeffreyDirs implements TempDirFactory {
 
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
+        FileSystemUtils.createDirectories(profiles());
+        FileSystemUtils.createDirectories(recordings());
         FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
     }
@@ -64,12 +64,12 @@ public class LocalJeffreyDirs implements TempDirFactory {
         return homeDir.resolve(PROFILES_DIR);
     }
 
-    public Path profileDir(String profileId) {
-        return profiles().resolve(profileId);
+    public Path recordings() {
+        return homeDir.resolve(RECORDINGS_DIR);
     }
 
-    public Path heapDumpAnalysisDir(String profileId) {
-        return profileDir(profileId).resolve(HEAP_DUMP_ANALYSIS_DIR);
+    public Path profileDir(String profileId) {
+        return profiles().resolve(profileId);
     }
 
     public Path homeDir() {
@@ -90,19 +90,4 @@ public class LocalJeffreyDirs implements TempDirFactory {
         return new TempDirectory(tempDir.resolve(directory));
     }
 
-    public Path quickProfiles() {
-        return homeDir.resolve(QUICK_PROFILES_DIR);
-    }
-
-    public Path quickProfileDir(String profileId) {
-        return quickProfiles().resolve(profileId);
-    }
-
-    public Path quickHeapDumpAnalysisDir(String profileId) {
-        return quickProfileDir(profileId).resolve(HEAP_DUMP_ANALYSIS_DIR);
-    }
-
-    public Path quickRecordings() {
-        return homeDir.resolve(QUICK_RECORDINGS_DIR);
-    }
 }

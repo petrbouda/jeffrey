@@ -28,4 +28,8 @@ export default class AutoAnalysisClient extends BaseProfileClient {
     rules(): Promise<AnalysisResult[]> {
         return super.get<AnalysisResult[]>('');
     }
+
+    generate(): Promise<AnalysisResult[]> {
+        return super.post<AnalysisResult[]>('');
+    }
 }

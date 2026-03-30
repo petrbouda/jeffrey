@@ -27,10 +27,7 @@ import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import pbouda.jeffrey.shared.common.CacheKey;
-import pbouda.jeffrey.provider.profile.model.parser.RecordingTypeSpecificData;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,31 +35,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-public class AutoAnalysisDataProvider implements JfrSpecificDataProvider {
+public class AutoAnalysisDataProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisDataProvider.class);
 
-    @Override
-    public RecordingTypeSpecificData provide(List<Path> recordings) {
-        List<AutoAnalysisResult> list = generate(recordings).stream()
-                .sorted(Comparator.comparing(a -> a.severity().order()))
-                .toList();
-
-        return new RecordingTypeSpecificData(CacheKey.PROFILE_AUTO_ANALYSIS, list);
-    }
-
-    public static List<AutoAnalysisResult> generate(List<Path> recordings) {
+    public static List<AutoAnalysisResult> generate(Path recording) {
         try {
-            List<File> files = recordings.stream()
-                    .map(Path::toFile)
-                    .toList();
-
-            IItemCollection events = JfrLoaderToolkit.loadEvents(files);
-            List<Map.Entry<IRule, Future<IResult>>> futures = RulesToolkit.evaluateParallel(
-                            RuleRegistry.getRules(), events, null, 0)
-                    .entrySet().stream()
-                    .sorted(Comparator.comparing((o) -> o.getKey().getId()))
-                    .toList();
+            IItemCollection events = JfrLoaderToolkit.loadEvents(recording.toFile());
+            List<Map.Entry<IRule, Future<IResult>>> futures =
+                    RulesToolkit.evaluateParallel(RuleRegistry.getRules(), events, null, 0)
+                            .entrySet().stream()
+                            .sorted(Comparator.comparing((o) -> o.getKey().getId()))
+                            .toList();
 
             List<AutoAnalysisResult> results = new ArrayList<>();
 
@@ -82,7 +66,7 @@ public class AutoAnalysisDataProvider implements JfrSpecificDataProvider {
 
             return results;
         } catch (Throwable t) {
-            throw new RuntimeException("Got exception when creating report for " + recordings, t);
+            throw new RuntimeException("Got exception when creating report for " + recording, t);
         }
     }
 

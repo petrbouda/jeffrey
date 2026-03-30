@@ -67,10 +67,10 @@ class ProfilesManagerImplTest {
 
     @BeforeEach
     void setUp() {
+        when(localCoreRepositories.newRecordingRepository("proj-1")).thenReturn(projectRecordingRepository);
         manager = new ProfilesManagerImpl(
                 FIXED_CLOCK, PROJECT_INFO, localCoreRepositories,
-                projectRecordingRepository, projectRecordingStorage,
-                profileManagerFactory, profileInitializer);
+                 projectRecordingStorage, profileManagerFactory, profileInitializer);
     }
 
     @Nested

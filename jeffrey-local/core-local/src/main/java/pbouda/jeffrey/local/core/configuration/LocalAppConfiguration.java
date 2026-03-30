@@ -18,6 +18,7 @@
 
 package pbouda.jeffrey.local.core.configuration;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -31,12 +32,13 @@ import pbouda.jeffrey.profile.ai.heapmcp.service.HeapDumpAnalysisAssistantServic
 import pbouda.jeffrey.profile.ai.mcp.service.JfrAnalysisAssistantService;
 import pbouda.jeffrey.profile.ai.service.HeapDumpContextExtractor;
 import pbouda.jeffrey.profile.ai.service.OqlAssistantService;
+import pbouda.jeffrey.profile.configuration.ProfileFactoriesConfiguration;
 import pbouda.jeffrey.profile.manager.ProfileManager;
 import pbouda.jeffrey.profile.manager.action.ProfileDataInitializer;
 import pbouda.jeffrey.profile.parser.JfrRecordingEventParser;
 import pbouda.jeffrey.profile.parser.JfrRecordingInformationParser;
 import pbouda.jeffrey.profile.resources.ProfileResourceFactory;
-import pbouda.jeffrey.local.persistence.repository.LocalCoreRepositories;
+import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
@@ -70,13 +72,14 @@ public class LocalAppConfiguration {
     public QuickAnalysisManager quickAnalysisManager(
             Clock clock,
             LocalJeffreyDirs jeffreyDirs,
+            @Qualifier(ProfileFactoriesConfiguration.RECORDINGS_PATH) Path recordingsPath,
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
-            LocalCoreRepositories localCoreRepositories,
+            LocalCorePersistenceProvider localCorePersistenceProvider,
             @Value("${jeffrey.local.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
         ProfilePersistenceProvider quickProvider =
-                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.quickProfiles(), frameResolutionMode);
+                new DuckDBProfilePersistenceProvider(clock, jeffreyDirs.profiles(), frameResolutionMode);
 
         ProfileInitializer quickAnalysisProfileInitializer = new ProfileInitializerImpl(
                 quickProvider.repositories(),
@@ -90,10 +93,11 @@ public class LocalAppConfiguration {
         return new QuickAnalysisManagerImpl(
                 clock,
                 jeffreyDirs,
+                recordingsPath,
                 new JfrRecordingInformationParser(jeffreyDirs),
                 quickAnalysisProfileInitializer,
                 profileManagerFactory,
-                localCoreRepositories);
+                localCorePersistenceProvider.localCoreRepositories());
     }
 
     @Bean

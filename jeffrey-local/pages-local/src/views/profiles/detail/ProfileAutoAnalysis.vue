@@ -22,168 +22,212 @@
   <div v-else>
     <PageHeader
       title="Auto Analysis"
-      description="Calculated Auto-analysis from the events"
       icon="bi-robot"
     >
-      <!-- Summary Card with Chart -->
-      <div class="summary-card mb-4" v-if="rules.length > 0">
-        <div class="summary-card-body">
-          <div class="row align-items-stretch">
-            <!-- Donut Chart -->
-            <div class="col-lg-5 col-md-6">
-              <div class="chart-section">
-                <h6 class="section-title"><i class="bi bi-pie-chart me-2"></i>Results Overview</h6>
-                <apexchart
-                  v-if="rules.length > 0"
-                  type="donut"
-                  :options="chartOptions"
-                  :series="chartSeries"
-                  height="200"
-                />
-              </div>
-            </div>
+      <!-- Idle State: Hero CTA -->
+      <div v-if="phase === 'idle'" class="hero-card">
+        <div class="hero-icon">
+          <i class="bi bi-robot"></i>
+        </div>
+        <h3 class="hero-title">Auto Analysis</h3>
+        <p class="hero-desc">
+          Run JMC rules against your recording to automatically detect performance issues,
+          misconfigurations, and optimization opportunities.
+        </p>
+        <button class="btn-run" @click="runAnalysis">
+          <i class="bi bi-play-fill"></i>
+          Run Analysis
+        </button>
+      </div>
 
-            <!-- Analysis Results Legend -->
-            <div class="col-lg-7 col-md-6">
-              <div class="legend-section">
-                <h6 class="section-title">Analysis Results</h6>
-                <div class="severity-legend">
-                  <div class="legend-item" v-if="severityCounts.ok > 0">
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                    <span class="legend-label">Passed</span>
-                    <span class="legend-value">{{ severityCounts.ok }}</span>
-                  </div>
-                  <div class="legend-item" v-if="severityCounts.warning > 0">
-                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-                    <span class="legend-label">Warnings</span>
-                    <span class="legend-value">{{ severityCounts.warning }}</span>
-                  </div>
-                  <div class="legend-item" v-if="severityCounts.info > 0">
-                    <i class="bi bi-info-circle-fill text-primary"></i>
-                    <span class="legend-label">Information</span>
-                    <span class="legend-value">{{ severityCounts.info }}</span>
-                  </div>
-                  <div class="legend-item" v-if="severityCounts.na > 0">
-                    <i class="bi bi-slash-circle-fill text-secondary"></i>
-                    <span class="legend-label">Skipped</span>
-                    <span class="legend-value">{{ severityCounts.na }}</span>
-                  </div>
-                  <div v-if="rules.length === 0" class="no-results-msg">
-                    No analysis rules executed
+      <!-- Running State -->
+      <div v-else-if="phase === 'running'" class="running-card">
+        <div class="running-icon">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Running...</span>
+          </div>
+        </div>
+        <h4 class="running-title">Running Analysis...</h4>
+        <p class="running-subtitle">Evaluating JMC rules against recording events</p>
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="phase === 'error'" class="hero-card">
+        <div class="hero-icon hero-icon-error">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <h3 class="hero-title">Analysis Failed</h3>
+        <p class="hero-desc">{{ errorMessage }}</p>
+        <button class="btn-run" @click="runAnalysis">
+          <i class="bi bi-arrow-clockwise"></i>
+          Retry Analysis
+        </button>
+      </div>
+
+      <!-- Results State -->
+      <template v-else-if="phase === 'results'">
+        <!-- Summary Card with Chart -->
+        <div class="summary-card mb-4" v-if="rules.length > 0">
+          <div class="summary-card-body">
+            <div class="row align-items-stretch">
+              <!-- Donut Chart -->
+              <div class="col-lg-5 col-md-6">
+                <div class="chart-section">
+                  <h6 class="section-title"><i class="bi bi-pie-chart me-2"></i>Results Overview</h6>
+                  <apexchart
+                    v-if="rules.length > 0"
+                    type="donut"
+                    :options="chartOptions"
+                    :series="chartSeries"
+                    height="200"
+                  />
+                </div>
+              </div>
+
+              <!-- Analysis Results Legend -->
+              <div class="col-lg-7 col-md-6">
+                <div class="legend-section">
+                  <h6 class="section-title">Analysis Results</h6>
+                  <div class="severity-legend">
+                    <div class="legend-item" v-if="severityCounts.ok > 0">
+                      <i class="bi bi-check-circle-fill text-success"></i>
+                      <span class="legend-label">Passed</span>
+                      <span class="legend-value">{{ severityCounts.ok }}</span>
+                    </div>
+                    <div class="legend-item" v-if="severityCounts.warning > 0">
+                      <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                      <span class="legend-label">Warnings</span>
+                      <span class="legend-value">{{ severityCounts.warning }}</span>
+                    </div>
+                    <div class="legend-item" v-if="severityCounts.info > 0">
+                      <i class="bi bi-info-circle-fill text-primary"></i>
+                      <span class="legend-label">Information</span>
+                      <span class="legend-value">{{ severityCounts.info }}</span>
+                    </div>
+                    <div class="legend-item" v-if="severityCounts.na > 0">
+                      <i class="bi bi-slash-circle-fill text-secondary"></i>
+                      <span class="legend-label">Skipped</span>
+                      <span class="legend-value">{{ severityCounts.na }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Filter Bar -->
-      <div class="filter-bar mb-3" v-if="rules.length > 0">
-        <div class="filter-group">
-          <select v-model="severityFilter" class="form-select form-select-sm">
-            <option value="">All Severities</option>
-            <option value="WARNING">Warnings</option>
-            <option value="INFO">Information</option>
-            <option value="OK">Passed</option>
-          </select>
-        </div>
-        <div class="search-group">
-          <i class="bi bi-search"></i>
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="form-control form-control-sm"
-            placeholder="Search rules..."
-          />
-        </div>
-      </div>
-
-      <!-- Unified Rules Table -->
-      <div class="rules-table-container" v-if="filteredAndSortedRules.length > 0">
-        <div class="rules-table">
-          <!-- Table Header -->
-          <div class="table-header">
-            <div class="col-status">Status</div>
-            <div class="col-rule">Rule</div>
-            <div class="col-score" title="Severity score (0-100). Higher values indicate more significant findings.">Severity</div>
-            <div class="col-actions">Details</div>
+        <!-- Filter Bar -->
+        <div class="filter-bar mb-3" v-if="rules.length > 0">
+          <div class="filter-group">
+            <select v-model="severityFilter" class="form-select form-select-sm">
+              <option value="">All Severities</option>
+              <option value="WARNING">Warnings</option>
+              <option value="INFO">Information</option>
+              <option value="OK">Passed</option>
+            </select>
           </div>
-
-          <!-- Table Rows -->
-          <div
-            v-for="(rule, index) in filteredAndSortedRules"
-            :key="`${index}-${rule.rule}`"
-            class="table-row-wrapper"
-          >
-            <div
-              class="table-row"
-              :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
-              @click="toggleRow(index)"
-            >
-              <div class="col-status">
-                <i
-                  class="bi"
-                  :class="[`bi-${getSeverityIcon(rule.severity)}`, getSeverityTextClass(rule.severity)]"
-                ></i>
-              </div>
-              <div class="col-rule">{{ rule.rule }}</div>
-              <div class="col-score">
-                <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
-                  <div class="severity-bar-track">
-                    <div
-                      class="severity-bar-fill"
-                      :style="{ width: parseScore(rule.score) + '%', backgroundColor: getSeverityColor(rule.severity) }"
-                    ></div>
-                  </div>
-                  <span class="severity-bar-value">{{ parseScore(rule.score) }}</span>
-                </div>
-                <span v-else class="no-score">-</span>
-              </div>
-              <div class="col-actions">
-                <i
-                  class="bi expand-icon"
-                  :class="expandedRows.has(index) ? 'bi-chevron-up' : 'bi-chevron-down'"
-                ></i>
-              </div>
-            </div>
-
-            <!-- Expandable Row Details -->
-            <transition name="expand">
-              <div v-if="expandedRows.has(index)" class="row-details">
-                <div class="details-grid">
-                  <div v-if="rule.summary" class="detail-item">
-                    <span class="detail-label">Summary</span>
-                    <p class="detail-text" v-html="rule.summary"></p>
-                  </div>
-                  <div v-if="rule.explanation" class="detail-item">
-                    <span class="detail-label">Explanation</span>
-                    <p class="detail-text" v-html="rule.explanation"></p>
-                  </div>
-                  <div v-if="rule.solution" class="detail-item">
-                    <span class="detail-label">Solution</span>
-                    <p class="detail-text" v-html="rule.solution"></p>
-                  </div>
-                </div>
-              </div>
-            </transition>
+          <div class="search-group">
+            <i class="bi bi-search"></i>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Search rules..."
+            />
           </div>
         </div>
-      </div>
 
-      <!-- No Results After Filter -->
-      <div v-else-if="rules.length > 0" class="empty-state">
-        <i class="bi bi-funnel"></i>
-        <h6>No Matching Rules</h6>
-        <p>Try adjusting your filters or search query.</p>
-      </div>
+        <!-- Unified Rules Table -->
+        <div class="card mb-4" v-if="filteredAndSortedRules.length > 0">
+          <div class="card-body p-0">
+            <table class="table table-hover mb-0 rules-table">
+              <thead>
+                <tr>
+                  <th class="col-rule">Rule</th>
+                  <th class="col-score" title="Severity score (0-100). Higher values indicate more significant findings.">Severity</th>
+                  <th class="col-actions text-end">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="(rule, index) in filteredAndSortedRules" :key="`${index}-${rule.rule}`">
+                  <tr
+                    class="rule-row"
+                    :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
+                    @click="toggleRow(index)"
+                  >
+                    <td>
+                      <div class="rule-cell">
+                        <i
+                          class="bi severity-icon"
+                          :class="[`bi-${getSeverityIcon(rule.severity)}`, getSeverityTextClass(rule.severity)]"
+                        ></i>
+                        <span class="rule-name">{{ rule.rule }}</span>
+                      </div>
+                    </td>
+                    <td class="col-score">
+                      <div class="severity-bar-wrapper" v-if="parseScore(rule.score) != null">
+                        <div class="severity-bar-track">
+                          <div
+                            class="severity-bar-fill"
+                            :style="{ width: parseScore(rule.score) + '%', backgroundColor: getSeverityColor(rule.severity) }"
+                          ></div>
+                        </div>
+                        <span class="severity-bar-value">{{ parseScore(rule.score) }}</span>
+                      </div>
+                      <span v-else class="no-score">-</span>
+                    </td>
+                    <td class="col-actions text-end">
+                      <i
+                        class="bi expand-icon"
+                        :class="expandedRows.has(index) ? 'bi-chevron-up' : 'bi-chevron-down'"
+                      ></i>
+                    </td>
+                  </tr>
 
-      <!-- Empty State -->
-      <div v-if="rules.length === 0 && !loading" class="empty-state">
-        <i class="bi bi-inbox"></i>
-        <h6>No Analysis Results</h6>
-        <p>No auto analysis rules were executed for this profile.</p>
-      </div>
+                  <!-- Expandable Row Details -->
+                  <tr v-if="expandedRows.has(index)" class="details-row">
+                    <td colspan="3" class="p-0">
+                      <div class="row-details">
+                        <div class="details-grid">
+                          <div v-if="rule.summary" class="detail-item">
+                            <span class="detail-label">Summary</span>
+                            <p class="detail-text" v-html="rule.summary"></p>
+                          </div>
+                          <div v-if="rule.explanation" class="detail-item">
+                            <span class="detail-label">Explanation</span>
+                            <p class="detail-text" v-html="rule.explanation"></p>
+                          </div>
+                          <div v-if="rule.solution" class="detail-item">
+                            <span class="detail-label">Solution</span>
+                            <p class="detail-text" v-html="rule.solution"></p>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- No Results After Filter -->
+        <div v-else-if="rules.length > 0" class="empty-state">
+          <i class="bi bi-funnel"></i>
+          <h6>No Matching Rules</h6>
+          <p>Try adjusting your filters or search query.</p>
+        </div>
+
+        <!-- Empty State (analysis ran but no rules) -->
+        <div v-if="rules.length === 0" class="empty-state">
+          <i class="bi bi-inbox"></i>
+          <h6>No Analysis Results</h6>
+          <p>No auto analysis rules were evaluated for this profile.</p>
+        </div>
+      </template>
     </PageHeader>
   </div>
 </template>
@@ -199,18 +243,17 @@ import LoadingState from '@/components/LoadingState.vue';
 
 const route = useRoute();
 
-// Data
+type Phase = 'idle' | 'running' | 'results' | 'error';
+
 const rules = ref<AnalysisResult[]>([]);
 const loading = ref(true);
+const phase = ref<Phase>('idle');
+const errorMessage = ref('');
 
-// Filter State
 const severityFilter = ref('');
 const searchQuery = ref('');
-
-// UI State
 const expandedRows = ref<Set<number>>(new Set());
 
-// Severity priority for sorting (warnings first)
 const severityOrder: Record<string, number> = {
   WARNING: 0,
   INFO: 1,
@@ -219,16 +262,13 @@ const severityOrder: Record<string, number> = {
   IGNORE: 4
 };
 
-// Computed: Filtered and sorted rules
 const filteredAndSortedRules = computed(() => {
   let result = [...rules.value];
 
-  // Apply severity filter
   if (severityFilter.value) {
     result = result.filter(r => r.severity === severityFilter.value);
   }
 
-  // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     result = result.filter(r =>
@@ -237,13 +277,11 @@ const filteredAndSortedRules = computed(() => {
     );
   }
 
-  // Sort by severity (warnings first)
   return result.sort((a, b) =>
     (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
   );
 });
 
-// Computed: Severity counts
 const severityCounts = computed(() => ({
   ok: rules.value.filter(r => r.severity === 'OK').length,
   warning: rules.value.filter(r => r.severity === 'WARNING').length,
@@ -251,14 +289,11 @@ const severityCounts = computed(() => ({
   na: rules.value.filter(r => r.severity === 'NA' || r.severity === 'IGNORE').length
 }));
 
-// Computed: Chart options
 const chartOptions = computed(() => ({
   chart: {
     type: 'donut' as const,
     fontFamily: 'inherit',
-    animations: {
-      enabled: false
-    }
+    animations: { enabled: false }
   },
   labels: ['Passed', 'Warnings', 'Info', 'N/A'],
   colors: ['#28a745', '#dc3545', '#0d6efd', '#6c757d'],
@@ -268,16 +303,8 @@ const chartOptions = computed(() => ({
         size: '65%',
         labels: {
           show: true,
-          name: {
-            show: true,
-            fontSize: '12px',
-            fontWeight: 600
-          },
-          value: {
-            show: true,
-            fontSize: '18px',
-            fontWeight: 700
-          },
+          name: { show: true, fontSize: '12px', fontWeight: 600 },
+          value: { show: true, fontSize: '18px', fontWeight: 700 },
           total: {
             show: true,
             label: 'Passed',
@@ -290,25 +317,15 @@ const chartOptions = computed(() => ({
       }
     }
   },
-  dataLabels: {
-    enabled: false
-  },
-  legend: {
-    show: false
-  },
-  stroke: {
-    width: 2,
-    colors: ['#fff']
-  },
+  dataLabels: { enabled: false },
+  legend: { show: false },
+  stroke: { width: 2, colors: ['#fff'] },
   tooltip: {
     enabled: true,
-    y: {
-      formatter: (val: number) => `${val} rules`
-    }
+    y: { formatter: (val: number) => `${val} rules` }
   }
 }));
 
-// Computed: Chart series
 const chartSeries = computed(() => [
   severityCounts.value.ok,
   severityCounts.value.warning,
@@ -316,26 +333,42 @@ const chartSeries = computed(() => [
   severityCounts.value.na
 ]);
 
-// Lifecycle
-onMounted(() => {
-  new AutoAnalysisClient(route.params.profileId as string).rules()
-    .then((data: AnalysisResult[]) => {
+const client = new AutoAnalysisClient(route.params.profileId as string);
+
+onMounted(async () => {
+  try {
+    const data = await client.rules();
+    if (data.length > 0) {
       rules.value = data;
-      loading.value = false;
-    })
-    .catch(() => {
-      loading.value = false;
-    });
+      phase.value = 'results';
+    } else {
+      phase.value = 'idle';
+    }
+  } catch {
+    phase.value = 'idle';
+  } finally {
+    loading.value = false;
+  }
 });
 
-// Helper Functions
+async function runAnalysis() {
+  phase.value = 'running';
+  try {
+    const data = await client.generate();
+    rules.value = data;
+    phase.value = 'results';
+  } catch (e) {
+    errorMessage.value = e instanceof Error ? e.message : 'An unexpected error occurred';
+    phase.value = 'error';
+  }
+}
+
 function toggleRow(index: number) {
   if (expandedRows.value.has(index)) {
     expandedRows.value.delete(index);
   } else {
     expandedRows.value.add(index);
   }
-  // Trigger reactivity
   expandedRows.value = new Set(expandedRows.value);
 }
 
@@ -380,6 +413,131 @@ function getSeverityColor(severity: string): string {
 </script>
 
 <style scoped>
+/* Hero CTA Card */
+.hero-card {
+  max-width: 480px;
+  margin: 48px auto;
+  text-align: center;
+  padding: 48px 40px;
+  background: var(--color-bg-card, #fff);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-base, 0 0 6px rgba(0,0,0,0.1));
+}
+
+.hero-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--color-primary-light, rgba(94, 100, 255, 0.1));
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: var(--color-primary, #5e64ff);
+  font-size: 28px;
+}
+
+.hero-icon-error {
+  background: var(--color-danger-light, rgba(230, 55, 87, 0.1));
+  color: var(--color-danger, #e63757);
+}
+
+.hero-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-dark, #0b1727);
+  margin-bottom: 8px;
+}
+
+.hero-desc {
+  font-size: 13px;
+  color: var(--color-text-muted, #748194);
+  line-height: 1.6;
+  margin-bottom: 28px;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.btn-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 28px;
+  background: var(--color-primary, #5e64ff);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-run:hover {
+  background: var(--color-primary-hover, #4c52db);
+}
+
+.btn-run i {
+  font-size: 16px;
+}
+
+/* Running State */
+.running-card {
+  max-width: 480px;
+  margin: 48px auto;
+  text-align: center;
+  padding: 48px 40px;
+  background: var(--color-bg-card, #fff);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-base, 0 0 6px rgba(0,0,0,0.1));
+}
+
+.running-icon {
+  margin-bottom: 16px;
+}
+
+.running-icon .spinner-border {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-primary, #5e64ff);
+}
+
+.running-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-dark, #0b1727);
+  margin-bottom: 4px;
+}
+
+.running-subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted, #748194);
+  margin-bottom: 0;
+}
+
+@keyframes progress-indeterminate {
+  0% { width: 5%; margin-left: 0; }
+  50% { width: 40%; margin-left: 30%; }
+  100% { width: 5%; margin-left: 95%; }
+}
+
+.progress-track {
+  height: 4px;
+  background: var(--color-border, #eaedf1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary, #5e64ff);
+  border-radius: 4px;
+  animation: progress-indeterminate 2s ease-in-out infinite;
+}
+
 /* Summary Card */
 .summary-card {
   background: #fff;
@@ -401,14 +559,12 @@ function getSeverityColor(severity: string): string {
   letter-spacing: 0.3px;
 }
 
-/* Chart Section */
 .chart-section {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* Legend Section */
 .legend-section {
   height: 100%;
   border-left: 1px solid #f0f0f0;
@@ -450,12 +606,6 @@ function getSeverityColor(severity: string): string {
   text-align: center;
 }
 
-.no-results-msg {
-  font-size: 0.8rem;
-  color: #9ca3af;
-  font-style: italic;
-}
-
 /* Filter Bar */
 .filter-bar {
   display: flex;
@@ -466,11 +616,6 @@ function getSeverityColor(severity: string): string {
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.filter-group {
-  display: flex;
-  gap: 0.5rem;
 }
 
 .filter-group .form-select {
@@ -500,95 +645,46 @@ function getSeverityColor(severity: string): string {
 }
 
 /* Rules Table */
-.rules-table-container {
-  background: #fff;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
 .rules-table {
   width: 100%;
+  table-layout: fixed;
 }
 
-/* Table Header */
-.table-header {
-  display: grid;
-  grid-template-columns: 60px 1fr 160px 80px;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #6b7280;
+.rules-table .col-rule {
+  width: 50%;
 }
 
-/* Header columns should inherit header font styles */
-.table-header > div {
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
-}
-
-/* Table Row */
-.table-row {
-  display: grid;
-  grid-template-columns: 60px 1fr 160px 80px;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  align-items: center;
-  cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.15s ease;
-}
-
-.table-row:hover {
-  background-color: #f9fafb;
-}
-
-.table-row.severity-warning {
-  border-left: 3px solid #dc3545;
-}
-
-.table-row.severity-info {
-  border-left: 3px solid #0d6efd;
-}
-
-.table-row.severity-ok {
-  border-left: 3px solid #28a745;
-}
-
-.table-row.severity-na,
-.table-row.severity-ignore {
-  border-left: 3px solid #6c757d;
-}
-
-/* Column Styles */
-.col-status {
+.rule-cell {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
-.col-status i {
+.severity-icon {
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
-.col-rule {
-  font-size: 0.85rem;
+.rules-table .col-score {
+  width: 180px;
+}
+
+.rules-table .col-actions {
+  width: 80px;
+}
+
+.rule-row {
+  cursor: pointer;
+}
+
+.rule-row.severity-warning { border-left: 3px solid #dc3545; }
+.rule-row.severity-info { border-left: 3px solid #0d6efd; }
+.rule-row.severity-ok { border-left: 3px solid #28a745; }
+.rule-row.severity-na,
+.rule-row.severity-ignore { border-left: 3px solid #6c757d; }
+
+.rule-name {
   font-weight: 500;
-  color: #1f2937;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.col-score {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .severity-bar-wrapper {
@@ -624,13 +720,6 @@ function getSeverityColor(severity: string): string {
 .no-score {
   color: #9ca3af;
   font-size: 0.75rem;
-}
-
-.col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
 }
 
 .expand-icon {
@@ -733,45 +822,8 @@ function getSeverityColor(severity: string): string {
     align-items: stretch;
   }
 
-  .filter-group {
-    flex-wrap: wrap;
-  }
-
   .search-group {
     max-width: none;
-  }
-
-  .table-header {
-    display: none;
-  }
-
-  .table-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.75rem;
-  }
-
-  .col-status {
-    order: 1;
-    width: auto;
-  }
-
-  .col-rule {
-    order: 2;
-    flex: 1;
-    white-space: normal;
-  }
-
-  .col-actions {
-    order: 3;
-    width: auto;
-  }
-
-  .col-score {
-    order: 4;
-    width: auto;
-    justify-content: flex-start;
   }
 }
 </style>

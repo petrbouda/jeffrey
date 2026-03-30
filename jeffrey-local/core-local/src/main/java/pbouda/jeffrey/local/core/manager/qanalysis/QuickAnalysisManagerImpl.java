@@ -54,6 +54,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
     private final Clock clock;
     private final LocalJeffreyDirs jeffreyDirs;
+    private final Path recordingsDir;
     private final RecordingInformationParser recordingInformationParser;
     private final ProfileInitializer profileInitializer;
     private final ProfileManager.Factory profileManagerFactory;
@@ -63,6 +64,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     public QuickAnalysisManagerImpl(
             Clock clock,
             LocalJeffreyDirs jeffreyDirs,
+            Path recordingsDir,
             RecordingInformationParser recordingInformationParser,
             ProfileInitializer profileInitializer,
             ProfileManager.Factory profileManagerFactory,
@@ -70,6 +72,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
+        this.recordingsDir = recordingsDir;
         this.recordingInformationParser = recordingInformationParser;
         this.profileInitializer = profileInitializer;
         this.profileManagerFactory = profileManagerFactory;
@@ -118,11 +121,8 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
             throw new IllegalArgumentException("Group not found: " + groupId);
         }
 
-        Path quickRecordingsDir = jeffreyDirs.quickRecordings();
-        FileSystemUtils.createDirectories(quickRecordingsDir);
-
         String recordingId = IDGenerator.generate();
-        Path targetPath = quickRecordingsDir.resolve(recordingId + "-" + filename);
+        Path targetPath = recordingsDir.resolve(recordingId + "-" + filename);
 
         try {
             Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
@@ -245,7 +245,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
 
-        Path heapDumpAnalysisPath = jeffreyDirs.quickHeapDumpAnalysisDir(profileId);
+        Path heapDumpAnalysisPath = jeffreyDirs.profileDir(profileId).resolve(LocalJeffreyDirs.HEAP_DUMP_ANALYSIS_DIR);
         FileSystemUtils.createDirectories(heapDumpAnalysisPath);
 
         Path sourcePath = Path.of(file.filePath());
@@ -319,7 +319,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     }
 
     private void deleteProfileInternal(String profileId) {
-        Path profileDir = jeffreyDirs.quickProfileDir(profileId);
+        Path profileDir = jeffreyDirs.profileDir(profileId);
 
         localCoreRepositories.newProfileRepository(profileId).delete();
 

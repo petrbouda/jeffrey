@@ -19,6 +19,7 @@
 package pbouda.jeffrey.profile.resources;
 
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pbouda.jeffrey.profile.common.analysis.AutoAnalysisResult;
@@ -40,5 +41,11 @@ public class AutoAnalysisResource {
     public List<AutoAnalysisResult> list() {
         LOG.debug("Fetching auto analysis results");
         return autoAnalysisManager.analysisResults();
+    }
+
+    @POST
+    public List<AutoAnalysisResult> generate() {
+        LOG.debug("Generating auto analysis on-demand");
+        return autoAnalysisManager.generate();
     }
 }

@@ -22,19 +22,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import pbouda.jeffrey.local.core.manager.SettingsManager;
+import pbouda.jeffrey.local.persistence.LocalCorePersistenceProvider;
 import pbouda.jeffrey.local.persistence.repository.JdbcSettingsRepository;
 import pbouda.jeffrey.shared.common.encryption.MachineFingerprint;
 import pbouda.jeffrey.shared.common.encryption.SecretEncryptor;
-import pbouda.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 @Configuration
 public class SettingsConfiguration {
 
     @Bean
-    public SettingsManager settingsManager(DatabaseClientProvider databaseClientProvider, Environment environment) {
+    public SettingsManager settingsManager(LocalCorePersistenceProvider localCorePersistenceProvider, Environment environment) {
         var machineFingerprint = new MachineFingerprint();
         var secretEncryptor = new SecretEncryptor(machineFingerprint);
-        var settingsRepository = new JdbcSettingsRepository(databaseClientProvider);
+        var settingsRepository = new JdbcSettingsRepository(localCorePersistenceProvider.databaseClientProvider());
         return new SettingsManager(settingsRepository, secretEncryptor, machineFingerprint, environment);
     }
 }
