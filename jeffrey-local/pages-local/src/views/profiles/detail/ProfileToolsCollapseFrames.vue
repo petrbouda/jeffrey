@@ -29,6 +29,30 @@
       <button class="btn btn-sm btn-outline-success" @click="resetToIdle">Dismiss</button>
     </div>
 
+    <!-- Presets -->
+    <div class="preset-section">
+      <label class="form-label mb-1 small text-uppercase fw-semibold text-muted">Presets</label>
+      <div class="preset-cards">
+        <div
+          v-for="preset in PRESETS"
+          :key="preset.id"
+          class="preset-card"
+          :class="{ active: activePreset === preset.id }"
+          :style="activePreset === preset.id ? { borderColor: preset.color, background: preset.color + '0a' } : {}"
+          @click="applyPreset(preset)"
+        >
+          <div class="preset-card-title">
+            <span class="card-icon">
+              <img :src="preset.image" :alt="preset.name" class="card-icon-img">
+            </span>
+            {{ preset.name }}
+          </div>
+          <div class="preset-card-desc">{{ preset.description }}</div>
+          <div class="preset-card-count">{{ preset.patterns.length }} patterns</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <div>
       <!-- Input Fields -->
@@ -171,6 +195,28 @@ import '@/styles/shared-components.css'
 
 type ToolState = 'idle' | 'previewing' | 'preview-ok' | 'preview-empty' | 'confirming' | 'applying' | 'success' | 'error'
 
+interface CollapsePreset {
+  id: string
+  name: string
+  image: string
+  color: string
+  description: string
+  patterns: string[]
+  label: string
+}
+
+const PRESETS: CollapsePreset[] = [
+  {
+    id: 'spring',
+    name: 'Spring Framework',
+    image: '/spring-logo.webp',
+    color: '#6db33f',
+    description: 'Tomcat, Catalina, Coyote, Spring, Jakarta Servlet',
+    patterns: ['org.apache.tomcat', 'org.apache.coyote', 'org.apache.catalina', 'org.springframework', 'jakarta.servlet'],
+    label: '[Spring Framework]'
+  }
+]
+
 const route = useRoute()
 const profileId = route.params.profileId as string
 
@@ -180,6 +226,16 @@ const label = ref('')
 const previewResult = ref<CollapseFramesPreview | null>(null)
 const lastResult = ref<CollapseFramesResult | null>(null)
 const errorMessage = ref('')
+
+const activePreset = ref<string | null>(null)
+
+const applyPreset = (preset: CollapsePreset) => {
+  patterns.value = [...preset.patterns]
+  label.value = preset.label
+  activePreset.value = preset.id
+  state.value = 'idle'
+  previewResult.value = null
+}
 
 const nonEmptyPatterns = computed(() => patterns.value.filter(p => p.trim().length > 0))
 
@@ -200,6 +256,7 @@ const removePattern = (index: number) => {
 }
 
 watch([patterns, label], () => {
+  activePreset.value = null
   if (state.value === 'preview-ok' || state.value === 'preview-empty' || state.value === 'error') {
     state.value = 'idle'
     previewResult.value = null
@@ -249,6 +306,67 @@ const handleApply = async () => {
 </script>
 
 <style scoped>
+.preset-section {
+  margin-bottom: 20px;
+}
+
+.preset-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.preset-card {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preset-card:hover {
+  border-color: rgba(94, 100, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.08);
+}
+
+.preset-card.active {
+  /* border-color and background set dynamically via inline style */
+}
+
+.preset-card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text, #1a202c);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.card-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preset-card-desc {
+  font-size: 0.72rem;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 6px;
+}
+
+.preset-card-count {
+  font-size: 0.68rem;
+  color: var(--color-text-light, #94a3b8);
+  margin-top: 3px;
+}
+
 .sample-card {
   display: flex;
   align-items: center;

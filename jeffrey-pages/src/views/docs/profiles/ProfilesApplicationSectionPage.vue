@@ -70,6 +70,8 @@ onMounted(() => {
         <h2 id="technologies-hub">Technologies Hub</h2>
         <p>The Technologies Hub is the entry point that displays all available technology dashboards as cards. Each card shows the technology name and a brief description. Cards are automatically disabled when no matching events are found in the recording.</p>
 
+        <p>An integration info strip at the top of the hub explains how to enable these dashboards. Add the <code>cafe.jeffrey-analyst:jeffrey-events</code> dependency to your application to emit the required JFR events &mdash; dashboards activate automatically when matching events are detected in the recording.</p>
+
         <h2 id="http-server">HTTP Server</h2>
         <p>HTTP Server analysis shows how your application handles incoming requests:</p>
 

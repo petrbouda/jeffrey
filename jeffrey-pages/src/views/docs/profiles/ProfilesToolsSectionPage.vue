@@ -30,7 +30,10 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'rename-frames', text: 'Rename Frames', level: 2 },
   { id: 'workflow', text: 'Workflow', level: 3 },
-  { id: 'example', text: 'Example', level: 3 }
+  { id: 'example', text: 'Example', level: 3 },
+  { id: 'collapse-frames', text: 'Collapse Frames', level: 2 },
+  { id: 'collapse-workflow', text: 'Workflow', level: 3 },
+  { id: 'collapse-example', text: 'Example', level: 3 }
 ];
 
 onMounted(() => {
@@ -54,6 +57,9 @@ onMounted(() => {
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-pencil-square" title="Rename Frames">
             Search and replace class name patterns across all frames in a profile. Useful for anonymizing proprietary package names before sharing profiles externally.
+          </DocsFeatureItem>
+          <DocsFeatureItem icon="bi bi-arrows-collapse" title="Collapse Frames">
+            Replace consecutive stacktrace frames matching class name patterns with a single synthetic frame. Useful for simplifying deep framework call stacks to focus on application logic.
           </DocsFeatureItem>
         </div>
 
@@ -136,6 +142,82 @@ onMounted(() => {
         <DocsCallout type="tip">
           <strong>Multiple renames:</strong> You can run the rename tool multiple times to replace different patterns. Each operation builds on the result of the previous one.
         </DocsCallout>
+
+        <h2 id="collapse-frames">Collapse Frames</h2>
+        <p>The Collapse Frames tool replaces consecutive stacktrace frames that match one or more class name patterns with a single <strong>synthetic frame</strong>. This is useful for simplifying deep framework or library call stacks so you can focus on your application logic in flamegraphs and other visualizations.</p>
+
+        <p>Common use cases:</p>
+        <ul>
+          <li>Collapsing deep Spring or Hibernate framework frames into a single entry</li>
+          <li>Hiding internal proxy chains (e.g., CGLIB, JDK proxies)</li>
+          <li>Simplifying gRPC or Netty internals when analyzing application-level latency</li>
+        </ul>
+
+        <h3 id="collapse-workflow">Workflow</h3>
+        <p>The collapse operation follows the same safe preview-then-apply workflow:</p>
+
+        <div class="workflow-steps">
+          <div class="workflow-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Enter patterns</h4>
+              <p>Add one or more <strong>class name patterns</strong> to match against frames, and specify a <strong>synthetic frame label</strong> that will replace matched sequences.</p>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>Preview</h4>
+              <p>Click <strong>Preview</strong> to see how many stacktraces will be affected. Jeffrey shows the count of modified stacktraces.</p>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Confirm</h4>
+              <p>Review the preview results. If the transformation looks correct, confirm the operation.</p>
+            </div>
+          </div>
+          <div class="workflow-step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>Apply</h4>
+              <p>The collapse is executed across all matching stacktraces in the profile. All profile caches are cleared to reflect the updated data.</p>
+            </div>
+          </div>
+        </div>
+
+        <DocsCallout type="warning">
+          <strong>Permanent operation:</strong> Collapsing frames modifies the profile data directly in the database. This operation cannot be undone. The only way to revert is to delete the profile and recreate it from the original recording.
+        </DocsCallout>
+
+        <h3 id="collapse-example">Example</h3>
+        <p>To collapse Spring framework internals in a flamegraph:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Pattern 1</strong></td>
+              <td><code>org.springframework.cglib</code></td>
+            </tr>
+            <tr>
+              <td><strong>Pattern 2</strong></td>
+              <td><code>org.springframework.aop</code></td>
+            </tr>
+            <tr>
+              <td><strong>Synthetic frame</strong></td>
+              <td><code>[Spring AOP]</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>This would collapse sequences of consecutive frames matching either pattern into a single <code>[Spring AOP]</code> frame, dramatically simplifying the flamegraph view.</p>
       </div>
 
       <DocsNavFooter />
