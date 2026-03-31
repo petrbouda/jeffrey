@@ -7,7 +7,7 @@ VALUES
     ('rec-001', 'proj-001', 'Recording One', NULL, 'JDK', '2025-01-01T12:00:00Z', '2025-01-01T11:00:00Z', '2025-01-01T11:30:00Z'),
     ('rec-002', 'proj-001', 'Recording Two', 'group-001', 'ASYNC_PROFILER', '2025-01-01T13:00:00Z', '2025-01-01T12:00:00Z', '2025-01-01T12:30:00Z');
 
-INSERT INTO recording_files (id, project_id, recording_id, filename, supported_type, file_path, uploaded_at, size_in_bytes)
+INSERT INTO recording_files (id, project_id, recording_id, filename, supported_type, uploaded_at, size_in_bytes)
 VALUES
-    ('file-001', 'proj-001', 'rec-001', 'recording1.jfr', 'JFR', NULL, '2025-01-01T12:00:00Z', 1024),
-    ('file-002', 'proj-001', 'rec-002', 'recording2.jfr', 'JFR', NULL, '2025-01-01T13:00:00Z', 2048);
+    ('file-001', 'proj-001', 'rec-001', 'recording1.jfr', 'JFR', '2025-01-01T12:00:00Z', 1024),
+    ('file-002', 'proj-001', 'rec-002', 'recording2.jfr', 'JFR', '2025-01-01T13:00:00Z', 2048);

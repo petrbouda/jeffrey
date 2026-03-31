@@ -27,7 +27,6 @@ public record RecordingFile(
         String recordingId,
         String filename,
         SupportedRecordingFile recordingFileType,
-        String filePath,
         Instant uploadedAt,
         long sizeInBytes) {
 }

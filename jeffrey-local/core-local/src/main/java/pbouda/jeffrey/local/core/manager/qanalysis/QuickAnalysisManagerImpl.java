@@ -162,7 +162,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         RecordingFile recordingFile = new RecordingFile(
                 recordingFileId, recordingId, filename,
                 SupportedRecordingFile.of(filename),
-                targetPath.toString(), uploadedAt, sizeInBytes);
+                uploadedAt, sizeInBytes);
 
         recordingRepository.insertRecording(recording, recordingFile);
 
@@ -210,7 +210,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
     }
 
     private String analyzeJfr(Recording recording, RecordingFile file) {
-        Path filePath = Path.of(file.filePath());
+        Path filePath = resolveRecordingFilePath(file);
         if (!Files.exists(filePath)) {
             throw new IllegalArgumentException("Recording file does not exist: " + filePath);
         }
@@ -248,7 +248,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         Path heapDumpAnalysisPath = jeffreyDirs.profileDir(profileId).resolve(LocalJeffreyDirs.HEAP_DUMP_ANALYSIS_DIR);
         FileSystemUtils.createDirectories(heapDumpAnalysisPath);
 
-        Path sourcePath = Path.of(file.filePath());
+        Path sourcePath = resolveRecordingFilePath(file);
         Path targetPath = heapDumpAnalysisPath.resolve(file.filename());
 
         try {
@@ -312,9 +312,7 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
 
         if (!recording.files().isEmpty()) {
             RecordingFile file = recording.files().getFirst();
-            if (file.filePath() != null) {
-                FileSystemUtils.removeFile(Path.of(file.filePath()));
-            }
+            FileSystemUtils.removeFile(resolveRecordingFilePath(file));
         }
     }
 
@@ -328,6 +326,10 @@ public class QuickAnalysisManagerImpl implements QuickAnalysisManager {
         }
 
         LOG.info("Quick analysis profile deleted: profileId={}", profileId);
+    }
+
+    private Path resolveRecordingFilePath(RecordingFile file) {
+        return recordingsDir.resolve(file.recordingId() + "-" + file.filename());
     }
 
     private static RecordingEventSource detectEventSource(String filename) {

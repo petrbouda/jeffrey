@@ -169,8 +169,8 @@ public class JdbcRecordingRepository implements RecordingRepository {
     public void insertRecordingFile(RecordingFile recordingFile) {
         //language=SQL
         String sql = """
-                INSERT INTO recording_files (id, project_id, recording_id, filename, supported_type, file_path, uploaded_at, size_in_bytes)
-                    VALUES (:id, :project_id, :recording_id, :filename, :supported_type, :file_path, :uploaded_at, :size_in_bytes)""";
+                INSERT INTO recording_files (id, project_id, recording_id, filename, supported_type, uploaded_at, size_in_bytes)
+                    VALUES (:id, :project_id, :recording_id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", recordingFile.id())
@@ -178,7 +178,6 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 .addValue("recording_id", recordingFile.recordingId())
                 .addValue("filename", recordingFile.filename())
                 .addValue("supported_type", recordingFile.recordingFileType().name())
-                .addValue("file_path", recordingFile.filePath())
                 .addValue("uploaded_at", recordingFile.uploadedAt().atOffset(ZoneOffset.UTC))
                 .addValue("size_in_bytes", recordingFile.sizeInBytes());
 

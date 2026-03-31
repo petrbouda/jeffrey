@@ -95,7 +95,6 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         recordingId,
                         newRecording.filename(),
                         SupportedRecordingFile.of(newRecording.filename()),
-                        null,
                         createdAt,
                         FileSystemUtils.size(targetPath));
 
@@ -117,7 +116,6 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                             recordingId,
                             additionalFile.name(),
                             additionalFile.fileType(),
-                            null,
                             createdAt,
                             additionalFile.size());
 
@@ -169,7 +167,6 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                         recordingId,
                         newRecording.filename(),
                         SupportedRecordingFile.of(newRecording.filename()),
-                        null,
                         createdAt,
                         FileSystemUtils.size(targetPath));
 
@@ -188,7 +185,6 @@ public class ProjectRecordingInitializerImpl implements ProjectRecordingInitiali
                             recordingId,
                             filename,
                             SupportedRecordingFile.of(filename),
-                            null,
                             createdAt,
                             FileSystemUtils.size(additionalFilePath));
 

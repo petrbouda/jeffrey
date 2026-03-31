@@ -76,7 +76,6 @@ public abstract class Mappers {
                     rs.getString("recording_id"),
                     rs.getString("filename"),
                     SupportedRecordingFile.ofType(rs.getString("supported_type")),
-                    rs.getString("file_path"),
                     Mappers.instant(rs, "uploaded_at"),
                     rs.getLong("size_in_bytes"));
         };

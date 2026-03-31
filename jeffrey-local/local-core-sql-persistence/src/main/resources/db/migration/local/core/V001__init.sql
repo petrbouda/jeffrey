@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS recording_files
     recording_id   VARCHAR NOT NULL,
     filename       VARCHAR NOT NULL,
     supported_type VARCHAR NOT NULL,
-    file_path      VARCHAR,
     uploaded_at    TIMESTAMPTZ NOT NULL,
     size_in_bytes  BIGINT  NOT NULL
 );

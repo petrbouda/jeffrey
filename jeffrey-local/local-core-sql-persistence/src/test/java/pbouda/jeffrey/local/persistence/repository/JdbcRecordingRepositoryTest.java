@@ -136,7 +136,7 @@ class JdbcRecordingRepositoryTest {
                     false, null, null, List.of());
             RecordingFile recordingFile = new RecordingFile(
                     "new-file-001", "new-rec-001", "new-recording.jfr",
-                    SupportedRecordingFile.JFR, null, Instant.parse("2025-01-15T12:00:00Z"), 1024);
+                    SupportedRecordingFile.JFR, Instant.parse("2025-01-15T12:00:00Z"), 1024);
 
             repository.insertRecording(recording, recordingFile);
 
@@ -157,7 +157,7 @@ class JdbcRecordingRepositoryTest {
 
             RecordingFile additionalFile = new RecordingFile(
                     "file-003", "rec-001", "recording1-extra.jfr",
-                    SupportedRecordingFile.JFR, null, Instant.parse("2025-01-15T14:00:00Z"), 512);
+                    SupportedRecordingFile.JFR, Instant.parse("2025-01-15T14:00:00Z"), 512);
 
             repository.insertRecordingFile(additionalFile);
 
