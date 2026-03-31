@@ -37,9 +37,6 @@ import java.util.Map;
  */
 public class DiffgraphProtoFormatter {
 
-    private static final double MIN_SAMPLES_IN_PCT = 0;
-    private static final int MAX_LEVEL = Integer.MAX_VALUE;
-
     private final DiffFrame diffFrame;
     private final long minSamples;
 
@@ -47,11 +44,11 @@ public class DiffgraphProtoFormatter {
     private final List<String> titlePool = new ArrayList<>();
     private final Map<String, Integer> titleIndex = new HashMap<>();
 
-    public DiffgraphProtoFormatter(DiffFrame diffFrame) {
+    public DiffgraphProtoFormatter(DiffFrame diffFrame, double minFrameThresholdPct) {
         this.diffFrame = diffFrame;
 
         long totalSamples = diffFrame.secondarySamples + diffFrame.primarySamples;
-        this.minSamples = (long) (totalSamples * MIN_SAMPLES_IN_PCT / 100);
+        this.minSamples = (long) (totalSamples * minFrameThresholdPct / 100);
     }
 
     public FlamegraphData format() {
@@ -181,7 +178,7 @@ public class DiffgraphProtoFormatter {
         for (Map.Entry<String, pbouda.jeffrey.frameir.Frame> e : frame.entrySet()) {
             pbouda.jeffrey.frameir.Frame child = e.getValue();
             String method = e.getKey();
-            if (child.totalSamples() > minSamples && MAX_LEVEL > layer) {
+            if (child.totalSamples() > minSamples) {
                 processSubtree(out, child, method, layer + 1, leftSamples, leftWeight, added);
             }
             leftSamples += child.totalSamples();

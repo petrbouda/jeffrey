@@ -31,7 +31,7 @@ export default class FrameColorResolver {
         'ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC': '#00B4D8',
         'BLOCKING_OBJECT_SYNTHETIC': '#e17e5a',
         'LAMBDA_SYNTHETIC': '#b3c6ff',
-        'COLLAPSED_SYNTHETIC': '#E8D5F5',
+        'COLLAPSED_SYNTHETIC': '#b3c6ff',
         'UNKNOWN': '#000000',
     };
 

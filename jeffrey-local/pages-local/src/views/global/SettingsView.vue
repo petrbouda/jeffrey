@@ -33,6 +33,13 @@
         <i class="bi bi-gear"></i>
         General
       </button>
+      <button
+        class="settings-tab"
+        :class="{ active: activeTab === 'visualization' }"
+        @click="activeTab = 'visualization'">
+        <i class="bi bi-bar-chart"></i>
+        Visualization
+      </button>
     </div>
 
     <!-- AI Configuration Tab -->
@@ -146,13 +153,67 @@
         </button>
       </div>
     </div>
+
+    <!-- Visualization Tab -->
+    <div v-if="activeTab === 'visualization'" class="settings-content">
+      <div class="settings-form-grid settings-form-grid-single">
+        <div class="settings-form-group">
+          <label class="settings-label">Flamegraph — Minimum Frame Threshold (%)</label>
+          <input
+            type="number"
+            :value="settings.get('jeffrey.local.visualization.flamegraph.min-frame-threshold-pct')"
+            @input="setSetting('jeffrey.local.visualization.flamegraph.min-frame-threshold-pct', ($event.target as HTMLInputElement).value)"
+            class="form-control"
+            style="max-width: 300px;"
+            min="0"
+            max="100"
+            step="0.01"
+            placeholder="0.05" />
+          <div class="settings-hint">
+            Frames representing less than this percentage of total samples will be hidden from flamegraphs.
+            Set to 0 to show all frames. Default: 0.05%
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-form-grid settings-form-grid-single" style="margin-top: 20px">
+        <div class="settings-form-group">
+          <label class="settings-label">Flamegraph — Frame Text Mode</label>
+          <div class="settings-hint" style="margin-bottom: 10px">
+            Choose the default text rendering for flamegraph frames. Can also be toggled per-flamegraph.
+          </div>
+          <div class="frame-mode-cards">
+            <div
+              class="frame-mode-card"
+              :class="{ selected: frameTextMode === 'single-line' }"
+              @click="frameTextMode = 'single-line'">
+              <canvas ref="previewSingleLine" class="frame-mode-preview"></canvas>
+              <div class="frame-mode-label">Single-line</div>
+            </div>
+            <div
+              class="frame-mode-card"
+              :class="{ selected: frameTextMode === 'two-line' }"
+              @click="frameTextMode = 'two-line'">
+              <canvas ref="previewTwoLine" class="frame-mode-preview"></canvas>
+              <div class="frame-mode-label">Two-line</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn-primary" @click="saveVisualizationSettings" :disabled="saving">
+          {{ saving ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
     </MainCard>
   </div>
 </template>
 
 <script setup lang="ts">
 import '@/styles/form-utilities.css'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import SettingsClient from '@/services/api/SettingsClient'
 import MainCard from '@/components/MainCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -184,12 +245,21 @@ const chatgptModels: ModelInfo[] = [
 const client = new SettingsClient()
 
 const activeTab = ref('ai')
+watch(activeTab, (tab) => {
+  if (tab === 'visualization') {
+    nextTick(() => drawPreviews())
+  }
+})
 const restartRequired = ref(false)
 const showApiKey = ref(false)
 const saving = ref(false)
 const encryptionMode = ref('')
 
 const settings = reactive(new Map<string, string>())
+const frameTextMode = ref('single-line')
+
+const previewSingleLine = ref<HTMLCanvasElement | null>(null)
+const previewTwoLine = ref<HTMLCanvasElement | null>(null)
 
 const aiToggle = ref(false)
 const aiEnabled = computed(() => aiToggle.value)
@@ -225,10 +295,106 @@ onMounted(async () => {
     }
 
     aiToggle.value = settings.get('jeffrey.local.ai.provider') !== 'none'
+    frameTextMode.value = settings.get('jeffrey.local.visualization.flamegraph.frame-text-mode') || 'single-line'
+
+    nextTick(() => drawPreviews())
   } catch (e) {
     console.error('Failed to load settings', e)
   }
 })
+
+function drawPreviews() {
+  drawSingleLinePreview()
+  drawTwoLinePreview()
+}
+
+function setupCanvas(canvas: HTMLCanvasElement, cssWidth: number, cssHeight: number): CanvasRenderingContext2D {
+  const dpr = devicePixelRatio || 1
+  canvas.style.width = cssWidth + 'px'
+  canvas.style.height = cssHeight + 'px'
+  canvas.width = cssWidth * dpr
+  canvas.height = cssHeight * dpr
+  const ctx = canvas.getContext('2d')!
+  ctx.scale(dpr, dpr)
+  return ctx
+}
+
+const PREVIEW_WIDTH = 320
+const PREVIEW_HEIGHT = 90
+const PREVIEW_COLORS = ['#94f25a', '#94f25a', '#cce880']
+
+function drawSingleLinePreview() {
+  const canvas = previewSingleLine.value
+  if (!canvas) return
+  const ctx = setupCanvas(canvas, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+  const fh = 20
+  const FONT_N = '11px -apple-system, BlinkMacSystemFont, sans-serif'
+  const FONT_B = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif'
+  const FONT_I = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif'
+  const packages = ['org.apache.catalina.core.', 'org.apache.catalina.core.', 'org.apache.catalina.authenticator.']
+  const classes = ['StandardEngineValve', 'StandardHostValve', 'AuthenticatorBase']
+  const methods = ['.invoke', '.invoke', '.invoke']
+
+  ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+  for (let i = 0; i < 3; i++) {
+    const y = i * fh + (PREVIEW_HEIGHT - 3 * fh) / 2
+    ctx.fillStyle = PREVIEW_COLORS[i]
+    ctx.fillRect(0, y, PREVIEW_WIDTH, fh)
+    ctx.strokeStyle = 'white'
+    ctx.lineWidth = 1
+    ctx.strokeRect(0, y, PREVIEW_WIDTH, fh)
+
+    let cx = 3
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'
+    ctx.font = FONT_N
+    ctx.fillText(packages[i], cx, y + 14)
+    cx += ctx.measureText(packages[i]).width
+
+    ctx.fillStyle = '#000'
+    ctx.font = FONT_B
+    ctx.fillText(classes[i], cx, y + 14)
+    cx += ctx.measureText(classes[i]).width
+
+    ctx.fillStyle = '#000'
+    ctx.font = FONT_I
+    ctx.fillText(methods[i], cx, y + 14)
+  }
+}
+
+function drawTwoLinePreview() {
+  const canvas = previewTwoLine.value
+  if (!canvas) return
+  const ctx = setupCanvas(canvas, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+  const fh = 30
+  const classes = ['StandardEngineValve', 'StandardHostValve', 'AuthenticatorBase']
+  const methods = ['.invoke', '.invoke', '.invoke']
+  const packages = ['org.apache.catalina.core', 'org.apache.catalina.core', 'org.apache.catalina.authenticator']
+
+  ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+  for (let i = 0; i < 3; i++) {
+    const y = i * fh
+    ctx.fillStyle = PREVIEW_COLORS[i]
+    ctx.fillRect(0, y, PREVIEW_WIDTH, fh)
+    ctx.strokeStyle = 'white'
+    ctx.lineWidth = 1
+    ctx.strokeRect(0, y, PREVIEW_WIDTH, fh)
+
+    // Line 1: bold Class + italic .method
+    let cx = 7
+    ctx.fillStyle = '#000'
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif'
+    ctx.fillText(classes[i], cx, y + 13)
+    cx += ctx.measureText(classes[i]).width
+
+    ctx.font = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif'
+    ctx.fillText(methods[i], cx, y + 13)
+
+    // Line 2: package
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif'
+    ctx.fillText(packages[i], 7, y + 25, PREVIEW_WIDTH - 12)
+  }
+}
 
 async function onAiToggleChange() {
   if (!aiToggle.value) {
@@ -278,6 +444,31 @@ async function saveGeneralSettings() {
     restartRequired.value = true
   } catch (e) {
     console.error('Failed to save general settings', e)
+  } finally {
+    saving.value = false
+  }
+}
+
+async function saveVisualizationSettings() {
+  saving.value = true
+  try {
+    await Promise.all([
+      client.upsert(
+        'visualization',
+        'jeffrey.local.visualization.flamegraph.min-frame-threshold-pct',
+        settings.get('jeffrey.local.visualization.flamegraph.min-frame-threshold-pct') || '',
+        false
+      ),
+      client.upsert(
+        'visualization',
+        'jeffrey.local.visualization.flamegraph.frame-text-mode',
+        frameTextMode.value,
+        false
+      )
+    ])
+    restartRequired.value = true
+  } catch (e) {
+    console.error('Failed to save visualization settings', e)
   } finally {
     saving.value = false
   }
@@ -584,6 +775,42 @@ async function saveGeneralSettings() {
 .model-row-selected {
   background: var(--color-bg-hover, #f0f4ff);
   font-weight: 600;
+}
+
+.frame-mode-cards {
+  display: flex;
+  gap: 16px;
+}
+
+.frame-mode-card {
+  border: 2px solid var(--color-border, #e2e8f0);
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--color-bg-card, #fff);
+}
+
+.frame-mode-card:hover {
+  border-color: var(--color-text-muted, #748194);
+}
+
+.frame-mode-card.selected {
+  border-color: var(--color-primary, #5e64ff);
+  box-shadow: 0 0 0 1px var(--color-primary, #5e64ff);
+}
+
+.frame-mode-preview {
+  display: block;
+  border-radius: 3px;
+}
+
+.frame-mode-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-dark, #0b1727);
+  margin-top: 8px;
+  text-align: center;
 }
 
 </style>

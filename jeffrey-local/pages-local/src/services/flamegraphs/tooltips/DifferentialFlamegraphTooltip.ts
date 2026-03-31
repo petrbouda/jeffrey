@@ -26,43 +26,43 @@ export default class DifferentialFlamegraphTooltip extends FlamegraphTooltip {
     }
 
     generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
-        let diffFragment = ""
         let details = frame.diffDetails;
 
-        let value, formattedValue, percent, formattedTotal
+        let value, formattedValue, percent: string, formattedTotal
         if (this.useWeight) {
             value = details.weight
             formattedValue = FlamegraphTooltip.format_value_weight(this.eventType, Math.abs(details.weight))
             formattedTotal = FlamegraphTooltip.format_weight(this.eventType, frame.totalWeight, levelTotalWeight)
-            percent = details.percentWeight
+            percent = details.percentWeight.toFixed(2)
         } else {
             value = details.samples
-            formattedValue = Math.abs(details.samples)
+            formattedValue = Math.abs(details.samples).toLocaleString()
             formattedTotal = FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)
-            percent = details.percentSamples
+            percent = details.percentSamples.toFixed(2)
         }
 
+        let diffFragment: string
         if (value > 0) {
             diffFragment = `
-                <div class="d-flex justify-content-between align-items-center py-0">
-                    <span class="small text-danger">Added:</span>
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                    <span class="small" style="color:#b82230">Added:</span>
                     <span class="small fw-semibold ms-2">${formattedValue} (${percent}%)</span>
                 </div>`
         } else if (value < 0) {
             diffFragment = `
-                <div class="d-flex justify-content-between align-items-center py-0">
-                    <span class="small text-success">Removed:</span>
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                    <span class="small" style="color:#00994d">Removed:</span>
                     <span class="small fw-semibold ms-2">${formattedValue} (${percent}%)</span>
                 </div>`
         } else {
-            diffFragment = `<div class="small text-center text-muted py-0">There is no difference in samples</div>`
+            diffFragment = `<div class="small text-center text-muted py-0">No difference in samples</div>`
         }
 
         return `
             ${FlamegraphTooltip.header(frame)}
-            <div class="card-body p-0 pt-1">
-                <div class="px-2 pb-1">
-                    <div class="d-flex justify-content-between align-items-center py-0">
+            <div style="padding:6px 0 6px">
+                <div style="padding:2px 10px 6px">
+                    <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
                         <span class="small text-muted">Total:</span>
                         <span class="small fw-semibold ms-2">${formattedTotal}</span>
                     </div>

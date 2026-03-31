@@ -18,45 +18,64 @@
 
 import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
 import Frame from "@/services/api/model/Frame";
-import FrameColorResolver from "@/services/flamegraphs/FrameColorResolver";
 
 export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
+    private readonly weightTitle: string | null;
+    private readonly weightFormatter: ((value: number, base: number) => string) | null;
+    private readonly showPositionAndTypes: boolean;
 
-    constructor(eventType: string, useWeight: boolean) {
+    constructor(
+        eventType: string,
+        useWeight: boolean,
+        weightTitle: string | null = null,
+        weightFormatter: ((value: number, base: number) => string) | null = null,
+        showPositionAndTypes: boolean = false) {
+
         super(eventType, useWeight);
+        this.weightTitle = weightTitle;
+        this.weightFormatter = weightFormatter;
+        this.showPositionAndTypes = showPositionAndTypes;
     }
 
-    generate(frame: Frame, levelTotalSamples: number, _levelTotalWeight: number): string {
-        let typeFragment = ""
-        if (frame.type != null) {
-            typeFragment = `
-                <div class="d-flex justify-content-between align-items-center py-0">
-                    <span class="small text-muted">Frame Type:</span>
-                    <span class="small fw-semibold ms-2">${FrameColorResolver.resolveTitle(frame.type)}</span>
-                </div>`
-        }
-
+    generate(frame: Frame, levelTotalSamples: number, levelTotalWeight: number): string {
         const selfSamples = frame.selfSamples ?? 0;
-        let selfFragment = ""
+
+        let samplesHtml = `
+            <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                <span class="small text-muted">Samples (total):</span>
+                <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}</span>
+            </div>`;
+
         if (selfSamples > 0) {
-            selfFragment = `
-                <div class="d-flex justify-content-between align-items-center py-0">
+            samplesHtml += `
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
                     <span class="small text-muted">Samples (self):</span>
                     <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(selfSamples, levelTotalSamples)}</span>
-                </div>`
+                </div>`;
+        }
+
+        if (this.weightTitle && this.weightFormatter) {
+            samplesHtml += `
+                <div class="d-flex justify-content-between align-items-center" style="padding:2px 0">
+                    <span class="small text-muted">${this.weightTitle}:</span>
+                    <span class="small fw-semibold ms-2">${this.weightFormatter(frame.totalWeight ?? 0, levelTotalWeight)}</span>
+                </div>`;
+        }
+
+        let extraSections = ""
+        if (this.showPositionAndTypes) {
+            extraSections += FlamegraphTooltip.position(frame.position);
+            extraSections += FlamegraphTooltip.frame_types(frame.sampleTypes);
+            extraSections += FlamegraphTooltip.self_vs_total(selfSamples, frame.totalSamples);
         }
 
         return `
             ${FlamegraphTooltip.header(frame)}
-            <div class="card-body p-0 pt-1">
-                <div class="px-2 pb-1">
-                    ${typeFragment}
-                    <div class="d-flex justify-content-between align-items-center py-0">
-                        <span class="small text-muted">Samples (total):</span>
-                        <span class="small fw-semibold ms-2">${FlamegraphTooltip.format_samples(frame.totalSamples, levelTotalSamples)}</span>
-                    </div>
-                    ${selfFragment}
+            <div style="padding:6px 0 6px">
+                <div style="padding:2px 10px 6px">
+                    ${samplesHtml}
                 </div>
-            </div>`
+                ${extraSections}
+            </div>`;
     }
 }

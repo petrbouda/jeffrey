@@ -31,13 +31,18 @@ public class FlamegraphDataProvider {
     private final ProfileEventStreamRepository eventStreamRepository;
     private final FrameBuilder frameBuilder;
     private final GraphParameters graphParameters;
+    private final double minFrameThresholdPct;
 
     private FlamegraphDataProvider(
-            ProfileEventStreamRepository eventStreamRepository, GraphParameters graphParameters, FrameBuilder frameBuilder) {
+            ProfileEventStreamRepository eventStreamRepository,
+            GraphParameters graphParameters,
+            FrameBuilder frameBuilder,
+            double minFrameThresholdPct) {
 
         this.eventStreamRepository = eventStreamRepository;
         this.graphParameters = graphParameters;
         this.frameBuilder = frameBuilder;
+        this.minFrameThresholdPct = minFrameThresholdPct;
     }
 
     /**
@@ -47,13 +52,16 @@ public class FlamegraphDataProvider {
      *
      * @param eventStreamRepository repository to fetch all the records for processing
      * @param params                configuration for the flamegraph.
+     * @param minFrameThresholdPct  minimum frame threshold percentage for pruning low-relevancy frames.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
-    public static FlamegraphDataProvider primary(ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
+    public static FlamegraphDataProvider primary(
+            ProfileEventStreamRepository eventStreamRepository, GraphParameters params, double minFrameThresholdPct) {
+
         FrameBuilder builder = new FrameBuilderResolver(params, false)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventStreamRepository, params, builder);
+        return new FlamegraphDataProvider(eventStreamRepository, params, builder, minFrameThresholdPct);
     }
 
     /**
@@ -63,13 +71,16 @@ public class FlamegraphDataProvider {
      *
      * @param eventStreamRepository repository to fetch all the records for processing
      * @param params                configuration for the flamegraph.
+     * @param minFrameThresholdPct  minimum frame threshold percentage for pruning low-relevancy frames.
      * @return instance of the {@link FlamegraphDataProvider}.
      */
-    public static FlamegraphDataProvider differential(ProfileEventStreamRepository eventStreamRepository, GraphParameters params) {
+    public static FlamegraphDataProvider differential(
+            ProfileEventStreamRepository eventStreamRepository, GraphParameters params, double minFrameThresholdPct) {
+
         FrameBuilder builder = new FrameBuilderResolver(params, true)
                 .resolve();
 
-        return new FlamegraphDataProvider(eventStreamRepository, params, builder);
+        return new FlamegraphDataProvider(eventStreamRepository, params, builder, minFrameThresholdPct);
     }
 
     /**
@@ -79,7 +90,7 @@ public class FlamegraphDataProvider {
      */
     public pbouda.jeffrey.flamegraph.proto.FlamegraphData provideProto() {
         Frame frame = provideFrame();
-        FlameGraphProtoBuilder protoBuilder = resolveFlamegraphProtoBuilder(graphParameters);
+        FlameGraphProtoBuilder protoBuilder = resolveFlamegraphProtoBuilder(graphParameters, minFrameThresholdPct);
         return protoBuilder.build(frame);
     }
 
@@ -106,17 +117,17 @@ public class FlamegraphDataProvider {
         return frame;
     }
 
-    private static FlameGraphProtoBuilder resolveFlamegraphProtoBuilder(GraphParameters params) {
+    private static FlameGraphProtoBuilder resolveFlamegraphProtoBuilder(GraphParameters params, double minFrameThresholdPct) {
         boolean withMarker = params.containsMarkers();
 
         if (params.eventType().isAllocationEvent()) {
-            return FlameGraphProtoBuilder.allocation(withMarker);
+            return FlameGraphProtoBuilder.allocation(withMarker, minFrameThresholdPct);
         } else if (params.eventType().isBlockingEvent()) {
-            return FlameGraphProtoBuilder.blocking(withMarker);
+            return FlameGraphProtoBuilder.blocking(withMarker, minFrameThresholdPct);
         } else if (params.eventType().isMethodTraceEvent()) {
-            return FlameGraphProtoBuilder.latency(withMarker);
+            return FlameGraphProtoBuilder.latency(withMarker, minFrameThresholdPct);
         } else {
-            return FlameGraphProtoBuilder.simple(withMarker);
+            return FlameGraphProtoBuilder.simple(withMarker, minFrameThresholdPct);
         }
     }
 }

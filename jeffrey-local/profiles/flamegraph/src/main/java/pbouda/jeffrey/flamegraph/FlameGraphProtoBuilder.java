@@ -52,45 +52,46 @@ public class FlameGraphProtoBuilder implements GraphBuilder<pbouda.jeffrey.frame
     private static final Function<Long, String> LATENCY_FORMATTER =
             weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
 
-    private static final int MAX_LEVEL = Integer.MAX_VALUE;
-
     private final boolean withMarker;
     private final boolean withWeight;
+    private final double minFrameThresholdPct;
     private final Function<Long, String> weightFormatter;
 
     // Title pool for string deduplication
     private final List<String> titlePool = new ArrayList<>();
     private final Map<String, Integer> titleIndex = new HashMap<>();
 
-    private FlameGraphProtoBuilder(boolean withMarker, Function<Long, String> weightFormatter) {
-        this(withMarker, weightFormatter != null, weightFormatter);
+    private FlameGraphProtoBuilder(boolean withMarker, double minFrameThresholdPct, Function<Long, String> weightFormatter) {
+        this(withMarker, minFrameThresholdPct, weightFormatter != null, weightFormatter);
     }
 
-    public static FlameGraphProtoBuilder simple(boolean withMarker) {
-        return new FlameGraphProtoBuilder(withMarker, null);
+    public static FlameGraphProtoBuilder simple(boolean withMarker, double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, null);
     }
 
-    public static FlameGraphProtoBuilder allocation(boolean withMarker) {
-        return new FlameGraphProtoBuilder(withMarker, ALLOCATION_FORMATTER);
+    public static FlameGraphProtoBuilder allocation(boolean withMarker, double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, ALLOCATION_FORMATTER);
     }
 
-    public static FlameGraphProtoBuilder blocking(boolean withMarker) {
-        return new FlameGraphProtoBuilder(withMarker, BLOCKING_FORMATTER);
+    public static FlameGraphProtoBuilder blocking(boolean withMarker, double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, BLOCKING_FORMATTER);
     }
 
-    public static FlameGraphProtoBuilder latency(boolean withMarker) {
-        return new FlameGraphProtoBuilder(withMarker, LATENCY_FORMATTER);
+    public static FlameGraphProtoBuilder latency(boolean withMarker, double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, LATENCY_FORMATTER);
     }
 
-    public FlameGraphProtoBuilder(boolean withMarker, boolean withWeight, Function<Long, String> weightFormatter) {
+    public FlameGraphProtoBuilder(boolean withMarker, double minFrameThresholdPct, boolean withWeight, Function<Long, String> weightFormatter) {
         this.withMarker = withMarker;
+        this.minFrameThresholdPct = minFrameThresholdPct;
         this.withWeight = withWeight;
         this.weightFormatter = weightFormatter;
     }
 
     @Override
     public FlamegraphData build(pbouda.jeffrey.frameir.Frame root) {
-        int depth = root.depth(0);
+        long minSamples = (long) (root.totalSamples() * minFrameThresholdPct / 100.0);
+        int depth = root.depth(minSamples);
 
         // Initialize level builders
         List<Level.Builder> levelBuilders = new ArrayList<>(depth);
@@ -104,7 +105,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<pbouda.jeffrey.frame
                 : root.totalSamples() + " Event(s)";
 
         // Recursively build frame tree
-        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, false);
+        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, false, minSamples);
 
         // Build the final FlamegraphData
         FlamegraphData.Builder dataBuilder = FlamegraphData.newBuilder()
@@ -126,7 +127,8 @@ public class FlameGraphProtoBuilder implements GraphBuilder<pbouda.jeffrey.frame
             int level,
             long leftSamples,
             long leftWeight,
-            boolean markerCrossed) {
+            boolean markerCrossed,
+            long minSamples) {
 
         Frame.Builder frameBuilder = Frame.newBuilder()
                 .setLeftSamples(leftSamples)
@@ -183,12 +185,12 @@ public class FlameGraphProtoBuilder implements GraphBuilder<pbouda.jeffrey.frame
 
         levelBuilders.get(level).addFrames(frameBuilder);
 
-        // Process children
+        // Process children — skip sub-threshold branches but always accumulate leftSamples
         for (Map.Entry<String, pbouda.jeffrey.frameir.Frame> e : frame.entrySet()) {
             pbouda.jeffrey.frameir.Frame child = e.getValue();
-            if (level < MAX_LEVEL) {
+            if (child.totalSamples() >= minSamples) {
                 boolean markerCrossedLocal = markerCrossed || child.hasMarker();
-                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, markerCrossedLocal);
+                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, markerCrossedLocal, minSamples);
             }
             leftSamples += child.totalSamples();
             leftWeight += child.totalWeight();

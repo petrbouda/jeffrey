@@ -58,7 +58,7 @@ public class LambdaFrameProcessor implements FrameProcessor {
 
     private NewFrame createLambdaSynthetic(JfrStackFrame currFrame, FlamegraphRecord record, boolean isTopFrame) {
         return new NewFrame(
-                "Lambda Frame (Synthetic)",
+                "Lambda Frame",
                 currFrame.lineNumber(),
                 currFrame.bytecodeIndex(),
                 FrameType.LAMBDA_SYNTHETIC,

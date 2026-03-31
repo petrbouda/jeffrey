@@ -41,13 +41,16 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
     private final ProfileEventStreamRepository primaryRepository;
     private final ProfileEventStreamRepository secondaryRepository;
+    private final double minFrameThresholdPct;
 
     public DbBasedDiffgraphGenerator(
             ProfileEventStreamRepository primaryRepository,
-            ProfileEventStreamRepository secondaryRepository) {
+            ProfileEventStreamRepository secondaryRepository,
+            double minFrameThresholdPct) {
 
         this.primaryRepository = primaryRepository;
         this.secondaryRepository = secondaryRepository;
+        this.minFrameThresholdPct = minFrameThresholdPct;
     }
 
     @Override
@@ -57,8 +60,8 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
          */
         CompletableFuture<pbouda.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
-            FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params);
-            FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params);
+            FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params, minFrameThresholdPct);
+            FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params, minFrameThresholdPct);
 
             CompletableFuture<Frame> primaryFlameFuture = CompletableFuture.supplyAsync(
                     primaryFlame::provideFrame, Schedulers.sharedParallel());
@@ -67,7 +70,7 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
 
             flameFuture = primaryFlameFuture.thenCombine(secondaryFlameFuture, (primary, secondary) -> {
                 DiffFrame differentialFrames = new DiffTreeGenerator(primary, secondary).generate();
-                return new DiffgraphProtoFormatter(differentialFrames).format();
+                return new DiffgraphProtoFormatter(differentialFrames, minFrameThresholdPct).format();
             });
         } else {
             flameFuture = CompletableFuture.completedFuture(null);

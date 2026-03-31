@@ -26,6 +26,7 @@ import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import FlamegraphData from "@/services/api/model/FlamegraphData";
 import GuardMatched from "@/services/api/model/GuardMatched";
+import SettingsClient from "@/services/api/SettingsClient";
 import MessageBus from "@/services/MessageBus.ts";
 import LoadingIndicator from "@/components/LoadingIndicator.vue";
 
@@ -51,8 +52,17 @@ let resizeTimer: number | null = null;
 // ------------------------
 
 let flamegraph: Flamegraph
+let defaultTwoLineMode: boolean | null = null
 
 const canvasWidth = ref('100%');
+const twoLineMode = ref(false);
+
+function setDisplayMode(twoLine: boolean) {
+  twoLineMode.value = twoLine;
+  if (flamegraph) {
+    flamegraph.setTwoLineMode(twoLine);
+  }
+}
 
 const contextMenu = ref<HTMLElement>();
 const contextMenuItems = ref<any[]>([]);
@@ -83,27 +93,19 @@ function showContextMenu(event: MouseEvent) {
   const menu = contextMenu.value as HTMLElement;
   if (!menu) return;
 
-  // Position the menu with 10px offset from cursor position
   menu.style.display = 'block';
-  menu.style.left = `${event.layerX + 10}px`;
-  menu.style.top = `${event.layerY + 10}px`;
+  menu.style.left = `${event.clientX + 10}px`;
+  menu.style.top = `${event.clientY + 10}px`;
 
   // Ensure the menu doesn't go off-screen
   const menuRect = menu.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-
-  // Adjust horizontally if needed
-  if (menuRect.right > viewportWidth) {
-    menu.style.left = `${event.layerX - menuRect.width - 10}px`;
+  if (menuRect.right > window.innerWidth) {
+    menu.style.left = `${event.clientX - menuRect.width - 10}px`;
+  }
+  if (menuRect.bottom > window.innerHeight) {
+    menu.style.top = `${event.clientY - menuRect.height - 10}px`;
   }
 
-  // Adjust vertically if needed
-  if (menuRect.bottom > viewportHeight) {
-    menu.style.top = `${event.layerY - menuRect.height - 10}px`;
-  }
-
-  // Add event listener to hide when clicking outside
   document.addEventListener('click', handleDocumentClick);
 }
 
@@ -190,6 +192,21 @@ onMounted(() => {
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
 
+    // Apply default text mode from settings
+    if (defaultTwoLineMode === null) {
+      new SettingsClient().fetchByCategory('visualization').then(settings => {
+        const mode = settings.find(s => s.name === 'jeffrey.local.visualization.flamegraph.frame-text-mode')
+        defaultTwoLineMode = mode?.value === 'two-line'
+        if (defaultTwoLineMode) {
+          twoLineMode.value = true
+          flamegraph.setTwoLineMode(true)
+        }
+      }).catch(() => { defaultTwoLineMode = false })
+    } else if (defaultTwoLineMode) {
+      twoLineMode.value = true
+      flamegraph.setTwoLineMode(true)
+    }
+
     // Initialize context menu items after flamegraph is available
     contextMenuItems.value = FlamegraphContextMenu.resolve(
         () => props.graphUpdater.updateWithSearch(flamegraph.getContextFrame()?.title || ''),
@@ -253,6 +270,16 @@ function search(value: string | null) {
 <template>
   <LoadingIndicator v-if="preloaderActive" text="Generating Flamegraph..."/>
 
+  <div class="flamegraph-toolbar">
+    <div class="view-toggle">
+      <button class="toggle-btn text-btn" :class="{ active: !twoLineMode }" @click="setDisplayMode(false)">
+        Single-line
+      </button>
+      <button class="toggle-btn text-btn" :class="{ active: twoLineMode }" @click="setDisplayMode(true)">
+        Two-line
+      </button>
+    </div>
+  </div>
   <canvas ref="flamegraphCanvas" id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
@@ -272,8 +299,54 @@ function search(value: string | null) {
 </template>
 
 <style scoped>
+.flamegraph-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 0;
+}
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  border: none;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.toggle-btn.text-btn {
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.toggle-btn:not(:last-child) {
+  border-right: 1px solid #e2e8f0;
+}
+
+.toggle-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.toggle-btn.active {
+  background: #eef2ff;
+  color: #5e64ff;
+}
+
 .custom-context-menu {
-  position: absolute;
+  position: fixed;
   z-index: 1000;
   min-width: 200px;
   padding: 0.5rem 0;

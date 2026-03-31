@@ -36,16 +36,18 @@ import java.util.concurrent.CompletableFuture;
 public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
     private final ProfileEventStreamRepository eventRepository;
+    private final double minFrameThresholdPct;
 
-    public DbBasedFlamegraphGenerator(ProfileEventStreamRepository eventRepository) {
+    public DbBasedFlamegraphGenerator(ProfileEventStreamRepository eventRepository, double minFrameThresholdPct) {
         this.eventRepository = eventRepository;
+        this.minFrameThresholdPct = minFrameThresholdPct;
     }
 
     @Override
     public byte[] generate(GraphParameters params) {
         CompletableFuture<pbouda.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
-            FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
+            FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params, minFrameThresholdPct);
             flameFuture = CompletableFuture.supplyAsync(flamegraphProvider::provideProto, Schedulers.sharedParallel());
         } else {
             flameFuture = CompletableFuture.completedFuture(null);

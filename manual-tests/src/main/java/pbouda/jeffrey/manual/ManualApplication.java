@@ -62,7 +62,7 @@ public class ManualApplication {
         IO.println("Root frame: " + rootFrame);
 
         long startBuildingJson = System.nanoTime();
-        FlameGraphProtoBuilder jsonBuilder = new FlameGraphProtoBuilder(false, false, weight -> weight + " millis");
+        FlameGraphProtoBuilder jsonBuilder = new FlameGraphProtoBuilder(false, 0, false, weight -> weight + " millis");
         FlamegraphData data = jsonBuilder.build(rootFrame);
         System.out.println(data.getDepth());
         long endBuildingJson = System.nanoTime();

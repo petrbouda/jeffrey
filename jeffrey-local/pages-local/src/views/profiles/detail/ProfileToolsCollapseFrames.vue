@@ -102,7 +102,7 @@
             <input
               type="text"
               class="form-control search-input"
-              placeholder="e.g. [Spring Framework]"
+              placeholder="e.g. Spring Framework"
               v-model="label"
               :disabled="isLocked"
               @keyup.enter="handlePreview"
@@ -213,7 +213,7 @@ const PRESETS: CollapsePreset[] = [
     color: '#6db33f',
     description: 'Tomcat, Catalina, Coyote, Spring, Jakarta Servlet',
     patterns: ['org.apache.tomcat', 'org.apache.coyote', 'org.apache.catalina', 'org.springframework', 'jakarta.servlet'],
-    label: '[Spring Framework]'
+    label: 'Spring Framework'
   }
 ]
 

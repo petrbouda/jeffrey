@@ -291,17 +291,22 @@ public class ProfileFactoriesConfiguration {
     }
 
     @Bean
-    public FlamegraphManager.Factory flamegraphFactory() {
+    public FlamegraphManager.Factory flamegraphFactory(
+            @Value("${jeffrey.local.visualization.flamegraph.min-frame-threshold-pct:0.05}") double minFrameThresholdPct) {
+
         return profileInfo -> {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             ProfileEventTypeRepository eventTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
             ProfileEventStreamRepository eventRepository = profileRepositories.newEventStreamRepository(profileDb);
-            return new PrimaryFlamegraphManager(eventTypeRepository, new DbBasedFlamegraphGenerator(eventRepository));
+            return new PrimaryFlamegraphManager(eventTypeRepository,
+                    new DbBasedFlamegraphGenerator(eventRepository, minFrameThresholdPct));
         };
     }
 
     @Bean
-    public FlamegraphManager.DifferentialFactory differentialGraphFactory() {
+    public FlamegraphManager.DifferentialFactory differentialGraphFactory(
+            @Value("${jeffrey.local.visualization.flamegraph.min-frame-threshold-pct:0.05}") double minFrameThresholdPct) {
+
         return (primary, secondary) -> {
             DataSource primaryDb = databaseManagerResolver.open(primary);
             DataSource secondaryDb = databaseManagerResolver.open(secondary);
@@ -310,7 +315,8 @@ public class ProfileFactoriesConfiguration {
                     profileRepositories.newEventTypeRepository(secondaryDb),
                     new DbBasedDiffgraphGenerator(
                             profileRepositories.newEventStreamRepository(primaryDb),
-                            profileRepositories.newEventStreamRepository(secondaryDb))
+                            profileRepositories.newEventStreamRepository(secondaryDb),
+                            minFrameThresholdPct)
             );
         };
     }
