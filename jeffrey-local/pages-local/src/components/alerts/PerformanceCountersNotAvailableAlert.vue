@@ -104,10 +104,10 @@
 
 pre {
   font-size: 0.8rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 code {
-  color: #495057;
+  color: var(--color-text);
 }
 </style>

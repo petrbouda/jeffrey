@@ -79,58 +79,17 @@
     >
       <!-- Overview Tab -->
       <template #overview>
-        <div class="row">
-          <div class="col-md-6">
-            <DonutChartCard
-                v-if="report"
-                title="Fill Distribution"
-                :series="fillChartSeries"
-                :labels="fillChartLabels"
-                :colors="fillChartColors"
-                :legend-items="fillLegendItems"
-                :total-value="FormattingService.formatNumber(report.totalCollections)"
+        <DualPanel v-if="report" left-title="Fill Distribution" right-title="Summary">
+          <template #left>
+            <DonutWithLegend
+                :data="fillChartData"
                 :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' collections'"
             />
-          </div>
-          <div class="col-md-6">
-            <BasePanel title="Summary">
-              <div class="summary-table" v-if="report">
-                <table class="table table-sm mb-0">
-                  <tbody>
-                    <tr>
-                      <td class="text-muted">Total Collections</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.totalCollections) }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Empty Collections</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.totalEmptyCount) }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Empty Ratio</td>
-                      <td class="text-end font-monospace">{{ emptyRatio }}%</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Wasted Memory</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatBytes(report.totalWastedBytes) }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Under-utilized (Empty + Low)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.empty + report.overallFillDistribution.low) }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Well-utilized (High + Full)</td>
-                      <td class="text-end font-monospace">{{ FormattingService.formatNumber(report.overallFillDistribution.high + report.overallFillDistribution.full) }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Collection Types</td>
-                      <td class="text-end font-monospace">{{ report.byType.length }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </BasePanel>
-          </div>
-        </div>
+          </template>
+          <template #right>
+            <SummaryTable :items="summaryItems" />
+          </template>
+        </DualPanel>
       </template>
 
       <!-- By Type Tab -->
@@ -453,9 +412,11 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
-import DonutChartCard from '@/components/DonutChartCard.vue';
-import type { LegendItem } from '@/components/DonutChartCard.vue';
-import BasePanel from '@/components/BasePanel.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import SummaryTable from '@/components/SummaryTable.vue';
+import type { SummaryItem } from '@/components/SummaryTable.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import CollectionAnalysisReport, { CollectionStats } from '@/services/api/model/CollectionAnalysisReport';
 import FormattingService from '@/services/FormattingService';
@@ -485,29 +446,38 @@ const analysisTabs = [
   { id: 'how-it-works', label: 'How It Works', icon: 'info-circle' }
 ];
 
-const emptyRatio = computed(() => {
-  if (!report.value || report.value.totalCollections === 0) return '0.0';
-  return ((report.value.totalEmptyCount / report.value.totalCollections) * 100).toFixed(1);
-});
-
 const fillChartLabels = ['Empty (0%)', 'Low (1-25%)', 'Medium (26-75%)', 'High (76-99%)', 'Full (100%)'];
 const fillChartColors = ['#EA4335', '#FBBC05', '#4285F4', '#34A853', '#185ABC'];
 
-const fillChartSeries = computed(() => {
-  if (!report.value) return [];
+const fillChartData = computed<DonutChartData>(() => {
+  if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
   const dist = report.value.overallFillDistribution;
-  return [dist.empty, dist.low, dist.medium, dist.high, dist.full];
+  const series = [dist.empty, dist.low, dist.medium, dist.high, dist.full];
+  return {
+    series,
+    labels: fillChartLabels,
+    colors: fillChartColors,
+    totalValue: FormattingService.formatNumber(report.value.totalCollections),
+    legendItems: fillChartLabels.map((label, i) => ({
+      color: fillChartColors[i],
+      label,
+      value: FormattingService.formatNumber(series[i])
+    }))
+  };
 });
 
-const fillLegendItems = computed<LegendItem[]>(() => {
+const summaryItems = computed<SummaryItem[]>(() => {
   if (!report.value) return [];
-  const dist = report.value.overallFillDistribution;
+  const emptyRatio = report.value.totalCollections === 0 ? '0.0'
+      : ((report.value.totalEmptyCount / report.value.totalCollections) * 100).toFixed(1);
   return [
-    { color: '#EA4335', label: 'Empty (0%)', value: FormattingService.formatNumber(dist.empty) },
-    { color: '#FBBC05', label: 'Low (1-25%)', value: FormattingService.formatNumber(dist.low) },
-    { color: '#4285F4', label: 'Medium (26-75%)', value: FormattingService.formatNumber(dist.medium) },
-    { color: '#34A853', label: 'High (76-99%)', value: FormattingService.formatNumber(dist.high) },
-    { color: '#185ABC', label: 'Full (100%)', value: FormattingService.formatNumber(dist.full) }
+    { label: 'Total Collections', value: FormattingService.formatNumber(report.value.totalCollections) },
+    { label: 'Empty Collections', value: FormattingService.formatNumber(report.value.totalEmptyCount) },
+    { label: 'Empty Ratio', value: emptyRatio + '%' },
+    { label: 'Wasted Memory', value: FormattingService.formatBytes(report.value.totalWastedBytes) },
+    { label: 'Under-utilized (Empty + Low)', value: FormattingService.formatNumber(report.value.overallFillDistribution.empty + report.value.overallFillDistribution.low) },
+    { label: 'Well-utilized (High + Full)', value: FormattingService.formatNumber(report.value.overallFillDistribution.high + report.value.overallFillDistribution.full) },
+    { label: 'Collection Types', value: String(report.value.byType.length) }
   ];
 });
 
@@ -709,12 +679,12 @@ onMounted(() => {
 }
 
 .detail-sep {
-  color: #adb5bd;
+  color: var(--color-text-light);
   user-select: none;
 }
 
 .field-tag {
-  color: #6f42c1;
+  color: var(--color-purple);
   font-style: italic;
 }
 
@@ -722,33 +692,35 @@ onMounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
   white-space: nowrap;
 }
 
 .package-name {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -767,13 +739,13 @@ onMounted(() => {
 }
 
 .filter-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 0.75rem 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .progress {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .progress-bar {
@@ -782,15 +754,6 @@ onMounted(() => {
 
 .font-monospace {
   font-size: 0.8rem;
-}
-
-.summary-table .table td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-table .table tr:last-child td {
-  border-bottom: none;
 }
 
 /* About Tab Styles */
@@ -806,7 +769,7 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .about-header-icon {
@@ -824,21 +787,21 @@ onMounted(() => {
 
 .about-header h5 {
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .about-intro {
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .about-intro code {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
   font-size: 0.85em;
@@ -848,14 +811,14 @@ onMounted(() => {
 .section-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
 }
 
 .section-title i {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .feature-grid {
@@ -876,13 +839,13 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .feature-card:hover {
-  border-color: #dee2e6;
+  border-color: var(--card-border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -901,13 +864,13 @@ onMounted(() => {
 .feature-content h6 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.25rem;
 }
 
 .feature-content p {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-bottom: 0;
   line-height: 1.5;
 }
@@ -928,8 +891,8 @@ onMounted(() => {
 }
 
 .flag-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 1px solid #e9ecef;
+  background: linear-gradient(135deg, var(--color-light) 0%, #ffffff 100%);
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -939,17 +902,17 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .flag-code {
   font-size: 0.85rem;
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   background: white;
   padding: 0.35rem 0.65rem;
   border-radius: 4px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .flag-badge {
@@ -957,8 +920,8 @@ onMounted(() => {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #6c757d;
-  background: #e9ecef;
+  color: var(--color-text-muted);
+  background: var(--card-border-color);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
@@ -967,7 +930,7 @@ onMounted(() => {
   padding: 1rem;
   font-size: 0.85rem;
   line-height: 1.6;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .flag-body code {
@@ -990,7 +953,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--color-text);
   padding: 0.5rem 0;
 }
 
@@ -1042,12 +1005,12 @@ onMounted(() => {
 
 .collection-type-badge {
   font-size: 0.75rem;
-  color: #495057;
+  color: var(--color-text);
 }
 
 /* Darker warning colors */
 .text-warning {
-  color: #b8860b !important;
+  color: var(--color-retained) !important;
 }
 
 .bg-warning {

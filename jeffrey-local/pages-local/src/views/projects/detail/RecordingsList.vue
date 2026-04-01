@@ -17,7 +17,7 @@ import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import BaseModal from '@/components/BaseModal.vue';
+import GenericModal from '@/components/GenericModal.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import '@/styles/shared-components.css';
 
@@ -73,7 +73,8 @@ const profileCreationStates = ref<Map<string, boolean>>(new Map());
 
 const groups = ref<RecordingGroup[]>([]);
 const newGroupName = ref('');
-const createGroupModal = ref<InstanceType<typeof BaseModal>>();
+const showCreateGroupModal = ref(false);
+const createGroupErrors = ref<string[]>([]);
 
 onMounted(async () => {
   if (!workspaceId.value || !projectId.value) return;
@@ -381,23 +382,25 @@ const deleteGroup = async () => {
 
 const createGroup = async () => {
   if (!newGroupName.value.trim()) {
-    createGroupModal.value?.setValidationErrors(['Group name cannot be empty']);
+    createGroupErrors.value = ['Group name cannot be empty'];
     return;
   }
 
   try {
     await projectRecordingGroupClient.create(newGroupName.value.trim());
     newGroupName.value = '';
-    createGroupModal.value?.hideModal();
+    showCreateGroupModal.value = false;
+    createGroupErrors.value = [];
     await loadData();
   } catch (error: any) {
-    createGroupModal.value?.setValidationErrors([error.message || 'Failed to create group']);
+    createGroupErrors.value = [error.message || 'Failed to create group'];
   }
 };
 
 const openCreateGroupDialog = () => {
   newGroupName.value = '';
-  createGroupModal.value?.showModal();
+  createGroupErrors.value = [];
+  showCreateGroupModal.value = true;
 };
 
 const isRecordingCreatingProfile = (recordingId: string): boolean => {
@@ -647,27 +650,39 @@ const onDragEnd = () => {
       />
 
       <!-- Create Group Dialog -->
-      <BaseModal
-        ref="createGroupModal"
+      <GenericModal
         modal-id="createGroupModal"
+        :show="showCreateGroupModal"
+        @update:show="showCreateGroupModal = $event"
         title="Create New Group"
         icon="bi-folder-plus"
-        primary-button-text="Create"
-        @submit="createGroup"
       >
-        <template #body>
-          <div class="form-group">
-            <label for="newGroupNameInput" class="form-label">Group Name</label>
-            <input
-                type="text"
-                class="form-control"
-                id="newGroupNameInput"
-                v-model="newGroupName"
-                placeholder="Enter group name"
-            >
+        <div class="form-group">
+          <label for="newGroupNameInput" class="form-label">Group Name</label>
+          <input
+              type="text"
+              class="form-control"
+              id="newGroupNameInput"
+              v-model="newGroupName"
+              placeholder="Enter group name"
+          >
+        </div>
+
+        <!-- Validation Errors -->
+        <div v-if="createGroupErrors.length > 0" class="alert alert-danger mt-3">
+          <div v-for="(error, idx) in createGroupErrors" :key="idx">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
           </div>
+        </div>
+
+        <template #footer>
+          <button type="button" class="btn btn-secondary" @click="showCreateGroupModal = false">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="createGroup">
+            <i class="bi bi-folder-plus me-1"></i>
+            Create
+          </button>
         </template>
-      </BaseModal>
+      </GenericModal>
 
       <!-- Edit Profile Modal -->
       <EditNameModal

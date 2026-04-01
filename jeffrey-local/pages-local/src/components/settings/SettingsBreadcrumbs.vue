@@ -59,7 +59,7 @@ defineProps<{
 
 .breadcrumb-item i {
   font-size: 0.85rem;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
   opacity: 0.7;
 }
 

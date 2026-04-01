@@ -107,23 +107,23 @@ const handleCheckboxChange = (event: Event) => {
 
 /* Form input styling */
 .input-group-text {
-  background-color: #fff;
-  color: #6c757d;
+  background-color: var(--input-bg);
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 42px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--input-border-color);
 }
 
 .form-control {
-  border: 1px solid #ced4da;
-  height: 38px;
+  border: 1px solid var(--input-border-color);
+  height: var(--input-height-base);
 }
 
 .form-control:focus {
   box-shadow: none;
-  border-color: #ced4da;
+  border-color: var(--input-border-color);
 }
 
 .input-group {

@@ -236,18 +236,18 @@ const formatRelativeTime = (timestamp: number) => {
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  border-left: 3px dashed #86efac;
-  background: #fafbfc;
+  border-left: 3px dashed #93c5fd;
+  background: var(--color-light);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .rec-card:hover {
-  border-color: rgba(34, 197, 94, 0.3);
-  border-left-color: #22c55e;
+  border-color: rgba(59, 130, 246, 0.3);
+  border-left-color: #3b82f6;
   border-left-style: solid;
-  background: linear-gradient(135deg, #f0fdf4, #f7fdf9);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.12);
+  background: linear-gradient(135deg, #eff6ff, #f0f7ff);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
 }
 
 /* Analyzed state */
@@ -265,7 +265,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 /* Analyzing / Creating state */
 .rec-card--analyzing {
-  border-left: 3px solid #5e64ff;
+  border-left: 3px solid var(--color-primary);
   animation: rec-card-pulse 2s ease-in-out infinite;
   cursor: default;
 }
@@ -277,14 +277,14 @@ const formatRelativeTime = (timestamp: number) => {
 
 /* Deleting state */
 .rec-card--deleting {
-  border-left: 3px dashed #dc2626;
+  border-left: 3px dashed var(--color-danger-hover);
   opacity: 0.6;
   cursor: default;
 }
 
 .rec-card--deleting:hover {
-  border-left-color: #dc2626;
-  background: #fafbfc;
+  border-left-color: var(--color-danger-hover);
+  background: var(--color-light);
   box-shadow: none;
 }
 
@@ -334,7 +334,7 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 @keyframes rec-card-pulse {
-  0%, 100% { background: #fafbfc; }
+  0%, 100% { background: var(--color-light); }
   50% { background: #f0f2ff; }
 }
 
@@ -360,7 +360,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card__icon {
   font-size: 1.05rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -371,7 +371,7 @@ const formatRelativeTime = (timestamp: number) => {
 .rec-card__name {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -397,7 +397,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card__meta {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .rec-card__sep {
@@ -439,8 +439,8 @@ const formatRelativeTime = (timestamp: number) => {
   padding: 6px 14px;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #6b7280;
+  background: var(--color-light);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
@@ -450,13 +450,13 @@ const formatRelativeTime = (timestamp: number) => {
 .rec-card__files-toggle:hover {
   background: #f0f2ff;
   border-color: rgba(94, 100, 255, 0.3);
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .rec-card__files-toggle--active {
   background: #f0f2ff;
   border-color: rgba(94, 100, 255, 0.25);
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .rec-card__files-toggle i {
@@ -480,12 +480,12 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card__btn--analyze {
   background: transparent;
-  color: #5e64ff;
+  color: var(--color-primary);
   border: 1px solid rgba(94, 100, 255, 0.3);
 }
 
 .rec-card:hover .rec-card__btn--analyze {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
   border-color: transparent;
 }
@@ -503,13 +503,13 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 .rec-card__btn--spinner {
-  color: #5e64ff;
+  color: var(--color-primary);
   padding: 7px 16px;
   cursor: default;
 }
 
 .rec-card__btn--spinner-danger {
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 /* Spinner */
@@ -517,7 +517,7 @@ const formatRelativeTime = (timestamp: number) => {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(94, 100, 255, 0.2);
-  border-top-color: #5e64ff;
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: rec-card-spin 0.8s linear infinite;
   flex-shrink: 0;
@@ -525,7 +525,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card__spinner--danger {
   border-color: rgba(220, 38, 38, 0.2);
-  border-top-color: #dc2626;
+  border-top-color: var(--color-danger-hover);
 }
 
 @keyframes rec-card-spin {
@@ -550,12 +550,12 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card__action-btn:hover {
   background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .rec-card__action-btn--danger:hover {
   background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 .rec-card__action-btn:active {
@@ -578,7 +578,7 @@ const formatRelativeTime = (timestamp: number) => {
 
 .rec-card__drag-handle:hover {
   background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .rec-card__drag-handle:active {

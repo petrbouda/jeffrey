@@ -21,6 +21,9 @@
       </div>
     </div>
 
+    <!-- Empty state -->
+    <EmptyState v-else-if="allCounters.length === 0" icon="bi-speedometer" title="No performance counters available" />
+
     <!-- Content state -->
     <div v-else class="row">
       <div class="col-12">
@@ -74,7 +77,7 @@
           <!-- Performance Counters Tree -->
           <div class="card mb-4">
             <div class="card-body p-0">
-              <table class="table table-hover mb-0 counter-tree-table">
+              <table class="table table-sm table-hover mb-0 counter-tree-table">
                 <thead>
                 <tr>
                   <th>Counter</th>
@@ -186,8 +189,10 @@ import PerformanceCounter from "@/services/api/model/PerformanceCounter.ts";
 import PerformanceCounterEnhanced from "@/services/api/model/PerformanceCounterEnhanced.ts";
 import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import type { PropType } from 'vue';
+import '@/styles/shared-components.css';
 
 // Define props
 const props = defineProps({
@@ -415,7 +420,7 @@ onMounted(() => {
 .performance-counters-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -466,7 +471,7 @@ onMounted(() => {
   text-align: center;
   font-size: 6px;
   vertical-align: middle;
-  color: #adb5bd;
+  color: var(--color-text-light);
 }
 
 .expand-btn {
@@ -475,7 +480,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #6c757d;
+  color: var(--color-text-muted);
   background: transparent;
   border: none;
   padding: 0;
@@ -493,7 +498,7 @@ onMounted(() => {
 }
 
 .expand-btn:hover {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .counter-category {
@@ -510,7 +515,7 @@ onMounted(() => {
 }
 
 .parent-row {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .badge {
@@ -533,66 +538,13 @@ onMounted(() => {
 .summary-value {
   margin-bottom: 0.25rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .summary-label {
   margin-bottom: 0;
   font-size: 0.875rem;
-  color: #6c757d;
-}
-
-/* Search Styles */
-.search-container {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
-  overflow: hidden;
-}
-
-.search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  height: 38px;
-}
-
-.search-icon {
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
-.search-input {
-  border-left: none;
-  font-size: 0.875rem;
-  height: 38px;
-  padding: 0.375rem 0.75rem;
-  line-height: 1.5;
-}
-
-.search-input:focus {
-  box-shadow: none;
-  border-color: #ced4da;
-}
-
-.clear-btn {
-  border-color: #ced4da;
-  border-left: none;
-  background-color: #fff;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-}
-
-.clear-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.clear-btn i {
-  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 /* Custom badge colors */
@@ -607,13 +559,13 @@ onMounted(() => {
 /* Description icon style */
 .description-icon {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   cursor: help;
   transition: color 0.2s ease;
 }
 
 .description-icon:hover {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 /* Responsive adjustments */

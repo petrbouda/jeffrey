@@ -2,7 +2,7 @@
   <div>
     <MainCard>
     <template #header>
-      <PageHeader icon="bi bi-sliders" title="Settings" />
+      <MainCardHeader icon="bi bi-sliders" title="Settings" />
     </template>
 
     <!-- Restart Banner -->
@@ -48,7 +48,7 @@
         <div class="toggle-area">
           <span class="toggle-label">Enable AI</span>
           <label class="toggle-switch">
-            <input type="checkbox" v-model="aiToggle" @change="onAiToggleChange" />
+            <input type="checkbox" class="toggle-input" v-model="aiToggle" @change="onAiToggleChange" />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -213,10 +213,11 @@
 
 <script setup lang="ts">
 import '@/styles/form-utilities.css'
+import '@/styles/shared-components.css'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import SettingsClient from '@/services/api/SettingsClient'
 import MainCard from '@/components/MainCard.vue'
-import PageHeader from '@/components/PageHeader.vue'
+import MainCardHeader from '@/components/MainCardHeader.vue'
 
 interface ModelInfo {
   id: string
@@ -542,11 +543,11 @@ async function saveVisualizationSettings() {
 }
 
 .settings-tab.active {
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .settings-tab.active::after {
-  background: var(--color-primary, #5e64ff);
+  background: var(--color-primary);
 }
 
 .settings-tab:hover {
@@ -656,51 +657,6 @@ async function saveVisualizationSettings() {
   color: var(--color-text, #5e6e82);
 }
 
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #cbd5e0;
-  border-radius: 24px;
-  transition: 0.3s;
-}
-
-.toggle-slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background: white;
-  border-radius: 50%;
-  transition: 0.3s;
-}
-
-.toggle-switch input:checked + .toggle-slider {
-  background: var(--color-primary, #5e64ff);
-}
-
-.toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(20px);
-}
-
 .settings-form-disabled {
   opacity: 0.4;
   pointer-events: none;
@@ -708,7 +664,7 @@ async function saveVisualizationSettings() {
 
 .btn-primary {
   padding: 9px 24px;
-  background: var(--color-primary, #5e64ff);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -783,12 +739,12 @@ async function saveVisualizationSettings() {
 }
 
 .frame-mode-card {
-  border: 2px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
+  border: 2px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
   padding: 10px;
   cursor: pointer;
-  transition: all 0.15s;
-  background: var(--color-bg-card, #fff);
+  transition: all var(--transition-fast);
+  background: var(--card-bg);
 }
 
 .frame-mode-card:hover {
@@ -796,8 +752,8 @@ async function saveVisualizationSettings() {
 }
 
 .frame-mode-card.selected {
-  border-color: var(--color-primary, #5e64ff);
-  box-shadow: 0 0 0 1px var(--color-primary, #5e64ff);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
 }
 
 .frame-mode-preview {

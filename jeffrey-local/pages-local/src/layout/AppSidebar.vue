@@ -228,16 +228,16 @@ const getBadgeVariant = (type: string): Variant => {
   border-radius: 0.25rem;
   
   &:hover {
-    color: #5e64ff;
+    color: var(--color-primary);
     background-color: #edf2f9;
   }
   
   &.active {
-    color: #5e64ff;
+    color: var(--color-primary);
     background-color: #eaebff;
     
     i {
-      color: #5e64ff;
+      color: var(--color-primary);
     }
   }
   

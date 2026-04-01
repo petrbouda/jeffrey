@@ -80,34 +80,18 @@
     >
       <!-- Overview Tab -->
       <template #overview>
-        <div class="row">
-          <div class="col-md-6">
-            <DonutChartCard
-                v-if="report"
-                title="Memory Status"
-                :series="[report.potentialSavings, report.totalStringShallowSize - report.potentialSavings]"
-                :labels="['Potential Savings', 'Unique + Shared']"
-                :colors="['#FBBC05', '#4285F4']"
-                :legend-items="memoryLegendItems"
-                total-label="Total"
-                :total-value="FormattingService.formatBytes(report.totalStringShallowSize)"
-                :tooltip-formatter="(val) => FormattingService.formatBytes(val)"
-            />
-          </div>
-          <div class="col-md-6">
-            <DonutChartCard
-                v-if="report"
-                title="String Array Sharing"
-                :series="[report.sharedArrays, report.uniqueArrays - report.sharedArrays]"
-                :labels="['Shared Arrays', 'Unique Arrays']"
-                :colors="['#34A853', '#4285F4']"
-                :legend-items="arrayLegendItems"
-                total-label="Total Arrays"
-                :total-value="FormattingService.formatNumber(report.uniqueArrays)"
-                :tooltip-formatter="(val) => FormattingService.formatNumber(val)"
-            />
-          </div>
-        </div>
+        <DualPanel
+            v-if="report"
+            left-title="Memory Status"
+            right-title="String Array Sharing"
+        >
+          <template #left>
+            <DonutWithLegend :data="memoryChartData" :tooltip-formatter="(val: number) => FormattingService.formatBytes(val)" />
+          </template>
+          <template #right>
+            <DonutWithLegend :data="arrayChartData" :tooltip-formatter="(val: number) => FormattingService.formatNumber(val)" />
+          </template>
+        </DualPanel>
       </template>
 
       <!-- Deduplicated Tab -->
@@ -474,8 +458,9 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
-import DonutChartCard from '@/components/DonutChartCard.vue';
-import type { LegendItem } from '@/components/DonutChartCard.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import StringAnalysisReport, { JvmStringFlag } from '@/services/api/model/StringAnalysisReport';
 import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEntry';
@@ -545,20 +530,34 @@ const summaryMetrics = computed(() => {
   ];
 });
 
-const memoryLegendItems = computed<LegendItem[]>(() => {
-  if (!report.value) return [];
-  return [
-    { color: '#FBBC05', label: 'Potential Savings', value: FormattingService.formatBytes(report.value.potentialSavings) },
-    { color: '#4285F4', label: 'Unique + Shared', value: FormattingService.formatBytes(report.value.totalStringShallowSize - report.value.potentialSavings) }
-  ];
+const memoryChartData = computed<DonutChartData>(() => {
+  if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  return {
+    series: [report.value.potentialSavings, report.value.totalStringShallowSize - report.value.potentialSavings],
+    labels: ['Potential Savings', 'Unique + Shared'],
+    colors: ['#FBBC05', '#4285F4'],
+    totalLabel: 'Total',
+    totalValue: FormattingService.formatBytes(report.value.totalStringShallowSize),
+    legendItems: [
+      { color: '#FBBC05', label: 'Potential Savings', value: FormattingService.formatBytes(report.value.potentialSavings) },
+      { color: '#4285F4', label: 'Unique + Shared', value: FormattingService.formatBytes(report.value.totalStringShallowSize - report.value.potentialSavings) }
+    ]
+  };
 });
 
-const arrayLegendItems = computed<LegendItem[]>(() => {
-  if (!report.value) return [];
-  return [
-    { color: '#34A853', label: 'Shared Arrays', value: FormattingService.formatNumber(report.value.sharedArrays) },
-    { color: '#4285F4', label: 'Unique Arrays', value: FormattingService.formatNumber(report.value.uniqueArrays - report.value.sharedArrays) }
-  ];
+const arrayChartData = computed<DonutChartData>(() => {
+  if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
+  return {
+    series: [report.value.sharedArrays, report.value.uniqueArrays - report.value.sharedArrays],
+    labels: ['Shared Arrays', 'Unique Arrays'],
+    colors: ['#34A853', '#4285F4'],
+    totalLabel: 'Total Arrays',
+    totalValue: FormattingService.formatNumber(report.value.uniqueArrays),
+    legendItems: [
+      { color: '#34A853', label: 'Shared Arrays', value: FormattingService.formatNumber(report.value.sharedArrays) },
+      { color: '#4285F4', label: 'Unique Arrays', value: FormattingService.formatNumber(report.value.uniqueArrays - report.value.sharedArrays) }
+    ]
+  };
 });
 
 const maxDeduplicatedSavings = computed(() => {
@@ -727,7 +726,7 @@ onMounted(() => {
   font-size: 0.8rem;
   word-break: break-all;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
   max-width: 400px;
   display: inline-block;
   overflow: hidden;
@@ -738,24 +737,26 @@ onMounted(() => {
 .flag-name {
   font-size: 0.8rem;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -774,13 +775,13 @@ onMounted(() => {
 }
 
 .filter-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 0.75rem 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .progress {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .progress-bar {
@@ -804,7 +805,7 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .about-header-icon {
@@ -822,21 +823,21 @@ onMounted(() => {
 
 .about-header h5 {
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .about-intro {
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .about-intro code {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   padding: 0.15rem 0.4rem;
   border-radius: 3px;
   font-size: 0.85em;
@@ -846,14 +847,14 @@ onMounted(() => {
 .section-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
 }
 
 .section-title i {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .feature-grid {
@@ -874,13 +875,13 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .feature-card:hover {
-  border-color: #dee2e6;
+  border-color: var(--card-border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -899,13 +900,13 @@ onMounted(() => {
 .feature-content h6 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.25rem;
 }
 
 .feature-content p {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-bottom: 0;
   line-height: 1.5;
 }
@@ -926,8 +927,8 @@ onMounted(() => {
 }
 
 .flag-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 1px solid #e9ecef;
+  background: linear-gradient(135deg, var(--color-light) 0%, #ffffff 100%);
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -937,17 +938,17 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .flag-code {
   font-size: 0.85rem;
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   background: white;
   padding: 0.35rem 0.65rem;
   border-radius: 4px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .flag-badge {
@@ -955,8 +956,8 @@ onMounted(() => {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #6c757d;
-  background: #e9ecef;
+  color: var(--color-text-muted);
+  background: var(--card-border-color);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
 }
@@ -965,7 +966,7 @@ onMounted(() => {
   padding: 1rem;
   font-size: 0.85rem;
   line-height: 1.6;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .flag-body code {
@@ -980,7 +981,7 @@ onMounted(() => {
   margin: 0.75rem 0 0 0;
   padding-left: 1.25rem;
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .flag-details li {
@@ -992,7 +993,7 @@ onMounted(() => {
 }
 
 .flag-details strong {
-  color: #495057;
+  color: var(--color-text);
 }
 
 .gc-support {
@@ -1006,13 +1007,13 @@ onMounted(() => {
 .gc-label {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .gc-tag {
   font-size: 0.75rem;
   background: #e7f1ff;
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   font-weight: 500;
@@ -1030,7 +1031,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--color-text);
   padding: 0.5rem 0;
 }
 
@@ -1074,7 +1075,7 @@ onMounted(() => {
 
 /* Darker warning colors for opportunities */
 .text-warning {
-  color: #b8860b !important;
+  color: var(--color-retained) !important;
 }
 
 .bg-warning {

@@ -167,8 +167,8 @@
             <span class="fw-semibold small">Matching Frames</span>
           </div>
           <div class="d-flex gap-2">
-            <span class="badge bg-primary">{{ previewResult.matchingFrames }} frames</span>
-            <span class="badge bg-secondary">{{ previewResult.affectedStacktraces }} stacktraces</span>
+            <Badge :value="previewResult.matchingFrames + ' frames'" variant="blue" size="xs" />
+            <Badge :value="previewResult.affectedStacktraces + ' stacktraces'" variant="grey" size="xs" />
           </div>
         </div>
 
@@ -187,6 +187,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import PageHeader from '@/components/layout/PageHeader.vue'
+import Badge from '@/components/Badge.vue'
 import ProfileToolsClient from '@/services/api/ProfileToolsClient'
 import type CollapseFramesPreview from '@/services/api/model/CollapseFramesPreview'
 import type CollapseFramesResult from '@/services/api/model/CollapseFramesResult'
@@ -318,11 +319,11 @@ const handleApply = async () => {
 
 .preset-card {
   padding: 12px 14px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  background: var(--card-bg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .preset-card:hover {
@@ -372,13 +373,13 @@ const handleApply = async () => {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  background: var(--card-bg);
 }
 
 .sample-card:hover {
-  background: #f8f9fa;
+  background: var(--color-light);
 }
 
 .sample-original {

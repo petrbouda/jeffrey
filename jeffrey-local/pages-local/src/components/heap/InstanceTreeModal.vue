@@ -272,8 +272,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 0.75rem 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .header-content {
@@ -286,7 +286,7 @@ onMounted(() => {
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .root-info {
@@ -295,7 +295,7 @@ onMounted(() => {
 
 .class-name {
   font-size: 0.8rem;
-  color: #6f42c1;
+  color: var(--color-purple);
   background: transparent;
 }
 
@@ -311,23 +311,23 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   background-color: #fff;
-  color: #6c757d;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s ease-in-out;
 }
 
 .close-btn:hover {
-  background-color: #dc3545;
-  border-color: #dc3545;
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
   color: #fff;
 }
 
 .close-btn:focus {
   outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(230, 55, 87, 0.25);
 }
 
 .close-btn i {
@@ -347,11 +347,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .error-state {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .tree-container {
@@ -365,8 +365,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .tree-stats {
@@ -376,7 +376,7 @@ onMounted(() => {
 
 .stat-item {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .tree-actions {
@@ -392,6 +392,6 @@ onMounted(() => {
 
 .modal-footer {
   padding: 0.75rem 1rem;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--card-border-color);
 }
 </style>

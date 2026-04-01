@@ -9,7 +9,7 @@
           </div>
           <span class="text-muted small">Initializing</span>
         </div>
-        <span v-else class="badge bg-success">Ready</span>
+        <Badge v-else value="Ready" variant="green" size="xs" />
       </div>
       
       <div class="d-flex align-items-center mb-3">
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { computed, defineProps, defineEmits } from 'vue';
+import Badge from '@/components/Badge.vue';
 
 interface Profile {
   id: string;

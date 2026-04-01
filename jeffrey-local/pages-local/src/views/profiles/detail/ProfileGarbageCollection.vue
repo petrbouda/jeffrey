@@ -32,7 +32,7 @@
 
       <!-- GC Efficiency Tab -->
       <template #efficiency>
-        <div class="row">
+        <div v-if="gcSummary" class="row">
           <div class="col-md-6">
             <div class="chart-container">
               <div id="gc-efficiency-pie-chart"></div>
@@ -68,9 +68,10 @@
 
       <!-- Longest Pauses Tab -->
       <template #events>
-        <div class="gc-events-table">
+        <EmptyState v-if="!gcOverviewData?.longestPauses || gcOverviewData.longestPauses.length === 0" icon="bi-recycle" title="No garbage collection pause events" />
+        <div v-else class="gc-events-table">
           <div class="table-responsive">
-            <table class="table table-sm table-hover">
+            <table class="table table-sm table-hover mb-0">
               <thead>
               <tr>
                 <th>ID</th>
@@ -153,9 +154,10 @@
           <i class="bi bi-info-circle me-2"></i>
           This garbage collector does not support concurrent cycles
         </div>
+        <EmptyState v-else-if="gcOverviewData.longestConcurrentEvents.length === 0" icon="bi-recycle" title="No concurrent cycle events" />
         <div v-else class="concurrent-cycles-table">
           <div class="table-responsive">
-            <table class="table table-sm table-hover">
+            <table class="table table-sm table-hover mb-0">
               <thead>
               <tr>
                 <th>ID</th>
@@ -210,13 +212,13 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import Badge from '@/components/Badge.vue';
 import type { Variant } from '@/types/ui';
 import GCEventDetailsModal from '@/components/gc/GCEventDetailsModal.vue';
@@ -234,7 +236,6 @@ import {
 import { GarbageCollectionCauseDescriptions } from '@/services/api/model/GarbageCollectionCauseDescriptions';
 
 const route = useRoute();
-const { workspaceId, projectId } = useNavigation();
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -264,9 +265,13 @@ let client: ProfileGCClient;
 
 // GC Summary data (computed from real data)
 const gcSummary = computed(() => {
-  const header = gcOverviewData.value!!.header;
+  const data = gcOverviewData.value;
+  if (!data?.header) {
+    return null;
+  }
+  const header = data.header;
   return {
-    totalCollections: FormattingService.formatNumber(gcOverviewData.value!!.header.totalCollections),
+    totalCollections: FormattingService.formatNumber(header.totalCollections),
     youngCollections: FormattingService.formatNumber(header.youngCollections),
     oldCollections: FormattingService.formatNumber(header.oldCollections),
     maxPauseTime: FormattingService.formatDuration2Units(header.maxPauseTime),
@@ -276,8 +281,8 @@ const gcSummary = computed(() => {
     avgMemoryFreed: FormattingService.formatBytes(header.avgMemoryFreed),
     gcThroughput: FormattingService.formatPercentage(header.gcThroughput / 100),
     gcOverhead: FormattingService.formatPercentage(header.gcOverhead / 100),
-    applicationTime: FormattingService.formatDuration2Units(gcOverviewData.value!!.efficiency.applicationTime),
-    totalGcTime: FormattingService.formatDuration2Units(gcOverviewData.value!!.efficiency.gcTime),
+    applicationTime: FormattingService.formatDuration2Units(data.efficiency.applicationTime),
+    totalGcTime: FormattingService.formatDuration2Units(data.efficiency.gcTime),
     collectionFrequency: `${header.collectionFrequency.toFixed(2)} GC/s`,
     manualGCTime: FormattingService.formatDuration2Units(header.manualGCCalls.totalTime),
     systemGCCalls: FormattingService.formatNumber(header.manualGCCalls.systemGCCalls),
@@ -357,7 +362,7 @@ const createDistributionChart = async () => {
   const options = {
     chart: {
       type: 'bar' as const,
-      height: '100%',
+      height: 380,
       fontFamily: 'inherit',
       animations: {
         enabled: true,
@@ -454,7 +459,7 @@ const createEfficiencyChart = async () => {
   const options = {
     chart: {
       type: 'donut' as const,
-      height: '100%',
+      height: 380,
       fontFamily: 'inherit'
     },
     series: [throughput || 0, overhead || 0],
@@ -509,8 +514,6 @@ const onTabChange = (_tabIndex: number, tab: any) => {
 // Load GC data from API
 const loadGCData = async () => {
   try {
-    if (!workspaceId.value || !projectId.value) return;
-
     loading.value = true;
     error.value = null;
 
@@ -574,7 +577,7 @@ onUnmounted(() => {
 /* Efficiency Stats */
 .efficiency-stats {
   padding: 1rem;
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   border-radius: 8px;
   height: 400px;
 }
@@ -586,7 +589,7 @@ onUnmounted(() => {
 
 .stat-label {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-bottom: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -615,9 +618,9 @@ onUnmounted(() => {
 }
 
 .table thead th {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.8rem;
   padding: 0.5rem;
 }

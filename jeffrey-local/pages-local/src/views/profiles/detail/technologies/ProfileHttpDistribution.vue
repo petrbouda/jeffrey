@@ -22,6 +22,8 @@
       <div v-if="httpOverviewData" class="dashboard-container">
         <HttpOverviewStats :header="httpOverviewData.header"/>
         <HttpDistributionCharts
+            title="HTTP Distribution"
+            icon="pie-chart"
             :status-codes="httpOverviewData.statusCodes || []"
             :methods="httpOverviewData.methods || []"
             :total-requests="httpOverviewData.header.requestCount || 0"/>

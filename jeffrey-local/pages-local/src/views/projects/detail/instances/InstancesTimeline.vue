@@ -413,7 +413,7 @@ onMounted(async () => {
 .timeline-scale {
   display: flex;
   justify-content: space-between;
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #e2e8f0;
@@ -449,7 +449,7 @@ onMounted(async () => {
 
 .hostname-link {
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -459,7 +459,7 @@ onMounted(async () => {
 }
 
 .hostname-link:hover {
-  color: #5e64ff;
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
@@ -479,11 +479,11 @@ onMounted(async () => {
 }
 
 .status-dot.finished {
-  background-color: #10b981;
+  background-color: var(--color-success);
 }
 
 .status-dot.expired {
-  background-color: #9ca3af;
+  background-color: var(--color-text-light);
 }
 
 .instance-bar-container {
@@ -548,7 +548,7 @@ onMounted(async () => {
 }
 
 .session-bar.finished {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
 }
 
 /* Shimmer effect while sessions load */
@@ -596,7 +596,7 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .legend-bar {
@@ -630,7 +630,7 @@ onMounted(async () => {
 }
 
 .legend-bar.session.finished {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
 }
 
 .legend-bar.gap {
@@ -692,7 +692,7 @@ onMounted(async () => {
 }
 
 .timeline-tooltip-label {
-  color: #9ca3af;
+  color: var(--color-text-light);
   flex-shrink: 0;
 }
 
@@ -703,7 +703,7 @@ onMounted(async () => {
 
 .timeline-tooltip-utc {
   display: block;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.68rem;
   font-weight: 400;
 }

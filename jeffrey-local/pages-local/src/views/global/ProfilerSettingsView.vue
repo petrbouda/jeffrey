@@ -2,7 +2,7 @@
   <div>
     <MainCard>
       <template #header>
-        <PageHeader icon="bi bi-gear" title="Profiler Settings" />
+        <MainCardHeader icon="bi bi-gear" title="Profiler Settings" />
       </template>
 
       <!-- Tab Bar -->
@@ -237,7 +237,7 @@ import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import ProfilerSettingsHierarchy from '@/components/settings/ProfilerSettingsHierarchy.vue';
 import MainCard from '@/components/MainCard.vue';
-import PageHeader from '@/components/PageHeader.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import type Workspace from '@/services/api/model/Workspace';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
@@ -533,8 +533,8 @@ onMounted(() => {
 
 .scope-option-card {
   background: var(--color-light);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 2px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
   padding: 16px;
   cursor: pointer;
   transition: all var(--transition-fast);

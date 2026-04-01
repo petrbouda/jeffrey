@@ -55,14 +55,14 @@ defineEmits<{
   line-height: 1;
   border: none;
   background-color: transparent;
-  color: #6c757d;
+  color: var(--color-text-muted);
   border-radius: 3px;
   transition: all 0.15s ease;
 }
 
 .btn-action:hover {
   background-color: rgba(111, 66, 193, 0.15);
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .btn-action i {

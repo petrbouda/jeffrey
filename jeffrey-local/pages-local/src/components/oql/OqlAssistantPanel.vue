@@ -19,10 +19,9 @@
       </div>
 
       <!-- Status Badge -->
-      <div v-if="status" class="status-badge" :class="isAvailable ? 'available' : 'unavailable'">
-        <i :class="isAvailable ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'"></i>
-        <span v-if="isAvailable">Connected to {{ status.provider }}</span>
-        <span v-else>AI not configured</span>
+      <div v-if="status" class="status-badge-row">
+        <Badge v-if="isAvailable" :value="'Connected to ' + status.provider" variant="status-finished" size="xs" :uppercase="false" icon="bi-check-circle-fill" />
+        <Badge v-else value="AI not configured" variant="status-blocked" size="xs" :uppercase="false" icon="bi-exclamation-circle-fill" />
       </div>
 
       <!-- Messages -->
@@ -104,6 +103,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted } from 'vue';
 import OqlChatMessage from '@/components/oql/OqlChatMessage.vue';
+import Badge from '@/components/Badge.vue';
 import { useOqlAssistant, type ChatMessageWithOql } from '@/composables/useOqlAssistant';
 
 const props = defineProps<{
@@ -224,8 +224,8 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
 }
 
 .header-title {
@@ -242,7 +242,7 @@ onMounted(async () => {
 .btn-icon {
   background: none;
   border: none;
-  color: #6c757d;
+  color: var(--color-text-muted);
   padding: 0.375rem;
   cursor: pointer;
   border-radius: 4px;
@@ -250,8 +250,8 @@ onMounted(async () => {
 }
 
 .btn-icon:hover:not(:disabled) {
-  background-color: #e9ecef;
-  color: #212529;
+  background-color: var(--card-border-color);
+  color: var(--color-dark);
 }
 
 .btn-icon:disabled {
@@ -259,23 +259,10 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-.status-badge {
+.status-badge-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.status-badge.available {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-badge.unavailable {
-  background-color: #f8d7da;
-  color: #721c24;
 }
 
 .messages-container {
@@ -309,7 +296,7 @@ onMounted(async () => {
 
 .welcome-message p {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-bottom: 1.5rem;
 }
 
@@ -322,10 +309,10 @@ onMounted(async () => {
 .example-prompt {
   font-size: 0.8rem;
   padding: 0.625rem 1rem;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
-  color: #495057;
+  color: var(--color-text);
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -409,14 +396,14 @@ onMounted(async () => {
   display: flex;
   gap: 0.5rem;
   padding: 1rem;
-  border-top: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
 }
 
 .message-input {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   font-size: 0.875rem;
   resize: none;
@@ -431,7 +418,7 @@ onMounted(async () => {
 }
 
 .message-input:disabled {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   cursor: not-allowed;
 }
 

@@ -94,21 +94,21 @@ const getVariantFromColor = (color: string): Variant => {
 /* Job Card Styles */
 .job-card {
   transition: all 0.2s ease;
-  border-color: #e9ecef !important;
+  border-color: var(--card-border-color) !important;
   border-radius: 0.25rem;
 }
 
 .job-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
-  border-color: #dee2e6 !important;
+  border-color: var(--card-border-color) !important;
 }
 
 /* Coming Soon job cards */
 .coming-soon-card {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   opacity: 0.7;
-  border-color: #dee2e6 !important;
+  border-color: var(--card-border-color) !important;
 }
 
 /* Job icons */
@@ -137,7 +137,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-blue {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .bg-purple-soft {
@@ -145,7 +145,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-purple {
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .bg-orange-soft {
@@ -166,8 +166,8 @@ const getVariantFromColor = (color: string): Variant => {
 
 /* Button styling */
 .btn-primary {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
   box-shadow: 0 0.125rem 0.25rem rgba(94, 100, 255, 0.15);
 }
 
@@ -183,7 +183,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-muted {
-  color: #6c757d !important;
+  color: var(--color-text-muted) !important;
 }
 
 /* Shadow utilities */
@@ -192,6 +192,6 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .border {
-  border-color: #e9ecef !important;
+  border-color: var(--card-border-color) !important;
 }
 </style>

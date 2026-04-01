@@ -87,7 +87,7 @@
           <div class="info-section mt-4">
             <h5 class="section-title">Event Types</h5>
             <div class="table-responsive">
-              <table class="table table-hover event-type-table">
+              <table class="table table-sm table-hover mb-0 event-type-table">
                 <tbody>
                   <tr>
                     <td class="color-cell">
@@ -164,6 +164,7 @@ import ThreadRow from "@/services/thread/ThreadRow";
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GenericModal from '@/components/GenericModal.vue';
 import type { PropType } from 'vue';
+import '@/styles/shared-components.css';
 
 // Props definition
 const props = defineProps({
@@ -275,96 +276,6 @@ function clearFilter() {
   width: 100%;
 }
 
-/* Search Styles - Modern and Compact */
-.search-container {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  border: 1px solid #e9ecef;
-}
-
-.search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  border: none;
-  padding: 0 0.6rem;
-  display: flex;
-  align-items: center;
-  height: 32px;
-}
-
-.search-icon {
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.search-input {
-  border-left: none;
-  border: none;
-  font-size: 0.8rem;
-  height: 32px;
-  padding: 0.25rem 0.6rem;
-  line-height: 1.4;
-}
-
-.search-input:focus {
-  box-shadow: none;
-  outline: none;
-}
-
-.clear-btn {
-  border: none;
-  background-color: #fff;
-  padding: 0 0.6rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 32px;
-}
-
-.clear-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.clear-btn i {
-  font-size: 0.7rem;
-}
-
-.mini-sort-buttons {
-  display: flex;
-  gap: 0;
-}
-
-.compact-btn {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  border: 1px solid #e9ecef;
-}
-
-.compact-btn:not(:last-child) {
-  border-right: none;
-}
-
-.icon-info-btn {
-  border: 1px solid #e9ecef;
-  background-color: #fff;
-  padding: 0 0.6rem;
-  font-size: 0.9rem;
-  color: #6c757d;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.icon-info-btn:hover {
-  background-color: #f8f9fa;
-  color: #212529;
-}
-
 .thread-components-container {
   margin-top: 1.5rem;
 }
@@ -378,10 +289,10 @@ function clearFilter() {
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border: 1px solid var(--card-border-color);
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .no-threads-message i {
@@ -391,19 +302,19 @@ function clearFilter() {
 
 /* Modal styles */
 .modal-content {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
   padding: 10px 16px;
 }
 
 .modal-footer {
-  border-top: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
   padding: 8px 16px;
 }
 
@@ -415,7 +326,7 @@ function clearFilter() {
   font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 0.8rem;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .info-list {

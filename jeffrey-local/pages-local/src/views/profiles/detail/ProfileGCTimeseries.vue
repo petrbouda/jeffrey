@@ -208,19 +208,19 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
-  color: #6c757d;
-  background-color: #f8f9fa;
+  color: var(--color-text-muted);
+  background-color: var(--color-light);
   border-radius: 4px;
 }
 
 .chart-description-label {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .chart-description-separator {
   margin: 0 0.75rem;
-  color: #dee2e6;
+  color: var(--card-border-color);
 }
 
 /* Responsive Design */

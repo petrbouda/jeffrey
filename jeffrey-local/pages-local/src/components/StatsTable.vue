@@ -131,7 +131,7 @@ const getVariantColor = (variant?: string): string => {
 }
 
 .stats-row:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--table-row-hover-bg);
 }
 
 /* Icon Column */

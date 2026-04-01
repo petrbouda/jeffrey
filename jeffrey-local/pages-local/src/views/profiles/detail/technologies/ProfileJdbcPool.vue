@@ -115,7 +115,7 @@
             :full-width="true"
           >
             <div class="table-responsive">
-              <table class="table table-hover mb-0 event-tree-table">
+              <table class="table table-sm table-hover mb-0 event-tree-table">
                 <thead>
                   <tr>
                     <th>Event Type</th>
@@ -451,7 +451,7 @@ onMounted(() => {
 
 .pool-selector-card {
   background: white;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--card-border-color);
   border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
@@ -468,7 +468,7 @@ onMounted(() => {
 .pool-selector-card.selected {
   border-color: #667eea;
   background: #f8f9ff;
-  color: #2c3e50;
+  color: var(--color-dark);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
@@ -550,7 +550,7 @@ onMounted(() => {
 
 .selected-pool-header-spacious {
   background: #f8f9ff;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   margin: 1.5rem 0;
   padding: 1rem 0;
@@ -563,7 +563,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #2c3e50;
+  color: var(--color-dark);
   font-size: 1.1rem;
   font-weight: 600;
 }
@@ -605,7 +605,7 @@ onMounted(() => {
   text-align: center;
   font-size: 6px;
   vertical-align: middle;
-  color: #adb5bd;
+  color: var(--color-text-light);
 }
 
 .event-name {

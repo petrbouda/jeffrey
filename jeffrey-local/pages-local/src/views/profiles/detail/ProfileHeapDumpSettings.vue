@@ -734,7 +734,7 @@ onMounted(() => {
 /* Processing Card */
 .processing-card {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   padding: 2rem 2rem 2.5rem;
   max-width: 1300px;
@@ -756,7 +756,7 @@ onMounted(() => {
 
 .processing-hint {
   font-size: 0.8125rem;
-  color: #94a3b8;
+  color: var(--color-text-light);
   margin: 0;
 }
 
@@ -813,7 +813,7 @@ onMounted(() => {
   left: calc(50% + 16px);
   right: calc(-50% + 16px);
   height: 2px;
-  background-color: #dee2e6;
+  background-color: var(--card-border-color);
   transform: translateY(-50%);
 }
 
@@ -823,7 +823,7 @@ onMounted(() => {
 
 .step-label {
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   text-align: center;
   margin-top: 0.5rem;
   line-height: 1.3;
@@ -836,20 +836,20 @@ onMounted(() => {
 }
 
 .step-item.in_progress .step-label {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   font-weight: 500;
 }
 
 .step-item.pending .step-label {
-  color: #94a3b8;
+  color: var(--color-text-light);
 }
 
 .step-item.skipped .step-label {
-  color: #94a3b8;
+  color: var(--color-text-light);
 }
 
 .step-item.skipped .step-connector {
-  background-color: #dee2e6;
+  background-color: var(--card-border-color);
 }
 
 .skipped-badge {
@@ -858,8 +858,8 @@ onMounted(() => {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #6c757d;
-  background-color: #e9ecef;
+  color: var(--color-text-muted);
+  background-color: var(--card-border-color);
   padding: 0.125rem 0.375rem;
   border-radius: 3px;
   margin-left: 0.375rem;
@@ -875,7 +875,7 @@ onMounted(() => {
 
 .init-main-card {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   padding: 2.5rem 2rem;
   text-align: center;
@@ -898,7 +898,7 @@ onMounted(() => {
 
 .init-header-icon i {
   font-size: 1.5rem;
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .init-header h4 {
@@ -909,7 +909,7 @@ onMounted(() => {
 }
 
 .init-header p {
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
   line-height: 1.6;
   margin: 0 auto;
@@ -960,7 +960,7 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem 1.25rem;
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   text-align: left;
 }
@@ -971,8 +971,8 @@ onMounted(() => {
 }
 
 .ready-card.action:hover {
-  border-color: #adb5bd;
-  background-color: #f8f9fa;
+  border-color: var(--color-text-light);
+  background-color: var(--color-light);
 }
 
 .ready-card.action.danger:hover {
@@ -993,7 +993,7 @@ onMounted(() => {
 
 .ready-card-icon i {
   font-size: 1.125rem;
-  color: #64748b;
+  color: var(--color-text-muted);
 }
 
 .ready-card-icon.success {
@@ -1009,7 +1009,7 @@ onMounted(() => {
 }
 
 .ready-card-icon.info i {
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .ready-card-icon.primary {
@@ -1017,7 +1017,7 @@ onMounted(() => {
 }
 
 .ready-card-icon.primary i {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .ready-card-icon.danger {
@@ -1025,7 +1025,7 @@ onMounted(() => {
 }
 
 .ready-card-icon.danger i {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .ready-card.action.primary:hover {
@@ -1036,7 +1036,7 @@ onMounted(() => {
 /* Dominant button style */
 .ready-card.action.dominant {
   flex: 2;
-  border-color: #0d6efd;
+  border-color: var(--color-accent-blue);
   background-color: #f8fbff;
 }
 
@@ -1045,7 +1045,7 @@ onMounted(() => {
 }
 
 .ready-card.action.dominant .ready-card-content h6 {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .ready-card-icon.large {
@@ -1066,18 +1066,18 @@ onMounted(() => {
 
 .ready-card-content p {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--color-text-light);
   margin: 0;
 }
 
 .btn-outline-purple {
-  border-color: #6f42c1;
-  color: #6f42c1;
+  border-color: var(--color-purple);
+  color: var(--color-purple);
 }
 
 .btn-outline-purple:hover {
-  background-color: #6f42c1;
-  border-color: #6f42c1;
+  background-color: var(--color-purple);
+  border-color: var(--color-purple);
   color: white;
 }
 
@@ -1090,13 +1090,13 @@ onMounted(() => {
 }
 
 .upload-dropzone.active {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   background-color: #f0f2ff;
 }
 
 .upload-dropzone.has-file {
   border-style: solid;
-  border-color: #dee2e6;
+  border-color: var(--card-border-color);
   background-color: white;
 }
 
@@ -1105,7 +1105,7 @@ onMounted(() => {
 }
 
 .upload-dropzone.clickable:hover {
-  border-color: #0d6efd;
+  border-color: var(--color-accent-blue);
   background-color: #f8fbff;
 }
 
@@ -1130,7 +1130,7 @@ onMounted(() => {
   margin-top: 1rem;
   background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
   border: 1px solid #fecaca;
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--color-danger);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
@@ -1147,7 +1147,7 @@ onMounted(() => {
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-hover) 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -1216,7 +1216,7 @@ onMounted(() => {
 
 .error-suggestions code {
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-danger-hover);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -1231,7 +1231,7 @@ onMounted(() => {
   border: none;
   background: rgba(239, 68, 68, 0.1);
   border-radius: 6px;
-  color: #dc2626;
+  color: var(--color-danger-hover);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1271,7 +1271,7 @@ onMounted(() => {
 .init-options {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
   text-align: left;
   max-width: 500px;
   margin-left: auto;
@@ -1292,13 +1292,13 @@ onMounted(() => {
 .init-option-delimiter {
   width: 1px;
   align-self: stretch;
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .init-options .option-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #495057;
+  color: var(--color-text);
   display: block;
 }
 
@@ -1316,7 +1316,7 @@ onMounted(() => {
 
 .init-options .form-check-label {
   font-size: 0.8125rem;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .init-options .form-check-label small {

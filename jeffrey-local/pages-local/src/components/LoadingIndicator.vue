@@ -37,14 +37,14 @@ defineProps<{
   align-items: center;
   padding: 8px 12px;
   margin-bottom: 8px;
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   border-radius: 4px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 .loading-text {
   margin-left: 8px;
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 </style>

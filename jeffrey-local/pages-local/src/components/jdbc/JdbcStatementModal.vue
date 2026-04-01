@@ -29,7 +29,7 @@
             <div class="statement-info-header mb-4">
               <div class="d-flex align-items-center gap-3 mb-2">
                 <Badge :value="statement.statementGroup" variant="purple" size="m" />
-                <JdbcOperationBadge :operation="statement.operation" />
+                <JdbcOperationBadge :operation="statement.operation" size="m" />
                 <Badge v-if="statement.isBatch" value="Batch" variant="info" size="m" />
                 <Badge v-if="statement.isLob" value="LOB" variant="warning" size="m" />
               </div>
@@ -179,10 +179,10 @@ const copyParameters = async () => {
 }
 
 .statement-info-header {
-  background: #f8f9fa;
+  background: var(--color-light);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 
@@ -200,18 +200,18 @@ const copyParameters = async () => {
 }
 
 .metric-item i {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .metric-label {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .metric-value {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .section-header {
@@ -224,13 +224,13 @@ const copyParameters = async () => {
 .section-header h6 {
   margin: 0;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .sql-container,
 .parameters-container {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -252,10 +252,10 @@ const copyParameters = async () => {
 .no-parameters {
   padding: 1rem;
   text-align: center;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-style: italic;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
 }
 

@@ -40,12 +40,18 @@
             </span>
           </div>
           <div class="results-controls">
-            <input
-                type="text"
-                v-model="searchQuery"
-                class="form-control form-control-sm filter-input"
-                placeholder="Filter..."
-            />
+            <div class="input-group search-container">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <input
+                  type="text"
+                  v-model="searchQuery"
+                  class="form-control search-input"
+                  placeholder="Filter..."
+              />
+              <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
             <select v-model="daemonFilter" class="form-select form-select-sm type-select">
               <option value="all">All Threads</option>
               <option value="daemon">Daemon Only</option>
@@ -187,6 +193,7 @@ import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
+import '@/styles/shared-components.css';
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 import FormattingService from '@/services/FormattingService';
@@ -380,8 +387,10 @@ onMounted(() => {
 
 /* Table Card */
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -391,8 +400,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .results-info {
@@ -410,8 +419,8 @@ onMounted(() => {
 .results-count {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6c757d;
-  background-color: #e9ecef;
+  color: var(--color-text-muted);
+  background-color: var(--card-border-color);
   padding: 0.125rem 0.5rem;
 }
 
@@ -425,24 +434,20 @@ onMounted(() => {
   padding: 0.125rem 0.375rem;
 }
 
-.filter-input {
-  width: 140px;
-}
-
 .type-select {
   width: 130px;
 }
 
 /* Table Styles - matching OQL */
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -474,7 +479,7 @@ onMounted(() => {
 .thread-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #6f42c1;
+  color: var(--color-purple);
   word-break: break-all;
   line-height: 1.4;
 }
@@ -489,11 +494,11 @@ onMounted(() => {
 .meta-label {
   font-size: 0.7rem;
   font-weight: 500;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .meta-label.priority-high {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .meta-label.priority-normal {
@@ -501,11 +506,11 @@ onMounted(() => {
 }
 
 .meta-label.priority-low {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .meta-separator {
-  color: #dee2e6;
+  color: var(--card-border-color);
   font-size: 0.5rem;
 }
 
@@ -515,22 +520,22 @@ onMounted(() => {
 
 .empty-state {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 /* Stack Expansion */
 .stack-expansion-row td {
-  background-color: #f8f9fa !important;
+  background-color: var(--color-light) !important;
   padding: 0 !important;
 }
 
 .stack-expansion-row:hover td {
-  background-color: #f8f9fa !important;
+  background-color: var(--color-light) !important;
 }
 
 .stack-container {
   padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
 }
 
 .stack-frames {
@@ -557,13 +562,13 @@ onMounted(() => {
 }
 
 .frame-class {
-  color: #495057;
+  color: var(--color-text);
   background-color: transparent;
   font-size: 0.75rem;
 }
 
 .frame-method-name {
-  color: #6f42c1;
+  color: var(--color-purple);
   font-weight: 600;
   background-color: transparent;
   font-size: 0.75rem;
@@ -580,7 +585,7 @@ onMounted(() => {
 
 .stack-local {
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
@@ -591,12 +596,12 @@ onMounted(() => {
 }
 
 .local-field {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   font-weight: 500;
 }
 
 .local-class {
-  color: #495057;
+  color: var(--color-text);
 }
 
 .local-size {
@@ -604,6 +609,6 @@ onMounted(() => {
 }
 
 .text-warning {
-  color: #b8860b !important;
+  color: var(--color-retained) !important;
 }
 </style>

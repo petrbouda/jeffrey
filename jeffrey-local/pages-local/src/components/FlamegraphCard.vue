@@ -195,6 +195,7 @@ Coul<!--
 </template>
 
 <script setup lang="ts">
+import '@/styles/shared-components.css'
 import { useRouter, useRoute } from 'vue-router';
 import { ref } from 'vue';
 import EventSummary from '@/services/api/model/EventSummary';
@@ -332,7 +333,7 @@ const switchIdleSamples = () => {
 }
 
 .flamegraph-card--green {
-  border-left: 3px solid #10b981;
+  border-left: 3px solid var(--color-success);
 }
 
 .flamegraph-card--pink {
@@ -340,7 +341,7 @@ const switchIdleSamples = () => {
 }
 
 .flamegraph-card--red {
-  border-left: 3px solid #ef4444;
+  border-left: 3px solid var(--color-danger);
 }
 
 /* Header */
@@ -361,7 +362,7 @@ const switchIdleSamples = () => {
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -373,7 +374,7 @@ const switchIdleSamples = () => {
 .card-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--color-dark);
   margin: 0;
   line-height: 1.2;
 }
@@ -447,7 +448,7 @@ const switchIdleSamples = () => {
 }
 
 .detail-label {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-weight: 500;
   flex: 0 0 auto;
   margin-right: 0.75rem;
@@ -468,11 +469,11 @@ const switchIdleSamples = () => {
 }
 
 .secondary-value {
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .delimiter {
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-weight: 400;
   font-size: 0.75rem;
 }
@@ -488,41 +489,6 @@ const switchIdleSamples = () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.setting-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.setting-checkbox {
-  width: 14px;
-  height: 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.setting-checkbox:checked {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-}
-
-.setting-label {
-  font-size: 0.75rem;
-  color: #374151;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.setting-tooltip {
-  color: #6b7280;
-  font-size: 0.65rem;
-  cursor: help;
 }
 
 /* Responsive design */

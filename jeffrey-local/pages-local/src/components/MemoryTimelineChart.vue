@@ -252,7 +252,7 @@ watch(() => props.data, () => {
 }
 
 .chart-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   border-radius: 0.375rem;
   padding: 0.75rem;
 }

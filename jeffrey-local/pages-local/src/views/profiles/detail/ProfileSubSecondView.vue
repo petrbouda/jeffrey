@@ -201,6 +201,7 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
 </script>
 
 <template>
+  <div>
   <div style="padding-left: 5px; padding-right: 5px">
     <TimeSeriesChart
         v-if="timeseriesData"
@@ -251,5 +252,6 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
         :graph-updater="graphUpdater"
         @loaded="scrollToTop"/>
   </GenericModal>
+  </div>
 </template>
 

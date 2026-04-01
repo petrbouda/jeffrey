@@ -95,7 +95,7 @@ async function copy() {
 }
 
 .command-display:hover {
-  border-color: var(--color-primary, #5e64ff);
+  border-color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(94, 100, 255, 0.1);
 }
 
@@ -133,7 +133,7 @@ async function copy() {
 }
 
 .command-display-label i {
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .command-display-actions {
@@ -185,7 +185,7 @@ async function copy() {
 
 .command-display:hover .command-display-copy {
   opacity: 1;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .command-display-content {

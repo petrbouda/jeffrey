@@ -30,48 +30,48 @@
     <div class="config-sections-grid" v-if="configData?.configuration">
       <ConfigurationSection title="Host Information" icon="bi-server">
         <div class="config-item">
-          <span class="config-label">Container Type:</span>
+          <span class="config-label">Container Type</span>
           <span class="config-value">{{ configData?.configuration.containerType || 'Unknown' }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Effective CPU Count:</span>
+          <span class="config-label">Effective CPU Count</span>
           <span class="config-value">{{ configData?.configuration.effectiveCpuCount || 'N/A' }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Host Total Memory:</span>
+          <span class="config-label">Host Total Memory</span>
           <span class="config-value">{{ formatBytes(configData?.configuration.hostTotalMemory || 0) }}</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="Memory Configuration" icon="bi-memory">
         <div class="config-item">
-          <span class="config-label">Memory Limit:</span>
+          <span class="config-label">Memory Limit</span>
           <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memoryLimit) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Memory Soft Limit:</span>
+          <span class="config-label">Memory Soft Limit</span>
           <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memorySoftLimit) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Swap Memory Limit:</span>
+          <span class="config-label">Swap Memory Limit</span>
           <span class="config-value">{{ formatMemoryLimit(configData?.configuration.swapMemoryLimit) }}</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="CPU Configuration" icon="bi-cpu">
         <div class="config-item">
-          <span class="config-label">CPU Shares:</span>
+          <span class="config-label">CPU Shares</span>
           <span class="config-value">{{ formatCpuShares(configData?.configuration.cpuShares) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">CPU Quota:</span>
+          <span class="config-label">CPU Quota</span>
           <span class="config-value" v-if="configData?.configuration.cpuQuota">
             {{ formatDuration(configData?.configuration.cpuQuota) }}
           </span>
           <span class="config-value" v-else>-</span>
         </div>
         <div class="config-item">
-          <span class="config-label">CPU Slice Period:</span>
+          <span class="config-label">CPU Slice Period</span>
           <span class="config-value" v-if="configData?.configuration.cpuSlicePeriod">
             {{ formatDuration(configData?.configuration.cpuSlicePeriod) }}
           </span>

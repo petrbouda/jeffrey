@@ -21,33 +21,33 @@
     <div class="config-sections-grid">
       <ConfigurationSection title="Collector Configuration" icon="bi-recycle">
         <div class="config-item">
-          <span class="config-label">Detected Type:</span>
+          <span class="config-label">Detected Type</span>
           <span class="config-value">{{ configData?.detectedType || 'Unknown' }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Young Collector:</span>
+          <span class="config-label">Young Collector</span>
           <span class="config-value">{{ configData?.collector.youngCollector || 'N/A' }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Old Collector:</span>
+          <span class="config-label">Old Collector</span>
           <span class="config-value">{{ configData?.collector.oldCollector || 'N/A' }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Explicit GC Concurrent:</span>
+          <span class="config-label">Explicit GC Concurrent</span>
           <span class="config-value">
             <i class="bi" :class="configData?.collector.explicitGCConcurrent ? 'bi-check-circle text-success' : 'bi-x-circle text-danger'"></i>
             {{ configData?.collector.explicitGCConcurrent ? 'Enabled' : 'Disabled' }}
           </span>
         </div>
         <div class="config-item">
-          <span class="config-label">Explicit GC Disabled:</span>
+          <span class="config-label">Explicit GC Disabled</span>
           <span class="config-value">
             <i class="bi" :class="configData?.collector.explicitGCDisabled ? 'bi-check-circle text-success' : 'bi-x-circle text-danger'"></i>
             {{ configData?.collector.explicitGCDisabled ? 'Yes' : 'No' }}
           </span>
         </div>
         <div class="config-item">
-          <span class="config-label">Pause Target:</span>
+          <span class="config-label">Pause Target</span>
           <span class="config-value" v-if="configData?.collector.pauseTarget">
             {{ FormattingService.formatDuration2Units(configData?.collector.pauseTarget) }}
           </span>
@@ -57,49 +57,49 @@
 
       <ConfigurationSection title="Heap Configuration" icon="bi-memory">
         <div class="config-item">
-          <span class="config-label">Min Size:</span>
+          <span class="config-label">Min Size</span>
           <span class="config-value">{{ FormattingService.formatBytes(configData?.heap.minSize || 0) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Max Size:</span>
+          <span class="config-label">Max Size</span>
           <span class="config-value">{{ FormattingService.formatBytes(configData?.heap.maxSize || 0) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Initial Size:</span>
+          <span class="config-label">Initial Size</span>
           <span class="config-value">{{ FormattingService.formatBytes(configData?.heap.initialSize || 0) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Compressed OOPs:</span>
+          <span class="config-label">Compressed OOPs</span>
           <span class="config-value">
             <i class="bi" :class="configData?.heap.usesCompressedOops ? 'bi-check-circle text-success' : 'bi-x-circle text-danger'"></i>
             {{ configData?.heap.usesCompressedOops ? 'Enabled' : 'Disabled' }}
           </span>
         </div>
         <div class="config-item" v-if="configData?.heap.compressedOopsMode">
-          <span class="config-label">OOPs Mode:</span>
+          <span class="config-label">OOPs Mode</span>
           <span class="config-value">{{ configData.heap.compressedOopsMode }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Object Alignment:</span>
+          <span class="config-label">Object Alignment</span>
           <span class="config-value">{{ configData?.heap.objectAlignment || 0 }} bytes</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Heap Address Bits:</span>
+          <span class="config-label">Heap Address Bits</span>
           <span class="config-value">{{ configData?.heap.heapAddressBits || 0 }} bits</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="Thread Configuration" icon="bi-cpu">
         <div class="config-item">
-          <span class="config-label">Parallel GC Threads:</span>
+          <span class="config-label">Parallel GC Threads</span>
           <span class="config-value">{{ configData?.threads.parallelGCThreads || 0 }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Concurrent GC Threads:</span>
+          <span class="config-label">Concurrent GC Threads</span>
           <span class="config-value">{{ configData?.threads.concurrentGCThreads || 0 }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Dynamic GC Threads:</span>
+          <span class="config-label">Dynamic GC Threads</span>
           <span class="config-value">
             <i class="bi" :class="configData?.threads.usesDynamicGCThreads ? 'bi-check-circle text-success' : 'bi-x-circle text-danger'"></i>
             {{ configData?.threads.usesDynamicGCThreads ? 'Enabled' : 'Disabled' }}
@@ -109,44 +109,44 @@
 
       <ConfigurationSection title="TLAB Configuration" icon="bi-memory">
         <div class="config-item">
-          <span class="config-label">TLABs:</span>
+          <span class="config-label">TLABs</span>
           <span class="config-value">
             <i class="bi" :class="configData?.tlab?.usesTLABs ? 'bi-check-circle text-success' : 'bi-x-circle text-danger'"></i>
             {{ configData?.tlab?.usesTLABs ? 'Enabled' : 'Disabled' }}
           </span>
         </div>
         <div class="config-item" v-if="configData?.tlab?.usesTLABs">
-          <span class="config-label">Min TLAB Size:</span>
+          <span class="config-label">Min TLAB Size</span>
           <span class="config-value">{{ FormattingService.formatBytes(configData.tlab.minTLABSize) }}</span>
         </div>
         <div class="config-item" v-if="configData?.tlab?.usesTLABs">
-          <span class="config-label">TLAB Refill Waste:</span>
+          <span class="config-label">TLAB Refill Waste</span>
           <span class="config-value">{{ configData.tlab.tlabRefillWasteLimit }}</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="Survivor Configuration" icon="bi-arrow-repeat">
         <div class="config-item">
-          <span class="config-label">Max Tenuring Threshold:</span>
+          <span class="config-label">Max Tenuring Threshold</span>
           <span class="config-value">{{ configData?.survivor?.maxTenuringThreshold || 0 }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Initial Tenuring Threshold:</span>
+          <span class="config-label">Initial Tenuring Threshold</span>
           <span class="config-value">{{ configData?.survivor?.initialTenuringThreshold || 0 }}</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="Young Generation Configuration" icon="bi-layers">
         <div class="config-item">
-          <span class="config-label">Max New Size:</span>
+          <span class="config-label">Max New Size</span>
           <span class="config-value">{{ FormattingService.formatBytes(configData?.youngGeneration.maxSize || 0) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">Min New Size:</span>
+          <span class="config-label">Min New Size</span>
           <span class="config-value">{{ FormattingService.formatBytes(configData?.youngGeneration.minSize || 0) }}</span>
         </div>
         <div class="config-item">
-          <span class="config-label">New Ratio:</span>
+          <span class="config-label">New Ratio</span>
           <span class="config-value">{{ configData?.youngGeneration.newRatio || 0 }}</span>
         </div>
       </ConfigurationSection>

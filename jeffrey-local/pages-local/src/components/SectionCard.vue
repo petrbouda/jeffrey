@@ -350,7 +350,7 @@ function switchIdleSamples() {
 
 .field-label {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   flex: 0 0 auto;
   margin-right: 1rem;
   font-weight: 500;
@@ -399,8 +399,8 @@ function switchIdleSamples() {
 }
 
 .btn-primary {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .btn-primary:hover {

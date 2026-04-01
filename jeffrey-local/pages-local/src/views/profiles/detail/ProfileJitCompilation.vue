@@ -72,8 +72,9 @@
               </div>
             </div>
           </div>
-          <div class="table-responsive">
-            <table class="table table-hover">
+          <EmptyState v-if="compilationsData.length === 0" icon="bi-lightning" title="No long compilations recorded" />
+          <div v-else class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
               <thead>
               <tr>
                 <th>ID</th>
@@ -284,6 +285,7 @@ import JITCompilationData from "@/services/api/model/JITCompilationData.ts";
 import ProfileCompilationClient from "@/services/api/ProfileCompilationClient.ts";
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import Serie from "@/services/timeseries/model/Serie.ts";
 import JITLongCompilation from "@/services/api/model/JITLongCompilation.ts";
 import {computed} from 'vue';
@@ -519,7 +521,7 @@ const getTierClass = (level: number): string => {
 }
 
 .table thead th {
-  background: #f7f9fc;
+  background: var(--color-light);
   font-weight: 600;
   font-size: 0.9rem;
   color: #555;
@@ -612,12 +614,12 @@ const getTierClass = (level: number): string => {
 }
 
 .term-heading {
-  color: #2c3e50;
+  color: var(--color-dark);
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--card-border-color);
   display: flex;
   align-items: center;
 }
@@ -630,7 +632,7 @@ const getTierClass = (level: number): string => {
 
 .term-list li {
   margin-bottom: 0.5rem;
-  color: #495057;
+  color: var(--color-text);
   line-height: 1.4;
 }
 

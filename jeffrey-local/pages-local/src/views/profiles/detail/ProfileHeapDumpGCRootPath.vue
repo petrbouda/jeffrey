@@ -82,7 +82,7 @@
     <!-- Results -->
     <div v-else>
       <div class="d-flex align-items-center gap-2 mb-3">
-        <span class="badge bg-primary">{{ paths.length }} path{{ paths.length !== 1 ? 's' : '' }}</span>
+        <Badge :value="paths.length + ' path' + (paths.length !== 1 ? 's' : '')" variant="blue" size="xs" />
         <span class="text-muted small">found for object <code>{{ searchedObjectId }}</code></span>
       </div>
       <GCRootPathVisualization :paths="paths" @select-object-id="onSelectObjectId" />
@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { onMounted, ref, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
+import Badge from '@/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -208,8 +209,8 @@ onMounted(() => {
 }
 
 .search-bar {
-  background: #fafbfc;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   padding: 0.6rem 1rem;
 }
@@ -229,7 +230,7 @@ onMounted(() => {
 
 .search-input-group .search-icon {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .search-input-group .form-control {

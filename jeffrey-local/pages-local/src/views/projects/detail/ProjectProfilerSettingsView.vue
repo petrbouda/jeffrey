@@ -206,8 +206,8 @@ onMounted(() => {
 }
 
 .tab-item--active {
-  color: var(--phoenix-primary, #5e64ff);
-  border-bottom-color: var(--phoenix-primary, #5e64ff);
+  color: var(--phoenix-primary, var(--color-primary));
+  border-bottom-color: var(--phoenix-primary, var(--color-primary));
 }
 
 /* Tab Content */

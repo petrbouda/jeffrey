@@ -18,10 +18,10 @@
 
 <template>
   <div class="config-section">
-    <h5 class="section-title">
-      <i class="bi me-2" :class="icon"></i>
-      {{ title }}
-    </h5>
+    <div class="section-header">
+      <i class="bi" :class="icon"></i>
+      <span class="section-title">{{ title }}</span>
+    </div>
     <div class="config-items">
       <slot></slot>
     </div>
@@ -39,59 +39,75 @@ defineProps<Props>();
 
 <style scoped>
 .config-section {
-  background: #fafbfc;
-  border-radius: 6px;
-  padding: 1.25rem;
-  border: 1px solid #e9ecef;
-  transition: background-color 0.2s ease;
+  background: var(--color-bg-card);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--card-border-color);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 
 .config-section:hover {
-  background: #f8f9fa;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.section-header {
+  padding: 0.85rem 1rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--color-primary-light);
+}
+
+.section-header i {
+  color: var(--color-primary);
+  font-size: 0.95rem;
 }
 
 .section-title {
-  color: #6c757d;
-  font-weight: 500;
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-dark);
 }
 
 .config-items {
+  padding: 0.5rem 1rem 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
 .config-items :deep(.config-item) {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eaecef;
+  align-items: baseline;
+  padding: 0.4rem 0;
+  gap: 0.5rem;
 }
 
-.config-items :deep(.config-item:last-child) {
-  border-bottom: none;
+.config-items :deep(.config-item)::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1.5px dotted var(--color-border);
+  min-width: 20px;
+  margin-bottom: 3px;
+  order: 1;
 }
 
 .config-items :deep(.config-label) {
+  font-size: 0.78rem;
   font-weight: 500;
-  color: #6c757d;
-  font-size: 0.875rem;
-  flex: 1;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  order: 0;
 }
 
 .config-items :deep(.config-value) {
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #212529;
-  font-size: 0.875rem;
+  color: var(--color-dark);
+  white-space: nowrap;
   text-align: right;
-  flex: 1;
+  order: 2;
 }
 
 .config-items :deep(.config-value i.bi) {

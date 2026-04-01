@@ -96,8 +96,10 @@ const setActiveTab = (index: number) => {
 }
 
 .chart-card {
-  background: white;
-  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -107,13 +109,13 @@ const setActiveTab = (index: number) => {
 
 .chart-header {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .chart-header h4 {
   margin: 0;
-  color: #2c3e50;
-  font-size: 0.9rem;
+  color: var(--color-dark);
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -122,8 +124,8 @@ const setActiveTab = (index: number) => {
 }
 
 .dashboard-tabs {
-  background-color: #fff;
-  border-radius: 0 0 8px 8px;
+  background-color: var(--card-bg);
+  border-radius: 0 0 var(--card-border-radius) var(--card-border-radius);
 }
 
 .nav-tabs {
@@ -166,11 +168,11 @@ const setActiveTab = (index: number) => {
 
 .nav-tabs .nav-link.active {
   background-color: transparent;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .nav-tabs .nav-link.active::after {
-  background: var(--color-primary, #5e64ff);
+  background: var(--color-primary);
 }
 
 .nav-tabs .nav-link:hover:not(.active) {

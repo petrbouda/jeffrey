@@ -27,8 +27,10 @@
 
         <!-- JDBC Distribution Charts -->
         <JdbcDistributionCharts
+          title="JDBC Distribution"
+          icon="pie-chart"
           :operations="jdbcOverviewData?.operations || []"
-          second-chart-title="Statement Groups Distribution"
+          second-chart-title="Statement Groups"
           :second-chart-data="getStatementGroupsData()"
           :total="jdbcOverviewData.header.statementCount"
         />

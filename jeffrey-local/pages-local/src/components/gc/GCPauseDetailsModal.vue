@@ -223,10 +223,10 @@ const getMemoryPercentage = (used: number, total: number) => {
 }
 
 .pause-info-header {
-  background: #f8f9fa;
+  background: var(--color-light);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 
@@ -244,18 +244,18 @@ const getMemoryPercentage = (used: number, total: number) => {
 }
 
 .metric-item i {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .metric-label {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .metric-value {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .section-header {
@@ -268,16 +268,16 @@ const getMemoryPercentage = (used: number, total: number) => {
 .section-header h6 {
   margin: 0;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .gc-info-section,
 .memory-section,
 .efficiency-section {
-  background: #f8f9fa;
+  background: var(--color-light);
   padding: 1rem;
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 .gc-info-grid {
@@ -294,7 +294,7 @@ const getMemoryPercentage = (used: number, total: number) => {
 
 .info-label {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -302,7 +302,7 @@ const getMemoryPercentage = (used: number, total: number) => {
 
 .info-value {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .memory-grid {
@@ -317,7 +317,7 @@ const getMemoryPercentage = (used: number, total: number) => {
 
 .memory-label {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
   margin-bottom: 0.5rem;
   text-transform: uppercase;
@@ -327,7 +327,7 @@ const getMemoryPercentage = (used: number, total: number) => {
 .memory-value {
   font-size: 1rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 
@@ -351,7 +351,7 @@ const getMemoryPercentage = (used: number, total: number) => {
 
 .efficiency-label {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -359,7 +359,7 @@ const getMemoryPercentage = (used: number, total: number) => {
 
 .efficiency-value {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .progress-text {

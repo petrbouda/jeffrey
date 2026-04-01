@@ -109,7 +109,7 @@
   }
 
   &.active {
-    color: #5e64ff;
+    color: var(--color-primary);
 
     i {
       transform: translateY(-2px);
@@ -120,7 +120,7 @@
     }
 
     &::after {
-      background-color: #5e64ff;
+      background-color: var(--color-primary);
     }
   }
 }

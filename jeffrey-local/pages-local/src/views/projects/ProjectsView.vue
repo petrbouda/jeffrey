@@ -3,14 +3,14 @@
     <!-- Workspace Selector (only show in root workspace selection mode) -->
     <MainCard v-if="!isWorkspaceScoped">
       <template #header>
-        <PageHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length">
+        <MainCardHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length">
           <template #actions>
-            <button class="page-header-btn" @click="remoteWorkspaceModal?.showModal()">
+            <button class="page-header-btn" @click="showRemoteWorkspaceModal = true">
               <i class="bi bi-plus-lg"></i>
               Add Workspace
             </button>
           </template>
-        </PageHeader>
+        </MainCardHeader>
       </template>
       <div class="workspace-cards-grid">
         <WorkspaceSelectionCard
@@ -165,7 +165,7 @@
 
   <!-- Modal Components -->
   <RemoteWorkspaceModal
-      ref="remoteWorkspaceModal"
+      v-model:show="showRemoteWorkspaceModal"
       @workspace-added="handleWorkspaceAdded"
   />
 
@@ -185,7 +185,7 @@
 import {computed, onMounted, ref} from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MainCard from '@/components/MainCard.vue';
-import PageHeader from '@/components/PageHeader.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import RemoteWorkspaceModal from '@/components/projects/RemoteWorkspaceModal.vue';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
@@ -223,10 +223,8 @@ const hasBlockedProjects = computed(() => projects.value.some(p => p.isBlocked))
 const errorMessage = ref('');
 const loading = ref(true);
 
-// Modal component references
-const remoteWorkspaceModal = ref<InstanceType<typeof RemoteWorkspaceModal>>();
-
-// Delete workspace modal state
+// Modal state
+const showRemoteWorkspaceModal = ref(false);
 const showDeleteWorkspaceModal = ref(false);
 const deleteWorkspaceMessage = ref('');
 const deleteWorkspaceSubMessage = ref('');
@@ -567,11 +565,11 @@ const confirmDeleteWorkspace = async () => {
 .unavailable-banner {
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   border-color: rgba(156, 163, 175, 0.25);
-  color: #4b5563;
+  color: var(--color-text);
 }
 
 .unavailable-banner .banner-icon {
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .offline-banner {
@@ -595,13 +593,13 @@ const confirmDeleteWorkspace = async () => {
   border-radius: 8px;
   cursor: pointer;
   background: white;
-  color: #374151;
+  color: var(--color-text);
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .btn-action-secondary:hover {
-  background: #f9fafb;
+  background: var(--color-light);
   border-color: rgba(0, 0, 0, 0.15);
 }
 
@@ -616,14 +614,14 @@ const confirmDeleteWorkspace = async () => {
   padding: 12px 16px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  border-left: 3px solid #5e64ff;
+  border-left: 3px solid var(--color-primary);
   border-radius: 16px 16px 0 0;
   gap: 16px;
   flex-wrap: wrap;
 }
 
 .context-bar-remote {
-  border-left-color: #5e64ff;
+  border-left-color: var(--color-primary);
 }
 
 .context-bar-info {
@@ -660,7 +658,7 @@ const confirmDeleteWorkspace = async () => {
 .workspace-name {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #1f2937;
+  color: var(--color-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -669,14 +667,14 @@ const confirmDeleteWorkspace = async () => {
 
 .workspace-meta {
   font-size: 0.8rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .workspace-created {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   white-space: nowrap;
 }
 
@@ -695,7 +693,7 @@ const confirmDeleteWorkspace = async () => {
 .context-search {
   display: flex;
   align-items: center;
-  background: #f9fafb;
+  background: var(--color-light);
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 6px 10px;
@@ -708,19 +706,19 @@ const confirmDeleteWorkspace = async () => {
 }
 
 .context-search:focus-within {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
   background: #fff;
 }
 
 .context-search i {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   margin-right: 6px;
 }
 
 .context-search:focus-within i {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .context-search input {
@@ -728,13 +726,13 @@ const confirmDeleteWorkspace = async () => {
   outline: none;
   background: transparent;
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--color-text);
   width: 100%;
   padding: 0;
 }
 
 .context-search input::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .context-btn {
@@ -754,12 +752,12 @@ const confirmDeleteWorkspace = async () => {
 .context-btn.danger {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border-color: rgba(239, 68, 68, 0.3);
-  color: #dc2626;
+  color: var(--color-danger-hover);
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
     color: white;
-    border-color: #b91c1c;
+    border-color: var(--color-danger-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
   }
@@ -770,7 +768,7 @@ const confirmDeleteWorkspace = async () => {
 
     &:hover {
       background: linear-gradient(135deg, #fef2f2, #fee2e2);
-      color: #dc2626;
+      color: var(--color-danger-hover);
       transform: none;
       box-shadow: none;
     }
@@ -794,12 +792,12 @@ const confirmDeleteWorkspace = async () => {
 .context-btn.streaming-disabled {
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   border-color: rgba(156, 163, 175, 0.3);
-  color: #9ca3af;
+  color: var(--color-text-light);
 
   &:hover {
     background: linear-gradient(135deg, #6b7280, #4b5563);
     color: white;
-    border-color: #4b5563;
+    border-color: var(--color-text);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(107, 114, 128, 0.25);
   }
@@ -816,10 +814,10 @@ const confirmDeleteWorkspace = async () => {
   justify-content: center;
   gap: 10px;
   padding: 16px 20px;
-  background: #f9fafb;
+  background: var(--color-light);
   border-bottom: 1px dashed #d1d5db;
   border-radius: 16px 16px 0 0;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.9rem;
   font-weight: 500;
 }

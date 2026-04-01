@@ -25,22 +25,23 @@
         <template #dashboard>
           <!-- Filter Input -->
           <div class="mb-4">
-            <div class="filter-container">
+            <div class="input-group search-container" style="max-width: 400px;">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
                   type="text"
-                  class="form-control"
+                  class="form-control search-input"
                   placeholder="Filter by flag name..."
                   v-model="searchTerm"
                   autocomplete="off"
               />
               <button
                   v-if="searchTerm"
-                  class="clear-btn"
+                  class="btn btn-outline-secondary clear-btn"
                   type="button"
                   @click="searchTerm = ''"
                   title="Clear filter"
               >
-                <i class="bi bi-x"></i>
+                <i class="bi bi-x-lg"></i>
               </button>
             </div>
             <div class="filter-info" v-if="searchTerm">
@@ -220,7 +221,7 @@
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <div class="feature-icon" style="background: linear-gradient(135deg, var(--color-success) 0%, #20c997 100%);">
                   <i class="bi bi-cpu"></i>
                 </div>
                 <div class="feature-content">
@@ -335,6 +336,7 @@ import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
 import Badge from '@/components/Badge.vue';
 import FlagsClient from '@/services/api/FlagsClient';
+import '@/styles/shared-components.css';
 import FlagsData from '@/services/api/model/FlagsData';
 import JvmFlag from '@/services/api/model/JvmFlag';
 import FormattingService from '@/services/FormattingService';
@@ -519,43 +521,10 @@ onMounted(() => {
   padding: 2rem;
 }
 
-/* Filter Container */
-.filter-container {
-  position: relative;
-  max-width: 400px;
-}
-
-.filter-container .form-control {
-  height: 38px;
-  padding-right: 2.5rem;
-}
-
-.filter-container .form-control:focus {
-  border-color: #5e64ff;
-  box-shadow: 0 0 0 0.2rem rgba(94, 100, 255, 0.15);
-}
-
-.filter-container .clear-btn {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  color: #6c757d;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.filter-container .clear-btn:hover {
-  color: #343a40;
-}
-
 .filter-info {
   margin-top: 0.5rem;
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 /* Flags Table */
@@ -564,14 +533,14 @@ onMounted(() => {
 }
 
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   white-space: nowrap;
 }
 
@@ -604,7 +573,7 @@ onMounted(() => {
   background: none;
   padding: 0;
   font-size: 0.85rem;
-  color: #343a40;
+  color: var(--color-dark);
   font-weight: 500;
 }
 
@@ -613,12 +582,12 @@ onMounted(() => {
 }
 
 .flag-value .boolean-true {
-  color: #28a745;
+  color: var(--color-success);
   font-weight: 500;
 }
 
 .flag-value .boolean-false {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .cursor-help {
@@ -629,7 +598,7 @@ onMounted(() => {
 .no-results {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .no-results i {
@@ -656,13 +625,13 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .about-header-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #5e64ff 0%, #7c4dff 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #7c4dff 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -674,23 +643,23 @@ onMounted(() => {
 
 .about-header h5 {
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .about-intro {
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .section-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 1rem;
   margin-top: 1.5rem;
   display: flex;
@@ -698,7 +667,7 @@ onMounted(() => {
 }
 
 .section-title i {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .feature-grid {
@@ -719,13 +688,13 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .feature-card:hover {
-  border-color: #dee2e6;
+  border-color: var(--card-border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -744,13 +713,13 @@ onMounted(() => {
 .feature-content h6 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.25rem;
 }
 
 .feature-content p {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-bottom: 0;
   line-height: 1.5;
 }
@@ -776,7 +745,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  background: #fafbfc;
+  background: var(--color-light);
   border-radius: 6px;
   font-size: 0.85rem;
 }
@@ -801,7 +770,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--color-text);
   padding: 0.5rem 0;
 }
 
@@ -838,7 +807,7 @@ onMounted(() => {
 /* Flag Description */
 .flag-description {
   font-size: 0.75rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
   max-width: 380px;
@@ -855,7 +824,7 @@ onMounted(() => {
   background: none;
   border: none;
   padding: 0.125rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   cursor: pointer;
   line-height: 1;
   display: flex;
@@ -869,7 +838,7 @@ onMounted(() => {
 
 .expand-btn:hover {
   background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 /* Offset description to align with flag name when expand button is present */
@@ -888,16 +857,16 @@ onMounted(() => {
 
 /* History Row */
 .history-row {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .history-row td {
   padding: 0 !important;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .history-row:hover {
-  background-color: #f8f9fa !important;
+  background-color: var(--color-light) !important;
 }
 
 /* Change History Container */
@@ -905,7 +874,7 @@ onMounted(() => {
   margin: 0.75rem 1rem 0.75rem calc(1rem + 20px + 0.5rem);
   padding: 0.75rem 1rem;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
@@ -913,14 +882,14 @@ onMounted(() => {
 .change-history-header {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
 }
 
 .change-history-header i {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .change-history-list {
@@ -939,11 +908,11 @@ onMounted(() => {
 }
 
 .change-item.current-value {
-  background-color: rgba(40, 167, 69, 0.08);
+  background-color: rgba(0, 210, 122, 0.08);
 }
 
 .change-timestamp {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-family: monospace;
   font-size: 0.75rem;
   min-width: 160px;
@@ -951,6 +920,6 @@ onMounted(() => {
 
 .change-value {
   font-weight: 500;
-  color: #343a40;
+  color: var(--color-dark);
 }
 </style>

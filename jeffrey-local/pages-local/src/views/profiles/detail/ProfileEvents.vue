@@ -53,7 +53,7 @@
                 <div class="fw-medium">{{ eventType.name }}</div>
                 <div class="small text-muted">{{ eventType.code }}</div>
               </div>
-              <span class="badge bg-secondary rounded-pill">{{ eventType.count }}</span>
+              <Badge :value="String(eventType.count)" variant="grey" size="xs" />
             </button>
           </div>
         </div>
@@ -68,10 +68,8 @@
           <span class="text-muted ms-2">({{ selectedEventType.code }})</span>
         </span>
         <div class="d-flex align-items-center">
-          <span class="badge bg-primary me-2">{{ selectedEventType.count }} samples</span>
-          <span v-if="eventData.length > 200" class="badge bg-info me-3">
-            <i class="bi bi-info-circle me-1"></i>Showing 200 of {{ eventData.length }} rows
-          </span>
+          <Badge :value="`${selectedEventType.count} samples`" variant="blue" size="xs" class="me-2" />
+          <Badge v-if="eventData.length > 200" :value="`Showing 200 of ${eventData.length} rows`" variant="cyan" size="xs" icon="bi-info-circle" class="me-3" />
           <button v-if="!showEventTypeList" class="btn btn-sm btn-outline-secondary" @click="toggleEventTypeList">
             <i class="bi bi-pencil"></i> Change
           </button>
@@ -94,7 +92,7 @@
         </div>
         <div v-else>
           <div class="table-responsive">
-            <table class="table table-hover mb-0 event-tree-table">
+            <table class="table table-sm table-hover mb-0 event-tree-table">
               <thead>
                 <tr>
                   <th v-for="column in eventColumns" :key="column.field">
@@ -150,6 +148,8 @@ import FormattingService from '@/services/FormattingService';
 import {useRoute} from "vue-router";
 
 import PageHeader from '@/components/layout/PageHeader.vue';
+import Badge from '@/components/Badge.vue';
+import '@/styles/shared-components.css';
 
 const route = useRoute();
 
@@ -404,7 +404,7 @@ onMounted(async () => {
 .events-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -421,74 +421,16 @@ onMounted(async () => {
 .list-group-item.active {
   background-color: #d1e5ff;
   border-color: #b8d8ff;
-  color: #212529;
+  color: var(--color-dark);
 }
 
 .list-group-item:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .list-group-item.active:hover {
   background-color: #c2ddff;
-  color: #212529;
-}
-
-.input-group-text {
-  height: 31px;
-  padding: 0.25rem 0.5rem;
-}
-
-/* Search Styles */
-.search-container {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
-  overflow: hidden;
-}
-
-.search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  height: 38px;
-}
-
-.search-icon {
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
-.search-input {
-  border-left: none;
-  font-size: 0.875rem;
-  height: 38px;
-  padding: 0.375rem 0.75rem;
-  line-height: 1.5;
-}
-
-.search-input:focus {
-  box-shadow: none;
-  border-color: #ced4da;
-}
-
-.clear-btn {
-  border-color: #ced4da;
-  border-left: none;
-  background-color: #fff;
-  padding: 0 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-}
-
-.clear-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.clear-btn i {
-  font-size: 0.75rem;
+  color: var(--color-dark);
 }
 
 /* Table styles */
@@ -505,7 +447,7 @@ onMounted(async () => {
 
 
 .leaf-row:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .event-value {
@@ -517,7 +459,7 @@ onMounted(async () => {
 }
 
 .sortable:hover {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .event-cell {
@@ -525,7 +467,7 @@ onMounted(async () => {
 }
 
 th {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   font-weight: 600;
   white-space: nowrap;
   padding: 0.75rem;
@@ -545,7 +487,7 @@ th {
 
 .filter-input:focus {
   box-shadow: none;
-  border-color: #0d6efd;
+  border-color: var(--color-accent-blue);
 }
 
 /* Dropdown styles */

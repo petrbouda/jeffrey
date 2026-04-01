@@ -51,7 +51,7 @@ const profileId = route.params.profileId as string;
 <style scoped>
 .init-required-card {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   padding: 3rem 2rem;
   text-align: center;
@@ -72,7 +72,7 @@ const profileId = route.params.profileId as string;
 
 .init-icon i {
   font-size: 1.5rem;
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .init-required-card h5 {
@@ -83,7 +83,7 @@ const profileId = route.params.profileId as string;
 }
 
 .init-required-card p {
-  color: #64748b;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;

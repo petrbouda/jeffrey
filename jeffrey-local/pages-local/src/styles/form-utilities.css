@@ -166,13 +166,5 @@
   cursor: not-allowed;
 }
 
-/* Color Variables */
-:root {
-  --primary-color: #5e64ff;
-  --primary-light: rgba(94, 100, 255, 0.08);
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  --text-primary: #374151;
-  --text-secondary: #6b7280;
-  --border-light: rgba(94, 100, 255, 0.12);
-}
+/* Color variables removed - use design-tokens.css instead:
+   --color-primary, --color-success, --color-danger, --color-text, --color-text-muted, --color-border */

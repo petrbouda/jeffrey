@@ -566,7 +566,7 @@ onMounted(() => {
 /* Examples Card */
 .examples-card {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   overflow: hidden;
 }
 
@@ -575,12 +575,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .examples-header h6 {
-  color: #6f42c1;
+  color: var(--color-purple);
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -599,11 +599,11 @@ onMounted(() => {
   grid-column: 1 / -1;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #6f42c1;
+  color: var(--color-purple);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 0.5rem 0.5rem 0.25rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   margin-top: 0.25rem;
 }
 
@@ -613,27 +613,27 @@ onMounted(() => {
 
 .example-item {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .example-item:hover {
-  background-color: #f8f9fa;
-  border-color: #6f42c1;
+  background-color: var(--color-light);
+  border-color: var(--color-purple);
 }
 
 .example-title {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   margin-bottom: 0.125rem;
 }
 
 .example-query {
   display: block;
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   background: transparent;
   padding: 0;
   white-space: nowrap;
@@ -644,7 +644,7 @@ onMounted(() => {
 /* Query Editor - Compact Design */
 .query-editor {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   overflow: hidden;
 }
 
@@ -652,8 +652,8 @@ onMounted(() => {
   width: 100%;
   padding: 1rem 1.25rem;
   border: none;
-  border-bottom: 1px solid #dee2e6;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
   font-family: var(--font-family-base);
   font-size: 0.875rem;
   resize: vertical;
@@ -662,7 +662,7 @@ onMounted(() => {
 }
 
 .query-input::placeholder {
-  color: #adb5bd;
+  color: var(--color-text-light);
   opacity: 0.7;
   font-style: italic;
 }
@@ -692,7 +692,7 @@ onMounted(() => {
 .toolbar-divider {
   width: 1px;
   height: 20px;
-  background-color: #dee2e6;
+  background-color: var(--card-border-color);
   margin: 0 0.25rem;
 }
 
@@ -702,8 +702,10 @@ onMounted(() => {
 
 /* Table Card */
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -712,8 +714,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .results-info {
@@ -736,8 +738,8 @@ onMounted(() => {
 .results-count {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6c757d;
-  background-color: #e9ecef;
+  color: var(--color-text-muted);
+  background-color: var(--card-border-color);
   padding: 0.125rem 0.5rem;
 }
 
@@ -759,19 +761,19 @@ onMounted(() => {
 
 .meta-item {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 /* Table Styles - matching Class Histogram */
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -792,14 +794,14 @@ onMounted(() => {
 .class-name {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #6f42c1;
+  color: var(--color-purple);
   word-break: break-all;
   line-height: 1.4;
 }
 
 .value-text {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   word-break: break-word;
   line-height: 1.4;
   margin-top: 0.25rem;
@@ -811,7 +813,7 @@ onMounted(() => {
 
 .empty-state {
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .empty-state .btn-ai-assistant {
@@ -830,8 +832,8 @@ onMounted(() => {
 }
 
 .btn-purple {
-  background-color: #6f42c1;
-  border-color: #6f42c1;
+  background-color: var(--color-purple);
+  border-color: var(--color-purple);
   color: white;
 }
 
@@ -842,13 +844,13 @@ onMounted(() => {
 }
 
 .btn-outline-purple {
-  border-color: #6f42c1;
-  color: #6f42c1;
+  border-color: var(--color-purple);
+  color: var(--color-purple);
 }
 
 .btn-outline-purple:hover {
-  background-color: #6f42c1;
-  border-color: #6f42c1;
+  background-color: var(--color-purple);
+  border-color: var(--color-purple);
   color: white;
 }
 
@@ -1048,7 +1050,7 @@ onMounted(() => {
 
 .ai-config-description {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   line-height: 1.6;
   margin-bottom: 0.5rem;
 }
@@ -1058,14 +1060,14 @@ onMounted(() => {
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8rem;
-  color: #059669;
+  color: var(--color-success-hover);
   background: rgba(5, 150, 105, 0.1);
   padding: 0.35rem 0.75rem;
   border-radius: 20px;
 }
 
 .ai-providers-note strong {
-  color: #047857;
+  color: var(--color-success-hover);
 }
 
 .ai-config-features {
@@ -1130,7 +1132,7 @@ onMounted(() => {
 .config-code code {
   display: block;
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--color-text);
   background: #f8f5ff;
   padding: 0.375rem 0.625rem;
   border-radius: 4px;
@@ -1144,7 +1146,7 @@ onMounted(() => {
 
 .config-hint-text {
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 0.5rem;
 }
 

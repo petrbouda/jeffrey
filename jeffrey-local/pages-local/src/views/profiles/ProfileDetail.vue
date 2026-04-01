@@ -1,4 +1,5 @@
 <template>
+  <div>
   <!-- Feature Collection Navigation -->
   <div class="feature-collection-nav normal-nav content-aligned">
     <div class="nav-container">
@@ -934,6 +935,7 @@
       </div>
     </div>
   </div>
+  </div>
 
 </template>
 
@@ -1342,12 +1344,13 @@ onUnmounted(() => {
   display: flex;
   align-items: stretch;
   padding: 0.75rem 1rem;
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   flex: 1;
   min-width: 0;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
 }
 
 .compact-card.primary {
@@ -1359,7 +1362,7 @@ onUnmounted(() => {
 }
 
 .compact-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -1373,7 +1376,7 @@ onUnmounted(() => {
 
 .compact-card.secondary.empty {
   border-left: 3px dashed #6c757d;
-  background: #f8f9fa;
+  background: var(--color-light);
 }
 
 
@@ -1388,7 +1391,7 @@ onUnmounted(() => {
 .card-title {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #212529;
+  color: var(--color-dark);
   margin-bottom: 0.25rem;
   display: flex;
   align-items: center;
@@ -1407,7 +1410,7 @@ onUnmounted(() => {
   display: flex;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .meta-item {
@@ -1420,9 +1423,9 @@ onUnmounted(() => {
   font-weight: 600;
   font-size: 0.6rem;
   letter-spacing: 0.5px;
-  color: #495057;
+  color: var(--color-text);
   padding: 0.125rem 0.375rem;
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 3px;
   margin-left: 0.5rem;
   display: inline-flex;
@@ -1439,7 +1442,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
   font-weight: 700;
   font-size: 0.7rem;
@@ -1467,28 +1470,28 @@ onUnmounted(() => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   background: white;
   border-radius: 4px;
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .action-btn:hover {
-  background: #f8f9fa;
-  border-color: #dee2e6;
+  background: var(--color-light);
+  border-color: var(--card-border-color);
   transform: translateY(-1px);
 }
 
 .action-btn.remove {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .action-btn.remove:hover {
-  background: #dc3545;
-  border-color: #dc3545;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
   color: white;
 }
 
@@ -1504,20 +1507,20 @@ onUnmounted(() => {
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-left: auto;
   align-self: center;
 }
 
 .select-btn:hover {
-  border-color: #5e64ff;
-  color: #5e64ff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
   background: rgba(94, 100, 255, 0.05);
   transform: translateY(-1px);
 }
 
 .help-text {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 
@@ -1547,7 +1550,7 @@ onUnmounted(() => {
 /* Feature Mode Switcher */
 .feature-mode-switcher {
   background: linear-gradient(135deg, #f8f9fb, #ffffff);
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   margin: 0 0.5rem;
   border-radius: 8px;
 }
@@ -1560,7 +1563,7 @@ onUnmounted(() => {
   display: block;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1568,7 +1571,7 @@ onUnmounted(() => {
 .mode-subtitle {
   display: block;
   font-size: 0.65rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 0.125rem;
 }
 
@@ -1594,7 +1597,7 @@ onUnmounted(() => {
   inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
   &:hover {
-    border-color: #5e64ff;
+    border-color: var(--color-primary);
     box-shadow: 0 4px 12px rgba(94, 100, 255, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
@@ -1607,7 +1610,7 @@ onUnmounted(() => {
   left: 3px;
   height: calc(100% - 6px);
   width: calc(50% - 6px);
-  background: linear-gradient(135deg, #5e64ff, #4338ca);
+  background: linear-gradient(135deg, var(--color-primary), #4338ca);
   border-radius: 7px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
@@ -1619,7 +1622,7 @@ onUnmounted(() => {
 
 .toggle-switch:has(.custom-mode.active)::before {
   transform: translateX(calc(100% + 6px));
-  background: linear-gradient(135deg, #059669, #047857);
+  background: linear-gradient(135deg, var(--color-success-hover), var(--color-success-hover));
 }
 
 .toggle-button {
@@ -1631,7 +1634,7 @@ onUnmounted(() => {
   height: 100%;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-muted);
   background-color: transparent;
   border: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1654,7 +1657,7 @@ onUnmounted(() => {
   }
 
   &:hover:not(.active) {
-    color: #475569;
+    color: var(--color-text);
     transform: translateY(-1px);
 
     .mode-icon {
@@ -1689,7 +1692,7 @@ onUnmounted(() => {
   }
 
   &:focus-visible {
-    outline: 2px solid #5e64ff;
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
     border-radius: 6px;
   }
@@ -1703,7 +1706,7 @@ onUnmounted(() => {
   position: relative;
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
   z-index: 10;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   margin-bottom: 1rem;
 }
 
@@ -1714,8 +1717,8 @@ onUnmounted(() => {
   width: 100%;
   margin-left: 0;
   margin-right: 0;
-  border-top: 1px solid #e9ecef;
-  border-bottom: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
+  border-bottom: 1px solid var(--card-border-color);
   background-color: white;
 }
 
@@ -1789,7 +1792,7 @@ onUnmounted(() => {
     font-size: 0.7rem;
     opacity: 0.6;
     transition: all 0.25s ease;
-    color: #6b7280;
+    color: var(--color-text-muted);
     line-height: 1.1;
   }
 
@@ -1821,7 +1824,7 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: #5e64ff;
+    color: var(--color-primary);
 
     i {
       transform: translateY(-2px);
@@ -1833,36 +1836,36 @@ onUnmounted(() => {
 
     small {
       opacity: 0.9;
-      color: #5e64ff;
+      color: var(--color-primary);
     }
 
     &::after {
-      background-color: #5e64ff;
+      background-color: var(--color-primary);
     }
   }
 }
 
 @keyframes pulse-highlight {
   0% {
-    background-color: #f8f9fa;
+    background-color: var(--color-light);
   }
   50% {
     background-color: rgba(0, 123, 255, 0.15);
   }
   100% {
-    background-color: #f8f9fa;
+    background-color: var(--color-light);
   }
 }
 
 @keyframes pulse-highlight-error {
   0% {
-    background-color: #f8f9fa;
+    background-color: var(--color-light);
   }
   50% {
     background-color: rgba(220, 53, 69, 0.15);
   }
   100% {
-    background-color: #f8f9fa;
+    background-color: var(--color-light);
   }
 }
 
@@ -1905,7 +1908,7 @@ onUnmounted(() => {
 }
 
 .comparison-toggle-btn:hover {
-  color: #5e64ff;
+  color: var(--color-primary);
   background: rgba(94, 100, 255, 0.04);
 }
 
@@ -1914,12 +1917,12 @@ onUnmounted(() => {
 }
 
 .comparison-toggle-btn.active {
-  color: #5e64ff;
+  color: var(--color-primary);
   background: rgba(94, 100, 255, 0.08);
 }
 
 .comparison-toggle-btn.active::before {
-  background: #5e64ff;
+  background: var(--color-primary);
   height: 70%;
 }
 
@@ -1950,7 +1953,7 @@ onUnmounted(() => {
 
 .comparison-toggle-btn .toggle-status.set {
   background: #d1fae5;
-  color: #047857;
+  color: var(--color-success-hover);
 }
 
 /* Responsive adjustments for toggle button */

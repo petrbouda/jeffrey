@@ -248,17 +248,17 @@ const getFileIcon = (filename: string): string => {
 
 .upload-header-icon {
   font-size: 0.95rem;
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .upload-header-title {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .upload-file-count {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
   padding: 0 7px;
   border-radius: 10px;
@@ -274,12 +274,12 @@ const getFileIcon = (filename: string): string => {
 
 .upload-hint {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .upload-chevron {
   font-size: 0.65rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   transition: transform 0.15s ease;
 }
 
@@ -305,7 +305,7 @@ const getFileIcon = (filename: string): string => {
 .upload-group-label {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -315,7 +315,7 @@ const getFileIcon = (filename: string): string => {
   padding: 4px 24px 4px 10px;
   font-size: 0.75rem;
   height: 30px;
-  background: #f9fafb;
+  background: var(--color-light);
   cursor: pointer;
   transition: border-color 0.15s ease;
   appearance: auto;
@@ -323,7 +323,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-group-select:focus {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
   outline: none;
 }
@@ -341,7 +341,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-dropzone.drag-over {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.1), rgba(118, 75, 162, 0.1));
   box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.12);
 }
@@ -369,14 +369,14 @@ const getFileIcon = (filename: string): string => {
 
 .dropzone-icon {
   font-size: 1.1rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   opacity: 0.6;
 }
 
 .dropzone-text {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 /* File section (when files are selected) */
@@ -394,14 +394,14 @@ const getFileIcon = (filename: string): string => {
 .upload-file-title {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
 .upload-file-title i {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .upload-file-actions {
@@ -413,7 +413,7 @@ const getFileIcon = (filename: string): string => {
 .upload-btn-add {
   background: transparent;
   border: 1px solid #e5e7eb;
-  color: #374151;
+  color: var(--color-text);
   padding: 3px 10px;
   border-radius: 5px;
   font-size: 0.7rem;
@@ -426,14 +426,14 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-btn-add:hover {
-  border-color: #5e64ff;
-  color: #5e64ff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .upload-btn-clear {
   background: transparent;
   border: 1px solid #e5e7eb;
-  color: #6b7280;
+  color: var(--color-text-muted);
   padding: 3px 10px;
   border-radius: 5px;
   font-size: 0.7rem;
@@ -442,12 +442,12 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-btn-clear:hover {
-  border-color: #dc2626;
-  color: #dc2626;
+  border-color: var(--color-danger-hover);
+  color: var(--color-danger-hover);
 }
 
 .upload-btn-upload {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
   border: none;
   padding: 4px 12px;
@@ -494,14 +494,14 @@ const getFileIcon = (filename: string): string => {
 
 .upload-file-icon {
   font-size: 0.85rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
 .upload-file-name {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -511,14 +511,14 @@ const getFileIcon = (filename: string): string => {
 
 .upload-file-size {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   flex-shrink: 0;
 }
 
 .upload-file-remove {
   background: transparent;
   border: none;
-  color: #9ca3af;
+  color: var(--color-text-light);
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
@@ -528,7 +528,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-file-remove:hover {
-  color: #dc2626;
+  color: var(--color-danger-hover);
   background: rgba(220, 38, 38, 0.08);
 }
 
@@ -549,11 +549,11 @@ const getFileIcon = (filename: string): string => {
   height: 100%;
   border-radius: 2px;
   transition: width 0.3s ease;
-  background: #5e64ff;
+  background: var(--color-primary);
 }
 
 .upload-progress-fill.uploading {
-  background: linear-gradient(90deg, #5e64ff, #764ba2);
+  background: linear-gradient(90deg, var(--color-primary), #764ba2);
   animation: progressPulse 1.5s ease-in-out infinite;
 }
 
@@ -562,7 +562,7 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-progress-fill.error {
-  background: #dc2626;
+  background: var(--color-danger-hover);
 }
 
 @keyframes progressPulse {
@@ -579,11 +579,11 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-status.status-pending {
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .upload-status.status-uploading {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .upload-status.status-complete {
@@ -591,6 +591,6 @@ const getFileIcon = (filename: string): string => {
 }
 
 .upload-status.status-error {
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 </style>

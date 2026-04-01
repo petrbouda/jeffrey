@@ -278,7 +278,7 @@ watch(() => props.expanded, (newVal) => {
 
 .node-row.root-node {
   background-color: rgba(111, 66, 193, 0.05);
-  border-left-color: #6f42c1;
+  border-left-color: var(--color-purple);
 }
 
 .expand-btn {
@@ -287,7 +287,7 @@ watch(() => props.expanded, (newVal) => {
   height: 20px;
   border: none;
   background: transparent;
-  color: #6c757d;
+  color: var(--color-text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -298,7 +298,7 @@ watch(() => props.expanded, (newVal) => {
 
 .expand-btn:hover {
   background-color: rgba(0, 0, 0, 0.08);
-  color: #212529;
+  color: var(--color-dark);
 }
 
 .expand-placeholder {
@@ -328,23 +328,23 @@ watch(() => props.expanded, (newVal) => {
 
 .relationship-badge.root {
   background-color: #e2d9f3;
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .field-name {
-  color: #495057;
+  color: var(--color-text);
   font-weight: 500;
 }
 
 .class-name {
-  color: #6f42c1;
+  color: var(--color-purple);
   font-size: 0.75rem;
   background: transparent;
   font-weight: 500;
 }
 
 .value-preview {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.7rem;
   white-space: nowrap;
   overflow: hidden;
@@ -355,17 +355,17 @@ watch(() => props.expanded, (newVal) => {
 
 .size-info {
   flex-shrink: 0;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   font-weight: 600;
   margin-left: auto;
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   padding: 0.1rem 0.4rem;
   border-radius: 3px;
 }
 
 .node-children {
-  border-left: 1px solid #e9ecef;
+  border-left: 1px solid var(--card-border-color);
   margin-left: 10px;
 }
 
@@ -378,7 +378,7 @@ watch(() => props.expanded, (newVal) => {
   display: flex;
   align-items: center;
   padding: 0.5rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
 }
 </style>

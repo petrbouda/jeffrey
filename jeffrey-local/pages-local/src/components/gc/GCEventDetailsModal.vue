@@ -59,7 +59,7 @@
           <h6><i class="bi bi-layers me-2"></i>Concurrent Phases ({{ event.phases.length }})</h6>
         </div>
         <div class="phases-table-container">
-          <table class="table table-sm table-hover">
+          <table class="table table-sm table-hover mb-0">
             <thead>
               <tr>
                 <th>Phase Name</th>
@@ -119,10 +119,10 @@ defineEmits(['update:show']);
 }
 
 .event-info-header {
-  background: #f8f9fa;
+  background: var(--color-light);
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 
@@ -140,18 +140,18 @@ defineEmits(['update:show']);
 }
 
 .metric-item i {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .metric-label {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .metric-value {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .section-header {
@@ -164,12 +164,12 @@ defineEmits(['update:show']);
 .section-header h6 {
   margin: 0;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .phases-table-container {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -179,12 +179,12 @@ defineEmits(['update:show']);
 }
 
 .phases-table-container .table thead th {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.8rem;
   padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .phases-table-container .table td {
@@ -200,10 +200,10 @@ defineEmits(['update:show']);
 .no-phases {
   padding: 1rem;
   text-align: center;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-style: italic;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
 }
 

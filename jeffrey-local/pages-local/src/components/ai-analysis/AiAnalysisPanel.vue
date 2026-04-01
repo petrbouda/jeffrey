@@ -12,10 +12,7 @@
             configured
           </span>
         </template>
-        <span v-else class="status-badge unavailable">
-          <i class="bi-x-circle-fill"></i>
-          Not configured
-        </span>
+        <Badge v-else value="Not configured" variant="status-blocked" size="xs" :uppercase="false" icon="bi-x-circle-fill" />
       </div>
       <slot name="panel-actions" />
       <button
@@ -125,6 +122,7 @@ import { ref, computed, onUnmounted, watch } from 'vue';
 import type { AiAnalysisChatMessage as ChatMessageType } from '@/composables/useAiAnalysis';
 import type AiStatusResponse from '@/services/api/model/AiStatusResponse';
 import AiAnalysisChatMessage from '@/components/ai-analysis/AiAnalysisChatMessage.vue';
+import Badge from '@/components/Badge.vue';
 
 export interface PromptSection {
   label: string
@@ -280,20 +278,9 @@ defineExpose({ prefillInput });
   font-weight: 500;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  background-color: #f3f4f6;
-  color: #374151 !important;
+  background-color: var(--color-light);
+  color: var(--color-text) !important;
   border: 1px solid #e5e7eb;
-}
-
-.status-badge.unavailable {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 20px;
-  background-color: #ffebe9;
-  color: #cf222e;
 }
 
 .chat-area {
@@ -341,7 +328,7 @@ defineExpose({ prefillInput });
 .welcome-title {
   font-size: 1.15rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-dark);
   margin: 0.25rem 0 0 0;
 }
 

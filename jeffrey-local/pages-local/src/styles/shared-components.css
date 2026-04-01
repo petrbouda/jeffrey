@@ -4,25 +4,22 @@
    Modern Card Containers
    =========================================== */
 .main-card {
-  background: linear-gradient(135deg, #ffffff, #fafbff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 16px;
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-  backdrop-filter: blur(10px);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .main-card-content {
-  padding: 24px 28px;
+  padding: var(--card-body-padding);
 }
 
 /* Card Header Variant */
 .main-card-header {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 16px 16px 0 0;
+  background: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius) var(--card-border-radius) 0 0;
   padding: 16px 24px;
   display: flex;
   align-items: center;
@@ -49,7 +46,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
   border-bottom: 1px solid rgba(94, 100, 255, 0.08);
   gap: 12px;
 }
@@ -188,7 +185,7 @@
 
 .danger-card-header-icon {
   font-size: 1.25rem;
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .danger-card-header-title {
@@ -199,119 +196,186 @@
 }
 
 /* ===========================================
-   Search Container (Standard Search Input)
-   Used in: ProfileEventTypes, InstancesList, InstancesHistory, etc.
+   Search Container (Standard Compact Search Input)
+   Reference: ProfileThreadsTimeline.vue
    =========================================== */
 .search-container {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-radius: 0.25rem;
+  box-shadow: var(--search-shadow);
+  border: 1px solid var(--search-border-color);
+  border-radius: var(--input-border-radius);
   overflow: hidden;
 }
 
 .search-container .input-group-text {
-  background-color: #fff;
-  border-right: none;
-  padding: 0 0.75rem;
+  background-color: var(--input-bg);
+  border: none;
+  padding: 0 0.6rem;
   display: flex;
   align-items: center;
-  height: 38px;
+  height: var(--input-height-sm);
 }
 
 .search-container .search-icon {
-  font-size: 0.85rem;
-  color: #6c757d;
+  font-size: var(--input-font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .search-container .search-input {
-  border-left: none;
-  font-size: 0.875rem;
-  height: 38px;
-  padding: 0;
-  padding-inline: 0.75rem;
-  display: flex;
-  align-items: center;
-  line-height: 38px;
+  border: none;
+  font-size: var(--input-font-size-sm);
+  height: var(--input-height-sm);
+  padding: 0.25rem 0.6rem;
+  line-height: 1.4;
 }
 
 .search-container .search-input:focus {
   box-shadow: none;
-  border-color: #ced4da;
+  outline: none;
 }
 
 .search-container .clear-btn {
-  border-color: #ced4da;
-  border-left: none;
-  background-color: #fff;
-  padding: 0 0.75rem;
+  border: none;
+  background-color: var(--input-bg);
+  padding: 0 0.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
+  height: var(--input-height-sm);
 }
 
 .search-container .clear-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .search-container .clear-btn i {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 /* ===========================================
-   Phoenix Search Box (Large Search - ProjectsView)
+   Compact Button (inline action buttons in toolbars)
    =========================================== */
-.search-box {
-  flex: 1;
-  max-width: 600px;
-}
-
-.phoenix-search {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.12);
-  overflow: hidden;
-  border-radius: 12px;
-  height: 48px;
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 1px 2px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.phoenix-search:focus-within {
-  border-color: rgba(94, 100, 255, 0.3);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 12px rgba(94, 100, 255, 0.1),
-    0 0 0 3px rgba(94, 100, 255, 0.05);
-  transform: translateY(-1px);
-}
-
-.phoenix-search .search-icon-container {
-  width: 48px;
+.compact-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  height: var(--input-height-sm);
   display: flex;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: #6c757d;
+  align-items: center;
+  border: 1px solid var(--search-border-color);
 }
 
-.phoenix-search .form-control {
-  height: 46px;
+/* ===========================================
+   Icon Info Button (single icon action button)
+   =========================================== */
+.icon-info-btn {
+  border: 1px solid var(--search-border-color);
+  background-color: var(--input-bg);
+  padding: 0 0.6rem;
   font-size: 0.9rem;
-  background: transparent;
-  border: none;
-  color: var(--color-text, #374151);
-  font-weight: 500;
+  color: var(--color-text-muted);
+  height: var(--input-height-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
 }
 
-.phoenix-search .form-control::placeholder {
-  color: var(--color-text-muted, #9ca3af);
-  font-weight: 400;
+.icon-info-btn:hover {
+  background-color: var(--color-light);
+  color: var(--color-dark);
 }
 
-.phoenix-search .form-control:focus {
-  box-shadow: none;
-  background: transparent;
+/* ===========================================
+   Standard Form Label (filter/tool labels)
+   =========================================== */
+.form-label-standard {
+  margin-bottom: 0.25rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* ===========================================
+   Toggle Switch (standard on/off toggle)
+   =========================================== */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: var(--toggle-width);
+  height: var(--toggle-height);
+}
+
+.toggle-switch .toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch .toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--toggle-bg-off);
+  border-radius: var(--toggle-height);
+  transition: background var(--transition-base);
+}
+
+.toggle-switch .toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: var(--toggle-thumb-size);
+  width: var(--toggle-thumb-size);
+  left: 2px;
+  bottom: 2px;
+  background: var(--color-white);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition-base);
+}
+
+.toggle-switch .toggle-input:checked + .toggle-slider {
+  background: var(--toggle-bg-on);
+}
+
+.toggle-switch .toggle-input:checked + .toggle-slider:before {
+  transform: translateX(calc(var(--toggle-width) - var(--toggle-thumb-size) - 4px));
+}
+
+/* ===========================================
+   Setting Checkbox (compact checkbox for options)
+   =========================================== */
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting-checkbox {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--card-border-color);
+  border-radius: 3px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.setting-label {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.setting-tooltip {
+  color: var(--color-text-muted);
+  font-size: 0.65rem;
+  cursor: help;
 }
 
 /* ===========================================
@@ -607,6 +671,6 @@
 }
 
 .recording-group-action-delete:hover {
-  color: #dc2626;
+  color: var(--color-danger-hover);
   background: #fef2f2;
 }

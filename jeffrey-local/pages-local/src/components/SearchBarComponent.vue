@@ -20,6 +20,7 @@
 import {onMounted, ref} from 'vue';
 import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
 import Utils from "@/services/Utils";
+import '@/styles/shared-components.css';
 
 const props = withDefaults(defineProps<{
   graphUpdater: GraphUpdater
@@ -92,18 +93,20 @@ function resetTimeseriesZoom() {
         <!-- Mode controls -->
         <template v-if="showModeControls">
           <div class="mode-controls">
-            <label class="switch-toggle">
-              <span class="switch-label">{{ threadModeLabel }}</span>
-              <div class="switch-track" :class="{ active: useThreadMode }" @click="useThreadMode = !useThreadMode; onModeChange()">
-                <div class="switch-thumb"></div>
-              </div>
-            </label>
-            <label class="switch-toggle">
-              <span class="switch-label">{{ weightModeLabel }}</span>
-              <div class="switch-track" :class="{ active: useWeight }" @click="useWeight = !useWeight; onModeChange()">
-                <div class="switch-thumb"></div>
-              </div>
-            </label>
+            <div class="mode-toggle">
+              <span class="mode-label">{{ threadModeLabel }}</span>
+              <label class="toggle-switch">
+                <input type="checkbox" class="toggle-input" v-model="useThreadMode" @change="onModeChange()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="mode-toggle">
+              <span class="mode-label">{{ weightModeLabel }}</span>
+              <label class="toggle-switch">
+                <input type="checkbox" class="toggle-input" v-model="useWeight" @change="onModeChange()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
         </template>
 
@@ -152,7 +155,7 @@ function resetTimeseriesZoom() {
 .panel-label {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .search-panel .form-control {
@@ -175,7 +178,7 @@ function resetTimeseriesZoom() {
 .input-group .btn,
 .input-group .form-control,
 .input-group .input-group-text {
-  height: 36px;
+  height: var(--input-height-sm);
   line-height: 1.5;
   border-radius: 5px;
 }
@@ -197,7 +200,7 @@ function resetTimeseriesZoom() {
   cursor: pointer;
   font-weight: 500;
   font-size: 0.85rem;
-  height: 36px;
+  height: var(--input-height-sm);
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
@@ -212,7 +215,7 @@ function resetTimeseriesZoom() {
 
 /* Remove blue border and shadow from search input on focus */
 .input-group .form-control:focus {
-  border-color: #ced4da !important;
+  border-color: var(--input-border-color) !important;
   box-shadow: none !important;
 }
 
@@ -223,18 +226,18 @@ function resetTimeseriesZoom() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid #e2e8f0;
-  background-color: #ffffff;
-  color: #64748b;
+  border: 1px solid var(--card-border-color);
+  background-color: var(--input-bg);
+  color: var(--color-text-muted);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .icon-btn:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #374151;
+  background-color: var(--color-light);
+  border-color: var(--card-border-color);
+  color: var(--color-text);
 }
 
 /* Mode controls - Modern toggle switches */
@@ -247,61 +250,16 @@ function resetTimeseriesZoom() {
   border-left: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.switch-toggle {
+.mode-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  user-select: none;
 }
 
-.switch-label {
+.mode-label {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #5f6368;
+  color: var(--color-text-muted);
   white-space: nowrap;
-  transition: color 0.2s ease;
-}
-
-.switch-toggle:hover .switch-label {
-  color: #374151;
-}
-
-.switch-track {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  background: #e2e8f0;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.switch-track:hover {
-  background: #cbd5e1;
-}
-
-.switch-track.active {
-  background: #1a73e8;
-}
-
-.switch-track.active:hover {
-  background: #1557b0;
-}
-
-.switch-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-}
-
-.switch-track.active .switch-thumb {
-  left: 18px;
 }
 </style>

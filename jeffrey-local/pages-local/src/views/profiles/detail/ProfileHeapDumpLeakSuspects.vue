@@ -282,10 +282,11 @@ onMounted(() => {
 }
 
 .suspect-card {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  background: white;
+  background: var(--card-bg);
 }
 
 .suspect-header {
@@ -293,8 +294,8 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: #fafbfc;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .suspect-rank {
@@ -311,7 +312,7 @@ onMounted(() => {
 
 .severity-critical {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 .severity-warning {
@@ -348,13 +349,13 @@ onMounted(() => {
   display: block;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #343a40;
+  color: var(--color-dark);
   font-family: monospace;
 }
 
 .percent-label {
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   text-transform: uppercase;
 }
 
@@ -379,17 +380,17 @@ onMounted(() => {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .stat-value {
   font-size: 0.85rem;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .suspect-reason {
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--color-text);
   padding: 0.75rem;
   background: #fffbeb;
   border: 1px solid #fde68a;
@@ -407,7 +408,7 @@ onMounted(() => {
 }
 
 .progress {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .progress-bar {

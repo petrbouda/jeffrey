@@ -49,7 +49,7 @@ const selectOption = (value: string) => {
 <style scoped>
 .option-card {
   flex: 1;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 16px;
@@ -69,7 +69,7 @@ const selectOption = (value: string) => {
 
   &.selected {
     background: linear-gradient(135deg, #eef2ff, #f8faff);
-    border-color: #5e64ff;
+    border-color: var(--color-primary);
     transform: translateY(-1px);
     box-shadow: 
       0 6px 20px rgba(94, 100, 255, 0.15),
@@ -91,17 +91,17 @@ const selectOption = (value: string) => {
 .option-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .option-description {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   line-height: 1.4;
 }
 
 .option-card.selected .option-title {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .option-card.selected .option-description {

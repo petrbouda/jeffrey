@@ -3,7 +3,7 @@
     <!-- Workspace Selector -->
     <MainCard>
       <template #header>
-        <PageHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length" />
+        <MainCardHeader icon="bi bi-collection" title="Workspaces" :badge="workspaces.length" />
       </template>
       <div class="workspace-cards-grid">
         <WorkspaceSelectionCard
@@ -21,7 +21,7 @@
     <!-- Events Timeline -->
     <MainCard>
       <template #header>
-        <PageHeader icon="bi bi-clock-history" title="Events Timeline" :badge="filteredEvents.length">
+        <MainCardHeader icon="bi bi-clock-history" title="Events Timeline" :badge="filteredEvents.length">
           <template #actions>
             <select class="page-filter-select" v-model="selectedEventType" @change="filterEvents">
               <option value="">All Events</option>
@@ -37,7 +37,7 @@
               <input v-model="searchQuery" type="text" placeholder="Search..." @input="filterEvents">
             </div>
           </template>
-        </PageHeader>
+        </MainCardHeader>
       </template>
 
         <!-- Loading indicator -->
@@ -120,58 +120,56 @@
     </MainCard>
 
     <!-- Event Details Modal -->
-    <BaseModal
-      ref="eventDetailsModal"
+    <GenericModal
       modal-id="eventDetailsModal"
+      :show="showEventDetailsModal"
+      @update:show="showEventDetailsModal = $event"
       :title="selectedEvent ? EventContentParser.getEventDisplayName(selectedEvent.eventType) : 'Event Details'"
       :icon="selectedEvent ? EventContentParser.getEventIcon(selectedEvent.eventType) : 'bi-journal-text'"
-      :icon-color="selectedEvent ? getEventIconColor(selectedEvent.eventType) : 'text-primary'"
       size="lg"
-      primary-button-text="Close"
-      :enable-enter-key="false"
-      @submit="closeEventDetails"
-      @cancel="closeEventDetails"
     >
-      <template #body>
-        <div v-if="selectedEvent" class="event-modal-content">
-          <div class="info-section">
-            <div class="info-row">
-              <div class="info-pair">
-                <span class="label">Event:</span>
-                <span class="value">{{ selectedEvent.originEventId }}</span>
-              </div>
-              <div class="info-pair">
-                <span class="label">Project:</span>
-                <span class="value">{{ selectedEvent.projectId }}</span>
-              </div>
+      <div v-if="selectedEvent" class="event-modal-content">
+        <div class="info-section">
+          <div class="info-row">
+            <div class="info-pair">
+              <span class="label">Event:</span>
+              <span class="value">{{ selectedEvent.originEventId }}</span>
             </div>
-            
-            <div class="info-row">
-              <div class="info-pair">
-                <span class="label">Workspace:</span>
-                <span class="value">{{ selectedEvent.workspaceId }}</span>
-              </div>
-              <div class="info-pair">
-                <span class="label">Created By:</span>
-                <span class="value">{{ selectedEvent.createdBy }}</span>
-              </div>
-            </div>
-
-            <div class="info-row">
-              <div class="info-pair">
-                <span class="label">Created:</span>
-                <span class="value">{{ FormattingService.formatTimestamp(selectedEvent.originCreatedAt) }}</span>
-              </div>
+            <div class="info-pair">
+              <span class="label">Project:</span>
+              <span class="value">{{ selectedEvent.projectId }}</span>
             </div>
           </div>
-          
-          <div class="content-section">
-            <div class="content-header">Content</div>
-            <pre class="content-json">{{ formatEventContent(selectedEvent) }}</pre>
+
+          <div class="info-row">
+            <div class="info-pair">
+              <span class="label">Workspace:</span>
+              <span class="value">{{ selectedEvent.workspaceId }}</span>
+            </div>
+            <div class="info-pair">
+              <span class="label">Created By:</span>
+              <span class="value">{{ selectedEvent.createdBy }}</span>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-pair">
+              <span class="label">Created:</span>
+              <span class="value">{{ FormattingService.formatTimestamp(selectedEvent.originCreatedAt) }}</span>
+            </div>
           </div>
         </div>
+
+        <div class="content-section">
+          <div class="content-header">Content</div>
+          <pre class="content-json">{{ formatEventContent(selectedEvent) }}</pre>
+        </div>
+      </div>
+
+      <template #footer>
+        <button type="button" class="btn btn-secondary" @click="showEventDetailsModal = false">Close</button>
       </template>
-    </BaseModal>
+    </GenericModal>
   </div>
 </template>
 
@@ -187,11 +185,11 @@ import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
 import WorkspaceSelectionCard from '@/components/settings/WorkspaceSelectionCard.vue';
 import Badge from '@/components/Badge.vue';
-import BaseModal from '@/components/BaseModal.vue';
+import GenericModal from '@/components/GenericModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MainCard from '@/components/MainCard.vue';
-import PageHeader from '@/components/PageHeader.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 
 // Workspaces data
 const workspaces = ref<any[]>([]);
@@ -205,9 +203,7 @@ const selectedEventType = ref<string>('');
 const loading = ref(true);
 const errorMessage = ref('');
 const selectedEvent = ref<WorkspaceEvent | null>(null);
-
-// Modal reference
-const eventDetailsModal = ref<InstanceType<typeof BaseModal>>();
+const showEventDetailsModal = ref(false);
 
 // Fetch workspaces function
 const refreshWorkspaces = async () => {
@@ -395,32 +391,7 @@ const getEventBadgeVariant = (eventType: WorkspaceEventType) => {
 // Show event details modal
 const showEventDetails = (event: WorkspaceEvent) => {
   selectedEvent.value = event;
-  eventDetailsModal.value?.showModal();
-};
-
-// Close event details modal
-const closeEventDetails = () => {
-  eventDetailsModal.value?.hideModal();
-};
-
-// Get icon color for event type
-const getEventIconColor = (eventType: WorkspaceEventType) => {
-  switch (eventType) {
-    case WorkspaceEventType.PROJECT_CREATED:
-      return 'text-success';
-    case WorkspaceEventType.PROJECT_DELETED:
-      return 'text-danger';
-    case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
-      return 'text-info';
-    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
-      return 'text-primary';
-    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-      return 'text-warning';
-    case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
-      return 'text-info';
-    default:
-      return 'text-secondary';
-  }
+  showEventDetailsModal.value = true;
 };
 
 // Component lifecycle
@@ -572,7 +543,7 @@ onMounted(async () => {
 }
 
 .info-section {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 12px;
   padding: 16px;
@@ -632,8 +603,8 @@ onMounted(async () => {
 }
 
 .content-json {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   padding: 12px;
   font-size: 0.75rem;

@@ -42,7 +42,7 @@ withDefaults(defineProps<Props>(), {
 }
 
 .loading-state .spinner-border {
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
   width: 2rem;
   height: 2rem;
 }

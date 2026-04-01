@@ -61,7 +61,7 @@ const selectTemplate = (templateId: string) => {
 .template-option {
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 
   &:hover {
     background-color: #eef2ff;
@@ -70,7 +70,7 @@ const selectTemplate = (templateId: string) => {
 
   &.selected {
     background-color: #eef2ff;
-    border-color: #6f42c1 !important;
+    border-color: var(--color-purple) !important;
     box-shadow: 0 0 0 1px rgba(111, 66, 193, 0.15);
   }
 }

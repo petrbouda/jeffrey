@@ -13,9 +13,10 @@ defineProps<{
 
 <style scoped>
 .base-panel {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   padding: 1rem 1.25rem;
   height: 100%;
 }
@@ -23,7 +24,7 @@ defineProps<{
 .base-panel-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   margin-bottom: 0.75rem;
 }
 </style>

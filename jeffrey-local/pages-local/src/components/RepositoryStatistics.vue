@@ -155,7 +155,7 @@ const lastActivityTime = computed(() => {
 <style scoped>
 /* Compact Repository Statistics Cards Styling */
 .compact-stat-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
   border: 1px solid rgba(94, 100, 255, 0.08);
   border-radius: 8px;
   padding: 12px 16px;
@@ -188,7 +188,7 @@ const lastActivityTime = computed(() => {
 .compact-stat-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -219,7 +219,7 @@ const lastActivityTime = computed(() => {
 
 .metric-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
@@ -231,7 +231,7 @@ const lastActivityTime = computed(() => {
 .metric-value {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   text-align: right;
   min-width: 36px;
 }
@@ -243,7 +243,7 @@ const lastActivityTime = computed(() => {
 .metric-col-header {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: right;
@@ -255,7 +255,7 @@ const lastActivityTime = computed(() => {
 }
 
 .text-primary {
-  color: #5e64ff !important;
+  color: var(--color-primary) !important;
 }
 
 /* Responsive adjustments for smaller screens */

@@ -17,31 +17,32 @@
  -->
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Utils from "@/services/Utils";
 import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient";
 import { JobType } from "@/services/api/model/JobType";
 import ToastService from "@/services/ToastService";
-import BaseModal from "@/components/BaseModal.vue";
+import GenericModal from "@/components/GenericModal.vue";
 
 const props = defineProps<{
+  show: boolean;
+  jobType: string;
   schedulerService: ProjectSchedulerClient;
 }>();
 
 const emit = defineEmits<{
-  saved: [];
+  (e: 'update:show', value: boolean): void;
+  (e: 'saved'): void;
 }>();
-
-const baseModalRef = ref<InstanceType<typeof BaseModal> | null>(null);
 
 const duration = ref(1);
 const timeUnits = ['Minutes', 'Hours', 'Days'];
 const selectedTimeUnit = ref('Days');
 const loading = ref(false);
-const currentJobType = ref<string>(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
+const validationErrors = ref<string[]>([]);
 
 const modalTitle = computed(() => {
-  switch (currentJobType.value) {
+  switch (props.jobType) {
     case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
       return 'Create a Project Instance Session Cleaner Job';
     case JobType.EXPIRED_INSTANCE_CLEANER:
@@ -52,7 +53,7 @@ const modalTitle = computed(() => {
 });
 
 const jobName = computed(() => {
-  switch (currentJobType.value) {
+  switch (props.jobType) {
     case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
       return 'Project Instance Session Cleaner';
     case JobType.EXPIRED_INSTANCE_CLEANER:
@@ -63,7 +64,7 @@ const jobName = computed(() => {
 });
 
 const jobDescription = computed(() => {
-  switch (currentJobType.value) {
+  switch (props.jobType) {
     case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
       return 'Fill in a duration for how long to keep sessions in the repository. Sessions with the last modification date older than the given duration will be removed along with all their recordings and additional files.';
     case JobType.EXPIRED_INSTANCE_CLEANER:
@@ -73,22 +74,19 @@ const jobDescription = computed(() => {
   }
 });
 
-const showModal = (jobType: string = JobType.PROJECT_INSTANCE_SESSION_CLEANER) => {
-  currentJobType.value = jobType;
-  resetForm();
-  baseModalRef.value?.showModal();
-};
-
-const closeModal = () => {
-  baseModalRef.value?.hideModal();
+const resetForm = () => {
+  duration.value = 1;
+  selectedTimeUnit.value = 'Days';
+  validationErrors.value = [];
+  loading.value = false;
 };
 
 const handleSubmit = async () => {
   if (!Utils.isPositiveNumber(duration.value)) {
-    baseModalRef.value?.setValidationErrors(['`Max Age` is not a positive number']);
+    validationErrors.value = ['`Max Age` is not a positive number'];
     return;
   }
-  baseModalRef.value?.clearValidationErrors();
+  validationErrors.value = [];
 
   const jobParams = new Map<string, string>();
   jobParams.set('duration', duration.value.toString());
@@ -96,58 +94,66 @@ const handleSubmit = async () => {
 
   loading.value = true;
   try {
-    await props.schedulerService.create(currentJobType.value, jobParams);
+    await props.schedulerService.create(props.jobType, jobParams);
     ToastService.success('Job Created', `${jobName.value} has been created successfully`);
     emit('saved');
-    closeModal();
+    emit('update:show', false);
+    resetForm();
   } catch (error: any) {
     console.error('Failed to create cleaner job:', error);
-    baseModalRef.value?.setValidationErrors([error.response?.data || 'Failed to create job.']);
+    validationErrors.value = [error.response?.data || 'Failed to create job.'];
   } finally {
     loading.value = false;
   }
 };
 
-const handleCancel = () => {
-  closeModal();
-};
-
-const resetForm = () => {
-  duration.value = 1;
-  selectedTimeUnit.value = 'Days';
-  baseModalRef.value?.clearValidationErrors();
-};
-
-defineExpose({
-  showModal,
-  closeModal
+// Reset form when modal opens
+watch(() => props.show, (show) => {
+  if (show) {
+    resetForm();
+  }
 });
 </script>
 
 <template>
-  <BaseModal
-    ref="baseModalRef"
-    modal-id="projectInstanceSessionCleanerModal"
-    :title="modalTitle"
-    icon="bi-trash"
-    icon-color="text-teal"
-    primary-button-text="Save Job"
-    primary-button-icon="bi-save"
-    :loading="loading"
-    :show-description-card="true"
-    @submit="handleSubmit"
-    @cancel="handleCancel"
+  <GenericModal
+      modal-id="projectInstanceSessionCleanerModal"
+      :show="show"
+      :title="modalTitle"
+      icon="bi-trash"
+      size="lg"
+      :show-footer="true"
+      @update:show="$emit('update:show', $event)"
   >
-    <template #description>
-      <h6 class="fw-bold mb-1">{{ jobName }}</h6>
-      <p class="mb-0">{{ jobDescription }}</p>
+    <template #footer>
+      <button type="button" class="btn btn-light" @click="$emit('update:show', false)">
+        Cancel
+      </button>
+      <button
+          type="button"
+          class="btn btn-primary"
+          @click="handleSubmit"
+          :disabled="loading"
+      >
+        <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+        <i v-if="!loading" class="bi bi-save me-1"></i>
+        Save Job
+      </button>
     </template>
 
-    <template #body>
-      <div class="mb-4 row">
-        <label for="duration" class="col-sm-3 col-form-label fw-medium">Max Age</label>
-        <div class="col-sm-9">
-          <input
+    <!-- Description Card -->
+    <div class="modal-description-card mb-4">
+      <div class="description-content">
+        <h6 class="fw-bold mb-1">{{ jobName }}</h6>
+        <p class="mb-0">{{ jobDescription }}</p>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="mb-4 row">
+      <label for="duration" class="col-sm-3 col-form-label fw-medium">Max Age</label>
+      <div class="col-sm-9">
+        <input
             id="duration"
             type="number"
             class="form-control"
@@ -155,44 +161,48 @@ defineExpose({
             :min="1"
             placeholder="Enter duration"
             autocomplete="off"
-          />
-        </div>
+        />
       </div>
+    </div>
 
-      <div class="mb-4 row">
-        <label class="col-sm-3 col-form-label fw-medium">Time Unit</label>
-        <div class="col-sm-9">
-          <div class="btn-group" role="group" aria-label="Time units">
-            <button type="button" class="btn"
-                    v-for="unit in timeUnits" :key="unit"
-                    :class="selectedTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
-                    @click="selectedTimeUnit = unit">
-              {{ unit }}
-            </button>
-          </div>
+    <div class="mb-4 row">
+      <label class="col-sm-3 col-form-label fw-medium">Time Unit</label>
+      <div class="col-sm-9">
+        <div class="btn-group" role="group" aria-label="Time units">
+          <button type="button" class="btn"
+                  v-for="unit in timeUnits" :key="unit"
+                  :class="selectedTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
+                  @click="selectedTimeUnit = unit">
+            {{ unit }}
+          </button>
         </div>
       </div>
-    </template>
-  </BaseModal>
+    </div>
+
+    <!-- Validation Errors -->
+    <div v-if="validationErrors.length > 0" class="alert alert-danger">
+      <div v-for="(error, idx) in validationErrors" :key="idx">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+      </div>
+    </div>
+  </GenericModal>
 </template>
 
 <style scoped>
-.fw-medium {
-  font-weight: 500;
+.modal-description-card {
+  background: linear-gradient(135deg, var(--color-light), var(--card-bg));
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  padding: 0;
 }
 
-.form-control {
-  border: 1px solid #ced4da;
-  height: 38px;
+.description-content {
+  padding: 20px 24px;
 }
 
-.form-control:focus {
-  box-shadow: none;
-  border-color: #ced4da;
-}
-
-/* Teal color for icon */
-.text-teal {
-  color: #20C997;
+.description-content p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text);
 }
 </style>

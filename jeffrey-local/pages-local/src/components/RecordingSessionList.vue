@@ -1043,7 +1043,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
 <style scoped>
 code {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
@@ -1051,8 +1051,8 @@ code {
 }
 
 .form-check-input:checked {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* Larger checkbox for file selection */
@@ -1066,7 +1066,7 @@ code {
 }
 
 .file-checkbox:hover:not(:disabled) {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.2);
 }
 
@@ -1077,8 +1077,8 @@ code {
 }
 
 .btn-primary {
-  background-color: #5e64ff;
-  border-color: #5e64ff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .btn-primary:hover {
@@ -1111,7 +1111,7 @@ code {
 }
 
 .folder-row.session-finished {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--color-success);
 }
 
 .folder-row.session-unknown {
@@ -1129,7 +1129,7 @@ code {
   padding: 0;
   border: none;
   background: transparent;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.7rem;
   cursor: pointer;
   border-radius: 3px;
@@ -1138,12 +1138,12 @@ code {
 
 .rotation-toggle-btn:hover {
   background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .rotated-child-row {
   margin-left: 28px;
-  border-left: 2px solid #dee2e6;
+  border-left: 2px solid var(--card-border-color);
   padding-left: 10px;
   position: relative;
 }
@@ -1155,11 +1155,11 @@ code {
   top: 50%;
   width: 10px;
   height: 0;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--card-border-color);
 }
 
 .text-primary {
-  color: #5e64ff !important;
+  color: var(--color-primary) !important;
 }
 
 /* Action button styling */
@@ -1178,7 +1178,7 @@ code {
 }
 
 .action-menu-btn {
-  color: #5e64ff;
+  color: var(--color-primary);
   background-color: rgba(94, 100, 255, 0.1);
   border-radius: 4px;
   height: 30px;
@@ -1201,14 +1201,14 @@ code {
 }
 
 .action-menu-btn.active {
-  background-color: #5e64ff;
+  background-color: var(--color-primary);
   color: #fff;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
 
 .multi-select-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 8px 12px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -1218,7 +1218,7 @@ code {
 
 .select-all-btn {
   background-color: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
   border: 1px solid rgba(94, 100, 255, 0.2);
   font-size: 0.85rem;
   font-weight: 500;
@@ -1232,7 +1232,7 @@ code {
 
 .clear-btn {
   background-color: rgba(108, 117, 125, 0.1);
-  color: #6c757d;
+  color: var(--color-text-muted);
   border: 1px solid rgba(108, 117, 125, 0.2);
   font-size: 0.85rem;
   font-weight: 500;
@@ -1263,13 +1263,13 @@ code {
 
 .session-name-label {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-weight: 500;
   margin-right: 4px;
 }
 
 .instance-link {
-  color: #5e64ff;
+  color: var(--color-primary);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
@@ -1288,7 +1288,7 @@ code {
 }
 
 .session-id-part {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-weight: 500;
   font-size: 0.88rem;
 }
@@ -1312,12 +1312,12 @@ code {
 
 .session-icon-finished {
   background-color: rgba(40, 167, 69, 0.12);
-  color: #059669;
+  color: var(--color-success-hover);
 }
 
 .session-icon-unknown {
   background-color: rgba(111, 66, 193, 0.12);
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 /* Session meta (matching instance-meta) */
@@ -1325,14 +1325,14 @@ code {
   display: flex;
   gap: 12px;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 
 /* Show More button styling */
 .show-more-btn {
   background-color: rgba(94, 100, 255, 0.05);
-  color: #5e64ff;
+  color: var(--color-primary);
   border: 1px solid rgba(94, 100, 255, 0.2);
   font-size: 0.75rem;
   font-weight: 500;
@@ -1351,7 +1351,7 @@ code {
 
 /* Profiler Configuration Controls Styling */
 .profiler-config-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 8px 12px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -1365,7 +1365,7 @@ code {
   border-radius: 4px;
   font-size: 0.75rem;
   word-break: break-all;
-  color: #2d3748;
+  color: var(--color-dark);
   border: 1px solid #e2e8f0;
   font-family: 'Monaco', 'Consolas', monospace;
   line-height: 1.6;
@@ -1378,8 +1378,8 @@ code {
 }
 
 .profiler-config-controls .raw-command-code:hover {
-  background-color: #f8f9fa;
-  border-color: #5e64ff;
+  background-color: var(--color-light);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.1);
 }
 
@@ -1391,13 +1391,13 @@ code {
 
 .type-panel-chevron {
   font-size: 0.65rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   width: 16px;
   text-align: center;
 }
 
 .type-panel-body {
-  border-left: 1px solid #e9ecef;
+  border-left: 1px solid var(--card-border-color);
   margin-left: 32px;
   padding-left: 20px;
   padding-top: 6px;

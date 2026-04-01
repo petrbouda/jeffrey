@@ -80,7 +80,7 @@ const formattedContent = computed(() => {
 }
 
 .chat-message.user {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .chat-message.assistant {
@@ -100,7 +100,7 @@ const formattedContent = computed(() => {
 
 .chat-message.user .message-avatar {
   background-color: #e3e8ef;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .chat-message.assistant .message-avatar {
@@ -116,7 +116,7 @@ const formattedContent = computed(() => {
 .message-text {
   font-size: 0.875rem;
   line-height: 1.6;
-  color: #212529;
+  color: var(--color-dark);
   word-wrap: break-word;
 }
 
@@ -125,7 +125,7 @@ const formattedContent = computed(() => {
   padding: 0.125rem 0.375rem;
   border-radius: 3px;
   font-size: 0.8rem;
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .message-text :deep(strong) {
@@ -135,13 +135,13 @@ const formattedContent = computed(() => {
 .suggestions {
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
 }
 
 .suggestions-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #6c757d;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;

@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import Badge from '@/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -276,17 +277,21 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
               <option value="MEDIUM">Medium</option>
               <option value="LOW">Low</option>
             </select>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="form-control form-control-sm search-input"
-              placeholder="Search alerts..."
-            />
+            <div class="input-group search-container">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="form-control search-input"
+                placeholder="Search alerts..."
+              />
+              <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </div>
           <div class="d-flex align-items-center">
-            <span class="badge bg-info">
-              <i class="bi bi-info-circle me-1"></i>Showing {{ displayedAlerts.length }} of {{ filteredAlerts.length }} alerts
-            </span>
+            <Badge :value="'Showing ' + displayedAlerts.length + ' of ' + filteredAlerts.length + ' alerts'" variant="cyan" size="xs" icon="bi bi-info-circle" :uppercase="false" />
           </div>
         </div>
         <div class="card-body p-0">
@@ -336,8 +341,8 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  transition: background 0.15s ease;
+  border-radius: var(--radius-base);
+  transition: background var(--transition-fast);
 }
 
 .severity-card:hover {
@@ -345,11 +350,11 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
 }
 
 .severity-card.time {
-  color: #475569;
+  color: var(--color-text);
   margin-right: auto;
 }
 
-.severity-card.critical .card-count { color: #dc2626; }
+.severity-card.critical .card-count { color: var(--color-danger-hover); }
 .severity-card.high .card-count { color: #ea580c; }
 .severity-card.medium .card-count { color: #ca8a04; }
 .severity-card.low .card-count { color: #0891b2; }
@@ -362,7 +367,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
 .card-label {
   font-size: 0.7rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.025em;
 }
@@ -373,7 +378,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   background: transparent;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-dark);
   cursor: pointer;
   padding: 0;
   outline: none;
@@ -387,11 +392,6 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
 .filter-select {
   width: auto;
   min-width: 150px;
-}
-
-.search-input {
-  min-width: 200px;
-  max-width: 300px;
 }
 
 /* Alert List */
@@ -414,13 +414,13 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
 
 .load-more-count {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .filter-select,
-  .search-input {
+  .search-container {
     width: 100%;
     max-width: none;
   }

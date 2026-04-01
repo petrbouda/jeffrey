@@ -375,7 +375,7 @@ const progressRingStyle = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
@@ -425,8 +425,8 @@ const progressRingStyle = computed(() => {
 
 /* Download Card */
 .download-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 0.75rem;
@@ -472,13 +472,13 @@ const progressRingStyle = computed(() => {
 .download-file-count {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .btn-close-card {
   background: transparent;
   border: none;
-  color: #6c757d;
+  color: var(--color-text-muted);
   width: 24px;
   height: 24px;
   border-radius: 4px;
@@ -491,14 +491,14 @@ const progressRingStyle = computed(() => {
 
 .btn-close-card:hover {
   background: rgba(0, 0, 0, 0.1);
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 /* Progress Bar */
 .download-progress {
   height: 8px;
   border-radius: 4px;
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   margin-bottom: 0.75rem;
 }
 
@@ -527,7 +527,7 @@ const progressRingStyle = computed(() => {
   content: '';
   flex: 1;
   height: 1px;
-  background: #dee2e6;
+  background: var(--card-border-color);
 }
 
 .file-divider-text {
@@ -553,7 +553,7 @@ const progressRingStyle = computed(() => {
 }
 
 .file-size-muted {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   margin-left: 0.5rem;
 }
@@ -571,7 +571,7 @@ const progressRingStyle = computed(() => {
   justify-content: space-between;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
 }
 
 .download-status {
@@ -606,7 +606,7 @@ const progressRingStyle = computed(() => {
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .empty-state i {
@@ -653,7 +653,7 @@ const progressRingStyle = computed(() => {
 }
 
 .progress-ring-bg {
-  stroke: #e9ecef;
+  stroke: var(--card-border-color);
 }
 
 .progress-ring-bar {
@@ -670,11 +670,11 @@ const progressRingStyle = computed(() => {
 }
 
 .status-completed .progress-ring-bar {
-  stroke: #28a745;
+  stroke: var(--color-success);
 }
 
 .status-failed .progress-ring-bar {
-  stroke: #dc3545;
+  stroke: var(--color-danger);
 }
 
 .status-cancelled .progress-ring-bar {
@@ -695,11 +695,11 @@ const progressRingStyle = computed(() => {
 }
 
 .status-completed .indicator-icon {
-  color: #28a745;
+  color: var(--color-success);
 }
 
 .status-failed .indicator-icon {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .status-cancelled .indicator-icon {
@@ -717,7 +717,7 @@ const progressRingStyle = computed(() => {
   padding: 2px 6px;
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  color: #495057;
+  color: var(--color-text);
 }
 
 /* Animations */

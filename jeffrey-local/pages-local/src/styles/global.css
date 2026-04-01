@@ -87,7 +87,7 @@
 /* Custom toast type styling with subtly colored backgrounds */
 .toast-success {
   background-color: #f7fcf7 !important; /* Very light green-tinted gray */
-  border-left-color: #28a745 !important;
+  border-left-color: var(--color-success) !important;
   color: #333 !important;
 }
 
@@ -105,7 +105,7 @@
 
 .toast-danger {
   background-color: #fdf7f7 !important; /* Very light red-tinted gray */
-  border-left-color: #dc3545 !important;
+  border-left-color: var(--color-danger) !important;
   color: #333 !important;
 }
 
@@ -116,7 +116,7 @@
 }
 
 .toast-success .toast-icon {
-  color: #28a745 !important;
+  color: var(--color-success) !important;
 }
 
 .toast-info .toast-icon {
@@ -128,7 +128,7 @@
 }
 
 .toast-danger .toast-icon {
-  color: #dc3545 !important;
+  color: var(--color-danger) !important;
 }
 
 /* Toast animations */

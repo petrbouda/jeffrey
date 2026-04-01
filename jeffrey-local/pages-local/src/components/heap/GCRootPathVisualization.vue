@@ -155,17 +155,17 @@ const framePackagePart = (frame: string): string => {
 .path-number {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .path-step-count {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 /* GC Root block — same shape as step-node + step-node-target, green */
 .gc-root-block {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-left: 4px solid #2b8a3e;
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
@@ -190,7 +190,7 @@ const framePackagePart = (frame: string): string => {
 .gc-root-type {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .gc-root-detail {
@@ -199,14 +199,14 @@ const framePackagePart = (frame: string): string => {
 }
 
 .detail-label {
-  color: #868e96;
+  color: var(--color-text-muted);
   font-weight: 600;
   margin-right: 0.35rem;
 }
 
 .detail-value {
   font-family: monospace;
-  color: #495057;
+  color: var(--color-text);
   overflow-wrap: break-word;
 }
 
@@ -216,18 +216,18 @@ const framePackagePart = (frame: string): string => {
 
 .gc-root-detail-sub {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   margin-top: 0.1rem;
   margin-left: 3.2rem;
 }
 
 .frame-package-inline {
-  color: #868e96;
+  color: var(--color-text-muted);
   margin-left: 0.35rem;
 }
 
 .frame-source {
-  color: #868e96;
+  color: var(--color-text-muted);
   margin-left: 0.25rem;
 }
 
@@ -265,7 +265,7 @@ const framePackagePart = (frame: string): string => {
 .connector-field {
   font-size: 0.75rem;
   font-family: monospace;
-  color: #6f42c1;
+  color: var(--color-purple);
   background: #f3eeff;
   padding: 0.1rem 0.5rem;
   border-radius: 3px;
@@ -279,10 +279,10 @@ const framePackagePart = (frame: string): string => {
 /* Step node */
 .step-node {
   position: relative;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
-  background: #f8f9fa;
+  background: var(--color-light);
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -307,13 +307,13 @@ const framePackagePart = (frame: string): string => {
 .step-classname {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   word-break: break-all;
 }
 
 .step-package {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 .step-identity-line {
@@ -325,14 +325,14 @@ const framePackagePart = (frame: string): string => {
 }
 
 .step-identity-sep {
-  color: #adb5bd;
+  color: var(--color-text-light);
   font-size: 0.85rem;
 }
 
 .step-object-id {
   font-size: 0.75rem;
   font-family: monospace;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 .step-sizes {
@@ -354,30 +354,30 @@ const framePackagePart = (frame: string): string => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #adb5bd;
+  color: var(--color-text-light);
 }
 
 .step-size-value {
   font-size: 0.75rem;
   font-family: monospace;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .step-size-retained .step-size-value {
-  color: #b8860b;
+  color: var(--color-retained);
 }
 
 .step-display-value {
   font-size: 0.78rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   font-family: monospace;
   word-break: break-all;
 }
 
 .frame-package {
   font-weight: 400;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 .frame-class-method {

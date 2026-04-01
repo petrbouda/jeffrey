@@ -52,7 +52,7 @@ defineProps<Props>();
 
 .empty-state-content i {
   font-size: 2rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   opacity: 0.4;
   margin-bottom: 4px;
 }
@@ -60,11 +60,11 @@ defineProps<Props>();
 .empty-state-title {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .empty-state-description {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 </style>

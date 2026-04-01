@@ -48,7 +48,8 @@
     </div>
 
     <!-- Data Table -->
-    <div class="table-card">
+    <EmptyState v-if="histogramData.length === 0" icon="bi-bar-chart" title="No histogram data available" />
+    <div v-else class="table-card">
       <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
           <thead>
@@ -116,6 +117,7 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import SortableTableHeader from '@/components/table/SortableTableHeader.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import HeapSummary from '@/services/api/model/HeapSummary';
@@ -275,33 +277,35 @@ onMounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
   white-space: nowrap;
 }
 
 .package-name {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -320,9 +324,9 @@ onMounted(() => {
 }
 
 .filter-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 0.75rem 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .select-narrow {
@@ -331,7 +335,7 @@ onMounted(() => {
 
 
 .progress {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .progress-bar {
@@ -344,6 +348,6 @@ onMounted(() => {
 
 /* Darker warning color for better readability */
 .text-warning {
-  color: #b8860b !important;
+  color: var(--color-retained) !important;
 }
 </style>

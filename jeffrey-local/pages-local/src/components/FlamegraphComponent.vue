@@ -319,7 +319,7 @@ function search(value: string | null) {
   height: 26px;
   border: none;
   background: #fff;
-  color: #94a3b8;
+  color: var(--color-text-light);
   cursor: pointer;
   font-size: 13px;
   transition: all 0.15s;
@@ -337,12 +337,12 @@ function search(value: string | null) {
 
 .toggle-btn:hover {
   background: #f1f5f9;
-  color: #475569;
+  color: var(--color-text);
 }
 
 .toggle-btn.active {
   background: #eef2ff;
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .custom-context-menu {
@@ -352,7 +352,7 @@ function search(value: string | null) {
   padding: 0.5rem 0;
   margin: 0;
   font-size: 0.875rem;
-  color: #212529;
+  color: var(--color-dark);
   text-align: left;
   background-color: #fff;
   background-clip: padding-box;
@@ -368,7 +368,7 @@ function search(value: string | null) {
   padding: 0.5rem 1.5rem;
   clear: both;
   font-weight: 400;
-  color: #212529;
+  color: var(--color-dark);
   text-align: inherit;
   white-space: nowrap;
   background-color: transparent;
@@ -380,7 +380,7 @@ function search(value: string | null) {
 .custom-context-menu .dropdown-item:focus {
   color: #16181b;
   text-decoration: none;
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 </style>

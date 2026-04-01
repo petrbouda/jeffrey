@@ -48,7 +48,7 @@
 }
 
 .alert-heading {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   font-weight: 600;
 }
 
@@ -66,6 +66,6 @@
 }
 
 .text-primary {
-  color: #0d6efd !important;
+  color: var(--color-accent-blue) !important;
 }
 </style>

@@ -143,7 +143,7 @@
         <!-- Unified Rules Table -->
         <div class="card mb-4" v-if="filteredAndSortedRules.length > 0">
           <div class="card-body p-0">
-            <table class="table table-hover mb-0 rules-table">
+            <table class="table table-sm table-hover mb-0 rules-table">
               <thead>
                 <tr>
                   <th class="col-rule">Rule</th>
@@ -433,7 +433,7 @@ function getSeverityColor(severity: string): string {
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
   font-size: 28px;
 }
 
@@ -464,7 +464,7 @@ function getSeverityColor(severity: string): string {
   align-items: center;
   gap: 8px;
   padding: 10px 28px;
-  background: var(--color-primary, #5e64ff);
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -501,7 +501,7 @@ function getSeverityColor(severity: string): string {
 .running-icon .spinner-border {
   width: 2.5rem;
   height: 2.5rem;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .running-title {
@@ -533,7 +533,7 @@ function getSeverityColor(severity: string): string {
 
 .progress-fill {
   height: 100%;
-  background: var(--color-primary, #5e64ff);
+  background: var(--color-primary);
   border-radius: 4px;
   animation: progress-indeterminate 2s ease-in-out infinite;
 }
@@ -553,7 +553,7 @@ function getSeverityColor(severity: string): string {
 .section-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--color-text);
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -591,15 +591,15 @@ function getSeverityColor(severity: string): string {
 .legend-label {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   flex: 1;
 }
 
 .legend-value {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1f2937;
-  background: #f3f4f6;
+  color: var(--color-dark);
+  background: var(--color-light);
   padding: 0.15rem 0.5rem;
   border-radius: 0.25rem;
   min-width: 24px;
@@ -635,7 +635,7 @@ function getSeverityColor(severity: string): string {
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.8rem;
 }
 
@@ -677,9 +677,9 @@ function getSeverityColor(severity: string): string {
   cursor: pointer;
 }
 
-.rule-row.severity-warning { border-left: 3px solid #dc3545; }
+.rule-row.severity-warning { border-left: 3px solid var(--color-danger); }
 .rule-row.severity-info { border-left: 3px solid #0d6efd; }
-.rule-row.severity-ok { border-left: 3px solid #28a745; }
+.rule-row.severity-ok { border-left: 3px solid var(--color-success); }
 .rule-row.severity-na,
 .rule-row.severity-ignore { border-left: 3px solid #6c757d; }
 
@@ -711,26 +711,26 @@ function getSeverityColor(severity: string): string {
 .severity-bar-value {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   min-width: 28px;
   text-align: right;
   flex-shrink: 0;
 }
 
 .no-score {
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.75rem;
 }
 
 .expand-icon {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   transition: transform 0.2s ease;
 }
 
 /* Row Details */
 .row-details {
-  background: #f9fafb;
+  background: var(--color-light);
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -752,12 +752,12 @@ function getSeverityColor(severity: string): string {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .detail-text {
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--color-text);
   line-height: 1.5;
   margin: 0;
 }
@@ -766,7 +766,7 @@ function getSeverityColor(severity: string): string {
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .empty-state i {
@@ -777,7 +777,7 @@ function getSeverityColor(severity: string): string {
 
 .empty-state h6 {
   margin-bottom: 0.5rem;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .empty-state p {

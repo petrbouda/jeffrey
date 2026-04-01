@@ -53,7 +53,7 @@ function formatTime(createdAt: number): string {
 
 .message-card.severity-bg-critical {
   background-color: #fef2f2;
-  border-left-color: #dc3545;
+  border-left-color: var(--color-danger);
 }
 
 .message-card.severity-bg-high {
@@ -74,7 +74,7 @@ function formatTime(createdAt: number): string {
 .message-card-title {
   font-weight: 600;
   font-size: 0.85rem;
-  color: #1f2937;
+  color: var(--color-dark);
 }
 
 .message-card-meta {
@@ -96,8 +96,8 @@ function formatTime(createdAt: number): string {
 }
 
 .severity-badge-critical {
-  color: #dc2626;
-  border-color: #dc2626;
+  color: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
   background-color: rgba(220, 38, 38, 0.08);
 }
 
@@ -121,7 +121,7 @@ function formatTime(createdAt: number): string {
 
 .meta-item {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -132,7 +132,7 @@ function formatTime(createdAt: number): string {
 
 .message-card-body {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   line-height: 1.4;
   margin-top: 0.3rem;
 }

@@ -39,39 +39,14 @@
       >
         <!-- Overview Tab -->
         <template #overview>
-          <div class="row">
-            <!-- Pie Chart -->
-            <div class="col-md-6">
-              <DonutChartCard
-                  v-if="gcRootData"
-                  title="Root Type Distribution"
-                  :series="chartSeries"
-                  :labels="chartLabels"
-                  :colors="chartColors"
-                  :legend-items="chartLegendItems"
-                  :total-value="FormattingService.formatNumber(gcRootData.totalRoots)"
+          <DualPanel left-title="Root Type Distribution" embedded>
+            <template #left>
+              <DonutWithLegend
+                  :data="rootTypeChartData"
                   :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
               />
-            </div>
-
-            <!-- Breakdown Table -->
-            <div class="col-md-6">
-              <BasePanel title="Root Type Breakdown">
-                <table class="table table-sm mb-0">
-                  <tbody>
-                  <tr v-for="item in sortedRootsArray" :key="item.type">
-                    <td style="width: 16px; padding-right: 0;">
-                      <span class="legend-dot" :style="{ backgroundColor: getRootTypeColor(item.type) }"></span>
-                    </td>
-                    <td>{{ formatRootType(item.type) }}</td>
-                    <td class="text-end font-monospace">{{ FormattingService.formatNumber(item.count) }}</td>
-                    <td class="text-end text-muted" style="width: 60px;">{{ getRootPercentage(item.count).toFixed(1) }}%</td>
-                  </tr>
-                  </tbody>
-                </table>
-              </BasePanel>
-            </div>
-          </div>
+            </template>
+          </DualPanel>
         </template>
 
         <!-- About Tab -->
@@ -237,9 +212,9 @@ import ErrorState from '@/components/ErrorState.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
-import DonutChartCard from '@/components/DonutChartCard.vue';
-import type { LegendItem } from '@/components/DonutChartCard.vue';
-import BasePanel from '@/components/BasePanel.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
 import FormattingService from '@/services/FormattingService';
@@ -252,8 +227,6 @@ const error = ref<string | null>(null);
 const heapExists = ref(false);
 const cacheReady = ref(false);
 const gcRootData = ref<GCRootSummary | null>(null);
-const sortColumn = ref('count');
-const sortDirection = ref<'asc' | 'desc'>('desc');
 
 let client: HeapDumpClient;
 
@@ -291,44 +264,17 @@ const chartEntries = computed(() => {
   return Object.entries(gcRootData.value.rootsByType).sort((a, b) => b[1] - a[1]);
 });
 
-const chartSeries = computed(() => chartEntries.value.map(([, count]) => count));
-const chartLabels = computed(() => chartEntries.value.map(([type]) => formatRootType(type)));
-const chartColors = computed(() => chartEntries.value.map(([type]) => getRootTypeColor(type)));
-
-const chartLegendItems = computed<LegendItem[]>(() => {
-  return chartEntries.value.map(([type, count]) => ({
+const rootTypeChartData = computed<DonutChartData>(() => ({
+  series: chartEntries.value.map(([, count]) => count),
+  labels: chartEntries.value.map(([type]) => formatRootType(type)),
+  colors: chartEntries.value.map(([type]) => getRootTypeColor(type)),
+  totalValue: FormattingService.formatNumber(gcRootData.value?.totalRoots ?? 0),
+  legendItems: chartEntries.value.map(([type, count]) => ({
     color: getRootTypeColor(type),
     label: formatRootType(type),
     value: FormattingService.formatNumber(count)
-  }));
-});
-
-const sortedRootsArray = computed(() => {
-  if (!gcRootData.value) return [];
-
-  const entries = Object.entries(gcRootData.value.rootsByType).map(([type, count]) => ({
-    type,
-    count
-  }));
-
-  const direction = sortDirection.value === 'asc' ? 1 : -1;
-  if (sortColumn.value === 'count') {
-    entries.sort((a, b) => direction * (a.count - b.count));
-  } else {
-    entries.sort((a, b) => direction * a.type.localeCompare(b.type));
-  }
-
-  return entries;
-});
-
-const toggleSort = (column: string) => {
-  if (sortColumn.value === column) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortColumn.value = column;
-    sortDirection.value = column === 'count' ? 'desc' : 'asc';
-  }
-};
+  }))
+}));
 
 const formatRootType = (type: string): string => {
   return type
@@ -337,11 +283,6 @@ const formatRootType = (type: string): string => {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
-};
-
-const getRootPercentage = (count: number): number => {
-  if (!gcRootData.value || gcRootData.value.totalRoots === 0) return 0;
-  return (count / gcRootData.value.totalRoots) * 100;
 };
 
 const getRootTypeColor = (type: string): string => {
@@ -400,24 +341,6 @@ onMounted(() => {
   padding: 2rem;
 }
 
-.legend-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.table td {
-  font-size: 0.85rem;
-  padding: 0.5rem 0.5rem;
-  vertical-align: middle;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
 /* About Tab Styles */
 .about-container {
   max-width: 1100px;
@@ -431,7 +354,7 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .about-header-icon {
@@ -449,30 +372,30 @@ onMounted(() => {
 
 .about-header h5 {
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .about-intro {
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .section-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
 }
 
 .section-title i {
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .feature-grid {
@@ -493,13 +416,13 @@ onMounted(() => {
   gap: 0.875rem;
   padding: 1rem;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .feature-card:hover {
-  border-color: #dee2e6;
+  border-color: var(--card-border-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -518,13 +441,13 @@ onMounted(() => {
 .feature-content h6 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.25rem;
 }
 
 .feature-content p {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-bottom: 0;
   line-height: 1.5;
 }
@@ -549,7 +472,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: #495057;
+  color: var(--color-text);
   padding: 0.5rem 0;
 }
 

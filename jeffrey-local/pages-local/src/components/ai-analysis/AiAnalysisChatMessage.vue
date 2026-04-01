@@ -78,7 +78,7 @@ const formattedContent = computed(() => {
 .chat-message.user {
   align-items: center;
   padding: 0.625rem 1rem;
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   border-left: 2px solid #0969da;
 }
 
@@ -93,7 +93,7 @@ const formattedContent = computed(() => {
 .chat-message.user .message-text {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .chat-message.assistant {
@@ -115,8 +115,8 @@ const formattedContent = computed(() => {
   width: 26px;
   height: 26px;
   font-size: 0.75rem;
-  background-color: #e9ecef;
-  color: #6c757d;
+  background-color: var(--card-border-color);
+  color: var(--color-text-muted);
 }
 
 .chat-message.assistant .message-avatar {
@@ -132,7 +132,7 @@ const formattedContent = computed(() => {
 .message-text {
   font-size: 0.8rem;
   line-height: 1.5;
-  color: #212529;
+  color: var(--color-dark);
   word-wrap: break-word;
 }
 
@@ -234,7 +234,7 @@ const formattedContent = computed(() => {
 }
 
 .message-text :deep(tr:nth-child(even)) {
-  background-color: #f9fafb;
+  background-color: var(--color-light);
 }
 
 /* Blockquotes */
@@ -286,7 +286,7 @@ const formattedContent = computed(() => {
 
 .tools-label {
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
@@ -302,13 +302,13 @@ const formattedContent = computed(() => {
 .suggestions {
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
 }
 
 .suggestions-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #6c757d;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;

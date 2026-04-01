@@ -1,192 +1,195 @@
 <template>
-  <BaseModal
+  <GenericModal
       modal-id="mirrorWorkspaceModal"
+      :show="show"
       title="Connect Remote Workspace"
       icon="bi-cloud-download"
-      icon-color="text-info"
-      primary-button-text="Connect Workspace"
-      primary-button-icon="bi-arrow-down-circle"
       size="xl"
-      :enable-enter-key="true"
-      :show-description-card="true"
-      :loading="isLoading"
-      @submit="mirrorWorkspace"
-      @cancel="closeModal"
+      :show-footer="true"
+      @update:show="$emit('update:show', $event)"
       @shown="handleShown"
       @hidden="handleHidden"
-      ref="modalRef"
   >
-    <template #description>
-      <p class="text-muted mb-2">
-        Connect to an external Jeffrey instance to access one of its workspaces remotely.
-      </p>
-      <p class="text-muted mb-0 small">
-        <i class="bi bi-info-circle me-1"></i>
-        Remote workspaces are read-only and synchronized from the external source.
-      </p>
+    <template #footer>
+      <button type="button" class="btn btn-light" @click="$emit('update:show', false)">
+        Cancel
+      </button>
+      <button
+          type="button"
+          class="btn btn-primary"
+          @click="mirrorWorkspace"
+          :disabled="isLoading"
+      >
+        <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+        <i v-if="!isLoading" class="bi bi-arrow-down-circle me-1"></i>
+        Connect Workspace
+      </button>
     </template>
 
-    <template #body>
-      <!-- Phase 1: Connection Input -->
-      <div v-if="!showWorkspaceSelection">
-        <div class="grpc-info-callout mb-3">
-          <i class="bi bi-hdd-network me-2"></i>
-          <span>Enter the gRPC endpoint of the remote Jeffrey Server</span>
-        </div>
+    <!-- Description Card -->
+    <div class="modal-description-card mb-4">
+      <div class="description-content">
+        <p class="text-muted mb-2">
+          Connect to an external Jeffrey instance to access one of its workspaces remotely.
+        </p>
+        <p class="text-muted mb-0 small">
+          <i class="bi bi-info-circle me-1"></i>
+          Remote workspaces are read-only and synchronized from the external source.
+        </p>
+      </div>
+    </div>
 
-        <div class="connection-fields mb-3">
-          <div class="field-hostname">
-            <label class="form-label fw-medium small mb-1">Hostname</label>
-            <div class="input-group hostname-input-group">
+    <!-- Phase 1: Connection Input -->
+    <div v-if="!showWorkspaceSelection">
+      <div class="grpc-info-callout mb-3">
+        <i class="bi bi-hdd-network me-2"></i>
+        <span>Enter the gRPC endpoint of the remote Jeffrey Server</span>
+      </div>
+
+      <div class="connection-fields mb-3">
+        <div class="field-hostname">
+          <label class="form-label fw-medium small mb-1">Hostname</label>
+          <div class="input-group hostname-input-group">
               <span class="input-group-text">
                 <i class="bi bi-globe"></i>
               </span>
-              <input
-                  type="text"
-                  class="form-control"
-                  v-model="hostname"
-                  placeholder="prod-jeffrey.company.com"
-              />
-            </div>
-          </div>
-          <div class="field-port">
-            <label class="form-label fw-medium small mb-1">Port</label>
             <input
-                type="number"
-                class="form-control text-end port-input"
-                v-model.number="port"
-                placeholder="443"
-                min="1"
-                max="65535"
+                type="text"
+                class="form-control"
+                v-model="hostname"
+                placeholder="prod-jeffrey.company.com"
+                @keydown.enter.prevent="handleEnterKey"
             />
           </div>
         </div>
-
-        <div class="d-flex justify-content-end mb-3">
-          <button
-              type="button"
-              class="btn btn-outline-info"
-              @click="loadRemoteWorkspaces"
-              :disabled="!connectionValid || loadingWorkspaces"
-          >
-            <span v-if="loadingWorkspaces" class="spinner-border spinner-border-sm me-2" role="status"></span>
-            <i v-else class="bi bi-cloud-arrow-down me-1"></i>
-            {{ loadingWorkspaces ? 'Loading...' : 'Load Workspaces' }}
-          </button>
+        <div class="field-port">
+          <label class="form-label fw-medium small mb-1">Port</label>
+          <input
+              type="number"
+              class="form-control text-end port-input"
+              v-model.number="port"
+              placeholder="443"
+              min="1"
+              max="65535"
+              @keydown.enter.prevent="handleEnterKey"
+          />
         </div>
       </div>
 
-      <!-- Phase 2: Workspace Selection -->
-      <div v-else>
-        <div class="mb-3">
-          <label class="fw-medium mb-2">
-            <i class="bi bi-grid-3x3-gap me-2 text-info"></i>
-            Select Workspaces to Connect
-          </label>
-          <p class="text-muted small mb-3">
-            Choose one or more workspaces from <strong>{{ displayAddress }}</strong> to connect remotely.
-          </p>
-        </div>
+      <div class="d-flex justify-content-end mb-3">
+        <button
+            type="button"
+            class="btn btn-outline-info"
+            @click="loadRemoteWorkspaces"
+            :disabled="!connectionValid || loadingWorkspaces"
+        >
+          <span v-if="loadingWorkspaces" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          <i v-else class="bi bi-cloud-arrow-down me-1"></i>
+          {{ loadingWorkspaces ? 'Loading...' : 'Load Workspaces' }}
+        </button>
+      </div>
+    </div>
 
-        <!-- Remote Workspaces Grid -->
-        <div v-if="remoteWorkspaces.length > 0" class="remote-workspaces-grid">
-          <div
-              v-for="workspace in remoteWorkspaces"
-              :key="workspace.id"
-              class="remote-workspace-card"
-              :class="{ 'selected': selectedWorkspaceIds.includes(workspace.id) }"
-              @click="toggleWorkspaceSelection(workspace.id)"
-          >
-            <div class="workspace-card-content">
-              <div class="workspace-card-header">
-                <div class="workspace-name-container">
-                  <div class="workspace-selection-icon">
-                    <i
-                        :class="selectedWorkspaceIds.includes(workspace.id) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
-                        class="selection-icon"
-                    ></i>
-                  </div>
-                  <div class="workspace-info">
-                    <div class="workspace-name-row">
-                      <div class="workspace-name-with-icon">
-                        <i class="bi bi-display external-icon"></i>
-                        <h6 class="workspace-name">{{ workspace.name }}</h6>
-                      </div>
-                      <Badge
-                          :value="`${workspace.projectCount} projects`"
-                          variant="teal"
-                          size="xs"
-                          :uppercase="false"
-                      />
+    <!-- Phase 2: Workspace Selection -->
+    <div v-else>
+      <div class="mb-3">
+        <label class="fw-medium mb-2">
+          <i class="bi bi-grid-3x3-gap me-2 text-info"></i>
+          Select Workspaces to Connect
+        </label>
+        <p class="text-muted small mb-3">
+          Choose one or more workspaces from <strong>{{ displayAddress }}</strong> to connect remotely.
+        </p>
+      </div>
+
+      <!-- Remote Workspaces Grid -->
+      <div v-if="remoteWorkspaces.length > 0" class="remote-workspaces-grid">
+        <div
+            v-for="workspace in remoteWorkspaces"
+            :key="workspace.id"
+            class="remote-workspace-card"
+            :class="{ 'selected': selectedWorkspaceIds.includes(workspace.id) }"
+            @click="toggleWorkspaceSelection(workspace.id)"
+        >
+          <div class="workspace-card-content">
+            <div class="workspace-card-header">
+              <div class="workspace-name-container">
+                <div class="workspace-selection-icon">
+                  <i
+                      :class="selectedWorkspaceIds.includes(workspace.id) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
+                      class="selection-icon"
+                  ></i>
+                </div>
+                <div class="workspace-info">
+                  <div class="workspace-name-row">
+                    <div class="workspace-name-with-icon">
+                      <i class="bi bi-display external-icon"></i>
+                      <h6 class="workspace-name">{{ workspace.name }}</h6>
                     </div>
+                    <Badge
+                        :value="`${workspace.projectCount} projects`"
+                        variant="teal"
+                        size="xs"
+                        :uppercase="false"
+                    />
                   </div>
                 </div>
               </div>
-              <div class="workspace-card-description">
-                {{ workspace.description || `Projects for ${workspace.name}` }}
-              </div>
+            </div>
+            <div class="workspace-card-description">
+              {{ workspace.description || `Projects for ${workspace.name}` }}
             </div>
           </div>
         </div>
-
-        <!-- Empty State -->
-        <div v-else class="text-center py-4">
-          <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
-          <h6 class="text-muted">No workspaces found</h6>
-          <p class="text-muted small mb-0">The remote Jeffrey instance has no available workspaces to connect.</p>
-        </div>
-
-        <!-- Back Button -->
-        <div class="d-flex justify-content-start mt-3">
-          <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              @click="goBackToUrlInput"
-          >
-            <i class="bi bi-arrow-left me-1"></i>
-            Change Address
-          </button>
-        </div>
       </div>
 
-      <!-- Error Messages -->
-      <div v-if="errorMessage" class="alert alert-danger mt-3">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage }}
+      <!-- Empty State -->
+      <div v-else class="text-center py-4">
+        <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+        <h6 class="text-muted">No workspaces found</h6>
+        <p class="text-muted small mb-0">The remote Jeffrey instance has no available workspaces to connect.</p>
       </div>
-    </template>
-  </BaseModal>
+
+      <!-- Back Button -->
+      <div class="d-flex justify-content-start mt-3">
+        <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            @click="goBackToUrlInput"
+        >
+          <i class="bi bi-arrow-left me-1"></i>
+          Change Address
+        </button>
+      </div>
+    </div>
+
+    <!-- Error Messages -->
+    <div v-if="errorMessage" class="alert alert-danger mt-3">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage }}
+    </div>
+  </GenericModal>
 </template>
 
 <script setup lang="ts">
 import {computed, ref} from 'vue';
-import BaseModal from '@/components/BaseModal.vue';
+import GenericModal from '@/components/GenericModal.vue';
 import Badge from '@/components/Badge.vue';
 import Workspace from '@/services/api/model/Workspace';
 import ToastService from '@/services/ToastService';
-import {useModal} from '@/composables/useModal';
 import RemoteWorkspaceClient from "@/services/api/RemoteWorkspaceClient.ts";
 
 const remoteWorkspaceClient = new RemoteWorkspaceClient();
 
-interface Emits {
-  (e: 'workspace-added'): void;
-
-  (e: 'modal-closed'): void;
+interface Props {
+  show: boolean;
 }
 
-const emit = defineEmits<Emits>();
+defineProps<Props>();
 
-// Modal reference and composable
-const modalRef = ref<InstanceType<typeof BaseModal>>();
-const {
-  isLoading,
-  showModal,
-  hideModal,
-  handleModalShown,
-  handleModalHidden,
-  handleAsyncSubmit,
-  setValidationErrors
-} = useModal(modalRef);
+const emit = defineEmits<{
+  (e: 'update:show', value: boolean): void;
+  (e: 'workspace-added'): void;
+}>();
 
 // Form states
 const hostname = ref('');
@@ -196,6 +199,7 @@ const loadingWorkspaces = ref(false);
 const remoteWorkspaces = ref<Workspace[]>([]);
 const selectedWorkspaceIds = ref<string[]>([]);
 const errorMessage = ref('');
+const isLoading = ref(false);
 
 // Connection validation
 const connectionValid = computed(() => {
@@ -214,12 +218,12 @@ const resetForm = () => {
   remoteWorkspaces.value = [];
   selectedWorkspaceIds.value = [];
   errorMessage.value = '';
+  isLoading.value = false;
 };
 
-// Close modal
-const closeModal = () => {
-  hideModal();
-  emit('modal-closed');
+// Handle enter key in input fields
+const handleEnterKey = () => {
+  mirrorWorkspace();
 };
 
 // Load remote workspaces
@@ -282,53 +286,75 @@ const mirrorWorkspace = async () => {
     return;
   }
 
-  await handleAsyncSubmit(
-      async () => {
-        const selectedWorkspaces = remoteWorkspaces.value.filter(w => selectedWorkspaceIds.value.includes(w.id));
-        if (selectedWorkspaces.length === 0) {
-          throw new Error('Selected workspaces not found');
-        }
+  isLoading.value = true;
+  try {
+    const selectedWorkspaces = remoteWorkspaces.value.filter(w => selectedWorkspaceIds.value.includes(w.id));
+    if (selectedWorkspaces.length === 0) {
+      throw new Error('Selected workspaces not found');
+    }
 
-        await remoteWorkspaceClient.createRemote(
-            hostname.value.trim(),
-            port.value,
-            selectedWorkspaceIds.value
-        );
+    await remoteWorkspaceClient.createRemote(
+        hostname.value.trim(),
+        port.value,
+        selectedWorkspaceIds.value
+    );
 
-        const selectedWorkspaceNames = selectedWorkspaces.map(w => w.name).join('", "');
-        const successMessage = selectedWorkspaces.length === 1
-            ? `"${selectedWorkspaceNames}" workspace has been connected successfully`
-            : `"${selectedWorkspaceNames}" workspaces have been connected successfully`;
+    const selectedWorkspaceNames = selectedWorkspaces.map(w => w.name).join('", "');
+    const successMessage = selectedWorkspaces.length === 1
+        ? `"${selectedWorkspaceNames}" workspace has been connected successfully`
+        : `"${selectedWorkspaceNames}" workspaces have been connected successfully`;
 
-        ToastService.success('Workspaces Connected!', successMessage);
+    ToastService.success('Workspaces Connected!', successMessage);
 
-        emit('workspace-added');
-        resetForm();
-      }
-  );
+    emit('workspace-added');
+    emit('update:show', false);
+    resetForm();
+  } catch (error) {
+    console.error('Failed to connect workspace:', error);
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to connect workspace';
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 // Handle modal shown
 const handleShown = () => {
   resetForm();
-  handleModalShown();
 };
 
 // Handle modal hidden
 const handleHidden = () => {
-  handleModalHidden();
-  emit('modal-closed');
+  resetForm();
 };
-
-// Expose methods for parent component
-defineExpose({
-  showModal,
-  closeModal: hideModal,
-  setValidationErrors
-});
 </script>
 
 <style scoped>
+/* Description card (inlined from BaseModal) */
+.modal-description-card {
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.description-content {
+  padding: 20px 24px;
+}
+
+.description-content p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.description-content p:last-child {
+  margin-bottom: 0;
+}
+
 /* gRPC info callout */
 .grpc-info-callout {
   background: linear-gradient(135deg, #f0fdfa, #ccfbf1);

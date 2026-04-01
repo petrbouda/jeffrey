@@ -814,11 +814,11 @@ generateConfig();
 
 
 .header-primary {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
 }
 
 .header-secondary {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
 }
 
 .header-tertiary {
@@ -867,14 +867,14 @@ generateConfig();
 }
 
 .help-content h4 {
-  color: #1f2937;
+  color: var(--color-dark);
   font-weight: 700;
   margin-bottom: 12px;
   font-size: 1.1rem;
 }
 
 .help-content p {
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
   line-height: 1.5;
 }
@@ -895,7 +895,7 @@ generateConfig();
 }
 
 .help-section h5 {
-  color: #374151;
+  color: var(--color-text);
   font-weight: 600;
   margin-bottom: 8px;
   font-size: 0.9rem;
@@ -905,11 +905,11 @@ generateConfig();
 }
 
 .help-section h5 i {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .help-section p {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   margin: 0;
   line-height: 1.4;
@@ -917,7 +917,7 @@ generateConfig();
 
 .help-section code {
   background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
   padding: 2px 4px;
   border-radius: 3px;
   font-size: 0.8rem;
@@ -943,7 +943,7 @@ generateConfig();
 }
 
 .clickable-card:hover h5 {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 /* Source Type Indicator */
@@ -955,12 +955,12 @@ generateConfig();
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .source-type i {
-  color: #94a3b8;
+  color: var(--color-text-light);
   font-size: 0.7rem;
 }
 
@@ -997,14 +997,14 @@ generateConfig();
   background: linear-gradient(135deg, #f8faff, #f1f5ff);
   border: 1px solid rgba(94, 100, 255, 0.2);
   border-radius: 6px;
-  color: #5e64ff;
+  color: var(--color-primary);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 }
 
 .help-panel-toggle:hover {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(94, 100, 255, 0.25);
@@ -1017,13 +1017,13 @@ generateConfig();
 .step-header-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-dark);
   margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
 
 .step-header-description {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
@@ -1056,7 +1056,7 @@ generateConfig();
 .help-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-dark);
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -1069,7 +1069,7 @@ generateConfig();
 }
 
 .help-text {
-  color: #4b5563;
+  color: var(--color-text);
   line-height: 1.6;
 }
 
@@ -1101,7 +1101,7 @@ generateConfig();
 .help-category h6 {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-dark);
   margin: 0 0 8px 0;
   display: flex;
   align-items: center;
@@ -1109,13 +1109,13 @@ generateConfig();
 }
 
 .help-category h6 i {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 0.9rem;
 }
 
 .help-category p {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.5;
 }
@@ -1138,14 +1138,14 @@ generateConfig();
 }
 
 .help-tip i {
-  color: #10b981;
+  color: var(--color-success);
   font-size: 0.9rem;
   margin-top: 1px;
   flex-shrink: 0;
 }
 
 .help-tip span {
-  color: #374151;
+  color: var(--color-text);
   line-height: 1.4;
 }
 
@@ -1183,7 +1183,7 @@ generateConfig();
 .section-title {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1196,7 +1196,7 @@ generateConfig();
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   border-radius: 2px;
 }
 
@@ -1213,7 +1213,7 @@ generateConfig();
 
 .form-help {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 6px;
   font-style: italic;
 }
@@ -1256,7 +1256,7 @@ generateConfig();
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.12), rgba(94, 100, 255, 0.04));
   border: 1px solid rgba(94, 100, 255, 0.18);
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--color-text);
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -1294,7 +1294,7 @@ generateConfig();
 .agent-mode-selector .form-check-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   cursor: pointer;
 }
 
@@ -1312,7 +1312,7 @@ generateConfig();
   background: rgba(94, 100, 255, 0.03);
   border: 1px dashed rgba(94, 100, 255, 0.15);
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   font-style: italic;
 }
@@ -1348,14 +1348,14 @@ generateConfig();
 
 .pattern-value {
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.9rem;
 }
 
 .pattern-preview {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-style: italic;
 }
@@ -1363,7 +1363,7 @@ generateConfig();
 .btn-remove-pattern {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--color-danger);
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -1374,7 +1374,7 @@ generateConfig();
 
 .btn-remove-pattern:hover {
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 .btn-add-pattern {
@@ -1403,7 +1403,7 @@ generateConfig();
 .token-summary-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 8px;
@@ -1425,7 +1425,7 @@ generateConfig();
   border: 1px dashed rgba(94, 100, 255, 0.2);
   background: rgba(248, 250, 252, 0.85);
   font-size: 0.8rem;
-  color: #475569;
+  color: var(--color-text);
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: default;
 }
@@ -1441,7 +1441,7 @@ generateConfig();
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.06em;
-  color: #5e64ff;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -1450,7 +1450,7 @@ generateConfig();
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 0.76rem;
-  color: #1f2937;
+  color: var(--color-dark);
   overflow-wrap: break-word;
   word-break: break-all;
   min-width: 0;
@@ -1478,7 +1478,7 @@ generateConfig();
   border: 1px dashed rgba(245, 158, 11, 0.25);
   font-size: 0.8rem;
   line-height: 1.5;
-  color: #1f2937;
+  color: var(--color-dark);
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 }
@@ -1492,7 +1492,7 @@ generateConfig();
 .config-output-text {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.8rem;
-  color: #374151;
+  color: var(--color-text);
   line-height: 1.6;
   word-break: break-all;
   white-space: pre-wrap;
@@ -1527,21 +1527,21 @@ generateConfig();
 .btn-cancel-builder {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #dc2626;
+  color: var(--color-danger-hover);
   font-size: 0.8rem;
   padding: 8px 14px;
   box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
 }
 
 .btn-cancel-builder:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, var(--color-danger-hover), #b91c1c);
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
 }
 
 .btn-accept-command {
-  background: linear-gradient(135deg, #10b981, #047857);
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
   color: white;
   font-size: 0.8rem;
   padding: 8px 14px;
@@ -1550,7 +1550,7 @@ generateConfig();
 }
 
 .btn-accept-command:hover {
-  background: linear-gradient(135deg, #047857, #065f46);
+  background: linear-gradient(135deg, var(--color-success-hover), #065f46);
   transform: translateY(-1px);
   box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
 }
@@ -1648,7 +1648,7 @@ generateConfig();
 }
 
 .warning-text {
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.4;

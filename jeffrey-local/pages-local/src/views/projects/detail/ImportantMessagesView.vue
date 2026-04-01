@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import Badge from '@/components/Badge.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -297,17 +298,21 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
                 {{ type.replace(/_/g, ' ') }}
               </option>
             </select>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="form-control form-control-sm search-input"
-              placeholder="Search messages..."
-            />
+            <div class="input-group search-container">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="form-control search-input"
+                placeholder="Search messages..."
+              />
+              <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </div>
           <div class="d-flex align-items-center">
-            <span class="badge bg-info">
-              <i class="bi bi-info-circle me-1"></i>Showing {{ displayedMessages.length }} of {{ filteredMessages.length }} messages
-            </span>
+            <Badge :value="'Showing ' + displayedMessages.length + ' of ' + filteredMessages.length + ' messages'" variant="cyan" size="xs" icon="bi bi-info-circle" :uppercase="false" />
           </div>
         </div>
         <div class="card-body p-0">
@@ -367,7 +372,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 }
 
 .filter-card.time {
-  color: #475569;
+  color: var(--color-text);
   margin-right: auto;
   cursor: default;
 }
@@ -380,7 +385,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 .card-label {
   font-size: 0.7rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.025em;
 }
@@ -391,7 +396,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   background: transparent;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--color-dark);
   cursor: pointer;
   padding: 0;
   outline: none;
@@ -405,11 +410,6 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 .filter-select {
   width: auto;
   min-width: 140px;
-}
-
-.search-input {
-  min-width: 200px;
-  max-width: 300px;
 }
 
 /* Message List */
@@ -432,7 +432,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 
 .load-more-count {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 /* Responsive */
@@ -442,7 +442,7 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
   }
 
   .filter-select,
-  .search-input {
+  .search-container {
     width: 100%;
     max-width: none;
   }

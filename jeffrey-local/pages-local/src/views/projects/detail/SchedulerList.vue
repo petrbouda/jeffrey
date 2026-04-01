@@ -39,10 +39,9 @@ const currentProject = ref<SettingsResponse | null>(null);
 const schedulerService = new ProjectSchedulerClient(workspaceId.value!, projectId.value!);
 const settingsService = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
 
-// Modal refs
-const projectInstanceSessionCleanerModalRef = ref<InstanceType<
-  typeof ProjectInstanceSessionCleanerModal
-> | null>(null);
+// Modal state
+const showCleanerModal = ref(false);
+const cleanerModalJobType = ref<string>(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
 const activeJobs = ref<JobInfo[]>([]);
 const sessionCleanerJobAlreadyExists = ref(false);
 const recordingCleanerJobAlreadyExists = ref(false);
@@ -151,17 +150,10 @@ async function deleteActiveTask(id: string) {
 const handleCreateJob = async (jobType: string) => {
   switch (jobType) {
     case JobType.PROJECT_INSTANCE_SESSION_CLEANER:
-      projectInstanceSessionCleanerModalRef.value?.showModal(
-        JobType.PROJECT_INSTANCE_SESSION_CLEANER
-      );
-      break;
     case JobType.PROJECT_INSTANCE_RECORDING_CLEANER:
-      projectInstanceSessionCleanerModalRef.value?.showModal(
-        JobType.PROJECT_INSTANCE_RECORDING_CLEANER
-      );
-      break;
     case JobType.EXPIRED_INSTANCE_CLEANER:
-      projectInstanceSessionCleanerModalRef.value?.showModal(JobType.EXPIRED_INSTANCE_CLEANER);
+      cleanerModalJobType.value = jobType;
+      showCleanerModal.value = true;
       break;
     case JobType.REPOSITORY_JFR_COMPRESSION:
     case JobType.SESSION_FINISHED_DETECTOR:
@@ -391,7 +383,8 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
 
   <!-- Modal Components -->
   <ProjectInstanceSessionCleanerModal
-    ref="projectInstanceSessionCleanerModalRef"
+    v-model:show="showCleanerModal"
+    :job-type="cleanerModalJobType"
     :scheduler-service="schedulerService"
     @saved="handleModalSaved"
   />
@@ -407,7 +400,7 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
 .table th {
   font-weight: 500;
   font-size: 0.875rem;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .table td {

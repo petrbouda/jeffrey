@@ -40,7 +40,7 @@
           primary-title="Allocation Rate"
           :primary-axis-type="AxisFormatType.BYTES"
           :visible-minutes="60"
-          primary-color="#28a745"
+          primary-color="#00d27a"
           time-unit="seconds"
         />
       </template>

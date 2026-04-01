@@ -52,7 +52,7 @@ defineProps<{
 .header-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-dark);
   margin: 0 0 4px 0;
   letter-spacing: -0.01em;
   display: flex;
@@ -61,13 +61,13 @@ defineProps<{
 }
 
 .header-title i {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 1rem;
 }
 
 .header-description {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
 }
 

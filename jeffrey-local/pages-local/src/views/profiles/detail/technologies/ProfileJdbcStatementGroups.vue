@@ -102,9 +102,7 @@
                   <h5 class="text-muted">{{ statementName.label }} Timeline</h5>
                   <p class="text-muted">Click this tab to load statement-specific timeline data</p>
                   <div class="mt-3">
-                    <span class="badge bg-primary"
-                      >Total Executions: {{ statementName.value.toLocaleString() }}</span
-                    >
+                    <Badge :value="'Total Executions: ' + statementName.value.toLocaleString()" variant="blue" size="xs" :uppercase="false" />
                   </div>
                 </div>
               </div>
@@ -131,7 +129,6 @@
             <template #total>
               <JdbcSlowestStatements
                 :statements="getSortedSlowStatements()"
-                :show-wrapper="false"
                 @sql-button-click="showSqlModal"
               />
             </template>
@@ -158,7 +155,6 @@
               <JdbcSlowestStatements
                 v-else-if="getStatementSlowestStatements(statementName.label)"
                 :statements="getStatementSlowestStatements(statementName.label)!"
-                :show-wrapper="false"
                 @sql-button-click="showSqlModal"
               />
 
@@ -171,9 +167,7 @@
                     Click this tab to load statement-specific slowest statements
                   </p>
                   <div class="mt-3">
-                    <span class="badge bg-primary"
-                      >Total Executions: {{ statementName.value.toLocaleString() }}</span
-                    >
+                    <Badge :value="'Total Executions: ' + statementName.value.toLocaleString()" variant="blue" size="xs" :uppercase="false" />
                   </div>
                 </div>
               </div>
@@ -219,6 +213,7 @@ import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import JdbcStatementModal from '@/components/jdbc/JdbcStatementModal.vue';
 import JdbcDistributionCharts from '@/components/jdbc/JdbcDistributionCharts.vue';
 import JdbcSlowestStatements from '@/components/jdbc/JdbcSlowestStatements.vue';
+import Badge from '@/components/Badge.vue';
 import ProfileJdbcStatementClient from '@/services/api/ProfileJdbcStatementClient.ts';
 import JdbcOverviewData from '@/services/api/model/JdbcOverviewData.ts';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
@@ -528,7 +523,7 @@ watch(
 <style scoped>
 .group-display-large {
   background: #f8f9ff;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   margin: 1.5rem 0;
   padding: 1rem 0;
@@ -550,7 +545,7 @@ watch(
     sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -561,7 +556,7 @@ watch(
 }
 
 .group-name {
-  color: #2d3748;
+  color: var(--color-dark);
   font-weight: 600;
   font-style: italic;
 }
@@ -577,9 +572,9 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 .statement-loading {
@@ -587,9 +582,9 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--color-light);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
 }
 
 @media (max-width: 768px) {

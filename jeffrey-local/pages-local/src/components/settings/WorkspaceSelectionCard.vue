@@ -94,25 +94,25 @@ const iconClass = computed(() => {
 
 .workspace-selection-card.active {
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
 
 .workspace-selection-card.active .workspace-name {
-  color: #374151;
+  color: var(--color-text);
 }
 
 .workspace-selection-card.active .workspace-card-description {
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .workspace-selection-card.active .workspace-badge {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
 }
 
 .workspace-selection-card.active .workspace-icon {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 /* UNAVAILABLE — workspace removed from server */
@@ -123,11 +123,11 @@ const iconClass = computed(() => {
 }
 
 .workspace-selection-card.status-unavailable .workspace-icon {
-  color: #9ca3af;
+  color: var(--color-text-light);
 }
 
 .workspace-selection-card.status-unavailable .workspace-name {
-  color: #6b7280;
+  color: var(--color-text-muted);
   text-decoration: line-through;
 }
 
@@ -163,20 +163,20 @@ const iconClass = computed(() => {
 .workspace-name {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   margin: 0;
   letter-spacing: 0.01em;
 }
 
 .workspace-icon {
   font-size: 0.8rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   transition: all 0.2s ease;
 }
 
 .workspace-card-description {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   line-height: 1.4;
   margin: 0;
 }
@@ -189,7 +189,7 @@ const iconClass = computed(() => {
   height: 20px;
   padding: 0 6px;
   background: rgba(94, 100, 255, 0.1);
-  color: #5e64ff;
+  color: var(--color-primary);
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;

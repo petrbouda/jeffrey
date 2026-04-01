@@ -600,7 +600,7 @@ function createContextMenuItems() {
 
 .thread-card {
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.15s ease;
@@ -614,8 +614,8 @@ function createContextMenuItems() {
   display: flex;
   align-items: center;
   padding: 6px 10px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .thread-actions {
@@ -678,7 +678,7 @@ function createContextMenuItems() {
 .flamegraph-menu {
   position: fixed;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   min-width: 170px;
   padding: 0 0 3px 0;
   z-index: 9999;
@@ -690,13 +690,13 @@ function createContextMenuItems() {
   display: flex;
   justify-content: flex-end;
   padding: 3px 6px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .flamegraph-menu .menu-close {
   background: transparent;
   border: none;
-  color: #6c757d;
+  color: var(--color-text-muted);
   cursor: pointer;
   width: 18px;
   height: 18px;
@@ -709,14 +709,14 @@ function createContextMenuItems() {
 }
 
 .flamegraph-menu .menu-close:hover {
-  color: #495057;
+  color: var(--color-text);
   background-color: rgba(108, 117, 125, 0.1);
 }
 
 .flamegraph-menu .menu-item {
   padding: 5px 10px;
   font-size: 0.75rem;
-  color: #495057;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.1s ease;
 }
@@ -731,7 +731,7 @@ function createContextMenuItems() {
 }
 
 .flamegraph-menu .menu-item.disabled {
-  color: #adb5bd;
+  color: var(--color-text-light);
   font-style: italic;
   cursor: default;
 }
@@ -765,7 +765,7 @@ function createContextMenuItems() {
 
 .modal-container {
   background-color: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   width: 90%;
   max-width: 480px;
   max-height: 80vh;
@@ -778,7 +778,7 @@ function createContextMenuItems() {
 }
 
 .tooltip-style-modal {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   max-width: 420px;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -802,8 +802,8 @@ function createContextMenuItems() {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
 }
 
 .modal-title {
@@ -819,7 +819,7 @@ function createContextMenuItems() {
   background: transparent;
   border: none;
   font-size: 1.1rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -832,7 +832,7 @@ function createContextMenuItems() {
 
 .modal-close:hover {
   background-color: rgba(108, 117, 125, 0.12);
-  color: #343a40;
+  color: var(--color-dark);
 }
 
 .modal-body {
@@ -844,12 +844,12 @@ function createContextMenuItems() {
   display: flex;
   justify-content: flex-end;
   padding: 8px 12px;
-  border-top: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
 }
 
 .tooltip-style-modal .modal-footer {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   margin-top: 0;
   padding: 6px 12px;
 }
@@ -869,17 +869,17 @@ function createContextMenuItems() {
 .info-card {
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   overflow: hidden;
 }
 
 .info-card-header {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 8px 12px;
   font-size: 0.85rem;
   color: #3f51b5;
   font-weight: 600;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   display: flex;
   align-items: center;
 }
@@ -902,13 +902,13 @@ function createContextMenuItems() {
 
 .info-label {
   font-weight: 500;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
 }
 
 .info-value {
   font-size: 0.75rem;
-  color: #212529;
+  color: var(--color-dark);
   text-align: right;
 }
 
@@ -935,8 +935,8 @@ function createContextMenuItems() {
 
 /* Custom header styling */
 .modal-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .modal-title {

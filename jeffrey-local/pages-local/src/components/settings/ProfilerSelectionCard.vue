@@ -73,7 +73,7 @@ defineEmits<{
 
 .profiler-selection-card.selected {
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
 
@@ -95,14 +95,14 @@ defineEmits<{
 
 .selection-info i {
   font-size: 0.95rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
 .selection-name {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -123,12 +123,12 @@ defineEmits<{
 }
 
 .badge-custom {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
 }
 
 .badge-global {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-hover));
   color: white;
 }
 
@@ -136,7 +136,7 @@ defineEmits<{
   position: absolute;
   top: 8px;
   left: 8px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
   border: none;
   border-radius: 6px;
   color: white;
@@ -156,7 +156,7 @@ defineEmits<{
 }
 
 .delete-button:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, var(--color-danger-hover), #b91c1c);
   transform: scale(1.05);
 }
 

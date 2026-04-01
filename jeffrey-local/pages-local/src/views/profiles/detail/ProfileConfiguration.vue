@@ -24,6 +24,7 @@ import FormattingService from "@/services/FormattingService";
 import {useRoute} from "vue-router";
 
 import PageHeader from '@/components/layout/PageHeader.vue';
+import EmptyState from '@/components/EmptyState.vue';
 
 interface SectionRow {
   key: string;
@@ -114,26 +115,25 @@ const selectSection = () => {
     icon="bi-gear-fill"
   >
 
-    <div class="config-container">
-      <!-- Section navigation pills -->
-      <div class="pills-wrapper mb-3">
-        <div class="pills-scroll">
-          <button
-            v-for="(item, index) in items"
-            :key="index"
-            class="config-pill"
-            :class="{ 'active': active === index }"
-            @click="active = index; selectSection()"
-            type="button">
-            {{ item.label }}
-          </button>
-        </div>
+    <EmptyState v-if="items.length === 0" icon="bi-gear" title="No configuration data available" />
+    <div v-else class="config-container">
+      <!-- Section navigation tabs -->
+      <div class="config-tabs mb-3">
+        <button
+          v-for="(item, index) in items"
+          :key="index"
+          class="config-tab"
+          :class="{ 'active': active === index }"
+          @click="active = index; selectSection()"
+          type="button">
+          {{ item.label }}
+        </button>
       </div>
 
       <!-- Configuration table -->
       <div class="card mb-4">
         <div class="card-body p-0">
-          <table class="table table-hover mb-0 config-tree-table">
+          <table class="table table-sm table-hover mb-0 config-tree-table">
             <thead>
               <tr>
                 <th>Configuration Key</th>
@@ -163,53 +163,55 @@ const selectSection = () => {
   border-radius: 0.4rem;
 }
 
-/* Pills navigation - auto-width, scrollable */
-.pills-wrapper {
-  background: #fafbfc;
-  border-radius: 8px;
-  padding: 0.5rem;
-  border: 1px solid #e9ecef;
-}
-
-.pills-scroll {
+/* Tab navigation - underline style */
+.config-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border, #eaedf1);
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 0.25rem;
 }
 
-.pills-scroll::-webkit-scrollbar {
+.config-tabs::-webkit-scrollbar {
   display: none;
 }
 
-.config-pill {
-  flex-shrink: 0;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+.config-tab {
+  padding: 10px 20px;
+  font-size: 13px;
   font-weight: 500;
-  color: #6c757d;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  color: var(--color-text-muted, #748194);
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  position: relative;
+  transition: color 0.2s;
   white-space: nowrap;
 }
 
-.config-pill:hover {
-  color: #5e64ff;
-  border-color: #5e64ff;
-  background: rgba(94, 100, 255, 0.04);
+.config-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: transparent;
+  transition: background 0.2s;
 }
 
-.config-pill.active {
-  color: #fff;
-  background: #5e64ff;
-  border-color: #5e64ff;
+.config-tab:hover {
+  color: var(--color-dark, #0b1727);
+}
+
+.config-tab.active {
+  color: var(--color-primary);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.25);
+}
+
+.config-tab.active::after {
+  background: var(--color-primary);
 }
 
 /* Table styles */
@@ -252,7 +254,7 @@ const selectSection = () => {
 }
 
 .config-value {
-  color: #495057;
+  color: var(--color-text);
 }
 
 .config-row {
@@ -260,7 +262,7 @@ const selectSection = () => {
 }
 
 .config-row:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 /* Card styles */
@@ -271,13 +273,9 @@ const selectSection = () => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .pills-wrapper {
-    padding: 0.375rem;
-  }
-
-  .config-pill {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8rem;
+  .config-tab {
+    padding: 8px 14px;
+    font-size: 12px;
   }
 
   .config-tree-table {
@@ -313,9 +311,9 @@ const selectSection = () => {
     white-space: normal;
   }
 
-  .config-pill {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.75rem;
+  .config-tab {
+    padding: 6px 10px;
+    font-size: 11px;
   }
 
   .config-tree-table th {

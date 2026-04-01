@@ -134,7 +134,7 @@ const onSortChange = (sortKey: string) => {
 }
 
 .method-icon {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 0.8rem;
   opacity: 0.7;
 }

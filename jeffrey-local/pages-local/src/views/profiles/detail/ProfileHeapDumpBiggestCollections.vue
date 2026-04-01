@@ -396,19 +396,19 @@ onMounted(() => {
 }
 
 .detail-sep {
-  color: #adb5bd;
+  color: var(--color-text-light);
   user-select: none;
 }
 
 .owner-label {
-  color: #adb5bd;
+  color: var(--color-text-light);
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .field-tag {
-  color: #6f42c1;
+  color: var(--color-purple);
   font-style: italic;
 }
 
@@ -416,13 +416,13 @@ onMounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
   white-space: nowrap;
 }
 
 .package-name {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -436,7 +436,7 @@ onMounted(() => {
 
 .fill-bar {
   height: 5px;
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   border-radius: 3px;
   flex: 1;
   min-width: 40px;
@@ -448,30 +448,32 @@ onMounted(() => {
 }
 
 .capacity-hint {
-  color: #adb5bd;
+  color: var(--color-text-light);
 }
 
 .fill-pct {
   font-size: 0.7rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   min-width: 35px;
 }
 
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -490,9 +492,9 @@ onMounted(() => {
 }
 
 .filter-controls {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
   padding: 0.75rem 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
 }
 
 .font-monospace {
@@ -501,6 +503,6 @@ onMounted(() => {
 
 /* Darker warning color for better readability */
 .text-warning {
-  color: #b8860b !important;
+  color: var(--color-retained) !important;
 }
 </style>

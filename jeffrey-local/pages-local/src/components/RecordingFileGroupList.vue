@@ -185,13 +185,13 @@ const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
 
 .type-panel-chevron {
   font-size: 0.65rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   width: 16px;
   text-align: center;
 }
 
 .type-panel-body {
-  border-left: 1px solid #e9ecef;
+  border-left: 1px solid var(--card-border-color);
   margin-left: 32px;
   padding-left: 20px;
   padding-top: 6px;

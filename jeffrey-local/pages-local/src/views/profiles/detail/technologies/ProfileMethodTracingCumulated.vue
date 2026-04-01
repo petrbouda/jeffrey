@@ -69,25 +69,26 @@
       <!-- Cumulated Data Table -->
       <ChartSection :title="tableTitle" icon="list-ol" :full-width="true">
         <template #header-actions>
-          <div class="search-box">
-            <i class="bi bi-search search-icon"></i>
+          <div class="input-group search-container" style="width: 280px;">
+            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
             <input
               type="text"
-              class="search-input"
+              class="form-control search-input"
               :placeholder="mode === 'method' ? 'Filter by class or method...' : 'Filter by class...'"
               v-model="searchQuery"
             />
             <button
               v-if="searchQuery"
-              class="clear-btn"
+              class="btn btn-outline-secondary clear-btn"
+              type="button"
               @click="searchQuery = ''"
             >
-              <i class="bi bi-x"></i>
+              <i class="bi bi-x-lg"></i>
             </button>
           </div>
         </template>
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-sm table-hover mb-0">
             <thead>
               <tr>
                 <th>{{ mode === 'method' ? 'Method' : 'Class' }}</th>
@@ -123,7 +124,7 @@
                   {{ FormattingService.formatDuration2Units(item.maxDuration) }}
                 </td>
                 <td class="text-end">
-                  <span class="badge bg-primary">{{ item.percentOfTotal.toFixed(1) }}%</span>
+                  <Badge :value="item.percentOfTotal.toFixed(1) + '%'" variant="blue" size="xs" />
                 </td>
               </tr>
             </tbody>
@@ -139,6 +140,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
+import Badge from '@/components/Badge.vue';
 import MethodTracingOverviewStats from '@/components/method-tracing/MethodTracingOverviewStats.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
@@ -147,6 +149,7 @@ import TracingDisabledFeatureAlert from '@/components/alerts/TracingDisabledFeat
 import ChartSection from '@/components/ChartSection.vue';
 import FormattingService from '@/services/FormattingService';
 import ProfileMethodTracingClient from '@/services/api/ProfileMethodTracingClient';
+import '@/styles/shared-components.css';
 import type MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumulatedData';
 import type MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import type CumulatedStats from '@/services/api/model/CumulatedStats';
@@ -299,60 +302,6 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-.search-box {
-  display: flex;
-  align-items: center;
-  background: #f1f3f4;
-  border-radius: 8px;
-  padding: 0 12px;
-  height: 36px;
-  width: 280px;
-  transition: all 0.2s ease;
-}
-
-.search-box:focus-within {
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.search-icon {
-  color: #5f6368;
-  font-size: 0.9rem;
-  margin-right: 8px;
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 0.85rem;
-  color: #202124;
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: #5f6368;
-}
-
-.clear-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 50%;
-  color: #5f6368;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.clear-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #202124;
-}
-
 .method-cell {
   line-height: 1.4;
   max-width: 450px;
@@ -365,7 +314,7 @@ onMounted(() => {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -376,7 +325,7 @@ onMounted(() => {
   display: block;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -386,8 +335,8 @@ onMounted(() => {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: #6c757d;
-  border-bottom: 2px solid #dee2e6;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid var(--card-border-color);
   padding: 0.5rem 0.75rem;
 }
 

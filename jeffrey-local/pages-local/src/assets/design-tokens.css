@@ -29,7 +29,14 @@
   --color-info: #39afd1;
   --color-info-hover: #2e9bb8;
   --color-info-light: rgba(57, 175, 209, 0.1);
-  
+
+  /* Accent Colors */
+  --color-purple: #6f42c1;
+  --color-purple-light: rgba(111, 66, 193, 0.1);
+  --color-accent-blue: #0d6efd;
+  --color-accent-blue-light: rgba(13, 110, 253, 0.1);
+  --color-retained: #b8860b;
+
   /* Neutral Colors */
   --color-white: #ffffff;
   --color-light: #f9fafd;
@@ -153,15 +160,29 @@
   --badge-border-radius: var(--radius-sm);
   
   /* Form-specific tokens */
+  --input-height-sm: 32px;
+  --input-height-base: 38px;
   --input-bg: var(--color-white);
   --input-border-color: var(--color-border-input);
   --input-border-radius: var(--radius-sm);
   --input-padding-y: var(--spacing-2);
   --input-padding-x: var(--spacing-3);
   --input-font-size: var(--font-size-base);
+  --input-font-size-sm: 0.8rem;
   --input-placeholder-color: var(--color-text-light);
   --input-focus-border-color: var(--color-primary);
   --input-focus-shadow: var(--focus-ring);
+
+  /* Search-specific tokens */
+  --search-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --search-border-color: var(--card-border-color);
+
+  /* Toggle switch tokens */
+  --toggle-width: 40px;
+  --toggle-height: 22px;
+  --toggle-thumb-size: 18px;
+  --toggle-bg-off: var(--color-border);
+  --toggle-bg-on: var(--color-primary);
 }
 
 /* Utility classes using design tokens */

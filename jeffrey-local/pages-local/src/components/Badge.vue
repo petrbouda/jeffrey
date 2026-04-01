@@ -1,5 +1,5 @@
 <template>
-  <span class="badge" :class="[sizeClass, variantClass, keyValueClass, uppercaseClass, props.class]">
+  <span class="badge" :class="[sizeClass, variantClass, keyValueClass, uppercaseClass, { 'badge-borderless': borderless }, props.class]">
     <template v-if="isKeyValueMode">
       <i v-if="icon" :class="icon" class="badge-icon"></i>
       <span class="badge-key">{{ keyLabel }}:</span>
@@ -24,6 +24,7 @@ interface Props {
   icon?: string;
   class?: string;
   uppercase?: boolean;
+  borderless?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -197,6 +198,27 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
   border-color: #a1887f;
 }
 
+/* Status variants */
+.badge-status-active {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.badge-status-finished {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.badge-status-blocked {
+  background-color: var(--color-light);
+  color: var(--color-text-muted);
+}
+
+.badge-status-unknown {
+  background-color: var(--color-light);
+  color: var(--color-text-muted);
+}
+
 /* Badge variants - matching MetricsList styles */
 .badge-primary {
   background: #e2e7fd;
@@ -213,7 +235,7 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
 .badge-secondary {
   background: #e7eafd;
   border: 1px solid #9ba3d4;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .badge-success {
@@ -264,7 +286,7 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
   gap: 0.25rem;
   background-color: var(--color-light, #f8f9fa);
   border-radius: 0.25rem;
-  border: 1px solid var(--color-border-light, #dee2e6);
+  border: 1px solid var(--color-border-light, var(--card-border-color));
   text-transform: none;
   font-weight: 500;
   justify-content: flex-start;
@@ -385,6 +407,11 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
 .badge-xl .badge-icon {
   margin-right: 0.35rem;
   font-size: 0.9em;
+}
+
+/* Borderless override */
+.badge.badge-borderless {
+  border-color: transparent !important;
 }
 
 /* Uppercase override */

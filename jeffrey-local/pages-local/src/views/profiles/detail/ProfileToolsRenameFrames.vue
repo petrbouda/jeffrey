@@ -127,7 +127,7 @@
             <span class="fw-semibold small">Preview</span>
             <span class="text-muted small">— unique classes only</span>
           </div>
-          <span class="badge bg-primary">{{ previewResult.affectedFrames }} frames affected</span>
+          <Badge :value="previewResult.affectedFrames + ' frames affected'" variant="blue" size="xs" />
         </div>
 
         <div class="d-flex flex-column gap-2 mb-4">
@@ -146,6 +146,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import Badge from '@/components/Badge.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import ProfileToolsClient from '@/services/api/ProfileToolsClient'
 import type RenameFramesPreview from '@/services/api/model/RenameFramesPreview'
@@ -241,13 +242,13 @@ const handleApply = async () => {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 6px;
   background: #fff;
 }
 
 .sample-card:hover {
-  background: #f8f9fa;
+  background: var(--color-light);
 }
 
 .sample-original {
@@ -260,7 +261,7 @@ const handleApply = async () => {
 }
 
 .sample-arrow {
-  color: #9ca3af;
+  color: var(--color-text-light);
   flex-shrink: 0;
 }
 

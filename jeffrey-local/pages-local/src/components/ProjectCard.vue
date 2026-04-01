@@ -21,12 +21,8 @@
     <div class="footer-row">
       <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
       <div class="badges">
-        <span v-if="project.isBlocked" class="status-badge status-blocked">
-          Blocked
-        </span>
-        <span v-else-if="project.status" class="status-badge" :class="getStatusClass">
-          {{ formatStatus(project.status) }}
-        </span>
+        <Badge v-if="project.isBlocked" value="Blocked" variant="status-blocked" size="xs" />
+        <Badge v-else-if="project.status" :value="formatStatus(project.status)" :variant="getStatusVariant" size="xs" />
       </div>
     </div>
   </div>
@@ -37,6 +33,8 @@ import {computed, defineProps} from 'vue';
 import Project from "@/services/api/model/Project.ts";
 import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
 import {useNavigation} from '@/composables/useNavigation';
+import Badge from '@/components/Badge.vue';
+import type { Variant } from '@/types/ui';
 
 const props = defineProps<{
   project: Project;
@@ -70,10 +68,10 @@ const getCriticalWarningTooltip = computed(() => {
   return '';
 });
 
-// Status badge class
-const getStatusClass = computed(() => {
-  if (!props.project.status) return '';
-  return `status-${props.project.status.toLowerCase()}`;
+// Status badge variant
+const getStatusVariant = computed((): Variant => {
+  if (!props.project.status) return 'status-unknown';
+  return `status-${props.project.status.toLowerCase()}` as Variant;
 });
 
 const formatDate = (timestamp: number): string => {
@@ -104,7 +102,7 @@ const formatStatus = (status: RecordingStatus): string => {
   background: #ffffff;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  border-left: 3px solid #5e64ff;
+  border-left: 3px solid var(--color-primary);
   padding: 12px 14px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -123,11 +121,11 @@ const formatStatus = (status: RecordingStatus): string => {
 
 /* Border Color Classes */
 .border-default {
-  border-left-color: #5e64ff;
+  border-left-color: var(--color-primary);
 }
 
 .border-blocked {
-  border-left-color: #9ca3af;
+  border-left-color: var(--color-text-light);
   opacity: 0.65;
 }
 
@@ -143,7 +141,7 @@ const formatStatus = (status: RecordingStatus): string => {
 .project-name {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #1f2937;
+  color: var(--color-dark);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -168,7 +166,7 @@ const formatStatus = (status: RecordingStatus): string => {
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   flex-wrap: wrap;
 }
 
@@ -191,7 +189,7 @@ const formatStatus = (status: RecordingStatus): string => {
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .footer-row .date i {
@@ -204,37 +202,6 @@ const formatStatus = (status: RecordingStatus): string => {
   gap: 6px;
 }
 
-/* Status Badge */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-badge.status-active {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.status-badge.status-finished {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.status-badge.status-unknown {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.status-badge.status-blocked {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
 /* Alert Badge */
 .alert-badge {
   display: inline-flex;
@@ -245,7 +212,7 @@ const formatStatus = (status: RecordingStatus): string => {
   font-size: 0.65rem;
   font-weight: 600;
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 .alert-badge i {

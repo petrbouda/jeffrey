@@ -17,9 +17,10 @@
  -->
 
 <template>
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
+  <EmptyState v-if="jobs.length === 0" icon="bi-calendar-check" title="No jobs configured" />
+  <div v-else class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead>
         <tr>
           <th scope="col" style="width: 30%">Job Type</th>
           <th scope="col" style="width: 60%">Parameters</th>
@@ -40,7 +41,7 @@
                 <div>
                   <div class="fw-medium">
                     {{ getJobDisplayInfo(job)?.title }}
-                    <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
+                    <Badge v-if="!job.enabled" value="Disabled" variant="orange" size="xs" class="ms-2" />
                   </div>
                 </div>
               </template>
@@ -51,7 +52,7 @@
                 <div>
                   <div class="fw-medium">
                     {{ job.jobType }}
-                    <span v-if="!job.enabled" class="badge bg-warning text-dark ms-2 small">Disabled</span>
+                    <Badge v-if="!job.enabled" value="Disabled" variant="orange" size="xs" class="ms-2" />
                   </div>
                 </div>
               </template>
@@ -91,6 +92,8 @@
 </template>
 
 <script setup lang="ts">
+import Badge from '@/components/Badge.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import JobInfo from '@/services/api/model/JobInfo';
 import '@/styles/shared-components.css';
 

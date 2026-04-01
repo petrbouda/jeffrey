@@ -218,7 +218,7 @@ const navigateTo = (tech: TechnologyCard) => {
 }
 
 .card-accent.color-http {
-  background: linear-gradient(90deg, #5e64ff, #818cf8);
+  background: linear-gradient(90deg, var(--color-primary), #818cf8);
 }
 
 .card-accent.color-grpc {
@@ -386,7 +386,7 @@ const navigateTo = (tech: TechnologyCard) => {
   background: rgba(0, 0, 0, 0.05);
   padding: 1px 5px;
   border-radius: 3px;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .info-strip-actions {

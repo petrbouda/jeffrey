@@ -43,23 +43,23 @@ const sortIcon = computed(() => {
 .sortable-header {
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.15s ease;
-  background-color: #fafbfc;
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.75rem;
+  transition: background-color var(--transition-fast);
+  background-color: var(--table-header-bg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--table-header-color);
+  font-size: var(--font-size-sm);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  padding: var(--table-header-padding);
+  border-bottom: 1px solid var(--table-border-color);
 }
 
 .sortable-header:hover {
-  background-color: #f0f0f0;
+  background-color: var(--color-bg-hover-alt);
 }
 
 .sortable-header.active {
-  color: #6f42c1;
+  color: var(--color-primary);
 }
 
 .header-content {

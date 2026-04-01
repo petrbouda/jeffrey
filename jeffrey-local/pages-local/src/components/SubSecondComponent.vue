@@ -345,7 +345,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 }
 
 #preloaderComponent .spinner-border {
-  color: #5e64ff;
+  color: var(--color-primary);
   width: 2rem;
   height: 2rem;
 }

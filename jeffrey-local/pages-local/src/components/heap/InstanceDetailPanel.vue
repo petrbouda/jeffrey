@@ -126,7 +126,7 @@
             </h6>
           </div>
           <div class="table-container" v-if="instance.fields.length > 0">
-            <table class="table table-sm">
+            <table class="table table-sm table-hover mb-0">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -171,7 +171,7 @@
             </h6>
           </div>
           <div class="table-container">
-            <table class="table table-sm">
+            <table class="table table-sm table-hover mb-0">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -424,20 +424,20 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--card-border-color);
+  background-color: var(--color-light);
 }
 
 .header-title {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .btn-icon {
   background: none;
   border: none;
-  color: #6c757d;
+  color: var(--color-text-muted);
   padding: 0.375rem;
   cursor: pointer;
   border-radius: 4px;
@@ -445,8 +445,8 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .btn-icon:hover {
-  background-color: #e9ecef;
-  color: #212529;
+  background-color: var(--card-border-color);
+  color: var(--color-dark);
 }
 
 .instance-breadcrumb {
@@ -480,7 +480,7 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .instance-breadcrumb .breadcrumb-item a {
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
 }
 
 .instance-breadcrumb .breadcrumb-item a:hover {
@@ -499,11 +499,11 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .error-state {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .panel-body {
@@ -513,8 +513,8 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 
 .instance-info {
   padding: 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .info-row {
@@ -526,13 +526,13 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 
 .info-row .label {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   min-width: 90px;
 }
 
 .info-row .value {
   font-size: 0.8rem;
-  color: #212529;
+  color: var(--color-dark);
 }
 
 .info-row-class {
@@ -547,20 +547,20 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 .class-simple-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   word-break: break-all;
 }
 
 .class-package-name {
   font-size: 0.75rem;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 .info-row .value.monospace {
 }
 
 .value-section {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .value-section .section-header {
@@ -579,12 +579,12 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 
 .value-content {
   padding: 0.75rem 1rem;
-  background-color: #fafbfc;
+  background-color: var(--color-light);
 }
 
 .value-text {
   font-size: 0.75rem;
-  color: #212529;
+  color: var(--color-dark);
   background: transparent;
   word-break: break-all;
   white-space: pre-wrap;
@@ -605,22 +605,22 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 
 .fields-section,
 .static-fields-section {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .section-header {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .section-header h6 {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .table-container {
@@ -637,10 +637,10 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #6c757d;
-  background-color: #fafbfc;
+  color: var(--color-text-muted);
+  background-color: var(--color-light);
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
   position: sticky;
   top: 0;
 }
@@ -653,7 +653,7 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .field-name-cell {
-  color: #495057;
+  color: var(--color-text);
 }
 
 .field-type-line {
@@ -674,17 +674,17 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 .field-object-id {
   font-size: 0.7rem;
   font-family: monospace;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 .field-identity-sep {
-  color: #adb5bd;
+  color: var(--color-text-light);
   font-size: 0.85rem;
 }
 
 .field-name {
   font-size: 0.75rem;
-  color: #6f42c1;
+  color: var(--color-purple);
   font-style: italic;
   white-space: nowrap;
 }
@@ -693,13 +693,13 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
   font-size: 0.75rem;
   font-weight: 600;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
   white-space: nowrap;
 }
 
 .field-type-package {
   font-size: 0.75rem;
-  color: #868e96;
+  color: var(--color-text-muted);
 }
 
 .field-value-inline {
@@ -708,15 +708,15 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .primitive-value {
-  color: #212529;
+  color: var(--color-dark);
 }
 
 .reference-value {
-  color: #495057;
+  color: var(--color-text);
 }
 
 .null-value {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 
@@ -731,20 +731,20 @@ watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => 
 }
 
 .nav-icon-link {
-  color: #6c757d;
+  color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.7rem;
   transition: color 0.2s ease;
 }
 
 .nav-icon-link:hover {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .empty-section {
   padding: 1rem;
   text-align: center;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 </style>

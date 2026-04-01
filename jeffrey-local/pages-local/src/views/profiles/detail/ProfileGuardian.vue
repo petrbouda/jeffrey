@@ -595,9 +595,10 @@ function scrollToTop() {
 <style scoped>
 /* Summary Card */
 .summary-card {
-  background: #fff;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -608,7 +609,7 @@ function scrollToTop() {
 .section-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--color-text);
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -627,7 +628,7 @@ function scrollToTop() {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #9ca3af;
+  color: var(--color-text-light);
   gap: 0.5rem;
 }
 
@@ -663,15 +664,15 @@ function scrollToTop() {
 .legend-label {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   flex: 1;
 }
 
 .legend-value {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1f2937;
-  background: #f3f4f6;
+  color: var(--color-dark);
+  background: var(--color-light);
   padding: 0.15rem 0.5rem;
   border-radius: 0.25rem;
   min-width: 24px;
@@ -680,7 +681,7 @@ function scrollToTop() {
 
 .no-results-msg {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-style: italic;
 }
 
@@ -700,12 +701,12 @@ function scrollToTop() {
 .prereq-item {
   padding: 0.6rem 0.75rem;
   border-radius: 0.5rem;
-  background: #f9fafb;
+  background: var(--color-light);
   border-left: 3px solid;
 }
 
 .prereq-item.prereq-ok {
-  border-left-color: #28a745;
+  border-left-color: var(--color-success);
   background: linear-gradient(135deg, #f0fdf4, #f9fafb);
 }
 
@@ -727,19 +728,19 @@ function scrollToTop() {
 .prereq-name {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .prereq-value {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 0.25rem;
   padding-left: 1.35rem;
 }
 
 .no-prereq-msg {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-style: italic;
 }
 
@@ -777,7 +778,7 @@ function scrollToTop() {
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.8rem;
 }
 
@@ -810,7 +811,7 @@ function scrollToTop() {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 /* Header columns should inherit header font styles */
@@ -833,11 +834,11 @@ function scrollToTop() {
 }
 
 .table-row:hover {
-  background-color: #f9fafb;
+  background-color: var(--color-light);
 }
 
 .table-row.severity-warning {
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid var(--color-danger);
 }
 
 .table-row.severity-info {
@@ -845,7 +846,7 @@ function scrollToTop() {
 }
 
 .table-row.severity-ok {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--color-success);
 }
 
 .table-row.severity-na,
@@ -893,7 +894,7 @@ function scrollToTop() {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--color-text);
   background: #e5e7eb;
   padding: 0.2rem 0.5rem;
   border-radius: 0.25rem;
@@ -906,7 +907,7 @@ function scrollToTop() {
 .col-rule {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -928,11 +929,11 @@ function scrollToTop() {
 .score-text {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .no-score {
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.75rem;
 }
 
@@ -982,13 +983,13 @@ function scrollToTop() {
 
 .expand-icon {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   transition: transform 0.2s ease;
 }
 
 /* Row Details */
 .row-details {
-  background: #f9fafb;
+  background: var(--color-light);
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -1010,12 +1011,12 @@ function scrollToTop() {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .detail-text {
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--color-text);
   line-height: 1.5;
   margin: 0;
 }
@@ -1024,7 +1025,7 @@ function scrollToTop() {
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .empty-state i {
@@ -1035,7 +1036,7 @@ function scrollToTop() {
 
 .empty-state h6 {
   margin-bottom: 0.5rem;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .empty-state p {

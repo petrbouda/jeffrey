@@ -557,7 +557,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 :deep(.profile-selection-modal .modal-header .bi-layers-half),
 :deep(.profile-selection-modal .modal-header .bi-layers) {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 1.3rem;
 }
 
@@ -575,7 +575,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
    ============================================================ */
 .search-wrapper {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
   border-bottom: 1px solid rgba(94, 100, 255, 0.06);
 }
 
@@ -588,13 +588,13 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   left: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-text-light);
   z-index: 1;
   transition: color 0.2s ease;
 }
 
 .search-box:focus-within .search-icon {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .search-box input {
@@ -632,7 +632,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   height: 40px;
   border-radius: 50%;
   border: 3px solid rgba(94, 100, 255, 0.12);
-  border-top-color: #5e64ff;
+  border-top-color: var(--color-primary);
   animation: spin 0.8s linear infinite;
 }
 
@@ -661,7 +661,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .empty-state p {
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.85rem;
 }
 
@@ -747,7 +747,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .tree-expand-icon {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   width: 14px;
   text-align: center;
   flex-shrink: 0;
@@ -757,7 +757,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 .tree-node-name {
   font-weight: 600;
   font-size: 0.88rem;
-  color: #374151;
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -767,7 +767,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .tree-node-count {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   flex-shrink: 0;
 }
 
@@ -775,7 +775,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #5e64ff;
+  background: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.2);
   flex-shrink: 0;
 }
@@ -823,11 +823,11 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .tree-child.active {
   background: rgba(94, 100, 255, 0.06);
-  border-left-color: #5e64ff;
+  border-left-color: var(--color-primary);
 }
 
 .tree-child.active .tree-child-name {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -843,7 +843,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 
 .tree-child-count {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   flex-shrink: 0;
 }
 
@@ -921,7 +921,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .profile-card.selected {
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
   box-shadow: 0 4px 12px rgba(94, 100, 255, 0.15);
 }
@@ -941,7 +941,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .profile-card.selected .profile-card-indicator {
-  color: #5e64ff;
+  color: var(--color-primary);
 }
 
 .profile-card-body {
@@ -952,7 +952,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 .profile-card-name {
   font-weight: 600;
   font-size: 0.92rem;
-  color: #374151;
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -964,7 +964,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
   gap: 0.5rem;
   margin-top: 0.25rem;
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   flex-wrap: wrap;
 }
 
@@ -1010,12 +1010,12 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .chip-icon {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 0.8rem;
 }
 
 .no-selection {
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-style: italic;
   font-size: 0.82rem;
 }
@@ -1038,14 +1038,14 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .btn-cancel {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  background: linear-gradient(135deg, var(--color-light), var(--color-border));
   border: 1px solid rgba(108, 117, 125, 0.2);
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .btn-cancel:hover {
-  background: linear-gradient(135deg, #e9ecef, #dee2e6);
-  color: #495057;
+  background: linear-gradient(135deg, var(--card-border-color), var(--card-border-color));
+  color: var(--color-text);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -1060,7 +1060,7 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 .btn-select-profile {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   border: none;
   color: #ffffff;
   font-weight: 600;

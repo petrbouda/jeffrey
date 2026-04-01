@@ -1110,8 +1110,8 @@ defineExpose({
 }
 
 .reset-zoom-btn {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 4px;
   color: #666;
   cursor: pointer;
@@ -1126,13 +1126,13 @@ defineExpose({
 }
 
 .reset-zoom-btn:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
-  color: #495057;
+  background: var(--card-border-color);
+  border-color: var(--color-text-light);
+  color: var(--color-text);
 }
 
 .reset-zoom-btn:active {
-  background: #dee2e6;
+  background: var(--card-border-color);
   transform: translateY(1px);
 }
 

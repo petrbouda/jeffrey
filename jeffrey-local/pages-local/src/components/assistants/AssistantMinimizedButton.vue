@@ -223,7 +223,7 @@ const progressRingStyle = computed(() => {
 }
 
 .badge-danger {
-  background: #dc2626;
+  background: var(--color-danger-hover);
   color: white;
 }
 

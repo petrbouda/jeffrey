@@ -42,6 +42,8 @@
 
         <!-- Status Codes and Methods Distribution -->
         <HttpDistributionCharts
+            title="HTTP Distribution"
+            icon="pie-chart"
             :status-codes="httpOverviewData?.statusCodes || []"
             :methods="httpOverviewData?.methods || []"
             :total-requests="httpOverviewData?.header.requestCount || 0"/>

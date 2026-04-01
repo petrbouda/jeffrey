@@ -413,24 +413,25 @@ onMounted(() => {
 
 /* Card Container */
 .data-table-card {
-  background: #fff;
+  background: var(--card-bg);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
-  border: 1px solid #e9ecef;
+  box-shadow: var(--card-shadow);
+  border-radius: var(--card-border-radius);
+  transition: all var(--transition-base);
+  border: 1px solid var(--card-border-color);
   border-left: 3px solid #4285f4;
 }
 
 .data-table-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .data-table-card .chart-card-header {
   display: flex;
   align-items: center;
   padding: 0.6rem 1rem;
-  background-color: #fafbfc;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .data-table-card .chart-card-header h5 {
@@ -481,7 +482,7 @@ onMounted(() => {
 .thread-name {
   font-weight: 500;
   font-size: 0.8rem;
-  color: #2c3e50;
+  color: var(--color-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -506,24 +507,24 @@ onMounted(() => {
 }
 
 .allocation-badge {
-  background-color: rgba(234, 67, 53, 0.08);
-  color: #dc3545;
+  background-color: rgba(230, 55, 87, 0.08);
+  color: var(--color-danger);
 }
 
 .cpu-badge {
-  background-color: rgba(234, 67, 53, 0.08);
-  color: #dc3545;
+  background-color: rgba(230, 55, 87, 0.08);
+  color: var(--color-danger);
   min-width: 55px;
   text-align: center;
 }
 
 .timestamp-badge {
   padding: 0.15rem 0.5rem;
-  background-color: #f7f9fc;
-  border: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border: 1px solid var(--card-border-color);
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.65rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -536,7 +537,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--card-border-color);
   background-color: white;
   color: #4285f4;
   font-size: 0.8rem;
@@ -567,7 +568,7 @@ onMounted(() => {
 }
 
 .cpu-section:not(:last-child) {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .section-header {
@@ -575,8 +576,8 @@ onMounted(() => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.45rem 1rem;
-  background-color: #f7f9fc;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-light);
+  border-bottom: 1px solid var(--card-border-color);
   font-weight: 600;
   font-size: 0.75rem;
   color: #555;
@@ -603,14 +604,14 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 1.5rem 1rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   gap: 0.4rem;
 }
 
 .empty-message i {
   font-size: 1.5rem;
-  color: #dee2e6;
+  color: var(--card-border-color);
 }
 
 /* Responsive Adjustments */

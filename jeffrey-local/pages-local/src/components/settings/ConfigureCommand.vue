@@ -86,7 +86,7 @@ const clearCommand = () => {
 .command-label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -99,7 +99,7 @@ const clearCommand = () => {
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   border-radius: 2px;
 }
 
@@ -112,7 +112,7 @@ const clearCommand = () => {
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   background: #ffffff;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #374151;
+  color: var(--color-text);
   resize: vertical;
 }
 
@@ -125,7 +125,7 @@ const clearCommand = () => {
 
 .command-help {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 6px;
   font-style: italic;
 }
@@ -153,11 +153,11 @@ const clearCommand = () => {
 .btn-clear-command {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 .btn-clear-command:hover:not(:disabled) {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
@@ -169,7 +169,7 @@ const clearCommand = () => {
 }
 
 .btn-next-step {
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   color: white;
 }
 

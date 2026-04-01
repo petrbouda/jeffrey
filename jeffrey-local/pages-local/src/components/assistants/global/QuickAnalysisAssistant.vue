@@ -206,13 +206,7 @@ const isDragOver = ref(false);
 
 // Formatting
 const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
-const formatRelativeTime = (dateString: string) => {
-  // Backend sends UTC timestamps without 'Z' suffix (e.g. "2025-02-06 14:30"),
-  // so append 'Z' to ensure the browser parses them as UTC, not local time.
-  const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-  const timestamp = new Date(utcString).getTime();
-  return FormattingService.formatRelativeTime(timestamp);
-};
+const formatRelativeTime = (timestamp: number) => FormattingService.formatRelativeTime(timestamp);
 
 // Helper to determine if a profile is a heap dump based on event source
 const isHeapDumpRecording = (recording: QuickRecording): boolean => {
@@ -345,12 +339,12 @@ const handleButtonClick = () => {
 .dropzone-text {
   font-size: 1rem;
   font-weight: 500;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .dropzone-subtext {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .file-icon {
@@ -361,14 +355,14 @@ const handleButtonClick = () => {
 .file-name {
   font-weight: 600;
   font-size: 1rem;
-  color: #495057;
+  color: var(--color-text);
   word-break: break-all;
   text-align: center;
 }
 
 .file-size {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .btn-start {
@@ -429,7 +423,7 @@ const handleButtonClick = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .processing-file .file-name {
@@ -439,7 +433,7 @@ const handleButtonClick = () => {
 
 .processing-status {
   font-size: 0.9rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 /* Error Message */
@@ -455,7 +449,7 @@ const handleButtonClick = () => {
 /* Dropzone Note */
 .dropzone-note {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--color-text-light);
   margin-top: 4px;
 }
 
@@ -477,7 +471,7 @@ const handleButtonClick = () => {
 .recent-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .recent-count {
@@ -502,16 +496,16 @@ const handleButtonClick = () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .recent-item:hover {
-  background: #e9ecef;
-  border-color: #dee2e6;
+  background: var(--card-border-color);
+  border-color: var(--card-border-color);
 }
 
 .item-info {
@@ -536,7 +530,7 @@ const handleButtonClick = () => {
 .item-name {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #495057;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -544,7 +538,7 @@ const handleButtonClick = () => {
 
 .item-meta {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .meta-divider {
@@ -566,7 +560,7 @@ const handleButtonClick = () => {
 .btn-delete {
   background: transparent;
   border: none;
-  color: #6c757d;
+  color: var(--color-text-muted);
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -584,8 +578,8 @@ const handleButtonClick = () => {
 }
 
 .btn-delete:hover {
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
+  background: rgba(230, 55, 87, 0.1);
+  color: var(--color-danger);
 }
 
 /* Empty State */
@@ -596,7 +590,7 @@ const handleButtonClick = () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #adb5bd;
+  color: var(--color-text-light);
   padding: 20px;
 }
 

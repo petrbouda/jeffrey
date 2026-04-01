@@ -40,34 +40,35 @@
 
       <!-- Single Service Dashboard content -->
       <div v-if="selectedServiceForDetail && serviceDetailData" class="dashboard-container">
+        <StatsTable :metrics="serviceMetricsData" class="mb-4"/>
+
         <ChartSectionWithTabs
             :tabs="serviceTabs"
             :full-width="true"
             id-prefix="grpc-service-"
         >
-          <template #stats>
-            <StatsTable :metrics="serviceMetricsData"/>
-            <GrpcMethodList
-                :methods="serviceDetailData.methods || []"/>
-          </template>
-
           <template #timeseries>
-            <GrpcTimeseries
-                :response-time-data="serviceDetailData.responseTimeSerie.data"
-                :call-count-data="serviceDetailData.callCountSerie.data"/>
+            <TimeSeriesChart
+                :primary-data="serviceDetailData.responseTimeSerie.data"
+                primary-title="Response Time"
+                :secondary-data="serviceDetailData.callCountSerie.data"
+                secondary-title="Call Count"
+                :visible-minutes="60"
+                :independentSecondaryAxis="true"
+                :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+                :secondary-axis-type="AxisFormatType.NUMBER"
+            />
           </template>
 
           <template #distribution>
-            <div class="distribution-container">
-              <PieChart
-                  title="Status Code Distribution"
-                  icon="pie-chart"
-                  :data="serviceStatusCodeData"
-                  :total="serviceDetailData.header.callCount || 0"
-                  :color-mapping="statusCodeColorMapping"
-                  :value-formatter="(val: number) => val + ' calls'"
-              />
-            </div>
+            <DualPanel left-title="Status Code Distribution" embedded>
+              <template #left>
+                <DonutWithLegend
+                    :data="statusCodeChartData"
+                    :tooltip-formatter="(val: number) => val + ' calls'"
+                />
+              </template>
+            </DualPanel>
           </template>
 
           <template #slowest>
@@ -102,11 +103,14 @@ import {useRoute, useRouter} from 'vue-router';
 import GrpcOverviewStats from '@/components/grpc/GrpcOverviewStats.vue';
 import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import StatsTable from '@/components/StatsTable.vue';
-import GrpcTimeseries from '@/components/grpc/GrpcTimeseries.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import GrpcServiceList from '@/components/grpc/GrpcServiceList.vue';
-import GrpcMethodList from '@/components/grpc/GrpcMethodList.vue';
+
 import GrpcSlowestCalls from '@/components/grpc/GrpcSlowestCalls.vue';
-import PieChart from '@/components/PieChart.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
 import type {GrpcOverviewData, GrpcServiceDetailData} from '@/services/api/ProfileGrpcClient';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
@@ -128,7 +132,6 @@ const router = useRouter();
 
 // Tab definitions for service detail view
 const serviceTabs = [
-  {id: 'stats', label: 'Overview', icon: 'grid-3x3-gap'},
   {id: 'timeseries', label: 'Timeseries', icon: 'graph-up'},
   {id: 'distribution', label: 'Distribution', icon: 'pie-chart'},
   {id: 'slowest', label: 'Slowest Calls', icon: 'clock-history'}
@@ -231,42 +234,33 @@ const slowestCalls = computed(() => {
   return [...serviceDetailData.value.slowCalls].sort((a, b) => b.responseTime - a.responseTime);
 });
 
-// Status code distribution data for the selected service
-const serviceStatusCodeData = computed(() =>
-    (serviceDetailData.value?.statusCodes || []).map(status => ({
-      label: status.status,
-      value: status.count
-    }))
-);
-
 // Status code color mapping
-const statusCodeColorMapping = (label: string): string => {
-  switch (label) {
-    case 'OK':
-      return '#5cb85c';
-    case 'CANCELLED':
-      return '#f0ad4e';
-    case 'INVALID_ARGUMENT':
-    case 'NOT_FOUND':
-    case 'ALREADY_EXISTS':
-    case 'PERMISSION_DENIED':
-    case 'FAILED_PRECONDITION':
-    case 'OUT_OF_RANGE':
-    case 'UNAUTHENTICATED':
-      return '#f0ad4e';
-    case 'UNKNOWN':
-    case 'DEADLINE_EXCEEDED':
-    case 'RESOURCE_EXHAUSTED':
-    case 'ABORTED':
-    case 'UNIMPLEMENTED':
-    case 'INTERNAL':
-    case 'UNAVAILABLE':
-    case 'DATA_LOSS':
-      return '#d9534f';
-    default:
-      return '#6c757d';
+const grpcStatusColor = (status: string): string => {
+  switch (status) {
+    case 'OK': return '#5cb85c';
+    case 'CANCELLED': case 'INVALID_ARGUMENT': case 'NOT_FOUND': case 'ALREADY_EXISTS':
+    case 'PERMISSION_DENIED': case 'FAILED_PRECONDITION': case 'OUT_OF_RANGE':
+    case 'UNAUTHENTICATED': return '#f0ad4e';
+    case 'UNKNOWN': case 'DEADLINE_EXCEEDED': case 'RESOURCE_EXHAUSTED': case 'ABORTED':
+    case 'UNIMPLEMENTED': case 'INTERNAL': case 'UNAVAILABLE': case 'DATA_LOSS': return '#d9534f';
+    default: return '#6c757d';
   }
 };
+
+const statusCodeChartData = computed<DonutChartData>(() => {
+  const codes = serviceDetailData.value?.statusCodes || [];
+  return {
+    series: codes.map(s => s.count),
+    labels: codes.map(s => s.status),
+    colors: codes.map(s => grpcStatusColor(s.status)),
+    totalValue: FormattingService.formatNumber(serviceDetailData.value?.header.callCount || 0),
+    legendItems: codes.map(s => ({
+      color: grpcStatusColor(s.status),
+      label: s.status,
+      value: FormattingService.formatNumber(s.count)
+    }))
+  };
+});
 
 // Service selection methods
 const selectServiceForDetail = (service: string) => {
@@ -348,7 +342,7 @@ watch(() => route.query.service, (newService) => {
 }
 
 .service-icon {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 1rem;
   opacity: 0.7;
   align-self: center;
@@ -356,7 +350,7 @@ watch(() => route.query.service, (newService) => {
 }
 
 .service-package {
-  color: #64748b;
+  color: var(--color-text-muted);
   font-weight: 400;
   font-size: 0.95rem;
   font-style: italic;
@@ -371,12 +365,6 @@ watch(() => route.query.service, (newService) => {
 .service-back-button {
   flex-shrink: 0;
   white-space: nowrap;
-}
-
-.distribution-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 1.5rem;
 }
 
 @media (max-width: 768px) {
@@ -394,10 +382,6 @@ watch(() => route.query.service, (newService) => {
   .service-back-button {
     align-self: flex-start;
     order: -1;
-  }
-
-  .distribution-container {
-    grid-template-columns: 1fr;
   }
 }
 </style>

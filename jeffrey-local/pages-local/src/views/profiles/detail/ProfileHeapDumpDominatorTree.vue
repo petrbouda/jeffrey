@@ -30,7 +30,8 @@
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
     <!-- Data Table -->
-    <div class="table-card">
+    <EmptyState v-if="treeData.length === 0" icon="bi-diagram-3" title="No dominator tree data available" />
+    <div v-else class="table-card">
       <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
           <thead>
@@ -154,6 +155,7 @@ import StatsTable from '@/components/StatsTable.vue';
 import HeapDumpNotInitialized from '@/components/HeapDumpNotInitialized.vue';
 import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import type DominatorTreeResponse from '@/services/api/model/DominatorTreeResponse';
 import type { DominatorNode } from '@/services/api/model/DominatorTreeResponse';
@@ -475,32 +477,32 @@ onMounted(() => {
 }
 
 .detail-separator {
-  color: #adb5bd;
+  color: var(--color-text-light);
   user-select: none;
 }
 
 .field-name {
   font-size: 0.8rem;
-  color: #6f42c1;
+  color: var(--color-purple);
   font-style: italic;
   white-space: nowrap;
 }
 
 .object-id-text {
   font-family: monospace;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .object-params-text {
   font-family: monospace;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .gc-root-badge {
   display: inline-block;
   font-size: 0.65rem;
   font-weight: 600;
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   background-color: rgba(13, 110, 253, 0.1);
   border: 1px solid rgba(13, 110, 253, 0.25);
   border-radius: 3px;
@@ -513,33 +515,35 @@ onMounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   background-color: transparent;
-  color: #495057;
+  color: var(--color-text);
   white-space: nowrap;
 }
 
 .package-name {
   font-size: 0.8rem;
-  color: #868e96;
+  color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .table-card {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .table thead th {
-  background-color: #fafbfc;
+  background-color: var(--color-light);
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   padding: 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .table td {
@@ -566,7 +570,7 @@ onMounted(() => {
   padding: 0;
   border: none;
   background: transparent;
-  color: #6c757d;
+  color: var(--color-text-muted);
   border-radius: 3px;
   flex-shrink: 0;
   transition: all 0.15s ease;
@@ -574,7 +578,7 @@ onMounted(() => {
 
 .btn-expand:hover:not(:disabled) {
   background-color: rgba(111, 66, 193, 0.1);
-  color: #6f42c1;
+  color: var(--color-purple);
 }
 
 .btn-expand:disabled {
@@ -604,7 +608,7 @@ onMounted(() => {
   align-items: center;
   border: none;
   background: transparent;
-  color: #6f42c1;
+  color: var(--color-purple);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.2rem 0.5rem;
@@ -622,7 +626,7 @@ onMounted(() => {
 }
 
 .progress {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .progress-bar {
@@ -635,6 +639,6 @@ onMounted(() => {
 
 /* Darker warning color for better readability */
 .text-warning {
-  color: #b8860b !important;
+  color: var(--color-retained) !important;
 }
 </style>

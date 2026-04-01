@@ -2,21 +2,27 @@
   <Badge
     :value="cleanedOperation"
     :variant="badgeVariant"
-    size="l"
+    :size="size"
+    :borderless="borderless"
   />
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import Badge from '@/components/Badge.vue';
-import type { Variant } from '@/types/ui';
+import type { Size, Variant } from '@/types/ui';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
 
 interface Props {
   operation: string;
+  size?: Size;
+  borderless?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  size: 'l',
+  borderless: false
+});
 
 const cleanedOperation = computed(() => JdbcUtils.cleanOperationName(props.operation));
 

@@ -1,52 +1,77 @@
 <template>
-  <ChartSection title="gRPC Services" icon="hdd-network" :full-width="true">
-    <MetricsList
-        :items="displayedServices"
-        :metrics="serviceMetrics"
-        :sort-options="sortOptions"
-        :default-sort="'maxResponseTime'"
-        :item-key="'service'"
-        title-key="service"
-        :loading="false"
-        loading-text="Loading services..."
-        empty-text="No gRPC services found"
-        :show-controls="true"
-        :show-metrics="true"
-        :show-subtitle="false"
-        :sortable="true"
-        :selectable="true"
-        @item-click="handleServiceClick"
-        @sort-change="onSortChange"
-    >
-      <template #controls-right>
-        <button
-            v-if="getAllServices().length > maxDisplayedServices"
-            @click="showAllServices = !showAllServices"
-            class="btn btn-sm btn-outline-secondary"
-        >
-          {{ showAllServices ? 'Show Less' : `Show All (${getAllServices().length})` }}
-        </button>
-      </template>
+  <div class="service-list">
+    <!-- Controls -->
+    <div class="service-controls">
+      <div class="sort-controls">
+        <label class="sort-label">Sort by:</label>
+        <div class="btn-group" role="group">
+          <button
+              v-for="option in sortOptions"
+              :key="option.key"
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              :class="{ active: currentSort === option.key }"
+              @click="onSortChange(option.key)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+      <button
+          v-if="services.length > maxDisplayedServices"
+          @click="showAllServices = !showAllServices"
+          class="btn btn-sm btn-outline-secondary"
+      >
+        {{ showAllServices ? 'Show Less' : `Show All (${services.length})` }}
+      </button>
+    </div>
 
-      <template #item-title="{ item }">
-        <div class="service-display" :title="item.service">
-          <i class="bi bi-hdd-network service-icon"></i>
-          <div class="service-text">
-            <span class="service-package">{{ getPackageName(item.service) }}</span>
-            <span class="service-name">{{ getSimpleName(item.service) }}</span>
+    <!-- Service Cards -->
+    <div class="service-cards">
+      <div
+          v-for="service in displayedServices"
+          :key="service.service"
+          class="svc-card"
+          @click="handleServiceClick(service)"
+      >
+        <!-- Left: Call Count Pill -->
+        <div class="svc-count-pill">
+          <span class="svc-count-num">{{ FormattingService.formatNumber(service.callCount) }}</span>
+          <span class="svc-count-label">calls</span>
+        </div>
+
+        <!-- Center: Service Name + Metrics -->
+        <div class="svc-main">
+          <div class="svc-name" :title="service.service">
+            <span class="svc-package">{{ getPackageName(service.service) }}</span>
+            <span class="svc-simple">{{ getSimpleName(service.service) }}</span>
+          </div>
+          <div class="svc-metrics">
+            <Badge key-label="Max" :value="FormattingService.formatDuration2Units(service.maxResponseTime)" variant="info" size="s" borderless />
+            <Badge key-label="P99" :value="FormattingService.formatDuration2Units(service.p99ResponseTime)" variant="info" size="s" borderless />
+            <Badge key-label="P95" :value="FormattingService.formatDuration2Units(service.p95ResponseTime)" variant="info" size="s" borderless />
+            <Badge v-if="service.avgRequestSize >= 0" key-label="Avg Req" :value="FormattingService.formatBytes(service.avgRequestSize)" variant="secondary" size="s" borderless />
+            <Badge v-if="service.avgResponseSize >= 0" key-label="Avg Resp" :value="FormattingService.formatBytes(service.avgResponseSize)" variant="secondary" size="s" borderless />
           </div>
         </div>
-      </template>
-    </MetricsList>
-  </ChartSection>
+
+        <!-- Right: Success Rate + Arrow -->
+        <div class="svc-right">
+          <div v-if="service.successRate < 1" class="svc-rate" :class="service.successRate < 0.95 ? 'rate-danger' : 'rate-warning'">
+            <span class="svc-rate-num">{{ ((service.successRate || 0) * 100).toFixed(1) }}%</span>
+            <span class="svc-rate-label">success</span>
+          </div>
+          <i class="bi bi-chevron-right svc-arrow"></i>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import {ref, computed} from 'vue';
 import FormattingService from '@/services/FormattingService';
-import MetricsList from '@/components/MetricsList.vue';
-import ChartSection from '@/components/ChartSection.vue';
-import type {MetricDefinition, SortOption} from '@/components/MetricsList.vue';
+import Badge from '@/components/Badge.vue';
 import type {GrpcServiceInfo} from '@/services/api/ProfileGrpcClient';
 
 interface Props {
@@ -62,7 +87,27 @@ const emit = defineEmits<{
   serviceClick: [service: string]
 }>();
 
-// Service name helpers
+const showAllServices = ref(false);
+const currentSort = ref('maxResponseTime');
+const maxDisplayedServices = 10;
+
+const sortOptions = [
+  {key: 'maxResponseTime', label: 'MAX', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.maxResponseTime - a.maxResponseTime},
+  {key: 'p95ResponseTime', label: 'P95', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.p95ResponseTime - a.p95ResponseTime},
+  {key: 'callCount', label: 'Calls', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.callCount - a.callCount},
+  {key: 'successRate', label: 'Success', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => a.successRate - b.successRate}
+];
+
+const sortedServices = computed(() => {
+  const option = sortOptions.find(o => o.key === currentSort.value);
+  if (!option) return props.services;
+  return [...props.services].sort(option.compare);
+});
+
+const displayedServices = computed(() => {
+  return showAllServices.value ? sortedServices.value : sortedServices.value.slice(0, maxDisplayedServices);
+});
+
 const getPackageName = (fullName: string): string => {
   const lastDot = fullName.lastIndexOf('.');
   return lastDot >= 0 ? fullName.substring(0, lastDot + 1) : '';
@@ -73,134 +118,181 @@ const getSimpleName = (fullName: string): string => {
   return lastDot >= 0 ? fullName.substring(lastDot + 1) : fullName;
 };
 
-// Reactive state
-const showAllServices = ref(false);
-const currentSort = ref('maxResponseTime');
-const maxDisplayedServices = 10;
-
-// Metrics configuration
-const serviceMetrics: MetricDefinition[] = [
-  {
-    key: 'callCount',
-    label: 'Calls',
-    type: 'number',
-    class: 'metric-primary'
-  },
-  {
-    key: 'maxResponseTime',
-    label: 'Max',
-    formatter: (value: number) => FormattingService.formatDuration2Units(value),
-    class: 'metric-info'
-  },
-  {
-    key: 'p99ResponseTime',
-    label: 'P99',
-    formatter: (value: number) => FormattingService.formatDuration2Units(value),
-    class: 'metric-info'
-  },
-  {
-    key: 'p95ResponseTime',
-    label: 'P95',
-    formatter: (value: number) => FormattingService.formatDuration2Units(value),
-    class: 'metric-info'
-  },
-  {
-    key: 'successRate',
-    label: 'Success',
-    formatter: (value: number) => `${((value || 0) * 100).toFixed(1)}%`,
-    class: (value: number) => (value || 0) >= 1 ? 'metric-success' : 'metric-warning'
-  },
-  {
-    key: 'avgRequestSize',
-    label: 'Avg Req',
-    formatter: (value: number) => value < 0 ? '?' : FormattingService.formatBytes(value),
-    class: 'metric-secondary'
-  },
-  {
-    key: 'avgResponseSize',
-    label: 'Avg Resp',
-    formatter: (value: number) => value < 0 ? '?' : FormattingService.formatBytes(value),
-    class: 'metric-secondary'
-  }
-];
-
-// Sort options
-const sortOptions: SortOption[] = [
-  {
-    key: 'maxResponseTime',
-    label: 'MAX',
-    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.maxResponseTime - a.maxResponseTime
-  },
-  {
-    key: 'p95ResponseTime',
-    label: 'P95',
-    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.p95ResponseTime - a.p95ResponseTime
-  },
-  {
-    key: 'callCount',
-    label: 'Calls',
-    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.callCount - a.callCount
-  },
-  {
-    key: 'successRate',
-    label: 'Success',
-    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => a.successRate - b.successRate
-  }
-];
-
-// Helper functions
-const getAllServices = () => {
-  return props.services || [];
-};
-
-const displayedServices = computed(() => {
-  const allServices = getAllServices();
-  return showAllServices.value ? allServices : allServices.slice(0, maxDisplayedServices);
-});
-
 const handleServiceClick = (service: GrpcServiceInfo) => {
   emit('serviceClick', service.service);
 };
 
-const onSortChange = (sortKey: string) => {
-  currentSort.value = sortKey;
+const onSortChange = (key: string) => {
+  currentSort.value = key;
 };
 </script>
 
 <style scoped>
-/* Service Display styling */
-.service-display {
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  padding: 0.45rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+.service-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
 }
 
-.service-icon {
-  color: #5e64ff;
-  font-size: 0.85rem;
-  opacity: 0.7;
-}
-
-.service-text {
+.sort-controls {
   display: flex;
-  align-items: baseline;
-  gap: 1px;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.service-package {
-  color: #64748b;
-  font-weight: 400;
-  font-size: 0.82rem;
-  font-style: italic;
+.sort-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
-.service-name {
-  color: #1e293b;
+.service-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.svc-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.svc-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.1);
+}
+
+/* Left: Count Pill */
+.svc-count-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.svc-count-num {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 1rem;
   font-weight: 700;
-  font-size: 0.82rem;
+  color: var(--color-primary);
+}
+
+.svc-count-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* Center: Name + Metrics */
+.svc-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.svc-name {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svc-package {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.svc-simple {
+  color: var(--color-dark);
+  font-weight: 700;
+}
+
+.svc-metrics {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+/* Right: Success Rate + Arrow */
+.svc-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.svc-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-base);
+  min-width: 50px;
+}
+
+.rate-warning {
+  background: rgba(245, 128, 62, 0.1);
+}
+
+.rate-danger {
+  background: rgba(230, 55, 87, 0.1);
+}
+
+.rate-warning .svc-rate-num {
+  color: var(--color-warning-hover);
+}
+
+.rate-danger .svc-rate-num {
+  color: var(--color-danger);
+}
+
+.svc-rate-num {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.svc-rate-label {
+  font-size: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.svc-arrow {
+  color: var(--color-text-light);
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .svc-card {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .service-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
 </style>

@@ -43,6 +43,8 @@
 </template>
 
 <script setup lang="ts">
+import '@/styles/shared-components.css'
+
 interface Props {
   title: string;
   subtitle: string;
@@ -176,7 +178,7 @@ const handleHeaderClick = () => {
 }
 
 .card-icon {
-  color: #5e64ff;
+  color: var(--color-primary);
   font-size: 1.1rem;
   flex-shrink: 0;
   display: inline-flex;
@@ -185,20 +187,20 @@ const handleHeaderClick = () => {
 }
 
 .required-card .card-icon {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .optional-card .card-icon {
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .card-enabled .card-icon {
-  color: #047857;
+  color: var(--color-success-hover);
 }
 
 .card-title {
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   font-size: 0.95rem;
   margin: 0;
   line-height: 1;
@@ -213,7 +215,7 @@ const handleHeaderClick = () => {
 
 .card-subtitle {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-weight: 400;
   margin: 0;
   line-height: 1;
@@ -226,7 +228,7 @@ const handleHeaderClick = () => {
 }
 
 .required-label {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, var(--color-danger), var(--color-danger-hover));
   color: white;
   font-size: 0.65rem;
   font-weight: 700;
@@ -237,18 +239,18 @@ const handleHeaderClick = () => {
 }
 
 .collapse-icon {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   transition: transform 0.2s ease, color 0.2s ease;
   flex-shrink: 0;
 }
 
 .clickable-header:hover .collapse-icon {
-  color: #374151;
+  color: var(--color-text);
 }
 
 .card-collapsed .collapse-icon {
-  color: #94a3b8;
+  color: var(--color-text-light);
 }
 
 /* Card Body */
@@ -283,62 +285,20 @@ const handleHeaderClick = () => {
 }
 
 .card-collapsed .card-title {
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .card-collapsed .card-subtitle {
-  color: #94a3b8;
+  color: var(--color-text-light);
 }
 
 .card-collapsed .card-icon {
-  color: #94a3b8;
+  color: var(--color-text-light);
 }
 
+/* Toggle switch contextual overrides */
 .card-collapsed .toggle-switch {
-  background: rgba(148, 163, 184, 0.25);
-}
-
-/* Toggle switch */
-.toggle-switch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 48px;
-  height: 26px;
-  border-radius: 9999px;
-  background: rgba(148, 163, 184, 0.35);
-  transition: background 0.25s ease;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.toggle-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  top: 1px;
-  left: 1px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
-  transition: transform 0.25s ease, background 0.25s ease;
-}
-
-.toggle-input:checked + .toggle-slider {
-  transform: translateX(22px);
-  background: #5e64ff;
-}
-
-.card-enabled .toggle-switch {
-  background: rgba(94, 100, 255, 0.35);
+  opacity: 0.6;
 }
 
 /* Blue Theme Styling */

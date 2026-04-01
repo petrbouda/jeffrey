@@ -20,7 +20,7 @@
   <div>
     <MainCard>
       <template #header>
-        <PageHeader icon="bi bi-lightning-charge" title="Quick Analysis" :badge="allRecordings.length">
+        <MainCardHeader icon="bi bi-lightning-charge" title="Quick Analysis" :badge="allRecordings.length">
           <template #actions>
             <div v-if="allRecordings.length > 0" class="page-search">
               <i class="bi bi-search"></i>
@@ -31,7 +31,7 @@
               New Group
             </button>
           </template>
-        </PageHeader>
+        </MainCardHeader>
       </template>
 
       <!-- Upload panel -->
@@ -164,7 +164,7 @@ import { useRouter } from 'vue-router';
 import QuickAnalysisClient from '@/services/api/QuickAnalysisClient';
 import FileUploadPanel from '@/components/FileUploadPanel.vue';
 import MainCard from '@/components/MainCard.vue';
-import PageHeader from '@/components/PageHeader.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
@@ -527,7 +527,7 @@ const onDragEnd = () => {
   background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: 6px;
-  color: #dc2626;
+  color: var(--color-danger-hover);
   font-size: 0.78rem;
   display: flex;
   align-items: center;

@@ -158,7 +158,7 @@
         </div>
         
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-sm table-hover mb-0">
             <thead>
               <tr>
                 <th>Method</th>
@@ -373,7 +373,7 @@ const selectMethod = (method: any) => {
 }
 
 .progress {
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
 }
 
 .progress-bar {

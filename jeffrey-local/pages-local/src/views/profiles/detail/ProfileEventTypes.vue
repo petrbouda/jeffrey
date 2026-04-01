@@ -27,26 +27,7 @@
       <div class="col-12">
         <div class="event-types-container">
           <!-- Event summary -->
-          <div class="event-summary mb-3">
-            <div class="card">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="summary-item">
-                      <h5 class="summary-value">{{ totalEventCount }}</h5>
-                      <p class="summary-label">Total Events</p>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="summary-item">
-                      <h5 class="summary-value">{{ totalEventTypes }}</h5>
-                      <p class="summary-label">Event Types</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StatsTable :metrics="summaryMetrics" class="mb-3" />
 
           <!-- Search/Filter control -->
           <div class="mb-3">
@@ -76,7 +57,7 @@
           <!-- Event tree table -->
           <div class="card mb-4">
             <div class="card-body p-0">
-              <table class="table table-hover mb-0 event-tree-table">
+              <table class="table table-sm table-hover mb-0 event-tree-table">
                 <thead>
                   <tr>
                     <th>Event Type</th>
@@ -270,7 +251,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import EventViewerClient from '@/services/api/EventViewerClient';
@@ -287,6 +268,7 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import EventTypes from '@/services/EventTypes';
+import StatsTable from '@/components/StatsTable.vue';
 import '@/styles/shared-components.css';
 
 // Props definition
@@ -319,6 +301,21 @@ const expandedNodes = ref<Set<string>>(new Set());
 const searchText = ref('');
 const totalEventCount = ref(0);
 const totalEventTypes = ref(0);
+
+const summaryMetrics = computed(() => [
+  {
+    icon: 'bar-chart-line',
+    title: 'Total Events',
+    value: formatNumber(totalEventCount.value),
+    variant: 'highlight' as const,
+  },
+  {
+    icon: 'list-check',
+    title: 'Event Types',
+    value: formatNumber(totalEventTypes.value),
+    variant: 'info' as const,
+  },
+]);
 
 // Flamegraph modal state
 const showFlamegraphDialog = ref(false);
@@ -611,7 +608,7 @@ const filterEvents = () => {
 .event-types-title {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #343a40;
+  color: var(--color-dark);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
@@ -659,7 +656,7 @@ const filterEvents = () => {
   text-align: center;
   font-size: 6px;
   vertical-align: middle;
-  color: #adb5bd;
+  color: var(--color-text-light);
 }
 
 .expand-btn {
@@ -668,7 +665,7 @@ const filterEvents = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #6c757d;
+  color: var(--color-text-muted);
   background: transparent;
   border: none;
   padding: 0;
@@ -686,7 +683,7 @@ const filterEvents = () => {
 }
 
 .expand-btn:hover {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
 }
 
 .event-name {
@@ -694,13 +691,13 @@ const filterEvents = () => {
 }
 
 .event-code {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.9em;
   font-family: monospace;
 }
 
 .parent-row {
-  background-color: #f8f9fa;
+  background-color: var(--color-light);
 }
 
 .parent-row .event-name {
@@ -711,29 +708,6 @@ const filterEvents = () => {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   white-space: nowrap;
-}
-
-/* Summary styles */
-.event-summary .card {
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.summary-item {
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.summary-value {
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-  color: #495057;
-}
-
-.summary-label {
-  margin-bottom: 0;
-  font-size: 0.875rem;
-  color: #6c757d;
 }
 
 /* Responsive adjustments */

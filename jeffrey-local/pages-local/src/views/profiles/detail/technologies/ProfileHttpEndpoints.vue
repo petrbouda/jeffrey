@@ -44,27 +44,46 @@
 
     <!-- Single URI Dashboard content -->
     <div v-if="selectedUriForDetail && singleUriData" class="dashboard-container">
-      <!-- URI Overview Cards -->
+      <!-- URI Stats Row (above tabs, like GCMetricsStatsRow) -->
       <DashboardSection :http-header="singleUriData.header"/>
 
-      <!-- HTTP Metrics Timeline -->
-      <HttpTimeseries
-          v-if="singleUriData"
-          :response-time-data="singleUriData.responseTimeSerie.data"
-          :request-count-data="singleUriData.requestCountSerie.data"/>
+      <!-- Tabbed Analysis -->
+      <ChartSectionWithTabs
+          :tabs="httpDetailTabs"
+          :full-width="true"
+          id-prefix="http-detail-"
+      >
+        <template #timeseries>
+          <TimeSeriesChart
+              :primary-data="singleUriData.responseTimeSerie.data"
+              primary-title="Response Time"
+              :secondary-data="singleUriData.requestCountSerie.data"
+              secondary-title="Request Count"
+              :visible-minutes="60"
+              :independentSecondaryAxis="true"
+              :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+              :secondary-axis-type="AxisFormatType.NUMBER"
+          />
+        </template>
 
-      <!-- Status Codes and Methods Distribution for this URI -->
-      <HttpDistributionCharts
-          v-if="singleUriData?.statusCodes && singleUriData?.methods"
-          :status-codes="singleUriData.statusCodes"
-          :methods="singleUriData.methods"
-          :total-requests="singleUriData.uri.requestCount"/>
+        <template #distribution>
+          <HttpDistributionCharts
+              v-if="singleUriData?.statusCodes && singleUriData?.methods"
+              :status-codes="singleUriData.statusCodes"
+              :methods="singleUriData.methods"
+              :total-requests="singleUriData.uri.requestCount"
+              embedded/>
+        </template>
 
-      <!-- Slowest HTTP Requests -->
-      <HttpSlowestRequests
-          :requests="slowestRequests"
-          :total-request-count="singleUriData.header.requestCount || 0"
-          :max-displayed="20"/>
+        <template #slowest>
+          <EmptyState v-if="slowestRequests.length === 0" icon="bi-clock-history" title="No slow HTTP requests" />
+          <HttpSlowestRequests
+              v-else
+              :requests="slowestRequests"
+              :total-request-count="singleUriData.header.requestCount || 0"
+              :max-displayed="20"/>
+        </template>
+      </ChartSectionWithTabs>
     </div>
 
     <!-- Endpoint List -->
@@ -89,16 +108,19 @@ import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
-import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
+import ChartSectionWithTabs from '@/components/ChartSectionWithTabs.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
 import HttpSlowestRequests from '@/components/http/HttpSlowestRequests.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient.ts';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData.ts';
 import HttpSingleUriData from '@/services/api/model/HttpSingleUriData.ts';
 import HttpSlowRequest from '@/services/api/model/HttpSlowRequest.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
+import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
 
 // Define props
@@ -123,6 +145,13 @@ const selectedUriForDetail = ref<string | null>(null);
 
 // Get mode from query parameter, default to 'server'
 const mode = (route.query.mode as 'client' | 'server') || 'server';
+
+// Tab definitions for URI detail view
+const httpDetailTabs = [
+  { id: 'timeseries', label: 'Timeseries', icon: 'graph-up' },
+  { id: 'distribution', label: 'Distribution', icon: 'pie-chart' },
+  { id: 'slowest', label: 'Slowest Requests', icon: 'clock-history' }
+];
 
 // Check if HTTP dashboard is disabled
 const isHttpDashboardDisabled = computed(() => {
@@ -212,7 +241,7 @@ watch(() => route.query.uri, (newUri) => {
 <style scoped>
 .uri-display-large {
   background: #f8f9ff;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--card-border-color);
   border-radius: 8px;
   margin: 1.5rem 0;
   padding: 1rem 0;
@@ -226,7 +255,7 @@ watch(() => route.query.uri, (newUri) => {
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,4 +288,5 @@ watch(() => route.query.uri, (newUri) => {
     order: -1;
   }
 }
+
 </style>

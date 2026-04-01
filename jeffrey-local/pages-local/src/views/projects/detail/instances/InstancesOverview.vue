@@ -333,21 +333,18 @@ onMounted(async () => {
 <style scoped>
 /* Compact Stat Cards (matching RepositoryStatistics.vue) */
 .compact-stat-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
   padding: 12px 16px;
   height: 100%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04),
-  0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all var(--transition-base);
+  box-shadow: var(--card-shadow);
 }
 
 .compact-stat-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06),
-  0 2px 4px rgba(94, 100, 255, 0.1);
-  border-color: rgba(94, 100, 255, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .compact-stat-header {
@@ -366,7 +363,7 @@ onMounted(async () => {
 .compact-stat-title {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -397,7 +394,7 @@ onMounted(async () => {
 
 .metric-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
@@ -409,7 +406,7 @@ onMounted(async () => {
 .metric-value {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   text-align: right;
   min-width: 36px;
 }
@@ -421,7 +418,7 @@ onMounted(async () => {
 .metric-col-header {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: right;
@@ -446,19 +443,18 @@ onMounted(async () => {
 
 /* Instance cards */
 .instance-card {
-  background-color: white;
-  border: 1px solid rgba(94, 100, 255, 0.08);
-  border-radius: 8px;
-  transition: all 0.15s ease;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  transition: all var(--transition-fast);
   color: inherit;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .instance-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-  border-color: rgba(94, 100, 255, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .instance-pending {
@@ -470,7 +466,7 @@ onMounted(async () => {
 }
 
 .instance-finished {
-  border-left: 3px solid #10b981;
+  border-left: 3px solid var(--color-success);
 }
 
 .instance-expired {
@@ -520,19 +516,19 @@ onMounted(async () => {
 
 .icon-finished {
   background-color: rgba(16, 185, 129, 0.12);
-  color: #059669;
+  color: var(--color-success-hover);
 }
 
 .icon-expired {
   background-color: rgba(156, 163, 175, 0.12);
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .instance-meta {
   display: flex;
   gap: 12px;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 

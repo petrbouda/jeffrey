@@ -87,12 +87,12 @@ defineProps<Props>();
 
 .tl-icon-badge--success {
   background: rgba(16, 185, 129, 0.1);
-  color: #059669;
+  color: var(--color-success-hover);
 }
 
 .tl-icon-badge--danger {
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-danger-hover);
 }
 
 .tl-icon-badge--primary {
@@ -103,7 +103,7 @@ defineProps<Props>();
 .tl-label {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -111,20 +111,20 @@ defineProps<Props>();
 .tl-main {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-dark);
   margin-left: auto;
   white-space: nowrap;
 }
 
 .tl-running {
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-weight: 500;
   font-style: italic;
 }
 
 .tl-sub {
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 

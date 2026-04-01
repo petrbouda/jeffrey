@@ -349,8 +349,8 @@ const getStatusClass = (download: DownloadProgress): string => {
 
 /* Download Card */
 .download-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--color-light);
+  border: 1px solid var(--card-border-color);
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 0.75rem;
@@ -396,13 +396,13 @@ const getStatusClass = (download: DownloadProgress): string => {
 .download-file-count {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .btn-close-card {
   background: transparent;
   border: none;
-  color: #6c757d;
+  color: var(--color-text-muted);
   width: 24px;
   height: 24px;
   border-radius: 4px;
@@ -415,14 +415,14 @@ const getStatusClass = (download: DownloadProgress): string => {
 
 .btn-close-card:hover {
   background: rgba(0, 0, 0, 0.1);
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 /* Progress Bar */
 .download-progress {
   height: 8px;
   border-radius: 4px;
-  background-color: #e9ecef;
+  background-color: var(--card-border-color);
   margin-bottom: 0.75rem;
 }
 
@@ -451,7 +451,7 @@ const getStatusClass = (download: DownloadProgress): string => {
   content: '';
   flex: 1;
   height: 1px;
-  background: #dee2e6;
+  background: var(--card-border-color);
 }
 
 .file-divider-text {
@@ -477,20 +477,20 @@ const getStatusClass = (download: DownloadProgress): string => {
 }
 
 .file-size-active {
-  color: #0d6efd;
+  color: var(--color-accent-blue);
   font-weight: 500;
   font-size: 0.75rem;
   margin-left: 0.5rem;
 }
 
 .file-size-muted {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   margin-left: 0.25rem;
 }
 
 .file-size-pending {
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   margin-left: 0.5rem;
 }
@@ -508,7 +508,7 @@ const getStatusClass = (download: DownloadProgress): string => {
   justify-content: space-between;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--card-border-color);
 }
 
 .download-status {
@@ -543,7 +543,7 @@ const getStatusClass = (download: DownloadProgress): string => {
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .empty-state i {

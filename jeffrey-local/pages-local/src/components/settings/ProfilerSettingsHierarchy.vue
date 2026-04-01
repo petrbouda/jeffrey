@@ -522,7 +522,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.04), rgba(94, 100, 255, 0.02));
   border: 1px solid rgba(94, 100, 255, 0.1);
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   justify-content: center;
 }
@@ -536,7 +536,7 @@ onMounted(async () => {
 
 .info-message > i {
   font-size: 1.2rem;
-  color: var(--color-primary, #5e64ff);
+  color: var(--color-primary);
   margin-top: 1px;
   flex-shrink: 0;
 }
@@ -564,7 +564,7 @@ onMounted(async () => {
 .scope-section-title {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -577,7 +577,7 @@ onMounted(async () => {
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   border-radius: 2px;
 }
 
@@ -588,7 +588,7 @@ onMounted(async () => {
 }
 
 .scope-option-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  background: linear-gradient(135deg, var(--color-light), #ffffff);
   border: 2px solid rgba(94, 100, 255, 0.1);
   border-radius: 12px;
   padding: 16px;
@@ -604,7 +604,7 @@ onMounted(async () => {
 
 .scope-option-card.selected {
   background: linear-gradient(135deg, #f3f4ff, #e8eaf6);
-  border-color: #5e64ff;
+  border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(94, 100, 255, 0.2);
 }
 
@@ -623,20 +623,20 @@ onMounted(async () => {
 
 .scope-option-info i {
   font-size: 1.2rem;
-  color: #5e64ff;
+  color: var(--color-primary);
   margin-top: 2px;
 }
 
 .scope-option-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   margin: 0 0 4px 0;
 }
 
 .scope-option-description {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
 }
@@ -649,7 +649,7 @@ onMounted(async () => {
 .workspace-section-title {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -662,7 +662,7 @@ onMounted(async () => {
   content: '';
   width: 3px;
   height: 14px;
-  background: linear-gradient(135deg, #5e64ff, #4c52ff);
+  background: linear-gradient(135deg, var(--color-primary), #4c52ff);
   border-radius: 2px;
 }
 
@@ -674,12 +674,12 @@ onMounted(async () => {
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), rgba(94, 100, 255, 0.01));
   border: 1px dashed rgba(94, 100, 255, 0.2);
   border-radius: 6px;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.8rem;
 }
 
 .no-workspaces-message i {
-  color: #5e64ff;
+  color: var(--color-primary);
   opacity: 0.5;
   font-size: 0.9rem;
 }
@@ -704,7 +704,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.04), rgba(94, 100, 255, 0.02));
   border: 1px solid rgba(94, 100, 255, 0.1);
   border-radius: 6px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
@@ -716,12 +716,12 @@ onMounted(async () => {
   background: linear-gradient(135deg, rgba(94, 100, 255, 0.03), rgba(94, 100, 255, 0.01));
   border: 1px dashed rgba(94, 100, 255, 0.2);
   border-radius: 6px;
-  color: #9ca3af;
+  color: var(--color-text-light);
   font-size: 0.8rem;
 }
 
 .no-projects-message i {
-  color: #5e64ff;
+  color: var(--color-primary);
   opacity: 0.5;
   font-size: 0.9rem;
 }

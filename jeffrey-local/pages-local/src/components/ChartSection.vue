@@ -45,9 +45,10 @@ const props = withDefaults(defineProps<Props>(), {
 }
 
 .chart-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -60,7 +61,7 @@ const props = withDefaults(defineProps<Props>(), {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--card-border-color);
 }
 
 .chart-header-actions {
@@ -71,7 +72,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 .chart-header h4 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--color-dark);
   font-size: 1rem;
   font-weight: 600;
 }

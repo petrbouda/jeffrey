@@ -277,6 +277,17 @@ jeffrey/
 - **File Organization**: Feature-based grouping with shared components
 - Formatting values use FormattingService, which provides consistent formatting across the application, propose a new function if you miss something
 - Always try to use Vue Components first. If you need create a new to deduplicate code, suggest it and create it.
+- **Reuse before creating**: Before creating new components or styling, always search for existing shared components (`src/components/`), shared CSS (`src/styles/shared-components.css`), and design tokens (`src/assets/design-tokens.css`) that can be reused or extended. Only create new shared components/styles when no suitable existing pattern exists. When you do create new shared patterns, add them to shared CSS or create a component — never leave reusable patterns only in scoped styles.
+
+#### UI Consistency Rules
+- **No Hardcoded Colors in CSS**: Never use hex color literals (`#f8f9fa`, `#28a745`, etc.) in `<style>` blocks. Always use CSS custom properties from `design-tokens.css` (e.g., `var(--color-light)`, `var(--color-success)`, `var(--color-danger)`, `var(--table-header-bg)`)
+- **Use Design Token Shadows and Radii**: No literal `box-shadow:` or `border-radius:` values. Use `var(--shadow-*)` and `var(--radius-*)` or `var(--card-border-radius)`
+- **Use Badge Component**: Never use raw `<span class="badge bg-*">`. Always use the `Badge.vue` component with appropriate `variant` and `size` props
+- **Standard Table Pattern**: All data tables must use CSS classes `table table-sm table-hover mb-0` wrapped in `<div class="table-responsive">`. Use `SortableTableHeader` for sortable columns. Show `EmptyState` component when table data is empty
+- **Three-State View Pattern**: Every async view must follow: `<LoadingState v-if="loading" />` → `<ErrorState v-else-if="error" />` → content. Tables within content show `<EmptyState>` when data is empty
+- **Page Headers**: Use `layout/PageHeader.vue` for page-level headers. Use `MainCardHeader.vue` for card headers inside `MainCard`
+- **Modals**: Use `GenericModal` with `v-model:show` for all modal dialogs. Do not create custom modal overlays
+- **Single Token Source**: Only `design-tokens.css` may define `:root` CSS custom properties. No other file may declare `:root { ... }`
 
 ### Build Commands
 - **Java Version**: `sdk use java 25.0.1-amzn`

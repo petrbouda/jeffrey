@@ -404,9 +404,10 @@ async function deleteProject() {
 
 /* Card */
 .settings-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--card-shadow);
   padding: 20px;
 }
 

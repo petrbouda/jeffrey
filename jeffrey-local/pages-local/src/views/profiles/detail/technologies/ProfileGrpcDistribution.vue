@@ -22,6 +22,8 @@
       <div v-if="grpcOverviewData" class="dashboard-container">
         <GrpcOverviewStats :header="grpcOverviewData.header"/>
         <GrpcDistributionCharts
+            title="gRPC Distribution"
+            icon="pie-chart"
             :status-codes="grpcOverviewData.statusCodes || []"
             :services="grpcOverviewData.services || []"
             :total-calls="grpcOverviewData.header.callCount || 0"/>
