@@ -106,11 +106,7 @@ export function isRemoteUnavailableError(error: unknown): boolean {
  * @param context Optional context string to prepend to error message
  * @param showToast Whether to show a toast (default: false, since interceptor handles it)
  */
-export function handleApiError(
-  error: unknown,
-  context?: string,
-  showToast = false
-): void {
+export function handleApiError(error: unknown, context?: string, showToast = false): void {
   const message = getErrorMessage(error);
   const fullMessage = context ? `${context}: ${message}` : message;
 

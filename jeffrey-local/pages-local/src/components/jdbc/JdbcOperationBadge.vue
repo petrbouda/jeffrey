@@ -1,10 +1,5 @@
 <template>
-  <Badge
-    :value="cleanedOperation"
-    :variant="badgeVariant"
-    :size="size"
-    :borderless="borderless"
-  />
+  <Badge :value="cleanedOperation" :variant="badgeVariant" :size="size" :borderless="borderless" />
 </template>
 
 <script setup lang="ts">
@@ -28,7 +23,7 @@ const cleanedOperation = computed(() => JdbcUtils.cleanOperationName(props.opera
 
 const badgeVariant = computed(() => {
   const operation = cleanedOperation.value.toLowerCase();
-  
+
   const variants: Record<string, Variant> = {
     query: 'blue',
     select: 'blue',
@@ -39,7 +34,7 @@ const badgeVariant = computed(() => {
     execute: 'purple',
     stream: 'info'
   };
-  
+
   return variants[operation] || 'purple';
 });
 </script>

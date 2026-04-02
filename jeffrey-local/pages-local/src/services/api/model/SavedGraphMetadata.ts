@@ -17,13 +17,13 @@
  */
 
 export default class SavedGraphMetadata {
-    constructor(
-        public id: string,
-        public name: string,
-        public eventType: string,
-        public useWeight: boolean,
-        public isPrimary: boolean,
-        public withTimeseries: boolean,
-        public createdAt: string) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public eventType: string,
+    public useWeight: boolean,
+    public isPrimary: boolean,
+    public withTimeseries: boolean,
+    public createdAt: string
+  ) {}
 }

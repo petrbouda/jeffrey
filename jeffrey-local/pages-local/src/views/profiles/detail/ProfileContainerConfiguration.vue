@@ -8,9 +8,9 @@
   <div v-else>
     <!-- Header Section -->
     <PageHeader
-        title="Container Configuration"
-        description="JFR-based analysis of container configuration and settings"
-        icon="bi-server"
+      title="Container Configuration"
+      description="JFR-based analysis of container configuration and settings"
+      icon="bi-server"
     >
       <template #actions>
         <div class="d-flex gap-2">
@@ -31,37 +31,51 @@
       <ConfigurationSection title="Host Information" icon="bi-server">
         <div class="config-item">
           <span class="config-label">Container Type</span>
-          <span class="config-value">{{ configData?.configuration.containerType || 'Unknown' }}</span>
+          <span class="config-value">{{
+            configData?.configuration.containerType || 'Unknown'
+          }}</span>
         </div>
         <div class="config-item">
           <span class="config-label">Effective CPU Count</span>
-          <span class="config-value">{{ configData?.configuration.effectiveCpuCount || 'N/A' }}</span>
+          <span class="config-value">{{
+            configData?.configuration.effectiveCpuCount || 'N/A'
+          }}</span>
         </div>
         <div class="config-item">
           <span class="config-label">Host Total Memory</span>
-          <span class="config-value">{{ formatBytes(configData?.configuration.hostTotalMemory || 0) }}</span>
+          <span class="config-value">{{
+            formatBytes(configData?.configuration.hostTotalMemory || 0)
+          }}</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="Memory Configuration" icon="bi-memory">
         <div class="config-item">
           <span class="config-label">Memory Limit</span>
-          <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memoryLimit) }}</span>
+          <span class="config-value">{{
+            formatMemoryLimit(configData?.configuration.memoryLimit)
+          }}</span>
         </div>
         <div class="config-item">
           <span class="config-label">Memory Soft Limit</span>
-          <span class="config-value">{{ formatMemoryLimit(configData?.configuration.memorySoftLimit) }}</span>
+          <span class="config-value">{{
+            formatMemoryLimit(configData?.configuration.memorySoftLimit)
+          }}</span>
         </div>
         <div class="config-item">
           <span class="config-label">Swap Memory Limit</span>
-          <span class="config-value">{{ formatMemoryLimit(configData?.configuration.swapMemoryLimit) }}</span>
+          <span class="config-value">{{
+            formatMemoryLimit(configData?.configuration.swapMemoryLimit)
+          }}</span>
         </div>
       </ConfigurationSection>
 
       <ConfigurationSection title="CPU Configuration" icon="bi-cpu">
         <div class="config-item">
           <span class="config-label">CPU Shares</span>
-          <span class="config-value">{{ formatCpuShares(configData?.configuration.cpuShares) }}</span>
+          <span class="config-value">{{
+            formatCpuShares(configData?.configuration.cpuShares)
+          }}</span>
         </div>
         <div class="config-item">
           <span class="config-label">CPU Quota</span>
@@ -88,8 +102,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';

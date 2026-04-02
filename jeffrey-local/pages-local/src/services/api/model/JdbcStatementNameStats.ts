@@ -17,8 +17,9 @@
  */
 
 export default class JdbcStatementNameStats {
-    constructor(
-        public label: string,
-        public value: number,
-    ) {}
+  constructor(
+    public label: string,
+    public value: number,
+    public p99ExecutionTime: number
+  ) {}
 }

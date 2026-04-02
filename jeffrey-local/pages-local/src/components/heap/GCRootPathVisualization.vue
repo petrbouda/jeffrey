@@ -18,11 +18,19 @@
       <div v-if="path.stackFrame" class="gc-root-detail">
         <span class="detail-label">Frame:</span>
         <span class="detail-value">
-          <span class="frame-class-method">{{ frameClassName(path.stackFrame) }}<span class="frame-method">{{ frameMethodName(path.stackFrame) }}</span></span>
-          <span v-if="framePackagePart(path.stackFrame)" class="frame-package-inline">{{ framePackagePart(path.stackFrame) }}</span>
+          <span class="frame-class-method"
+            >{{ frameClassName(path.stackFrame)
+            }}<span class="frame-method">{{ frameMethodName(path.stackFrame) }}</span></span
+          >
+          <span v-if="framePackagePart(path.stackFrame)" class="frame-package-inline">{{
+            framePackagePart(path.stackFrame)
+          }}</span>
         </span>
       </div>
-      <div v-if="path.stackFrame && frameSourceLocation(path.stackFrame)" class="gc-root-detail-sub">
+      <div
+        v-if="path.stackFrame && frameSourceLocation(path.stackFrame)"
+        class="gc-root-detail-sub"
+      >
         {{ frameSourceLocation(path.stackFrame) }}
       </div>
     </div>
@@ -42,25 +50,44 @@
         </div>
 
         <!-- Step node -->
-        <div class="step-node" :class="{ 'step-node-target': step.isTarget }" @click="emit('selectObjectId', step.objectId)">
+        <div
+          class="step-node"
+          :class="{ 'step-node-target': step.isTarget }"
+          @click="emit('selectObjectId', step.objectId)"
+        >
           <div class="step-sizes">
             <span class="step-size-item">
               <span class="step-size-label">shallow</span>
-              <span class="step-size-value">{{ FormattingService.formatBytes(step.shallowSize) }}</span>
+              <span class="step-size-value">{{
+                FormattingService.formatBytes(step.shallowSize)
+              }}</span>
             </span>
             <span v-if="step.retainedSize > 0" class="step-size-item step-size-retained">
               <span class="step-size-label">retained</span>
-              <span class="step-size-value">{{ FormattingService.formatBytes(step.retainedSize) }}</span>
+              <span class="step-size-value">{{
+                FormattingService.formatBytes(step.retainedSize)
+              }}</span>
             </span>
           </div>
           <div class="step-class-line">
             <span class="step-classname">{{ simpleClassName(step.className) }}</span>
-            <span v-if="packageName(step.className)" class="step-package">{{ packageName(step.className) }}</span>
+            <span v-if="packageName(step.className)" class="step-package">{{
+              packageName(step.className)
+            }}</span>
           </div>
-          <div v-if="step.objectId || Object.keys(step.objectParams).length > 0" class="step-identity-line">
-            <span class="step-object-id">{{ FormattingService.formatObjectId(step.objectId) }}</span>
-            <span v-if="Object.keys(step.objectParams).length > 0" class="step-identity-sep">&middot;</span>
-            <span v-if="Object.keys(step.objectParams).length > 0" class="step-display-value">{{ FormattingService.formatObjectParams(step.objectParams) }}</span>
+          <div
+            v-if="step.objectId || Object.keys(step.objectParams).length > 0"
+            class="step-identity-line"
+          >
+            <span class="step-object-id">{{
+              FormattingService.formatObjectId(step.objectId)
+            }}</span>
+            <span v-if="Object.keys(step.objectParams).length > 0" class="step-identity-sep"
+              >&middot;</span
+            >
+            <span v-if="Object.keys(step.objectParams).length > 0" class="step-display-value">{{
+              FormattingService.formatObjectParams(step.objectParams)
+            }}</span>
           </div>
         </div>
       </div>
@@ -69,71 +96,69 @@
 </template>
 
 <script setup lang="ts">
-import { GCRootPath } from '@/services/api/model/GCRootPath'
-import FormattingService from '@/services/FormattingService'
+import { GCRootPath } from '@/services/api/model/GCRootPath';
+import FormattingService from '@/services/FormattingService';
 
 defineProps<{
-  paths: GCRootPath[]
-}>()
+  paths: GCRootPath[];
+}>();
 
 const emit = defineEmits<{
-  selectObjectId: [objectId: number]
-}>()
+  selectObjectId: [objectId: number];
+}>();
 
 const simpleClassName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.')
-  return lastDot >= 0 ? name.substring(lastDot + 1) : name
-}
+  const lastDot = name.lastIndexOf('.');
+  return lastDot >= 0 ? name.substring(lastDot + 1) : name;
+};
 
 const packageName = (name: string): string => {
-  const lastDot = name.lastIndexOf('.')
-  return lastDot >= 0 ? name.substring(0, lastDot) : ''
-}
+  const lastDot = name.lastIndexOf('.');
+  return lastDot >= 0 ? name.substring(0, lastDot) : '';
+};
 
 // "s.f.p.a.DataCatalogUnited.getUnitedBid(File.kt:229)" → "DataCatalogUnited.getUnitedBid(File.kt:229)"
 const frameShort = (frame: string): string => {
-  const parenIdx = frame.indexOf('(')
-  const fqn = parenIdx >= 0 ? frame.substring(0, parenIdx) : frame
-  const lastDot = fqn.lastIndexOf('.')
-  const secondLastDot = fqn.lastIndexOf('.', lastDot - 1)
-  const classMethod = secondLastDot >= 0 ? fqn.substring(secondLastDot + 1) : fqn
-  return parenIdx >= 0 ? classMethod + frame.substring(parenIdx) : classMethod
-}
+  const parenIdx = frame.indexOf('(');
+  const fqn = parenIdx >= 0 ? frame.substring(0, parenIdx) : frame;
+  const lastDot = fqn.lastIndexOf('.');
+  const secondLastDot = fqn.lastIndexOf('.', lastDot - 1);
+  const classMethod = secondLastDot >= 0 ? fqn.substring(secondLastDot + 1) : fqn;
+  return parenIdx >= 0 ? classMethod + frame.substring(parenIdx) : classMethod;
+};
 
 // "DataCatalogUnited.getUnitedBid(File.kt:229)" → "DataCatalogUnited."
 const frameClassName = (frame: string): string => {
-  const short = frameShort(frame)
-  const parenIdx = short.indexOf('(')
-  const classMethod = parenIdx >= 0 ? short.substring(0, parenIdx) : short
-  const dotIdx = classMethod.lastIndexOf('.')
-  return dotIdx >= 0 ? classMethod.substring(0, dotIdx + 1) : classMethod
-}
+  const short = frameShort(frame);
+  const parenIdx = short.indexOf('(');
+  const classMethod = parenIdx >= 0 ? short.substring(0, parenIdx) : short;
+  const dotIdx = classMethod.lastIndexOf('.');
+  return dotIdx >= 0 ? classMethod.substring(0, dotIdx + 1) : classMethod;
+};
 
 // "DataCatalogUnited.getUnitedBid(File.kt:229)" → "getUnitedBid"
 const frameMethodName = (frame: string): string => {
-  const short = frameShort(frame)
-  const parenIdx = short.indexOf('(')
-  const classMethod = parenIdx >= 0 ? short.substring(0, parenIdx) : short
-  const dotIdx = classMethod.lastIndexOf('.')
-  return dotIdx >= 0 ? classMethod.substring(dotIdx + 1) : ''
-}
+  const short = frameShort(frame);
+  const parenIdx = short.indexOf('(');
+  const classMethod = parenIdx >= 0 ? short.substring(0, parenIdx) : short;
+  const dotIdx = classMethod.lastIndexOf('.');
+  return dotIdx >= 0 ? classMethod.substring(dotIdx + 1) : '';
+};
 
 const frameSourceLocation = (frame: string): string => {
-  const short = frameShort(frame)
-  const parenIdx = short.indexOf('(')
-  return parenIdx >= 0 ? short.substring(parenIdx) : ''
-}
+  const short = frameShort(frame);
+  const parenIdx = short.indexOf('(');
+  return parenIdx >= 0 ? short.substring(parenIdx) : '';
+};
 
 // → "secondfoundation.power.models.baseprice.api"
 const framePackagePart = (frame: string): string => {
-  const parenIdx = frame.indexOf('(')
-  const fqn = parenIdx >= 0 ? frame.substring(0, parenIdx) : frame
-  const lastDot = fqn.lastIndexOf('.')
-  const secondLastDot = fqn.lastIndexOf('.', lastDot - 1)
-  return secondLastDot >= 0 ? fqn.substring(0, secondLastDot) : ''
-}
-
-
+  const parenIdx = frame.indexOf('(');
+  const fqn = parenIdx >= 0 ? frame.substring(0, parenIdx) : frame;
+  const lastDot = fqn.lastIndexOf('.');
+  const secondLastDot = fqn.lastIndexOf('.', lastDot - 1);
+  return secondLastDot >= 0 ? fqn.substring(0, secondLastDot) : '';
+};
 </script>
 
 <style scoped>
@@ -231,8 +256,6 @@ const framePackagePart = (frame: string): string => {
   margin-left: 0.25rem;
 }
 
-
-
 /* Steps chain */
 .steps-chain {
   padding-left: 0.25rem;
@@ -284,7 +307,9 @@ const framePackagePart = (frame: string): string => {
   padding: 0.5rem 0.75rem;
   background: var(--color-light);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .step-node:hover {

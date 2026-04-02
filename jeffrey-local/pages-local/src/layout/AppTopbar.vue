@@ -3,7 +3,7 @@
     <!-- Decorative circle -->
     <div class="topbar-decoration"></div>
 
-    <div class="container-fluid d-flex align-items-center" style="height: 100%;">
+    <div class="container-fluid d-flex align-items-center" style="height: 100%">
       <button v-if="!isProfilePage" class="topbar-toggle me-2" type="button" @click="toggleSidebar">
         <i class="bi bi-list"></i>
       </button>
@@ -17,19 +17,27 @@
 
       <div class="d-flex align-items-center ms-auto">
         <!-- Back to Profiles/Home button (only shown on profile pages) -->
-        <button v-if="isProfilePage"
-                class="topbar-back-btn me-2"
-                @click="isQuickAnalysisProfile ? $router.push('/quick-analysis') : $router.push(generateProjectUrl('recordings'))"
-                :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to Recordings'">
+        <button
+          v-if="isProfilePage"
+          class="topbar-back-btn me-2"
+          @click="
+            isQuickAnalysisProfile
+              ? $router.push('/quick-analysis')
+              : $router.push(generateProjectUrl('recordings'))
+          "
+          :title="isQuickAnalysisProfile ? 'Back to Quick Analysis' : 'Back to Recordings'"
+        >
           <i class="bi bi-arrow-return-left"></i>
           <span>{{ isQuickAnalysisProfile ? 'Quick Analysis' : 'Recordings' }}</span>
         </button>
 
         <!-- Back to Workspaces button (only shown on project pages) -->
-        <button v-if="isProjectPage"
-                class="topbar-back-btn me-2"
-                @click="$router.push('/workspaces')"
-                title="Back to workspaces">
+        <button
+          v-if="isProjectPage"
+          class="topbar-back-btn me-2"
+          @click="$router.push('/workspaces')"
+          title="Back to workspaces"
+        >
           <i class="bi bi-arrow-return-left"></i>
           <span>Workspaces</span>
         </button>
@@ -82,7 +90,13 @@ onMounted(async () => {
 
 <style scoped>
 .topbar {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 70%, var(--color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    #1e1b4b 0%,
+    #312e81 40%,
+    #4338ca 70%,
+    var(--color-primary) 100%
+  );
   height: 50px;
   position: sticky;
   top: 0;

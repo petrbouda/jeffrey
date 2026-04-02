@@ -17,11 +17,10 @@
   -->
 
 <script setup lang="ts">
-
-import {onMounted, ref} from 'vue';
+import { onMounted, ref } from 'vue';
 import InformationClient from '@/services/api/InformationClient';
-import FormattingService from "@/services/FormattingService";
-import {useRoute} from "vue-router";
+import FormattingService from '@/services/FormattingService';
+import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -50,54 +49,63 @@ let formatMap: Record<string, ValueFormatter> = {};
 onMounted(() => {
   formatMap = {
     'JVM Information - JVM Start Time': (value: unknown) => {
-      return value + " (" + new Date(parseInt(String(value), 10)) + ")"
+      return value + ' (' + new Date(parseInt(String(value), 10)) + ')';
     },
-    'GC Heap Configuration - Minimum Heap Size': (value: unknown) => FormattingService.formatBytes(value as number),
-    'GC Heap Configuration - Maximum Heap Size': (value: unknown) => FormattingService.formatBytes(value as number),
-    'GC Heap Configuration - Initial Heap Size': (value: unknown) => FormattingService.formatBytes(value as number),
-    'TLAB Configuration - Minimum TLAB Size': (value: unknown) => FormattingService.formatBytes(value as number),
-    'Young Generation Configuration - Minimum Young Generation Size': (value: unknown) => FormattingService.formatBytes(value as number),
-    'Young Generation Configuration - Maximum Young Generation Size': (value: unknown) => FormattingService.formatBytes(value as number),
-    'Container Configuration - Container Host Total Memory': (value: unknown) => FormattingService.formatBytes(value as number),
-    'Container Configuration - Memory and Swap Limit': (value: unknown) => FormattingService.formatBytes(value as number),
-    'Container Configuration - Memory Limit': (value: unknown) => FormattingService.formatBytes(value as number),
-    'Container Configuration - Memory Soft Limit': (value: unknown) => FormattingService.formatBytes(value as number),
+    'GC Heap Configuration - Minimum Heap Size': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'GC Heap Configuration - Maximum Heap Size': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'GC Heap Configuration - Initial Heap Size': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'TLAB Configuration - Minimum TLAB Size': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'Young Generation Configuration - Minimum Young Generation Size': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'Young Generation Configuration - Maximum Young Generation Size': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'Container Configuration - Container Host Total Memory': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'Container Configuration - Memory and Swap Limit': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'Container Configuration - Memory Limit': (value: unknown) =>
+      FormattingService.formatBytes(value as number),
+    'Container Configuration - Memory Soft Limit': (value: unknown) =>
+      FormattingService.formatBytes(value as number)
   };
 
-  new InformationClient(route.params.profileId as string).info()
-      .then((data: Record<string, Record<string, unknown>>) => {
-        info = data;
+  new InformationClient(route.params.profileId as string)
+    .info()
+    .then((data: Record<string, Record<string, unknown>>) => {
+      info = data;
 
-        Object.keys(info).forEach((key) => {
-          const formatted = key
-              .replace("Configuration", "")
-              .replace("Information", "")
-          items.value.push({label: formatted})
-        });
-
-        const sections = Object.values(info);
-        if (sections.length > 0) {
-          section.value = formatSections(sections[0]);
-        }
+      Object.keys(info).forEach(key => {
+        const formatted = key.replace('Configuration', '').replace('Information', '');
+        items.value.push({ label: formatted });
       });
+
+      const sections = Object.values(info);
+      if (sections.length > 0) {
+        section.value = formatSections(sections[0]);
+      }
+    });
 });
 
 const formatSections = (original: Record<string, unknown>): SectionRow[] => {
-  const formatted: SectionRow[] = []
+  const formatted: SectionRow[] = [];
   for (const [key, value] of Object.entries(original)) {
     const infoKeys = info ? Object.keys(info) : [];
-    const formatKey = (infoKeys[active.value] || '') + " - " + key
+    const formatKey = (infoKeys[active.value] || '') + ' - ' + key;
     const formatter = formatMap[formatKey];
 
-    const formattedValue = formatter != null ? formatter(value) : value
+    const formattedValue = formatter != null ? formatter(value) : value;
 
     formatted.push({
       key: key,
       value: formattedValue
-    })
+    });
   }
-  return formatted
-}
+  return formatted;
+};
 
 const selectSection = () => {
   if (!info) return;
@@ -105,7 +113,7 @@ const selectSection = () => {
   if (active.value < sections.length) {
     section.value = formatSections(sections[active.value]);
   }
-}
+};
 </script>
 
 <template>
@@ -114,7 +122,6 @@ const selectSection = () => {
     description="View the content of configuration events"
     icon="bi-gear-fill"
   >
-
     <EmptyState v-if="items.length === 0" icon="bi-gear" title="No configuration data available" />
     <div v-else class="config-container">
       <!-- Section navigation tabs -->
@@ -123,9 +130,13 @@ const selectSection = () => {
           v-for="(item, index) in items"
           :key="index"
           class="config-tab"
-          :class="{ 'active': active === index }"
-          @click="active = index; selectSection()"
-          type="button">
+          :class="{ active: active === index }"
+          @click="
+            active = index;
+            selectSection();
+          "
+          type="button"
+        >
           {{ item.label }}
         </button>
       </div>

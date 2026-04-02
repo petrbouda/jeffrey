@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {nextTick, watch} from 'vue';
+import { nextTick, watch } from 'vue';
 
 interface Props {
   show: boolean;
@@ -32,16 +32,19 @@ interface Emits {
 const emit = defineEmits<Emits>();
 
 // Focus modal when shown
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    nextTick(() => {
-      const modal = document.querySelector('.modal.d-block');
-      if (modal) {
-        modal.focus();
-      }
-    });
+watch(
+  () => props.show,
+  newVal => {
+    if (newVal) {
+      nextTick(() => {
+        const modal = document.querySelector('.modal.d-block');
+        if (modal) {
+          modal.focus();
+        }
+      });
+    }
   }
-});
+);
 
 const onConfirm = () => {
   emit('confirm');
@@ -55,11 +58,13 @@ const onCancel = () => {
 </script>
 
 <template>
-  <div class="modal modal-overlay"
-       :class="{ 'd-block': show, 'd-none': !show }"
-       @keyup.enter="onConfirm"
-       tabindex="-1"
-       :id="modalId">
+  <div
+    class="modal modal-overlay"
+    :class="{ 'd-block': show, 'd-none': !show }"
+    @keyup.enter="onConfirm"
+    tabindex="-1"
+    :id="modalId"
+  >
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header d-flex justify-content-between align-items-center">
@@ -71,13 +76,17 @@ const onCancel = () => {
           <p class="text-muted small" v-if="subMessage">{{ subMessage }}</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="onCancel">{{ cancelLabel }}</button>
+          <button type="button" class="btn btn-secondary" @click="onCancel">
+            {{ cancelLabel }}
+          </button>
           <button
-              type="button"
-              class="btn"
-              :class="confirmButtonClass"
-              @click="onConfirm"
-              :id="confirmButtonId">{{ confirmLabel }}
+            type="button"
+            class="btn"
+            :class="confirmButtonClass"
+            @click="onConfirm"
+            :id="confirmButtonId"
+          >
+            {{ confirmLabel }}
           </button>
         </div>
       </div>

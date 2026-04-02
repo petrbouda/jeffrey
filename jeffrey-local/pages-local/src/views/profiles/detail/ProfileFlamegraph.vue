@@ -12,10 +12,20 @@
       <div class="card-body">
         <div class="d-flex align-items-start">
           <div :class="`status-icon bg-${getStatusColorClass(guardianCheck.status)} me-3`">
-            <i class="bi" :class="guardianCheck.status === 'success' ? 'bi-check-circle-fill' : 
-              guardianCheck.status === 'warning' ? 'bi-exclamation-triangle-fill' :
-              guardianCheck.status === 'error' ? 'bi-x-circle-fill' :
-              guardianCheck.status === 'info' ? 'bi-info-circle-fill' : 'bi-dash-circle-fill'"></i>
+            <i
+              class="bi"
+              :class="
+                guardianCheck.status === 'success'
+                  ? 'bi-check-circle-fill'
+                  : guardianCheck.status === 'warning'
+                    ? 'bi-exclamation-triangle-fill'
+                    : guardianCheck.status === 'error'
+                      ? 'bi-x-circle-fill'
+                      : guardianCheck.status === 'info'
+                        ? 'bi-info-circle-fill'
+                        : 'bi-dash-circle-fill'
+              "
+            ></i>
           </div>
           <div class="flex-grow-1">
             <div class="d-flex justify-content-between align-items-start">
@@ -28,7 +38,12 @@
               </span>
             </div>
             <div class="small">
-              <a href="#" class="link-primary" data-bs-toggle="collapse" data-bs-target="#guardianDetails">
+              <a
+                href="#"
+                class="link-primary"
+                data-bs-toggle="collapse"
+                data-bs-target="#guardianDetails"
+              >
                 <i class="bi bi-chevron-down me-1"></i>Show Details
               </a>
             </div>
@@ -44,7 +59,7 @@
         </div>
       </div>
     </div>
-  
+
     <!-- Flamegraph Controls -->
     <div class="card mb-4">
       <div class="card-body">
@@ -60,11 +75,16 @@
               </select>
             </div>
           </div>
-          
+
           <div class="col-md-4 mb-3 mb-md-0">
             <div class="d-flex align-items-center">
               <label for="threadFilter" class="form-label mb-0 me-2">Thread:</label>
-              <select class="form-select" id="threadFilter" v-model="selectedThread" :disabled="Boolean(isFromGuardian)">
+              <select
+                class="form-select"
+                id="threadFilter"
+                v-model="selectedThread"
+                :disabled="Boolean(isFromGuardian)"
+              >
                 <option value="all">All Threads</option>
                 <option value="main">main</option>
                 <option value="worker-1">worker-1</option>
@@ -73,7 +93,7 @@
               </select>
             </div>
           </div>
-          
+
           <div class="col-md-4">
             <div class="d-flex justify-content-md-end gap-2">
               <button class="btn btn-outline-secondary" @click="resetZoom">
@@ -87,17 +107,22 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Flamegraph -->
     <div class="card mb-4">
       <div class="card-body p-0">
         <div class="flamegraph-controls bg-light p-2 border-bottom">
           <div class="d-flex justify-content-between align-items-center">
             <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="invertFlamegraph" v-model="invertFlamegraph">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="invertFlamegraph"
+                v-model="invertFlamegraph"
+              />
               <label class="form-check-label" for="invertFlamegraph">Invert Flamegraph</label>
             </div>
-            
+
             <div class="btn-group btn-group-sm" role="group">
               <button type="button" class="btn btn-outline-secondary" title="Zoom In">
                 <i class="bi bi-zoom-in"></i>
@@ -111,18 +136,21 @@
             </div>
           </div>
         </div>
-        
+
         <div class="flamegraph-placeholder">
           <div class="text-center py-5">
             <i class="bi bi-fire fs-1 text-danger mb-3"></i>
             <h5>Flamegraph Visualization</h5>
-            <p class="text-muted">In a real implementation, this would render an interactive flamegraph using a library like d3-flame-graph.</p>
+            <p class="text-muted">
+              In a real implementation, this would render an interactive flamegraph using a library
+              like d3-flame-graph.
+            </p>
             <div class="flamegraph-demo mx-auto"></div>
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Method Details -->
     <div class="card">
       <div class="card-header">
@@ -132,7 +160,7 @@
         <div class="method-details p-3 border-bottom" v-if="selectedMethod">
           <h6>{{ selectedMethod.name }}</h6>
           <div class="text-muted small mb-2">{{ selectedMethod.className }}</div>
-          
+
           <div class="row">
             <div class="col-md-3 col-6 mb-2">
               <div class="small text-muted">CPU Time</div>
@@ -152,11 +180,11 @@
             </div>
           </div>
         </div>
-        
+
         <div class="p-3" v-else>
           <p class="text-muted mb-0">Click on a frame in the flamegraph to view method details</p>
         </div>
-        
+
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead>
@@ -169,9 +197,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(method, index) in topMethods" :key="index" @click="selectMethod(method)" class="cursor-pointer">
+              <tr
+                v-for="(method, index) in topMethods"
+                :key="index"
+                @click="selectMethod(method)"
+                class="cursor-pointer"
+              >
                 <td>
-                  <div class="text-truncate" style="max-width: 300px;">{{ method.name }}</div>
+                  <div class="text-truncate" style="max-width: 300px">{{ method.name }}</div>
                   <div class="small text-muted text-truncate">{{ method.className }}</div>
                 </td>
                 <td>{{ method.selfTime }}ms</td>
@@ -179,8 +212,12 @@
                 <td>{{ method.samples }}</td>
                 <td>
                   <div class="d-flex align-items-center">
-                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                      <div class="progress-bar" role="progressbar" :style="{ width: method.percentage + '%' }"></div>
+                    <div class="progress flex-grow-1 me-2" style="height: 6px">
+                      <div
+                        class="progress-bar"
+                        role="progressbar"
+                        :style="{ width: method.percentage + '%' }"
+                      ></div>
                     </div>
                     <span>{{ method.percentage }}%</span>
                   </div>
@@ -236,7 +273,7 @@ onMounted(() => {
   if (storedCheck && isFromGuardian.value) {
     try {
       guardianCheck.value = JSON.parse(storedCheck);
-      
+
       // If we have methods from the Guardian check, use them
       if (guardianCheck.value?.flamegraphData?.methods) {
         topMethods.value = guardianCheck.value.flamegraphData.methods;
@@ -250,50 +287,50 @@ onMounted(() => {
 
 // Mock data for demonstration when not coming from Guardian
 const topMethods = ref([
-  { 
-    name: 'processRequest', 
-    className: 'com.example.RequestHandler', 
-    cpuTime: 1250, 
+  {
+    name: 'processRequest',
+    className: 'com.example.RequestHandler',
+    cpuTime: 1250,
     wallTime: 1300,
     selfTime: 350,
     samples: 526,
-    percentage: 85 
+    percentage: 85
   },
-  { 
-    name: 'parseJSON', 
-    className: 'com.example.JSONParser', 
-    cpuTime: 980, 
+  {
+    name: 'parseJSON',
+    className: 'com.example.JSONParser',
+    cpuTime: 980,
     wallTime: 1050,
     selfTime: 420,
     samples: 418,
-    percentage: 70 
+    percentage: 70
   },
-  { 
-    name: 'executeQuery', 
-    className: 'com.example.DatabaseService', 
-    cpuTime: 750, 
+  {
+    name: 'executeQuery',
+    className: 'com.example.DatabaseService',
+    cpuTime: 750,
     wallTime: 820,
     selfTime: 380,
     samples: 312,
-    percentage: 55 
+    percentage: 55
   },
-  { 
-    name: 'calculateStatistics', 
-    className: 'com.example.StatisticsEngine', 
-    cpuTime: 650, 
+  {
+    name: 'calculateStatistics',
+    className: 'com.example.StatisticsEngine',
+    cpuTime: 650,
     wallTime: 720,
     selfTime: 290,
     samples: 270,
-    percentage: 45 
+    percentage: 45
   },
-  { 
-    name: 'renderTemplate', 
-    className: 'com.example.TemplateEngine', 
-    cpuTime: 480, 
+  {
+    name: 'renderTemplate',
+    className: 'com.example.TemplateEngine',
+    cpuTime: 480,
     wallTime: 520,
     selfTime: 210,
     samples: 198,
-    percentage: 30 
+    percentage: 30
   }
 ]);
 
@@ -303,12 +340,18 @@ const selectedMethod = ref(topMethods.value[0]);
 // Get status color class for Guardian check
 const getStatusColorClass = (status: string) => {
   switch (status) {
-    case 'success': return 'success';
-    case 'warning': return 'warning';
-    case 'error': return 'danger';
-    case 'info': return 'info';
-    case 'disabled': return 'secondary';
-    default: return 'primary';
+    case 'success':
+      return 'success';
+    case 'warning':
+      return 'warning';
+    case 'error':
+      return 'danger';
+    case 'info':
+      return 'info';
+    case 'disabled':
+      return 'secondary';
+    default:
+      return 'primary';
   }
 };
 
@@ -345,12 +388,26 @@ const selectMethod = (method: any) => {
 .flamegraph-demo {
   width: 80%;
   height: 150px;
-  background-image: linear-gradient(to right, 
-    #ff9d9d, #ff9d9d 20%, #ffbf9d 20%, #ffbf9d 25%,
-    #ffd19d 25%, #ffd19d 30%, #c9e7a5 30%, #c9e7a5 40%,
-    #9dddff 40%, #9dddff 50%, #9db5ff 50%, #9db5ff 60%,
-    #cc99ff 60%, #cc99ff 70%, #ff9dce 70%, #ff9dce 85%,
-    #9dffee 85%, #9dffee 100%
+  background-image: linear-gradient(
+    to right,
+    #ff9d9d,
+    #ff9d9d 20%,
+    #ffbf9d 20%,
+    #ffbf9d 25%,
+    #ffd19d 25%,
+    #ffd19d 30%,
+    #c9e7a5 30%,
+    #c9e7a5 40%,
+    #9dddff 40%,
+    #9dddff 50%,
+    #9db5ff 50%,
+    #9db5ff 60%,
+    #cc99ff 60%,
+    #cc99ff 70%,
+    #ff9dce 70%,
+    #ff9dce 85%,
+    #9dffee 85%,
+    #9dffee 100%
   );
   border-radius: 4px;
   position: relative;
@@ -363,11 +420,12 @@ const selectMethod = (method: any) => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: linear-gradient(to bottom, 
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0) 50%,
-    rgba(255,255,255,0.1) 51%,
-    rgba(255,255,255,0.1) 100%
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.1) 51%,
+    rgba(255, 255, 255, 0.1) 100%
   );
   background-size: 100% 20px;
 }

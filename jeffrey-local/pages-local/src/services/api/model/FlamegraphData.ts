@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import Frame from "@/services/api/model/Frame";
+import Frame from '@/services/api/model/Frame';
 
 export default class FlamegraphData {
-    constructor(
-        public depth: number,
-        public levels: Frame[][]) {
-    }
+  constructor(
+    public depth: number,
+    public levels: Frame[][]
+  ) {}
 }

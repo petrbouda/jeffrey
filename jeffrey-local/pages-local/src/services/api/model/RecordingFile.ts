@@ -16,15 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingFileType from "@/services/api/model/RecordingFileType.ts";
+import RecordingFileType from '@/services/api/model/RecordingFileType.ts';
 
 export default class RecordingFile {
-    constructor(
-        public id: string,
-        public filename: string,
-        public sizeInBytes: number,
-        public type: RecordingFileType,
-        public description: string,
-    ) {
-    }
+  constructor(
+    public id: string,
+    public filename: string,
+    public sizeInBytes: number,
+    public type: RecordingFileType,
+    public description: string
+  ) {}
 }

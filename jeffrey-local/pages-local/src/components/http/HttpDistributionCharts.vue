@@ -1,31 +1,31 @@
 <template>
   <DualPanel
-      :title="title"
-      :icon="icon"
-      :embedded="embedded"
-      left-title="Status Codes"
-      right-title="HTTP Methods"
+    :title="title"
+    :icon="icon"
+    :embedded="embedded"
+    left-title="Status Codes"
+    right-title="HTTP Methods"
   >
     <template #left>
       <DonutWithLegend
-          :data="statusCodeChartData"
-          :tooltip-formatter="(val: number) => val + ' requests'"
+        :data="statusCodeChartData"
+        :tooltip-formatter="(val: number) => val + ' requests'"
       />
     </template>
     <template #right>
       <DonutWithLegend
-          :data="httpMethodChartData"
-          :tooltip-formatter="(val: number) => val + ' requests'"
+        :data="httpMethodChartData"
+        :tooltip-formatter="(val: number) => val + ' requests'"
       />
     </template>
   </DualPanel>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type {DonutChartData} from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import FormattingService from '@/services/FormattingService';
 
 interface StatusCode {
@@ -63,13 +63,20 @@ const statusCodeColor = (code: number): string => {
 
 const httpMethodColor = (method: string): string => {
   switch (method.toUpperCase()) {
-    case 'GET': return '#5a9fd4';
-    case 'POST': return '#5cb85c';
-    case 'PUT': return '#f0ad4e';
-    case 'DELETE': return '#d9534f';
-    case 'PATCH': return '#6c757d';
-    case 'OPTIONS': return '#9b59b6';
-    default: return '#95a5a6';
+    case 'GET':
+      return '#5a9fd4';
+    case 'POST':
+      return '#5cb85c';
+    case 'PUT':
+      return '#f0ad4e';
+    case 'DELETE':
+      return '#d9534f';
+    case 'PATCH':
+      return '#6c757d';
+    case 'OPTIONS':
+      return '#9b59b6';
+    default:
+      return '#95a5a6';
   }
 };
 

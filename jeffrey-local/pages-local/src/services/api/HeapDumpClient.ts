@@ -41,217 +41,253 @@ import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
 
 export default class HeapDumpClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'heap');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'heap');
-    }
+  public exists(): Promise<boolean> {
+    return this.get<boolean>('/exists');
+  }
 
-    public exists(): Promise<boolean> {
-        return this.get<boolean>('/exists');
-    }
+  public isCacheReady(): Promise<boolean> {
+    return this.get<boolean>('/cache-ready');
+  }
 
-    public isCacheReady(): Promise<boolean> {
-        return this.get<boolean>('/cache-ready');
-    }
+  public getSummary(): Promise<HeapSummary> {
+    return this.get<HeapSummary>('/summary');
+  }
 
-    public getSummary(): Promise<HeapSummary> {
-        return this.get<HeapSummary>('/summary');
-    }
+  public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {
+    return this.get<ClassHistogramEntry[]>('/histogram', { topN, sortBy });
+  }
 
-    public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {
-        return this.get<ClassHistogramEntry[]>('/histogram', { topN, sortBy });
-    }
+  public executeQuery(
+    query: string,
+    limit: number = 100,
+    offset: number = 0,
+    includeRetainedSize: boolean = true
+  ): Promise<OQLQueryResult> {
+    return this.post<OQLQueryResult>('/query', { query, limit, offset, includeRetainedSize });
+  }
 
-    public executeQuery(query: string, limit: number = 100, offset: number = 0, includeRetainedSize: boolean = true): Promise<OQLQueryResult> {
-        return this.post<OQLQueryResult>('/query', { query, limit, offset, includeRetainedSize });
-    }
+  public getThreads(): Promise<HeapThreadInfo[]> {
+    return this.get<HeapThreadInfo[]>('/threads');
+  }
 
-    public getThreads(): Promise<HeapThreadInfo[]> {
-        return this.get<HeapThreadInfo[]>('/threads');
-    }
+  public getGCRoots(): Promise<GCRootSummary> {
+    return this.get<GCRootSummary>('/gc-roots');
+  }
 
-    public getGCRoots(): Promise<GCRootSummary> {
-        return this.get<GCRootSummary>('/gc-roots');
-    }
+  public unload(): Promise<void> {
+    return this.post<void>('/unload', {});
+  }
 
-    public unload(): Promise<void> {
-        return this.post<void>('/unload', {});
-    }
+  public deleteCache(): Promise<void> {
+    return this.post<void>('/delete-cache', {});
+  }
 
-    public deleteCache(): Promise<void> {
-        return this.post<void>('/delete-cache', {});
-    }
+  public deleteHeapDump(): Promise<void> {
+    return this.post<void>('/delete', {});
+  }
 
-    public deleteHeapDump(): Promise<void> {
-        return this.post<void>('/delete', {});
-    }
+  public sanitize(): Promise<void> {
+    return this.post<void>('/sanitize', {});
+  }
 
-    public sanitize(): Promise<void> {
-        return this.post<void>('/sanitize', {});
-    }
+  public initialize(compressedOops?: boolean): Promise<HeapSummary> {
+    const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
+    return this.post<HeapSummary>(`/initialize${params}`, {});
+  }
 
-    public initialize(compressedOops?: boolean): Promise<HeapSummary> {
-        const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
-        return this.post<HeapSummary>(`/initialize${params}`, {});
-    }
+  public getConfig(): Promise<HeapDumpConfig> {
+    return this.get<HeapDumpConfig>('/config');
+  }
 
-    public getConfig(): Promise<HeapDumpConfig> {
-        return this.get<HeapDumpConfig>('/config');
-    }
+  public uploadHeapDump(file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return axios
+      .post(`${this.baseUrl}/upload`, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
+      .then(HttpUtils.RETURN_DATA);
+  }
 
-    public uploadHeapDump(file: File): Promise<void> {
-        const formData = new FormData();
-        formData.append("file", file, file.name);
-        return axios.post(`${this.baseUrl}/upload`, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
-            .then(HttpUtils.RETURN_DATA);
-    }
+  public stringAnalysisExists(): Promise<boolean> {
+    return this.get<boolean>('/string-analysis/exists');
+  }
 
-    public stringAnalysisExists(): Promise<boolean> {
-        return this.get<boolean>('/string-analysis/exists');
-    }
+  public getStringAnalysis(): Promise<StringAnalysisReport> {
+    return this.get<StringAnalysisReport>('/string-analysis');
+  }
 
-    public getStringAnalysis(): Promise<StringAnalysisReport> {
-        return this.get<StringAnalysisReport>('/string-analysis');
-    }
+  public runStringAnalysis(topN: number = 100): Promise<void> {
+    return this.post<void>(`/string-analysis/run?topN=${topN}`, {});
+  }
 
-    public runStringAnalysis(topN: number = 100): Promise<void> {
-        return this.post<void>(`/string-analysis/run?topN=${topN}`, {});
-    }
+  public threadAnalysisExists(): Promise<boolean> {
+    return this.get<boolean>('/thread-analysis/exists');
+  }
 
-    public threadAnalysisExists(): Promise<boolean> {
-        return this.get<boolean>('/thread-analysis/exists');
-    }
+  public getThreadAnalysis(): Promise<ThreadAnalysisReport> {
+    return this.get<ThreadAnalysisReport>('/thread-analysis');
+  }
 
-    public getThreadAnalysis(): Promise<ThreadAnalysisReport> {
-        return this.get<ThreadAnalysisReport>('/thread-analysis');
-    }
+  public runThreadAnalysis(): Promise<void> {
+    return this.post<void>('/thread-analysis/run', {});
+  }
 
-    public runThreadAnalysis(): Promise<void> {
-        return this.post<void>('/thread-analysis/run', {});
-    }
+  public getInstanceDetail(
+    objectId: number,
+    includeRetained: boolean = false
+  ): Promise<InstanceDetail> {
+    return this.get<InstanceDetail>(`/instance/${objectId}`, { includeRetained });
+  }
 
-    public getInstanceDetail(objectId: number, includeRetained: boolean = false): Promise<InstanceDetail> {
-        return this.get<InstanceDetail>(`/instance/${objectId}`, { includeRetained });
-    }
+  public getReferrers(
+    objectId: number,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<InstanceTreeResponse> {
+    return this.get<InstanceTreeResponse>(`/instance/${objectId}/referrers`, { limit, offset });
+  }
 
-    public getReferrers(objectId: number, limit: number = 50, offset: number = 0): Promise<InstanceTreeResponse> {
-        return this.get<InstanceTreeResponse>(`/instance/${objectId}/referrers`, { limit, offset });
-    }
+  public getReachables(
+    objectId: number,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<InstanceTreeResponse> {
+    return this.get<InstanceTreeResponse>(`/instance/${objectId}/reachables`, { limit, offset });
+  }
 
-    public getReachables(objectId: number, limit: number = 50, offset: number = 0): Promise<InstanceTreeResponse> {
-        return this.get<InstanceTreeResponse>(`/instance/${objectId}/reachables`, { limit, offset });
-    }
+  // --- Path to GC Root ---
 
-    // --- Path to GC Root ---
+  public getPathToGCRoot(
+    objectId: number,
+    excludeWeak: boolean = true,
+    maxPaths: number = 3
+  ): Promise<GCRootPath[]> {
+    return this.get<GCRootPath[]>(`/instance/${objectId}/gc-root-path`, { excludeWeak, maxPaths });
+  }
 
-    public getPathToGCRoot(objectId: number, excludeWeak: boolean = true, maxPaths: number = 3): Promise<GCRootPath[]> {
-        return this.get<GCRootPath[]>(`/instance/${objectId}/gc-root-path`, { excludeWeak, maxPaths });
-    }
+  // --- Dominator Tree ---
 
-    // --- Dominator Tree ---
+  public getDominatorTreeRoots(limit: number = 50): Promise<DominatorTreeResponse> {
+    return this.get<DominatorTreeResponse>('/dominator-tree', { limit });
+  }
 
-    public getDominatorTreeRoots(limit: number = 50): Promise<DominatorTreeResponse> {
-        return this.get<DominatorTreeResponse>('/dominator-tree', { limit });
-    }
+  public getDominatorTreeChildren(
+    objectId: number,
+    offset: number = 0,
+    limit: number = 50
+  ): Promise<DominatorTreeResponse> {
+    return this.get<DominatorTreeResponse>(`/dominator-tree/${objectId}/children`, {
+      offset,
+      limit
+    });
+  }
 
-    public getDominatorTreeChildren(objectId: number, offset: number = 0, limit: number = 50): Promise<DominatorTreeResponse> {
-        return this.get<DominatorTreeResponse>(`/dominator-tree/${objectId}/children`, { offset, limit });
-    }
+  // --- Collection Analysis ---
 
-    // --- Collection Analysis ---
+  public collectionAnalysisExists(): Promise<boolean> {
+    return this.get<boolean>('/collection-analysis/exists');
+  }
 
-    public collectionAnalysisExists(): Promise<boolean> {
-        return this.get<boolean>('/collection-analysis/exists');
-    }
+  public getCollectionAnalysis(): Promise<CollectionAnalysisReport> {
+    return this.get<CollectionAnalysisReport>('/collection-analysis');
+  }
 
-    public getCollectionAnalysis(): Promise<CollectionAnalysisReport> {
-        return this.get<CollectionAnalysisReport>('/collection-analysis');
-    }
+  public runCollectionAnalysis(): Promise<void> {
+    return this.post<void>('/collection-analysis/run', {});
+  }
 
-    public runCollectionAnalysis(): Promise<void> {
-        return this.post<void>('/collection-analysis/run', {});
-    }
+  // --- Class Instance Browser ---
 
-    // --- Class Instance Browser ---
+  public getClassInstances(
+    className: string,
+    limit: number = 50,
+    offset: number = 0,
+    includeRetainedSize: boolean = false
+  ): Promise<ClassInstancesResponse> {
+    return this.get<ClassInstancesResponse>('/class-instances', {
+      className,
+      limit,
+      offset,
+      includeRetainedSize
+    });
+  }
 
-    public getClassInstances(className: string, limit: number = 50, offset: number = 0, includeRetainedSize: boolean = false): Promise<ClassInstancesResponse> {
-        return this.get<ClassInstancesResponse>('/class-instances', { className, limit, offset, includeRetainedSize });
-    }
+  // --- Leak Suspects ---
 
-    // --- Leak Suspects ---
+  public leakSuspectsExists(): Promise<boolean> {
+    return this.get<boolean>('/leak-suspects/exists');
+  }
 
-    public leakSuspectsExists(): Promise<boolean> {
-        return this.get<boolean>('/leak-suspects/exists');
-    }
+  public getLeakSuspects(): Promise<LeakSuspectsReport> {
+    return this.get<LeakSuspectsReport>('/leak-suspects');
+  }
 
-    public getLeakSuspects(): Promise<LeakSuspectsReport> {
-        return this.get<LeakSuspectsReport>('/leak-suspects');
-    }
+  public runLeakSuspects(): Promise<void> {
+    return this.post<void>('/leak-suspects/run', {});
+  }
 
-    public runLeakSuspects(): Promise<void> {
-        return this.post<void>('/leak-suspects/run', {});
-    }
+  // --- Biggest Objects ---
 
-    // --- Biggest Objects ---
+  public biggestObjectsExists(): Promise<boolean> {
+    return this.get<boolean>('/biggest-objects/exists');
+  }
 
-    public biggestObjectsExists(): Promise<boolean> {
-        return this.get<boolean>('/biggest-objects/exists');
-    }
+  public getBiggestObjects(): Promise<BiggestObjectsReport> {
+    return this.get<BiggestObjectsReport>('/biggest-objects');
+  }
 
-    public getBiggestObjects(): Promise<BiggestObjectsReport> {
-        return this.get<BiggestObjectsReport>('/biggest-objects');
-    }
+  public runBiggestObjects(topN: number = 20): Promise<void> {
+    return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
+  }
 
-    public runBiggestObjects(topN: number = 20): Promise<void> {
-        return this.post<void>(`/biggest-objects/run?topN=${topN}`, {});
-    }
+  // --- Biggest Collections ---
 
-    // --- Biggest Collections ---
+  public biggestCollectionsExists(): Promise<boolean> {
+    return this.get<boolean>('/biggest-collections/exists');
+  }
 
-    public biggestCollectionsExists(): Promise<boolean> {
-        return this.get<boolean>('/biggest-collections/exists');
-    }
+  public getBiggestCollections(): Promise<BiggestCollectionsReport> {
+    return this.get<BiggestCollectionsReport>('/biggest-collections');
+  }
 
-    public getBiggestCollections(): Promise<BiggestCollectionsReport> {
-        return this.get<BiggestCollectionsReport>('/biggest-collections');
-    }
+  public runBiggestCollections(topN: number = 50): Promise<void> {
+    return this.post<void>(`/biggest-collections/run?topN=${topN}`, {});
+  }
 
-    public runBiggestCollections(topN: number = 50): Promise<void> {
-        return this.post<void>(`/biggest-collections/run?topN=${topN}`, {});
-    }
+  // --- Duplicate Objects ---
 
-    // --- Duplicate Objects ---
+  public duplicateObjectsExists(): Promise<boolean> {
+    return this.get<boolean>('/duplicate-objects/exists');
+  }
 
-    public duplicateObjectsExists(): Promise<boolean> {
-        return this.get<boolean>('/duplicate-objects/exists');
-    }
+  public getDuplicateObjects(): Promise<DuplicateObjectsReport> {
+    return this.get<DuplicateObjectsReport>('/duplicate-objects');
+  }
 
-    public getDuplicateObjects(): Promise<DuplicateObjectsReport> {
-        return this.get<DuplicateObjectsReport>('/duplicate-objects');
-    }
+  public runDuplicateObjects(topN: number = 100): Promise<void> {
+    return this.post<void>(`/duplicate-objects/run?topN=${topN}`, {});
+  }
 
-    public runDuplicateObjects(topN: number = 100): Promise<void> {
-        return this.post<void>(`/duplicate-objects/run?topN=${topN}`, {});
-    }
+  // --- Class Loader Analysis ---
 
-    // --- Class Loader Analysis ---
+  public classLoaderAnalysisExists(): Promise<boolean> {
+    return this.get<boolean>('/classloader-analysis/exists');
+  }
 
-    public classLoaderAnalysisExists(): Promise<boolean> {
-        return this.get<boolean>('/classloader-analysis/exists');
-    }
+  public getClassLoaderAnalysis(): Promise<ClassLoaderReport> {
+    return this.get<ClassLoaderReport>('/classloader-analysis');
+  }
 
-    public getClassLoaderAnalysis(): Promise<ClassLoaderReport> {
-        return this.get<ClassLoaderReport>('/classloader-analysis');
-    }
+  public runClassLoaderAnalysis(): Promise<void> {
+    return this.post<void>('/classloader-analysis/run', {});
+  }
 
-    public runClassLoaderAnalysis(): Promise<void> {
-        return this.post<void>('/classloader-analysis/run', {});
-    }
+  // --- Thread Stack ---
 
-    // --- Thread Stack ---
-
-    public getThreadStack(objectId: number): Promise<ThreadStackFrame[]> {
-        return this.get<ThreadStackFrame[]>(`/threads/${objectId}/stack`);
-    }
-
+  public getThreadStack(objectId: number): Promise<ThreadStackFrame[]> {
+    return this.get<ThreadStackFrame[]>(`/threads/${objectId}/stack`);
+  }
 }

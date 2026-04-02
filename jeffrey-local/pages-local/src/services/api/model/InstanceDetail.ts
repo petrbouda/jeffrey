@@ -19,13 +19,13 @@
 import InstanceField from './InstanceField';
 
 export default interface InstanceDetail {
-    objectId: number;
-    className: string;
-    value: string;
-    stringValue: string | null;
-    displayValue: string | null;
-    shallowSize: number;
-    retainedSize: number | null;
-    fields: InstanceField[];
-    staticFields: InstanceField[];
+  objectId: number;
+  className: string;
+  value: string;
+  stringValue: string | null;
+  displayValue: string | null;
+  shallowSize: number;
+  retainedSize: number | null;
+  fields: InstanceField[];
+  staticFields: InstanceField[];
 }

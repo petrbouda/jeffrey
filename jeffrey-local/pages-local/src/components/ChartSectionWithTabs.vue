@@ -12,15 +12,15 @@
           <div class="dashboard-tabs">
             <ul class="nav nav-tabs" role="tablist">
               <li v-for="(tab, index) in tabs" :key="tab.id" class="nav-item" role="presentation">
-                <button 
-                  class="nav-link" 
-                  :class="{ active: activeTabIndex === index }" 
-                  :id="`${props.idPrefix}${tab.id}-tab`" 
-                  data-bs-toggle="tab" 
-                  :data-bs-target="`#${props.idPrefix}${tab.id}-tab-pane`" 
-                  type="button" 
-                  role="tab" 
-                  :aria-controls="`${props.idPrefix}${tab.id}-tab-pane`" 
+                <button
+                  class="nav-link"
+                  :class="{ active: activeTabIndex === index }"
+                  :id="`${props.idPrefix}${tab.id}-tab`"
+                  data-bs-toggle="tab"
+                  :data-bs-target="`#${props.idPrefix}${tab.id}-tab-pane`"
+                  type="button"
+                  role="tab"
+                  :aria-controls="`${props.idPrefix}${tab.id}-tab-pane`"
                   :aria-selected="activeTabIndex === index"
                   @click="setActiveTab(index)"
                 >
@@ -30,14 +30,14 @@
             </ul>
 
             <div class="tab-content">
-              <div 
-                v-for="(tab, index) in tabs" 
-                :key="tab.id" 
-                class="tab-pane fade" 
-                :class="{ 'show active': activeTabIndex === index }" 
-                :id="`${props.idPrefix}${tab.id}-tab-pane`" 
-                role="tabpanel" 
-                :aria-labelledby="`${props.idPrefix}${tab.id}-tab`" 
+              <div
+                v-for="(tab, index) in tabs"
+                :key="tab.id"
+                class="tab-pane fade"
+                :class="{ 'show active': activeTabIndex === index }"
+                :id="`${props.idPrefix}${tab.id}-tab-pane`"
+                role="tabpanel"
+                :aria-labelledby="`${props.idPrefix}${tab.id}-tab`"
                 tabindex="0"
               >
                 <slot :name="tab.id" :tab="tab" :index="index"></slot>
@@ -73,7 +73,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  tabChange: [tabIndex: number, tab: Tab]
+  tabChange: [tabIndex: number, tab: Tab];
 }>();
 
 const activeTabIndex = ref(0);

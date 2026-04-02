@@ -17,7 +17,7 @@
  */
 
 export default interface HeapDumpConfig {
-    compressedOops: boolean;
-    compressedOopsSource: string;
-    totalOvercount: number;
+  compressedOops: boolean;
+  compressedOopsSource: string;
+  totalOvercount: number;
 }

@@ -17,11 +17,13 @@
   -->
 
 <template>
-  <div class="modal modal-overlay"
-       :class="{ 'd-block': show, 'd-none': !show }"
-       tabindex="-1"
-       @keyup.esc="closeModal"
-       @click.self="closeModal">
+  <div
+    class="modal modal-overlay"
+    :class="{ 'd-block': show, 'd-none': !show }"
+    tabindex="-1"
+    @keyup.esc="closeModal"
+    @click.self="closeModal"
+  >
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content">
         <!-- Header -->
@@ -39,21 +41,29 @@
             <!-- Mode Toggle -->
             <div class="btn-group btn-group-sm">
               <button
-                  class="btn"
-                  :class="mode === 'REFERRERS' ? 'btn-primary' : 'btn-outline-primary'"
-                  @click="switchMode('REFERRERS')"
-                  title="Objects that reference this instance">
+                class="btn"
+                :class="mode === 'REFERRERS' ? 'btn-primary' : 'btn-outline-primary'"
+                @click="switchMode('REFERRERS')"
+                title="Objects that reference this instance"
+              >
                 <i class="bi bi-arrow-left-circle me-1"></i>Referrers
               </button>
               <button
-                  class="btn"
-                  :class="mode === 'REACHABLES' ? 'btn-primary' : 'btn-outline-primary'"
-                  @click="switchMode('REACHABLES')"
-                  title="Objects referenced by this instance">
+                class="btn"
+                :class="mode === 'REACHABLES' ? 'btn-primary' : 'btn-outline-primary'"
+                @click="switchMode('REACHABLES')"
+                title="Objects referenced by this instance"
+              >
                 Reachables<i class="bi bi-arrow-right-circle ms-1"></i>
               </button>
             </div>
-            <button type="button" class="close-btn ms-3" @click="closeModal" aria-label="Close" title="Close">
+            <button
+              type="button"
+              class="close-btn ms-3"
+              @click="closeModal"
+              aria-label="Close"
+              title="Close"
+            >
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
@@ -84,7 +94,11 @@
                 </span>
               </div>
               <div class="tree-actions">
-                <button class="btn btn-sm btn-outline-secondary" @click="collapseAll" title="Collapse all">
+                <button
+                  class="btn btn-sm btn-outline-secondary"
+                  @click="collapseAll"
+                  title="Collapse all"
+                >
                   <i class="bi bi-arrows-collapse"></i>
                 </button>
               </div>
@@ -94,16 +108,16 @@
             <div class="tree-content">
               <!-- Root Node -->
               <InstanceTreeNodeItem
-                  v-if="rootNode"
-                  :node="rootNode"
-                  :mode="mode"
-                  :depth="0"
-                  :expanded="true"
-                  :children="children"
-                  :has-more="hasMore"
-                  :client="client"
-                  @select="handleNodeSelect"
-                  @load-more="loadMoreChildren"
+                v-if="rootNode"
+                :node="rootNode"
+                :mode="mode"
+                :depth="0"
+                :expanded="true"
+                :children="children"
+                :has-more="hasMore"
+                :client="client"
+                @select="handleNodeSelect"
+                @load-more="loadMoreChildren"
               />
             </div>
           </div>
@@ -120,11 +134,11 @@
 
     <!-- Instance Detail Panel -->
     <InstanceDetailPanel
-        :is-open="!!selectedNode"
-        :object-id="selectedNode?.objectId ?? null"
-        :client="client"
-        @close="selectedNode = null"
-        @navigate="navigateToInstance"
+      :is-open="!!selectedNode"
+      :object-id="selectedNode?.objectId ?? null"
+      :client="client"
+      @close="selectedNode = null"
+      @navigate="navigateToInstance"
     />
   </div>
 </template>
@@ -181,7 +195,8 @@ const loadTree = async () => {
   error.value = null;
 
   try {
-    const response = mode.value === 'REFERRERS'
+    const response =
+      mode.value === 'REFERRERS'
         ? await client.value.getReferrers(props.objectId)
         : await client.value.getReachables(props.objectId);
 
@@ -201,7 +216,8 @@ const loadMoreChildren = async () => {
   if (!client.value || !hasMore.value) return;
 
   try {
-    const response = mode.value === 'REFERRERS'
+    const response =
+      mode.value === 'REFERRERS'
         ? await client.value.getReferrers(props.objectId, 50, children.value.length)
         : await client.value.getReachables(props.objectId, 50, children.value.length);
 
@@ -231,20 +247,26 @@ const collapseAll = () => {
 };
 
 // Initialize client and load tree when modal opens
-watch(() => props.show, async (show) => {
-  if (show) {
-    client.value = new HeapDumpClient(props.profileId);
-    mode.value = props.initialMode;
-    await loadTree();
+watch(
+  () => props.show,
+  async show => {
+    if (show) {
+      client.value = new HeapDumpClient(props.profileId);
+      mode.value = props.initialMode;
+      await loadTree();
+    }
   }
-});
+);
 
 // Reset when objectId changes
-watch(() => props.objectId, async () => {
-  if (props.show) {
-    await loadTree();
+watch(
+  () => props.objectId,
+  async () => {
+    if (props.show) {
+      await loadTree();
+    }
   }
-});
+);
 
 onMounted(() => {
   if (props.show) {

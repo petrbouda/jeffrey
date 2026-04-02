@@ -17,8 +17,8 @@
  */
 
 export default class RecordingGroup {
-    constructor(
-        public id: string,
-        public name: string) {
-    }
+  constructor(
+    public id: string,
+    public name: string
+  ) {}
 }

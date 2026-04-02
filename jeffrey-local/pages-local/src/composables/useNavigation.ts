@@ -26,11 +26,11 @@ export function useNavigation() {
 
   // Get workspaceId and projectId from route params OR from profileStore
   // This enables working with both old nested URLs and new simplified URLs
-  const workspaceId = computed(() =>
-    (route.params.workspaceId as string) || profileStore.workspaceId.value
+  const workspaceId = computed(
+    () => (route.params.workspaceId as string) || profileStore.workspaceId.value
   );
-  const projectId = computed(() =>
-    (route.params.projectId as string) || profileStore.projectId.value
+  const projectId = computed(
+    () => (route.params.projectId as string) || profileStore.projectId.value
   );
   const profileId = computed(() => route.params.profileId as string);
   const instanceId = computed(() => route.params.instanceId as string);
@@ -38,8 +38,8 @@ export function useNavigation() {
   /**
    * Check if we're using the simplified profile URL pattern (/profiles/:profileId/...)
    */
-  const isSimplifiedProfileUrl = computed(() =>
-    route.path.startsWith('/profiles/') && !route.params.workspaceId
+  const isSimplifiedProfileUrl = computed(
+    () => route.path.startsWith('/profiles/') && !route.params.workspaceId
   );
 
   const navigateToWorkspace = (workspaceId: string) => {
@@ -124,6 +124,6 @@ export function useNavigation() {
     // URL generators
     generateProjectUrl,
     generateProfileUrl,
-    generateInstanceUrl,
+    generateInstanceUrl
   };
 }

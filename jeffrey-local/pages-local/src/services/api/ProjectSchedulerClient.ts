@@ -20,28 +20,27 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import JobInfo from '@/services/api/model/JobInfo';
 
 export default class ProjectSchedulerClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/scheduler`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/scheduler`);
-    }
+  create(jobType: string, params: Map<string, string>): Promise<JobInfo> {
+    const content = {
+      jobType: jobType,
+      params: Object.fromEntries(params)
+    };
+    return super.post<JobInfo>('', content);
+  }
 
-    create(jobType: string, params: Map<string, string>): Promise<JobInfo> {
-        const content = {
-            jobType: jobType,
-            params: Object.fromEntries(params),
-        };
-        return super.post<JobInfo>('', content);
-    }
+  all(): Promise<JobInfo[]> {
+    return super.get<JobInfo[]>();
+  }
 
-    all(): Promise<JobInfo[]> {
-        return super.get<JobInfo[]>();
-    }
+  updateEnabled(jobId: string, enabled: boolean): Promise<void> {
+    return super.put<void>(`/${jobId}/enabled`, { enabled });
+  }
 
-    updateEnabled(jobId: string, enabled: boolean): Promise<void> {
-        return super.put<void>(`/${jobId}/enabled`, { enabled });
-    }
-
-    delete(jobId: string): Promise<void> {
-        return super.del<void>(`/${jobId}`);
-    }
+  delete(jobId: string): Promise<void> {
+    return super.del<void>(`/${jobId}`);
+  }
 }

@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FlamegraphData from "@/services/api/model/FlamegraphData";
-import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 export default class BothGraphData {
-    constructor(
-        public flamegraph: FlamegraphData,
-        public timeseries: TimeseriesData) {
-    }
+  constructor(
+    public flamegraph: FlamegraphData,
+    public timeseries: TimeseriesData
+  ) {}
 }

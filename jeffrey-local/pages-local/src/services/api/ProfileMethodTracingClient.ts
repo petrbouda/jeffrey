@@ -22,20 +22,19 @@ import MethodTracingSlowestData from '@/services/api/model/MethodTracingSlowestD
 import MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumulatedData';
 
 export default class ProfileMethodTracingClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'method-tracing');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'method-tracing');
-    }
+  public getOverview(): Promise<MethodTracingOverviewData> {
+    return this.get<MethodTracingOverviewData>('/overview');
+  }
 
-    public getOverview(): Promise<MethodTracingOverviewData> {
-        return this.get<MethodTracingOverviewData>('/overview');
-    }
+  public getSlowest(): Promise<MethodTracingSlowestData> {
+    return this.get<MethodTracingSlowestData>('/slowest');
+  }
 
-    public getSlowest(): Promise<MethodTracingSlowestData> {
-        return this.get<MethodTracingSlowestData>('/slowest');
-    }
-
-    public getCumulated(mode: 'method' | 'class'): Promise<MethodTracingCumulatedData> {
-        return this.get<MethodTracingCumulatedData>('/cumulated', { mode });
-    }
+  public getCumulated(mode: 'method' | 'class'): Promise<MethodTracingCumulatedData> {
+    return this.get<MethodTracingCumulatedData>('/cumulated', { mode });
+  }
 }

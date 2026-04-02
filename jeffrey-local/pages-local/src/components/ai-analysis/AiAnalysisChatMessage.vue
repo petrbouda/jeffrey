@@ -7,7 +7,7 @@
       <div class="message-text" v-html="formattedContent"></div>
 
       <!-- Message Metadata (duration + tools) -->
-      <div v-if="(message.toolsUsed?.length) || message.durationSeconds" class="message-metadata">
+      <div v-if="message.toolsUsed?.length || message.durationSeconds" class="message-metadata">
         <div v-if="message.durationSeconds" class="response-duration">
           <i class="bi-clock"></i>
           <span>{{ message.durationSeconds }}s</span>
@@ -155,10 +155,18 @@ const formattedContent = computed(() => {
   color: #1f2328;
 }
 
-.message-text :deep(h1) { font-size: 1rem; }
-.message-text :deep(h2) { font-size: 0.925rem; }
-.message-text :deep(h3) { font-size: 0.875rem; }
-.message-text :deep(h4) { font-size: 0.8rem; }
+.message-text :deep(h1) {
+  font-size: 1rem;
+}
+.message-text :deep(h2) {
+  font-size: 0.925rem;
+}
+.message-text :deep(h3) {
+  font-size: 0.875rem;
+}
+.message-text :deep(h4) {
+  font-size: 0.8rem;
+}
 
 .message-text :deep(h1:first-child),
 .message-text :deep(h2:first-child),
@@ -174,7 +182,13 @@ const formattedContent = computed(() => {
   border-radius: 3px;
   font-size: 0.75rem;
   color: #0969da;
-  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    SF Mono,
+    Menlo,
+    Consolas,
+    monospace;
 }
 
 /* Code blocks */

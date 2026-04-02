@@ -24,70 +24,90 @@ export function useProfilerConfig() {
   };
 
   // Watch for configuration validation
-  watch(() => optionStates.value.event, enabled => {
-    if (enabled) {
-      ensureSupportedEventValue();
+  watch(
+    () => optionStates.value.event,
+    enabled => {
+      if (enabled) {
+        ensureSupportedEventValue();
+      }
     }
-  });
+  );
 
-  watch(() => optionStates.value.alloc, enabled => {
-    if (enabled) {
-      if (!PROFILER_CONSTANTS.allocUnits.includes(config.value.allocUnit as any)) {
-        config.value.allocUnit = 'mb';
+  watch(
+    () => optionStates.value.alloc,
+    enabled => {
+      if (enabled) {
+        if (!PROFILER_CONSTANTS.allocUnits.includes(config.value.allocUnit as any)) {
+          config.value.allocUnit = 'mb';
+        }
+        if (!config.value.allocThresholdEnabled) {
+          config.value.allocValue = null;
+        } else if (!config.value.allocValue || config.value.allocValue < 1) {
+          config.value.allocValue = 64;
+        }
+      } else {
+        config.value.allocThresholdEnabled = false;
       }
-      if (!config.value.allocThresholdEnabled) {
-        config.value.allocValue = null;
-      } else if (!config.value.allocValue || config.value.allocValue < 1) {
-        config.value.allocValue = 64;
-      }
-    } else {
-      config.value.allocThresholdEnabled = false;
     }
-  });
+  );
 
-  watch(() => optionStates.value.lock, enabled => {
-    if (enabled) {
-      if (!PROFILER_CONSTANTS.lockUnits.includes(config.value.lockThresholdUnit as any)) {
-        config.value.lockThresholdUnit = 'ms';
+  watch(
+    () => optionStates.value.lock,
+    enabled => {
+      if (enabled) {
+        if (!PROFILER_CONSTANTS.lockUnits.includes(config.value.lockThresholdUnit as any)) {
+          config.value.lockThresholdUnit = 'ms';
+        }
       }
     }
-  });
+  );
 
   // Validation watchers
-  watch(() => config.value.allocUnit, unit => {
-    if (!PROFILER_CONSTANTS.allocUnits.includes(unit as any)) {
-      config.value.allocUnit = 'kb';
-    }
-  });
-
-  watch(() => config.value.allocValue, value => {
-    if (config.value.allocThresholdEnabled && (!value || value < 1)) {
-      config.value.allocValue = 1;
-    }
-  });
-
-  watch(() => config.value.allocThresholdEnabled, enabled => {
-    if (enabled) {
-      if (!config.value.allocValue || config.value.allocValue < 1) {
-        config.value.allocValue = 64;
+  watch(
+    () => config.value.allocUnit,
+    unit => {
+      if (!PROFILER_CONSTANTS.allocUnits.includes(unit as any)) {
+        config.value.allocUnit = 'kb';
       }
-    } else {
-      config.value.allocValue = null;
     }
-  });
+  );
 
-
-
-  watch(() => config.value.intervalUnit, unit => {
-    if (!PROFILER_CONSTANTS.intervalUnits.includes(unit as any)) {
-      config.value.intervalUnit = 'ms';
+  watch(
+    () => config.value.allocValue,
+    value => {
+      if (config.value.allocThresholdEnabled && (!value || value < 1)) {
+        config.value.allocValue = 1;
+      }
     }
-  });
+  );
+
+  watch(
+    () => config.value.allocThresholdEnabled,
+    enabled => {
+      if (enabled) {
+        if (!config.value.allocValue || config.value.allocValue < 1) {
+          config.value.allocValue = 64;
+        }
+      } else {
+        config.value.allocValue = null;
+      }
+    }
+  );
+
+  watch(
+    () => config.value.intervalUnit,
+    unit => {
+      if (!PROFILER_CONSTANTS.intervalUnits.includes(unit as any)) {
+        config.value.intervalUnit = 'ms';
+      }
+    }
+  );
 
   const builderTokens = computed((): ConfigToken[] => {
-    const agentPath = config.value.agentPathCustom && config.value.agentPathCustom.trim()
-      ? config.value.agentPathCustom
-      : config.value.agentPath;
+    const agentPath =
+      config.value.agentPathCustom && config.value.agentPathCustom.trim()
+        ? config.value.agentPathCustom
+        : config.value.agentPath;
     const tokens: ConfigToken[] = [
       {
         key: 'agent',
@@ -144,8 +164,10 @@ export function useProfilerConfig() {
       }
     }
 
-    const loopValue = (config.value.loopValue && config.value.loopValue >= 1) ? config.value.loopValue : 15;
-    const loopUnit = (config.value.loopValue && config.value.loopValue >= 1) ? config.value.loopUnit : 'm';
+    const loopValue =
+      config.value.loopValue && config.value.loopValue >= 1 ? config.value.loopValue : 15;
+    const loopUnit =
+      config.value.loopValue && config.value.loopValue >= 1 ? config.value.loopUnit : 'm';
     tokens.push({
       key: 'loop',
       label: 'Loop',
@@ -219,7 +241,11 @@ export function useProfilerConfig() {
           label: 'JFR Sync',
           value: 'jfrsync=profile'
         });
-      } else if (config.value.jfcMode === 'custom' && config.value.jfrsyncFile && config.value.jfrsyncFile.trim()) {
+      } else if (
+        config.value.jfcMode === 'custom' &&
+        config.value.jfrsyncFile &&
+        config.value.jfrsyncFile.trim()
+      ) {
         // Use custom file path
         tokens.push({
           key: 'jfrsync',
@@ -252,7 +278,10 @@ export function useProfilerConfig() {
       });
     }
 
-    const filePattern = config.value.file && config.value.file.trim() ? config.value.file : '<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr';
+    const filePattern =
+      config.value.file && config.value.file.trim()
+        ? config.value.file
+        : '<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr';
     tokens.push({
       key: 'file',
       label: 'Output',
@@ -263,14 +292,17 @@ export function useProfilerConfig() {
   });
 
   const generateFromBuilder = (): string => {
-    const agentPath = config.value.agentPathCustom && config.value.agentPathCustom.trim()
-      ? config.value.agentPathCustom
-      : config.value.agentPath;
+    const agentPath =
+      config.value.agentPathCustom && config.value.agentPathCustom.trim()
+        ? config.value.agentPathCustom
+        : config.value.agentPath;
     const parts = [`-agentpath:${agentPath}=start`];
 
     if (optionStates.value.alloc) {
       if (config.value.allocValue && config.value.allocValue > 0) {
-        parts.push(`alloc=${config.value.allocValue}${config.value.allocUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`);
+        parts.push(
+          `alloc=${config.value.allocValue}${config.value.allocUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
+        );
       } else {
         parts.push('alloc');
       }
@@ -309,7 +341,9 @@ export function useProfilerConfig() {
 
     if (optionStates.value.nativeMem) {
       if (config.value.nativeMemValue && config.value.nativeMemValue > 0) {
-        parts.push(`nativemem=${config.value.nativeMemValue}${config.value.nativeMemUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`);
+        parts.push(
+          `nativemem=${config.value.nativeMemValue}${config.value.nativeMemUnit.toLowerCase() === 'mb' ? 'm' : 'k'}`
+        );
       } else {
         parts.push('nativemem');
       }
@@ -320,10 +354,11 @@ export function useProfilerConfig() {
     }
 
     // Always add loop (required)
-    const loopValue = (config.value.loopValue && config.value.loopValue >= 1) ? config.value.loopValue : 15;
-    const loopUnit = (config.value.loopValue && config.value.loopValue >= 1) ? config.value.loopUnit : 'm';
+    const loopValue =
+      config.value.loopValue && config.value.loopValue >= 1 ? config.value.loopValue : 15;
+    const loopUnit =
+      config.value.loopValue && config.value.loopValue >= 1 ? config.value.loopUnit : 'm';
     parts.push(`loop=${loopValue}${loopUnit}`);
-
 
     if (optionStates.value.jfrsync) {
       if (config.value.jfcMode === 'default') {
@@ -332,7 +367,11 @@ export function useProfilerConfig() {
       } else if (config.value.jfcMode === 'profile') {
         // Use predefined profile mode
         parts.push('jfrsync=profile');
-      } else if (config.value.jfcMode === 'custom' && config.value.jfrsyncFile && config.value.jfrsyncFile.trim()) {
+      } else if (
+        config.value.jfcMode === 'custom' &&
+        config.value.jfrsyncFile &&
+        config.value.jfrsyncFile.trim()
+      ) {
         // Use custom file path
         parts.push(`jfrsync=${config.value.jfrsyncFile.trim()}`);
       } else {
@@ -350,7 +389,10 @@ export function useProfilerConfig() {
     }
 
     // Always add file (mandatory)
-    const filePattern = config.value.file && config.value.file.trim() ? config.value.file : '<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr';
+    const filePattern =
+      config.value.file && config.value.file.trim()
+        ? config.value.file
+        : '<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr';
     parts.push(`file=${filePattern}`);
 
     return parts.join(',');

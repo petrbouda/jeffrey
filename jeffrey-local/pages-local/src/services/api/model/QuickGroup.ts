@@ -17,8 +17,8 @@
  */
 
 export default interface QuickGroup {
-    id: string;
-    name: string;
-    createdAt: string;
-    recordingCount: number;
+  id: string;
+  name: string;
+  createdAt: string;
+  recordingCount: number;
 }

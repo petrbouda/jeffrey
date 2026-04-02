@@ -11,13 +11,16 @@
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css'
+import '@/styles/shared-components.css';
 
-withDefaults(defineProps<{
-  bottomMargin?: boolean
-  noPadding?: boolean
-}>(), {
-  bottomMargin: true,
-  noPadding: false
-})
+withDefaults(
+  defineProps<{
+    bottomMargin?: boolean;
+    noPadding?: boolean;
+  }>(),
+  {
+    bottomMargin: true,
+    noPadding: false
+  }
+);
 </script>

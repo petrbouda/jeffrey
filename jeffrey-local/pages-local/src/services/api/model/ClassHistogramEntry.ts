@@ -17,7 +17,7 @@
  */
 
 export default interface ClassHistogramEntry {
-    className: string;
-    instanceCount: number;
-    totalSize: number;
+  className: string;
+  instanceCount: number;
+  totalSize: number;
 }

@@ -16,27 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@/services/api/BasePlatformClient'
-import type Setting from '@/services/api/model/Setting'
+import BasePlatformClient from '@/services/api/BasePlatformClient';
+import type Setting from '@/services/api/model/Setting';
 
 export default class SettingsClient extends BasePlatformClient {
-    constructor() {
-        super('/settings')
-    }
+  constructor() {
+    super('/settings');
+  }
 
-    fetchAll(): Promise<Setting[]> {
-        return super.get<Setting[]>()
-    }
+  fetchAll(): Promise<Setting[]> {
+    return super.get<Setting[]>();
+  }
 
-    fetchByCategory(category: string): Promise<Setting[]> {
-        return super.get<Setting[]>(`/${category}`)
-    }
+  fetchByCategory(category: string): Promise<Setting[]> {
+    return super.get<Setting[]>(`/${category}`);
+  }
 
-    upsert(category: string, name: string, value: string, secret: boolean): Promise<void> {
-        return super.put<void>(`/${category}/${name}`, { value, secret })
-    }
+  upsert(category: string, name: string, value: string, secret: boolean): Promise<void> {
+    return super.put<void>(`/${category}/${name}`, { value, secret });
+  }
 
-    fetchStatus(): Promise<{ restartRequired: boolean, encryptionMode: string }> {
-        return super.get<{ restartRequired: boolean, encryptionMode: string }>('/status')
-    }
+  fetchStatus(): Promise<{ restartRequired: boolean; encryptionMode: string }> {
+    return super.get<{ restartRequired: boolean; encryptionMode: string }>('/status');
+  }
 }

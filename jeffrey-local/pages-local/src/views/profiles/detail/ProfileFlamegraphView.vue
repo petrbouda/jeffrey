@@ -96,7 +96,11 @@ onBeforeMount(() => {
 
   graphUpdater = new FullGraphUpdater(flamegraphClient, true);
   graphUpdater.setTimeseriesSearchEnabled(isPrimaryValue);
-  flamegraphTooltip = FlamegraphTooltipFactory.create(eventTypeValue, useWeightValue, isDifferentialValue);
+  flamegraphTooltip = FlamegraphTooltipFactory.create(
+    eventTypeValue,
+    useWeightValue,
+    isDifferentialValue
+  );
 });
 </script>
 

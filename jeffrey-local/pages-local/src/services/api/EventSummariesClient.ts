@@ -17,29 +17,31 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import EventSummary from "@/services/api/model/EventSummary";
+import EventSummary from '@/services/api/model/EventSummary';
 
 export default class EventSummariesClient extends BaseProfileClient {
+  private constructor(profileId: string, featurePath: string) {
+    super(profileId, featurePath);
+  }
 
-    private constructor(profileId: string, featurePath: string) {
-        super(profileId, featurePath);
-    }
+  /**
+   * Create a client for primary profile event summaries.
+   */
+  static primary(profileId: string): EventSummariesClient {
+    return new EventSummariesClient(profileId, 'flamegraph');
+  }
 
-    /**
-     * Create a client for primary profile event summaries.
-     */
-    static primary(profileId: string): EventSummariesClient {
-        return new EventSummariesClient(profileId, 'flamegraph');
-    }
+  /**
+   * Create a client for differential analysis event summaries.
+   */
+  static differential(primaryProfileId: string, secondaryProfileId: string): EventSummariesClient {
+    return new EventSummariesClient(
+      primaryProfileId,
+      `diff/${secondaryProfileId}/differential-flamegraph`
+    );
+  }
 
-    /**
-     * Create a client for differential analysis event summaries.
-     */
-    static differential(primaryProfileId: string, secondaryProfileId: string): EventSummariesClient {
-        return new EventSummariesClient(primaryProfileId, `diff/${secondaryProfileId}/differential-flamegraph`);
-    }
-
-    events(): Promise<EventSummary[]> {
-        return super.get<EventSummary[]>('/events');
-    }
+  events(): Promise<EventSummary[]> {
+    return super.get<EventSummary[]>('/events');
+  }
 }

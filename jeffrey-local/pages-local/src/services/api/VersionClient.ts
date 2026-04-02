@@ -19,12 +19,11 @@
 import BasePlatformClient from './BasePlatformClient';
 
 export default class VersionClient extends BasePlatformClient {
+  constructor() {
+    super('/version');
+  }
 
-    constructor() {
-        super('/version');
-    }
-
-    getVersion(): Promise<string> {
-        return this.get<{ version: string }>('').then(data => data.version);
-    }
+  getVersion(): Promise<string> {
+    return this.get<{ version: string }>('').then(data => data.version);
+  }
 }

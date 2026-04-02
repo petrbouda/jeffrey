@@ -24,13 +24,12 @@ import GCGenerationStats from '@/services/api/model/GCGenerationStats';
 import ConcurrentEvent from '@/services/api/model/ConcurrentEvent';
 
 export default class GCOverviewData {
-    constructor(
-        public header: GCHeader,
-        public longestPauses: GCEvent[],
-        public pauseDistribution: GCPauseDistribution,
-        public efficiency: GCEfficiency,
-        public generationStats: GCGenerationStats[],
-        public longestConcurrentEvents: ConcurrentEvent[] | null
-    ) {
-    }
+  constructor(
+    public header: GCHeader,
+    public longestPauses: GCEvent[],
+    public pauseDistribution: GCPauseDistribution,
+    public efficiency: GCEfficiency,
+    public generationStats: GCGenerationStats[],
+    public longestConcurrentEvents: ConcurrentEvent[] | null
+  ) {}
 }

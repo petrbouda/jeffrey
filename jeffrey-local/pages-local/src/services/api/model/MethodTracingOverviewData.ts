@@ -21,9 +21,9 @@ import MethodStats from '@/services/api/model/MethodStats';
 import Serie from '@/services/timeseries/model/Serie';
 
 export default interface MethodTracingOverviewData {
-    header: MethodTracingHeader;
-    topMethodsByCount: MethodStats[];
-    topMethodsByDuration: MethodStats[];
-    durationTimeseries: Serie | null;
-    countTimeseries: Serie | null;
+  header: MethodTracingHeader;
+  topMethodsByCount: MethodStats[];
+  topMethodsByDuration: MethodStats[];
+  durationTimeseries: Serie | null;
+  countTimeseries: Serie | null;
 }

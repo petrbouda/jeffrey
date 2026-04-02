@@ -17,26 +17,25 @@
  */
 
 import BasePlatformClient from '@/services/api/BasePlatformClient';
-import RecordingGroup from "@/services/api/model/RecordingGroup.ts";
+import RecordingGroup from '@/services/api/model/RecordingGroup.ts';
 
 export default class ProjectRecordingGroupClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/recordings/groups`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/recordings/groups`);
-    }
+  async create(groupName: string): Promise<RecordingGroup> {
+    const requestBody = {
+      groupName: groupName
+    };
+    return super.post<RecordingGroup>('', requestBody);
+  }
 
-    async create(groupName: string): Promise<RecordingGroup> {
-        const requestBody = {
-            groupName: groupName
-        }
-        return super.post<RecordingGroup>('', requestBody);
-    }
+  async list(): Promise<RecordingGroup[]> {
+    return super.get<RecordingGroup[]>();
+  }
 
-    async list(): Promise<RecordingGroup[]> {
-        return super.get<RecordingGroup[]>();
-    }
-
-    async delete(id: string) {
-        return super.del('/' + id);
-    }
+  async delete(id: string) {
+    return super.del('/' + id);
+  }
 }

@@ -6,21 +6,21 @@
         <label class="sort-label">Sort by:</label>
         <div class="btn-group" role="group">
           <button
-              v-for="option in sortOptions"
-              :key="option.key"
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              :class="{ active: currentSort === option.key }"
-              @click="onSortChange(option.key)"
+            v-for="option in sortOptions"
+            :key="option.key"
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            :class="{ active: currentSort === option.key }"
+            @click="onSortChange(option.key)"
           >
             {{ option.label }}
           </button>
         </div>
       </div>
       <button
-          v-if="services.length > maxDisplayedServices"
-          @click="showAllServices = !showAllServices"
-          class="btn btn-sm btn-outline-secondary"
+        v-if="services.length > maxDisplayedServices"
+        @click="showAllServices = !showAllServices"
+        class="btn btn-sm btn-outline-secondary"
       >
         {{ showAllServices ? 'Show Less' : `Show All (${services.length})` }}
       </button>
@@ -29,10 +29,10 @@
     <!-- Service Cards -->
     <div class="service-cards">
       <div
-          v-for="service in displayedServices"
-          :key="service.service"
-          class="svc-card"
-          @click="handleServiceClick(service)"
+        v-for="service in displayedServices"
+        :key="service.service"
+        class="svc-card"
+        @click="handleServiceClick(service)"
       >
         <!-- Left: Call Count Pill -->
         <div class="svc-count-pill">
@@ -47,17 +47,53 @@
             <span class="svc-simple">{{ getSimpleName(service.service) }}</span>
           </div>
           <div class="svc-metrics">
-            <Badge key-label="Max" :value="FormattingService.formatDuration2Units(service.maxResponseTime)" variant="info" size="s" borderless />
-            <Badge key-label="P99" :value="FormattingService.formatDuration2Units(service.p99ResponseTime)" variant="info" size="s" borderless />
-            <Badge key-label="P95" :value="FormattingService.formatDuration2Units(service.p95ResponseTime)" variant="info" size="s" borderless />
-            <Badge v-if="service.avgRequestSize >= 0" key-label="Avg Req" :value="FormattingService.formatBytes(service.avgRequestSize)" variant="secondary" size="s" borderless />
-            <Badge v-if="service.avgResponseSize >= 0" key-label="Avg Resp" :value="FormattingService.formatBytes(service.avgResponseSize)" variant="secondary" size="s" borderless />
+            <Badge
+              key-label="Max"
+              :value="FormattingService.formatDuration2Units(service.maxResponseTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="P99"
+              :value="FormattingService.formatDuration2Units(service.p99ResponseTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="P95"
+              :value="FormattingService.formatDuration2Units(service.p95ResponseTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              v-if="service.avgRequestSize >= 0"
+              key-label="Avg Req"
+              :value="FormattingService.formatBytes(service.avgRequestSize)"
+              variant="secondary"
+              size="s"
+              borderless
+            />
+            <Badge
+              v-if="service.avgResponseSize >= 0"
+              key-label="Avg Resp"
+              :value="FormattingService.formatBytes(service.avgResponseSize)"
+              variant="secondary"
+              size="s"
+              borderless
+            />
           </div>
         </div>
 
         <!-- Right: Success Rate + Arrow -->
         <div class="svc-right">
-          <div v-if="service.successRate < 1" class="svc-rate" :class="service.successRate < 0.95 ? 'rate-danger' : 'rate-warning'">
+          <div
+            v-if="service.successRate < 1"
+            class="svc-rate"
+            :class="service.successRate < 0.95 ? 'rate-danger' : 'rate-warning'"
+          >
             <span class="svc-rate-num">{{ ((service.successRate || 0) * 100).toFixed(1) }}%</span>
             <span class="svc-rate-label">success</span>
           </div>
@@ -69,10 +105,10 @@
 </template>
 
 <script setup lang="ts">
-import {ref, computed} from 'vue';
+import { ref, computed } from 'vue';
 import FormattingService from '@/services/FormattingService';
 import Badge from '@/components/Badge.vue';
-import type {GrpcServiceInfo} from '@/services/api/ProfileGrpcClient';
+import type { GrpcServiceInfo } from '@/services/api/ProfileGrpcClient';
 
 interface Props {
   services: GrpcServiceInfo[];
@@ -84,7 +120,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  serviceClick: [service: string]
+  serviceClick: [service: string];
 }>();
 
 const showAllServices = ref(false);
@@ -92,10 +128,26 @@ const currentSort = ref('maxResponseTime');
 const maxDisplayedServices = 10;
 
 const sortOptions = [
-  {key: 'maxResponseTime', label: 'MAX', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.maxResponseTime - a.maxResponseTime},
-  {key: 'p95ResponseTime', label: 'P95', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.p95ResponseTime - a.p95ResponseTime},
-  {key: 'callCount', label: 'Calls', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.callCount - a.callCount},
-  {key: 'successRate', label: 'Success', compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => a.successRate - b.successRate}
+  {
+    key: 'maxResponseTime',
+    label: 'MAX',
+    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.maxResponseTime - a.maxResponseTime
+  },
+  {
+    key: 'p95ResponseTime',
+    label: 'P95',
+    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.p95ResponseTime - a.p95ResponseTime
+  },
+  {
+    key: 'callCount',
+    label: 'Calls',
+    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => b.callCount - a.callCount
+  },
+  {
+    key: 'successRate',
+    label: 'Success',
+    compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => a.successRate - b.successRate
+  }
 ];
 
 const sortedServices = computed(() => {
@@ -105,7 +157,9 @@ const sortedServices = computed(() => {
 });
 
 const displayedServices = computed(() => {
-  return showAllServices.value ? sortedServices.value : sortedServices.value.slice(0, maxDisplayedServices);
+  return showAllServices.value
+    ? sortedServices.value
+    : sortedServices.value.slice(0, maxDisplayedServices);
 });
 
 const getPackageName = (fullName: string): string => {
@@ -161,7 +215,9 @@ const onSortChange = (key: string) => {
   border: 1px solid var(--card-border-color);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .svc-card:hover {

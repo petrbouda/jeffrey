@@ -6,7 +6,12 @@
           <i class="bi bi-graph-up text-primary me-2"></i>
           Memory Usage Timeline
         </h5>
-        <select v-model="selectedTimeRange" @change="updateChart" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
+        <select
+          v-model="selectedTimeRange"
+          @change="updateChart"
+          class="form-select form-select-sm"
+          style="width: auto; min-width: 120px"
+        >
           <option value="1h">Last Hour</option>
           <option value="6h">Last 6 Hours</option>
           <option value="24h">Last 24 Hours</option>
@@ -36,28 +41,28 @@ let chart: ApexCharts | null = null;
 const generateMemoryData = (timeRange: string) => {
   const now = Date.now();
   const ranges = {
-    '1h': 60 * 60 * 1000,      // 1 hour
-    '6h': 6 * 60 * 60 * 1000,  // 6 hours
+    '1h': 60 * 60 * 1000, // 1 hour
+    '6h': 6 * 60 * 60 * 1000, // 6 hours
     '24h': 24 * 60 * 60 * 1000, // 24 hours
-    'all': 7 * 24 * 60 * 60 * 1000  // 7 days
+    all: 7 * 24 * 60 * 60 * 1000 // 7 days
   };
-  
+
   const timeSpan = ranges[timeRange as keyof typeof ranges] || ranges['6h'];
   const startTime = now - timeSpan;
-  
+
   // Generate data points every 30 seconds for 1h, every 5 minutes for longer periods
   const interval = timeRange === '1h' ? 30 * 1000 : 5 * 60 * 1000;
   const pointCount = Math.floor(timeSpan / interval);
-  
+
   const data = [];
   let heapUsed = 800; // Start at 800MB
   let edenSpace = 100;
   let oldGen = 600;
   let metaspace = 60;
-  
+
   for (let i = 0; i < pointCount; i++) {
-    const timestamp = startTime + (i * interval);
-    
+    const timestamp = startTime + i * interval;
+
     // Simulate realistic heap behavior with GC cycles
     if (i % 40 === 0) {
       // Major GC - significant drop in old gen
@@ -66,25 +71,25 @@ const generateMemoryData = (timeRange: string) => {
     } else if (i % 8 === 0) {
       // Minor GC - Eden space cleanup
       edenSpace = Math.max(20, edenSpace * 0.2);
-      oldGen = Math.min(1000, oldGen + (edenSpace * 0.1));
+      oldGen = Math.min(1000, oldGen + edenSpace * 0.1);
     } else {
       // Normal allocation
       edenSpace = Math.min(250, edenSpace + Math.random() * 15);
       oldGen = Math.min(1000, oldGen + Math.random() * 2);
     }
-    
+
     // Add some noise for realism
     edenSpace += (Math.random() - 0.5) * 10;
     oldGen += (Math.random() - 0.5) * 20;
     metaspace += (Math.random() - 0.5) * 2;
-    
+
     // Keep values in reasonable bounds
     edenSpace = Math.max(10, Math.min(250, edenSpace));
     oldGen = Math.max(200, Math.min(1000, oldGen));
     metaspace = Math.max(50, Math.min(120, metaspace));
-    
+
     heapUsed = edenSpace + oldGen;
-    
+
     data.push({
       timestamp,
       heapUsed: Math.round(heapUsed),
@@ -93,17 +98,17 @@ const generateMemoryData = (timeRange: string) => {
       metaspace: Math.round(metaspace)
     });
   }
-  
+
   return data;
 };
 
 const createChart = async () => {
   await nextTick();
   if (!chartContainer.value) return;
-  
+
   // Use provided data or generate mock data
   const chartData = props.data || generateMemoryData(selectedTimeRange.value);
-  
+
   const series = [
     {
       name: 'Total Heap Used',
@@ -126,7 +131,7 @@ const createChart = async () => {
       color: '#6f42c1'
     }
   ];
-  
+
   const options = {
     chart: {
       type: 'area',
@@ -209,11 +214,11 @@ const createChart = async () => {
       }
     }
   };
-  
+
   if (chart) {
     chart.destroy();
   }
-  
+
   chart = new ApexCharts(chartContainer.value, options);
   chart.render();
 };
@@ -232,9 +237,13 @@ onUnmounted(() => {
   }
 });
 
-watch(() => props.data, () => {
-  createChart();
-}, { deep: true });
+watch(
+  () => props.data,
+  () => {
+    createChart();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>

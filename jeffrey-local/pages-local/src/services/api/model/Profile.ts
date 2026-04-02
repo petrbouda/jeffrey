@@ -15,22 +15,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import RecordingEventSource from "@/services/api/model/RecordingEventSource.ts";
+import RecordingEventSource from '@/services/api/model/RecordingEventSource.ts';
 
 export default class Profile {
-    public deleting: boolean = false;
+  public deleting: boolean = false;
 
-    constructor(
-        public id: string,
-        public projectId: string,
-        public workspaceId: string,
-        public name: string,
-        public createdAt: string,
-        public eventSource: RecordingEventSource,
-        public enabled: boolean,
-        public modified: boolean,
-        public durationInMillis: number,
-        public sizeInBytes: number
-    ) {
-    }
+  constructor(
+    public id: string,
+    public projectId: string,
+    public workspaceId: string,
+    public name: string,
+    public createdAt: string,
+    public eventSource: RecordingEventSource,
+    public enabled: boolean,
+    public modified: boolean,
+    public durationInMillis: number,
+    public sizeInBytes: number
+  ) {}
 }

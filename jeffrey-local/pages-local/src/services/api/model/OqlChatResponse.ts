@@ -17,7 +17,7 @@
  */
 
 export default interface OqlChatResponse {
-    content: string;
-    oql: string | null;
-    suggestedFollowups: string[];
+  content: string;
+  oql: string | null;
+  suggestedFollowups: string[];
 }

@@ -16,26 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-import RecordingFile from "@/services/api/model/RecordingFile.ts";
+import RecordingFile from '@/services/api/model/RecordingFile.ts';
 
 export default class Recording {
-    constructor(
-        public id: string,
-        public name: string,
-        public sizeInBytes: number,
-        public durationInMillis: number,
-        public uploadedAt: number,
-        public sourceType: string,
-        public recordingFiles: RecordingFile[],
-        public path?: string,
-        public hasProfile?: boolean,
-        public groupId?: string | null,
-        public profileId?: string | null,
-        public profileName?: string | null,
-        public profileEnabled?: boolean,
-        public profileModified?: boolean,
-        public profileSizeInBytes?: number,
-    ) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public sizeInBytes: number,
+    public durationInMillis: number,
+    public uploadedAt: number,
+    public sourceType: string,
+    public recordingFiles: RecordingFile[],
+    public path?: string,
+    public hasProfile?: boolean,
+    public groupId?: string | null,
+    public profileId?: string | null,
+    public profileName?: string | null,
+    public profileEnabled?: boolean,
+    public profileModified?: boolean,
+    public profileSizeInBytes?: number
+  ) {}
 }

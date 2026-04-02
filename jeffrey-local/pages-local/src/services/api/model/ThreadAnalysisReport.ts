@@ -19,9 +19,9 @@
 import HeapThreadInfo from '@/services/api/model/HeapThreadInfo';
 
 export default interface ThreadAnalysisReport {
-    totalThreads: number;
-    daemonThreads: number;
-    userThreads: number;
-    totalRetainedSize: number;
-    threads: HeapThreadInfo[];
+  totalThreads: number;
+  daemonThreads: number;
+  userThreads: number;
+  totalRetainedSize: number;
+  threads: HeapThreadInfo[];
 }

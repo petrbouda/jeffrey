@@ -17,14 +17,13 @@
  */
 
 export default class PoolStatistics {
-    constructor(
-        public peakConnectionCount: number,
-        public peakActiveConnectionCount: number,
-        public avgActiveConnectionCount: number,
-        public maxPendingThreadCount: number,
-        public pendingPeriodsPercent: number,
-        public timeoutsCount: number,
-        public timeoutRate: number,
-    ) {
-    }
+  constructor(
+    public peakConnectionCount: number,
+    public peakActiveConnectionCount: number,
+    public avgActiveConnectionCount: number,
+    public maxPendingThreadCount: number,
+    public pendingPeriodsPercent: number,
+    public timeoutsCount: number,
+    public timeoutRate: number
+  ) {}
 }

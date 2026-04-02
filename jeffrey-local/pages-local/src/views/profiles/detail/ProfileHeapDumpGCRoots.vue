@@ -6,24 +6,27 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="diagram-3"
-      message="The heap dump needs to be initialized before you can view GC roots. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="diagram-3"
+    message="The heap dump needs to be initialized before you can view GC roots. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-        title="GC Roots"
-        description="Garbage collection root objects that prevent memory from being collected"
-        icon="bi-diagram-3"
+      title="GC Roots"
+      description="Garbage collection root objects that prevent memory from being collected"
+      icon="bi-diagram-3"
     />
 
     <div v-if="gcRootData">
@@ -32,18 +35,18 @@
 
       <!-- Tabbed Content Section -->
       <ChartSectionWithTabs
-          icon="diagram-3"
-          :tabs="analysisTabs"
-          :full-width="true"
-          id-prefix="gcroots-"
+        icon="diagram-3"
+        :tabs="analysisTabs"
+        :full-width="true"
+        id-prefix="gcroots-"
       >
         <!-- Overview Tab -->
         <template #overview>
           <DualPanel left-title="Root Type Distribution" embedded>
             <template #left>
               <DonutWithLegend
-                  :data="rootTypeChartData"
-                  :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
+                :data="rootTypeChartData"
+                :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' roots'"
               />
             </template>
           </DualPanel>
@@ -65,9 +68,12 @@
 
             <!-- Intro -->
             <div class="about-intro">
-              <p>GC roots are the starting points for garbage collection. The garbage collector traces object references
-                starting from these roots to determine which objects are reachable and should be kept alive.
-                Objects that cannot be traced from any GC root are considered unreachable and eligible for collection.</p>
+              <p>
+                GC roots are the starting points for garbage collection. The garbage collector
+                traces object references starting from these roots to determine which objects are
+                reachable and should be kept alive. Objects that cannot be traced from any GC root
+                are considered unreachable and eligible for collection.
+              </p>
             </div>
 
             <!-- Root Types Section -->
@@ -78,82 +84,130 @@
 
             <div class="feature-grid">
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                >
                   <i class="bi bi-globe"></i>
                 </div>
                 <div class="feature-content">
                   <h6>JNI Global</h6>
-                  <p>Objects referenced by JNI global references. These are native code references that persist across JNI calls and must be explicitly deleted.</p>
+                  <p>
+                    Objects referenced by JNI global references. These are native code references
+                    that persist across JNI calls and must be explicitly deleted.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+                >
                   <i class="bi bi-geo-alt"></i>
                 </div>
                 <div class="feature-content">
                   <h6>JNI Local</h6>
-                  <p>Objects referenced by JNI local references within a native method's stack frame. Automatically cleaned up when the native method returns.</p>
+                  <p>
+                    Objects referenced by JNI local references within a native method's stack frame.
+                    Automatically cleaned up when the native method returns.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+                >
                   <i class="bi bi-layers"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Java Frame</h6>
-                  <p>Objects referenced from Java stack frames, including local variables and method parameters in active method calls.</p>
+                  <p>
+                    Objects referenced from Java stack frames, including local variables and method
+                    parameters in active method calls.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+                >
                   <i class="bi bi-cpu"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Native Stack</h6>
-                  <p>Objects referenced from native code execution stacks. These are JNI references held on the native (C/C++) call stack.</p>
+                  <p>
+                    Objects referenced from native code execution stacks. These are JNI references
+                    held on the native (C/C++) call stack.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
+                >
                   <i class="bi bi-pin-angle"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Sticky Class</h6>
-                  <p>System classes that are never unloaded, such as <code>java.lang.*</code>, primitive types, and other bootstrap classes loaded by the JVM.</p>
+                  <p>
+                    System classes that are never unloaded, such as <code>java.lang.*</code>,
+                    primitive types, and other bootstrap classes loaded by the JVM.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%)"
+                >
                   <i class="bi bi-lock"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Thread Block</h6>
-                  <p>Objects held as references within thread synchronization blocks. These are objects referenced by threads waiting on monitors.</p>
+                  <p>
+                    Objects held as references within thread synchronization blocks. These are
+                    objects referenced by threads waiting on monitors.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%)"
+                >
                   <i class="bi bi-shield-lock"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Monitor Used</h6>
-                  <p>Objects actively being used as monitor locks (<code>synchronized</code>). These objects are held by threads that have acquired their intrinsic lock.</p>
+                  <p>
+                    Objects actively being used as monitor locks (<code>synchronized</code>). These
+                    objects are held by threads that have acquired their intrinsic lock.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)"
+                >
                   <i class="bi bi-person-badge"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Thread Object</h6>
-                  <p>Thread objects themselves. Every active Java thread is a GC root, keeping itself and all objects it references alive.</p>
+                  <p>
+                    Thread objects themselves. Every active Java thread is a GC root, keeping itself
+                    and all objects it references alive.
+                  </p>
                 </div>
               </div>
             </div>
@@ -167,11 +221,15 @@
             <div class="benefits-list">
               <div class="benefit-item">
                 <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Identify memory leaks by finding unexpected retention paths from GC roots</span>
+                <span
+                  >Identify memory leaks by finding unexpected retention paths from GC roots</span
+                >
               </div>
               <div class="benefit-item">
                 <i class="bi bi-check-circle-fill text-success"></i>
-                <span>Understand which objects cannot be collected and why they are kept alive</span>
+                <span
+                  >Understand which objects cannot be collected and why they are kept alive</span
+                >
               </div>
               <div class="benefit-item">
                 <i class="bi bi-check-circle-fill text-success"></i>
@@ -190,9 +248,12 @@
               </div>
               <div class="note-content">
                 <strong>Investigating Memory Leaks?</strong>
-                <p class="mb-0">Look for objects with unexpected GC roots. Common culprits include static fields (via Sticky Class),
-                  thread locals (via Thread Object), and JNI global references that weren't properly cleaned up.
-                  Use the dominator tree and shortest path to GC root analysis to trace retention paths.</p>
+                <p class="mb-0">
+                  Look for objects with unexpected GC roots. Common culprits include static fields
+                  (via Sticky Class), thread locals (via Thread Object), and JNI global references
+                  that weren't properly cleaned up. Use the dominator tree and shortest path to GC
+                  root analysis to trace retention paths.
+                </p>
               </div>
             </div>
           </div>
@@ -231,8 +292,16 @@ const gcRootData = ref<GCRootSummary | null>(null);
 let client: HeapDumpClient;
 
 const rootTypeColors = [
-  '#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9C27B0',
-  '#FF5722', '#00BCD4', '#795548', '#607D8B', '#E91E63'
+  '#4285F4',
+  '#EA4335',
+  '#FBBC05',
+  '#34A853',
+  '#9C27B0',
+  '#FF5722',
+  '#00BCD4',
+  '#795548',
+  '#607D8B',
+  '#E91E63'
 ];
 
 const analysisTabs = [
@@ -278,11 +347,11 @@ const rootTypeChartData = computed<DonutChartData>(() => ({
 
 const formatRootType = (type: string): string => {
   return type
-      .replace(/_/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 };
 
 const getRootTypeColor = (type: string): string => {
@@ -321,7 +390,6 @@ const loadData = async () => {
     }
 
     gcRootData.value = await client.getGCRoots();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load GC roots';
     console.error('Error loading GC roots:', err);
@@ -418,7 +486,9 @@ onMounted(() => {
   background: white;
   border: 1px solid var(--card-border-color);
   border-radius: 8px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .feature-card:hover {

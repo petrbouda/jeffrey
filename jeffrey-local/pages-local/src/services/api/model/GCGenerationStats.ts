@@ -17,12 +17,12 @@
  */
 
 export default class GCGenerationStats {
-    constructor(
-        public generation: string,
-        public collections: number,
-        public totalTime: number,
-        public avgPauseTime: number,
-        public maxPauseTime: number,
-        public totalMemoryFreed: number
-    ) {}
+  constructor(
+    public generation: string,
+    public collections: number,
+    public totalTime: number,
+    public avgPauseTime: number,
+    public maxPauseTime: number,
+    public totalMemoryFreed: number
+  ) {}
 }

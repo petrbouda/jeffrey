@@ -17,8 +17,8 @@
  */
 
 export default class FramePosition {
-    constructor(
-        public bci: number,
-        public line: number) {
-    }
+  constructor(
+    public bci: number,
+    public line: number
+  ) {}
 }

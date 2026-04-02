@@ -3,18 +3,18 @@
     <div ref="chartRef" :style="{ height: chartHeight + 'px' }"></div>
     <table v-if="data.legendItems.length > 0" class="legend-table">
       <tbody>
-      <tr v-for="(item, index) in data.legendItems" :key="index">
-        <td><span class="legend-dot" :style="{ backgroundColor: item.color }"></span></td>
-        <td>{{ item.label }}</td>
-        <td>{{ item.value }}</td>
-      </tr>
+        <tr v-for="(item, index) in data.legendItems" :key="index">
+          <td><span class="legend-dot" :style="{ backgroundColor: item.color }"></span></td>
+          <td>{{ item.label }}</td>
+          <td>{{ item.value }}</td>
+        </tr>
       </tbody>
     </table>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, onUnmounted, watch, nextTick} from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import ApexCharts from 'apexcharts';
 
 export interface DonutLegendItem {
@@ -32,14 +32,19 @@ export interface DonutChartData {
   totalValue: string;
 }
 
-const props = withDefaults(defineProps<{
-  data: DonutChartData;
-  tooltipFormatter?: (val: number) => string;
-  chartHeight?: number;
-}>(), {
-  tooltipFormatter: (val: number) => val + ' items',
-  chartHeight: 220
-});
+const props = withDefaults(
+  defineProps<{
+    data: DonutChartData;
+    tooltipFormatter?: (val: number) => string;
+    valueFormatter?: (val: string) => string;
+    chartHeight?: number;
+  }>(),
+  {
+    tooltipFormatter: (val: number) => val + ' items',
+    valueFormatter: (val: string) => val,
+    chartHeight: 300
+  }
+);
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
@@ -54,16 +59,17 @@ const renderChart = async () => {
     chart: {
       type: 'donut' as const,
       height: props.chartHeight,
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      animations: { enabled: false }
     },
     series: [...props.data.series],
     labels: [...props.data.labels],
     colors: [...props.data.colors],
-    legend: {show: false},
+    legend: { show: false },
     dataLabels: {
       enabled: true,
       formatter: (val: number) => val.toFixed(1) + '%',
-      style: {fontSize: '10px'}
+      style: { fontSize: '10px' }
     },
     plotOptions: {
       pie: {
@@ -71,6 +77,10 @@ const renderChart = async () => {
           size: '60%',
           labels: {
             show: true,
+            value: {
+              show: true,
+              formatter: props.valueFormatter
+            },
             total: {
               show: true,
               label: props.data.totalLabel || 'Total',
@@ -84,14 +94,14 @@ const renderChart = async () => {
       }
     },
     tooltip: {
-      y: {formatter: props.tooltipFormatter}
+      y: { formatter: props.tooltipFormatter }
     },
-    stroke: {width: 2, colors: ['#fff']}
+    stroke: { width: 2, colors: ['#fff'] }
   });
   chart.render();
 };
 
-watch(() => props.data, renderChart, {deep: true});
+watch(() => props.data, renderChart, { deep: true });
 onMounted(renderChart);
 onUnmounted(() => {
   if (chart) {

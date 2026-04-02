@@ -17,11 +17,11 @@
  */
 
 export default class ThreadStats {
-    constructor(
-        public accumulated: number,
-        public peak: number,
-        public sleepCount?: number,
-        public parkCount?: number,
-        public monitorBlockCount?: number) {
-    }
+  constructor(
+    public accumulated: number,
+    public peak: number,
+    public sleepCount?: number,
+    public parkCount?: number,
+    public monitorBlockCount?: number
+  ) {}
 }

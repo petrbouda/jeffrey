@@ -1,9 +1,5 @@
 <template>
-  <div
-    class="profiler-selection-card"
-    :class="{ 'selected': selected }"
-    @click="$emit('select')"
-  >
+  <div class="profiler-selection-card" :class="{ selected: selected }" @click="$emit('select')">
     <span v-if="badge" class="selection-badge" :class="`badge-${badge.toLowerCase()}`">
       {{ badge }}
     </span>

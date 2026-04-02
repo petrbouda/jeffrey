@@ -21,19 +21,18 @@ import HttpOverviewData from '@/services/api/model/HttpOverviewData';
 import HttpSingleUriData from '@/services/api/model/HttpSingleUriData';
 
 export default class ProfileHttpClient extends BaseProfileClient {
+  private readonly mode: string;
 
-    private readonly mode: string;
+  constructor(mode: 'client' | 'server', profileId: string) {
+    super(profileId, 'http/overview');
+    this.mode = mode;
+  }
 
-    constructor(mode: 'client' | 'server', profileId: string) {
-        super(profileId, 'http/overview');
-        this.mode = mode;
-    }
+  public getOverview(): Promise<HttpOverviewData> {
+    return super.get<HttpOverviewData>('', { mode: this.mode });
+  }
 
-    public getOverview(): Promise<HttpOverviewData> {
-        return super.get<HttpOverviewData>('', { mode: this.mode });
-    }
-
-    public getOverviewUri(uri: string | null): Promise<HttpSingleUriData> {
-        return super.get<HttpSingleUriData>('/single', { uri, mode: this.mode });
-    }
+  public getOverviewUri(uri: string | null): Promise<HttpSingleUriData> {
+    return super.get<HttpSingleUriData>('/single', { uri, mode: this.mode });
+  }
 }

@@ -5,10 +5,11 @@
       <div>
         <h5 class="alert-heading mb-3">Container Information Unavailable</h5>
         <p class="mb-3">
-          The Container Configuration dashboard is not available because your application is not running in a containerized environment.
-          Container information is only accessible when the JVM is running inside a container such as Docker, Kubernetes, or other container runtimes.
+          The Container Configuration dashboard is not available because your application is not
+          running in a containerized environment. Container information is only accessible when the
+          JVM is running inside a container such as Docker, Kubernetes, or other container runtimes.
         </p>
-        
+
         <div class="feature-benefits mb-3">
           <h6 class="mb-2">What Container Configuration provides:</h6>
           <ul class="mb-0">
@@ -22,14 +23,17 @@
         <div class="next-steps">
           <h6 class="mb-2">To access container information:</h6>
           <ol class="mb-0">
-            <li>Deploy your application in a containerized environment (Docker, Kubernetes, etc.)</li>
+            <li>
+              Deploy your application in a containerized environment (Docker, Kubernetes, etc.)
+            </li>
             <li>Ensure your container runtime provides resource constraint information</li>
             <li>
               Generate a new JFR profile while running in the container
               <div class="automatic-note mt-1">
                 <small class="text-muted">
                   <i class="bi bi-info-circle me-1"></i>
-                  Container-based JFR events are automatically emitted by JDK Flight Recorder (no need to emit them yourself)
+                  Container-based JFR events are automatically emitted by JDK Flight Recorder (no
+                  need to emit them yourself)
                 </small>
               </div>
             </li>

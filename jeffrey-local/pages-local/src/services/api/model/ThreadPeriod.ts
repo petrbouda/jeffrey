@@ -17,10 +17,10 @@
  */
 
 export default class ThreadPeriod {
-    constructor(
-        public startOffset: number,
-        public width: number,
-        public values: Array<string>,
-        public warning: string | null) {
-    }
+  constructor(
+    public startOffset: number,
+    public width: number,
+    public values: Array<string>,
+    public warning: string | null
+  ) {}
 }

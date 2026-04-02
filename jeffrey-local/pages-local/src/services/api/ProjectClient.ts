@@ -20,20 +20,19 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Project from '@/services/api/model/Project';
 
 export default class ProjectClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}`);
-    }
+  async get(): Promise<Project> {
+    return super.get<Project>();
+  }
 
-    async get(): Promise<Project> {
-        return super.get<Project>();
-    }
+  async isInitializing(): Promise<boolean> {
+    return super.get<boolean>('/initializing');
+  }
 
-    async isInitializing(): Promise<boolean> {
-        return super.get<boolean>('/initializing');
-    }
-
-    async delete(): Promise<void> {
-        return super.del<void>();
-    }
+  async delete(): Promise<void> {
+    return super.del<void>();
+  }
 }

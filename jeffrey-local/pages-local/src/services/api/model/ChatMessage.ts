@@ -19,6 +19,6 @@
 export type MessageRole = 'user' | 'assistant';
 
 export default interface ChatMessage {
-    role: MessageRole;
-    content: string;
+  role: MessageRole;
+  content: string;
 }

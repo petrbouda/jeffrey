@@ -17,10 +17,10 @@
  */
 
 export default class ProjectInfo {
-    constructor(
-        public id: string,
-        public name: string,
-        public workspaceId: string,
-        public createdAt: string) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public workspaceId: string,
+    public createdAt: string
+  ) {}
 }

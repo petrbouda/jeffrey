@@ -16,44 +16,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {MenuItem} from "primevue/menuitem";
+import { MenuItem } from 'primevue/menuitem';
 
 export default class FlamegraphContextMenu {
+  static resolve(timeseriesSearchCallback: () => void, resetCallback: () => void): MenuItem[] {
+    return this.contextMenuItems(timeseriesSearchCallback, resetCallback);
+  }
 
-    static resolve(timeseriesSearchCallback: () => void, resetCallback: () => void): MenuItem[] {
-        return this.contextMenuItems(
-            timeseriesSearchCallback,
-            resetCallback
-        )
+  static contextMenuItems(searchInTimeseries: () => void, resetZoom: () => void): MenuItem[] {
+    let contextMenuItems: MenuItem[] = [];
+
+    if (searchInTimeseries != null) {
+      contextMenuItems.push({
+        label: 'Search the Frame',
+        icon: 'pi pi-chart-bar',
+        command: searchInTimeseries
+      });
     }
 
-    static contextMenuItems(searchInTimeseries: () => void, resetZoom: () => void): MenuItem[] {
-        let contextMenuItems: MenuItem[] = []
-
-        if (searchInTimeseries != null) {
-            contextMenuItems.push({
-                label: 'Search the Frame',
-                icon: 'pi pi-chart-bar',
-                command: searchInTimeseries
-            })
-        }
-
-        if (resetZoom != null) {
-            contextMenuItems.push({
-                label: 'Zoom out Flamegraph',
-                icon: 'pi pi-search-minus',
-                command: resetZoom
-            })
-        }
-
-        contextMenuItems.push(
-            {
-                separator: true
-            }, {
-                label: 'Close',
-                icon: 'pi pi-times'
-            }
-        )
-        return contextMenuItems
+    if (resetZoom != null) {
+      contextMenuItems.push({
+        label: 'Zoom out Flamegraph',
+        icon: 'pi pi-search-minus',
+        command: resetZoom
+      });
     }
+
+    contextMenuItems.push(
+      {
+        separator: true
+      },
+      {
+        label: 'Close',
+        icon: 'pi pi-times'
+      }
+    );
+    return contextMenuItems;
+  }
 }

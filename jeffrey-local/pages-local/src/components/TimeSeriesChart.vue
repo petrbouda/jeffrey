@@ -174,7 +174,7 @@ const dataMinTime = ref(0);
 const dataMaxTime = ref(0);
 const visibleStartTime = ref(0);
 const visibleEndTime = ref(0);
-let selectionTimeout:  NodeJS.Timeout | null = null;
+let selectionTimeout: NodeJS.Timeout | null = null;
 let isUpdatingSelection = false; // Flag to prevent re-entrant selection events from updateOptions
 let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selection to avoid duplicates
 
@@ -208,7 +208,9 @@ const roundToNiceBytes = (value: number): number => {
   const valueInUnit = value / unit;
 
   // Nice multipliers for bytes: 1, 2, 4, 5, 8, 10, 16, 20, 32, 50, 64, 100, 128, 200, 256, 500, 512
-  const niceMultipliers = [1, 2, 4, 5, 8, 10, 16, 20, 32, 50, 64, 100, 128, 200, 256, 500, 512, 1024];
+  const niceMultipliers = [
+    1, 2, 4, 5, 8, 10, 16, 20, 32, 50, 64, 100, 128, 200, 256, 500, 512, 1024
+  ];
 
   // Find the smallest nice multiplier >= valueInUnit
   for (const mult of niceMultipliers) {
@@ -528,91 +530,125 @@ const mainChartOptions = computed(() => {
   const isScatterChart = props.showPoints;
 
   return {
-  chart: {
-    id: 'main-chart',
-    type: effectiveChartType.value,
-    height: 300,
-    stacked: props.stacked || false,
-    toolbar: {
-      show: false
-    },
-    zoom: {
-      enabled: false,
-      type: 'x',
-      autoScaleYaxis: true
-    },
-    interactions: {
-      enabled: false
-    }
-  },
-  plotOptions: isBarChart
-    ? {
-        bar: {
-          columnWidth: '80%'
-        }
-      }
-    : {},
-  dataLabels: {
-    enabled: false
-  },
-  stroke: isBarChart
-    ? {
-        show: true,
-        width: 1,
-        colors: ['transparent']
-      }
-    : {
-        curve: 'smooth',
-        width: 1
+    chart: {
+      id: 'main-chart',
+      type: effectiveChartType.value,
+      height: 300,
+      stacked: props.stacked || false,
+      toolbar: {
+        show: false
       },
-  fill: isScatterChart
-    ? {
-        type: 'solid',
-        opacity: 0.8
+      zoom: {
+        enabled: false,
+        type: 'x',
+        autoScaleYaxis: true
+      },
+      interactions: {
+        enabled: false
       }
-    : isBarChart
+    },
+    plotOptions: isBarChart
       ? {
-          type: 'solid',
-          opacity: 0.85
+          bar: {
+            columnWidth: '80%'
+          }
+        }
+      : {},
+    dataLabels: {
+      enabled: false
+    },
+    stroke: isBarChart
+      ? {
+          show: true,
+          width: 1,
+          colors: ['transparent']
         }
       : {
-          type: 'gradient',
-          gradient: {
-            opacityFrom: 0.4,
-            opacityTo: 0.1
-          }
+          curve: 'smooth',
+          width: 1
         },
-  markers: isScatterChart
-    ? {
-        size: 6,
-        strokeWidth: 2,
-        strokeColors: '#fff',
-        hover: {
-          size: 8
+    fill: isScatterChart
+      ? {
+          type: 'solid',
+          opacity: 0.8
+        }
+      : isBarChart
+        ? {
+            type: 'solid',
+            opacity: 0.85
+          }
+        : {
+            type: 'gradient',
+            gradient: {
+              opacityFrom: 0.4,
+              opacityTo: 0.1
+            }
+          },
+    markers: isScatterChart
+      ? {
+          size: 6,
+          strokeWidth: 2,
+          strokeColors: '#fff',
+          hover: {
+            size: 8
+          }
+        }
+      : {
+          size: 0
+        },
+    xaxis: {
+      type: 'datetime',
+      min: timeConverter.value.toChartTime(visibleStartTime.value),
+      max: timeConverter.value.toChartTime(visibleEndTime.value),
+      labels: {
+        formatter: function (value: number) {
+          return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
         }
       }
-    : {
-        size: 0
-      },
-  xaxis: {
-    type: 'datetime',
-    min: timeConverter.value.toChartTime(visibleStartTime.value),
-    max: timeConverter.value.toChartTime(visibleEndTime.value),
-    labels: {
-      formatter: function (value: number) {
-        return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
-      }
-    }
-  },
-  yaxis:
-    props.independentSecondaryAxis && props.secondaryData
-      ? [
-          {
-            title: {
-              text: props.primaryTitle || 'Primary'
+    },
+    yaxis:
+      props.independentSecondaryAxis && props.secondaryData
+        ? [
+            {
+              title: {
+                text: props.primaryTitle || 'Primary'
+              },
+              min: 0,
+              max:
+                props.primaryAxisType === AxisFormatType.BYTES ? primaryMaxValue.value : undefined,
+              forceNiceScale: true,
+              tickAmount: 5,
+              labels: {
+                formatter: function (value: number) {
+                  return formatValue(value, props.primaryAxisType);
+                }
+              }
             },
+            {
+              opposite: true,
+              title: {
+                text: props.secondaryTitle || 'Secondary'
+              },
+              min: 0,
+              max:
+                props.secondaryAxisType === AxisFormatType.BYTES
+                  ? secondaryMaxValue.value
+                  : undefined,
+              forceNiceScale: true,
+              tickAmount: 5,
+              labels: {
+                formatter: function (value: number) {
+                  return formatValue(value, props.secondaryAxisType);
+                }
+              }
+            }
+          ]
+        : {
             min: 0,
-            max: props.primaryAxisType === AxisFormatType.BYTES ? primaryMaxValue.value : undefined,
+            max:
+              props.primaryAxisType === AxisFormatType.BYTES
+                ? Math.max(primaryMaxValue.value, secondaryMaxValue.value)
+                : undefined,
             forceNiceScale: true,
             tickAmount: 5,
             labels: {
@@ -621,74 +657,47 @@ const mainChartOptions = computed(() => {
               }
             }
           },
-          {
-            opposite: true,
-            title: {
-              text: props.secondaryTitle || 'Secondary'
-            },
-            min: 0,
-            max: props.secondaryAxisType === AxisFormatType.BYTES ? secondaryMaxValue.value : undefined,
-            forceNiceScale: true,
-            tickAmount: 5,
-            labels: {
-              formatter: function (value: number) {
-                return formatValue(value, props.secondaryAxisType);
-              }
-            }
-          }
-        ]
-      : {
-          min: 0,
-          max: props.primaryAxisType === AxisFormatType.BYTES ? Math.max(primaryMaxValue.value, secondaryMaxValue.value) : undefined,
-          forceNiceScale: true,
-          tickAmount: 5,
-          labels: {
-            formatter: function (value: number) {
-              return formatValue(value, props.primaryAxisType);
-            }
-          }
-        },
-  tooltip: {
-    x: {
-      formatter: function (value: number) {
-        return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
-      }
-    },
-    y: {
-      formatter: function (value: number, { seriesIndex }: { seriesIndex: number }) {
-        // Series order: Primary (0), Secondary (1 if present), Tertiary (2 if present), Search Results (last if present)
-        const hasSecondaryData =
-          effectiveSecondaryData.value && effectiveSecondaryData.value.length > 0;
-        const hasTertiaryData =
-          effectiveTertiaryData.value && effectiveTertiaryData.value.length > 0;
+    tooltip: {
+      x: {
+        formatter: function (value: number) {
+          return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
+        }
+      },
+      y: {
+        formatter: function (value: number, { seriesIndex }: { seriesIndex: number }) {
+          // Series order: Primary (0), Secondary (1 if present), Tertiary (2 if present), Search Results (last if present)
+          const hasSecondaryData =
+            effectiveSecondaryData.value && effectiveSecondaryData.value.length > 0;
+          const hasTertiaryData =
+            effectiveTertiaryData.value && effectiveTertiaryData.value.length > 0;
 
-        // Index 0 is always primary data
-        // Index 1 is secondary data only if secondary data exists
-        // Index 2 is tertiary data only if tertiary data exists (and secondary exists)
-        // Search results are derived from primary data, so use primary axis type
-        if (seriesIndex === 0) {
-          return formatValue(value, props.primaryAxisType);
-        } else if (hasSecondaryData && seriesIndex === 1) {
-          return formatValue(value, props.secondaryAxisType);
-        } else if (hasTertiaryData && seriesIndex === 2) {
-          return formatValue(value, props.tertiaryAxisType || props.primaryAxisType);
-        } else {
-          // Search results (or any other series) use primary axis type
-          return formatValue(value, props.primaryAxisType);
+          // Index 0 is always primary data
+          // Index 1 is secondary data only if secondary data exists
+          // Index 2 is tertiary data only if tertiary data exists (and secondary exists)
+          // Search results are derived from primary data, so use primary axis type
+          if (seriesIndex === 0) {
+            return formatValue(value, props.primaryAxisType);
+          } else if (hasSecondaryData && seriesIndex === 1) {
+            return formatValue(value, props.secondaryAxisType);
+          } else if (hasTertiaryData && seriesIndex === 2) {
+            return formatValue(value, props.tertiaryAxisType || props.primaryAxisType);
+          } else {
+            // Search results (or any other series) use primary axis type
+            return formatValue(value, props.primaryAxisType);
+          }
         }
       }
+    },
+    legend: {
+      show: false
+    },
+    grid: {
+      borderColor: '#e9ecef'
+    },
+    animations: {
+      enabled: false
     }
-  },
-  legend: {
-    show: false
-  },
-  grid: {
-    borderColor: '#e9ecef'
-  },
-  animations: {
-    enabled: false
-  }
-};
+  };
 });
 
 // Brush chart options with selection functionality
@@ -811,12 +820,16 @@ const brushChartOptions = computed(() => ({
 
           // Update main chart's xaxis to reflect the selection zoom
           if (mainChart.value?.updateOptions) {
-            mainChart.value.updateOptions({
-              xaxis: {
-                min: tc.toChartTime(clampedStart),
-                max: tc.toChartTime(clampedEnd)
-              }
-            }, false, false);
+            mainChart.value.updateOptions(
+              {
+                xaxis: {
+                  min: tc.toChartTime(clampedStart),
+                  max: tc.toChartTime(clampedEnd)
+                }
+              },
+              false,
+              false
+            );
           }
 
           // Handle zoom - either via graphUpdater or emit
@@ -831,9 +844,7 @@ const brushChartOptions = computed(() => ({
             if (props.graphUpdater && isZoomed) {
               const startMs = Math.floor(tc.toChartTime(clampedStart));
               const endMs = Math.ceil(tc.toChartTime(clampedEnd));
-              props.graphUpdater.updateWithZoom(
-                new TimeRange(startMs, endMs, false)
-              );
+              props.graphUpdater.updateWithZoom(new TimeRange(startMs, endMs, false));
             }
 
             // Also emit for any parent component listeners
@@ -900,7 +911,10 @@ const brushChartOptions = computed(() => ({
           {
             opposite: true,
             min: 0,
-            max: props.secondaryAxisType === AxisFormatType.BYTES ? secondaryMaxValue.value : undefined,
+            max:
+              props.secondaryAxisType === AxisFormatType.BYTES
+                ? secondaryMaxValue.value
+                : undefined,
             forceNiceScale: true,
             tickAmount: 5,
             labels: {
@@ -916,7 +930,10 @@ const brushChartOptions = computed(() => ({
         ]
       : {
           min: 0,
-          max: props.primaryAxisType === AxisFormatType.BYTES ? Math.max(primaryMaxValue.value, secondaryMaxValue.value) : undefined,
+          max:
+            props.primaryAxisType === AxisFormatType.BYTES
+              ? Math.max(primaryMaxValue.value, secondaryMaxValue.value)
+              : undefined,
           forceNiceScale: true,
           tickAmount: 5,
           labels: {

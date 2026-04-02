@@ -22,17 +22,22 @@
       <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
       <div class="badges">
         <Badge v-if="project.isBlocked" value="Blocked" variant="status-blocked" size="xs" />
-        <Badge v-else-if="project.status" :value="formatStatus(project.status)" :variant="getStatusVariant" size="xs" />
+        <Badge
+          v-else-if="project.status"
+          :value="formatStatus(project.status)"
+          :variant="getStatusVariant"
+          size="xs"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, defineProps} from 'vue';
-import Project from "@/services/api/model/Project.ts";
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import {useNavigation} from '@/composables/useNavigation';
+import { computed, defineProps } from 'vue';
+import Project from '@/services/api/model/Project.ts';
+import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import { useNavigation } from '@/composables/useNavigation';
 import Badge from '@/components/Badge.vue';
 import type { Variant } from '@/types/ui';
 
@@ -41,7 +46,7 @@ const props = defineProps<{
   workspaceId: string;
 }>();
 
-const {navigateToProject} = useNavigation();
+const { navigateToProject } = useNavigation();
 
 const moveToProject = (projectId: string) => {
   navigateToProject(projectId, props.workspaceId);

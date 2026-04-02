@@ -20,16 +20,19 @@
 import { ref, onMounted } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
 
-const props = withDefaults(defineProps<{
-  modelValue: string;
-  title?: string;
-  placeholder?: string;
-  submitLabel?: string;
-}>(), {
-  title: 'Edit Profile',
-  placeholder: 'Enter profile name',
-  submitLabel: 'Update',
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    title?: string;
+    placeholder?: string;
+    submitLabel?: string;
+  }>(),
+  {
+    title: 'Edit Profile',
+    placeholder: 'Enter profile name',
+    submitLabel: 'Update'
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
@@ -50,26 +53,29 @@ onMounted(() => {
 
 <template>
   <GenericModal
-      modal-id="editNameModal"
-      :show="true"
-      :title="title"
-      size="sm"
-      @update:show="emit('close')">
+    modal-id="editNameModal"
+    :show="true"
+    :title="title"
+    size="sm"
+    @update:show="emit('close')"
+  >
     <template #default>
       <input
-          ref="inputRef"
-          :value="modelValue"
-          type="text"
-          class="enm-input"
-          :placeholder="placeholder"
-          @input="onInput"
-          @keydown.enter="emit('submit')"
-          @keydown.escape="emit('close')"
-      >
+        ref="inputRef"
+        :value="modelValue"
+        type="text"
+        class="enm-input"
+        :placeholder="placeholder"
+        @input="onInput"
+        @keydown.enter="emit('submit')"
+        @keydown.escape="emit('close')"
+      />
     </template>
     <template #footer>
       <button class="btn btn-secondary btn-sm" @click="emit('close')">Cancel</button>
-      <button class="btn btn-primary btn-sm" @click="emit('submit')" :disabled="!modelValue.trim()">{{ submitLabel }}</button>
+      <button class="btn btn-primary btn-sm" @click="emit('submit')" :disabled="!modelValue.trim()">
+        {{ submitLabel }}
+      </button>
     </template>
   </GenericModal>
 </template>

@@ -9,7 +9,12 @@
           OQL Assistant
         </div>
         <div class="header-actions">
-          <button class="btn-icon" @click="clearHistory" title="Clear conversation" :disabled="!hasMessages">
+          <button
+            class="btn-icon"
+            @click="clearHistory"
+            title="Clear conversation"
+            :disabled="!hasMessages"
+          >
             <i class="bi bi-trash3"></i>
           </button>
           <button class="btn-icon" @click="$emit('close')" title="Close panel">
@@ -20,8 +25,22 @@
 
       <!-- Status Badge -->
       <div v-if="status" class="status-badge-row">
-        <Badge v-if="isAvailable" :value="'Connected to ' + status.provider" variant="status-finished" size="xs" :uppercase="false" icon="bi-check-circle-fill" />
-        <Badge v-else value="AI not configured" variant="status-blocked" size="xs" :uppercase="false" icon="bi-exclamation-circle-fill" />
+        <Badge
+          v-if="isAvailable"
+          :value="'Connected to ' + status.provider"
+          variant="status-finished"
+          size="xs"
+          :uppercase="false"
+          icon="bi-check-circle-fill"
+        />
+        <Badge
+          v-else
+          value="AI not configured"
+          variant="status-blocked"
+          size="xs"
+          :uppercase="false"
+          icon="bi-exclamation-circle-fill"
+        />
       </div>
 
       <!-- Messages -->
@@ -32,15 +51,27 @@
             <i class="bi bi-robot"></i>
           </div>
           <h6>How can I help?</h6>
-          <p>Describe what you want to find in the heap dump, and I'll generate the OQL query for you.</p>
+          <p>
+            Describe what you want to find in the heap dump, and I'll generate the OQL query for
+            you.
+          </p>
           <div class="example-prompts">
-            <button class="example-prompt" @click="useSuggestion('Find strings containing Exception')">
+            <button
+              class="example-prompt"
+              @click="useSuggestion('Find strings containing Exception')"
+            >
               Find strings containing "Exception"
             </button>
-            <button class="example-prompt" @click="useSuggestion('Show large HashMaps with more than 100 entries')">
+            <button
+              class="example-prompt"
+              @click="useSuggestion('Show large HashMaps with more than 100 entries')"
+            >
               Large HashMaps > 100 entries
             </button>
-            <button class="example-prompt" @click="useSuggestion('Find byte arrays larger than 1MB')">
+            <button
+              class="example-prompt"
+              @click="useSuggestion('Find byte arrays larger than 1MB')"
+            >
               Byte arrays > 1MB
             </button>
           </div>
@@ -48,12 +79,12 @@
 
         <!-- Chat Messages -->
         <OqlChatMessage
-            v-for="(msg, index) in messages"
-            :key="index"
-            :message="msg"
-            @apply="(oql) => $emit('apply', oql)"
-            @run="(oql) => $emit('run', oql)"
-            @suggestion="useSuggestion"
+          v-for="(msg, index) in messages"
+          :key="index"
+          :message="msg"
+          @apply="oql => $emit('apply', oql)"
+          @run="oql => $emit('run', oql)"
+          @suggestion="useSuggestion"
         />
 
         <!-- Loading indicator -->
@@ -72,26 +103,24 @@
         <div v-if="error" class="error-message">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
           {{ error }}
-          <button class="btn btn-sm btn-outline-danger ms-2" @click="clearError">
-            Dismiss
-          </button>
+          <button class="btn btn-sm btn-outline-danger ms-2" @click="clearError">Dismiss</button>
         </div>
       </div>
 
       <!-- Input Area -->
       <div class="input-area">
         <textarea
-            v-model="currentInput"
-            class="message-input"
-            placeholder="Describe what you want to find..."
-            rows="2"
-            :disabled="!isAvailable || isLoading"
-            @keydown.enter.exact.prevent="handleSend"
+          v-model="currentInput"
+          class="message-input"
+          placeholder="Describe what you want to find..."
+          rows="2"
+          :disabled="!isAvailable || isLoading"
+          @keydown.enter.exact.prevent="handleSend"
         ></textarea>
         <button
-            class="send-button"
-            :disabled="!isAvailable || isLoading || !currentInput.trim()"
-            @click="handleSend"
+          class="send-button"
+          :disabled="!isAvailable || isLoading || !currentInput.trim()"
+          @click="handleSend"
         >
           <i class="bi bi-send-fill"></i>
         </button>
@@ -152,16 +181,23 @@ const handleSend = async () => {
 };
 
 // Scroll to bottom when messages change
-watch(messages, () => {
-  scrollToBottom();
-}, { deep: true });
+watch(
+  messages,
+  () => {
+    scrollToBottom();
+  },
+  { deep: true }
+);
 
 // Check status when panel opens
-watch(() => props.isOpen, async (open) => {
-  if (open && !status.value) {
-    await checkStatus();
+watch(
+  () => props.isOpen,
+  async open => {
+    if (open && !status.value) {
+      await checkStatus();
+    }
   }
-});
+);
 
 onMounted(async () => {
   if (props.isOpen) {
@@ -372,7 +408,8 @@ onMounted(async () => {
 }
 
 @keyframes typing {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.5;
   }
@@ -408,7 +445,9 @@ onMounted(async () => {
   font-size: 0.875rem;
   resize: none;
   font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .message-input:focus {

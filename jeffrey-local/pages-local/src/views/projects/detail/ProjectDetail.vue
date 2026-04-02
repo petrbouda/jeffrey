@@ -1,15 +1,15 @@
 <template>
   <div class="d-flex w-100">
     <!-- Sidebar Menu -->
-    <div class="detail-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
-      <div class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <div class="detail-sidebar" :class="{ collapsed: sidebarCollapsed }">
+      <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
         <div class="edge-toggle" @click="toggleSidebar">
           <div class="edge-toggle-line">
             <i class="bi" :class="sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
           </div>
         </div>
 
-        <div class="scrollbar" style="height: 100%;">
+        <div class="scrollbar" style="height: 100%">
           <!-- Sidebar Header -->
           <div class="sidebar-header" v-if="!sidebarCollapsed">
             <h5 class="project-name">{{ projectInfo?.name || 'Loading...' }}</h5>
@@ -20,90 +20,116 @@
               <div class="nav-section-title">OVERVIEW</div>
               <div class="nav-items">
                 <router-link
-                    v-if="!isCollectorOnly"
-                    :to="generateProjectUrl('recordings')"
-                    class="nav-item"
-                    active-class="active">
+                  v-if="!isCollectorOnly"
+                  :to="generateProjectUrl('recordings')"
+                  class="nav-item"
+                  active-class="active"
+                >
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
                   <div v-if="hasInitializingProfiles" class="ms-auto">
-                    <Badge value="Initializing" variant="orange" size="xs" icon="spinner-border spinner-border-sm"/>
+                    <Badge
+                      value="Initializing"
+                      variant="orange"
+                      size="xs"
+                      icon="spinner-border spinner-border-sm"
+                    />
                   </div>
-                  <Badge v-else-if="projectInfo != null && projectInfo.recordingCount > 0" :value="projectInfo.recordingCount.toString()" variant="info" size="xs"
-                         class="ms-auto"/>
+                  <Badge
+                    v-else-if="projectInfo != null && projectInfo.recordingCount > 0"
+                    :value="projectInfo.recordingCount.toString()"
+                    variant="info"
+                    size="xs"
+                    class="ms-auto"
+                  />
                 </router-link>
                 <div
-                    v-else
-                    class="nav-item disabled-feature"
-                    title="Recordings are not available in collector-only mode">
+                  v-else
+                  class="nav-item disabled-feature"
+                  title="Recordings are not available in collector-only mode"
+                >
                   <i class="bi bi-record-circle"></i>
                   <span>Recordings</span>
                 </div>
                 <!-- Instances with 2-level submenu -->
                 <div class="nav-item-group">
-                  <div class="nav-item nav-item-parent"
-                       @click="toggleInstancesSubmenu()"
-                       :class="{ 'active': $route.path.includes('/instances'), 'expanded': instancesSubmenuExpanded }">
+                  <div
+                    class="nav-item nav-item-parent"
+                    @click="toggleInstancesSubmenu()"
+                    :class="{
+                      active: $route.path.includes('/instances'),
+                      expanded: instancesSubmenuExpanded
+                    }"
+                  >
                     <i class="bi bi-box"></i>
                     <span>Instances</span>
-                    <i class="bi bi-chevron-right submenu-arrow" :class="{ 'rotated': instancesSubmenuExpanded }"></i>
+                    <i
+                      class="bi bi-chevron-right submenu-arrow"
+                      :class="{ rotated: instancesSubmenuExpanded }"
+                    ></i>
                   </div>
-                  <div class="nav-submenu" :class="{ 'expanded': instancesSubmenuExpanded }">
+                  <div class="nav-submenu" :class="{ expanded: instancesSubmenuExpanded }">
                     <router-link
-                        :to="generateProjectUrl('instances')"
-                        class="nav-item nav-subitem"
-                        active-class="active">
+                      :to="generateProjectUrl('instances')"
+                      class="nav-item nav-subitem"
+                      active-class="active"
+                    >
                       <i class="bi bi-grid"></i>
                       <span>Overview</span>
                     </router-link>
                     <router-link
-                        :to="generateProjectUrl('instances/timeline')"
-                        class="nav-item nav-subitem"
-                        active-class="active">
+                      :to="generateProjectUrl('instances/timeline')"
+                      class="nav-item nav-subitem"
+                      active-class="active"
+                    >
                       <i class="bi bi-bar-chart-steps"></i>
                       <span>Timeline</span>
                     </router-link>
                   </div>
                 </div>
                 <router-link
-                    :to="generateProjectUrl('profiler-settings')"
-                    class="nav-item"
-                    active-class="active">
+                  :to="generateProjectUrl('profiler-settings')"
+                  class="nav-item"
+                  active-class="active"
+                >
                   <i class="bi bi-cpu"></i>
                   <span>Profiler Settings</span>
                 </router-link>
                 <router-link
-                    v-if="!isSchedulerDisabled"
-                    :to="generateProjectUrl('scheduler')"
-                    class="nav-item"
-                    active-class="active">
+                  v-if="!isSchedulerDisabled"
+                  :to="generateProjectUrl('scheduler')"
+                  class="nav-item"
+                  active-class="active"
+                >
                   <i class="bi bi-calendar-check"></i>
                   <span>Scheduler</span>
                 </router-link>
                 <router-link
-                    :to="generateProjectUrl('alerts')"
-                    class="nav-item"
-                    active-class="active">
+                  :to="generateProjectUrl('alerts')"
+                  class="nav-item"
+                  active-class="active"
+                >
                   <i class="bi bi-bell"></i>
                   <span>Alerts</span>
                 </router-link>
                 <router-link
-                    :to="generateProjectUrl('messages')"
-                    class="nav-item"
-                    active-class="active">
+                  :to="generateProjectUrl('messages')"
+                  class="nav-item"
+                  active-class="active"
+                >
                   <i class="bi bi-chat-square-text"></i>
                   <span>Messages</span>
                 </router-link>
                 <router-link
-                    :to="generateProjectUrl('settings')"
-                    class="nav-item"
-                    active-class="active">
+                  :to="generateProjectUrl('settings')"
+                  class="nav-item"
+                  active-class="active"
+                >
                   <i class="bi bi-sliders"></i>
                   <span>Settings</span>
                 </router-link>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -130,13 +156,13 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import ToastService from '@/services/ToastService';
-import MessageBus from "@/services/MessageBus.ts";
+import MessageBus from '@/services/MessageBus.ts';
 import Badge from '@/components/Badge.vue';
-import ProjectClient from "@/services/api/ProjectClient.ts";
-import Project from "@/services/api/model/Project.ts";
+import ProjectClient from '@/services/api/ProjectClient.ts';
+import Project from '@/services/api/model/Project.ts';
 import { useNavigation } from '@/composables/useNavigation';
 const route = useRoute();
 const router = useRouter();
@@ -181,7 +207,6 @@ async function checkInitializingProfiles() {
   }
 }
 
-
 // Set up message bus listeners for count updates
 function handleProfileCountChange(count: number) {
   if (projectInfo.value) {
@@ -194,7 +219,6 @@ function handleRecordingCountChange(count: number) {
     projectInfo.value.recordingCount = count;
   }
 }
-
 
 // Start polling for profile status when initialization starts
 function startPolling() {
@@ -251,18 +275,26 @@ async function initializeProject() {
 }
 
 // Watch for both projectId and workspaceId changes and initialize
-watch([projectId, workspaceId], async ([newProjectId, newWorkspaceId]) => {
-  if (newProjectId && newWorkspaceId) {
-    await initializeProject();
-  }
-}, { immediate: true });
+watch(
+  [projectId, workspaceId],
+  async ([newProjectId, newWorkspaceId]) => {
+    if (newProjectId && newWorkspaceId) {
+      await initializeProject();
+    }
+  },
+  { immediate: true }
+);
 
 // Watch for route changes to auto-expand submenus
-watch(() => route.path, (newPath) => {
-  if (newPath.includes('/instances')) {
-    instancesSubmenuExpanded.value = true;
-  }
-}, { immediate: true });
+watch(
+  () => route.path,
+  newPath => {
+    if (newPath.includes('/instances')) {
+      instancesSubmenuExpanded.value = true;
+    }
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   // Set up message bus listeners

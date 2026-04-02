@@ -26,127 +26,129 @@ import DownloadTaskStatus from '@/services/api/model/DownloadTaskStatus';
  * Supports SSE for real-time updates with polling fallback.
  */
 export default class DownloadTaskClient extends BasePlatformClient {
-    private eventSource: EventSource | null = null;
-    private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private eventSource: EventSource | null = null;
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/download`);
-    }
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/download`);
+  }
 
-    /**
-     * Starts a new download task and returns the task info.
-     */
-    async startDownload(sessionId: string, fileIds: string[]): Promise<DownloadTask> {
-        return super.post<DownloadTask>('/start', { sessionId, recordingIds: fileIds });
-    }
+  /**
+   * Starts a new download task and returns the task info.
+   */
+  async startDownload(sessionId: string, fileIds: string[]): Promise<DownloadTask> {
+    return super.post<DownloadTask>('/start', { sessionId, recordingIds: fileIds });
+  }
 
-    /**
-     * Subscribes to real-time progress updates via SSE.
-     * Falls back to polling if SSE fails.
-     */
-    subscribeToProgress(
-        taskId: string,
-        onProgress: (progress: DownloadProgress) => void,
-        onComplete: () => void,
-        onError: (error: string) => void
-    ): void {
-        this.unsubscribe(); // Clean up any existing subscription
+  /**
+   * Subscribes to real-time progress updates via SSE.
+   * Falls back to polling if SSE fails.
+   */
+  subscribeToProgress(
+    taskId: string,
+    onProgress: (progress: DownloadProgress) => void,
+    onComplete: () => void,
+    onError: (error: string) => void
+  ): void {
+    this.unsubscribe(); // Clean up any existing subscription
 
-        const sseUrl = this.baseUrl + '/' + taskId + '/progress';
+    const sseUrl = this.baseUrl + '/' + taskId + '/progress';
 
-        try {
-            this.eventSource = new EventSource(sseUrl);
+    try {
+      this.eventSource = new EventSource(sseUrl);
 
-            this.eventSource.addEventListener('progress', (event: MessageEvent) => {
-                const progress: DownloadProgress = JSON.parse(event.data);
-                onProgress(progress);
+      this.eventSource.addEventListener('progress', (event: MessageEvent) => {
+        const progress: DownloadProgress = JSON.parse(event.data);
+        onProgress(progress);
 
-                if (this.isTerminalStatus(progress.status)) {
-                    this.unsubscribe();
-                    if (progress.status === DownloadTaskStatus.COMPLETED) {
-                        onComplete();
-                    } else if (progress.status === DownloadTaskStatus.FAILED) {
-                        onError(progress.errorMessage || 'Download failed');
-                    }
-                }
-            });
-
-            this.eventSource.onerror = () => {
-                console.warn('SSE connection failed, falling back to polling');
-                this.eventSource?.close();
-                this.eventSource = null;
-                this.startPolling(taskId, onProgress, onComplete, onError);
-            };
-        } catch (e) {
-            console.warn('SSE not supported, using polling');
-            this.startPolling(taskId, onProgress, onComplete, onError);
+        if (this.isTerminalStatus(progress.status)) {
+          this.unsubscribe();
+          if (progress.status === DownloadTaskStatus.COMPLETED) {
+            onComplete();
+          } else if (progress.status === DownloadTaskStatus.FAILED) {
+            onError(progress.errorMessage || 'Download failed');
+          }
         }
+      });
+
+      this.eventSource.onerror = () => {
+        console.warn('SSE connection failed, falling back to polling');
+        this.eventSource?.close();
+        this.eventSource = null;
+        this.startPolling(taskId, onProgress, onComplete, onError);
+      };
+    } catch (e) {
+      console.warn('SSE not supported, using polling');
+      this.startPolling(taskId, onProgress, onComplete, onError);
     }
+  }
 
-    /**
-     * Polling fallback for when SSE is unavailable.
-     */
-    private startPolling(
-        taskId: string,
-        onProgress: (progress: DownloadProgress) => void,
-        onComplete: () => void,
-        onError: (error: string) => void
-    ): void {
-        const pollStatus = async () => {
-            try {
-                const progress = await this.getStatus(taskId);
-                onProgress(progress);
+  /**
+   * Polling fallback for when SSE is unavailable.
+   */
+  private startPolling(
+    taskId: string,
+    onProgress: (progress: DownloadProgress) => void,
+    onComplete: () => void,
+    onError: (error: string) => void
+  ): void {
+    const pollStatus = async () => {
+      try {
+        const progress = await this.getStatus(taskId);
+        onProgress(progress);
 
-                if (this.isTerminalStatus(progress.status)) {
-                    this.unsubscribe();
-                    if (progress.status === DownloadTaskStatus.COMPLETED) {
-                        onComplete();
-                    } else if (progress.status === DownloadTaskStatus.FAILED) {
-                        onError(progress.errorMessage || 'Download failed');
-                    }
-                }
-            } catch (e: any) {
-                onError(e.message || 'Failed to get status');
-                this.unsubscribe();
-            }
-        };
-
-        // Poll every 500ms
-        this.pollingInterval = setInterval(pollStatus, 500);
-        pollStatus(); // Immediate first call
-    }
-
-    /**
-     * Gets current status (for polling fallback).
-     */
-    async getStatus(taskId: string): Promise<DownloadProgress> {
-        return super.get<DownloadProgress>(`/${taskId}/status`);
-    }
-
-    /**
-     * Cancels an ongoing download.
-     */
-    async cancelDownload(taskId: string): Promise<void> {
-        return super.del<void>(`/${taskId}`);
-    }
-
-    /**
-     * Cleans up subscriptions.
-     */
-    unsubscribe(): void {
-        if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
+        if (this.isTerminalStatus(progress.status)) {
+          this.unsubscribe();
+          if (progress.status === DownloadTaskStatus.COMPLETED) {
+            onComplete();
+          } else if (progress.status === DownloadTaskStatus.FAILED) {
+            onError(progress.errorMessage || 'Download failed');
+          }
         }
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
-        }
-    }
+      } catch (e: any) {
+        onError(e.message || 'Failed to get status');
+        this.unsubscribe();
+      }
+    };
 
-    private isTerminalStatus(status: DownloadTaskStatus): boolean {
-        return status === DownloadTaskStatus.COMPLETED ||
-            status === DownloadTaskStatus.FAILED ||
-            status === DownloadTaskStatus.CANCELLED;
+    // Poll every 500ms
+    this.pollingInterval = setInterval(pollStatus, 500);
+    pollStatus(); // Immediate first call
+  }
+
+  /**
+   * Gets current status (for polling fallback).
+   */
+  async getStatus(taskId: string): Promise<DownloadProgress> {
+    return super.get<DownloadProgress>(`/${taskId}/status`);
+  }
+
+  /**
+   * Cancels an ongoing download.
+   */
+  async cancelDownload(taskId: string): Promise<void> {
+    return super.del<void>(`/${taskId}`);
+  }
+
+  /**
+   * Cleans up subscriptions.
+   */
+  unsubscribe(): void {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
     }
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  private isTerminalStatus(status: DownloadTaskStatus): boolean {
+    return (
+      status === DownloadTaskStatus.COMPLETED ||
+      status === DownloadTaskStatus.FAILED ||
+      status === DownloadTaskStatus.CANCELLED
+    );
+  }
 }

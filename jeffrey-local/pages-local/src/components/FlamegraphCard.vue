@@ -38,11 +38,15 @@ Coul<!--
             <span class="primary-value">{{ event.primary.code }}</span>
             <span class="delimiter"> → </span>
             <span class="secondary-value">{{ event.secondary?.code }}</span>
-            <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)">(calculated)</span>
+            <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
+              >(calculated)</span
+            >
           </span>
           <span class="detail-value" v-else>
             {{ event.primary.code }}
-            <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)">(calculated)</span>
+            <span class="calculated-indicator" v-if="Utils.parseBoolean(event.primary.calculated)"
+              >(calculated)</span
+            >
           </span>
         </div>
 
@@ -73,9 +77,13 @@ Coul<!--
         <div class="detail-row">
           <span class="detail-label">Samples:</span>
           <span class="detail-value" v-if="containsSecondary()">
-            <span class="primary-value">{{ FormattingService.formatNumber(event.primary.samples) }}</span>
+            <span class="primary-value">{{
+              FormattingService.formatNumber(event.primary.samples)
+            }}</span>
             <span class="delimiter"> → </span>
-            <span class="secondary-value">{{ FormattingService.formatNumber(event.secondary?.samples || 0) }}</span>
+            <span class="secondary-value">{{
+              FormattingService.formatNumber(event.secondary?.samples || 0)
+            }}</span>
           </span>
           <span class="detail-value" v-else>
             {{ FormattingService.formatNumber(event.primary.samples) }}
@@ -97,9 +105,13 @@ Coul<!--
         <div class="detail-row" v-if="Utils.isNotNull(event.primary.extras?.sample_interval)">
           <span class="detail-label">Sample Interval:</span>
           <span class="detail-value" v-if="containsSecondary()">
-            <span class="primary-value">{{ weightFormatter(event.primary.extras.sample_interval) }}</span>
+            <span class="primary-value">{{
+              weightFormatter(event.primary.extras.sample_interval)
+            }}</span>
             <span class="delimiter"> → </span>
-            <span class="secondary-value">{{ weightFormatter(event.secondary?.extras.sample_interval) }}</span>
+            <span class="secondary-value">{{
+              weightFormatter(event.secondary?.extras.sample_interval)
+            }}</span>
           </span>
           <span class="detail-value" v-else>
             {{ weightFormatter(event.primary.extras.sample_interval) }}
@@ -116,10 +128,8 @@ Coul<!--
             type="checkbox"
             :id="'threadMode_' + event.code"
             v-model="useThreadMode"
-          >
-          <label class="setting-label" :for="'threadMode_' + event.code">
-            Use Thread-mode
-          </label>
+          />
+          <label class="setting-label" :for="'threadMode_' + event.code"> Use Thread-mode </label>
         </div>
 
         <!-- Weight option checkbox -->
@@ -129,7 +139,7 @@ Coul<!--
             type="checkbox"
             :id="'useWeight_' + event.code"
             v-model="useWeight"
-          >
+          />
           <label class="setting-label" :for="'useWeight_' + event.code">
             Use {{ weightDescription }}
           </label>
@@ -143,10 +153,13 @@ Coul<!--
             :id="'excludeIdle_' + event.code"
             v-model="excludeIdleSamples"
             @click="switchIdleSamples()"
-          >
+          />
           <label class="setting-label" :for="'excludeIdle_' + event.code">
             Exclude Idle Samples
-            <i class="bi bi-info-circle setting-tooltip" title="Excludes samples that are parked in thread-pools"></i>
+            <i
+              class="bi bi-info-circle setting-tooltip"
+              title="Excludes samples that are parked in thread-pools"
+            ></i>
           </label>
         </div>
 
@@ -157,10 +170,13 @@ Coul<!--
             type="checkbox"
             :id="'excludeNonJava_' + event.code"
             v-model="excludeNonJavaSamples"
-          >
+          />
           <label class="setting-label" :for="'excludeNonJava_' + event.code">
             Exclude non-Java Samples
-            <i class="bi bi-info-circle setting-tooltip" title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"></i>
+            <i
+              class="bi bi-info-circle setting-tooltip"
+              title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"
+            ></i>
           </label>
         </div>
 
@@ -171,10 +187,13 @@ Coul<!--
             type="checkbox"
             :id="'unsafeAlloc_' + event.code"
             v-model="onlyUnsafeAllocationSamples"
-          >
+          />
           <label class="setting-label" :for="'unsafeAlloc_' + event.code">
             Only Allocations with Unsafe
-            <i class="bi bi-info-circle setting-tooltip" title="Filters out all JVM-specific allocations and let only the relevant ones"></i>
+            <i
+              class="bi bi-info-circle setting-tooltip"
+              title="Filters out all JVM-specific allocations and let only the relevant ones"
+            ></i>
           </label>
         </div>
       </div>
@@ -182,11 +201,7 @@ Coul<!--
 
     <!-- Action Zone -->
     <div class="card-actions">
-      <button
-        @click="navigateToFlamegraph"
-        :disabled="!enabled"
-        class="btn btn-primary btn-full"
-      >
+      <button @click="navigateToFlamegraph" :disabled="!enabled" class="btn btn-primary btn-full">
         <i class="bi bi-fire"></i>
         {{ buttonText || 'View Flamegraph' }}
       </button>
@@ -195,7 +210,7 @@ Coul<!--
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css'
+import '@/styles/shared-components.css';
 import { useRouter, useRoute } from 'vue-router';
 import { ref } from 'vue';
 import EventSummary from '@/services/api/model/EventSummary';
@@ -234,9 +249,10 @@ const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected));
 const useWeight = ref(Utils.parseBoolean(props.weightSelected));
 const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamplesSelected));
 const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamplesSelected));
-const onlyUnsafeAllocationSamples = ref(Utils.parseBoolean(props.onlyUnsafeAllocationSamplesSelected));
+const onlyUnsafeAllocationSamples = ref(
+  Utils.parseBoolean(props.onlyUnsafeAllocationSamplesSelected)
+);
 const weightDescription = ref(props.weightDesc);
-
 
 // Get category-specific styling
 const getCategoryClass = () => {
@@ -262,7 +278,9 @@ const isSameType = () => {
 };
 
 const isSameSource = () => {
-  return props.event.secondary != null && props.event.primary.source === props.event.secondary.source;
+  return (
+    props.event.secondary != null && props.event.primary.source === props.event.secondary.source
+  );
 };
 
 const navigateToFlamegraph = () => {
@@ -278,14 +296,15 @@ const navigateToFlamegraph = () => {
   if (useWeight.value) query.useWeight = useWeight.value;
   if (excludeNonJavaSamples.value) query.excludeNonJavaSamples = excludeNonJavaSamples.value;
   if (excludeIdleSamples.value) query.excludeIdleSamples = excludeIdleSamples.value;
-  if (onlyUnsafeAllocationSamples.value) query.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples.value;
+  if (onlyUnsafeAllocationSamples.value)
+    query.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples.value;
 
   router.push({
     name: props.routeName || 'flamegraph',
     params: {
       workspaceId: route.params.workspaceId,
       projectId: route.params.projectId,
-      profileId: route.params.profileId,
+      profileId: route.params.profileId
     },
     query
   });
@@ -300,7 +319,6 @@ const switchIdleSamples = () => {
     excludeNonJavaSamples.value = true;
   }
 };
-
 </script>
 
 <style scoped>

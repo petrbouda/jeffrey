@@ -1,35 +1,44 @@
 <template>
   <DualPanel
-      :title="title"
-      :icon="icon"
-      :embedded="embedded"
-      left-title="Status Codes"
-      right-title="Services"
+    :title="title"
+    :icon="icon"
+    :embedded="embedded"
+    left-title="Status Codes"
+    right-title="Services"
   >
     <template #left>
       <DonutWithLegend
-          :data="statusCodeChartData"
-          :tooltip-formatter="(val: number) => val + ' calls'"
+        :data="statusCodeChartData"
+        :tooltip-formatter="(val: number) => val + ' calls'"
       />
     </template>
     <template #right>
       <DonutWithLegend
-          :data="serviceChartData"
-          :tooltip-formatter="(val: number) => val + ' calls'"
+        :data="serviceChartData"
+        :tooltip-formatter="(val: number) => val + ' calls'"
       />
     </template>
   </DualPanel>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type {DonutChartData} from '@/components/DonutWithLegend.vue';
-import type {GrpcStatusStats, GrpcServiceInfo} from '@/services/api/ProfileGrpcClient';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
+import type { GrpcStatusStats, GrpcServiceInfo } from '@/services/api/ProfileGrpcClient';
 import FormattingService from '@/services/FormattingService';
 
-const defaultColors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9C27B0', '#FF5722', '#00BCD4', '#795548'];
+const defaultColors = [
+  '#4285F4',
+  '#EA4335',
+  '#FBBC05',
+  '#34A853',
+  '#9C27B0',
+  '#FF5722',
+  '#00BCD4',
+  '#795548'
+];
 
 interface Props {
   statusCodes: GrpcStatusStats[];
@@ -48,15 +57,29 @@ const props = withDefaults(defineProps<Props>(), {
 
 const statusCodeColor = (label: string): string => {
   switch (label) {
-    case 'OK': return '#5cb85c';
-    case 'CANCELLED': return '#f0ad4e';
-    case 'INVALID_ARGUMENT': case 'NOT_FOUND': case 'ALREADY_EXISTS':
-    case 'PERMISSION_DENIED': case 'FAILED_PRECONDITION': case 'OUT_OF_RANGE':
-    case 'UNAUTHENTICATED': return '#f0ad4e';
-    case 'UNKNOWN': case 'DEADLINE_EXCEEDED': case 'RESOURCE_EXHAUSTED':
-    case 'ABORTED': case 'UNIMPLEMENTED': case 'INTERNAL':
-    case 'UNAVAILABLE': case 'DATA_LOSS': return '#d9534f';
-    default: return '#6c757d';
+    case 'OK':
+      return '#5cb85c';
+    case 'CANCELLED':
+      return '#f0ad4e';
+    case 'INVALID_ARGUMENT':
+    case 'NOT_FOUND':
+    case 'ALREADY_EXISTS':
+    case 'PERMISSION_DENIED':
+    case 'FAILED_PRECONDITION':
+    case 'OUT_OF_RANGE':
+    case 'UNAUTHENTICATED':
+      return '#f0ad4e';
+    case 'UNKNOWN':
+    case 'DEADLINE_EXCEEDED':
+    case 'RESOURCE_EXHAUSTED':
+    case 'ABORTED':
+    case 'UNIMPLEMENTED':
+    case 'INTERNAL':
+    case 'UNAVAILABLE':
+    case 'DATA_LOSS':
+      return '#d9534f';
+    default:
+      return '#6c757d';
   }
 };
 

@@ -16,24 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GCGenerationType from "@/services/profile/gc/GCGenerationType.ts";
+import GCGenerationType from '@/services/profile/gc/GCGenerationType.ts';
 
 export default class GCEvent {
-    constructor(
-        public timestamp: number,
-        public gcId: number,
-        public generationType: GCGenerationType,
-        public collectorName: string,
-        public type: string,
-        public cause: string,
-        public duration: number,
-        public beforeGC: number,
-        public afterGC: number,
-        public freed: number,
-        public efficiency: number,
-        public heapSize: number,
-        public sumOfPauses: number,
-        public longestPause: number,
-        public concurrent: boolean
-    ) {}
+  constructor(
+    public timestamp: number,
+    public gcId: number,
+    public generationType: GCGenerationType,
+    public collectorName: string,
+    public type: string,
+    public cause: string,
+    public duration: number,
+    public beforeGC: number,
+    public afterGC: number,
+    public freed: number,
+    public efficiency: number,
+    public heapSize: number,
+    public sumOfPauses: number,
+    public longestPause: number,
+    public concurrent: boolean
+  ) {}
 }

@@ -1,8 +1,8 @@
 <template>
   <PageHeader
-      title="Profiler Settings"
-      description="Configure profiler agent settings for this project"
-      icon="bi-cpu"
+    title="Profiler Settings"
+    description="Configure profiler agent settings for this project"
+    icon="bi-cpu"
   >
     <!-- Loading State -->
     <div v-if="isLoading" class="loading-state">
@@ -15,27 +15,27 @@
     <div v-else class="profiler-settings-content">
       <!-- Current Settings Display -->
       <CommandDisplay
-          :command="currentSettings"
-          :deletable="settingsLevel === 'PROJECT'"
-          :deleting="isDeleting"
-          @delete="deleteProjectSettings"
+        :command="currentSettings"
+        :deletable="settingsLevel === 'PROJECT'"
+        :deleting="isDeleting"
+        @delete="deleteProjectSettings"
       >
         <template #header-left>
-          <SettingsBreadcrumbs :items="breadcrumbItems"/>
+          <SettingsBreadcrumbs :items="breadcrumbItems" />
         </template>
       </CommandDisplay>
 
       <!-- Tab Bar -->
       <div class="tab-bar">
         <button
-            :class="['tab-item', { 'tab-item--active': activeTab === 'manual' }]"
-            @click="activeTab = 'manual'"
+          :class="['tab-item', { 'tab-item--active': activeTab === 'manual' }]"
+          @click="activeTab = 'manual'"
         >
           Manual
         </button>
         <button
-            :class="['tab-item', { 'tab-item--active': activeTab === 'builder' }]"
-            @click="activeTab = 'builder'"
+          :class="['tab-item', { 'tab-item--active': activeTab === 'builder' }]"
+          @click="activeTab = 'builder'"
         >
           Visual Builder
         </button>
@@ -44,15 +44,15 @@
       <!-- Tab Content -->
       <div class="tab-content">
         <ConfigureCommand
-            v-if="activeTab === 'manual'"
-            v-model="newCommand"
-            @accept-command="applySettings"
-            @clear="newCommand = ''"
+          v-if="activeTab === 'manual'"
+          v-model="newCommand"
+          @accept-command="applySettings"
+          @clear="newCommand = ''"
         />
         <CommandBuilder
-            v-if="activeTab === 'builder'"
-            @cancel="cancelBuilder"
-            @accept-command="acceptBuilderCommand"
+          v-if="activeTab === 'builder'"
+          @cancel="cancelBuilder"
+          @accept-command="acceptBuilderCommand"
         />
       </div>
     </div>
@@ -68,7 +68,7 @@ import ConfigureCommand from '@/components/settings/ConfigureCommand.vue';
 import CommandBuilder from '@/components/settings/CommandBuilder.vue';
 import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
-import type {BreadcrumbItem} from '@/components/settings/SettingsBreadcrumbs.vue';
+import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import type ProfilerSettings from '@/services/api/model/ProfilerSettings';
 
@@ -91,13 +91,13 @@ const settingsLevel = computed(() => effectiveSettings.value?.level ?? 'NONE');
 const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
   const level = settingsLevel.value;
   const items: BreadcrumbItem[] = [
-    {icon: 'bi-globe2', label: 'Global', active: level === 'GLOBAL' || level === 'NONE'},
+    { icon: 'bi-globe2', label: 'Global', active: level === 'GLOBAL' || level === 'NONE' }
   ];
   if (level === 'WORKSPACE' || level === 'PROJECT') {
-    items.push({icon: 'bi-folder-fill', label: 'Workspace', active: level === 'WORKSPACE'});
+    items.push({ icon: 'bi-folder-fill', label: 'Workspace', active: level === 'WORKSPACE' });
   }
   if (level === 'PROJECT') {
-    items.push({icon: 'bi-diagram-3-fill', label: 'Project', active: true});
+    items.push({ icon: 'bi-diagram-3-fill', label: 'Project', active: true });
   }
   return items;
 });
@@ -136,7 +136,10 @@ async function applySettings(command: string) {
 
   try {
     await profilerClient.upsert(command.trim());
-    ToastService.success('Settings Applied', 'Profiler settings have been applied to this project.');
+    ToastService.success(
+      'Settings Applied',
+      'Profiler settings have been applied to this project.'
+    );
     await loadSettings();
     newCommand.value = '';
     activeTab.value = 'manual';

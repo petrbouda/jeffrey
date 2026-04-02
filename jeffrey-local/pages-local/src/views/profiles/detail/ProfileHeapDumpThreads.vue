@@ -6,24 +6,27 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="cpu"
-      message="The heap dump needs to be initialized before you can view thread information. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="cpu"
+    message="The heap dump needs to be initialized before you can view thread information. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-        title="Threads"
-        description="Thread objects captured in the heap dump"
-        icon="bi-cpu"
+      title="Threads"
+      description="Thread objects captured in the heap dump"
+      icon="bi-cpu"
     />
 
     <div v-if="threadsData && threadsData.length > 0">
@@ -43,12 +46,17 @@
             <div class="input-group search-container">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
-                  type="text"
-                  v-model="searchQuery"
-                  class="form-control search-input"
-                  placeholder="Filter..."
+                type="text"
+                v-model="searchQuery"
+                class="form-control search-input"
+                placeholder="Filter..."
               />
-              <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
+              <button
+                v-if="searchQuery"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchQuery = ''"
+              >
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -62,16 +70,16 @@
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead>
-            <tr>
-              <th style="width: 50px;">#</th>
-              <SortableTableHeader
+              <tr>
+                <th style="width: 50px">#</th>
+                <SortableTableHeader
                   column="name"
                   label="Thread"
                   :sort-column="sortColumn"
                   :sort-direction="sortDirection"
                   @sort="toggleSort"
-              />
-              <SortableTableHeader
+                />
+                <SortableTableHeader
                   v-if="hasRetainedSize"
                   column="retained"
                   label="Retained Size"
@@ -80,82 +88,111 @@
                   align="end"
                   width="140px"
                   @sort="toggleSort"
-              />
-              <th style="width: 90px;"></th>
-            </tr>
+                />
+                <th style="width: 90px"></th>
+              </tr>
             </thead>
             <tbody>
-            <template v-for="(thread, index) in filteredThreads" :key="thread.objectId">
-              <tr>
-                <td class="text-muted">{{ index + 1 }}</td>
-                <td class="thread-cell">
-                  <div class="thread-header">
-                    <span class="thread-name">{{ thread.name }}</span>
-                    <InstanceActionButtons
+              <template v-for="(thread, index) in filteredThreads" :key="thread.objectId">
+                <tr>
+                  <td class="text-muted">{{ index + 1 }}</td>
+                  <td class="thread-cell">
+                    <div class="thread-header">
+                      <span class="thread-name">{{ thread.name }}</span>
+                      <InstanceActionButtons
                         :object-id="thread.objectId"
                         :show-gc-root-path="false"
                         @show-referrers="openTreeModal($event, 'REFERRERS')"
                         @show-reachables="openTreeModal($event, 'REACHABLES')"
-                    />
-                  </div>
-                  <div class="thread-meta">
-                    <span class="meta-label">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
-                    <span class="meta-separator">•</span>
-                    <span class="meta-label" :class="'priority-' + getPriorityClass(thread.priority)">
-                      Priority {{ thread.priority }}
+                      />
+                    </div>
+                    <div class="thread-meta">
+                      <span class="meta-label">{{ thread.daemon ? 'Daemon' : 'Non-Daemon' }}</span>
+                      <span class="meta-separator">•</span>
+                      <span
+                        class="meta-label"
+                        :class="'priority-' + getPriorityClass(thread.priority)"
+                      >
+                        Priority {{ thread.priority }}
+                      </span>
+                    </div>
+                  </td>
+                  <td v-if="hasRetainedSize" class="text-end align-middle">
+                    <span class="retained-size font-monospace text-warning">
+                      {{
+                        thread.retainedSize != null
+                          ? FormattingService.formatBytes(thread.retainedSize)
+                          : '-'
+                      }}
                     </span>
-                  </div>
-                </td>
-                <td v-if="hasRetainedSize" class="text-end align-middle">
-                  <span class="retained-size font-monospace text-warning">
-                    {{ thread.retainedSize != null ? FormattingService.formatBytes(thread.retainedSize) : '-' }}
-                  </span>
-                </td>
-                <td class="text-center align-middle">
-                  <button class="btn btn-sm btn-outline-secondary" @click="toggleStack(thread.objectId)">
-                    <i class="bi" :class="expandedThread === thread.objectId ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-                    Stack
-                  </button>
-                </td>
-              </tr>
-              <!-- Stack expansion row -->
-              <tr v-if="expandedThread === thread.objectId" class="stack-expansion-row">
-                <td :colspan="columnCount">
-                  <div class="stack-container">
-                    <div v-if="stackLoading" class="text-center py-3">
-                      <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                      </div>
-                      <span class="ms-2 text-muted small">Loading stack frames...</span>
-                    </div>
-                    <div v-else-if="stackFrames.length === 0" class="text-muted small py-2">
-                      No stack frames available for this thread.
-                    </div>
-                    <div v-else class="stack-frames">
-                      <div v-for="(frame, frameIndex) in stackFrames" :key="frameIndex" class="stack-frame">
-                        <div class="stack-frame-line">
-                          <span class="frame-index text-muted">{{ frameIndex }}</span>
-                          <span class="frame-method">
-                            <code class="frame-class">{{ frame.className }}</code>.<code class="frame-method-name">{{ frame.methodName }}</code>
-                          </span>
-                          <span v-if="frame.sourceFile" class="frame-source text-muted">
-                            ({{ frame.sourceFile }}<span v-if="frame.lineNumber > 0">:{{ frame.lineNumber }}</span>)
-                          </span>
+                  </td>
+                  <td class="text-center align-middle">
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      @click="toggleStack(thread.objectId)"
+                    >
+                      <i
+                        class="bi"
+                        :class="
+                          expandedThread === thread.objectId ? 'bi-chevron-up' : 'bi-chevron-down'
+                        "
+                      ></i>
+                      Stack
+                    </button>
+                  </td>
+                </tr>
+                <!-- Stack expansion row -->
+                <tr v-if="expandedThread === thread.objectId" class="stack-expansion-row">
+                  <td :colspan="columnCount">
+                    <div class="stack-container">
+                      <div v-if="stackLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                          <span class="visually-hidden">Loading...</span>
                         </div>
-                        <div v-if="frame.locals && frame.locals.length > 0" class="stack-locals">
-                          <div v-for="local in frame.locals" :key="local.objectId" class="stack-local">
-                            <i class="bi bi-dot"></i>
-                            <span class="local-field">{{ local.fieldName }}</span>:
-                            <span class="local-class">{{ local.className }}</span>
-                            <span class="local-size text-muted">({{ FormattingService.formatBytes(local.shallowSize) }})</span>
+                        <span class="ms-2 text-muted small">Loading stack frames...</span>
+                      </div>
+                      <div v-else-if="stackFrames.length === 0" class="text-muted small py-2">
+                        No stack frames available for this thread.
+                      </div>
+                      <div v-else class="stack-frames">
+                        <div
+                          v-for="(frame, frameIndex) in stackFrames"
+                          :key="frameIndex"
+                          class="stack-frame"
+                        >
+                          <div class="stack-frame-line">
+                            <span class="frame-index text-muted">{{ frameIndex }}</span>
+                            <span class="frame-method">
+                              <code class="frame-class">{{ frame.className }}</code
+                              >.<code class="frame-method-name">{{ frame.methodName }}</code>
+                            </span>
+                            <span v-if="frame.sourceFile" class="frame-source text-muted">
+                              ({{ frame.sourceFile
+                              }}<span v-if="frame.lineNumber > 0">:{{ frame.lineNumber }}</span
+                              >)
+                            </span>
+                          </div>
+                          <div v-if="frame.locals && frame.locals.length > 0" class="stack-locals">
+                            <div
+                              v-for="local in frame.locals"
+                              :key="local.objectId"
+                              class="stack-local"
+                            >
+                              <i class="bi bi-dot"></i>
+                              <span class="local-field">{{ local.fieldName }}</span
+                              >:
+                              <span class="local-class">{{ local.className }}</span>
+                              <span class="local-size text-muted"
+                                >({{ FormattingService.formatBytes(local.shallowSize) }})</span
+                              >
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-              </tr>
-            </template>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
@@ -164,18 +201,18 @@
 
     <div v-else class="empty-state">
       <div class="text-center py-5">
-        <i class="bi bi-cpu text-muted" style="font-size: 3rem;"></i>
+        <i class="bi bi-cpu text-muted" style="font-size: 3rem"></i>
         <p class="text-muted mt-3 mb-0">No thread information available in this heap dump.</p>
       </div>
     </div>
 
     <!-- Instance Tree Modal -->
     <InstanceTreeModal
-        v-if="selectedObjectId !== null"
-        v-model:show="showTreeModal"
-        :object-id="selectedObjectId"
-        :initial-mode="treeMode"
-        :profile-id="profileId"
+      v-if="selectedObjectId !== null"
+      v-model:show="showTreeModal"
+      :object-id="selectedObjectId"
+      :initial-mode="treeMode"
+      :profile-id="profileId"
     />
   </div>
 </template>
@@ -221,9 +258,7 @@ const stackLoading = ref(false);
 let client: HeapDumpClient;
 
 // Check if any thread has retained size
-const hasRetainedSize = computed(() =>
-    threadsData.value.some(t => t.retainedSize != null)
-);
+const hasRetainedSize = computed(() => threadsData.value.some(t => t.retainedSize != null));
 
 // Computed counts
 const daemonCount = computed(() => threadsData.value.filter(t => t.daemon).length);
@@ -308,7 +343,7 @@ const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
 };
 
 // Column count: #, Thread, (optional Retained Size), Stack button
-const columnCount = computed(() => hasRetainedSize.value ? 4 : 3);
+const columnCount = computed(() => (hasRetainedSize.value ? 4 : 3));
 
 const toggleStack = async (objectId: number) => {
   if (expandedThread.value === objectId) {
@@ -365,7 +400,6 @@ const loadData = async () => {
       threadsData.value = report.threads;
       totalRetainedSize.value = report.totalRetainedSize;
     }
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load thread information';
     console.error('Error loading thread information:', err);

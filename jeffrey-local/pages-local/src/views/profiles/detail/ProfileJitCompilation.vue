@@ -18,49 +18,56 @@
     <div v-else>
       <!-- Header Section with Stats Overview -->
       <PageHeader
-          title="JIT Compilation"
-          description="Real-time insights into Java Just-In-Time compilation performance"
-          icon="bi-lightning-charge-fill"
+        title="JIT Compilation"
+        description="Real-time insights into Java Just-In-Time compilation performance"
+        icon="bi-lightning-charge-fill"
       />
 
-        <!-- Main Dashboard Grid -->
-        <div class="dashboard-grid">
-          <!-- Stats Table -->
-          <div class="mb-4">
-            <StatsTable :metrics="metricsData">
-              <template #title-action-0>
-                <i class="bi bi-info-circle text-muted compilation-info-icon"
-                   @click="showCompilationsModal"
-                   title="Click for detailed explanation of Standard vs OSR Compilation"
-                   style="cursor: pointer;"></i>
-              </template>
-              <template #title-action-1>
-                <i class="bi bi-info-circle text-muted compilation-info-icon"
-                   @click="showTooltipModal"
-                   title="Click for detailed explanation of Bailouts vs Invalidations"
-                   style="cursor: pointer;"></i>
-              </template>
-              <template #title-action-2>
-                <i class="bi bi-info-circle text-muted compilation-info-icon"
-                   @click="showNMethodsModal"
-                   title="Click for detailed explanation of nMethods"
-                   style="cursor: pointer;"></i>
-              </template>
-            </StatsTable>
-          </div>
+      <!-- Main Dashboard Grid -->
+      <div class="dashboard-grid">
+        <!-- Stats Table -->
+        <div class="mb-4">
+          <StatsTable :metrics="metricsData">
+            <template #title-action-0>
+              <i
+                class="bi bi-info-circle text-muted compilation-info-icon"
+                @click="showCompilationsModal"
+                title="Click for detailed explanation of Standard vs OSR Compilation"
+                style="cursor: pointer"
+              ></i>
+            </template>
+            <template #title-action-1>
+              <i
+                class="bi bi-info-circle text-muted compilation-info-icon"
+                @click="showTooltipModal"
+                title="Click for detailed explanation of Bailouts vs Invalidations"
+                style="cursor: pointer"
+              ></i>
+            </template>
+            <template #title-action-2>
+              <i
+                class="bi bi-info-circle text-muted compilation-info-icon"
+                @click="showNMethodsModal"
+                title="Click for detailed explanation of nMethods"
+                style="cursor: pointer"
+              ></i>
+            </template>
+          </StatsTable>
+        </div>
 
-          <!-- Row 3: Time Series Graph -->
-          <div class="chart-card mb-4">
-            <div class="chart-card-header">
-              <h5>JIT Compilation Activity by CPU Samples</h5>
-            </div>
-            <div class="chart-container">
-              <TimeSeriesChart
-                  :primaryData="timeseriesData?.data"
-                  :primaryTitle="timeseriesData?.name"
-                  :visibleMinutes="60"/>
-            </div>
+        <!-- Row 3: Time Series Graph -->
+        <div class="chart-card mb-4">
+          <div class="chart-card-header">
+            <h5>JIT Compilation Activity by CPU Samples</h5>
           </div>
+          <div class="chart-container">
+            <TimeSeriesChart
+              :primaryData="timeseriesData?.data"
+              :primaryTitle="timeseriesData?.name"
+              :visibleMinutes="60"
+            />
+          </div>
+        </div>
 
         <!-- Row 4: Long Compilation Table -->
         <div class="data-table-card">
@@ -68,51 +75,70 @@
             <h5>Long Compilations</h5>
             <div class="chart-controls">
               <div class="d-flex align-items-center">
-                <Badge key-label="Threshold" :value="`${statisticsData?.compileMethodThreshold}ms`" variant="primary" size="s" />
+                <Badge
+                  key-label="Threshold"
+                  :value="`${statisticsData?.compileMethodThreshold}ms`"
+                  variant="primary"
+                  size="s"
+                />
               </div>
             </div>
           </div>
-          <EmptyState v-if="compilationsData.length === 0" icon="bi-lightning" title="No long compilations recorded" />
+          <EmptyState
+            v-if="compilationsData.length === 0"
+            icon="bi-lightning"
+            title="No long compilations recorded"
+          />
           <div v-else class="table-responsive">
             <table class="table table-sm table-hover mb-0">
               <thead>
-              <tr>
-                <th>ID</th>
-                <th>Method</th>
-                <th>Level</th>
-                <th>Time</th>
-                <th>Code Size</th>
-                <th>Status</th>
-              </tr>
+                <tr>
+                  <th>ID</th>
+                  <th>Method</th>
+                  <th>Level</th>
+                  <th>Time</th>
+                  <th>Code Size</th>
+                  <th>Status</th>
+                </tr>
               </thead>
               <tbody>
-              <tr v-for="compilation in compilationsData" :key="compilation.compileId"
+                <tr
+                  v-for="compilation in compilationsData"
+                  :key="compilation.compileId"
                   :class="{ 'table-danger': !compilation.succeded }"
-                  :title="compilation.method">
-                <td>{{ compilation.compileId }}</td>
-                <td>
-                  <div class="method-cell">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                      <span class="method-name">{{ getClassMethodName(compilation.method) }}</span>
-                      <Badge :value="compilation.compiler" variant="primary" size="xs" />
-                      <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" />
+                  :title="compilation.method"
+                >
+                  <td>{{ compilation.compileId }}</td>
+                  <td>
+                    <div class="method-cell">
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="method-name">{{
+                          getClassMethodName(compilation.method)
+                        }}</span>
+                        <Badge :value="compilation.compiler" variant="primary" size="xs" />
+                        <Badge v-if="compilation.isOsr" value="OSR" variant="info" size="xs" />
+                      </div>
+                      <span class="method-path text-muted small">{{
+                        getPackage(compilation.method)
+                      }}</span>
                     </div>
-                    <span class="method-path text-muted small">{{ getPackage(compilation.method) }}</span>
-                  </div>
-                </td>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="tier-indicator" :class="getTierClass(compilation.compileLevel)"></div>
-                    {{ compilation.compileLevel }}
-                  </div>
-                </td>
-                <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
-                <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
-                <td>
-                  <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" />
-                  <Badge v-else value="Failed" variant="danger" size="s" />
-                </td>
-              </tr>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="tier-indicator"
+                        :class="getTierClass(compilation.compileLevel)"
+                      ></div>
+                      {{ compilation.compileLevel }}
+                    </div>
+                  </td>
+                  <td>{{ FormattingService.formatDuration2Units(compilation.duration) }}</td>
+                  <td>{{ FormattingService.formatBytes(compilation.codeSize) }}</td>
+                  <td>
+                    <Badge v-if="compilation.succeded" value="Success" variant="success" size="s" />
+                    <Badge v-else value="Failed" variant="danger" size="s" />
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -122,11 +148,12 @@
 
     <!-- Compilation Terms Modal -->
     <GenericModal
-        modal-id="bailoutInfoModal"
-        :show="showModal"
-        title="JIT Compilation: Bailouts vs Invalidations"
-        icon="bi-info-circle"
-        @update:show="showModal = $event">
+      modal-id="bailoutInfoModal"
+      :show="showModal"
+      title="JIT Compilation: Bailouts vs Invalidations"
+      icon="bi-info-circle"
+      @update:show="showModal = $event"
+    >
       <div class="compilation-terms-content">
         <div class="term-section">
           <h6 class="term-heading">
@@ -137,7 +164,10 @@
             <li>Occurs when the JIT compiler must abandon optimized execution mid-operation</li>
             <li>The JVM has to fall back to interpreter mode or deoptimize during execution</li>
             <li>Happens when runtime conditions don't match compilation assumptions</li>
-            <li>Usually triggered by unexpected type changes, uncommon traps, or other on-the-fly issues</li>
+            <li>
+              Usually triggered by unexpected type changes, uncommon traps, or other on-the-fly
+              issues
+            </li>
             <li>Shows up in logs as "made not entrant" or "made zombie"</li>
           </ul>
         </div>
@@ -150,7 +180,9 @@
           <ul class="term-list">
             <li>When previously compiled code must be completely discarded</li>
             <li>Typically occurs when assumptions made during compilation are no longer valid</li>
-            <li>Often caused by class loading/unloading, method redefinition, or dependency changes</li>
+            <li>
+              Often caused by class loading/unloading, method redefinition, or dependency changes
+            </li>
             <li>Affects entire compiled methods rather than specific execution paths</li>
             <li>Results in recompilation on next invocation rather than immediate fallback</li>
           </ul>
@@ -159,7 +191,9 @@
         <div class="key-difference">
           <div class="alert alert-info">
             <i class="bi bi-lightbulb text-info me-2"></i>
-            <strong>Key difference:</strong> bailouts happen during execution (requiring immediate action), while invalidations mark code as invalid for future executions (requiring recompilation later).
+            <strong>Key difference:</strong> bailouts happen during execution (requiring immediate
+            action), while invalidations mark code as invalid for future executions (requiring
+            recompilation later).
           </div>
         </div>
       </div>
@@ -167,13 +201,17 @@
 
     <!-- nMethods Information Modal -->
     <GenericModal
-        modal-id="nMethodsInfoModal"
-        :show="showNMethodsInfoModal"
-        title="JIT Compilation: nMethods Memory Usage"
-        icon="bi-info-circle"
-        @update:show="showNMethodsInfoModal = $event">
+      modal-id="nMethodsInfoModal"
+      :show="showNMethodsInfoModal"
+      title="JIT Compilation: nMethods Memory Usage"
+      icon="bi-info-circle"
+      @update:show="showNMethodsInfoModal = $event"
+    >
       <div class="compilation-terms-content">
-        <p>In Java JIT compilation, nMethods represent the compiled native code form of Java methods. They have two main components:</p>
+        <p>
+          In Java JIT compilation, nMethods represent the compiled native code form of Java methods.
+          They have two main components:
+        </p>
 
         <div class="term-section">
           <h6 class="term-heading">
@@ -209,7 +247,9 @@
         <div class="key-difference">
           <div class="alert alert-info">
             <i class="bi bi-lightbulb text-info me-2"></i>
-            <strong>The metadata enables critical JVM features</strong> like on-stack replacement, deoptimization, proper garbage collection, and exception handling while working with compiled code.
+            <strong>The metadata enables critical JVM features</strong> like on-stack replacement,
+            deoptimization, proper garbage collection, and exception handling while working with
+            compiled code.
           </div>
         </div>
       </div>
@@ -217,11 +257,12 @@
 
     <!-- Compilations Information Modal -->
     <GenericModal
-        modal-id="compilationsInfoModal"
-        :show="showCompilationsInfoModal"
-        title="JIT Compilation: Standard vs OSR Compilation"
-        icon="bi-info-circle"
-        @update:show="showCompilationsInfoModal = $event">
+      modal-id="compilationsInfoModal"
+      :show="showCompilationsInfoModal"
+      title="JIT Compilation: Standard vs OSR Compilation"
+      icon="bi-info-circle"
+      @update:show="showCompilationsInfoModal = $event"
+    >
       <div class="compilation-terms-content">
         <p>In Java JIT compilation, there are two primary compilation methods:</p>
 
@@ -252,7 +293,7 @@
             <li>Entry point is at a safepoint within the method (not the beginning)</li>
             <li>Allows optimization of currently executing code without waiting for completion</li>
             <li>Special metadata includes:</li>
-            <ul class="term-list" style="margin-left: 1rem;">
+            <ul class="term-list" style="margin-left: 1rem">
               <li>Deoptimization information for each OSR entry point</li>
               <li>State mapping between interpreter frames and compiled frames</li>
               <li>Loop-specific optimizations</li>
@@ -263,9 +304,9 @@
         <div class="key-difference">
           <div class="alert alert-info">
             <i class="bi bi-lightbulb text-info me-2"></i>
-            <strong>Both compilation types</strong> produce nMethods with machine code and metadata, but their
-            triggers, entry points, and optimization approaches differ significantly. The HotSpot JVM uses both
-            approaches to ensure optimal performance in different scenarios.
+            <strong>Both compilation types</strong> produce nMethods with machine code and metadata,
+            but their triggers, entry points, and optimization approaches differ significantly. The
+            HotSpot JVM uses both approaches to ensure optimal performance in different scenarios.
           </div>
         </div>
       </div>
@@ -274,21 +315,21 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import StatsTable from '@/components/StatsTable.vue';
 import GenericModal from '@/components/GenericModal.vue';
-import FormattingService from "@/services/FormattingService.ts";
-import JITCompilationData from "@/services/api/model/JITCompilationData.ts";
-import ProfileCompilationClient from "@/services/api/ProfileCompilationClient.ts";
+import FormattingService from '@/services/FormattingService.ts';
+import JITCompilationData from '@/services/api/model/JITCompilationData.ts';
+import ProfileCompilationClient from '@/services/api/ProfileCompilationClient.ts';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import Badge from '@/components/Badge.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import Serie from "@/services/timeseries/model/Serie.ts";
-import JITLongCompilation from "@/services/api/model/JITLongCompilation.ts";
-import {computed} from 'vue';
+import Serie from '@/services/timeseries/model/Serie.ts';
+import JITLongCompilation from '@/services/api/model/JITLongCompilation.ts';
+import { computed } from 'vue';
 
 const route = useRoute();
 
@@ -360,7 +401,9 @@ const metricsData = computed(() => {
         },
         {
           label: 'Metadata',
-          value: FormattingService.formatBytes(statisticsData.value.nmethodsSize - statisticsData.value.nmethodCodeSize),
+          value: FormattingService.formatBytes(
+            statisticsData.value.nmethodsSize - statisticsData.value.nmethodCodeSize
+          ),
           color: '#34A853'
         }
       ]
@@ -443,9 +486,8 @@ const getClassMethodName = (method: string): string => {
 
   // Get only the class name (last segment before the method)
   const lastClassDotIndex = packagePath.lastIndexOf('.');
-  const className = lastClassDotIndex !== -1 ?
-      packagePath.substring(lastClassDotIndex + 1) :
-      packagePath;
+  const className =
+    lastClassDotIndex !== -1 ? packagePath.substring(lastClassDotIndex + 1) : packagePath;
 
   return `${className}.${methodNameWithParams}`;
 };
@@ -474,7 +516,9 @@ const getTierClass = (level: number): string => {
 .jit-compilation-container {
   width: 100%;
   color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+    'Helvetica Neue', sans-serif;
 }
 
 .dashboard-grid {
@@ -484,7 +528,8 @@ const getTierClass = (level: number): string => {
 }
 
 /* Data Table Card */
-.data-table-card, .chart-card {
+.data-table-card,
+.chart-card {
   background: #fff;
   border-radius: 12px;
   overflow: hidden;
@@ -561,19 +606,19 @@ const getTierClass = (level: number): string => {
 }
 
 .tier-bronze {
-  background-color: #CD7F32;
+  background-color: #cd7f32;
 }
 
 .tier-silver {
-  background-color: #C0C0C0;
+  background-color: #c0c0c0;
 }
 
 .tier-gold {
-  background-color: #FFD700;
+  background-color: #ffd700;
 }
 
 .tier-green {
-  background-color: #4CAF50;
+  background-color: #4caf50;
 }
 
 .table-hover tbody tr:hover {
@@ -588,7 +633,6 @@ const getTierClass = (level: number): string => {
 .mb-4 {
   margin-bottom: 1.5rem;
 }
-
 
 /* Info icon styling */
 .compilation-info-icon {

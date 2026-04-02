@@ -1,16 +1,8 @@
 <template>
   <div class="config-breadcrumbs">
-    <div
-        v-for="(item, index) in items"
-        :key="index"
-        class="breadcrumb-entry"
-    >
+    <div v-for="(item, index) in items" :key="index" class="breadcrumb-entry">
       <i v-if="index > 0" class="bi bi-chevron-right breadcrumb-separator"></i>
-      <div
-          class="breadcrumb-item"
-          :class="{ active: item.active }"
-          @click.stop="item.onClick?.()"
-      >
+      <div class="breadcrumb-item" :class="{ active: item.active }" @click.stop="item.onClick?.()">
         <i :class="'bi ' + item.icon"></i>
         <span>{{ item.label }}</span>
       </div>

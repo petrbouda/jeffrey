@@ -17,9 +17,8 @@
  */
 
 export default class PoolConfiguration {
-    constructor(
-        public maxConnectionCount: number,
-        public minConnectionCount: number,
-    ) {
-    }
+  constructor(
+    public maxConnectionCount: number,
+    public minConnectionCount: number
+  ) {}
 }

@@ -17,19 +17,18 @@
  */
 
 import BasePlatformClient from '@/services/api/BasePlatformClient';
-import Project from "@/services/api/model/Project.ts";
+import Project from '@/services/api/model/Project.ts';
 
 export default class ProjectsClient extends BasePlatformClient {
+  constructor() {
+    super('');
+  }
 
-    constructor() {
-        super('');
-    }
+  async list(workspaceId: string): Promise<Project[]> {
+    return super.get<Project[]>(`/workspaces/${workspaceId}/projects`);
+  }
 
-    async list(workspaceId: string): Promise<Project[]> {
-        return super.get<Project[]>(`/workspaces/${workspaceId}/projects`);
-    }
-
-    async namespaces(workspaceId: string): Promise<string[]> {
-        return super.get<string[]>(`/workspaces/${workspaceId}/projects/namespaces`);
-    }
+  async namespaces(workspaceId: string): Promise<string[]> {
+    return super.get<string[]>(`/workspaces/${workspaceId}/projects/namespaces`);
+  }
 }

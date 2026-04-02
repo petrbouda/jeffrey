@@ -22,20 +22,19 @@ import JITLongCompilation from '@/services/api/model/JITLongCompilation';
 import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileCompilationClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'compilation');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'compilation');
-    }
+  public getStatistics(): Promise<JITCompilationData> {
+    return this.get<JITCompilationData>('/statistics');
+  }
 
-    public getStatistics(): Promise<JITCompilationData> {
-        return this.get<JITCompilationData>('/statistics');
-    }
+  public getCompilations(): Promise<JITLongCompilation[]> {
+    return this.get<JITLongCompilation[]>('/compilations');
+  }
 
-    public getCompilations(): Promise<JITLongCompilation[]> {
-        return this.get<JITLongCompilation[]>('/compilations');
-    }
-
-    public getTimeseries(): Promise<Serie> {
-        return this.get<Serie>('/timeseries');
-    }
+  public getTimeseries(): Promise<Serie> {
+    return this.get<Serie>('/timeseries');
+  }
 }

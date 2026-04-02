@@ -17,16 +17,16 @@
  */
 
 export default class JdbcSlowStatement {
-    constructor(
-        public sql: string,
-        public statementName: string,
-        public statementGroup: string,
-        public operation: string,
-        public executionTime: number,
-        public rowsProcessed: number,
-        public parameters: string,
-        public isBatch: boolean,
-        public isLob: boolean,
-        public timestamp: number
-    ) {}
+  constructor(
+    public sql: string,
+    public statementName: string,
+    public statementGroup: string,
+    public operation: string,
+    public executionTime: number,
+    public rowsProcessed: number,
+    public parameters: string,
+    public isBatch: boolean,
+    public isLob: boolean,
+    public timestamp: number
+  ) {}
 }

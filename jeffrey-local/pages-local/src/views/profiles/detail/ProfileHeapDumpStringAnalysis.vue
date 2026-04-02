@@ -6,15 +6,18 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="fonts"
-      message="The heap dump needs to be initialized before you can view string analysis. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="fonts"
+    message="The heap dump needs to be initialized before you can view string analysis. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -22,16 +25,19 @@
   <!-- Analysis Not Yet Run -->
   <div v-else-if="!analysisExists && !analysisRunning">
     <PageHeader
-        title="String Analysis"
-        description="Analysis of string deduplication status and opportunities"
-        icon="bi-fonts"
+      title="String Analysis"
+      description="Analysis of string deduplication status and opportunities"
+      icon="bi-fonts"
     />
 
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
       <div class="flex-grow-1">
         <h6 class="mb-1">String Analysis Not Available</h6>
-        <p class="mb-2 small">The string analysis was not found. This can happen if the heap dump was initialized before this feature was added. You can run the analysis now.</p>
+        <p class="mb-2 small">
+          The string analysis was not found. This can happen if the heap dump was initialized before
+          this feature was added. You can run the analysis now.
+        </p>
         <button class="btn btn-primary btn-sm" @click="runAnalysis">
           <i class="bi bi-play-fill me-1"></i>
           Run String Analysis
@@ -43,9 +49,9 @@
   <!-- Analysis Running -->
   <div v-else-if="analysisRunning">
     <PageHeader
-        title="String Analysis"
-        description="Analysis of string deduplication status and opportunities"
-        icon="bi-fonts"
+      title="String Analysis"
+      description="Analysis of string deduplication status and opportunities"
+      icon="bi-fonts"
     />
 
     <div class="alert alert-info d-flex align-items-center">
@@ -62,9 +68,9 @@
   <!-- Analysis Results -->
   <div v-else>
     <PageHeader
-        title="String Analysis"
-        description="Analysis of string deduplication status and opportunities"
-        icon="bi-fonts"
+      title="String Analysis"
+      description="Analysis of string deduplication status and opportunities"
+      icon="bi-fonts"
     />
 
     <!-- Summary Metrics -->
@@ -72,24 +78,26 @@
 
     <!-- Tabbed Analysis Section -->
     <ChartSectionWithTabs
-        icon="fonts"
-        :tabs="analysisTabs"
-        :full-width="true"
-        id-prefix="string-"
-        @tab-change="onTabChange"
+      icon="fonts"
+      :tabs="analysisTabs"
+      :full-width="true"
+      id-prefix="string-"
+      @tab-change="onTabChange"
     >
       <!-- Overview Tab -->
       <template #overview>
-        <DualPanel
-            v-if="report"
-            left-title="Memory Status"
-            right-title="String Array Sharing"
-        >
+        <DualPanel v-if="report" left-title="Memory Status" right-title="String Array Sharing">
           <template #left>
-            <DonutWithLegend :data="memoryChartData" :tooltip-formatter="(val: number) => FormattingService.formatBytes(val)" />
+            <DonutWithLegend
+              :data="memoryChartData"
+              :tooltip-formatter="(val: number) => FormattingService.formatBytes(val)"
+            />
           </template>
           <template #right>
-            <DonutWithLegend :data="arrayChartData" :tooltip-formatter="(val: number) => FormattingService.formatNumber(val)" />
+            <DonutWithLegend
+              :data="arrayChartData"
+              :tooltip-formatter="(val: number) => FormattingService.formatNumber(val)"
+            />
           </template>
         </DualPanel>
       </template>
@@ -100,7 +108,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.alreadyDeduplicated.length }} deduplicated strings</small>
+                <small class="text-muted"
+                  >Showing {{ report.alreadyDeduplicated.length }} deduplicated strings</small
+                >
               </div>
             </div>
           </div>
@@ -108,16 +118,16 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <SortableTableHeader
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <SortableTableHeader
                       column="content"
                       label="Content"
                       :sort-column="dedupSortColumn"
                       :sort-direction="dedupSortDirection"
                       @sort="toggleDedupSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="count"
                       label="Count"
                       :sort-column="dedupSortColumn"
@@ -125,8 +135,8 @@
                       align="end"
                       width="100px"
                       @sort="toggleDedupSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="arraySize"
                       label="Array Size"
                       :sort-column="dedupSortColumn"
@@ -134,8 +144,8 @@
                       align="end"
                       width="120px"
                       @sort="toggleDedupSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="savings"
                       label="Saved"
                       :sort-column="dedupSortColumn"
@@ -143,31 +153,39 @@
                       align="end"
                       width="120px"
                       @sort="toggleDedupSort"
-                  />
-                  <th style="width: 180px;">% of Max</th>
-                </tr>
+                    />
+                    <th style="width: 180px">% of Max</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedDeduplicated" :key="index">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <code class="string-content">{{ entry.content }}</code>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.count) }}</td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.arraySize) }}</td>
-                  <td class="text-end font-monospace text-success">{{ FormattingService.formatBytes(entry.savings) }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="progress flex-grow-1" style="height: 6px;">
-                        <div
+                  <tr v-for="(entry, index) in sortedDeduplicated" :key="index">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <code class="string-content">{{ entry.content }}</code>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.count) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatBytes(entry.arraySize) }}
+                    </td>
+                    <td class="text-end font-monospace text-success">
+                      {{ FormattingService.formatBytes(entry.savings) }}
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height: 6px">
+                          <div
                             class="progress-bar bg-success"
                             :style="{ width: getDeduplicatedPercentage(entry) + '%' }"
-                        ></div>
+                          ></div>
+                        </div>
+                        <small class="text-muted" style="min-width: 45px"
+                          >{{ getDeduplicatedPercentage(entry).toFixed(1) }}%</small
+                        >
                       </div>
-                      <small class="text-muted" style="min-width: 45px;">{{ getDeduplicatedPercentage(entry).toFixed(1) }}%</small>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -186,7 +204,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.opportunities.length }} deduplication opportunities</small>
+                <small class="text-muted"
+                  >Showing {{ report.opportunities.length }} deduplication opportunities</small
+                >
               </div>
             </div>
           </div>
@@ -194,16 +214,16 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <SortableTableHeader
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <SortableTableHeader
                       column="content"
                       label="Content"
                       :sort-column="oppSortColumn"
                       :sort-direction="oppSortDirection"
                       @sort="toggleOppSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="count"
                       label="Count"
                       :sort-column="oppSortColumn"
@@ -211,8 +231,8 @@
                       align="end"
                       width="100px"
                       @sort="toggleOppSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="arraySize"
                       label="Array Size"
                       :sort-column="oppSortColumn"
@@ -220,8 +240,8 @@
                       align="end"
                       width="120px"
                       @sort="toggleOppSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="savings"
                       label="Potential"
                       :sort-column="oppSortColumn"
@@ -229,31 +249,39 @@
                       align="end"
                       width="120px"
                       @sort="toggleOppSort"
-                  />
-                  <th style="width: 180px;">% of Max</th>
-                </tr>
+                    />
+                    <th style="width: 180px">% of Max</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedOpportunities" :key="index">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <code class="string-content">{{ entry.content }}</code>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.count) }}</td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.arraySize) }}</td>
-                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.savings) }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="progress flex-grow-1" style="height: 6px;">
-                        <div
+                  <tr v-for="(entry, index) in sortedOpportunities" :key="index">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <code class="string-content">{{ entry.content }}</code>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.count) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatBytes(entry.arraySize) }}
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.savings) }}
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height: 6px">
+                          <div
                             class="progress-bar bg-warning"
                             :style="{ width: getOpportunityPercentage(entry) + '%' }"
-                        ></div>
+                          ></div>
+                        </div>
+                        <small class="text-muted" style="min-width: 45px"
+                          >{{ getOpportunityPercentage(entry).toFixed(1) }}%</small
+                        >
                       </div>
-                      <small class="text-muted" style="min-width: 45px;">{{ getOpportunityPercentage(entry).toFixed(1) }}%</small>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -282,7 +310,9 @@
                 </thead>
                 <tbody>
                   <tr v-for="flag in report.jvmFlags" :key="flag.name">
-                    <td><code class="flag-name">{{ flag.name }}</code></td>
+                    <td>
+                      <code class="flag-name">{{ flag.name }}</code>
+                    </td>
                     <td>
                       <span :class="getFlagValueClass(flag)">{{ flag.value }}</span>
                     </td>
@@ -317,8 +347,12 @@
 
           <!-- Intro -->
           <div class="about-intro">
-            <p>In Java, each <code>String</code> object contains a reference to a <code>byte[]</code> array that holds the actual character data.
-            When multiple String objects have identical content, they can share the same <code>byte[]</code> array to save memory.</p>
+            <p>
+              In Java, each <code>String</code> object contains a reference to a
+              <code>byte[]</code> array that holds the actual character data. When multiple String
+              objects have identical content, they can share the same <code>byte[]</code> array to
+              save memory.
+            </p>
           </div>
 
           <!-- Ways Strings Can Be Shared -->
@@ -329,42 +363,66 @@
 
           <div class="feature-grid">
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              >
                 <i class="bi bi-file-earmark-code"></i>
               </div>
               <div class="feature-content">
                 <h6>String Literals</h6>
-                <p>All string literals (<code>"hello"</code>) are automatically interned in the constant pool. Same literals share the same object.</p>
+                <p>
+                  All string literals (<code>"hello"</code>) are automatically interned in the
+                  constant pool. Same literals share the same object.
+                </p>
               </div>
             </div>
 
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+              >
                 <i class="bi bi-box-arrow-in-down"></i>
               </div>
               <div class="feature-content">
                 <h6>String.intern()</h6>
-                <p>Frameworks like Jackson, Gson, and Hibernate explicitly intern field names and entity names.</p>
+                <p>
+                  Frameworks like Jackson, Gson, and Hibernate explicitly intern field names and
+                  entity names.
+                </p>
               </div>
             </div>
 
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+              >
                 <i class="bi bi-cpu"></i>
               </div>
               <div class="feature-content">
                 <h6>JVM Internals</h6>
-                <p>Class names, method names, and field names are stored in shared symbol tables by the JVM.</p>
+                <p>
+                  Class names, method names, and field names are stored in shared symbol tables by
+                  the JVM.
+                </p>
               </div>
             </div>
 
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+              >
                 <i class="bi bi-collection"></i>
               </div>
               <div class="feature-content">
                 <h6>Framework Interning</h6>
-                <p>Libraries like Guava's Interner, Apache Commons, and Spring implement custom deduplication.</p>
+                <p>
+                  Libraries like Guava's Interner, Apache Commons, and Spring implement custom
+                  deduplication.
+                </p>
               </div>
             </div>
           </div>
@@ -382,7 +440,11 @@
                 <span class="flag-badge">GC Feature</span>
               </div>
               <div class="flag-body">
-                <p>When enabled, the garbage collector automatically finds String objects with identical content and makes them share the same <code>byte[]</code> array during GC cycles.</p>
+                <p>
+                  When enabled, the garbage collector automatically finds String objects with
+                  identical content and makes them share the same <code>byte[]</code> array during
+                  GC cycles.
+                </p>
                 <div class="gc-support">
                   <span class="gc-label">Supported:</span>
                   <span class="gc-tag">G1 (JDK 8u20+)</span>
@@ -400,10 +462,19 @@
                 <span class="flag-badge">Default: 3</span>
               </div>
               <div class="flag-body">
-                <p>Specifies the number of garbage collection cycles a String must survive before becoming a candidate for deduplication.</p>
+                <p>
+                  Specifies the number of garbage collection cycles a String must survive before
+                  becoming a candidate for deduplication.
+                </p>
                 <ul class="flag-details">
-                  <li><strong>Lower value (1-2):</strong> More aggressive deduplication, processes strings sooner but may deduplicate short-lived strings unnecessarily</li>
-                  <li><strong>Higher value (4+):</strong> Only long-lived strings are deduplicated, reducing overhead but potentially missing savings</li>
+                  <li>
+                    <strong>Lower value (1-2):</strong> More aggressive deduplication, processes
+                    strings sooner but may deduplicate short-lived strings unnecessarily
+                  </li>
+                  <li>
+                    <strong>Higher value (4+):</strong> Only long-lived strings are deduplicated,
+                    reducing overhead but potentially missing savings
+                  </li>
                 </ul>
               </div>
             </div>
@@ -437,13 +508,16 @@
             </div>
             <div class="note-content">
               <strong>Why is sharing high without the flag?</strong>
-              <p class="mb-0">High sharing without <code>UseStringDeduplication</code> is normal. It comes from string literals, framework interning, and JVM metadata. The "Potential Savings" metric shows additional memory that could be saved by enabling the flag.</p>
+              <p class="mb-0">
+                High sharing without <code>UseStringDeduplication</code> is normal. It comes from
+                string literals, framework interning, and JVM metadata. The "Potential Savings"
+                metric shows additional memory that could be saved by enabling the flag.
+              </p>
             </div>
           </div>
         </div>
       </template>
     </ChartSectionWithTabs>
-
   </div>
 </template>
 
@@ -505,8 +579,16 @@ const summaryMetrics = computed(() => {
       value: FormattingService.formatNumber(report.value.totalStrings),
       variant: 'highlight' as const,
       breakdown: [
-        { label: 'Unique Arrays', value: FormattingService.formatNumber(report.value.uniqueArrays), color: '#4285F4' },
-        { label: 'Shared Arrays', value: FormattingService.formatNumber(report.value.sharedArrays), color: '#34A853' }
+        {
+          label: 'Unique Arrays',
+          value: FormattingService.formatNumber(report.value.uniqueArrays),
+          color: '#4285F4'
+        },
+        {
+          label: 'Shared Arrays',
+          value: FormattingService.formatNumber(report.value.sharedArrays),
+          color: '#34A853'
+        }
       ]
     },
     {
@@ -533,14 +615,27 @@ const summaryMetrics = computed(() => {
 const memoryChartData = computed<DonutChartData>(() => {
   if (!report.value) return { series: [], labels: [], colors: [], legendItems: [], totalValue: '' };
   return {
-    series: [report.value.potentialSavings, report.value.totalStringShallowSize - report.value.potentialSavings],
+    series: [
+      report.value.potentialSavings,
+      report.value.totalStringShallowSize - report.value.potentialSavings
+    ],
     labels: ['Potential Savings', 'Unique + Shared'],
     colors: ['#FBBC05', '#4285F4'],
     totalLabel: 'Total',
     totalValue: FormattingService.formatBytes(report.value.totalStringShallowSize),
     legendItems: [
-      { color: '#FBBC05', label: 'Potential Savings', value: FormattingService.formatBytes(report.value.potentialSavings) },
-      { color: '#4285F4', label: 'Unique + Shared', value: FormattingService.formatBytes(report.value.totalStringShallowSize - report.value.potentialSavings) }
+      {
+        color: '#FBBC05',
+        label: 'Potential Savings',
+        value: FormattingService.formatBytes(report.value.potentialSavings)
+      },
+      {
+        color: '#4285F4',
+        label: 'Unique + Shared',
+        value: FormattingService.formatBytes(
+          report.value.totalStringShallowSize - report.value.potentialSavings
+        )
+      }
     ]
   };
 });
@@ -554,8 +649,16 @@ const arrayChartData = computed<DonutChartData>(() => {
     totalLabel: 'Total Arrays',
     totalValue: FormattingService.formatNumber(report.value.uniqueArrays),
     legendItems: [
-      { color: '#34A853', label: 'Shared Arrays', value: FormattingService.formatNumber(report.value.sharedArrays) },
-      { color: '#4285F4', label: 'Unique Arrays', value: FormattingService.formatNumber(report.value.uniqueArrays - report.value.sharedArrays) }
+      {
+        color: '#34A853',
+        label: 'Shared Arrays',
+        value: FormattingService.formatNumber(report.value.sharedArrays)
+      },
+      {
+        color: '#4285F4',
+        label: 'Unique Arrays',
+        value: FormattingService.formatNumber(report.value.uniqueArrays - report.value.sharedArrays)
+      }
     ]
   };
 });
@@ -651,7 +754,6 @@ const getFlagValueClass = (flag: JvmStringFlag): string => {
   return 'font-monospace';
 };
 
-
 const onTabChange = (_tabIndex: number, tab: { id: string; label: string; icon?: string }) => {
   activeTab.value = tab.id;
 };
@@ -702,7 +804,6 @@ const loadData = async () => {
     }
 
     await loadAnalysis();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load string analysis';
     console.error('Error loading string analysis:', err);
@@ -877,7 +978,9 @@ onMounted(() => {
   background: white;
   border: 1px solid var(--card-border-color);
   border-radius: 8px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .feature-card:hover {

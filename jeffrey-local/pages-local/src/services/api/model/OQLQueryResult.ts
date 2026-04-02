@@ -17,17 +17,17 @@
  */
 
 export interface OQLResultEntry {
-    objectId: number | null;
-    className: string | null;
-    value: string;
-    size: number | null;
-    retainedSize: number | null;
+  objectId: number | null;
+  className: string | null;
+  value: string;
+  size: number | null;
+  retainedSize: number | null;
 }
 
 export default interface OQLQueryResult {
-    results: OQLResultEntry[];
-    totalCount: number;
-    hasMore: boolean;
-    executionTimeMs: number;
-    errorMessage: string | null;
+  results: OQLResultEntry[];
+  totalCount: number;
+  hasMore: boolean;
+  executionTimeMs: number;
+  errorMessage: string | null;
 }

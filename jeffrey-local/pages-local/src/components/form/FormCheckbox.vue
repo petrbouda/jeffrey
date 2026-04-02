@@ -1,13 +1,13 @@
 <template>
   <div class="mb-2">
     <div class="form-check">
-      <input 
-        class="form-check-input" 
-        type="checkbox" 
+      <input
+        class="form-check-input"
+        type="checkbox"
         :id="checkboxId"
         :checked="modelValue"
         @change="handleChange"
-      >
+      />
       <label class="form-check-label small" :for="checkboxId">
         <span v-html="label"></span>
       </label>

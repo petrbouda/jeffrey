@@ -21,6 +21,6 @@ export type SettingsLevel = 'PROJECT' | 'WORKSPACE' | 'GLOBAL' | 'NONE';
  * Effective profiler settings for a project, resolved from the hierarchy.
  */
 export default interface ProfilerSettings {
-    agentSettings: string | null;
-    level: SettingsLevel;
+  agentSettings: string | null;
+  level: SettingsLevel;
 }

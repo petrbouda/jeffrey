@@ -23,81 +23,88 @@
     title="SQL Statement Details"
     icon="bi-database"
     size="xl"
-    @update:show="$emit('update:show', $event)">
-          <div v-if="statement" class="statement-details">
-            <!-- Statement Info Header -->
-            <div class="statement-info-header mb-4">
-              <div class="d-flex align-items-center gap-3 mb-2">
-                <Badge :value="statement.statementGroup" variant="purple" size="m" />
-                <JdbcOperationBadge :operation="statement.operation" size="m" />
-                <Badge v-if="statement.isBatch" value="Batch" variant="info" size="m" />
-                <Badge v-if="statement.isLob" value="LOB" variant="warning" size="m" />
-              </div>
-              <div class="statement-metrics">
-                <div class="metric-item">
-                  <i class="bi bi-clock"></i>
-                  <span class="metric-label">Execution Time:</span>
-                  <span class="metric-value text-danger fw-bold">{{
-                      FormattingService.formatDuration2Units(statement.executionTime)
-                    }}</span>
-                </div>
-                <div class="metric-item">
-                  <i class="bi bi-list-ol"></i>
-                  <span class="metric-label">Rows Processed:</span>
-                  <span class="metric-value">{{ FormattingService.formatNumber(statement.rowsProcessed) }}</span>
-                </div>
-                <div class="metric-item">
-                  <i class="bi bi-calendar-event"></i>
-                  <span class="metric-label">Timestamp:</span>
-                  <span class="metric-value">{{ FormattingService.formatTimestamp(statement.timestamp) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- SQL Statement -->
-            <div class="sql-section mb-4">
-              <div class="section-header">
-                <h6><i class="bi bi-code-slash me-2"></i>SQL Statement</h6>
-                <button type="button" class="btn btn-sm btn-outline-secondary" @click="copySql">
-                  <i class="bi bi-clipboard me-1"></i>Copy SQL
-                </button>
-              </div>
-              <div class="sql-container">
-                <pre class="sql-content"><code>{{ formatSql(statement.sql) }}</code></pre>
-              </div>
-            </div>
-
-            <!-- Parameters -->
-            <div class="parameters-section" v-if="statement.parameters && statement.parameters !== '[]'">
-              <div class="section-header">
-                <h6><i class="bi bi-gear me-2"></i>Parameters</h6>
-                <button type="button" class="btn btn-sm btn-outline-secondary" @click="copyParameters">
-                  <i class="bi bi-clipboard me-1"></i>Copy Parameters
-                </button>
-              </div>
-              <div class="parameters-container">
-                <pre class="parameters-content"><code>{{ formatParameters(statement.parameters) }}</code></pre>
-              </div>
-            </div>
-
-            <!-- No Parameters Message -->
-            <div class="parameters-section" v-else>
-              <div class="section-header">
-                <h6><i class="bi bi-gear me-2"></i>Parameters</h6>
-              </div>
-              <div class="no-parameters">
-                <i class="bi bi-info-circle me-2"></i>
-                No parameters for this statement
-              </div>
-            </div>
+    @update:show="$emit('update:show', $event)"
+  >
+    <div v-if="statement" class="statement-details">
+      <!-- Statement Info Header -->
+      <div class="statement-info-header mb-4">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <Badge :value="statement.statementGroup" variant="purple" size="m" />
+          <JdbcOperationBadge :operation="statement.operation" size="m" />
+          <Badge v-if="statement.isBatch" value="Batch" variant="info" size="m" />
+          <Badge v-if="statement.isLob" value="LOB" variant="warning" size="m" />
+        </div>
+        <div class="statement-metrics">
+          <div class="metric-item">
+            <i class="bi bi-clock"></i>
+            <span class="metric-label">Execution Time:</span>
+            <span class="metric-value text-danger fw-bold">{{
+              FormattingService.formatDuration2Units(statement.executionTime)
+            }}</span>
           </div>
+          <div class="metric-item">
+            <i class="bi bi-list-ol"></i>
+            <span class="metric-label">Rows Processed:</span>
+            <span class="metric-value">{{
+              FormattingService.formatNumber(statement.rowsProcessed)
+            }}</span>
+          </div>
+          <div class="metric-item">
+            <i class="bi bi-calendar-event"></i>
+            <span class="metric-label">Timestamp:</span>
+            <span class="metric-value">{{
+              FormattingService.formatTimestamp(statement.timestamp)
+            }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SQL Statement -->
+      <div class="sql-section mb-4">
+        <div class="section-header">
+          <h6><i class="bi bi-code-slash me-2"></i>SQL Statement</h6>
+          <button type="button" class="btn btn-sm btn-outline-secondary" @click="copySql">
+            <i class="bi bi-clipboard me-1"></i>Copy SQL
+          </button>
+        </div>
+        <div class="sql-container">
+          <pre class="sql-content"><code>{{ formatSql(statement.sql) }}</code></pre>
+        </div>
+      </div>
+
+      <!-- Parameters -->
+      <div class="parameters-section" v-if="statement.parameters && statement.parameters !== '[]'">
+        <div class="section-header">
+          <h6><i class="bi bi-gear me-2"></i>Parameters</h6>
+          <button type="button" class="btn btn-sm btn-outline-secondary" @click="copyParameters">
+            <i class="bi bi-clipboard me-1"></i>Copy Parameters
+          </button>
+        </div>
+        <div class="parameters-container">
+          <pre
+            class="parameters-content"
+          ><code>{{ formatParameters(statement.parameters) }}</code></pre>
+        </div>
+      </div>
+
+      <!-- No Parameters Message -->
+      <div class="parameters-section" v-else>
+        <div class="section-header">
+          <h6><i class="bi bi-gear me-2"></i>Parameters</h6>
+        </div>
+        <div class="no-parameters">
+          <i class="bi bi-info-circle me-2"></i>
+          No parameters for this statement
+        </div>
+      </div>
+    </div>
   </GenericModal>
 </template>
 
 <script setup lang="ts">
 import GenericModal from '@/components/GenericModal.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
-import FormattingService from "@/services/FormattingService.ts";
+import FormattingService from '@/services/FormattingService.ts';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 import Badge from '@/components/Badge.vue';
 
@@ -116,24 +123,24 @@ const formatSql = (sql: string): string => {
 
   // Basic SQL formatting - add line breaks after major keywords
   return sql
-      .replace(/\bSELECT\b/gi, '\nSELECT')
-      .replace(/\bFROM\b/gi, '\nFROM')
-      .replace(/\bWHERE\b/gi, '\nWHERE')
-      .replace(/\bAND\b/gi, '\n  AND')
-      .replace(/\bOR\b/gi, '\n  OR')
-      .replace(/\bORDER BY\b/gi, '\nORDER BY')
-      .replace(/\bGROUP BY\b/gi, '\nGROUP BY')
-      .replace(/\bHAVING\b/gi, '\nHAVING')
-      .replace(/\bJOIN\b/gi, '\nJOIN')
-      .replace(/\bLEFT JOIN\b/gi, '\nLEFT JOIN')
-      .replace(/\bRIGHT JOIN\b/gi, '\nRIGHT JOIN')
-      .replace(/\bINNER JOIN\b/gi, '\nINNER JOIN')
-      .replace(/\bINSERT INTO\b/gi, '\nINSERT INTO')
-      .replace(/\bVALUES\b/gi, '\nVALUES')
-      .replace(/\bUPDATE\b/gi, '\nUPDATE')
-      .replace(/\bSET\b/gi, '\nSET')
-      .replace(/\bDELETE FROM\b/gi, '\nDELETE FROM')
-      .trim();
+    .replace(/\bSELECT\b/gi, '\nSELECT')
+    .replace(/\bFROM\b/gi, '\nFROM')
+    .replace(/\bWHERE\b/gi, '\nWHERE')
+    .replace(/\bAND\b/gi, '\n  AND')
+    .replace(/\bOR\b/gi, '\n  OR')
+    .replace(/\bORDER BY\b/gi, '\nORDER BY')
+    .replace(/\bGROUP BY\b/gi, '\nGROUP BY')
+    .replace(/\bHAVING\b/gi, '\nHAVING')
+    .replace(/\bJOIN\b/gi, '\nJOIN')
+    .replace(/\bLEFT JOIN\b/gi, '\nLEFT JOIN')
+    .replace(/\bRIGHT JOIN\b/gi, '\nRIGHT JOIN')
+    .replace(/\bINNER JOIN\b/gi, '\nINNER JOIN')
+    .replace(/\bINSERT INTO\b/gi, '\nINSERT INTO')
+    .replace(/\bVALUES\b/gi, '\nVALUES')
+    .replace(/\bUPDATE\b/gi, '\nUPDATE')
+    .replace(/\bSET\b/gi, '\nSET')
+    .replace(/\bDELETE FROM\b/gi, '\nDELETE FROM')
+    .trim();
 };
 
 const formatParameters = (parameters: string): string => {
@@ -184,7 +191,6 @@ const copyParameters = async () => {
   border-radius: 8px;
   border: 1px solid var(--card-border-color);
 }
-
 
 .statement-metrics {
   display: flex;
@@ -258,7 +264,6 @@ const copyParameters = async () => {
   border: 1px solid var(--card-border-color);
   border-radius: 6px;
 }
-
 
 @media (max-width: 768px) {
   .statement-metrics {

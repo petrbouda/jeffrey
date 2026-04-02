@@ -20,23 +20,23 @@
  * Status of a download task for remote workspace file downloads.
  */
 enum DownloadTaskStatus {
-    /** Task has been created but download has not started yet. */
-    PENDING = 'PENDING',
+  /** Task has been created but download has not started yet. */
+  PENDING = 'PENDING',
 
-    /** Files are currently being downloaded from the remote server. */
-    DOWNLOADING = 'DOWNLOADING',
+  /** Files are currently being downloaded from the remote server. */
+  DOWNLOADING = 'DOWNLOADING',
 
-    /** Files have been downloaded and are being processed (merged, copied to storage). */
-    PROCESSING = 'PROCESSING',
+  /** Files have been downloaded and are being processed (merged, copied to storage). */
+  PROCESSING = 'PROCESSING',
 
-    /** Download completed successfully. */
-    COMPLETED = 'COMPLETED',
+  /** Download completed successfully. */
+  COMPLETED = 'COMPLETED',
 
-    /** Download failed with an error. */
-    FAILED = 'FAILED',
+  /** Download failed with an error. */
+  FAILED = 'FAILED',
 
-    /** Download was cancelled by the user. */
-    CANCELLED = 'CANCELLED'
+  /** Download was cancelled by the user. */
+  CANCELLED = 'CANCELLED'
 }
 
 export default DownloadTaskStatus;

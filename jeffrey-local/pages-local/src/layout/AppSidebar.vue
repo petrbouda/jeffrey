@@ -1,6 +1,6 @@
 <template>
   <div class="sidebar">
-    <div class="scrollbar" style="height: 100%;">
+    <div class="scrollbar" style="height: 100%">
       <div class="p-3 border-bottom">
         <div v-if="isLoading" class="d-flex align-items-center">
           <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
@@ -9,25 +9,35 @@
           <span>Loading project...</span>
         </div>
         <div v-else>
-          <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 240px;">{{ projectInfo?.name || 'Loading...' }}</h5>
+          <h5 class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 240px">
+            {{ projectInfo?.name || 'Loading...' }}
+          </h5>
           <p class="text-muted mb-0 fs-7">Project dashboard</p>
         </div>
       </div>
-      
+
       <div class="py-3">
         <div class="nav-category px-3">Navigation</div>
         <ul class="nav flex-column">
           <li class="nav-item px-3 py-1" v-for="(item, index) in menuItems" :key="index">
-            <router-link 
-              :to="getItemRoute(item.path)" 
+            <router-link
+              :to="getItemRoute(item.path)"
               class="nav-link d-flex align-items-center py-2"
-              :class="{ 'active': isActive(item.path) }"
+              :class="{ active: isActive(item.path) }"
             >
               <i :class="item.icon" class="me-2"></i>
               <span>{{ item.label }}</span>
               <div v-if="item.badge" class="ms-auto d-flex align-items-center">
-                <div v-if="item.badge.type === 'initializing'" class="spinner-border spinner-border-sm me-1" style="width: 0.5rem; height: 0.5rem;"></div>
-                <Badge :value="item.badge.text" :variant="getBadgeVariant(item.badge.type)" size="xs" />
+                <div
+                  v-if="item.badge.type === 'initializing'"
+                  class="spinner-border spinner-border-sm me-1"
+                  style="width: 0.5rem; height: 0.5rem"
+                ></div>
+                <Badge
+                  :value="item.badge.text"
+                  :variant="getBadgeVariant(item.badge.type)"
+                  size="xs"
+                />
               </div>
             </router-link>
           </li>
@@ -42,9 +52,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import Badge from '@/components/Badge.vue';
-import ProjectClient from "@/services/api/ProjectClient.ts";
-import Project from "@/services/api/model/Project.ts";
-import MessageBus from "@/services/MessageBus";
+import ProjectClient from '@/services/api/ProjectClient.ts';
+import Project from '@/services/api/model/Project.ts';
+import MessageBus from '@/services/MessageBus';
 import type { Variant } from '@/types/ui';
 
 const route = useRoute();
@@ -55,7 +65,7 @@ const isLoading = ref(true);
 const pollInterval = ref<number | null>(null);
 
 // Create service client with workspace context
-const projectClient = new ProjectClient(workspaceId.value, projectId.value)
+const projectClient = new ProjectClient(workspaceId.value, projectId.value);
 
 // Check if project has initializing profiles
 async function checkInitializingProfiles() {
@@ -66,7 +76,6 @@ async function checkInitializingProfiles() {
     hasInitializingProfiles.value = false;
   }
 }
-
 
 // Set up message bus listeners for count updates
 function handleProfileCountChange(count: number) {
@@ -80,7 +89,6 @@ function handleRecordingCountChange(count: number) {
     projectInfo.value.recordingCount = count;
   }
 }
-
 
 // Fetch project details
 async function fetchProjectDetails() {
@@ -108,10 +116,10 @@ onMounted(async () => {
 // Start polling for profile status when initialization starts
 function startPolling() {
   if (pollInterval.value !== null) return;
-  
+
   // Set initializing flag immediately
   hasInitializingProfiles.value = true;
-  
+
   pollInterval.value = window.setInterval(async () => {
     try {
       await checkInitializingProfiles();
@@ -148,14 +156,26 @@ onUnmounted(() => {
 });
 
 const menuItems = computed(() => [
-  { label: 'Profiles', icon: 'bi bi-person-vcard', path: 'profiles',
+  {
+    label: 'Profiles',
+    icon: 'bi bi-person-vcard',
+    path: 'profiles',
     badge: hasInitializingProfiles.value
       ? { type: 'initializing', text: 'Initializing' }
-      : (projectInfo.value && projectInfo.value.profileCount > 0 ? { type: 'primary', text: projectInfo.value.profileCount.toString() } : null) },
-  { label: 'Recordings', icon: 'bi bi-record-circle', path: 'recordings',
-    badge: projectInfo.value && projectInfo.value.recordingCount > 0 ? { type: 'info', text: projectInfo.value.recordingCount.toString() } : null },
-{ label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler',
-    badge: null },
+      : projectInfo.value && projectInfo.value.profileCount > 0
+        ? { type: 'primary', text: projectInfo.value.profileCount.toString() }
+        : null
+  },
+  {
+    label: 'Recordings',
+    icon: 'bi bi-record-circle',
+    path: 'recordings',
+    badge:
+      projectInfo.value && projectInfo.value.recordingCount > 0
+        ? { type: 'info', text: projectInfo.value.recordingCount.toString() }
+        : null
+  },
+  { label: 'Scheduler', icon: 'bi bi-clock-history', path: 'scheduler', badge: null },
   { label: 'Settings', icon: 'bi bi-gear', path: 'settings' }
 ]);
 
@@ -197,17 +217,17 @@ const getBadgeVariant = (type: string): Variant => {
 
 .scrollbar {
   overflow-y: auto;
-  
+
   &::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
   }
-  
+
   &:hover::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
   }
@@ -226,21 +246,21 @@ const getBadgeVariant = (type: string): Variant => {
   font-weight: 500;
   font-size: 0.9rem;
   border-radius: 0.25rem;
-  
+
   &:hover {
     color: var(--color-primary);
     background-color: #edf2f9;
   }
-  
+
   &.active {
     color: var(--color-primary);
     background-color: #eaebff;
-    
+
     i {
       color: var(--color-primary);
     }
   }
-  
+
   i {
     color: #7d899b;
     font-size: 0.9rem;
@@ -269,8 +289,6 @@ const getBadgeVariant = (type: string): Variant => {
 .bg-soft-primary {
   background-color: rgba(94, 100, 255, 0.1) !important;
 }
-
-
 
 @keyframes pulse {
   0% {

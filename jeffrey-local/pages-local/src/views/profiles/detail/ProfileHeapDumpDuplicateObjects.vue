@@ -12,9 +12,9 @@
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="copy"
-      message="The heap dump needs to be initialized before you can view duplicate objects."
+    v-else-if="!cacheReady"
+    icon="copy"
+    message="The heap dump needs to be initialized before you can view duplicate objects."
   />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -22,15 +22,18 @@
   <!-- Analysis Not Yet Run -->
   <div v-else-if="!analysisExists && !analysisRunning">
     <PageHeader
-        title="Duplicate Objects"
-        description="Find duplicate object instances wasting memory"
-        icon="bi-copy"
+      title="Duplicate Objects"
+      description="Find duplicate object instances wasting memory"
+      icon="bi-copy"
     />
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
       <div class="flex-grow-1">
         <h6 class="mb-1">Duplicate Objects Analysis Not Available</h6>
-        <p class="mb-2 small">Run the analysis to identify duplicate objects with identical content that waste heap memory.</p>
+        <p class="mb-2 small">
+          Run the analysis to identify duplicate objects with identical content that waste heap
+          memory.
+        </p>
         <button class="btn btn-primary btn-sm" @click="runAnalysis">
           <i class="bi bi-play-fill me-1"></i>
           Run Duplicate Objects Analysis
@@ -42,9 +45,9 @@
   <!-- Analysis Running -->
   <div v-else-if="analysisRunning">
     <PageHeader
-        title="Duplicate Objects"
-        description="Find duplicate object instances wasting memory"
-        icon="bi-copy"
+      title="Duplicate Objects"
+      description="Find duplicate object instances wasting memory"
+      icon="bi-copy"
     />
     <div class="alert alert-info d-flex align-items-center">
       <div class="spinner-border spinner-border-sm me-3" role="status">
@@ -60,9 +63,9 @@
   <!-- Analysis Results -->
   <div v-else-if="report">
     <PageHeader
-        title="Duplicate Objects"
-        description="Find duplicate object instances wasting memory"
-        icon="bi-copy"
+      title="Duplicate Objects"
+      description="Find duplicate object instances wasting memory"
+      icon="bi-copy"
     />
 
     <!-- Summary Metrics -->
@@ -80,7 +83,9 @@
       <div class="filter-controls mb-3">
         <div class="row align-items-center">
           <div class="col-auto ms-auto">
-            <small class="text-muted">Showing {{ report.duplicates.length }} duplicate groups</small>
+            <small class="text-muted"
+              >Showing {{ report.duplicates.length }} duplicate groups</small
+            >
           </div>
         </div>
       </div>
@@ -88,17 +93,17 @@
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead>
-            <tr>
-              <th style="width: 50px;">#</th>
-              <SortableTableHeader
+              <tr>
+                <th style="width: 50px">#</th>
+                <SortableTableHeader
                   column="className"
                   label="Class Name"
                   :sort-column="sortColumn"
                   :sort-direction="sortDirection"
                   @sort="toggleSort"
-              />
-              <th>Content Preview</th>
-              <SortableTableHeader
+                />
+                <th>Content Preview</th>
+                <SortableTableHeader
                   column="duplicateCount"
                   label="Duplicate Count"
                   :sort-column="sortColumn"
@@ -106,8 +111,8 @@
                   align="end"
                   width="130px"
                   @sort="toggleSort"
-              />
-              <SortableTableHeader
+                />
+                <SortableTableHeader
                   column="individualSize"
                   label="Individual Size"
                   :sort-column="sortColumn"
@@ -115,8 +120,8 @@
                   align="end"
                   width="130px"
                   @sort="toggleSort"
-              />
-              <SortableTableHeader
+                />
+                <SortableTableHeader
                   column="totalWastedBytes"
                   label="Total Wasted"
                   :sort-column="sortColumn"
@@ -124,25 +129,33 @@
                   align="end"
                   width="130px"
                   @sort="toggleSort"
-              />
-            </tr>
+                />
+              </tr>
             </thead>
             <tbody>
-            <tr v-for="(entry, index) in sortedDuplicates" :key="index">
-              <td class="text-muted">{{ index + 1 }}</td>
-              <td>
-                <div class="class-info">
-                  <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                  <span class="package-name">{{ packageName(entry.className) }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="content-preview font-monospace" :title="entry.contentPreview">{{ truncatePreview(entry.contentPreview) }}</span>
-              </td>
-              <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.duplicateCount) }}</td>
-              <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.individualSize) }}</td>
-              <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.totalWastedBytes) }}</td>
-            </tr>
+              <tr v-for="(entry, index) in sortedDuplicates" :key="index">
+                <td class="text-muted">{{ index + 1 }}</td>
+                <td>
+                  <div class="class-info">
+                    <code class="class-name">{{ simpleClassName(entry.className) }}</code>
+                    <span class="package-name">{{ packageName(entry.className) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="content-preview font-monospace" :title="entry.contentPreview">{{
+                    truncatePreview(entry.contentPreview)
+                  }}</span>
+                </td>
+                <td class="text-end font-monospace">
+                  {{ FormattingService.formatNumber(entry.duplicateCount) }}
+                </td>
+                <td class="text-end font-monospace">
+                  {{ FormattingService.formatBytes(entry.individualSize) }}
+                </td>
+                <td class="text-end font-monospace text-warning">
+                  {{ FormattingService.formatBytes(entry.totalWastedBytes) }}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>

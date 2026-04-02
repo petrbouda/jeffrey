@@ -43,6 +43,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
         private final ObjectLongHashMap<String> operationCounts = new ObjectLongHashMap<>();
         private final ObjectLongHashMap<String> statementNameCounts = new ObjectLongHashMap<>();
+        private final Map<String, Histogram> statementNameHistograms = new HashMap<>();
 
         private long errorCount = 0;
         private long totalExecutionTime = 0;
@@ -67,8 +68,10 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             operationCounts.addToValue(operation, 1);
         }
 
-        public void incrementStatementNameCount(String statementName) {
+        public void addStatementNameExecution(String statementName, long executionTime) {
             statementNameCounts.addToValue(statementName, 1);
+            statementNameHistograms.computeIfAbsent(statementName, _ -> new Histogram(3))
+                    .recordValue(executionTime);
         }
 
         public Histogram executionHisto() {
@@ -86,7 +89,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
                     executionHisto.getValueAtPercentile(99.0),
                     executionHisto.getValueAtPercentile(95.0),
                     errorCount,
-                    toJdbcStatementNameStats(statementNameCounts));
+                    toJdbcStatementNameStats(statementNameCounts, statementNameHistograms));
         }
     }
 
@@ -137,7 +140,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         GroupBuilder groupBuilder = groups.computeIfAbsent(group, GroupBuilder::new);
         groupBuilder.add(executionTime, processedRows, !isSuccess);
         groupBuilder.incrementOperationCount(record.typeLabel());
-        groupBuilder.incrementStatementNameCount(name);
+        groupBuilder.addStatementNameExecution(name, executionTime);
 
         // Track slow requests up to the limit
         JdbcSlowStatement slowRequest = new JdbcSlowStatement(
@@ -205,9 +208,16 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         return stats;
     }
 
-    private static List<JdbcStatementNameStats> toJdbcStatementNameStats(ObjectLongHashMap<String> counts) {
+    private static List<JdbcStatementNameStats> toJdbcStatementNameStats(
+            ObjectLongHashMap<String> counts,
+            Map<String, Histogram> histograms) {
+
         List<JdbcStatementNameStats> stats = new ArrayList<>(counts.size());
-        counts.forEachKeyValue((operation, count) -> stats.add(new JdbcStatementNameStats(operation, count)));
+        counts.forEachKeyValue((name, count) -> {
+            Histogram histo = histograms.get(name);
+            long p99 = histo != null ? histo.getValueAtPercentile(99.0) : 0;
+            stats.add(new JdbcStatementNameStats(name, count, p99));
+        });
         return stats;
     }
 

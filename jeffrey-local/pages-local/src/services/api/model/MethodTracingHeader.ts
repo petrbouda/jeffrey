@@ -17,11 +17,11 @@
  */
 
 export default interface MethodTracingHeader {
-    totalInvocations: number;
-    totalDuration: number;
-    maxDuration: number;
-    p99Duration: number;
-    p95Duration: number;
-    avgDuration: number;
-    uniqueMethodCount: number;
+  totalInvocations: number;
+  totalDuration: number;
+  maxDuration: number;
+  p99Duration: number;
+  p95Duration: number;
+  avgDuration: number;
+  uniqueMethodCount: number;
 }

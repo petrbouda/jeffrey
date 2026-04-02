@@ -17,8 +17,8 @@
  */
 
 export default class Serie {
-    constructor(
-        public data: number[][],
-        public name: string) {
-    }
+  constructor(
+    public data: number[][],
+    public name: string
+  ) {}
 }

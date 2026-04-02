@@ -1,27 +1,28 @@
 <template>
-  <div class="job-card h-100 p-4 shadow-sm d-flex flex-column border" 
-       :class="{'coming-soon-card': comingSoon}">
+  <div
+    class="job-card h-100 p-4 shadow-sm d-flex flex-column border"
+    :class="{ 'coming-soon-card': comingSoon }"
+  >
     <div class="d-flex align-items-center mb-3">
-      <div class="job-icon me-3 d-flex align-items-center justify-content-center"
-           :class="iconBg">
+      <div class="job-icon me-3 d-flex align-items-center justify-content-center" :class="iconBg">
         <i class="fs-4" :class="[icon, iconColor]"></i>
       </div>
       <div>
         <h5 class="mb-0 fw-semibold">{{ title }}</h5>
         <div class="d-flex gap-2 mt-1" v-if="badges && badges.length > 0">
-          <Badge v-for="badge in visibleBadges" :key="badge.text"
-                 :value="badge.text"
-                 :variant="getVariantFromColor(badge.color)"
-                 size="s" />
+          <Badge
+            v-for="badge in visibleBadges"
+            :key="badge.text"
+            :value="badge.text"
+            :variant="getVariantFromColor(badge.color)"
+            size="s"
+          />
         </div>
       </div>
     </div>
     <p class="text-muted mb-3">{{ description }}</p>
     <div class="mt-auto d-flex justify-content-end">
-      <button 
-        class="btn btn-primary" 
-        @click="handleCreateJob"
-        :disabled="disabled">
+      <button class="btn btn-primary" @click="handleCreateJob" :disabled="disabled">
         <i class="bi bi-plus-lg me-1"></i>{{ buttonText }}
       </button>
     </div>
@@ -85,7 +86,7 @@ const getVariantFromColor = (color: string): Variant => {
     'bg-light': 'light',
     'bg-dark': 'dark'
   };
-  
+
   return colorMap[color] || 'secondary';
 };
 </script>
@@ -129,7 +130,7 @@ const getVariantFromColor = (color: string): Variant => {
 }
 
 .text-teal {
-  color: #20C997;
+  color: #20c997;
 }
 
 .bg-blue-soft {
@@ -171,11 +172,11 @@ const getVariantFromColor = (color: string): Variant => {
   box-shadow: 0 0.125rem 0.25rem rgba(94, 100, 255, 0.15);
 }
 
-.btn-primary:hover, .btn-primary:active {
+.btn-primary:hover,
+.btn-primary:active {
   background-color: #4a51eb !important;
   border-color: #4a51eb !important;
 }
-
 
 /* Typography utilities */
 .fw-semibold {

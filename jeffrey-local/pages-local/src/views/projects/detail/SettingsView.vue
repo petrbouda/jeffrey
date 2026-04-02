@@ -1,11 +1,11 @@
 <template>
   <PageHeader
-      title="Project Settings"
-      description="Configure project name and manage project lifecycle"
-      icon="bi-gear"
+    title="Project Settings"
+    description="Configure project name and manage project lifecycle"
+    icon="bi-gear"
   >
     <!-- Loading State -->
-    <LoadingState v-if="isLoading" message="Loading project settings..."/>
+    <LoadingState v-if="isLoading" message="Loading project settings..." />
 
     <template v-else>
       <!-- Top Row: General + Blocking -->
@@ -17,18 +17,18 @@
           </div>
           <form @submit.prevent="saveChanges">
             <label class="field-label">Project Name</label>
-            <input
-                type="text"
-                class="field-input"
-                v-model="projectName"
-                @input="checkForChanges"
-            >
+            <input type="text" class="field-input" v-model="projectName" @input="checkForChanges" />
             <button
-                type="submit"
-                class="settings-btn settings-btn-primary"
-                :disabled="!hasChanges || isSaving"
+              type="submit"
+              class="settings-btn settings-btn-primary"
+              :disabled="!hasChanges || isSaving"
             >
-              <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span
+                v-if="isSaving"
+                class="spinner-border spinner-border-sm"
+                role="status"
+                aria-hidden="true"
+              ></span>
               <i v-else class="bi bi-check-lg"></i>
               {{ isSaving ? 'Saving...' : 'Save Changes' }}
             </button>
@@ -46,11 +46,11 @@
               <span class="toggle-row-desc">Stops all event processing</span>
             </div>
             <button
-                class="toggle-track"
-                :class="{ on: isBlocked }"
-                @click="isBlocked ? unblockProject() : blockProject()"
-                :disabled="isBlockingAction"
-                type="button"
+              class="toggle-track"
+              :class="{ on: isBlocked }"
+              @click="isBlocked ? unblockProject() : blockProject()"
+              :disabled="isBlockingAction"
+              type="button"
             >
               <span class="toggle-thumb"></span>
             </button>
@@ -64,44 +64,69 @@
           <i class="bi bi-broadcast settings-icon-blue"></i>
           <h6>Streaming</h6>
         </div>
-        <div class="streaming-status" :class="effectiveStreamingEnabled ? 'streaming-status-on' : 'streaming-status-off'">
-          <span class="streaming-dot" :class="effectiveStreamingEnabled ? 'dot-on' : 'dot-off'"></span>
+        <div
+          class="streaming-status"
+          :class="effectiveStreamingEnabled ? 'streaming-status-on' : 'streaming-status-off'"
+        >
+          <span
+            class="streaming-dot"
+            :class="effectiveStreamingEnabled ? 'dot-on' : 'dot-off'"
+          ></span>
           <span>
             Streaming is <strong>{{ effectiveStreamingEnabled ? 'enabled' : 'disabled' }}</strong>
           </span>
-          <span v-if="effectiveStreamingLevel" class="streaming-badge" :class="'streaming-badge-' + effectiveStreamingLevel.toLowerCase()">
+          <span
+            v-if="effectiveStreamingLevel"
+            class="streaming-badge"
+            :class="'streaming-badge-' + effectiveStreamingLevel.toLowerCase()"
+          >
             {{ effectiveStreamingLevel }}
           </span>
         </div>
         <div class="streaming-actions">
           <button
-              type="button"
-              class="settings-btn settings-btn-primary"
-              @click="enableStreaming"
-              :disabled="isStreamingAction || streamingEnabled === true"
+            type="button"
+            class="settings-btn settings-btn-primary"
+            @click="enableStreaming"
+            :disabled="isStreamingAction || streamingEnabled === true"
           >
-            <span v-if="isStreamingAction && pendingStreamingState === true" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span
+              v-if="isStreamingAction && pendingStreamingState === true"
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
             <i v-else class="bi bi-broadcast"></i>
             Enable
           </button>
           <button
-              type="button"
-              class="settings-btn settings-btn-outline"
-              @click="disableStreaming"
-              :disabled="isStreamingAction || streamingEnabled === false"
+            type="button"
+            class="settings-btn settings-btn-outline"
+            @click="disableStreaming"
+            :disabled="isStreamingAction || streamingEnabled === false"
           >
-            <span v-if="isStreamingAction && pendingStreamingState === false" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span
+              v-if="isStreamingAction && pendingStreamingState === false"
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
             <i v-else class="bi bi-broadcast"></i>
             Disable
           </button>
           <button
-              v-if="streamingEnabled !== null && streamingEnabled !== undefined"
-              type="button"
-              class="settings-btn settings-btn-outline"
-              @click="resetStreaming"
-              :disabled="isStreamingAction"
+            v-if="streamingEnabled !== null && streamingEnabled !== undefined"
+            type="button"
+            class="settings-btn settings-btn-outline"
+            @click="resetStreaming"
+            :disabled="isStreamingAction"
           >
-            <span v-if="isStreamingAction && pendingStreamingState === null" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span
+              v-if="isStreamingAction && pendingStreamingState === null"
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
             <i v-else class="bi bi-arrow-counterclockwise"></i>
             Reset to Inherited
           </button>
@@ -118,12 +143,17 @@
           </div>
         </div>
         <button
-            type="button"
-            class="settings-btn settings-btn-danger"
-            @click="openDeleteConfirmation"
-            :disabled="isDeleting"
+          type="button"
+          class="settings-btn settings-btn-danger"
+          @click="openDeleteConfirmation"
+          :disabled="isDeleting"
         >
-          <span v-if="isDeleting" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span
+            v-if="isDeleting"
+            class="spinner-border spinner-border-sm"
+            role="status"
+            aria-hidden="true"
+          ></span>
           <i v-else class="bi bi-trash3"></i>
           {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
         </button>
@@ -133,46 +163,65 @@
 
   <!-- Delete Project Confirmation Modal -->
   <GenericModal
-      modal-id="deleteProjectModal"
-      :show="showDeleteConfirmation"
-      title="Confirm Delete"
-      icon="bi-exclamation-triangle-fill"
-      size="md"
-      modal-dialog-class="modal-dialog-centered"
-      :show-footer="false"
-      @update:show="closeDeleteConfirmation">
+    modal-id="deleteProjectModal"
+    :show="showDeleteConfirmation"
+    title="Confirm Delete"
+    icon="bi-exclamation-triangle-fill"
+    size="md"
+    modal-dialog-class="modal-dialog-centered"
+    :show-footer="false"
+    @update:show="closeDeleteConfirmation"
+  >
     <template #header>
       <div class="d-flex align-items-center">
         <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-danger"></i>
         <h5 class="modal-title mb-0">Confirm Delete</h5>
       </div>
-      <button type="button" class="btn-close" @click="closeDeleteConfirmation" :disabled="isDeleting"></button>
+      <button
+        type="button"
+        class="btn-close"
+        @click="closeDeleteConfirmation"
+        :disabled="isDeleting"
+      ></button>
     </template>
     <div class="mb-3">
-      <p>Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.</p>
-      <p class="mb-0">Please type <strong>{{ projectName }}</strong> to confirm:</p>
+      <p>
+        Are you sure you want to delete this project? This action <strong>cannot</strong> be undone.
+      </p>
+      <p class="mb-0">
+        Please type <strong>{{ projectName }}</strong> to confirm:
+      </p>
     </div>
     <div class="form-group">
       <input
-          type="text"
-          class="form-control"
-          v-model="deleteConfirmText"
-          placeholder="Type project name here"
-          :disabled="isDeleting"
-      >
+        type="text"
+        class="form-control"
+        v-model="deleteConfirmText"
+        placeholder="Type project name here"
+        :disabled="isDeleting"
+      />
     </div>
     <template #footer>
-      <button type="button" class="btn btn-secondary" @click="closeDeleteConfirmation" :disabled="isDeleting">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        @click="closeDeleteConfirmation"
+        :disabled="isDeleting"
+      >
         Cancel
       </button>
       <button
-          type="button"
-          class="btn btn-danger"
-          @click="deleteProject"
-          :disabled="deleteConfirmText !== projectName || isDeleting"
+        type="button"
+        class="btn btn-danger"
+        @click="deleteProject"
+        :disabled="deleteConfirmText !== projectName || isDeleting"
       >
-        <span v-if="isDeleting" class="spinner-border spinner-border-sm me-2" role="status"
-              aria-hidden="true"></span>
+        <span
+          v-if="isDeleting"
+          class="spinner-border spinner-border-sm me-2"
+          role="status"
+          aria-hidden="true"
+        ></span>
         {{ isDeleting ? 'Deleting...' : 'Delete Project' }}
       </button>
     </template>
@@ -180,9 +229,9 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted} from 'vue';
-import {useRouter} from 'vue-router';
-import {useNavigation} from '@/composables/useNavigation';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
 import ProjectClient from '@/services/api/ProjectClient';
 import ToastService from '@/services/ToastService';
@@ -193,7 +242,7 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import '@/styles/shared-components.css';
 
 const router = useRouter();
-const {workspaceId, projectId} = useNavigation();
+const { workspaceId, projectId } = useNavigation();
 
 // Create clients
 const settingsClient = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
@@ -257,7 +306,7 @@ async function saveChanges() {
     hasChanges.value = false;
 
     // Notify other components that project settings have changed
-    MessageBus.emit(MessageBus.UPDATE_PROJECT_SETTINGS, {name: projectName.value});
+    MessageBus.emit(MessageBus.UPDATE_PROJECT_SETTINGS, { name: projectName.value });
 
     ToastService.success('Success', 'Project name has been updated');
   } catch (error) {
@@ -274,7 +323,10 @@ async function blockProject() {
     isBlockingAction.value = true;
     await settingsClient.block();
     isBlocked.value = true;
-    ToastService.success('Project Blocked', 'Project has been blocked. No events will be processed.');
+    ToastService.success(
+      'Project Blocked',
+      'Project has been blocked. No events will be processed.'
+    );
   } catch (error) {
     console.error('Failed to block project:', error);
     ToastService.error('Error', 'Failed to block project');
@@ -289,7 +341,10 @@ async function unblockProject() {
     isBlockingAction.value = true;
     await settingsClient.unblock();
     isBlocked.value = false;
-    ToastService.success('Project Unblocked', 'Project has been unblocked. Event processing will resume.');
+    ToastService.success(
+      'Project Unblocked',
+      'Project has been unblocked. Event processing will resume.'
+    );
   } catch (error) {
     console.error('Failed to unblock project:', error);
     ToastService.error('Error', 'Failed to unblock project');
@@ -307,7 +362,10 @@ async function enableStreaming() {
     streamingEnabled.value = true;
     effectiveStreamingEnabled.value = true;
     effectiveStreamingLevel.value = 'PROJECT';
-    ToastService.success('Streaming Enabled', 'Streaming has been explicitly enabled for this project.');
+    ToastService.success(
+      'Streaming Enabled',
+      'Streaming has been explicitly enabled for this project.'
+    );
   } catch (error) {
     console.error('Failed to enable streaming:', error);
     ToastService.error('Error', 'Failed to enable streaming');
@@ -326,7 +384,10 @@ async function disableStreaming() {
     streamingEnabled.value = false;
     effectiveStreamingEnabled.value = false;
     effectiveStreamingLevel.value = 'PROJECT';
-    ToastService.success('Streaming Disabled', 'Streaming has been explicitly disabled for this project.');
+    ToastService.success(
+      'Streaming Disabled',
+      'Streaming has been explicitly disabled for this project.'
+    );
   } catch (error) {
     console.error('Failed to disable streaming:', error);
     ToastService.error('Error', 'Failed to disable streaming');
@@ -347,7 +408,10 @@ async function resetStreaming() {
     const settings = await settingsClient.get();
     effectiveStreamingEnabled.value = settings.effectiveStreamingEnabled ?? true;
     effectiveStreamingLevel.value = settings.effectiveStreamingLevel;
-    ToastService.success('Streaming Reset', 'Streaming setting has been reset to inherit from workspace/global.');
+    ToastService.success(
+      'Streaming Reset',
+      'Streaming setting has been reset to inherit from workspace/global.'
+    );
   } catch (error) {
     console.error('Failed to reset streaming:', error);
     ToastService.error('Error', 'Failed to reset streaming setting');
@@ -458,7 +522,9 @@ async function deleteProject() {
   background: var(--input-bg);
   color: var(--color-text);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
   margin-bottom: 12px;
 }
 

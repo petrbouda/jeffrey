@@ -20,12 +20,11 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import ContainerConfigurationData from '@/services/api/model/ContainerConfigurationData';
 
 export default class ProfileContainerClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'container');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'container');
-    }
-
-    public getConfiguration(): Promise<ContainerConfigurationData> {
-        return this.get<ContainerConfigurationData>('/configuration');
-    }
+  public getConfiguration(): Promise<ContainerConfigurationData> {
+    return this.get<ContainerConfigurationData>('/configuration');
+  }
 }

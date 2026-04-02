@@ -17,15 +17,13 @@
  */
 
 export class GCPauseBucket {
-    constructor(
-        public range: string,
-        public count: number,
-        public percentage: number
-    ) {}
+  constructor(
+    public range: string,
+    public count: number,
+    public percentage: number
+  ) {}
 }
 
 export default class GCPauseDistribution {
-    constructor(
-        public buckets: GCPauseBucket[]
-    ) {}
+  constructor(public buckets: GCPauseBucket[]) {}
 }

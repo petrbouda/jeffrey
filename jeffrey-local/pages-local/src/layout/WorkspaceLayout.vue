@@ -33,11 +33,14 @@ const route = useRoute();
 const workspaceContent = ref<HTMLElement | null>(null);
 
 // Scroll to top when route changes
-watch(() => route.fullPath, () => {
-  if (workspaceContent.value) {
-    workspaceContent.value.scrollTop = 0;
+watch(
+  () => route.fullPath,
+  () => {
+    if (workspaceContent.value) {
+      workspaceContent.value.scrollTop = 0;
+    }
   }
-});
+);
 </script>
 
 <style lang="scss" scoped>

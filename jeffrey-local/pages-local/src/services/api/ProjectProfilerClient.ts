@@ -17,42 +17,41 @@
  */
 
 import BasePlatformClient from '@/services/api/BasePlatformClient';
-import ProfilerSettings from "@/services/api/model/ProfilerSettings.ts";
+import ProfilerSettings from '@/services/api/model/ProfilerSettings.ts';
 
 /**
  * Client for project-level profiler settings API.
  * Works for both LIVE and REMOTE workspaces - the backend handles the delegation.
  */
 export default class ProjectProfilerClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/profiler/settings`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/profiler/settings`);
-    }
+  /**
+   * Fetch effective settings for a project (resolved from hierarchy: project > workspace > global)
+   * Works for both LIVE and REMOTE workspaces.
+   */
+  fetch(): Promise<ProfilerSettings> {
+    return super.get<ProfilerSettings>();
+  }
 
-    /**
-     * Fetch effective settings for a project (resolved from hierarchy: project > workspace > global)
-     * Works for both LIVE and REMOTE workspaces.
-     */
-    fetch(): Promise<ProfilerSettings> {
-        return super.get<ProfilerSettings>();
-    }
+  /**
+   * Upsert project-level settings
+   * Works for both LIVE and REMOTE workspaces.
+   */
+  upsert(agentSettings: string): Promise<void> {
+    const content = {
+      agentSettings: agentSettings
+    };
+    return super.post<void>('', content);
+  }
 
-    /**
-     * Upsert project-level settings
-     * Works for both LIVE and REMOTE workspaces.
-     */
-    upsert(agentSettings: string): Promise<void> {
-        const content = {
-            agentSettings: agentSettings,
-        };
-        return super.post<void>('', content);
-    }
-
-    /**
-     * Delete project-level settings
-     * Works for both LIVE and REMOTE workspaces.
-     */
-    delete(): Promise<void> {
-        return super.del<void>();
-    }
+  /**
+   * Delete project-level settings
+   * Works for both LIVE and REMOTE workspaces.
+   */
+  delete(): Promise<void> {
+    return super.del<void>();
+  }
 }

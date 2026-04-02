@@ -19,7 +19,6 @@
       @cancel-download="downloadStore.cancelDownload"
       @close-download="downloadStore.closeDownload"
     />
-
   </div>
 </template>
 

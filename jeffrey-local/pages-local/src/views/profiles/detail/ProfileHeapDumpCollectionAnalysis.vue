@@ -6,15 +6,18 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="collection"
-      message="The heap dump needs to be initialized before you can view collection analysis. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="collection"
+    message="The heap dump needs to be initialized before you can view collection analysis. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -22,16 +25,19 @@
   <!-- Analysis Not Yet Run -->
   <div v-else-if="!analysisExists && !analysisRunning">
     <PageHeader
-        title="Collection Analysis"
-        description="Find over-allocated and empty collections"
-        icon="bi-collection"
+      title="Collection Analysis"
+      description="Find over-allocated and empty collections"
+      icon="bi-collection"
     />
 
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
       <div class="flex-grow-1">
         <h6 class="mb-1">Collection Analysis Not Available</h6>
-        <p class="mb-2 small">The collection analysis was not found. This can happen if the heap dump was initialized before this feature was added. You can run the analysis now.</p>
+        <p class="mb-2 small">
+          The collection analysis was not found. This can happen if the heap dump was initialized
+          before this feature was added. You can run the analysis now.
+        </p>
         <button class="btn btn-primary btn-sm" @click="runAnalysis">
           <i class="bi bi-play-fill me-1"></i>
           Run Collection Analysis
@@ -43,9 +49,9 @@
   <!-- Analysis Running -->
   <div v-else-if="analysisRunning">
     <PageHeader
-        title="Collection Analysis"
-        description="Find over-allocated and empty collections"
-        icon="bi-collection"
+      title="Collection Analysis"
+      description="Find over-allocated and empty collections"
+      icon="bi-collection"
     />
 
     <div class="alert alert-info d-flex align-items-center">
@@ -62,9 +68,9 @@
   <!-- Analysis Results -->
   <div v-else>
     <PageHeader
-        title="Collection Analysis"
-        description="Find over-allocated and empty collections"
-        icon="bi-collection"
+      title="Collection Analysis"
+      description="Find over-allocated and empty collections"
+      icon="bi-collection"
     />
 
     <!-- Summary Metrics -->
@@ -72,18 +78,20 @@
 
     <!-- Tabbed Analysis Section -->
     <ChartSectionWithTabs
-        icon="collection"
-        :tabs="analysisTabs"
-        :full-width="true"
-        id-prefix="collection-"
+      icon="collection"
+      :tabs="analysisTabs"
+      :full-width="true"
+      id-prefix="collection-"
     >
       <!-- Overview Tab -->
       <template #overview>
         <DualPanel v-if="report" left-title="Fill Distribution" right-title="Summary">
           <template #left>
             <DonutWithLegend
-                :data="fillChartData"
-                :tooltip-formatter="(val: number) => FormattingService.formatNumber(val) + ' collections'"
+              :data="fillChartData"
+              :tooltip-formatter="
+                (val: number) => FormattingService.formatNumber(val) + ' collections'
+              "
             />
           </template>
           <template #right>
@@ -98,7 +106,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.byType.length }} collection types</small>
+                <small class="text-muted"
+                  >Showing {{ report.byType.length }} collection types</small
+                >
               </div>
             </div>
           </div>
@@ -106,16 +116,16 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <SortableTableHeader
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <SortableTableHeader
                       column="collectionType"
                       label="Collection Type"
                       :sort-column="typeSortColumn"
                       :sort-direction="typeSortDirection"
                       @sort="toggleTypeSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="totalCount"
                       label="Count"
                       :sort-column="typeSortColumn"
@@ -123,8 +133,8 @@
                       align="end"
                       width="100px"
                       @sort="toggleTypeSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="emptyCount"
                       label="Empty"
                       :sort-column="typeSortColumn"
@@ -132,8 +142,8 @@
                       align="end"
                       width="100px"
                       @sort="toggleTypeSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="avgFillRatio"
                       label="Avg Fill %"
                       :sort-column="typeSortColumn"
@@ -141,8 +151,8 @@
                       align="end"
                       width="110px"
                       @sort="toggleTypeSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="totalWastedBytes"
                       label="Wasted"
                       :sort-column="typeSortColumn"
@@ -150,35 +160,45 @@
                       align="end"
                       width="120px"
                       @sort="toggleTypeSort"
-                  />
-                  <th style="width: 180px;">% of Max</th>
-                </tr>
+                    />
+                    <th style="width: 180px">% of Max</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedByType" :key="index">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <div class="class-info">
-                      <code class="class-name">{{ simpleClassName(entry.collectionType) }}</code>
-                      <span class="package-name">{{ packageName(entry.collectionType) }}</span>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.totalCount) }}</td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.emptyCount) }}</td>
-                  <td class="text-end font-monospace">{{ (entry.avgFillRatio * 100).toFixed(1) }}%</td>
-                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.totalWastedBytes) }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="progress flex-grow-1" style="height: 6px;">
-                        <div
+                  <tr v-for="(entry, index) in sortedByType" :key="index">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <div class="class-info">
+                        <code class="class-name">{{ simpleClassName(entry.collectionType) }}</code>
+                        <span class="package-name">{{ packageName(entry.collectionType) }}</span>
+                      </div>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.totalCount) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.emptyCount) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ (entry.avgFillRatio * 100).toFixed(1) }}%
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.totalWastedBytes) }}
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height: 6px">
+                          <div
                             class="progress-bar bg-warning"
                             :style="{ width: getTypePercentage(entry) + '%' }"
-                        ></div>
+                          ></div>
+                        </div>
+                        <small class="text-muted" style="min-width: 45px"
+                          >{{ getTypePercentage(entry).toFixed(1) }}%</small
+                        >
                       </div>
-                      <small class="text-muted" style="min-width: 45px;">{{ getTypePercentage(entry).toFixed(1) }}%</small>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -196,7 +216,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.wasteByClass.length }} owner classes</small>
+                <small class="text-muted"
+                  >Showing {{ report.wasteByClass.length }} owner classes</small
+                >
               </div>
             </div>
           </div>
@@ -204,39 +226,57 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <th style="width: 50%;">Owner Class</th>
-                  <th class="text-end" style="width: 120px;">Collections</th>
-                  <th class="text-end" style="width: 100px;">Empty</th>
-                  <th class="text-end" style="width: 120px;">Wasted</th>
-                </tr>
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <th style="width: 50%">Owner Class</th>
+                    <th class="text-end" style="width: 120px">Collections</th>
+                    <th class="text-end" style="width: 100px">Empty</th>
+                    <th class="text-end" style="width: 120px">Wasted</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedWasteByClass" :key="index">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <div class="class-info">
-                      <div class="class-name-line">
-                        <code class="class-name">{{ simpleClassName(entry.ownerClassName) }}</code>
-                        <span class="package-name">{{ packageName(entry.ownerClassName) }}</span>
-                      </div>
-                      <div class="detail-line" v-if="Object.keys(entry.collectionTypeCounts).length > 0">
-                        <template
-                            v-for="(typeName, typeIndex) in Object.keys(entry.collectionTypeCounts).sort((a, b) => entry.collectionTypeCounts[b] - entry.collectionTypeCounts[a])"
-                            :key="typeName"
+                  <tr v-for="(entry, index) in sortedWasteByClass" :key="index">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <div class="class-info">
+                        <div class="class-name-line">
+                          <code class="class-name">{{
+                            simpleClassName(entry.ownerClassName)
+                          }}</code>
+                          <span class="package-name">{{ packageName(entry.ownerClassName) }}</span>
+                        </div>
+                        <div
+                          class="detail-line"
+                          v-if="Object.keys(entry.collectionTypeCounts).length > 0"
                         >
-                          <span v-if="typeIndex > 0" class="detail-sep">&middot;</span>
-                          <span class="field-tag">{{ simpleClassName(typeName) }}</span>
-                          <span class="text-muted">{{ FormattingService.formatNumber(entry.collectionTypeCounts[typeName]) }}</span>
-                        </template>
+                          <template
+                            v-for="(typeName, typeIndex) in Object.keys(
+                              entry.collectionTypeCounts
+                            ).sort(
+                              (a, b) =>
+                                entry.collectionTypeCounts[b] - entry.collectionTypeCounts[a]
+                            )"
+                            :key="typeName"
+                          >
+                            <span v-if="typeIndex > 0" class="detail-sep">&middot;</span>
+                            <span class="field-tag">{{ simpleClassName(typeName) }}</span>
+                            <span class="text-muted">{{
+                              FormattingService.formatNumber(entry.collectionTypeCounts[typeName])
+                            }}</span>
+                          </template>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.collectionCount) }}</td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.emptyCount) }}</td>
-                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.wastedBytes) }}</td>
-                </tr>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.collectionCount) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.emptyCount) }}
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.wastedBytes) }}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -258,15 +298,20 @@
             </div>
             <div>
               <h5 class="mb-1">How Collection Analysis Works</h5>
-              <p class="text-muted mb-0">Understanding collection memory allocation and fill ratios</p>
+              <p class="text-muted mb-0">
+                Understanding collection memory allocation and fill ratios
+              </p>
             </div>
           </div>
 
           <!-- Intro -->
           <div class="about-intro">
-            <p>Java collections like <code>HashMap</code>, <code>ArrayList</code>, and <code>HashSet</code> pre-allocate internal arrays
-            to store elements. When a collection holds fewer elements than its capacity, the unused slots represent wasted memory.
-            This analysis inspects the heap to find over-allocated and empty collections.</p>
+            <p>
+              Java collections like <code>HashMap</code>, <code>ArrayList</code>, and
+              <code>HashSet</code> pre-allocate internal arrays to store elements. When a collection
+              holds fewer elements than its capacity, the unused slots represent wasted memory. This
+              analysis inspects the heap to find over-allocated and empty collections.
+            </p>
           </div>
 
           <!-- Key Concepts -->
@@ -277,42 +322,68 @@
 
           <div class="feature-grid">
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+              >
                 <i class="bi bi-rulers"></i>
               </div>
               <div class="feature-content">
                 <h6>Initial Capacity</h6>
-                <p>Collections allocate an internal array when created. <code>ArrayList</code> defaults to 10 elements, <code>HashMap</code> defaults to 16 buckets. If the actual usage is much smaller, memory is wasted.</p>
+                <p>
+                  Collections allocate an internal array when created.
+                  <code>ArrayList</code> defaults to 10 elements, <code>HashMap</code> defaults to
+                  16 buckets. If the actual usage is much smaller, memory is wasted.
+                </p>
               </div>
             </div>
 
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+              >
                 <i class="bi bi-speedometer2"></i>
               </div>
               <div class="feature-content">
                 <h6>Load Factor</h6>
-                <p><code>HashMap</code> uses a load factor (default 0.75) to decide when to resize. This means a HashMap is typically only 75% full at most before it doubles in size.</p>
+                <p>
+                  <code>HashMap</code> uses a load factor (default 0.75) to decide when to resize.
+                  This means a HashMap is typically only 75% full at most before it doubles in size.
+                </p>
               </div>
             </div>
 
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+              >
                 <i class="bi bi-arrow-up-right-circle"></i>
               </div>
               <div class="feature-content">
                 <h6>Growth Strategy</h6>
-                <p>When a collection runs out of space, it allocates a new, larger array (often 1.5x or 2x the previous size) and copies elements over. After growth, fill ratio drops significantly.</p>
+                <p>
+                  When a collection runs out of space, it allocates a new, larger array (often 1.5x
+                  or 2x the previous size) and copies elements over. After growth, fill ratio drops
+                  significantly.
+                </p>
               </div>
             </div>
 
             <div class="feature-card">
-              <div class="feature-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+              <div
+                class="feature-icon"
+                style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+              >
                 <i class="bi bi-pie-chart"></i>
               </div>
               <div class="feature-content">
                 <h6>Fill Ratio</h6>
-                <p>The fill ratio is <code>size / capacity</code>. A ratio of 0% means the collection is empty but still holds allocated memory. 100% means every slot is used.</p>
+                <p>
+                  The fill ratio is <code>size / capacity</code>. A ratio of 0% means the collection
+                  is empty but still holds allocated memory. 100% means every slot is used.
+                </p>
               </div>
             </div>
           </div>
@@ -330,7 +401,11 @@
                 <span class="flag-badge">Highest Waste</span>
               </div>
               <div class="flag-body">
-                <p>Collections that were created but never populated, or were cleared and not garbage collected. These hold allocated arrays with zero elements and are prime candidates for optimization.</p>
+                <p>
+                  Collections that were created but never populated, or were cleared and not garbage
+                  collected. These hold allocated arrays with zero elements and are prime candidates
+                  for optimization.
+                </p>
               </div>
             </div>
 
@@ -340,7 +415,11 @@
                 <span class="flag-badge">Significant Waste</span>
               </div>
               <div class="flag-body">
-                <p>Collections using less than a quarter of their capacity. Often caused by over-estimated initial capacity or collections that once held more data but were partially cleared.</p>
+                <p>
+                  Collections using less than a quarter of their capacity. Often caused by
+                  over-estimated initial capacity or collections that once held more data but were
+                  partially cleared.
+                </p>
               </div>
             </div>
 
@@ -350,7 +429,11 @@
                 <span class="flag-badge">Acceptable</span>
               </div>
               <div class="flag-body">
-                <p>Collections with reasonable utilization. Medium-fill collections are common due to growth strategies and load factors. High and full collections are efficiently using their allocated memory.</p>
+                <p>
+                  Collections with reasonable utilization. Medium-fill collections are common due to
+                  growth strategies and load factors. High and full collections are efficiently
+                  using their allocated memory.
+                </p>
               </div>
             </div>
           </div>
@@ -364,23 +447,38 @@
           <div class="benefits-list">
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when the size is known ahead of time</span>
+              <span
+                >Use <code>new ArrayList&lt;&gt;(expectedSize)</code> to set initial capacity when
+                the size is known ahead of time</span
+              >
             </div>
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Use <code>new HashMap&lt;&gt;(expectedSize, 1.0f)</code> to avoid over-allocation when exact size is known</span>
+              <span
+                >Use <code>new HashMap&lt;&gt;(expectedSize, 1.0f)</code> to avoid over-allocation
+                when exact size is known</span
+              >
             </div>
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Replace empty singleton collections with <code>Collections.emptyList()</code> or <code>List.of()</code> to avoid allocation entirely</span>
+              <span
+                >Replace empty singleton collections with <code>Collections.emptyList()</code> or
+                <code>List.of()</code> to avoid allocation entirely</span
+              >
             </div>
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Call <code>trimToSize()</code> on ArrayList after final population to release unused capacity</span>
+              <span
+                >Call <code>trimToSize()</code> on ArrayList after final population to release
+                unused capacity</span
+              >
             </div>
             <div class="benefit-item">
               <i class="bi bi-check-circle-fill text-success"></i>
-              <span>Consider lazy initialization: only create collections when the first element is added</span>
+              <span
+                >Consider lazy initialization: only create collections when the first element is
+                added</span
+              >
             </div>
           </div>
 
@@ -391,13 +489,17 @@
             </div>
             <div class="note-content">
               <strong>Why are there so many empty collections?</strong>
-              <p class="mb-0">Empty collections are common in real applications. Many frameworks and libraries eagerly initialize collections in constructors or field declarations that may never be populated. This is often the largest source of wasted collection memory and can be addressed with lazy initialization patterns.</p>
+              <p class="mb-0">
+                Empty collections are common in real applications. Many frameworks and libraries
+                eagerly initialize collections in constructors or field declarations that may never
+                be populated. This is often the largest source of wasted collection memory and can
+                be addressed with lazy initialization patterns.
+              </p>
             </div>
           </div>
         </div>
       </template>
     </ChartSectionWithTabs>
-
   </div>
 </template>
 
@@ -418,7 +520,9 @@ import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import SummaryTable from '@/components/SummaryTable.vue';
 import type { SummaryItem } from '@/components/SummaryTable.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import CollectionAnalysisReport, { CollectionStats } from '@/services/api/model/CollectionAnalysisReport';
+import CollectionAnalysisReport, {
+  CollectionStats
+} from '@/services/api/model/CollectionAnalysisReport';
 import FormattingService from '@/services/FormattingService';
 
 const route = useRoute();
@@ -446,7 +550,13 @@ const analysisTabs = [
   { id: 'how-it-works', label: 'How It Works', icon: 'info-circle' }
 ];
 
-const fillChartLabels = ['Empty (0%)', 'Low (1-25%)', 'Medium (26-75%)', 'High (76-99%)', 'Full (100%)'];
+const fillChartLabels = [
+  'Empty (0%)',
+  'Low (1-25%)',
+  'Medium (26-75%)',
+  'High (76-99%)',
+  'Full (100%)'
+];
 const fillChartColors = ['#EA4335', '#FBBC05', '#4285F4', '#34A853', '#185ABC'];
 
 const fillChartData = computed<DonutChartData>(() => {
@@ -468,15 +578,33 @@ const fillChartData = computed<DonutChartData>(() => {
 
 const summaryItems = computed<SummaryItem[]>(() => {
   if (!report.value) return [];
-  const emptyRatio = report.value.totalCollections === 0 ? '0.0'
+  const emptyRatio =
+    report.value.totalCollections === 0
+      ? '0.0'
       : ((report.value.totalEmptyCount / report.value.totalCollections) * 100).toFixed(1);
   return [
-    { label: 'Total Collections', value: FormattingService.formatNumber(report.value.totalCollections) },
-    { label: 'Empty Collections', value: FormattingService.formatNumber(report.value.totalEmptyCount) },
+    {
+      label: 'Total Collections',
+      value: FormattingService.formatNumber(report.value.totalCollections)
+    },
+    {
+      label: 'Empty Collections',
+      value: FormattingService.formatNumber(report.value.totalEmptyCount)
+    },
     { label: 'Empty Ratio', value: emptyRatio + '%' },
     { label: 'Wasted Memory', value: FormattingService.formatBytes(report.value.totalWastedBytes) },
-    { label: 'Under-utilized (Empty + Low)', value: FormattingService.formatNumber(report.value.overallFillDistribution.empty + report.value.overallFillDistribution.low) },
-    { label: 'Well-utilized (High + Full)', value: FormattingService.formatNumber(report.value.overallFillDistribution.high + report.value.overallFillDistribution.full) },
+    {
+      label: 'Under-utilized (Empty + Low)',
+      value: FormattingService.formatNumber(
+        report.value.overallFillDistribution.empty + report.value.overallFillDistribution.low
+      )
+    },
+    {
+      label: 'Well-utilized (High + Full)',
+      value: FormattingService.formatNumber(
+        report.value.overallFillDistribution.high + report.value.overallFillDistribution.full
+      )
+    },
     { label: 'Collection Types', value: String(report.value.byType.length) }
   ];
 });
@@ -490,7 +618,11 @@ const summaryMetrics = computed(() => {
       value: FormattingService.formatNumber(report.value.totalCollections),
       variant: 'highlight' as const,
       breakdown: [
-        { label: 'Empty', value: FormattingService.formatNumber(report.value.totalEmptyCount), color: '#FBBC05' }
+        {
+          label: 'Empty',
+          value: FormattingService.formatNumber(report.value.totalEmptyCount),
+          color: '#FBBC05'
+        }
       ]
     },
     {
@@ -638,7 +770,6 @@ const loadData = async () => {
     }
 
     await loadAnalysis();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load collection analysis';
     console.error('Error loading collection analysis:', err);
@@ -841,7 +972,9 @@ onMounted(() => {
   background: white;
   border: 1px solid var(--card-border-color);
   border-radius: 8px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .feature-card:hover {

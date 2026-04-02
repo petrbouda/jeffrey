@@ -36,63 +36,72 @@
         icon="bi-hourglass-split"
       />
 
-    <div v-else class="dashboard-container">
-      <!-- Stats Summary -->
-      <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
+      <div v-else class="dashboard-container">
+        <!-- Stats Summary -->
+        <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
 
-      <!-- Slowest Traces Table -->
-      <ChartSection title="Slowest Method Invocations" icon="list-ol" :full-width="true">
-        <template #header-actions>
-          <div class="input-group search-container" style="width: 280px;">
-            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-            <input
-              type="text"
-              class="form-control search-input"
-              placeholder="Filter by class, method or thread..."
-              v-model="searchQuery"
-            />
-            <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
-              <i class="bi bi-x-lg"></i>
-            </button>
+        <!-- Slowest Traces Table -->
+        <ChartSection title="Slowest Method Invocations" icon="list-ol" :full-width="true">
+          <template #header-actions>
+            <div class="input-group search-container" style="width: 280px">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <input
+                type="text"
+                class="form-control search-input"
+                placeholder="Filter by class, method or thread..."
+                v-model="searchQuery"
+              />
+              <button
+                v-if="searchQuery"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchQuery = ''"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </template>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr>
+                  <th class="rank-col">#</th>
+                  <th>Method</th>
+                  <th class="text-end">Duration</th>
+                  <th>Thread</th>
+                  <th class="text-end">% of Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(trace, index) in filteredTraces" :key="index" class="trace-row">
+                  <td class="rank-col">
+                    <span class="rank-badge" :class="getRankClass(trace.originalIndex)">{{
+                      trace.originalIndex + 1
+                    }}</span>
+                  </td>
+                  <td class="method-cell">
+                    <span class="method-name">{{ trace.methodName || '&lt;init&gt;' }}</span>
+                    <span class="class-name">{{ trace.className }}</span>
+                  </td>
+                  <td class="text-end">
+                    <span class="duration-value" :class="getDurationClass(trace.duration)">
+                      {{ FormattingService.formatDuration2Units(trace.duration) }}
+                    </span>
+                  </td>
+                  <td class="thread-name">{{ trace.threadName }}</td>
+                  <td class="text-end">
+                    <Badge
+                      :value="getPercentOfMax(trace.duration).toFixed(1) + '%'"
+                      variant="blue"
+                      size="xs"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </template>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th class="rank-col">#</th>
-                <th>Method</th>
-                <th class="text-end">Duration</th>
-                <th>Thread</th>
-                <th class="text-end">% of Max</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(trace, index) in filteredTraces" :key="index" class="trace-row">
-                <td class="rank-col">
-                  <span class="rank-badge" :class="getRankClass(trace.originalIndex)">{{
-                    trace.originalIndex + 1
-                  }}</span>
-                </td>
-                <td class="method-cell">
-                  <span class="method-name">{{ trace.methodName || '&lt;init&gt;' }}</span>
-                  <span class="class-name">{{ trace.className }}</span>
-                </td>
-                <td class="text-end">
-                  <span class="duration-value" :class="getDurationClass(trace.duration)">
-                    {{ FormattingService.formatDuration2Units(trace.duration) }}
-                  </span>
-                </td>
-                <td class="thread-name">{{ trace.threadName }}</td>
-                <td class="text-end">
-                  <Badge :value="getPercentOfMax(trace.duration).toFixed(1) + '%'" variant="blue" size="xs" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ChartSection>
-    </div>
+        </ChartSection>
+      </div>
     </div>
   </div>
 </template>
@@ -188,10 +197,7 @@ async function loadData() {
 
   try {
     const client = new ProfileMethodTracingClient(profileId);
-    const [slowest, overview] = await Promise.all([
-      client.getSlowest(),
-      client.getOverview()
-    ]);
+    const [slowest, overview] = await Promise.all([client.getSlowest(), client.getOverview()]);
     slowestData.value = slowest;
     overviewData.value = overview;
   } catch (e: unknown) {

@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 defineProps<{
-  text: string
+  text: string;
 }>();
 </script>
 
@@ -28,7 +28,12 @@ defineProps<{
   color: rgba(255, 255, 255, 0.95);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family:
+    'SF Pro Display',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(1px);
 }

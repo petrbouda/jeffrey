@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadCommon from "./ThreadCommon";
-import ThreadRowData from "@/services/thread/model/ThreadRowData";
+import ThreadCommon from './ThreadCommon';
+import ThreadRowData from '@/services/thread/model/ThreadRowData';
 
 export default class ThreadResponse {
-    constructor(
-        public common: ThreadCommon,
-        public rows: ThreadRowData[]) {
-    }
+  constructor(
+    public common: ThreadCommon,
+    public rows: ThreadRowData[]
+  ) {}
 }

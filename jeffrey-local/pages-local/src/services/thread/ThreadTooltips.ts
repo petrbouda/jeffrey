@@ -16,48 +16,48 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadRectangle from "@/services/thread/ThreadRectangle";
-import EventMetadata from "@/services/thread/model/EventMetadata";
-import FormattingService from "@/services/FormattingService";
+import ThreadRectangle from '@/services/thread/ThreadRectangle';
+import EventMetadata from '@/services/thread/model/EventMetadata';
+import FormattingService from '@/services/FormattingService';
 
 export default class ThreadTooltips {
-    static header(javaName: string): string {
-        return `
+  static header(javaName: string): string {
+    return `
             <div class="tooltip-header p-2 border-bottom">
                 <h5 class="m-0 text-dark font-weight-bold">${javaName}</h5>
             </div>`;
-    }
+  }
 
-    static basic(metadata: EventMetadata, segments: ThreadRectangle[], colorRgb: string): string {
-        let typeFragment = "";
-        let firstValues = segments[0].period.values;
+  static basic(metadata: EventMetadata, segments: ThreadRectangle[], colorRgb: string): string {
+    let typeFragment = '';
+    let firstValues = segments[0].period.values;
 
-        let fields = "";
-        metadata.fields.forEach((threadField, index) => {
-            const field = `
+    let fields = '';
+    metadata.fields.forEach((threadField, index) => {
+      const field = `
                 <div class="tooltip-row d-flex px-2 py-1">
                     <span class="field-name text-secondary font-weight-medium">${threadField.name}:</span>
                     <span class="field-value text-dark">${FormattingService.format(firstValues[index], threadField.type)}</span>
-                </div>`
+                </div>`;
 
-            fields += field;
-        });
+      fields += field;
+    });
 
-        return `
+    return `
             ${ThreadTooltips.divider(metadata.label, segments.length, colorRgb)}
             <div class="tooltip-content">
                 ${typeFragment}
                 ${fields}
             </div>`;
-    }
+  }
 
-    private static divider(text: string, eventCount: number, colorRgb: string): string {
-        return `<div class="tooltip-category d-flex align-items-center px-2 py-1 bg-light">
+  private static divider(text: string, eventCount: number, colorRgb: string): string {
+    return `<div class="tooltip-category d-flex align-items-center px-2 py-1 bg-light">
                     <div class="color-indicator mr-2" style="width: 10px; height: 10px; border-radius: 2px; background-color: ${colorRgb}"></div> 
                     <div class="d-flex justify-content-between w-100">
                         <span class="category-name font-weight-medium">${text}</span>
                         <span class="event-count text-muted small">${eventCount} event${eventCount !== 1 ? 's' : ''}</span>
                     </div>
                 </div>`;
-    }
+  }
 }

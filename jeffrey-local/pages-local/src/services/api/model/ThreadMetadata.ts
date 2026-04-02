@@ -16,18 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventMetadata from "@/services/thread/model/EventMetadata";
+import EventMetadata from '@/services/thread/model/EventMetadata';
 
 export default class ThreadMetadata {
-    constructor(
-        public lifespan: EventMetadata,
-        public parked: EventMetadata,
-        public blocked: EventMetadata,
-        public waiting: EventMetadata,
-        public sleep: EventMetadata,
-        public socketRead: EventMetadata,
-        public socketWrite: EventMetadata,
-        public fileRead: EventMetadata,
-        public fileWrite: EventMetadata) {
-    }
+  constructor(
+    public lifespan: EventMetadata,
+    public parked: EventMetadata,
+    public blocked: EventMetadata,
+    public waiting: EventMetadata,
+    public sleep: EventMetadata,
+    public socketRead: EventMetadata,
+    public socketWrite: EventMetadata,
+    public fileRead: EventMetadata,
+    public fileWrite: EventMetadata
+  ) {}
 }

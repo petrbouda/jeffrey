@@ -16,22 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadInfo from "./ThreadInfo";
-import ThreadPeriod from "@/services/api/model/ThreadPeriod";
+import ThreadInfo from './ThreadInfo';
+import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 
 export default class ThreadRowData {
-    constructor(
-        public eventsCount: number,
-        public totalDuration: number,
-        public threadInfo: ThreadInfo,
-        public lifespan: ThreadPeriod[],
-        public parked: ThreadPeriod[],
-        public blocked: ThreadPeriod[],
-        public waiting: ThreadPeriod[],
-        public sleep: ThreadPeriod[],
-        public socketRead: ThreadPeriod[],
-        public socketWrite: ThreadPeriod[],
-        public fileRead: ThreadPeriod[],
-        public fileWrite: ThreadPeriod[]) {
-    }
+  constructor(
+    public eventsCount: number,
+    public totalDuration: number,
+    public threadInfo: ThreadInfo,
+    public lifespan: ThreadPeriod[],
+    public parked: ThreadPeriod[],
+    public blocked: ThreadPeriod[],
+    public waiting: ThreadPeriod[],
+    public sleep: ThreadPeriod[],
+    public socketRead: ThreadPeriod[],
+    public socketWrite: ThreadPeriod[],
+    public fileRead: ThreadPeriod[],
+    public fileWrite: ThreadPeriod[]
+  ) {}
 }

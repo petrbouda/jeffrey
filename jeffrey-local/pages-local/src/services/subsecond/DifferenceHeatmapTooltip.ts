@@ -16,31 +16,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FormattingService from "@/services/FormattingService";
-import EventTypes from "@/services/EventTypes";
+import FormattingService from '@/services/FormattingService';
+import EventTypes from '@/services/EventTypes';
 
 export default class DifferenceHeatmapTooltip {
+  private readonly eventType: string;
+  private readonly useWeight: boolean;
 
-    private readonly eventType: string;
-    private readonly useWeight: boolean;
+  constructor(eventType: string, useWeight: boolean) {
+    this.eventType = eventType;
+    this.useWeight = useWeight;
+  }
 
-    constructor(eventType: string, useWeight: boolean) {
-        this.eventType = eventType;
-        this.useWeight = useWeight;
-    }
+  generate(
+    value: number,
+    primary: number,
+    secondary: number,
+    second: number,
+    millis: string
+  ): string {
+    const isPositive = value > 0;
+    const isNegative = value < 0;
+    const colorClass = isPositive ? 'text-danger' : isNegative ? 'text-success' : 'text-muted';
+    const sign = isPositive ? '+' : '';
 
-    generate(value: number, primary: number, secondary: number, second: number, millis: string): string {
-        const isPositive = value > 0;
-        const isNegative = value < 0;
-        const colorClass = isPositive ? 'text-danger' : (isNegative ? 'text-success' : 'text-muted');
-        const sign = isPositive ? '+' : '';
+    const formattedValue = this.#formatValue(value);
+    const formattedPrimary = this.#formatValue(primary);
+    const formattedSecondary = this.#formatValue(secondary);
+    const changeLabel = this.#getChangeLabel(value);
 
-        const formattedValue = this.#formatValue(value);
-        const formattedPrimary = this.#formatValue(primary);
-        const formattedSecondary = this.#formatValue(secondary);
-        const changeLabel = this.#getChangeLabel(value);
-
-        return `
+    return `
             <div class="card shadow-sm" style="min-width: 220px; font-size: 0.85rem;">
                 <div class="card-header py-1 px-2 text-center bg-light border-bottom">
                     <div class="fw-bold small">Difference</div>
@@ -70,27 +75,27 @@ export default class DifferenceHeatmapTooltip {
                     </div>
                 </div>
             </div>`;
-    }
+  }
 
-    #formatValue(value: number): string {
-        const absValue = Math.abs(value);
+  #formatValue(value: number): string {
+    const absValue = Math.abs(value);
 
-        if (EventTypes.isAllocationEventType(this.eventType) && this.useWeight) {
-            return FormattingService.formatBytes(absValue);
-        } else if (EventTypes.isBlockingEventType(this.eventType) && this.useWeight) {
-            return FormattingService.formatDuration(absValue);
-        } else {
-            return FormattingService.formatNumber(absValue);
-        }
+    if (EventTypes.isAllocationEventType(this.eventType) && this.useWeight) {
+      return FormattingService.formatBytes(absValue);
+    } else if (EventTypes.isBlockingEventType(this.eventType) && this.useWeight) {
+      return FormattingService.formatDuration(absValue);
+    } else {
+      return FormattingService.formatNumber(absValue);
     }
+  }
 
-    #getChangeLabel(value: number): string {
-        if (value > 0) {
-            return 'Increased in Primary';
-        } else if (value < 0) {
-            return 'Decreased in Primary';
-        } else {
-            return 'No change';
-        }
+  #getChangeLabel(value: number): string {
+    if (value > 0) {
+      return 'Increased in Primary';
+    } else if (value < 0) {
+      return 'Decreased in Primary';
+    } else {
+      return 'No change';
     }
+  }
 }

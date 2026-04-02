@@ -1,7 +1,6 @@
 import EventTypes from './EventTypes';
 
 describe('EventTypes', () => {
-
   describe('individual event type checks', () => {
     it('isObjectAllocationInNewTLAB', () => {
       expect(EventTypes.isObjectAllocationInNewTLAB('jdk.ObjectAllocationInNewTLAB')).toBe(true);
@@ -9,7 +8,9 @@ describe('EventTypes', () => {
     });
 
     it('isObjectAllocationOutsideTLAB', () => {
-      expect(EventTypes.isObjectAllocationOutsideTLAB('jdk.ObjectAllocationOutsideTLAB')).toBe(true);
+      expect(EventTypes.isObjectAllocationOutsideTLAB('jdk.ObjectAllocationOutsideTLAB')).toBe(
+        true
+      );
       expect(EventTypes.isObjectAllocationOutsideTLAB('other')).toBe(false);
     });
 

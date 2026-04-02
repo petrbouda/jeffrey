@@ -4,14 +4,14 @@
     <div class="col-sm-9">
       <div v-if="helpText" class="mb-2">
         <div class="form-check">
-          <input 
+          <input
             v-if="showCheckbox"
-            class="form-check-input" 
-            type="checkbox" 
+            class="form-check-input"
+            type="checkbox"
             :id="checkboxId"
             :checked="checkboxValue"
             @change="handleCheckboxChange"
-          >
+          />
           <label v-if="showCheckbox" class="form-check-label small" :for="checkboxId">
             <span v-html="helpText"></span>
           </label>
@@ -24,7 +24,7 @@
         <span v-if="icon" class="input-group-text border-end-0">
           <i :class="['bi', icon]"></i>
         </span>
-        <input 
+        <input
           :id="inputId"
           :type="type"
           :class="inputClasses"

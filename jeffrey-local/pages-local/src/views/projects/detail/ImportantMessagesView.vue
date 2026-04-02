@@ -252,7 +252,13 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
         <div class="filter-card time">
           <i class="bi bi-clock"></i>
           <select v-model="selectedTimeRange" class="filter-select-inline">
-            <option v-for="option in timeRangeOptions" :key="option.minutes" :value="option.minutes">{{ option.label }}</option>
+            <option
+              v-for="option in timeRangeOptions"
+              :key="option.minutes"
+              :value="option.minutes"
+            >
+              {{ option.label }}
+            </option>
           </select>
         </div>
       </div>
@@ -279,20 +285,14 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center gap-2">
-            <select
-              v-model="selectedSeverity"
-              class="form-select form-select-sm filter-select"
-            >
+            <select v-model="selectedSeverity" class="form-select form-select-sm filter-select">
               <option value="">All Severities</option>
               <option value="CRITICAL">Critical</option>
               <option value="HIGH">High</option>
               <option value="MEDIUM">Medium</option>
               <option value="LOW">Low</option>
             </select>
-            <select
-              v-model="selectedType"
-              class="form-select form-select-sm filter-select"
-            >
+            <select v-model="selectedType" class="form-select form-select-sm filter-select">
               <option value="">All Types</option>
               <option v-for="type in messageTypes" :key="type" :value="type">
                 {{ type.replace(/_/g, ' ') }}
@@ -306,17 +306,33 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
                 class="form-control search-input"
                 placeholder="Search messages..."
               />
-              <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
+              <button
+                v-if="searchQuery"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchQuery = ''"
+              >
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
           </div>
           <div class="d-flex align-items-center">
-            <Badge :value="'Showing ' + displayedMessages.length + ' of ' + filteredMessages.length + ' messages'" variant="cyan" size="xs" icon="bi bi-info-circle" :uppercase="false" />
+            <Badge
+              :value="
+                'Showing ' +
+                displayedMessages.length +
+                ' of ' +
+                filteredMessages.length +
+                ' messages'
+              "
+              variant="cyan"
+              size="xs"
+              icon="bi bi-info-circle"
+              :uppercase="false"
+            />
           </div>
         </div>
         <div class="card-body p-0">
-
           <!-- Messages List -->
           <div v-if="filteredMessages.length > 0" class="message-list">
             <MessageCard
@@ -336,8 +352,13 @@ const getMessageKey = (msg: ImportantMessage, index: number): string => {
 
           <!-- Load More Footer -->
           <div v-if="filteredMessages.length > 0" class="load-more-footer">
-            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">Load More</button>
-            <span class="load-more-count">Showing {{ displayedMessages.length }} of {{ filteredMessages.length }} messages</span>
+            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">
+              Load More
+            </button>
+            <span class="load-more-count"
+              >Showing {{ displayedMessages.length }} of
+              {{ filteredMessages.length }} messages</span
+            >
           </div>
         </div>
       </div>

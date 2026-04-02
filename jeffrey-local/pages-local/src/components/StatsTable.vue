@@ -1,9 +1,17 @@
 <template>
   <div class="stats-table-container">
     <div class="stats-table">
-      <div v-for="(metric, index) in metrics" :key="index" class="stats-row" :class="metric.variant">
+      <div
+        v-for="(metric, index) in metrics"
+        :key="index"
+        class="stats-row"
+        :class="metric.variant"
+      >
         <!-- Icon Column -->
-        <div class="stats-icon" :style="{ background: getIconBg(metric.variant), color: getIconColor(metric.variant) }">
+        <div
+          class="stats-icon"
+          :style="{ background: getIconBg(metric.variant), color: getIconColor(metric.variant) }"
+        >
           <i :class="['bi', `bi-${metric.icon}`]"></i>
         </div>
 
@@ -20,7 +28,10 @@
         <div v-if="metric.breakdown && metric.breakdown.length > 0" class="stats-breakdown">
           <div v-for="(item, i) in metric.breakdown" :key="i" class="breakdown-item">
             <span class="breakdown-label">{{ item.label }}</span>
-            <span class="breakdown-value" :style="{ color: item.color || getVariantColor(metric.variant) }">
+            <span
+              class="breakdown-value"
+              :style="{ color: item.color || getVariantColor(metric.variant) }"
+            >
               {{ item.value }}
             </span>
           </div>
@@ -52,23 +63,35 @@ const props = defineProps<{
 
 const getIconBg = (variant?: string): string => {
   switch (variant) {
-    case 'highlight': return '#f5f8ff';
-    case 'danger': return '#fff8f0';
-    case 'warning': return '#fffbf0';
-    case 'info': return '#f0fdf4';
-    case 'success': return '#f0fdf4';
-    default: return '#f5f8ff';
+    case 'highlight':
+      return '#f5f8ff';
+    case 'danger':
+      return '#fff8f0';
+    case 'warning':
+      return '#fffbf0';
+    case 'info':
+      return '#f0fdf4';
+    case 'success':
+      return '#f0fdf4';
+    default:
+      return '#f5f8ff';
   }
 };
 
 const getIconColor = (variant?: string): string => {
   switch (variant) {
-    case 'highlight': return '#4285F4';
-    case 'danger': return '#EA4335';
-    case 'warning': return '#FBBC05';
-    case 'info': return '#34A853';
-    case 'success': return '#28a745';
-    default: return '#4285F4';
+    case 'highlight':
+      return '#4285F4';
+    case 'danger':
+      return '#EA4335';
+    case 'warning':
+      return '#FBBC05';
+    case 'info':
+      return '#34A853';
+    case 'success':
+      return '#28a745';
+    default:
+      return '#4285F4';
   }
 };
 
@@ -125,7 +148,7 @@ const getVariantColor = (variant?: string): string => {
     border-right: none;
   }
 
-  .stats-row:nth-last-child(-n+2) {
+  .stats-row:nth-last-child(-n + 2) {
     border-bottom: none;
   }
 }
@@ -187,7 +210,7 @@ const getVariantColor = (variant?: string): string => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.40rem;
+  gap: 0.4rem;
 }
 
 .breakdown-label {

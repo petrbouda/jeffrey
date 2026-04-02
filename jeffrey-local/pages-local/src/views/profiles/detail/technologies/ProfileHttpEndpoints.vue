@@ -1,60 +1,55 @@
 <template>
   <div>
     <!-- Feature Disabled State -->
-    <CustomDisabledFeatureAlert 
+    <CustomDisabledFeatureAlert
       v-if="isHttpDashboardDisabled"
       :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
       eventType="HTTP exchange"
     />
 
     <div v-else>
-      <HttpOverviewStats v-if="httpOverviewData" :header="httpOverviewData.header"/>
+      <HttpOverviewStats v-if="httpOverviewData && !selectedUriForDetail" :header="httpOverviewData.header" />
 
-    <!-- URI Display with Navigation -->
-    <div v-if="selectedUriForDetail" class="uri-display-large">
-      <div class="uri-content">
-        <span class="uri-separator">/</span>
-        <span v-for="(part, index) in parseUri(decodeURIComponent(selectedUriForDetail))" :key="index" class="uri-part">
-          <span v-if="index > 0" class="uri-separator">/</span>
-          <span v-if="part.isVariable" class="uri-variable">{{ part.text }}</span>
-          <span v-else class="uri-segment">{{ part.text }}</span>
-        </span>
-      </div>
-
-      <button @click="clearUriSelection"
-          class="btn btn-secondary uri-back-button">
-        <i class="bi bi-arrow-left me-2"></i>
-        All Endpoints
-      </button>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="isLoading" class="p-4 text-center">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-
-    <!-- Error state -->
-    <div v-else-if="error" class="p-4 text-center">
-      <div class="alert alert-danger" role="alert">
-        Error loading HTTP data: {{ error }}
-      </div>
-    </div>
-
-    <!-- Single URI Dashboard content -->
-    <div v-if="selectedUriForDetail && singleUriData" class="dashboard-container">
-      <!-- URI Stats Row (above tabs, like GCMetricsStatsRow) -->
-      <DashboardSection :http-header="singleUriData.header"/>
-
-      <!-- Tabbed Analysis -->
-      <ChartSectionWithTabs
-          :tabs="httpDetailTabs"
-          :full-width="true"
-          id-prefix="http-detail-"
+      <!-- URI Display with Navigation -->
+      <DetailBreadcrumb
+        v-if="selectedUriForDetail"
+        root-label="Endpoints"
+        @back="clearUriSelection"
       >
-        <template #timeseries>
-          <TimeSeriesChart
+        <span class="uri-path">
+          <span class="uri-separator">/</span>
+          <span
+            v-for="(part, index) in parseUri(decodeURIComponent(selectedUriForDetail))"
+            :key="index"
+          >
+            <span v-if="index > 0" class="uri-separator">/</span>
+            <span v-if="part.isVariable" class="uri-variable">{{ part.text }}</span>
+            <span v-else>{{ part.text }}</span>
+          </span>
+        </span>
+      </DetailBreadcrumb>
+
+      <!-- Loading state -->
+      <div v-if="isLoading" class="p-4 text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="error" class="p-4 text-center">
+        <div class="alert alert-danger" role="alert">Error loading HTTP data: {{ error }}</div>
+      </div>
+
+      <!-- Single URI Dashboard content -->
+      <div v-if="selectedUriForDetail && singleUriData" class="dashboard-container">
+        <!-- URI Stats Row (above tabs, like GCMetricsStatsRow) -->
+        <DashboardSection :http-header="singleUriData.header" />
+
+        <!-- Tabbed Analysis -->
+        <ChartSectionWithTabs :tabs="httpDetailTabs" :full-width="true" id-prefix="http-detail-">
+          <template #timeseries>
+            <TimeSeriesChart
               :primary-data="singleUriData.responseTimeSerie.data"
               primary-title="Response Time"
               :secondary-data="singleUriData.requestCountSerie.data"
@@ -63,36 +58,43 @@
               :independentSecondaryAxis="true"
               :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
               :secondary-axis-type="AxisFormatType.NUMBER"
-          />
-        </template>
+            />
+          </template>
 
-        <template #distribution>
-          <HttpDistributionCharts
+          <template #distribution>
+            <HttpDistributionCharts
               v-if="singleUriData?.statusCodes && singleUriData?.methods"
               :status-codes="singleUriData.statusCodes"
               :methods="singleUriData.methods"
               :total-requests="singleUriData.uri.requestCount"
-              embedded/>
-        </template>
+              embedded
+            />
+          </template>
 
-        <template #slowest>
-          <EmptyState v-if="slowestRequests.length === 0" icon="bi-clock-history" title="No slow HTTP requests" />
-          <HttpSlowestRequests
+          <template #slowest>
+            <EmptyState
+              v-if="slowestRequests.length === 0"
+              icon="bi-clock-history"
+              title="No slow HTTP requests"
+            />
+            <HttpSlowestRequests
               v-else
               :requests="slowestRequests"
               :total-request-count="singleUriData.header.requestCount || 0"
-              :max-displayed="20"/>
-        </template>
-      </ChartSectionWithTabs>
-    </div>
+              :max-displayed="20"
+            />
+          </template>
+        </ChartSectionWithTabs>
+      </div>
 
-    <!-- Endpoint List -->
-    <div v-else-if="httpOverviewData" class="dashboard-container">
-      <HttpEndpointList
+      <!-- Endpoint List -->
+      <div v-else-if="httpOverviewData" class="dashboard-container">
+        <HttpEndpointList
           :endpoints="httpOverviewData?.uris || []"
           :selected-endpoint="selectedEndpoint"
-          @endpoint-click="selectUriForDetail"/>
-    </div>
+          @endpoint-click="selectUriForDetail"
+        />
+      </div>
 
       <!-- No data state -->
       <div v-else class="p-4 text-center">
@@ -104,8 +106,9 @@
 </template>
 
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import DetailBreadcrumb from '@/components/DetailBreadcrumb.vue';
 import HttpOverviewStats from '@/components/http/HttpOverviewStats.vue';
 import DashboardSection from '@/components/DashboardSection.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -121,7 +124,6 @@ import HttpSlowRequest from '@/services/api/model/HttpSlowRequest.ts';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
-
 
 // Define props
 interface Props {
@@ -155,7 +157,8 @@ const httpDetailTabs = [
 
 // Check if HTTP dashboard is disabled
 const isHttpDashboardDisabled = computed(() => {
-  const featureType = mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
+  const featureType =
+    mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
   return props.disabledFeatures.includes(featureType);
 });
 
@@ -164,7 +167,9 @@ const client = new ProfileHttpClient(mode, route.params.profileId as string);
 
 const slowestRequests = computed(() => {
   if (!singleUriData.value || !selectedUriForDetail.value) return [];
-  return singleUriData.value.slowRequests.sort((a: HttpSlowRequest, b: HttpSlowRequest) => b.responseTime - a.responseTime);
+  return singleUriData.value.slowRequests.sort(
+    (a: HttpSlowRequest, b: HttpSlowRequest) => b.responseTime - a.responseTime
+  );
 });
 
 // Helper functions
@@ -184,7 +189,7 @@ const selectUriForDetail = (uri: string) => {
   selectedUriForDetail.value = uri;
   router.push({
     name: 'profile-technologies-http-endpoints',
-    query: {uri: encodeURIComponent(uri), mode: mode}
+    query: { uri: encodeURIComponent(uri), mode: mode }
   });
 };
 
@@ -192,10 +197,9 @@ const clearUriSelection = () => {
   selectedUriForDetail.value = null;
   router.push({
     name: 'profile-technologies-http-endpoints',
-    query: {mode: mode}
+    query: { mode: mode }
   });
 };
-
 
 // Lifecycle methods
 const loadHttpData = async () => {
@@ -215,7 +219,6 @@ const loadHttpData = async () => {
       // Load overview data when no specific URI is selected
       httpOverviewData.value = await client.getOverview();
     }
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading HTTP data:', err);
@@ -225,68 +228,31 @@ const loadHttpData = async () => {
 };
 
 // Watch for route changes to handle direct navigation
-watch(() => route.query.uri, (newUri) => {
-  if (newUri && typeof newUri === 'string') {
-    selectedUriForDetail.value = newUri;
-  } else {
-    selectedUriForDetail.value = null;
-  }
-  // Only reload data when URI selection changes if feature is not disabled
-  if (!isHttpDashboardDisabled.value) {
-    loadHttpData();
-  }
-}, {immediate: true});
+watch(
+  () => route.query.uri,
+  newUri => {
+    if (newUri && typeof newUri === 'string') {
+      selectedUriForDetail.value = newUri;
+    } else {
+      selectedUriForDetail.value = null;
+    }
+    // Only reload data when URI selection changes if feature is not disabled
+    if (!isHttpDashboardDisabled.value) {
+      loadHttpData();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
-.uri-display-large {
-  background: #f8f9ff;
-  border: 1px solid var(--card-border-color);
-  border-radius: 8px;
-  margin: 1.5rem 0;
-  padding: 1rem 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
+.uri-separator {
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
-.uri-content {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--color-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 0;
+.uri-variable {
+  color: var(--color-primary);
+  font-style: italic;
 }
-
-.uri-back-button {
-  flex-shrink: 0;
-  white-space: nowrap;
-  margin-right: 1rem;
-}
-
-@media (max-width: 768px) {
-  .uri-display-large {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .uri-content {
-    font-size: 1rem;
-  }
-
-  .uri-back-button {
-    align-self: flex-start;
-    order: -1;
-  }
-}
-
 </style>

@@ -17,9 +17,9 @@
  */
 
 export default interface HeapSummary {
-    totalBytes: number;
-    totalInstances: number;
-    classCount: number;
-    gcRootCount: number;
-    timestamp: string;
+  totalBytes: number;
+  totalInstances: number;
+  classCount: number;
+  gcRootCount: number;
+  timestamp: string;
 }

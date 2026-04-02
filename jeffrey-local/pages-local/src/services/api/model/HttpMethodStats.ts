@@ -17,8 +17,8 @@
  */
 
 export default class HttpMethodStats {
-    constructor(
-        public method: string,
-        public count: number) {
-    }
+  constructor(
+    public method: string,
+    public count: number
+  ) {}
 }

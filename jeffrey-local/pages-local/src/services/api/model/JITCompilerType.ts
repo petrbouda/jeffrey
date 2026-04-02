@@ -17,9 +17,9 @@
  */
 
 enum JITCompilerType {
-    C1 = "C1",
-    C2 = "C2",
-    JVMCI = "JVMCI",
+  C1 = 'C1',
+  C2 = 'C2',
+  JVMCI = 'JVMCI'
 }
 
-export default JITCompilerType
+export default JITCompilerType;

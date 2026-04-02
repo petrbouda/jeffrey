@@ -47,19 +47,21 @@
 
       <!-- Instance Rows -->
       <div class="timeline-container">
-<div v-for="instance in instances" :key="instance.id" class="timeline-row">
+        <div v-for="instance in instances" :key="instance.id" class="timeline-row">
           <div class="instance-label">
-            <span class="status-dot" :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED', 'expired': instance.status === 'EXPIRED' }"></span>
-            <router-link
-              :to="generateInstanceUrl(instance.id)"
-              class="hostname-link"
-            >{{ instance.hostname }}</router-link>
-            <Badge
-              :value="instance.sessionCount"
-              size="xxs"
-              variant="grey"
-              :uppercase="false"
-            />
+            <span
+              class="status-dot"
+              :class="{
+                pending: instance.status === 'PENDING',
+                active: instance.status === 'ACTIVE',
+                finished: instance.status === 'FINISHED',
+                expired: instance.status === 'EXPIRED'
+              }"
+            ></span>
+            <router-link :to="generateInstanceUrl(instance.id)" class="hostname-link">{{
+              instance.hostname
+            }}</router-link>
+            <Badge :value="instance.sessionCount" size="xxs" variant="grey" :uppercase="false" />
           </div>
           <div
             class="instance-bar-container"
@@ -70,7 +72,12 @@
             <!-- Instance background bar (faint) -->
             <div
               class="instance-bg-bar"
-              :class="{ 'pending': instance.status === 'PENDING', 'active': instance.status === 'ACTIVE', 'finished': instance.status === 'FINISHED', 'expired': instance.status === 'EXPIRED' }"
+              :class="{
+                pending: instance.status === 'PENDING',
+                active: instance.status === 'ACTIVE',
+                finished: instance.status === 'FINISHED',
+                expired: instance.status === 'EXPIRED'
+              }"
               :style="getBarStyle(instance)"
             ></div>
 
@@ -145,7 +152,15 @@
           <Badge
             :value="hoveredInstance.status"
             size="xxs"
-            :variant="hoveredInstance.status === 'PENDING' ? 'blue' : hoveredInstance.status === 'ACTIVE' ? 'orange' : hoveredInstance.status === 'EXPIRED' ? 'grey' : 'green'"
+            :variant="
+              hoveredInstance.status === 'PENDING'
+                ? 'blue'
+                : hoveredInstance.status === 'ACTIVE'
+                  ? 'orange'
+                  : hoveredInstance.status === 'EXPIRED'
+                    ? 'grey'
+                    : 'green'
+            "
           />
         </div>
         <div class="timeline-tooltip-body">
@@ -153,7 +168,9 @@
             <span class="timeline-tooltip-label">Started</span>
             <span class="timeline-tooltip-value">
               {{ FormattingService.formatRelativeTime(hoveredInstance.createdAt) }}
-              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredInstance.createdAt) }}</span>
+              <span class="timeline-tooltip-utc">{{
+                FormattingService.formatTimestampUTC(hoveredInstance.createdAt)
+              }}</span>
             </span>
           </div>
           <div class="timeline-tooltip-row">
@@ -161,7 +178,9 @@
             <span class="timeline-tooltip-value">
               <template v-if="hoveredInstance.finishedAt">
                 {{ FormattingService.formatRelativeTime(hoveredInstance.finishedAt) }}
-                <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredInstance.finishedAt) }}</span>
+                <span class="timeline-tooltip-utc">{{
+                  FormattingService.formatTimestampUTC(hoveredInstance.finishedAt)
+                }}</span>
               </template>
               <template v-else>Running</template>
             </span>
@@ -210,7 +229,9 @@
             <span class="timeline-tooltip-label">Started</span>
             <span class="timeline-tooltip-value">
               {{ FormattingService.formatRelativeTime(hoveredSession.session.createdAt) }}
-              <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredSession.session.createdAt) }}</span>
+              <span class="timeline-tooltip-utc">{{
+                FormattingService.formatTimestampUTC(hoveredSession.session.createdAt)
+              }}</span>
             </span>
           </div>
           <div class="timeline-tooltip-row">
@@ -218,7 +239,9 @@
             <span class="timeline-tooltip-value">
               <template v-if="hoveredSession.session.finishedAt">
                 {{ FormattingService.formatRelativeTime(hoveredSession.session.finishedAt) }}
-                <span class="timeline-tooltip-utc">{{ FormattingService.formatTimestampUTC(hoveredSession.session.finishedAt) }}</span>
+                <span class="timeline-tooltip-utc">{{
+                  FormattingService.formatTimestampUTC(hoveredSession.session.finishedAt)
+                }}</span>
               </template>
               <template v-else>Running</template>
             </span>
@@ -292,12 +315,13 @@ function getBarStyle(instance: ProjectInstance): Record<string, string> {
   const now = Date.now();
   const rangeMs = getRangeMs();
 
-  const startPercent = Math.max(0, Math.min((now - instance.createdAt) / rangeMs * 100, 100));
+  const startPercent = Math.max(0, Math.min(((now - instance.createdAt) / rangeMs) * 100, 100));
 
   const effectiveFinishedAt = instance.finishedAt ?? instance.expiredAt;
-  const endPercent = (instance.status === 'ACTIVE' || instance.status === 'PENDING' || !effectiveFinishedAt)
-    ? 0
-    : Math.max(0, Math.min((now - effectiveFinishedAt) / rangeMs * 100, 100));
+  const endPercent =
+    instance.status === 'ACTIVE' || instance.status === 'PENDING' || !effectiveFinishedAt
+      ? 0
+      : Math.max(0, Math.min(((now - effectiveFinishedAt) / rangeMs) * 100, 100));
 
   const left = endPercent;
   const width = Math.max(startPercent - endPercent, 0.5);
@@ -312,11 +336,12 @@ function getSessionBarStyle(session: ProjectInstanceSession): Record<string, str
   const now = Date.now();
   const rangeMs = getRangeMs();
 
-  const startPercent = Math.max(0, Math.min((now - session.createdAt) / rangeMs * 100, 100));
+  const startPercent = Math.max(0, Math.min(((now - session.createdAt) / rangeMs) * 100, 100));
 
-  const endPercent = (session.isActive || !session.finishedAt)
-    ? 0
-    : Math.max(0, Math.min((now - session.finishedAt) / rangeMs * 100, 100));
+  const endPercent =
+    session.isActive || !session.finishedAt
+      ? 0
+      : Math.max(0, Math.min(((now - session.finishedAt) / rangeMs) * 100, 100));
 
   const left = endPercent;
   const width = Math.max(startPercent - endPercent, 0.3);
@@ -329,12 +354,18 @@ function getSessionBarStyle(session: ProjectInstanceSession): Record<string, str
 
 function getRangeMs(): number {
   switch (selectedRange.value) {
-    case '1h': return 3600000;
-    case '6h': return 21600000;
-    case '24h': return 86400000;
-    case '7d': return 604800000;
-    case '30d': return 2592000000;
-    default: return 86400000;
+    case '1h':
+      return 3600000;
+    case '6h':
+      return 21600000;
+    case '24h':
+      return 86400000;
+    case '7d':
+      return 604800000;
+    case '30d':
+      return 2592000000;
+    default:
+      return 86400000;
   }
 }
 
@@ -360,7 +391,11 @@ function showInstanceTooltip(event: MouseEvent, instance: ProjectInstance) {
   updateTooltipPosition(event);
 }
 
-function showSessionTooltip(event: MouseEvent, session: ProjectInstanceSession, instanceId: string) {
+function showSessionTooltip(
+  event: MouseEvent,
+  session: ProjectInstanceSession,
+  instanceId: string
+) {
   cancelHideTooltip();
   hoveredSession.value = { session, instanceId };
   hoveredInstance.value = null;
@@ -390,7 +425,7 @@ function cancelHideTooltip() {
 async function loadAllSessions(client: ProjectInstanceClient) {
   sessionsLoading.value = true;
   const entries = await Promise.all(
-    instances.value.map(async (instance) => {
+    instances.value.map(async instance => {
       const sessions = await client.getSessions(instance.id);
       return [instance.id, sessions] as [string, ProjectInstanceSession[]];
     })
@@ -558,29 +593,53 @@ onMounted(async () => {
   top: 20%;
   border-radius: 3px;
   z-index: 2;
-  background: linear-gradient(90deg, rgba(200, 200, 200, 0.2) 25%, rgba(200, 200, 200, 0.4) 50%, rgba(200, 200, 200, 0.2) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(200, 200, 200, 0.2) 25%,
+    rgba(200, 200, 200, 0.4) 50%,
+    rgba(200, 200, 200, 0.2) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes session-pulse-active {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-  50% { box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.25);
+  }
 }
 
 @keyframes instance-pulse-pending {
-  0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
-  50% { border-color: rgba(59, 130, 246, 0.55); }
+  0%,
+  100% {
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    border-color: rgba(59, 130, 246, 0.55);
+  }
 }
 
 @keyframes instance-pulse-active {
-  0%, 100% { border-color: rgba(245, 158, 11, 0.3); }
-  50% { border-color: rgba(245, 158, 11, 0.55); }
+  0%,
+  100% {
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 0.55);
+  }
 }
 
 /* Legend */

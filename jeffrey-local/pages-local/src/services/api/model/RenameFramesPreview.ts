@@ -17,12 +17,12 @@
  */
 
 export interface RenamePreviewSample {
-  originalClassName: string
-  renamedClassName: string
-  methodName: string
+  originalClassName: string;
+  renamedClassName: string;
+  methodName: string;
 }
 
 export default interface RenameFramesPreview {
-  affectedFrames: number
-  samples: RenamePreviewSample[]
+  affectedFrames: number;
+  samples: RenamePreviewSample[];
 }

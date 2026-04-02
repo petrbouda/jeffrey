@@ -8,18 +8,23 @@
             <i class="bi-cpu"></i>
             {{ status.provider }}
           </span>
-          <span v-if="status.configured" class="model-badge">
-            configured
-          </span>
+          <span v-if="status.configured" class="model-badge"> configured </span>
         </template>
-        <Badge v-else value="Not configured" variant="status-blocked" size="xs" :uppercase="false" icon="bi-x-circle-fill" />
+        <Badge
+          v-else
+          value="Not configured"
+          variant="status-blocked"
+          size="xs"
+          :uppercase="false"
+          icon="bi-x-circle-fill"
+        />
       </div>
       <slot name="panel-actions" />
       <button
-          v-if="hasMessages"
-          class="btn btn-sm btn-outline-secondary"
-          @click="emit('clear-history')"
-          title="Clear conversation"
+        v-if="hasMessages"
+        class="btn btn-sm btn-outline-secondary"
+        @click="emit('clear-history')"
+        title="Clear conversation"
       >
         <i class="bi-trash"></i>
       </button>
@@ -29,24 +34,26 @@
     <div class="input-area">
       <div class="input-wrapper">
         <textarea
-            v-model="currentInput"
-            :disabled="!isAvailable || isLoading"
-            :placeholder="isAvailable ? placeholder : 'AI assistant not configured'"
-            @keydown.ctrl.enter="handleSend"
-            @keydown.meta.enter="handleSend"
-            rows="1"
-            ref="inputRef"
+          v-model="currentInput"
+          :disabled="!isAvailable || isLoading"
+          :placeholder="isAvailable ? placeholder : 'AI assistant not configured'"
+          @keydown.ctrl.enter="handleSend"
+          @keydown.meta.enter="handleSend"
+          rows="1"
+          ref="inputRef"
         ></textarea>
         <button
-            class="send-button"
-            :disabled="!isAvailable || isLoading || !currentInput.trim()"
-            @click="handleSend"
+          class="send-button"
+          :disabled="!isAvailable || isLoading || !currentInput.trim()"
+          @click="handleSend"
         >
           <i v-if="isLoading" class="bi-hourglass-split spinning"></i>
           <i v-else class="bi-send-fill"></i>
         </button>
       </div>
-      <span v-if="isAvailable" class="input-hint">Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span>
+      <span v-if="isAvailable" class="input-hint"
+        >Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span
+      >
     </div>
 
     <!-- Chat Area -->
@@ -63,15 +70,18 @@
           <template v-for="(section, sIndex) in promptSections" :key="sIndex">
             <div v-if="sIndex > 0" class="prompt-divider"></div>
             <div class="prompt-section">
-              <span class="prompt-section-label" :class="{ 'prompt-section-label-modify': section.variant === 'modify' }">
+              <span
+                class="prompt-section-label"
+                :class="{ 'prompt-section-label-modify': section.variant === 'modify' }"
+              >
                 <i :class="'bi bi-' + section.icon"></i> {{ section.label }}
               </span>
               <div class="prompt-chips">
                 <button
-                    v-for="(prompt, pIndex) in section.prompts"
-                    :key="pIndex"
-                    :class="section.variant === 'modify' ? 'prompt-chip-modify' : 'prompt-chip'"
-                    @click="emit('prompt-click', prompt, section.variant)"
+                  v-for="(prompt, pIndex) in section.prompts"
+                  :key="pIndex"
+                  :class="section.variant === 'modify' ? 'prompt-chip-modify' : 'prompt-chip'"
+                  @click="emit('prompt-click', prompt, section.variant)"
                 >
                   {{ prompt }}
                 </button>
@@ -84,12 +94,12 @@
       <!-- Chat Messages -->
       <div v-else class="messages-container">
         <template v-for="(message, index) in orderedMessages" :key="index">
-          <AiAnalysisChatMessage
-              :message="message"
-              @suggestion="handleSuggestion"
-          />
+          <AiAnalysisChatMessage :message="message" @suggestion="handleSuggestion" />
           <!-- Loading Indicator appears after the newest user message -->
-          <div v-if="isLoading && index === 0 && message.role === 'user'" class="chat-message assistant loading">
+          <div
+            v-if="isLoading && index === 0 && message.role === 'user'"
+            class="chat-message assistant loading"
+          >
             <div class="message-avatar">
               <i class="bi-stars"></i>
             </div>
@@ -125,30 +135,30 @@ import AiAnalysisChatMessage from '@/components/ai-analysis/AiAnalysisChatMessag
 import Badge from '@/components/Badge.vue';
 
 export interface PromptSection {
-  label: string
-  icon: string
-  prompts: string[]
-  variant: 'default' | 'modify'
+  label: string;
+  icon: string;
+  prompts: string[];
+  variant: 'default' | 'modify';
 }
 
 const props = defineProps<{
-  isLoading: boolean
-  error: string | null
-  status: AiStatusResponse | null
-  messages: ChatMessageType[]
-  isAvailable: boolean
-  hasMessages: boolean
-  placeholder: string
-  welcomeTitle: string
-  promptSections: PromptSection[]
+  isLoading: boolean;
+  error: string | null;
+  status: AiStatusResponse | null;
+  messages: ChatMessageType[];
+  isAvailable: boolean;
+  hasMessages: boolean;
+  placeholder: string;
+  welcomeTitle: string;
+  promptSections: PromptSection[];
 }>();
 
 const emit = defineEmits<{
-  send: [message: string]
-  'prompt-click': [prompt: string, variant: 'default' | 'modify']
-  suggestion: [text: string]
-  'clear-history': []
-  'clear-error': []
+  send: [message: string];
+  'prompt-click': [prompt: string, variant: 'default' | 'modify'];
+  suggestion: [text: string];
+  'clear-history': [];
+  'clear-error': [];
 }>();
 
 const currentInput = ref('');
@@ -158,26 +168,29 @@ const inputRef = ref<HTMLTextAreaElement | null>(null);
 const elapsedSeconds = ref(0);
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 
-watch(() => props.isLoading, (loading) => {
-  if (loading) {
-    elapsedSeconds.value = 0;
-    const startTime = Date.now();
-    timerInterval = setInterval(() => {
-      elapsedSeconds.value = Math.floor((Date.now() - startTime) / 1000);
-    }, 1000);
-  } else {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-    if (elapsedSeconds.value > 0) {
-      const lastMsg = props.messages[props.messages.length - 1];
-      if (lastMsg?.role === 'assistant') {
-        lastMsg.durationSeconds = elapsedSeconds.value;
+watch(
+  () => props.isLoading,
+  loading => {
+    if (loading) {
+      elapsedSeconds.value = 0;
+      const startTime = Date.now();
+      timerInterval = setInterval(() => {
+        elapsedSeconds.value = Math.floor((Date.now() - startTime) / 1000);
+      }, 1000);
+    } else {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      if (elapsedSeconds.value > 0) {
+        const lastMsg = props.messages[props.messages.length - 1];
+        if (lastMsg?.role === 'assistant') {
+          lastMsg.durationSeconds = elapsedSeconds.value;
+        }
       }
     }
   }
-});
+);
 
 onUnmounted(() => {
   if (timerInterval) {
@@ -321,8 +334,15 @@ defineExpose({ prefillInput });
 }
 
 @keyframes sparkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.08); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
 }
 
 .welcome-title {
@@ -468,7 +488,9 @@ defineExpose({ prefillInput });
 }
 
 @keyframes typing {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0.6);
     opacity: 0.5;
   }
@@ -532,7 +554,7 @@ defineExpose({ prefillInput });
   display: inline-block;
   padding: 0.1rem 0.3rem;
   font-size: 0.6rem;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
   background-color: #f6f8fa;
   border: 1px solid #d0d7de;
   border-radius: 3px;

@@ -6,22 +6,21 @@
   <div v-else>
     <!-- Header Section -->
     <PageHeader
-        title="Garbage Collection Analysis"
-        description="Comprehensive analysis of garbage collection events and performance"
-        icon="bi-recycle"
+      title="Garbage Collection Analysis"
+      description="Comprehensive analysis of garbage collection events and performance"
+      icon="bi-recycle"
     />
-
 
     <!-- Key Metrics Row -->
     <GCMetricsStatsRow :profile-id="route.params.profileId as string" />
 
     <!-- GC Analysis Section -->
     <ChartSectionWithTabs
-        icon="recycle"
-        :tabs="gcTabs"
-        :full-width="true"
-        id-prefix="gc-"
-        @tab-change="onTabChange"
+      icon="recycle"
+      :tabs="gcTabs"
+      :full-width="true"
+      id-prefix="gc-"
+      @tab-change="onTabChange"
     >
       <!-- Pause Distribution Tab -->
       <template #distribution>
@@ -45,16 +44,22 @@
                 <label class="stat-label">Application Time</label>
                 <div class="stat-value">{{ gcSummary.applicationTime }}</div>
                 <div class="progress mt-1">
-                  <div class="progress-bar bg-success" role="progressbar"
-                       :style="{ width: gcSummary.gcThroughput + '%' }"></div>
+                  <div
+                    class="progress-bar bg-success"
+                    role="progressbar"
+                    :style="{ width: gcSummary.gcThroughput + '%' }"
+                  ></div>
                 </div>
               </div>
               <div class="stat-item mb-3">
                 <label class="stat-label">GC Time</label>
                 <div class="stat-value">{{ gcSummary.totalGcTime }}</div>
                 <div class="progress mt-1">
-                  <div class="progress-bar bg-warning" role="progressbar"
-                       :style="{ width: gcSummary.gcOverhead + '%' }"></div>
+                  <div
+                    class="progress-bar bg-warning"
+                    role="progressbar"
+                    :style="{ width: gcSummary.gcOverhead + '%' }"
+                  ></div>
                 </div>
               </div>
               <div class="stat-item">
@@ -68,80 +73,92 @@
 
       <!-- Longest Pauses Tab -->
       <template #events>
-        <EmptyState v-if="!gcOverviewData?.longestPauses || gcOverviewData.longestPauses.length === 0" icon="bi-recycle" title="No garbage collection pause events" />
+        <EmptyState
+          v-if="!gcOverviewData?.longestPauses || gcOverviewData.longestPauses.length === 0"
+          icon="bi-recycle"
+          title="No garbage collection pause events"
+        />
         <div v-else class="gc-events-table">
           <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
               <thead>
-              <tr>
-                <th>ID</th>
-                <th>Cause</th>
-                <th>Sum of Pauses</th>
-                <th>Duration</th>
-                <th>Before GC</th>
-                <th>After GC</th>
-                <th>Difference</th>
-                <th>Efficiency</th>
-              </tr>
+                <tr>
+                  <th>ID</th>
+                  <th>Cause</th>
+                  <th>Sum of Pauses</th>
+                  <th>Duration</th>
+                  <th>Before GC</th>
+                  <th>After GC</th>
+                  <th>Difference</th>
+                  <th>Efficiency</th>
+                </tr>
               </thead>
               <tbody>
-              <tr v-for="event in gcOverviewData?.longestPauses" :key="event.gcId" @click="showEventDetails(event)"
-                  style="cursor: pointer;">
-                <td>{{ event.gcId }}</td>
-                <td>
-                  <div class="cause-cell">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                      <Badge
+                <tr
+                  v-for="event in gcOverviewData?.longestPauses"
+                  :key="event.gcId"
+                  @click="showEventDetails(event)"
+                  style="cursor: pointer"
+                >
+                  <td>{{ event.gcId }}</td>
+                  <td>
+                    <div class="cause-cell">
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <Badge
                           :value="event.cause"
                           variant="secondary"
                           size="m"
                           :title="getGCCauseTooltip(event.cause)"
                           class="gc-cause-badge"
-                      />
-                      <Badge
+                        />
+                        <Badge
                           v-if="event.collectorName"
                           :value="event.collectorName"
                           :variant="getGenerationTypeBadgeVariant(event.generationType)"
                           size="s"
-                      />
-                      <Badge
+                        />
+                        <Badge
                           :value="getConcurrentBadgeValue(event.concurrent)"
                           :variant="getConcurrentBadgeVariant(event.concurrent)"
                           size="s"
-                      />
-                      <Badge
-                          v-if="event.type"
-                          :value="event.type"
-                          variant="secondary"
-                          size="s"
-                      />
+                        />
+                        <Badge v-if="event.type" :value="event.type" variant="secondary" size="s" />
+                      </div>
+                      <span class="timestamp-path text-muted small">{{
+                        FormattingService.formatTimestamp(event.timestamp)
+                      }}</span>
                     </div>
-                    <span class="timestamp-path text-muted small">{{ FormattingService.formatTimestamp(event.timestamp) }}</span>
-                  </div>
-                </td>
-                <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
-                <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
-                <td>{{ FormattingService.formatBytes(event.beforeGC) }}</td>
-                <td>{{ FormattingService.formatBytes(event.afterGC) }}</td>
-                <td>
-                  <Badge
+                  </td>
+                  <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
+                  <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
+                  <td>{{ FormattingService.formatBytes(event.beforeGC) }}</td>
+                  <td>{{ FormattingService.formatBytes(event.afterGC) }}</td>
+                  <td>
+                    <Badge
                       :value="formatDifference(event.beforeGC, event.afterGC)"
                       :variant="getDifferenceBadgeVariant(event.beforeGC, event.afterGC)"
                       size="m"
-                  />
-                </td>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="progress flex-grow-1 me-2" style="height: 6px; min-width: 40px;">
-                      <div class="progress-bar"
-                           :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
-                           :style="{ width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%' }">
+                    />
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 6px; min-width: 40px">
+                        <div
+                          class="progress-bar"
+                          :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
+                          :style="{
+                            width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%'
+                          }"
+                        ></div>
                       </div>
+                      <small class="text-muted"
+                        >{{
+                          getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1)
+                        }}%</small
+                      >
                     </div>
-                    <small class="text-muted">{{ getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1) }}%</small>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -154,36 +171,44 @@
           <i class="bi bi-info-circle me-2"></i>
           This garbage collector does not support concurrent cycles
         </div>
-        <EmptyState v-else-if="gcOverviewData.longestConcurrentEvents.length === 0" icon="bi-recycle" title="No concurrent cycle events" />
+        <EmptyState
+          v-else-if="gcOverviewData.longestConcurrentEvents.length === 0"
+          icon="bi-recycle"
+          title="No concurrent cycle events"
+        />
         <div v-else class="concurrent-cycles-table">
           <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
               <thead>
-              <tr>
-                <th>ID</th>
-                <th>Timestamp</th>
-                <th>Collector Name</th>
-                <th>Duration</th>
-                <th>Sum of Pauses</th>
-              </tr>
+                <tr>
+                  <th>ID</th>
+                  <th>Timestamp</th>
+                  <th>Collector Name</th>
+                  <th>Duration</th>
+                  <th>Sum of Pauses</th>
+                </tr>
               </thead>
               <tbody>
-              <tr v-for="event in gcOverviewData?.longestConcurrentEvents" :key="event.gcId" @click="showConcurrentEventDetails(event)"
-                  style="cursor: pointer;">
-                <td>{{ event.gcId }}</td>
-                <td>{{ FormattingService.formatTimestamp(event.timestamp) }}</td>
-                <td>
-                  <Badge
+                <tr
+                  v-for="event in gcOverviewData?.longestConcurrentEvents"
+                  :key="event.gcId"
+                  @click="showConcurrentEventDetails(event)"
+                  style="cursor: pointer"
+                >
+                  <td>{{ event.gcId }}</td>
+                  <td>{{ FormattingService.formatTimestamp(event.timestamp) }}</td>
+                  <td>
+                    <Badge
                       v-if="event.collectorName"
                       :value="event.collectorName"
                       :variant="getGenerationTypeBadgeVariant(event.generationType)"
                       size="s"
                       class="ms-2"
-                  />
-                </td>
-                <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
-                <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
-              </tr>
+                    />
+                  </td>
+                  <td>{{ FormattingService.formatDuration2Units(event.duration) }}</td>
+                  <td>{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -193,25 +218,25 @@
 
     <!-- GC Event Details Modal -->
     <GCEventDetailsModal
-        :event="selectedConcurrentEvent"
-        modal-id="gcEventDetailsModal"
-        :show="showEventDetailsModal"
-        @update:show="showEventDetailsModal = $event"
+      :event="selectedConcurrentEvent"
+      modal-id="gcEventDetailsModal"
+      :show="showEventDetailsModal"
+      @update:show="showEventDetailsModal = $event"
     />
 
     <!-- GC Pause Details Modal -->
     <GCPauseDetailsModal
-        :event="selectedPauseEvent"
-        modal-id="gcPauseDetailsModal"
-        :show="showPauseDetailsModal"
-        @update:show="showPauseDetailsModal = $event"
+      :event="selectedPauseEvent"
+      modal-id="gcPauseDetailsModal"
+      :show="showPauseDetailsModal"
+      @update:show="showPauseDetailsModal = $event"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import ApexCharts from 'apexcharts';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import GCMetricsStatsRow from '@/components/gc/GCMetricsStatsRow.vue';
@@ -247,10 +272,10 @@ const selectedPauseEvent = ref<GCEvent | null>(null);
 
 // Tabs configuration for GC Analysis
 const gcTabs = [
-  {id: 'distribution', label: 'Pause Distribution', icon: 'bar-chart'},
-  {id: 'efficiency', label: 'GC Efficiency', icon: 'pie-chart'},
-  {id: 'events', label: 'Longest Pauses', icon: 'table'},
-  {id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers'}
+  { id: 'distribution', label: 'Pause Distribution', icon: 'bar-chart' },
+  { id: 'efficiency', label: 'GC Efficiency', icon: 'pie-chart' },
+  { id: 'events', label: 'Longest Pauses', icon: 'table' },
+  { id: 'concurrent-cycles', label: 'Concurrent Cycles', icon: 'layers' }
 ];
 
 // Chart instances
@@ -286,7 +311,9 @@ const gcSummary = computed(() => {
     collectionFrequency: `${header.collectionFrequency.toFixed(2)} GC/s`,
     manualGCTime: FormattingService.formatDuration2Units(header.manualGCCalls.totalTime),
     systemGCCalls: FormattingService.formatNumber(header.manualGCCalls.systemGCCalls),
-    diagnosticCommandCalls: FormattingService.formatNumber(header.manualGCCalls.diagnosticCommandCalls)
+    diagnosticCommandCalls: FormattingService.formatNumber(
+      header.manualGCCalls.diagnosticCommandCalls
+    )
   };
 });
 
@@ -294,21 +321,21 @@ const formatDifference = (beforeGC: number, afterGC: number) => {
   const difference = afterGC - beforeGC;
   const absValue = Math.abs(difference);
   const formattedValue = FormattingService.formatBytes(absValue);
-  
+
   if (difference === 0) {
     return formattedValue;
   }
-  
+
   return difference > 0 ? `+${formattedValue}` : `-${formattedValue}`;
 };
 
 const getDifferenceBadgeVariant = (beforeGC: number, afterGC: number): Variant => {
   const difference = afterGC - beforeGC;
-  
+
   if (difference === 0) {
     return 'secondary';
   }
-  
+
   return difference > 0 ? 'danger' : 'success';
 };
 
@@ -373,13 +400,16 @@ const createDistributionChart = async () => {
         show: false
       }
     },
-    series: [{
-      name: 'GC Events',
-      data: distributionData?.map(bucket => ({
-        x: bucket.range,
-        y: bucket.count
-      })) || []
-    }],
+    series: [
+      {
+        name: 'GC Events',
+        data:
+          distributionData?.map(bucket => ({
+            x: bucket.range,
+            y: bucket.count
+          })) || []
+      }
+    ],
     plotOptions: {
       bar: {
         horizontal: false,
@@ -533,7 +563,6 @@ const loadGCData = async () => {
     setTimeout(() => {
       createDistributionChart();
     }, 100);
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading GC data:', err);
@@ -541,7 +570,6 @@ const loadGCData = async () => {
     loading.value = false;
   }
 };
-
 
 onMounted(() => {
   loadGCData();
@@ -559,14 +587,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.loading-overlay, .error-state {
+.loading-overlay,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 300px;
 }
-
 
 /* Charts */
 .chart-container {
@@ -607,11 +635,11 @@ onUnmounted(() => {
 }
 
 /* GC Events Table */
-.gc-events-table, .concurrent-cycles-table {
+.gc-events-table,
+.concurrent-cycles-table {
   background-color: #fff;
   border-radius: 8px;
 }
-
 
 .table {
   margin-bottom: 0;
@@ -634,7 +662,6 @@ onUnmounted(() => {
 .table tbody tr:hover {
   background-color: rgba(0, 123, 255, 0.05);
 }
-
 
 /* GC Cause Tooltips */
 .gc-cause-badge {

@@ -16,7 +16,9 @@
       </span>
       <div class="tl-info">
         <span class="tl-label">Finished</span>
-        <span v-if="finishedAt" class="tl-sub">{{ FormattingService.formatTimestampUTC(finishedAt) }}</span>
+        <span v-if="finishedAt" class="tl-sub">{{
+          FormattingService.formatTimestampUTC(finishedAt)
+        }}</span>
       </div>
       <template v-if="finishedAt">
         <span class="tl-main">{{ FormattingService.formatRelativeTime(finishedAt) }}</span>
@@ -39,9 +41,9 @@
 import FormattingService from '@/services/FormattingService';
 
 interface Props {
-  createdAt: number
-  finishedAt?: number | null
-  duration: number
+  createdAt: number;
+  finishedAt?: number | null;
+  duration: number;
 }
 
 defineProps<Props>();

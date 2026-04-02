@@ -16,24 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FramePosition from "@/services/api/model/FramePosition";
-import FrameSampleTypes from "@/services/api/model/FrameSampleTypes";
-import DiffDetails from "@/services/api/model/DiffDetails";
+import FramePosition from '@/services/api/model/FramePosition';
+import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
+import DiffDetails from '@/services/api/model/DiffDetails';
 
 export default class Frame {
-    constructor(
-        public leftSamples: number,
-        public totalSamples: number,
-        public title: string,
-        public type: string,
-        // Optional fields - omitted from JSON when zero/null to reduce transfer size
-        public leftWeight?: number,
-        public totalWeight?: number,
-        public selfSamples?: number,
-        public position?: FramePosition,
-        public sampleTypes?: FrameSampleTypes,
-        public diffDetails?: DiffDetails,
-        // For guardian analysis - frames before marker are shown in grey
-        public beforeMarker?: boolean) {
-    }
+  constructor(
+    public leftSamples: number,
+    public totalSamples: number,
+    public title: string,
+    public type: string,
+    // Optional fields - omitted from JSON when zero/null to reduce transfer size
+    public leftWeight?: number,
+    public totalWeight?: number,
+    public selfSamples?: number,
+    public position?: FramePosition,
+    public sampleTypes?: FrameSampleTypes,
+    public diffDetails?: DiffDetails,
+    // For guardian analysis - frames before marker are shown in grey
+    public beforeMarker?: boolean
+  ) {}
 }

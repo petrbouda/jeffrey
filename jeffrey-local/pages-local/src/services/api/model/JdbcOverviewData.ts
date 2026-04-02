@@ -16,19 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import JdbcHeader from "@/services/profile/custom/jdbc/JdbcHeader.ts";
-import JdbcOperationStats from "@/services/profile/custom/jdbc/JdbcOperationStats.ts";
-import JdbcSlowStatement from "@/services/profile/custom/jdbc/JdbcSlowStatement.ts";
-import JdbcGroup from "@/services/profile/custom/jdbc/JdbcGroup.ts";
-import Serie from "@/services/timeseries/model/Serie.ts";
+import JdbcHeader from '@/services/profile/custom/jdbc/JdbcHeader.ts';
+import JdbcOperationStats from '@/services/profile/custom/jdbc/JdbcOperationStats.ts';
+import JdbcSlowStatement from '@/services/profile/custom/jdbc/JdbcSlowStatement.ts';
+import JdbcGroup from '@/services/profile/custom/jdbc/JdbcGroup.ts';
+import Serie from '@/services/timeseries/model/Serie.ts';
 
 export default class JdbcOverviewData {
-    constructor(
-        public header: JdbcHeader,
-        public operations: JdbcOperationStats[],
-        public slowStatements: JdbcSlowStatement[],
-        public groups: JdbcGroup[],
-        public executionTimeSerie: Serie,
-        public statementCountSerie: Serie,
-    ) {}
+  constructor(
+    public header: JdbcHeader,
+    public operations: JdbcOperationStats[],
+    public slowStatements: JdbcSlowStatement[],
+    public groups: JdbcGroup[],
+    public executionTimeSerie: Serie,
+    public statementCountSerie: Serie
+  ) {}
 }

@@ -1,4 +1,4 @@
 export default interface CollapseFramesResult {
-  affectedStacktraces: number
-  mergedStacktraces: number
+  affectedStacktraces: number;
+  mergedStacktraces: number;
 }

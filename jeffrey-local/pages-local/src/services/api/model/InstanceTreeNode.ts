@@ -17,13 +17,13 @@
  */
 
 export default interface InstanceTreeNode {
-    objectId: number;
-    className: string;
-    value: string;
-    shallowSize: number;
-    retainedSize: number | null;
-    fieldName: string | null;
-    relationshipType: 'REFERRER' | 'REACHABLE' | 'ROOT';
-    hasChildren: boolean;
-    childCount: number;
+  objectId: number;
+  className: string;
+  value: string;
+  shallowSize: number;
+  retainedSize: number | null;
+  fieldName: string | null;
+  relationshipType: 'REFERRER' | 'REACHABLE' | 'ROOT';
+  hasChildren: boolean;
+  childCount: number;
 }

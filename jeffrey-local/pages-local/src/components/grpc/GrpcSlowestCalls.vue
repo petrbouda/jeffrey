@@ -1,15 +1,15 @@
 <template>
   <GrpcCallTable
-      title="Slowest gRPC Calls"
-      icon="clock-history"
-      :calls="calls"
-      :max-displayed="maxDisplayed"
+    title="Slowest gRPC Calls"
+    icon="clock-history"
+    :calls="calls"
+    :max-displayed="maxDisplayed"
   />
 </template>
 
 <script setup lang="ts">
 import GrpcCallTable from '@/components/grpc/GrpcCallTable.vue';
-import type {GrpcSlowCall} from '@/services/api/ProfileGrpcClient';
+import type { GrpcSlowCall } from '@/services/api/ProfileGrpcClient';
 
 interface Props {
   calls: GrpcSlowCall[];

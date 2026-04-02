@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GraphType from "@/services/flamegraphs/GraphType";
+import GraphType from '@/services/flamegraphs/GraphType';
 
 export default class ProfileType {
-    static PRIMARY = GraphType.PRIMARY
-    static SECONDARY = "SECONDARY"
+  static PRIMARY = GraphType.PRIMARY;
+  static SECONDARY = 'SECONDARY';
 }

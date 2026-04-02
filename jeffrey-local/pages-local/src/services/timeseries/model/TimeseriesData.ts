@@ -16,9 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import Serie from "@/services/timeseries/model/Serie";
+import Serie from '@/services/timeseries/model/Serie';
 
 export default class TimeseriesData {
-    constructor(public series: Serie[]) {
-    }
+  constructor(public series: Serie[]) {}
 }

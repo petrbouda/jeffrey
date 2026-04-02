@@ -16,14 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
+import WorkspaceStatus from '@/services/api/model/WorkspaceStatus.ts';
 
 export default interface Workspace {
-    id: string;
-    name: string;
-    description?: string;
-    createdAt: number;
-    projectCount: number;
-    status: WorkspaceStatus;
-    streamingEnabled?: boolean | null;
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  projectCount: number;
+  status: WorkspaceStatus;
+  streamingEnabled?: boolean | null;
 }

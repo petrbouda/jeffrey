@@ -11,19 +11,20 @@
         </div>
         <Badge v-else value="Ready" variant="green" size="xs" />
       </div>
-      
+
       <div class="d-flex align-items-center mb-3">
         <div class="text-muted small">
           <i class="bi bi-calendar3 me-1"></i>
           {{ formatDate(profile.createdAt) }}
         </div>
       </div>
-      
+
       <div class="d-flex gap-2 mt-3">
-        <button 
+        <button
           class="btn btn-sm btn-primary flex-grow-1"
           :disabled="!profile.enabled"
-          @click="$emit('select', profile)">
+          @click="$emit('select', profile)"
+        >
           <template v-if="!profile.enabled">
             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
             Initializing...
@@ -33,14 +34,10 @@
             Select
           </template>
         </button>
-        <button 
-          class="btn btn-sm btn-outline-secondary"
-          @click="$emit('edit', profile)">
+        <button class="btn btn-sm btn-outline-secondary" @click="$emit('edit', profile)">
           <i class="bi bi-pencil"></i>
         </button>
-        <button 
-          class="btn btn-sm btn-outline-danger"
-          @click="$emit('delete', profile)">
+        <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', profile)">
           <i class="bi bi-trash"></i>
         </button>
       </div>
@@ -60,7 +57,7 @@ interface Profile {
 }
 
 const props = defineProps<{
-  profile: Profile
+  profile: Profile;
 }>();
 
 defineEmits(['select', 'edit', 'delete']);
@@ -79,8 +76,10 @@ const formatDate = (dateString: string): string => {
 
 <style scoped>
 .card {
-  transition: transform 0.2s, box-shadow 0.2s;
-  
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+
   &:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);

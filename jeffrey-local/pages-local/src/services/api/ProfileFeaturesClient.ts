@@ -17,15 +17,14 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import FeatureType from "@/services/api/model/FeatureType.ts";
+import FeatureType from '@/services/api/model/FeatureType.ts';
 
 export default class ProfileFeaturesClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'features');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'features');
-    }
-
-    public getDisabledFeatures(): Promise<FeatureType[]> {
-        return super.get<FeatureType[]>('/disabled');
-    }
+  public getDisabledFeatures(): Promise<FeatureType[]> {
+    return super.get<FeatureType[]>('/disabled');
+  }
 }

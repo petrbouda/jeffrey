@@ -17,14 +17,16 @@
   -->
 
 <template>
-  <div ref="overlayRef"
-       class="modal modal-overlay"
-       :class="{ 'd-block': show, 'd-none': !show }"
-       :id="modalId"
-       tabindex="-1"
-       :aria-labelledby="modalId + 'Label'"
-       @keyup.esc="closeModal"
-       @click.self="closeModal">
+  <div
+    ref="overlayRef"
+    class="modal modal-overlay"
+    :class="{ 'd-block': show, 'd-none': !show }"
+    :id="modalId"
+    tabindex="-1"
+    :aria-labelledby="modalId + 'Label'"
+    @keyup.esc="closeModal"
+    @click.self="closeModal"
+  >
     <div class="modal-dialog" :class="[modalSizeClass, modalDialogClass]" :style="fullscreenStyle">
       <div class="modal-content">
         <div class="modal-header">
@@ -83,12 +85,18 @@ const closeModal = () => {
 
 const modalSizeClass = computed(() => {
   switch (props.size) {
-    case 'sm': return 'modal-sm';
-    case 'md': return '';
-    case 'lg': return 'modal-lg';
-    case 'xl': return 'modal-xl';
-    case 'fullscreen': return 'modal-lg';
-    default: return '';
+    case 'sm':
+      return 'modal-sm';
+    case 'md':
+      return '';
+    case 'lg':
+      return 'modal-lg';
+    case 'xl':
+      return 'modal-xl';
+    case 'fullscreen':
+      return 'modal-lg';
+    default:
+      return '';
   }
 });
 
@@ -99,16 +107,19 @@ const fullscreenStyle = computed(() => {
   return undefined;
 });
 
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    nextTick(() => {
-      overlayRef.value?.focus();
-      emit('shown');
-    });
-  } else {
-    emit('hidden');
+watch(
+  () => props.show,
+  newVal => {
+    if (newVal) {
+      nextTick(() => {
+        overlayRef.value?.focus();
+        emit('shown');
+      });
+    } else {
+      emit('hidden');
+    }
   }
-});
+);
 </script>
 
 <style scoped>
@@ -117,8 +128,14 @@ watch(() => props.show, (newVal) => {
 }
 
 @keyframes modalSlideIn {
-  from { transform: translateY(-10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 </style>
 

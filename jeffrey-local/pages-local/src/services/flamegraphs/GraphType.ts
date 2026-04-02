@@ -17,14 +17,13 @@
  */
 
 export default class GraphType {
+  static PRIMARY = 'PRIMARY';
+  static SECONDARY = 'SECONDARY';
+  static DIFFERENTIAL = 'DIFFERENTIAL';
+  // Used for generated flamegraph (e.g. command-line tool)
+  static GENERATED = 'DIFFERENTIAL';
 
-    static PRIMARY = "PRIMARY"
-    static SECONDARY = "SECONDARY"
-    static DIFFERENTIAL = "DIFFERENTIAL"
-    // Used for generated flamegraph (e.g. command-line tool)
-    static GENERATED = "DIFFERENTIAL"
-
-    static isDifferential(type: string): boolean {
-        return type === this.DIFFERENTIAL
-    }
+  static isDifferential(type: string): boolean {
+    return type === this.DIFFERENTIAL;
+  }
 }

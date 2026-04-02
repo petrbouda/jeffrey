@@ -37,7 +37,9 @@ const gcSummary = computed(() => {
     collectionFrequency: `${header.collectionFrequency.toFixed(2)} GC/s`,
     manualGCTime: FormattingService.formatDuration2Units(header.manualGCCalls.totalTime),
     systemGCCalls: FormattingService.formatNumber(header.manualGCCalls.systemGCCalls),
-    diagnosticCommandCalls: FormattingService.formatNumber(header.manualGCCalls.diagnosticCommandCalls)
+    diagnosticCommandCalls: FormattingService.formatNumber(
+      header.manualGCCalls.diagnosticCommandCalls
+    )
   };
 });
 

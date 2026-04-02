@@ -1,7 +1,6 @@
 import SlugService from './SlugService';
 
 describe('SlugService', () => {
-
   describe('generateSlug', () => {
     it('returns empty string for empty/falsy input', () => {
       expect(SlugService.generateSlug('')).toBe('');

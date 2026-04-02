@@ -17,10 +17,10 @@
  */
 
 export default class GCEfficiency {
-    constructor(
-        public applicationTime: number,
-        public gcTime: number,
-        public throughputPercentage: number,
-        public overheadPercentage: number
-    ) {}
+  constructor(
+    public applicationTime: number,
+    public gcTime: number,
+    public throughputPercentage: number,
+    public overheadPercentage: number
+  ) {}
 }

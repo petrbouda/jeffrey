@@ -6,21 +6,21 @@
         <label class="sort-label">Sort by:</label>
         <div class="btn-group" role="group">
           <button
-              v-for="option in sortOptions"
-              :key="option.key"
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              :class="{ active: currentSort === option.key }"
-              @click="onSortChange(option.key)"
+            v-for="option in sortOptions"
+            :key="option.key"
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            :class="{ active: currentSort === option.key }"
+            @click="onSortChange(option.key)"
           >
             {{ option.label }}
           </button>
         </div>
       </div>
       <button
-          v-if="groups.length > maxDisplayedGroups"
-          @click="showAllGroups = !showAllGroups"
-          class="btn btn-sm btn-outline-secondary"
+        v-if="groups.length > maxDisplayedGroups"
+        @click="showAllGroups = !showAllGroups"
+        class="btn btn-sm btn-outline-secondary"
       >
         {{ showAllGroups ? 'Show Less' : `Show All (${groups.length})` }}
       </button>
@@ -29,10 +29,10 @@
     <!-- Group Cards -->
     <div class="group-cards">
       <div
-          v-for="group in displayedGroups"
-          :key="group.group"
-          class="grp-card"
-          @click="handleGroupClick(group)"
+        v-for="group in displayedGroups"
+        :key="group.group"
+        class="grp-card"
+        @click="handleGroupClick(group)"
       >
         <!-- Left: Execution Count Pill -->
         <div class="grp-count-pill">
@@ -44,10 +44,34 @@
         <div class="grp-main">
           <div class="grp-name" :title="group.group">{{ group.group }}</div>
           <div class="grp-metrics">
-            <Badge key-label="Max" :value="FormattingService.formatDuration2Units(group.maxExecutionTime)" variant="info" size="s" borderless />
-            <Badge key-label="P99" :value="FormattingService.formatDuration2Units(group.p99ExecutionTime)" variant="info" size="s" borderless />
-            <Badge key-label="P95" :value="FormattingService.formatDuration2Units(group.p95ExecutionTime)" variant="info" size="s" borderless />
-            <Badge key-label="Rows" :value="FormattingService.formatNumber(group.totalRowsProcessed)" variant="secondary" size="s" borderless />
+            <Badge
+              key-label="Max"
+              :value="FormattingService.formatDuration2Units(group.maxExecutionTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="P99"
+              :value="FormattingService.formatDuration2Units(group.p99ExecutionTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="P95"
+              :value="FormattingService.formatDuration2Units(group.p95ExecutionTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="Rows"
+              :value="FormattingService.formatNumber(group.totalRowsProcessed)"
+              variant="secondary"
+              size="s"
+              borderless
+            />
           </div>
         </div>
 
@@ -65,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, computed} from 'vue';
+import { ref, computed } from 'vue';
 import JdbcGroup from '@/services/api/model/JdbcGroup.ts';
 import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
@@ -80,7 +104,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  groupClick: [group: string]
+  groupClick: [group: string];
 }>();
 
 const showAllGroups = ref(false);
@@ -88,11 +112,27 @@ const currentSort = ref('maxExecutionTime');
 const maxDisplayedGroups = 10;
 
 const sortOptions = [
-  {key: 'maxExecutionTime', label: 'MAX', compare: (a: JdbcGroup, b: JdbcGroup) => b.maxExecutionTime - a.maxExecutionTime},
-  {key: 'p99ExecutionTime', label: 'P99', compare: (a: JdbcGroup, b: JdbcGroup) => b.p99ExecutionTime - a.p99ExecutionTime},
-  {key: 'p95ExecutionTime', label: 'P95', compare: (a: JdbcGroup, b: JdbcGroup) => b.p95ExecutionTime - a.p95ExecutionTime},
-  {key: 'errorCount', label: 'Errors', compare: (a: JdbcGroup, b: JdbcGroup) => b.errorCount - a.errorCount},
-  {key: 'count', label: 'Executions', compare: (a: JdbcGroup, b: JdbcGroup) => b.count - a.count}
+  {
+    key: 'maxExecutionTime',
+    label: 'MAX',
+    compare: (a: JdbcGroup, b: JdbcGroup) => b.maxExecutionTime - a.maxExecutionTime
+  },
+  {
+    key: 'p99ExecutionTime',
+    label: 'P99',
+    compare: (a: JdbcGroup, b: JdbcGroup) => b.p99ExecutionTime - a.p99ExecutionTime
+  },
+  {
+    key: 'p95ExecutionTime',
+    label: 'P95',
+    compare: (a: JdbcGroup, b: JdbcGroup) => b.p95ExecutionTime - a.p95ExecutionTime
+  },
+  {
+    key: 'errorCount',
+    label: 'Errors',
+    compare: (a: JdbcGroup, b: JdbcGroup) => b.errorCount - a.errorCount
+  },
+  { key: 'count', label: 'Executions', compare: (a: JdbcGroup, b: JdbcGroup) => b.count - a.count }
 ];
 
 const sortedGroups = computed(() => {
@@ -148,7 +188,9 @@ const onSortChange = (key: string) => {
   border: 1px solid var(--card-border-color);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .grp-card:hover {

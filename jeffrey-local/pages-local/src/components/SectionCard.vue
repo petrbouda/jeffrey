@@ -17,41 +17,43 @@
   -->
 
 <script setup lang="ts">
-import router from "@/router";
-import {computed, ref} from "vue";
-import Utils from "@/services/Utils";
-import {useRoute} from "vue-router";
-import EventSummary from "@/services/api/model/EventSummary";
+import router from '@/router';
+import { computed, ref } from 'vue';
+import Utils from '@/services/Utils';
+import { useRoute } from 'vue-router';
+import EventSummary from '@/services/api/model/EventSummary';
 
 const props = defineProps<{
-  routerForward: string,
-  buttonTitle: string,
-  title: string,
-  color: string,
-  icon: string,
-  graphMode: string,
-  threadModeOpt: boolean,
-  threadModeSelected: boolean,
-  weightOpt: boolean,
-  weightSelected: boolean,
-  weightDesc: string,
-  weightFormatter: (bytes: number) => string,
-  excludeNonJavaSamplesOpt: boolean,
-  excludeNonJavaSamplesSelected: boolean,
-  excludeIdleSamplesOpt: boolean,
-  excludeIdleSamplesSelected: boolean,
-  onlyUnsafeAllocationSamplesOpt: boolean,
-  onlyUnsafeAllocationSamplesSelected: boolean,
-  event: EventSummary,
-  loaded: any
-}>()
+  routerForward: string;
+  buttonTitle: string;
+  title: string;
+  color: string;
+  icon: string;
+  graphMode: string;
+  threadModeOpt: boolean;
+  threadModeSelected: boolean;
+  weightOpt: boolean;
+  weightSelected: boolean;
+  weightDesc: string;
+  weightFormatter: (bytes: number) => string;
+  excludeNonJavaSamplesOpt: boolean;
+  excludeNonJavaSamplesSelected: boolean;
+  excludeIdleSamplesOpt: boolean;
+  excludeIdleSamplesSelected: boolean;
+  onlyUnsafeAllocationSamplesOpt: boolean;
+  onlyUnsafeAllocationSamplesSelected: boolean;
+  event: EventSummary;
+  loaded: any;
+}>();
 
-const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected))
-const useWeight = ref(Utils.parseBoolean(props.weightSelected))
-const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamplesSelected))
-const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamplesSelected))
-const onlyUnsafeAllocationSamples = ref(Utils.parseBoolean(props.onlyUnsafeAllocationSamplesSelected))
-const weightDescription = ref(props.weightDesc)
+const useThreadMode = ref(Utils.parseBoolean(props.threadModeSelected));
+const useWeight = ref(Utils.parseBoolean(props.weightSelected));
+const excludeNonJavaSamples = ref(Utils.parseBoolean(props.excludeNonJavaSamplesSelected));
+const excludeIdleSamples = ref(Utils.parseBoolean(props.excludeIdleSamplesSelected));
+const onlyUnsafeAllocationSamples = ref(
+  Utils.parseBoolean(props.onlyUnsafeAllocationSamplesSelected)
+);
+const weightDescription = ref(props.weightDesc);
 
 // Get the card color based on the card type
 const getCardColor = () => {
@@ -88,81 +90,90 @@ const getIconClass = () => {
   return 'bi-fire'; // Default
 };
 
-const route = useRoute()
+const route = useRoute();
 
-const activeEvent = ref<EventSummary>(props.event)
+const activeEvent = ref<EventSummary>(props.event);
 
 const enabled = computed(() => {
-  return props.loaded
-})
+  return props.loaded;
+});
 
 const containsSecondary = () => {
-  return activeEvent.value.secondary != null
-}
+  return activeEvent.value.secondary != null;
+};
 
 const isSameType = () => {
-  return activeEvent.value.secondary != null && activeEvent.value.primary.code === activeEvent.value.secondary.code
-}
+  return (
+    activeEvent.value.secondary != null &&
+    activeEvent.value.primary.code === activeEvent.value.secondary.code
+  );
+};
 
 const isSameSource = () => {
-  return activeEvent.value.secondary != null && activeEvent.value.primary.source === activeEvent.value.secondary.source
-}
+  return (
+    activeEvent.value.secondary != null &&
+    activeEvent.value.primary.source === activeEvent.value.secondary.source
+  );
+};
 
 const moveToFlamegraph = () => {
   let query = {
     eventType: activeEvent.value.code,
     graphMode: props.graphMode
-  }
+  };
 
   if (useThreadMode.value) {
-    query.useThreadMode = useThreadMode.value
+    query.useThreadMode = useThreadMode.value;
   }
   if (useWeight.value) {
-    query.useWeight = useWeight.value
+    query.useWeight = useWeight.value;
   }
   if (excludeNonJavaSamples.value) {
-    query.excludeNonJavaSamples = excludeNonJavaSamples.value
+    query.excludeNonJavaSamples = excludeNonJavaSamples.value;
   }
   if (excludeIdleSamples.value) {
-    query.excludeIdleSamples = excludeIdleSamples.value
+    query.excludeIdleSamples = excludeIdleSamples.value;
   }
   if (onlyUnsafeAllocationSamples.value) {
-    query.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples.value
+    query.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples.value;
   }
 
   router.push({
     name: props.routerForward,
     params: {
       projectId: route.params.projectId,
-      profileId: route.params.profileId,
+      profileId: route.params.profileId
     },
     query: query
   });
-}
+};
 
 function switchIdleSamples() {
   if (excludeIdleSamples.value) {
-    excludeIdleSamples.value = false
-    excludeNonJavaSamples.value = false
+    excludeIdleSamples.value = false;
+    excludeNonJavaSamples.value = false;
   } else {
-    excludeIdleSamples.value = true
-    excludeNonJavaSamples.value = true
+    excludeIdleSamples.value = true;
+    excludeNonJavaSamples.value = true;
   }
 }
 </script>
 <template>
-  <div :class="['card', 'shadow-sm', 'guardian-card', getCardBorderClass(), getCardBgClass()]" v-if="props.loaded">
-      <div :class="['card-header', getCardBgClass()]">
-        <div class="d-flex align-items-center mb-1">
-          <div :class="['status-icon', getIconBgClass(), 'me-2']">
-            <i class="bi" :class="getIconClass()"></i>
-          </div>
-          <h5 class="card-title mb-0">{{ props.title }}</h5>
+  <div
+    :class="['card', 'shadow-sm', 'guardian-card', getCardBorderClass(), getCardBgClass()]"
+    v-if="props.loaded"
+  >
+    <div :class="['card-header', getCardBgClass()]">
+      <div class="d-flex align-items-center mb-1">
+        <div :class="['status-icon', getIconBgClass(), 'me-2']">
+          <i class="bi" :class="getIconClass()"></i>
         </div>
+        <h5 class="card-title mb-0">{{ props.title }}</h5>
       </div>
+    </div>
 
-      <div class="card-body d-flex flex-column" v-if="enabled">
-        <div class="flex-grow-1">
+    <div class="card-body d-flex flex-column" v-if="enabled">
+      <div class="flex-grow-1">
         <ul class="list-unstyled mb-4">
           <!-- Code -->
           <li class="field-row">
@@ -170,11 +181,19 @@ function switchIdleSamples() {
             <span class="field-value" v-if="containsSecondary() && !isSameType()">
               <span class="primary-value">{{ activeEvent.primary.code }}</span>
               <span class="secondary-value">/ {{ activeEvent.secondary?.code }}</span>
-              <span class="secondary-value" v-if="Utils.parseBoolean(activeEvent.primary.calculated)">(calculated)</span>
+              <span
+                class="secondary-value"
+                v-if="Utils.parseBoolean(activeEvent.primary.calculated)"
+                >(calculated)</span
+              >
             </span>
             <span class="field-value" v-else>
               {{ activeEvent.primary.code }}
-              <span class="secondary-value" v-if="Utils.parseBoolean(activeEvent.primary.calculated)">(calculated)</span>
+              <span
+                class="secondary-value"
+                v-if="Utils.parseBoolean(activeEvent.primary.calculated)"
+                >(calculated)</span
+              >
             </span>
           </li>
 
@@ -207,7 +226,9 @@ function switchIdleSamples() {
             <span class="field-label">Samples:</span>
             <span class="field-value" v-if="containsSecondary()">
               <span class="primary-value">{{ activeEvent.primary.samples.toLocaleString() }}</span>
-              <span class="secondary-value">/ {{ activeEvent.secondary?.samples.toLocaleString() }}</span>
+              <span class="secondary-value"
+                >/ {{ activeEvent.secondary?.samples.toLocaleString() }}</span
+              >
             </span>
             <span class="field-value" v-else>
               {{ activeEvent.primary.samples.toLocaleString() }}
@@ -218,8 +239,12 @@ function switchIdleSamples() {
           <li class="field-row" v-if="props.weightDesc != null">
             <span class="field-label">{{ props.weightDesc }}:</span>
             <span class="field-value" v-if="containsSecondary()">
-              <span class="primary-value">{{ props.weightFormatter(activeEvent.primary.weight) }}</span>
-              <span class="secondary-value">/ {{ props.weightFormatter(activeEvent.secondary?.weight) }}</span>
+              <span class="primary-value">{{
+                props.weightFormatter(activeEvent.primary.weight)
+              }}</span>
+              <span class="secondary-value"
+                >/ {{ props.weightFormatter(activeEvent.secondary?.weight) }}</span
+              >
             </span>
             <span class="field-value" v-else>
               {{ props.weightFormatter(activeEvent.primary.weight) }}
@@ -230,15 +255,19 @@ function switchIdleSamples() {
           <li class="field-row" v-if="Utils.isNotNull(activeEvent.primary.extras?.sample_interval)">
             <span class="field-label">Sample Interval:</span>
             <span class="field-value" v-if="containsSecondary()">
-              <span class="primary-value">{{ props.weightFormatter(activeEvent.primary.extras.sample_interval) }}</span>
-              <span class="secondary-value">/ {{ props.weightFormatter(activeEvent.secondary?.extras.sample_interval) }}</span>
+              <span class="primary-value">{{
+                props.weightFormatter(activeEvent.primary.extras.sample_interval)
+              }}</span>
+              <span class="secondary-value"
+                >/ {{ props.weightFormatter(activeEvent.secondary?.extras.sample_interval) }}</span
+              >
             </span>
             <span class="field-value" v-else>
               {{ props.weightFormatter(activeEvent.primary.extras.sample_interval) }}
             </span>
           </li>
         </ul>
-        
+
         <!-- Additional Info -->
         <slot name="additionalInfo"></slot>
 
@@ -247,71 +276,119 @@ function switchIdleSamples() {
           <div class="d-flex flex-column">
             <!-- Thread mode checkbox -->
             <div class="form-check mb-2" v-if="props.threadModeOpt">
-              <input class="form-check-input" type="checkbox" :id="'threadMode_' + activeEvent.code" v-model="useThreadMode">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'threadMode_' + activeEvent.code"
+                v-model="useThreadMode"
+              />
               <label class="form-check-label" :for="'threadMode_' + activeEvent.code">
                 Use Thread-mode
               </label>
             </div>
-            
+
             <!-- Weight option checkbox -->
             <div class="form-check mb-2" v-if="props.weightOpt">
-              <input class="form-check-input" type="checkbox" :id="'useWeight_' + activeEvent.code" v-model="useWeight">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'useWeight_' + activeEvent.code"
+                v-model="useWeight"
+              />
               <label class="form-check-label" :for="'useWeight_' + activeEvent.code">
                 Use {{ weightDescription }}
               </label>
             </div>
-            
+
             <!-- Exclude Idle Samples -->
             <div class="form-check mb-2" v-if="props.excludeIdleSamplesOpt">
-              <input class="form-check-input" type="checkbox" :id="'excludeIdle_' + activeEvent.code" v-model="excludeIdleSamples" @click="switchIdleSamples()">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'excludeIdle_' + activeEvent.code"
+                v-model="excludeIdleSamples"
+                @click="switchIdleSamples()"
+              />
               <label class="form-check-label" :for="'excludeIdle_' + activeEvent.code">
                 Exclude Idle Samples
-                <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Excludes samples that are parked in thread-pools"></i>
+                <i
+                  class="bi bi-info-circle-fill text-muted ms-1"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Excludes samples that are parked in thread-pools"
+                ></i>
               </label>
             </div>
-            
+
             <!-- Exclude non-Java Samples -->
             <div class="form-check mb-2" v-if="props.excludeNonJavaSamplesOpt">
-              <input class="form-check-input" type="checkbox" :id="'excludeNonJava_' + activeEvent.code" v-model="excludeNonJavaSamples">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'excludeNonJava_' + activeEvent.code"
+                v-model="excludeNonJavaSamples"
+              />
               <label class="form-check-label" :for="'excludeNonJava_' + activeEvent.code">
                 Exclude non-Java Samples
-                <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"></i>
+                <i
+                  class="bi bi-info-circle-fill text-muted ms-1"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Excludes samples belonging to JIT, Garbage Collector, and other non-Java threads"
+                ></i>
               </label>
             </div>
-            
+
             <!-- Only Unsafe Allocation Samples -->
             <div class="form-check" v-if="props.onlyUnsafeAllocationSamplesOpt">
-              <input class="form-check-input" type="checkbox" :id="'unsafeAlloc_' + activeEvent.code" v-model="onlyUnsafeAllocationSamples">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :id="'unsafeAlloc_' + activeEvent.code"
+                v-model="onlyUnsafeAllocationSamples"
+              />
               <label class="form-check-label" :for="'unsafeAlloc_' + activeEvent.code">
                 Only Allocations with Unsafe
-                <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Filters out all JVM-specific allocations and let only the relevant ones"></i>
+                <i
+                  class="bi bi-info-circle-fill text-muted ms-1"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Filters out all JVM-specific allocations and let only the relevant ones"
+                ></i>
               </label>
             </div>
           </div>
         </div>
-        </div>
-      </div>
-      
-      <div class="card-body" v-else>
-        <div class="text-center">
-          <div class="fw-bold">Samples Unavailable</div>
-        </div>
-      </div>
-
-      <div class="card-footer bg-transparent">
-        <div class="d-flex justify-content-end">
-          <button class="btn btn-primary" type="button" :disabled="!enabled" @click="moveToFlamegraph">
-            <i class="bi bi-fire me-1"></i> {{ props.buttonTitle }}
-          </button>
-        </div>
       </div>
     </div>
+
+    <div class="card-body" v-else>
+      <div class="text-center">
+        <div class="fw-bold">Samples Unavailable</div>
+      </div>
+    </div>
+
+    <div class="card-footer bg-transparent">
+      <div class="d-flex justify-content-end">
+        <button
+          class="btn btn-primary"
+          type="button"
+          :disabled="!enabled"
+          @click="moveToFlamegraph"
+        >
+          <i class="bi bi-fire me-1"></i> {{ props.buttonTitle }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
 .guardian-card {
   position: relative;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border-width: 1px;
   border-left-width: 4px;
   overflow: hidden;

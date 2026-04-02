@@ -17,13 +17,12 @@
  */
 
 export default class PoolEventStatistics {
-    constructor(
-        public eventName: string,
-        public eventType: string,
-        public count: number,
-        public min: number,
-        public max: number,
-        public avg: number,
-    ) {
-    }
+  constructor(
+    public eventName: string,
+    public eventType: string,
+    public count: number,
+    public min: number,
+    public max: number,
+    public avg: number
+  ) {}
 }

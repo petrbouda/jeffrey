@@ -6,24 +6,27 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="terminal"
-      message="The heap dump needs to be initialized before you can execute OQL queries. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="terminal"
+    message="The heap dump needs to be initialized before you can execute OQL queries. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-        title="OQL Query"
-        description="Execute Object Query Language queries against the heap dump"
-        icon="bi-terminal"
+      title="OQL Query"
+      description="Execute Object Query Language queries against the heap dump"
+      icon="bi-terminal"
     />
 
     <!-- Example Queries Section (Collapsible) -->
@@ -52,37 +55,41 @@
     <!-- Query Input Section -->
     <div class="query-editor mb-4">
       <textarea
-          v-model="oqlQuery"
-          class="query-input"
-          rows="3"
-          placeholder="select s from java.lang.String s where s.value.length > 100"
-          @keydown.ctrl.enter="executeQuery"
-          @keydown.meta.enter="executeQuery"
+        v-model="oqlQuery"
+        class="query-input"
+        rows="3"
+        placeholder="select s from java.lang.String s where s.value.length > 100"
+        @keydown.ctrl.enter="executeQuery"
+        @keydown.meta.enter="executeQuery"
       ></textarea>
       <div class="query-toolbar">
         <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-sm btn-primary" @click="executeQuery" :disabled="oqlLoading || !oqlQuery.trim()">
+          <button
+            class="btn btn-sm btn-primary"
+            @click="executeQuery"
+            :disabled="oqlLoading || !oqlQuery.trim()"
+          >
             <span v-if="oqlLoading" class="spinner-border spinner-border-sm me-1"></span>
             <i v-else class="bi bi-play-fill me-1"></i>
             Execute
           </button>
-          <button class="btn btn-sm btn-outline-secondary" @click="clearResults" :disabled="!oqlResult && !oqlError && !oqlQuery.trim()">
+          <button
+            class="btn btn-sm btn-outline-secondary"
+            @click="clearResults"
+            :disabled="!oqlResult && !oqlError && !oqlQuery.trim()"
+          >
             <i class="bi bi-x-lg me-1"></i>
             Clear
           </button>
           <div class="toolbar-divider"></div>
-          <button
-              v-if="aiAvailable"
-              class="btn btn-sm btn-ai-assistant"
-              @click="openAssistant"
-          >
+          <button v-if="aiAvailable" class="btn btn-sm btn-ai-assistant" @click="openAssistant">
             <i class="bi bi-stars me-1"></i>
             AI Assistant
           </button>
           <button
-              class="btn btn-sm"
-              :class="showExamples ? 'btn-purple' : 'btn-outline-purple'"
-              @click="showExamples = !showExamples"
+            class="btn btn-sm"
+            :class="showExamples ? 'btn-purple' : 'btn-outline-purple'"
+            @click="showExamples = !showExamples"
           >
             <i class="bi bi-lightbulb me-1"></i>
             Examples
@@ -90,7 +97,12 @@
         </div>
         <div class="d-flex align-items-center gap-3">
           <div class="form-check form-check-inline mb-0">
-            <input type="checkbox" class="form-check-input" id="retainedSizeCheck" v-model="includeRetainedSize" />
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="retainedSizeCheck"
+              v-model="includeRetainedSize"
+            />
             <label class="form-check-label small" for="retainedSizeCheck">Retained Size</label>
           </div>
           <div class="d-flex align-items-center gap-2">
@@ -123,14 +135,16 @@
           <div class="results-info">
             <span class="results-count">{{ filteredResults.length }} results</span>
             <span v-if="oqlResult.hasMore" class="truncated-badge">limit reached</span>
-            <span class="meta-item"><i class="bi bi-stopwatch me-1"></i>{{ oqlResult.executionTimeMs }}ms</span>
+            <span class="meta-item"
+              ><i class="bi bi-stopwatch me-1"></i>{{ oqlResult.executionTimeMs }}ms</span
+            >
           </div>
           <div class="results-controls">
             <input
-                type="text"
-                v-model="resultFilter"
-                class="form-control form-control-sm filter-input"
-                placeholder="Filter..."
+              type="text"
+              v-model="resultFilter"
+              class="form-control form-control-sm filter-input"
+              placeholder="Filter..."
             />
           </div>
         </div>
@@ -138,26 +152,26 @@
           <table class="table table-sm table-hover mb-0">
             <thead>
               <tr>
-                <th style="width: 50px;">#</th>
+                <th style="width: 50px">#</th>
                 <th>Object</th>
                 <SortableTableHeader
-                    column="size"
-                    label="Size"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    align="end"
-                    width="100px"
-                    @sort="toggleSort"
+                  column="size"
+                  label="Size"
+                  :sort-column="sortColumn"
+                  :sort-direction="sortDirection"
+                  align="end"
+                  width="100px"
+                  @sort="toggleSort"
                 />
                 <SortableTableHeader
-                    v-if="hasRetainedSize"
-                    column="retained"
-                    label="Retained"
-                    :sort-column="sortColumn"
-                    :sort-direction="sortDirection"
-                    align="end"
-                    width="100px"
-                    @sort="toggleSort"
+                  v-if="hasRetainedSize"
+                  column="retained"
+                  label="Retained"
+                  :sort-column="sortColumn"
+                  :sort-direction="sortDirection"
+                  align="end"
+                  width="100px"
+                  @sort="toggleSort"
                 />
               </tr>
             </thead>
@@ -168,16 +182,22 @@
                   <div class="object-header">
                     <code v-if="entry.className" class="class-name">{{ entry.className }}</code>
                     <InstanceActionButtons
-                        :object-id="entry.objectId ?? null"
-                        @show-referrers="openTreeModal($event, 'REFERRERS')"
-                        @show-reachables="openTreeModal($event, 'REACHABLES')"
-                        @show-g-c-root-path="openGCRootPathModal"
+                      :object-id="entry.objectId ?? null"
+                      @show-referrers="openTreeModal($event, 'REFERRERS')"
+                      @show-reachables="openTreeModal($event, 'REACHABLES')"
+                      @show-g-c-root-path="openGCRootPathModal"
                     />
                   </div>
-                  <div v-if="entry.value" class="value-text" :title="entry.value">{{ truncateValue(entry.value, 300) }}</div>
+                  <div v-if="entry.value" class="value-text" :title="entry.value">
+                    {{ truncateValue(entry.value, 300) }}
+                  </div>
                 </td>
-                <td class="text-end font-monospace">{{ entry.size ? FormattingService.formatBytes(entry.size) : '-' }}</td>
-                <td v-if="hasRetainedSize" class="text-end font-monospace">{{ entry.retainedSize ? FormattingService.formatBytes(entry.retainedSize) : '-' }}</td>
+                <td class="text-end font-monospace">
+                  {{ entry.size ? FormattingService.formatBytes(entry.size) : '-' }}
+                </td>
+                <td v-if="hasRetainedSize" class="text-end font-monospace">
+                  {{ entry.retainedSize ? FormattingService.formatBytes(entry.retainedSize) : '-' }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -188,13 +208,11 @@
     <!-- Empty State -->
     <div v-if="!oqlResult && !oqlError && !oqlLoading" class="empty-state">
       <div class="text-center py-5">
-        <i class="bi bi-terminal text-muted" style="font-size: 3rem;"></i>
-        <p class="text-muted mt-3 mb-0">Enter an OQL query above and click Execute to see results.</p>
-        <button
-            v-if="aiAvailable"
-            class="btn btn-ai-assistant mt-4"
-            @click="openAssistant"
-        >
+        <i class="bi bi-terminal text-muted" style="font-size: 3rem"></i>
+        <p class="text-muted mt-3 mb-0">
+          Enter an OQL query above and click Execute to see results.
+        </p>
+        <button v-if="aiAvailable" class="btn btn-ai-assistant mt-4" @click="openAssistant">
           <i class="bi bi-stars me-1"></i>
           Ask AI Assistant
         </button>
@@ -202,14 +220,22 @@
     </div>
 
     <!-- AI Assistant Not Configured Panel -->
-    <div v-if="aiChecked && !aiAvailable && !oqlLoading" class="ai-config-panel" :class="{ 'ai-config-minimized': aiPanelMinimized }">
+    <div
+      v-if="aiChecked && !aiAvailable && !oqlLoading"
+      class="ai-config-panel"
+      :class="{ 'ai-config-minimized': aiPanelMinimized }"
+    >
       <button class="ai-config-toggle" @click="aiPanelMinimized = !aiPanelMinimized">
         <span>{{ aiPanelMinimized ? 'Show' : 'Hide' }}</span>
         <i class="bi" :class="aiPanelMinimized ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
       </button>
 
       <!-- Minimized View -->
-      <div v-if="aiPanelMinimized" class="ai-config-minimized-content" @click="aiPanelMinimized = false">
+      <div
+        v-if="aiPanelMinimized"
+        class="ai-config-minimized-content"
+        @click="aiPanelMinimized = false"
+      >
         <div class="ai-config-minimized-icon">
           <i class="bi bi-stars"></i>
         </div>
@@ -224,11 +250,16 @@
         <div class="ai-config-text">
           <h5 class="ai-config-title">AI Assistant Available</h5>
           <p class="ai-config-description">
-            Unlock the power of AI to help you write OQL queries. Describe what you're looking for in natural language and let AI generate the query for you.
+            Unlock the power of AI to help you write OQL queries. Describe what you're looking for
+            in natural language and let AI generate the query for you.
           </p>
           <div class="ai-providers-note">
             <i class="bi bi-check-circle-fill"></i>
-            <span>Supports&nbsp;<strong>Anthropic Claude</strong>&nbsp;and&nbsp;<strong>OpenAI ChatGPT</strong></span>
+            <span
+              >Supports&nbsp;<strong>Anthropic Claude</strong>&nbsp;and&nbsp;<strong
+                >OpenAI ChatGPT</strong
+              ></span
+            >
           </div>
         </div>
         <div class="ai-config-features">
@@ -254,9 +285,14 @@
             </div>
             <div class="config-code">
               <code>jeffrey.ai.provider=<span class="code-value">claude</span></code>
-              <code># Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929, claude-sonnet-4-20250514</code>
+              <code
+                ># Claude: claude-opus-4-5-20251101, claude-sonnet-4-5-20250929,
+                claude-sonnet-4-20250514</code
+              >
               <code># ChatGPT: gpt-4o, gpt-4o-mini, o3-mini</code>
-              <code>jeffrey.ai.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code>
+              <code
+                >jeffrey.ai.model=<span class="code-value">claude-sonnet-4-5-20250929</span></code
+              >
             </div>
           </div>
 
@@ -269,7 +305,10 @@
               <code>jeffrey.ai.api-key=<span class="code-value">sk-ant-...</span></code>
             </div>
             <div class="config-hint-text">
-              Get your API key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>
+              Get your API key from
+              <a href="https://console.anthropic.com" target="_blank" rel="noopener"
+                >console.anthropic.com</a
+              >
             </div>
           </div>
         </div>
@@ -283,23 +322,23 @@
 
     <!-- AI Assistant -->
     <OqlAssistant
-        :is-open="showAssistant"
-        :is-expanded="assistantExpanded"
-        :profile-id="profileId"
-        @close="closeAssistant"
-        @expand="openAssistant"
-        @minimize="assistantExpanded = false"
-        @apply="applyQueryFromAssistant"
-        @run="runQueryFromAssistant"
+      :is-open="showAssistant"
+      :is-expanded="assistantExpanded"
+      :profile-id="profileId"
+      @close="closeAssistant"
+      @expand="openAssistant"
+      @minimize="assistantExpanded = false"
+      @apply="applyQueryFromAssistant"
+      @run="runQueryFromAssistant"
     />
 
     <!-- Instance Tree Modal -->
     <InstanceTreeModal
-        v-if="selectedObjectId !== null"
-        v-model:show="showTreeModal"
-        :object-id="selectedObjectId"
-        :initial-mode="treeMode"
-        :profile-id="profileId"
+      v-if="selectedObjectId !== null"
+      v-model:show="showTreeModal"
+      :object-id="selectedObjectId"
+      :initial-mode="treeMode"
+      :profile-id="profileId"
     />
   </div>
 </template>
@@ -341,13 +380,13 @@ const resultFilter = ref('');
 const sortColumn = ref('retained');
 const sortDirection = ref<'asc' | 'desc'>('desc');
 const showAssistant = ref(false);
-const assistantExpanded = ref(false);  // Start minimized so button is visible on page load
+const assistantExpanded = ref(false); // Start minimized so button is visible on page load
 const aiAvailable = ref(false);
 const aiChecked = ref(false);
 const aiPanelMinimized = ref(sessionStorage.getItem('oql-ai-panel-minimized') === 'true');
 
 // Persist minimized state in session storage
-watch(aiPanelMinimized, (value) => {
+watch(aiPanelMinimized, value => {
   sessionStorage.setItem('oql-ai-panel-minimized', String(value));
 });
 const showTreeModal = ref(false);
@@ -360,17 +399,35 @@ let client: HeapDumpClient;
 const exampleQueries = [
   // Object/Size Functions
   { title: '--- Object/Size Functions ---', query: '', divider: true },
-  { title: 'sizeof() - Shallow Size >10KB', query: 'select o from instanceof java.lang.Object o where sizeof(o) > 10240' },
-  { title: 'rsizeof() - Retained Size >1MB', query: 'select o from instanceof java.lang.Object o where rsizeof(o) > 1048576' },
+  {
+    title: 'sizeof() - Shallow Size >10KB',
+    query: 'select o from instanceof java.lang.Object o where sizeof(o) > 10240'
+  },
+  {
+    title: 'rsizeof() - Retained Size >1MB',
+    query: 'select o from instanceof java.lang.Object o where rsizeof(o) > 1048576'
+  },
   { title: 'objectid() - Find by ID', query: 'select heap.findObject(12345)' },
-  { title: 'classof() - Get Class Name', query: 'select classof(o).name from instanceof java.lang.Object o where sizeof(o) > 10240' },
+  {
+    title: 'classof() - Get Class Name',
+    query: 'select classof(o).name from instanceof java.lang.Object o where sizeof(o) > 10240'
+  },
 
   // Reference Chain Functions
   { title: '--- Reference Chain Functions ---', query: '', divider: true },
-  { title: 'referrers() - Objects with Many Refs', query: 'select o from instanceof java.lang.Object o where count(referrers(o)) > 10' },
-  { title: 'referees() - Referenced Objects', query: 'select referees(m) from java.util.HashMap m where m.size > 100' },
+  {
+    title: 'referrers() - Objects with Many Refs',
+    query: 'select o from instanceof java.lang.Object o where count(referrers(o)) > 10'
+  },
+  {
+    title: 'referees() - Referenced Objects',
+    query: 'select referees(m) from java.util.HashMap m where m.size > 100'
+  },
   { title: 'reachables() - All Reachable', query: 'select reachables(t) from java.lang.Thread t' },
-  { title: 'root() - Find GC Root', query: 'select root(s) from java.lang.String s where s.toString().contains("Error")' },
+  {
+    title: 'root() - Find GC Root',
+    query: 'select root(s) from java.lang.String s where s.toString().contains("Error")'
+  },
 
   // Heap Functions
   { title: '--- Heap Functions ---', query: '', divider: true },
@@ -383,17 +440,38 @@ const exampleQueries = [
   { title: '--- Array/Collection Functions ---', query: '', divider: true },
   { title: 'count() - Count Instances', query: 'select count(heap.objects("java.lang.String"))' },
   { title: 'length() - Array Length', query: 'select a from byte[] a where length(a) > 10240' },
-  { title: 'map() - Transform Results', query: 'select map(heap.objects("java.lang.Thread"), "it.name")' },
-  { title: 'filter() - Filter Results', query: 'select filter(heap.objects("java.lang.Thread"), "it.daemon == true")' },
-  { title: 'sort() - Sort Results', query: 'select sort(heap.objects("java.lang.String"), "sizeof(it)")' },
-  { title: 'unique() - Unique Values', query: 'select unique(map(heap.objects("java.lang.Thread"), "it.threadStatus"))' },
+  {
+    title: 'map() - Transform Results',
+    query: 'select map(heap.objects("java.lang.Thread"), "it.name")'
+  },
+  {
+    title: 'filter() - Filter Results',
+    query: 'select filter(heap.objects("java.lang.Thread"), "it.daemon == true")'
+  },
+  {
+    title: 'sort() - Sort Results',
+    query: 'select sort(heap.objects("java.lang.String"), "sizeof(it)")'
+  },
+  {
+    title: 'unique() - Unique Values',
+    query: 'select unique(map(heap.objects("java.lang.Thread"), "it.threadStatus"))'
+  },
 
   // Common Use Cases
   { title: '--- Common Use Cases ---', query: '', divider: true },
-  { title: 'Strings containing text', query: 'select s from java.lang.String s where s.toString().contains("Exception")' },
-  { title: 'Long Strings (>100 chars)', query: 'select s from java.lang.String s where s.value.length > 100' },
+  {
+    title: 'Strings containing text',
+    query: 'select s from java.lang.String s where s.toString().contains("Exception")'
+  },
+  {
+    title: 'Long Strings (>100 chars)',
+    query: 'select s from java.lang.String s where s.value.length > 100'
+  },
   { title: 'Large HashMaps (>100)', query: 'select m from java.util.HashMap m where m.size > 100' },
-  { title: 'Empty Collections', query: 'select c from instanceof java.util.Collection c where c.size == 0' },
+  {
+    title: 'Empty Collections',
+    query: 'select c from instanceof java.util.Collection c where c.size == 0'
+  },
   { title: 'All Thread Names', query: 'select t.name from java.lang.Thread t' },
   { title: 'Large byte[] Arrays', query: 'select a from byte[] a where a.length > 10240' }
 ];
@@ -413,9 +491,10 @@ const filteredResults = computed(() => {
   // Apply filter
   if (resultFilter.value.trim()) {
     const filter = resultFilter.value.toLowerCase();
-    results = results.filter(entry =>
-      (entry.className && entry.className.toLowerCase().includes(filter)) ||
-      (entry.value && entry.value.toLowerCase().includes(filter))
+    results = results.filter(
+      entry =>
+        (entry.className && entry.className.toLowerCase().includes(filter)) ||
+        (entry.value && entry.value.toLowerCase().includes(filter))
     );
   }
 
@@ -460,7 +539,12 @@ const executeQuery = async () => {
   sortDirection.value = 'desc';
 
   try {
-    const result = await client.executeQuery(oqlQuery.value, oqlLimit.value, 0, includeRetainedSize.value);
+    const result = await client.executeQuery(
+      oqlQuery.value,
+      oqlLimit.value,
+      0,
+      includeRetainedSize.value
+    );
     if (result.errorMessage) {
       oqlError.value = result.errorMessage;
     } else {
@@ -486,7 +570,7 @@ const openAssistant = () => {
 
 const closeAssistant = () => {
   showAssistant.value = false;
-  assistantExpanded.value = false;  // Return to minimized state - button stays visible
+  assistantExpanded.value = false; // Return to minimized state - button stays visible
 };
 
 const applyQueryFromAssistant = (query: string) => {
@@ -543,7 +627,6 @@ const loadData = async () => {
       // Check AI availability in parallel
       checkAiAvailability();
     }
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to initialize OQL interface';
     console.error('Error initializing OQL interface:', err);
@@ -670,7 +753,7 @@ onMounted(() => {
 .query-input:focus {
   outline: none;
   background-color: #fff;
-  border-bottom: 2px solid #4285F4;
+  border-bottom: 2px solid #4285f4;
 }
 
 .query-toolbar {
@@ -733,7 +816,6 @@ onMounted(() => {
 .filter-input {
   width: 140px;
 }
-
 
 .results-count {
   font-size: 0.75rem;
@@ -879,12 +961,7 @@ onMounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s ease;
 }
 
@@ -910,7 +987,8 @@ onMounted(() => {
 }
 
 @keyframes sparkle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -1205,7 +1283,8 @@ onMounted(() => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
   }
   50% {

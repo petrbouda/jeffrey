@@ -17,8 +17,8 @@
  */
 
 export default class HttpStatusStats {
-    constructor(
-        public code: number,
-        public count: number) {
-    }
+  constructor(
+    public code: number,
+    public count: number
+  ) {}
 }

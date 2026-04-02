@@ -20,18 +20,18 @@
  * Response from starting a download task.
  */
 export default interface DownloadTask {
-    /** Unique identifier of the download task */
-    taskId: string;
+  /** Unique identifier of the download task */
+  taskId: string;
 
-    /** Recording session ID */
-    sessionId: string;
+  /** Recording session ID */
+  sessionId: string;
 
-    /** List of file IDs being downloaded */
-    fileIds: string[];
+  /** List of file IDs being downloaded */
+  fileIds: string[];
 
-    /** Current status of the task */
-    status: string;
+  /** Current status of the task */
+  status: string;
 
-    /** Timestamp when the task was created (ISO string) */
-    createdAt: string;
+  /** Timestamp when the task was created (ISO string) */
+  createdAt: string;
 }

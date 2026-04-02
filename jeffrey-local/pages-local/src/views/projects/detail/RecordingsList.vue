@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref} from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectRecordingClient from '@/services/api/ProjectRecordingClient';
 import ProjectRecordingGroupClient from '@/services/api/ProjectRecordingGroupClient';
-import {ToastService} from '@/services/ToastService';
-import Recording from "@/services/api/model/Recording.ts";
-import RecordingGroup from "@/services/api/model/RecordingGroup.ts";
-import ProjectProfileClient from "@/services/api/ProjectProfileClient.ts";
-import SecondaryProfileService from "@/services/SecondaryProfileService.ts";
-import MessageBus from "@/services/MessageBus";
+import { ToastService } from '@/services/ToastService';
+import Recording from '@/services/api/model/Recording.ts';
+import RecordingGroup from '@/services/api/model/RecordingGroup.ts';
+import ProjectProfileClient from '@/services/api/ProjectProfileClient.ts';
+import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
+import MessageBus from '@/services/MessageBus';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import RecordingCard from '@/components/RecordingCard.vue';
 import RecordingFileGroupList from '@/components/RecordingFileGroupList.vue';
@@ -49,7 +49,9 @@ const editProfileName = ref('');
 const pollInterval = ref<number | null>(null);
 
 // Persistent storage for deleting profiles
-const DELETING_PROFILES_KEY = computed(() => `deleting_profiles_${workspaceId.value}_${projectId.value}`);
+const DELETING_PROFILES_KEY = computed(
+  () => `deleting_profiles_${workspaceId.value}_${projectId.value}`
+);
 
 const getDeletingProfiles = (): Set<string> => {
   const stored = sessionStorage.getItem(DELETING_PROFILES_KEY.value);
@@ -147,7 +149,10 @@ const loadData = async () => {
     toast.error('Failed to load data', error.message);
   } finally {
     MessageBus.emit(MessageBus.RECORDINGS_COUNT_CHANGED, recordings.value.length);
-    MessageBus.emit(MessageBus.PROFILES_COUNT_CHANGED, recordings.value.filter(r => r.hasProfile).length);
+    MessageBus.emit(
+      MessageBus.PROFILES_COUNT_CHANGED,
+      recordings.value.filter(r => r.hasProfile).length
+    );
     loading.value = false;
   }
 };
@@ -156,9 +161,9 @@ const loadData = async () => {
 const organizedRecordings = computed(() => {
   const validGroupIds = new Set(groups.value.map(group => group.id));
 
-  const rootRecordings = recordings.value.filter(recording =>
-      recording.groupId == null || !validGroupIds.has(recording.groupId))
-      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  const rootRecordings = recordings.value
+    .filter(recording => recording.groupId == null || !validGroupIds.has(recording.groupId))
+    .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
   const groupRecordings = new Map<string, Recording[]>();
 
@@ -186,7 +191,9 @@ const organizedRecordings = computed(() => {
 
 const isProfileDeleting = (recording: Recording): boolean => {
   if (!recording.profileId) return false;
-  return getDeletingProfiles().has(recording.profileId) || (recording as any)._profileDeleting === true;
+  return (
+    getDeletingProfiles().has(recording.profileId) || (recording as any)._profileDeleting === true
+  );
 };
 
 const selectProfile = () => {
@@ -232,7 +239,10 @@ const updateProfile = async () => {
   if (!editingRecording.value || !editProfileName.value.trim()) return;
 
   try {
-    await projectProfileClient.update(editingRecording.value.profileId!, editProfileName.value.trim());
+    await projectProfileClient.update(
+      editingRecording.value.profileId!,
+      editProfileName.value.trim()
+    );
     editingRecording.value = null;
     await loadData();
   } catch {
@@ -251,17 +261,18 @@ const deleteProfile = (recording: Recording) => {
 
   startPolling();
 
-  projectProfileClient.delete(profileId)
-      .then(() => {
-        removeDeletingProfile(profileId);
-        loadData();
-      })
-      .catch(error => {
-        console.error('Failed to delete profile:', error);
-        toast.error('Delete Profile', 'Failed to delete profile: ' + profileName);
-        removeDeletingProfile(profileId);
-        loadData();
-      });
+  projectProfileClient
+    .delete(profileId)
+    .then(() => {
+      removeDeletingProfile(profileId);
+      loadData();
+    })
+    .catch(error => {
+      console.error('Failed to delete profile:', error);
+      toast.error('Delete Profile', 'Failed to delete profile: ' + profileName);
+      removeDeletingProfile(profileId);
+      loadData();
+    });
 };
 
 // --- Polling ---
@@ -275,7 +286,10 @@ const startPolling = () => {
   pollInterval.value = window.setInterval(async () => {
     try {
       const profiles = await projectProfileClient.list();
-      const profileByRecordingId = new Map<string, { id: string; name: string; enabled: boolean; sizeInBytes: number }>();
+      const profileByRecordingId = new Map<
+        string,
+        { id: string; name: string; enabled: boolean; sizeInBytes: number }
+      >();
       const profileIds = new Set<string>();
       for (const p of profiles) {
         profileIds.add(p.id);
@@ -296,7 +310,12 @@ const startPolling = () => {
         // Find which recording this profile belongs to
         const rec = recordings.value.find(r => r.profileId === p.id);
         if (rec) {
-          profileByRecordingId.set(rec.id, { id: p.id, name: p.name, enabled: p.enabled, sizeInBytes: p.sizeInBytes });
+          profileByRecordingId.set(rec.id, {
+            id: p.id,
+            name: p.name,
+            enabled: p.enabled,
+            sizeInBytes: p.sizeInBytes
+          });
         }
       }
 
@@ -491,206 +510,243 @@ const onDragEnd = () => {
       />
 
       <div v-else>
-            <!-- Groups with their recordings -->
-            <div v-for="group in groups" :key="`group-${group.id}`">
-              <div class="recording-group-header"
-                  :class="{ 'recording-group-drop-target': dragOverGroupId === group.id }"
-                  @click="expandedGroups.has(group.id) ? expandedGroups.delete(group.id) : expandedGroups.add(group.id)"
-                  @dragover="onDragOver($event, group.id)"
-                  @dragleave="onDragLeave($event, group.id)"
-                  @drop="onDrop($event, group.id)">
-                <i :class="expandedGroups.has(group.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" class="recording-group-chevron"></i>
-                <span class="recording-group-name">{{ group.name }}</span>
-                <span class="recording-group-count">{{ organizedRecordings.groupRecordings.get(group.id)?.length || 0 }}</span>
-                <div class="recording-group-actions" @click.stop>
-                  <button class="recording-group-action-btn recording-group-action-delete"
-                      @click="confirmDeleteGroup(group)"
-                      title="Delete group and all its recordings">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Group recordings (shown when expanded) -->
-              <div v-if="expandedGroups.has(group.id)" class="recording-group-items">
-                <RecordingCard
-                    v-for="recording in organizedRecordings.groupRecordings.get(group.id) || []"
-                    :key="`recording-${recording.id}`"
-                    :recording-id="recording.id"
-                    :name="recording.profileName || recording.name"
-                    :size-in-bytes="recording.sizeInBytes"
-                    :duration-in-millis="recording.durationInMillis"
-                    :uploaded-at="recording.uploadedAt"
-                    :source-type="recording.sourceType"
-                    :has-profile="!!recording.hasProfile"
-                    :profile-id="recording.profileId"
-                    :profile-enabled="recording.profileEnabled ?? true"
-                    :profile-size-in-bytes="recording.profileSizeInBytes"
-                    :profile-modified="recording.profileModified"
-                    :file-count="recording.recordingFiles.length"
-                    :creating-profile="isRecordingCreatingProfile(recording.id)"
-                    :deleting-profile="isProfileDeleting(recording)"
-                    :expandable="true"
-                    :expanded="expandedRecordingFiles.has(recording.id)"
-                    :draggable="true"
-                    @click="handleRecordingCardClick(recording)"
-                    @create-profile="createProfile(recording)"
-                    @open-profile="navigateToProfile(recording)"
-                    @edit-profile="editProfile(recording)"
-                    @delete-profile="deleteProfile(recording)"
-                    @toggle-expand="toggleRecordingFiles(recording)"
-                    @delete-recording="confirmDeleteRecording(recording)"
-                    @dragend="onDragEnd"
-                >
-                  <template #expanded-content>
-                    <RecordingFileGroupList
-                        v-if="recording.recordingFiles && recording.recordingFiles.length > 0"
-                        :recording-id="recording.id"
-                        :files="recording.recordingFiles"
-                        @download="downloadFile"
-                    />
-                    <div v-else class="small py-1 text-muted">
-                      <i class="bi bi-exclamation-circle me-1"></i>
-                      No recording files available
-                    </div>
-                  </template>
-                </RecordingCard>
-
-                <div v-if="(organizedRecordings.groupRecordings.get(group.id)?.length || 0) === 0" class="recording-group-empty">
-                  <span>No recordings</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Ungrouped Recordings -->
-            <div v-if="organizedRecordings.rootRecordings.length > 0">
-              <div class="recording-group-header"
-                  :class="{ 'recording-group-drop-target': dragOverGroupId === '__ungrouped__' }"
-                  @click="expandedGroups.has('root') ? expandedGroups.delete('root') : expandedGroups.add('root')"
-                  @dragover="onDragOver($event, null)"
-                  @dragleave="onDragLeave($event, null)"
-                  @drop="onDrop($event, null)">
-                <i :class="expandedGroups.has('root') ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" class="recording-group-chevron"></i>
-                <span class="recording-group-name">Ungrouped</span>
-                <span class="recording-group-count">{{ organizedRecordings.rootRecordings.length }}</span>
-              </div>
-
-              <div v-if="expandedGroups.has('root')" class="recording-group-items">
-                <RecordingCard
-                    v-for="recording in organizedRecordings.rootRecordings"
-                    :key="recording.id"
-                    :recording-id="recording.id"
-                    :name="recording.profileName || recording.name"
-                    :size-in-bytes="recording.sizeInBytes"
-                    :duration-in-millis="recording.durationInMillis"
-                    :uploaded-at="recording.uploadedAt"
-                    :source-type="recording.sourceType"
-                    :has-profile="!!recording.hasProfile"
-                    :profile-id="recording.profileId"
-                    :profile-enabled="recording.profileEnabled ?? true"
-                    :profile-size-in-bytes="recording.profileSizeInBytes"
-                    :profile-modified="recording.profileModified"
-                    :file-count="recording.recordingFiles.length"
-                    :creating-profile="isRecordingCreatingProfile(recording.id)"
-                    :deleting-profile="isProfileDeleting(recording)"
-                    :expandable="true"
-                    :expanded="expandedRecordingFiles.has(recording.id)"
-                    :draggable="true"
-                    @click="handleRecordingCardClick(recording)"
-                    @create-profile="createProfile(recording)"
-                    @open-profile="navigateToProfile(recording)"
-                    @edit-profile="editProfile(recording)"
-                    @delete-profile="deleteProfile(recording)"
-                    @toggle-expand="toggleRecordingFiles(recording)"
-                    @delete-recording="confirmDeleteRecording(recording)"
-                    @dragend="onDragEnd"
-                >
-                  <template #expanded-content>
-                    <RecordingFileGroupList
-                        v-if="recording.recordingFiles && recording.recordingFiles.length > 0"
-                        :recording-id="recording.id"
-                        :files="recording.recordingFiles"
-                        @download="downloadFile"
-                    />
-                    <div v-else class="small py-1 text-muted">
-                      <i class="bi bi-exclamation-circle me-1"></i>
-                      No recording files available
-                    </div>
-                  </template>
-                </RecordingCard>
-              </div>
+        <!-- Groups with their recordings -->
+        <div v-for="group in groups" :key="`group-${group.id}`">
+          <div
+            class="recording-group-header"
+            :class="{ 'recording-group-drop-target': dragOverGroupId === group.id }"
+            @click="
+              expandedGroups.has(group.id)
+                ? expandedGroups.delete(group.id)
+                : expandedGroups.add(group.id)
+            "
+            @dragover="onDragOver($event, group.id)"
+            @dragleave="onDragLeave($event, group.id)"
+            @drop="onDrop($event, group.id)"
+          >
+            <i
+              :class="expandedGroups.has(group.id) ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"
+              class="recording-group-chevron"
+            ></i>
+            <span class="recording-group-name">{{ group.name }}</span>
+            <span class="recording-group-count">{{
+              organizedRecordings.groupRecordings.get(group.id)?.length || 0
+            }}</span>
+            <div class="recording-group-actions" @click.stop>
+              <button
+                class="recording-group-action-btn recording-group-action-delete"
+                @click="confirmDeleteGroup(group)"
+                title="Delete group and all its recordings"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
           </div>
+
+          <!-- Group recordings (shown when expanded) -->
+          <div v-if="expandedGroups.has(group.id)" class="recording-group-items">
+            <RecordingCard
+              v-for="recording in organizedRecordings.groupRecordings.get(group.id) || []"
+              :key="`recording-${recording.id}`"
+              :recording-id="recording.id"
+              :name="recording.profileName || recording.name"
+              :size-in-bytes="recording.sizeInBytes"
+              :duration-in-millis="recording.durationInMillis"
+              :uploaded-at="recording.uploadedAt"
+              :source-type="recording.sourceType"
+              :has-profile="!!recording.hasProfile"
+              :profile-id="recording.profileId"
+              :profile-enabled="recording.profileEnabled ?? true"
+              :profile-size-in-bytes="recording.profileSizeInBytes"
+              :profile-modified="recording.profileModified"
+              :file-count="recording.recordingFiles.length"
+              :creating-profile="isRecordingCreatingProfile(recording.id)"
+              :deleting-profile="isProfileDeleting(recording)"
+              :expandable="true"
+              :expanded="expandedRecordingFiles.has(recording.id)"
+              :draggable="true"
+              @click="handleRecordingCardClick(recording)"
+              @create-profile="createProfile(recording)"
+              @open-profile="navigateToProfile(recording)"
+              @edit-profile="editProfile(recording)"
+              @delete-profile="deleteProfile(recording)"
+              @toggle-expand="toggleRecordingFiles(recording)"
+              @delete-recording="confirmDeleteRecording(recording)"
+              @dragend="onDragEnd"
+            >
+              <template #expanded-content>
+                <RecordingFileGroupList
+                  v-if="recording.recordingFiles && recording.recordingFiles.length > 0"
+                  :recording-id="recording.id"
+                  :files="recording.recordingFiles"
+                  @download="downloadFile"
+                />
+                <div v-else class="small py-1 text-muted">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  No recording files available
+                </div>
+              </template>
+            </RecordingCard>
+
+            <div
+              v-if="(organizedRecordings.groupRecordings.get(group.id)?.length || 0) === 0"
+              class="recording-group-empty"
+            >
+              <span>No recordings</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ungrouped Recordings -->
+        <div v-if="organizedRecordings.rootRecordings.length > 0">
+          <div
+            class="recording-group-header"
+            :class="{ 'recording-group-drop-target': dragOverGroupId === '__ungrouped__' }"
+            @click="
+              expandedGroups.has('root')
+                ? expandedGroups.delete('root')
+                : expandedGroups.add('root')
+            "
+            @dragover="onDragOver($event, null)"
+            @dragleave="onDragLeave($event, null)"
+            @drop="onDrop($event, null)"
+          >
+            <i
+              :class="expandedGroups.has('root') ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"
+              class="recording-group-chevron"
+            ></i>
+            <span class="recording-group-name">Ungrouped</span>
+            <span class="recording-group-count">{{
+              organizedRecordings.rootRecordings.length
+            }}</span>
+          </div>
+
+          <div v-if="expandedGroups.has('root')" class="recording-group-items">
+            <RecordingCard
+              v-for="recording in organizedRecordings.rootRecordings"
+              :key="recording.id"
+              :recording-id="recording.id"
+              :name="recording.profileName || recording.name"
+              :size-in-bytes="recording.sizeInBytes"
+              :duration-in-millis="recording.durationInMillis"
+              :uploaded-at="recording.uploadedAt"
+              :source-type="recording.sourceType"
+              :has-profile="!!recording.hasProfile"
+              :profile-id="recording.profileId"
+              :profile-enabled="recording.profileEnabled ?? true"
+              :profile-size-in-bytes="recording.profileSizeInBytes"
+              :profile-modified="recording.profileModified"
+              :file-count="recording.recordingFiles.length"
+              :creating-profile="isRecordingCreatingProfile(recording.id)"
+              :deleting-profile="isProfileDeleting(recording)"
+              :expandable="true"
+              :expanded="expandedRecordingFiles.has(recording.id)"
+              :draggable="true"
+              @click="handleRecordingCardClick(recording)"
+              @create-profile="createProfile(recording)"
+              @open-profile="navigateToProfile(recording)"
+              @edit-profile="editProfile(recording)"
+              @delete-profile="deleteProfile(recording)"
+              @toggle-expand="toggleRecordingFiles(recording)"
+              @delete-recording="confirmDeleteRecording(recording)"
+              @dragend="onDragEnd"
+            >
+              <template #expanded-content>
+                <RecordingFileGroupList
+                  v-if="recording.recordingFiles && recording.recordingFiles.length > 0"
+                  :recording-id="recording.id"
+                  :files="recording.recordingFiles"
+                  @download="downloadFile"
+                />
+                <div v-else class="small py-1 text-muted">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  No recording files available
+                </div>
+              </template>
+            </RecordingCard>
+          </div>
+        </div>
+      </div>
     </div>
 
-      <!-- Delete Recording Confirmation Dialog -->
-      <ConfirmationDialog
-        v-model:show="deleteRecordingDialog"
-        title="Confirm Delete"
-        :message="recordingToDelete ? `Are you sure you want to delete the recording: ${recordingToDelete.name}?` : 'Are you sure you want to delete this recording?'"
-        sub-message="This action cannot be undone."
-        confirm-label="Delete"
-        confirm-button-class="btn-danger"
-        confirm-button-id="deleteRecordingButton"
-        modal-id="deleteRecordingModal"
-        @confirm="deleteRecording"
-      />
+    <!-- Delete Recording Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="deleteRecordingDialog"
+      title="Confirm Delete"
+      :message="
+        recordingToDelete
+          ? `Are you sure you want to delete the recording: ${recordingToDelete.name}?`
+          : 'Are you sure you want to delete this recording?'
+      "
+      sub-message="This action cannot be undone."
+      confirm-label="Delete"
+      confirm-button-class="btn-danger"
+      confirm-button-id="deleteRecordingButton"
+      modal-id="deleteRecordingModal"
+      @confirm="deleteRecording"
+    />
 
-      <!-- Delete Group Confirmation Dialog -->
-      <ConfirmationDialog
-        v-model:show="deleteGroupDialog"
-        title="Confirm Delete Group"
-        :message="groupToDelete ? `Are you sure you want to delete the group: ${groupToDelete.name}?` : 'Are you sure you want to delete this group?'"
-        sub-message="This will also delete all recordings within the group."
-        confirm-label="Delete Group"
-        confirm-button-class="btn-danger"
-        confirm-button-id="deleteGroupButton"
-        modal-id="deleteGroupModal"
-        @confirm="deleteGroup"
-      />
+    <!-- Delete Group Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="deleteGroupDialog"
+      title="Confirm Delete Group"
+      :message="
+        groupToDelete
+          ? `Are you sure you want to delete the group: ${groupToDelete.name}?`
+          : 'Are you sure you want to delete this group?'
+      "
+      sub-message="This will also delete all recordings within the group."
+      confirm-label="Delete Group"
+      confirm-button-class="btn-danger"
+      confirm-button-id="deleteGroupButton"
+      modal-id="deleteGroupModal"
+      @confirm="deleteGroup"
+    />
 
-      <!-- Create Group Dialog -->
-      <GenericModal
-        modal-id="createGroupModal"
-        :show="showCreateGroupModal"
-        @update:show="showCreateGroupModal = $event"
-        title="Create New Group"
-        icon="bi-folder-plus"
-      >
-        <div class="form-group">
-          <label for="newGroupNameInput" class="form-label">Group Name</label>
-          <input
-              type="text"
-              class="form-control"
-              id="newGroupNameInput"
-              v-model="newGroupName"
-              placeholder="Enter group name"
-          >
+    <!-- Create Group Dialog -->
+    <GenericModal
+      modal-id="createGroupModal"
+      :show="showCreateGroupModal"
+      @update:show="showCreateGroupModal = $event"
+      title="Create New Group"
+      icon="bi-folder-plus"
+    >
+      <div class="form-group">
+        <label for="newGroupNameInput" class="form-label">Group Name</label>
+        <input
+          type="text"
+          class="form-control"
+          id="newGroupNameInput"
+          v-model="newGroupName"
+          placeholder="Enter group name"
+        />
+      </div>
+
+      <!-- Validation Errors -->
+      <div v-if="createGroupErrors.length > 0" class="alert alert-danger mt-3">
+        <div v-for="(error, idx) in createGroupErrors" :key="idx">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
         </div>
+      </div>
 
-        <!-- Validation Errors -->
-        <div v-if="createGroupErrors.length > 0" class="alert alert-danger mt-3">
-          <div v-for="(error, idx) in createGroupErrors" :key="idx">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
-          </div>
-        </div>
+      <template #footer>
+        <button type="button" class="btn btn-secondary" @click="showCreateGroupModal = false">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" @click="createGroup">
+          <i class="bi bi-folder-plus me-1"></i>
+          Create
+        </button>
+      </template>
+    </GenericModal>
 
-        <template #footer>
-          <button type="button" class="btn btn-secondary" @click="showCreateGroupModal = false">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="createGroup">
-            <i class="bi bi-folder-plus me-1"></i>
-            Create
-          </button>
-        </template>
-      </GenericModal>
-
-      <!-- Edit Profile Modal -->
-      <EditNameModal
-          v-if="editingRecording"
-          v-model="editProfileName"
-          @submit="updateProfile"
-          @close="editingRecording = null"
-      />
+    <!-- Edit Profile Modal -->
+    <EditNameModal
+      v-if="editingRecording"
+      v-model="editProfileName"
+      @submit="updateProfile"
+      @close="editingRecording = null"
+    />
   </PageHeader>
 </template>
 

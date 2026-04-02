@@ -1,35 +1,44 @@
 <template>
   <DualPanel
-      :title="title"
-      :icon="icon"
-      :embedded="embedded"
-      left-title="Operation Types"
-      :right-title="secondChartTitle"
+    :title="title"
+    :icon="icon"
+    :embedded="embedded"
+    left-title="Operation Types"
+    :right-title="secondChartTitle"
   >
     <template #left>
       <DonutWithLegend
-          :data="operationChartData"
-          :tooltip-formatter="(val: number) => formatNumber(val) + ' invocations'"
+        :data="operationChartData"
+        :tooltip-formatter="(val: number) => formatNumber(val) + ' invocations'"
       />
     </template>
     <template #right>
       <DonutWithLegend
-          :data="secondDonutData"
-          :tooltip-formatter="(val: number) => formatNumber(val) + ' invocations'"
+        :data="secondDonutData"
+        :tooltip-formatter="(val: number) => formatNumber(val) + ' invocations'"
       />
     </template>
   </DualPanel>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import DualPanel from '@/components/DualPanel.vue';
 import DonutWithLegend from '@/components/DonutWithLegend.vue';
-import type {DonutChartData} from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import JdbcUtils from '@/services/api/model/JdbcUtils.ts';
 import FormattingService from '@/services/FormattingService';
 
-const defaultColors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#9C27B0', '#FF5722', '#00BCD4', '#795548'];
+const defaultColors = [
+  '#4285F4',
+  '#EA4335',
+  '#FBBC05',
+  '#34A853',
+  '#9C27B0',
+  '#FF5722',
+  '#00BCD4',
+  '#795548'
+];
 
 interface Props {
   operations: { label: string; value: number }[];

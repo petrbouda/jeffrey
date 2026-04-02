@@ -23,32 +23,40 @@
     title="Concurrent GC Event Details"
     icon="bi-layers"
     size="xl"
-    @update:show="$emit('update:show', $event)">
-    
+    @update:show="$emit('update:show', $event)"
+  >
     <div v-if="event" class="event-details">
       <!-- Event Info Header -->
       <div class="event-info-header mb-4">
         <div class="d-flex align-items-center gap-3 mb-2">
-          <Badge :value="`GC ID: ${event.gcId}`" variant="secondary" size="m"/>
-          <Badge :value="event.collectorName" :variant="getGenerationTypeBadgeVariant(event.generationType)" size="m"/>
+          <Badge :value="`GC ID: ${event.gcId}`" variant="secondary" size="m" />
+          <Badge
+            :value="event.collectorName"
+            :variant="getGenerationTypeBadgeVariant(event.generationType)"
+            size="m"
+          />
         </div>
         <div class="event-metrics">
           <div class="metric-item">
             <i class="bi bi-clock"></i>
             <span class="metric-label">Duration:</span>
             <span class="metric-value text-danger fw-bold">{{
-                FormattingService.formatDuration2Units(event.duration)
-              }}</span>
+              FormattingService.formatDuration2Units(event.duration)
+            }}</span>
           </div>
           <div class="metric-item">
             <i class="bi bi-pause-circle"></i>
             <span class="metric-label">Sum of Pauses:</span>
-            <span class="metric-value">{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</span>
+            <span class="metric-value">{{
+              FormattingService.formatDuration2Units(event.sumOfPauses)
+            }}</span>
           </div>
           <div class="metric-item">
             <i class="bi bi-calendar-event"></i>
             <span class="metric-label">Timestamp:</span>
-            <span class="metric-value">{{ FormattingService.formatTimestamp(event.timestamp) }}</span>
+            <span class="metric-value">{{
+              FormattingService.formatTimestamp(event.timestamp)
+            }}</span>
           </div>
         </div>
       </div>
@@ -71,7 +79,7 @@
             <tbody>
               <tr v-for="(phase, index) in event.phases" :key="index">
                 <td>
-                  <Badge :value="phase.name" variant="info" size="m"/>
+                  <Badge :value="phase.name" variant="info" size="m" />
                 </td>
                 <td>{{ FormattingService.formatDuration2Units(phase.duration) }}</td>
                 <td>{{ FormattingService.formatTimestamp(phase.timestamp) }}</td>
@@ -124,7 +132,6 @@ defineEmits(['update:show']);
   border-radius: 8px;
   border: 1px solid var(--card-border-color);
 }
-
 
 .event-metrics {
   display: flex;

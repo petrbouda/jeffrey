@@ -1,21 +1,21 @@
 <template>
   <ChartSection title="gRPC Methods" icon="gear" :full-width="true">
     <MetricsList
-        :items="methods"
-        :metrics="methodMetrics"
-        :sort-options="sortOptions"
-        :default-sort="'maxResponseTime'"
-        :item-key="'method'"
-        title-key="method"
-        :loading="false"
-        loading-text="Loading methods..."
-        empty-text="No gRPC methods found"
-        :show-controls="true"
-        :show-metrics="true"
-        :show-subtitle="false"
-        :sortable="true"
-        :selectable="false"
-        @sort-change="onSortChange"
+      :items="methods"
+      :metrics="methodMetrics"
+      :sort-options="sortOptions"
+      :default-sort="'maxResponseTime'"
+      :item-key="'method'"
+      title-key="method"
+      :loading="false"
+      loading-text="Loading methods..."
+      empty-text="No gRPC methods found"
+      :show-controls="true"
+      :show-metrics="true"
+      :show-subtitle="false"
+      :sortable="true"
+      :selectable="false"
+      @sort-change="onSortChange"
     >
       <template #item-title="{ item }">
         <div class="method-display" :title="item.method">
@@ -28,12 +28,12 @@
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
+import { ref } from 'vue';
 import FormattingService from '@/services/FormattingService';
 import MetricsList from '@/components/MetricsList.vue';
 import ChartSection from '@/components/ChartSection.vue';
-import type {MetricDefinition, SortOption} from '@/components/MetricsList.vue';
-import type {GrpcMethodInfo} from '@/services/api/ProfileGrpcClient';
+import type { MetricDefinition, SortOption } from '@/components/MetricsList.vue';
+import type { GrpcMethodInfo } from '@/services/api/ProfileGrpcClient';
 
 interface Props {
   methods: GrpcMethodInfo[];
@@ -74,18 +74,18 @@ const methodMetrics: MetricDefinition[] = [
     key: 'successRate',
     label: 'Success',
     formatter: (value: number) => `${((value || 0) * 100).toFixed(1)}%`,
-    class: (value: number) => (value || 0) >= 1 ? 'metric-success' : 'metric-warning'
+    class: (value: number) => ((value || 0) >= 1 ? 'metric-success' : 'metric-warning')
   },
   {
     key: 'avgRequestSize',
     label: 'Avg Req',
-    formatter: (value: number) => value < 0 ? '?' : FormattingService.formatBytes(value),
+    formatter: (value: number) => (value < 0 ? '?' : FormattingService.formatBytes(value)),
     class: 'metric-secondary'
   },
   {
     key: 'avgResponseSize',
     label: 'Avg Resp',
-    formatter: (value: number) => value < 0 ? '?' : FormattingService.formatBytes(value),
+    formatter: (value: number) => (value < 0 ? '?' : FormattingService.formatBytes(value)),
     class: 'metric-secondary'
   }
 ];

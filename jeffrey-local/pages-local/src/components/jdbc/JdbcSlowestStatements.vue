@@ -1,9 +1,11 @@
 <template>
   <div v-if="statements.length > 0" class="slowest-list">
-    <div v-for="statement in sortedStatements"
-         :key="statement.timestamp"
-         class="slowest-row"
-         @click="handleSqlButtonClick(statement)">
+    <div
+      v-for="statement in sortedStatements"
+      :key="statement.timestamp"
+      class="slowest-row"
+      @click="handleSqlButtonClick(statement)"
+    >
       <div class="left-accent" :class="getAccentClass(statement.operation)"></div>
       <div class="row-content">
         <div class="row-header">
@@ -14,16 +16,27 @@
             </div>
           </div>
           <div class="time-bar-wrap">
-            <span class="time-bar-value">{{ FormattingService.formatDuration2Units(statement.executionTime) }}</span>
+            <span class="time-bar-value">{{
+              FormattingService.formatDuration2Units(statement.executionTime)
+            }}</span>
             <div class="time-bar-track">
-              <div class="time-bar-fill" :style="{ width: getTimePercentage(statement.executionTime) + '%' }"></div>
+              <div
+                class="time-bar-fill"
+                :style="{ width: getTimePercentage(statement.executionTime) + '%' }"
+              ></div>
             </div>
           </div>
         </div>
         <div class="row-details">
-          <span class="detail-chip"><i class="bi bi-clock"></i> {{ FormattingService.formatTimestamp(statement.timestamp).replace('T', ' ') }}</span>
+          <span class="detail-chip"
+            ><i class="bi bi-clock"></i>
+            {{ FormattingService.formatTimestamp(statement.timestamp).replace('T', ' ') }}</span
+          >
           <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"><i class="bi bi-list-ol"></i> {{ FormattingService.formatNumber(statement.rowsProcessed) }} rows</span>
+          <span class="detail-chip"
+            ><i class="bi bi-list-ol"></i>
+            {{ FormattingService.formatNumber(statement.rowsProcessed) }} rows</span
+          >
           <template v-if="statement.isBatch || statement.isLob">
             <span class="detail-dot">&middot;</span>
             <Badge v-if="statement.isBatch" value="BATCH" variant="blue" size="xs" />
@@ -36,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
 import Badge from '@/components/Badge.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';
@@ -50,7 +63,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const sortedStatements = computed(() =>
-    [...props.statements].sort((a, b) => b.executionTime - a.executionTime)
+  [...props.statements].sort((a, b) => b.executionTime - a.executionTime)
 );
 
 const maxExecutionTime = computed(() => {
@@ -65,7 +78,8 @@ const getTimePercentage = (executionTime: number): number => {
 const getAccentClass = (operation: string): string => {
   const op = JdbcUtils.cleanOperationName(operation).toLowerCase();
   const mapping: Record<string, string> = {
-    query: 'accent-blue', select: 'accent-blue',
+    query: 'accent-blue',
+    select: 'accent-blue',
     insert: 'accent-green',
     update: 'accent-orange',
     delete: 'accent-red'
@@ -74,7 +88,7 @@ const getAccentClass = (operation: string): string => {
 };
 
 const emit = defineEmits<{
-  sqlButtonClick: [statement: JdbcSlowStatement]
+  sqlButtonClick: [statement: JdbcSlowStatement];
 }>();
 
 const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
@@ -110,11 +124,21 @@ const handleSqlButtonClick = (statement: JdbcSlowStatement) => {
   margin-right: 1rem;
 }
 
-.accent-blue { background: #1565c0; }
-.accent-green { background: var(--color-success); }
-.accent-orange { background: var(--color-warning); }
-.accent-red { background: var(--color-danger); }
-.accent-purple { background: var(--color-purple); }
+.accent-blue {
+  background: #1565c0;
+}
+.accent-green {
+  background: var(--color-success);
+}
+.accent-orange {
+  background: var(--color-warning);
+}
+.accent-red {
+  background: var(--color-danger);
+}
+.accent-purple {
+  background: var(--color-purple);
+}
 
 .row-content {
   flex: 1;

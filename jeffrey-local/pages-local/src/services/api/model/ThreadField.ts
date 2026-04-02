@@ -17,6 +17,8 @@
  */
 
 export default class ThreadField {
-    constructor(public name: number, public type: string) {
-    }
+  constructor(
+    public name: number,
+    public type: string
+  ) {}
 }

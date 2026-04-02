@@ -27,17 +27,17 @@ export type FileProgressStatus = 'PENDING' | 'DOWNLOADING' | 'COMPLETED' | 'FAIL
  * Progress information for a single file being downloaded.
  */
 export interface FileProgress {
-    /** Name of the file */
-    fileName: string;
+  /** Name of the file */
+  fileName: string;
 
-    /** Total size of the file in bytes */
-    fileSize: number;
+  /** Total size of the file in bytes */
+  fileSize: number;
 
-    /** Bytes downloaded so far */
-    downloadedBytes: number;
+  /** Bytes downloaded so far */
+  downloadedBytes: number;
 
-    /** Current status of this file's download */
-    status: FileProgressStatus;
+  /** Current status of this file's download */
+  status: FileProgressStatus;
 }
 
 /**
@@ -45,45 +45,45 @@ export interface FileProgress {
  * Supports parallel downloads via activeDownloads list.
  */
 export default interface DownloadProgress {
-    /** Unique identifier of the download task */
-    taskId: string;
+  /** Unique identifier of the download task */
+  taskId: string;
 
-    /** Session name for display in UI */
-    sessionName?: string;
+  /** Session name for display in UI */
+  sessionName?: string;
 
-    /** Current status of the download */
-    status: DownloadTaskStatus;
+  /** Current status of the download */
+  status: DownloadTaskStatus;
 
-    /** Total number of files to download */
-    totalFiles: number;
+  /** Total number of files to download */
+  totalFiles: number;
 
-    /** Number of files that have been fully downloaded */
-    completedFiles: number;
+  /** Number of files that have been fully downloaded */
+  completedFiles: number;
 
-    /** Files currently being downloaded (for parallel downloads) */
-    activeDownloads: FileProgress[];
+  /** Files currently being downloaded (for parallel downloads) */
+  activeDownloads: FileProgress[];
 
-    /** Files that have completed downloading */
-    completedDownloads: FileProgress[];
+  /** Files that have completed downloading */
+  completedDownloads: FileProgress[];
 
-    /** Files waiting to be downloaded */
-    pendingDownloads: FileProgress[];
+  /** Files waiting to be downloaded */
+  pendingDownloads: FileProgress[];
 
-    /** Total bytes to download across all files */
-    totalBytes: number;
+  /** Total bytes to download across all files */
+  totalBytes: number;
 
-    /** Total bytes downloaded so far */
-    downloadedBytes: number;
+  /** Total bytes downloaded so far */
+  downloadedBytes: number;
 
-    /** Overall progress percentage (0-100) */
-    percentComplete: number;
+  /** Overall progress percentage (0-100) */
+  percentComplete: number;
 
-    /** Error message if status is FAILED (null otherwise) */
-    errorMessage: string | null;
+  /** Error message if status is FAILED (null otherwise) */
+  errorMessage: string | null;
 
-    /** Timestamp when the download started (milliseconds) */
-    startedAt: number;
+  /** Timestamp when the download started (milliseconds) */
+  startedAt: number;
 
-    /** Timestamp when the download completed (milliseconds, null if not completed) */
-    completedAt: number | null;
+  /** Timestamp when the download completed (milliseconds, null if not completed) */
+  completedAt: number | null;
 }

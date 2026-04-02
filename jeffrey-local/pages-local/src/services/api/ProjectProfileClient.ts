@@ -20,28 +20,27 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Profile from '@/services/api/model/Profile';
 
 export default class ProjectProfileClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/profiles`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/profiles`);
-    }
+  async find(profileId: string): Promise<Profile> {
+    return super.get<Profile>(`/${profileId}`);
+  }
 
-    async find(profileId: string): Promise<Profile> {
-        return super.get<Profile>(`/${profileId}`);
-    }
+  async list(): Promise<Profile[]> {
+    return super.get<Profile[]>();
+  }
 
-    async list(): Promise<Profile[]> {
-        return super.get<Profile[]>();
-    }
+  async create(recordingId: string): Promise<Profile> {
+    return super.post<Profile>('', { recordingId });
+  }
 
-    async create(recordingId: string): Promise<Profile> {
-        return super.post<Profile>('', { recordingId });
-    }
+  async update(profileId: string, name: string): Promise<Profile> {
+    return super.put<Profile>(`/${profileId}`, { name });
+  }
 
-    async update(profileId: string, name: string): Promise<Profile> {
-        return super.put<Profile>(`/${profileId}`, { name });
-    }
-
-    async delete(profileId: string): Promise<void> {
-        return super.del<void>(`/${profileId}`);
-    }
+  async delete(profileId: string): Promise<void> {
+    return super.del<void>(`/${profileId}`);
+  }
 }

@@ -12,9 +12,9 @@
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="collection"
-      message="The heap dump needs to be initialized before you can view biggest collections."
+    v-else-if="!cacheReady"
+    icon="collection"
+    message="The heap dump needs to be initialized before you can view biggest collections."
   />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -22,15 +22,18 @@
   <!-- Analysis Not Yet Run -->
   <div v-else-if="!analysisExists && !analysisRunning">
     <PageHeader
-        title="Biggest Collections"
-        description="Find the largest collection instances by element count and retained size"
-        icon="bi-collection-fill"
+      title="Biggest Collections"
+      description="Find the largest collection instances by element count and retained size"
+      icon="bi-collection-fill"
     />
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
       <div class="flex-grow-1">
         <h6 class="mb-1">Biggest Collections Analysis Not Available</h6>
-        <p class="mb-2 small">Run the analysis to identify the largest collection instances in the heap by element count and retained memory size.</p>
+        <p class="mb-2 small">
+          Run the analysis to identify the largest collection instances in the heap by element count
+          and retained memory size.
+        </p>
         <button class="btn btn-primary btn-sm" @click="runAnalysis">
           <i class="bi bi-play-fill me-1"></i>
           Run Biggest Collections Analysis
@@ -42,9 +45,9 @@
   <!-- Analysis Running -->
   <div v-else-if="analysisRunning">
     <PageHeader
-        title="Biggest Collections"
-        description="Find the largest collection instances by element count and retained size"
-        icon="bi-collection-fill"
+      title="Biggest Collections"
+      description="Find the largest collection instances by element count and retained size"
+      icon="bi-collection-fill"
     />
     <div class="alert alert-info d-flex align-items-center">
       <div class="spinner-border spinner-border-sm me-3" role="status">
@@ -60,9 +63,9 @@
   <!-- Analysis Results -->
   <div v-else-if="report">
     <PageHeader
-        title="Biggest Collections"
-        description="Find the largest collection instances by element count and retained size"
-        icon="bi-collection-fill"
+      title="Biggest Collections"
+      description="Find the largest collection instances by element count and retained size"
+      icon="bi-collection-fill"
     />
 
     <!-- Summary Metrics -->
@@ -70,10 +73,10 @@
 
     <!-- Tabbed Results -->
     <ChartSectionWithTabs
-        icon="collection-fill"
-        :tabs="analysisTabs"
-        :full-width="true"
-        id-prefix="biggest-collections-"
+      icon="collection-fill"
+      :tabs="analysisTabs"
+      :full-width="true"
+      id-prefix="biggest-collections-"
     >
       <!-- By Element Count Tab -->
       <template #by-element-count>
@@ -81,7 +84,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.byElementCount.length }} collections</small>
+                <small class="text-muted"
+                  >Showing {{ report.byElementCount.length }} collections</small
+                >
               </div>
             </div>
           </div>
@@ -89,45 +94,57 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <th style="width: 45%;">Collection</th>
-                  <th class="text-end" style="width: 220px;">Usage</th>
-                  <th style="width: 130px;">Fill Ratio</th>
-                  <th class="text-end" style="width: 100px;">Shallow</th>
-                  <th class="text-end" style="width: 110px;">Retained</th>
-                </tr>
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <th style="width: 45%">Collection</th>
+                    <th class="text-end" style="width: 220px">Usage</th>
+                    <th style="width: 130px">Fill Ratio</th>
+                    <th class="text-end" style="width: 100px">Shallow</th>
+                    <th class="text-end" style="width: 110px">Retained</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedByElementCount" :key="index">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <div class="class-info">
-                      <div class="class-name-line">
-                        <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                        <span class="package-name">{{ packageName(entry.className) }}</span>
+                  <tr v-for="(entry, index) in sortedByElementCount" :key="index">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <div class="class-info">
+                        <div class="class-name-line">
+                          <code class="class-name">{{ simpleClassName(entry.className) }}</code>
+                          <span class="package-name">{{ packageName(entry.className) }}</span>
+                        </div>
+                        <div class="detail-line" v-if="entry.ownerClassName">
+                          <span class="owner-label">owner</span>
+                          <span class="field-tag">{{ entry.ownerClassName }}</span>
+                        </div>
                       </div>
-                      <div class="detail-line" v-if="entry.ownerClassName">
-                        <span class="owner-label">owner</span>
-                        <span class="field-tag">{{ entry.ownerClassName }}</span>
+                    </td>
+                    <td class="text-end font-monospace">
+                      <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
+                      <div class="capacity-hint">
+                        {{ FormattingService.formatNumber(entry.capacity) }}
                       </div>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">
-                    <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
-                    <div class="capacity-hint">{{ FormattingService.formatNumber(entry.capacity) }}</div>
-                  </td>
-                  <td>
-                    <div class="fill-bar-container">
-                      <div class="fill-bar">
-                        <div class="fill-bar-inner" :style="{ width: (entry.fillRatio * 100) + '%', backgroundColor: getFillColor(entry.fillRatio) }"></div>
+                    </td>
+                    <td>
+                      <div class="fill-bar-container">
+                        <div class="fill-bar">
+                          <div
+                            class="fill-bar-inner"
+                            :style="{
+                              width: entry.fillRatio * 100 + '%',
+                              backgroundColor: getFillColor(entry.fillRatio)
+                            }"
+                          ></div>
+                        </div>
+                        <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
                       </div>
-                      <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.shallowSize) }}</td>
-                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.retainedSize) }}</td>
-                </tr>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatBytes(entry.shallowSize) }}
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.retainedSize) }}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -145,7 +162,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.byRetainedSize.length }} collections</small>
+                <small class="text-muted"
+                  >Showing {{ report.byRetainedSize.length }} collections</small
+                >
               </div>
             </div>
           </div>
@@ -153,45 +172,57 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <th style="width: 45%;">Collection</th>
-                  <th class="text-end" style="width: 220px;">Usage</th>
-                  <th style="width: 130px;">Fill Ratio</th>
-                  <th class="text-end" style="width: 100px;">Shallow</th>
-                  <th class="text-end" style="width: 110px;">Retained</th>
-                </tr>
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <th style="width: 45%">Collection</th>
+                    <th class="text-end" style="width: 220px">Usage</th>
+                    <th style="width: 130px">Fill Ratio</th>
+                    <th class="text-end" style="width: 100px">Shallow</th>
+                    <th class="text-end" style="width: 110px">Retained</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedByRetainedSize" :key="index">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <div class="class-info">
-                      <div class="class-name-line">
-                        <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                        <span class="package-name">{{ packageName(entry.className) }}</span>
+                  <tr v-for="(entry, index) in sortedByRetainedSize" :key="index">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <div class="class-info">
+                        <div class="class-name-line">
+                          <code class="class-name">{{ simpleClassName(entry.className) }}</code>
+                          <span class="package-name">{{ packageName(entry.className) }}</span>
+                        </div>
+                        <div class="detail-line" v-if="entry.ownerClassName">
+                          <span class="owner-label">owner</span>
+                          <span class="field-tag">{{ entry.ownerClassName }}</span>
+                        </div>
                       </div>
-                      <div class="detail-line" v-if="entry.ownerClassName">
-                        <span class="owner-label">owner</span>
-                        <span class="field-tag">{{ entry.ownerClassName }}</span>
+                    </td>
+                    <td class="text-end font-monospace">
+                      <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
+                      <div class="capacity-hint">
+                        {{ FormattingService.formatNumber(entry.capacity) }}
                       </div>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">
-                    <div>{{ FormattingService.formatNumber(entry.elementCount) }}</div>
-                    <div class="capacity-hint">{{ FormattingService.formatNumber(entry.capacity) }}</div>
-                  </td>
-                  <td>
-                    <div class="fill-bar-container">
-                      <div class="fill-bar">
-                        <div class="fill-bar-inner" :style="{ width: (entry.fillRatio * 100) + '%', backgroundColor: getFillColor(entry.fillRatio) }"></div>
+                    </td>
+                    <td>
+                      <div class="fill-bar-container">
+                        <div class="fill-bar">
+                          <div
+                            class="fill-bar-inner"
+                            :style="{
+                              width: entry.fillRatio * 100 + '%',
+                              backgroundColor: getFillColor(entry.fillRatio)
+                            }"
+                          ></div>
+                        </div>
+                        <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
                       </div>
-                      <span class="fill-pct">{{ (entry.fillRatio * 100).toFixed(1) }}%</span>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.shallowSize) }}</td>
-                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.retainedSize) }}</td>
-                </tr>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatBytes(entry.shallowSize) }}
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.retainedSize) }}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -265,20 +296,24 @@ const summaryMetrics = computed(() => {
       title: 'Largest Collection',
       value: largest ? FormattingService.formatNumber(largest.elementCount) + ' items' : '-',
       variant: 'info' as const,
-      breakdown: largest ? [
-        { label: 'Size', value: FormattingService.formatNumber(largest.elementCount) },
-        { label: 'Capacity', value: FormattingService.formatNumber(largest.capacity) }
-      ] : []
+      breakdown: largest
+        ? [
+            { label: 'Size', value: FormattingService.formatNumber(largest.elementCount) },
+            { label: 'Capacity', value: FormattingService.formatNumber(largest.capacity) }
+          ]
+        : []
     },
     {
       icon: 'hdd',
       title: 'Top Retained',
       value: topRetained ? FormattingService.formatBytes(topRetained.retainedSize) : '-',
       variant: 'danger' as const,
-      breakdown: topRetained ? [
-        { label: 'Size', value: FormattingService.formatNumber(topRetained.elementCount) },
-        { label: 'Capacity', value: FormattingService.formatNumber(topRetained.capacity) }
-      ] : []
+      breakdown: topRetained
+        ? [
+            { label: 'Size', value: FormattingService.formatNumber(topRetained.elementCount) },
+            { label: 'Capacity', value: FormattingService.formatNumber(topRetained.capacity) }
+          ]
+        : []
     }
   ];
 });

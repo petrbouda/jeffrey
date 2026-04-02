@@ -16,38 +16,45 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FlamegraphData from "@/services/api/model/FlamegraphData";
-import FlamegraphClient from "@/services/api/FlamegraphClient";
-import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
-import GraphComponents from "@/services/api/model/GraphComponents";
-import TimeRange from "@/services/api/model/TimeRange";
-import BothGraphData from "@/services/api/model/BothGraphData";
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import FlamegraphClient from '@/services/api/FlamegraphClient';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import GraphComponents from '@/services/api/model/GraphComponents';
+import TimeRange from '@/services/api/model/TimeRange';
+import BothGraphData from '@/services/api/model/BothGraphData';
 
 export default class StaticFlamegraphClient extends FlamegraphClient {
+  private readonly flamegraphData: FlamegraphData;
+  private readonly timeseriesData: TimeseriesData;
 
-    private readonly flamegraphData: FlamegraphData;
-    private readonly timeseriesData: TimeseriesData;
+  constructor(bothGraphData: BothGraphData) {
+    super();
+    this.flamegraphData = bothGraphData.flamegraph;
+    this.timeseriesData = bothGraphData.timeseries;
+  }
 
-    constructor(bothGraphData: BothGraphData) {
-        super();
-        this.flamegraphData = bothGraphData.flamegraph
-        this.timeseriesData = bothGraphData.timeseries;
-    }
+  provideBoth(
+    composition: GraphComponents,
+    timeRange: TimeRange | null,
+    search: string | null
+  ): Promise<BothGraphData> {
+    return Promise.resolve(new BothGraphData(this.flamegraphData, this.timeseriesData));
+  }
 
-    provideBoth(composition: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
-        return Promise.resolve(new BothGraphData(this.flamegraphData, this.timeseriesData));
-    }
+  provide(timeRange: any): Promise<FlamegraphData> {
+    return Promise.resolve(this.flamegraphData);
+  }
 
-    provide(timeRange: any): Promise<FlamegraphData> {
-        return Promise.resolve(this.flamegraphData);
-    }
+  provideTimeseries(search: string | null): Promise<TimeseriesData> {
+    return Promise.resolve(this.timeseriesData);
+  }
 
-    provideTimeseries(search: string | null): Promise<TimeseriesData> {
-        return Promise.resolve(this.timeseriesData);
-    }
-
-    save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {
-        console.error("Cannot export flamegraph from statically generated data")
-        return Promise.resolve();
-    }
+  save(
+    components: GraphComponents,
+    flamegraphName: string,
+    timeRange: TimeRange | null
+  ): Promise<void> {
+    console.error('Cannot export flamegraph from statically generated data');
+    return Promise.resolve();
+  }
 }

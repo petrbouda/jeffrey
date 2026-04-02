@@ -16,64 +16,60 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FlamegraphClient from "@/services/api/FlamegraphClient";
-import PrimaryFlamegraphClient from "@/services/api/PrimaryFlamegraphClient";
-import TimeRange from "@/services/api/model/TimeRange";
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import FlamegraphClient from '@/services/api/FlamegraphClient';
+import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
+import TimeRange from '@/services/api/model/TimeRange';
 
 export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
+  private readonly timeRange: TimeRange | null;
 
-    private readonly timeRange: TimeRange | null;
+  constructor(httpClient: FlamegraphClient, immediateInitialization: boolean) {
+    super(httpClient, immediateInitialization);
+    this.timeRange = null;
+  }
 
-    constructor(httpClient: FlamegraphClient, immediateInitialization: boolean) {
-        super(httpClient, immediateInitialization);
-        this.timeRange = null;
+  public initialize(): void {
+    this.flamegraphOnUpdateStartedCallback();
+    this.httpClient.provide(this.timeRange).then(data => {
+      this.flamegraphOnInitCallback(data);
+      this.flamegraphOnUpdateFinishedCallback();
+    });
+  }
+
+  public updateWithZoom(timeRange: TimeRange): void {
+    this.flamegraphOnUpdateStartedCallback();
+
+    this.httpClient.provide(timeRange).then(data => {
+      this.flamegraphOnZoomCallback(data);
+      this.flamegraphOnUpdateFinishedCallback();
+    });
+  }
+
+  public resetZoom(): void {
+    this.flamegraphOnUpdateStartedCallback();
+
+    this.httpClient.provide(null).then(data => {
+      this.flamegraphOnResetZoomCallback(data);
+      this.flamegraphOnUpdateFinishedCallback();
+    });
+  }
+
+  public updateWithSearch(expression: string): void {
+    this.flamegraphOnUpdateStartedCallback();
+    this.flamegraphOnSearchCallback(expression);
+    this.flamegraphOnUpdateFinishedCallback();
+  }
+
+  public resetSearch(): void {
+    this.flamegraphOnResetSearchCallback();
+  }
+
+  public updateModes(useThreadMode: boolean, useWeight: boolean): void {
+    if (this.httpClient instanceof PrimaryFlamegraphClient) {
+      this.httpClient.setUseThreadMode(useThreadMode);
+      this.httpClient.setUseWeight(useWeight);
+      this.initialize();
     }
-
-    public initialize(): void {
-        this.flamegraphOnUpdateStartedCallback();
-        this.httpClient.provide(this.timeRange)
-            .then(data => {
-                this.flamegraphOnInitCallback(data);
-                this.flamegraphOnUpdateFinishedCallback();
-            });
-    }
-
-    public updateWithZoom(timeRange: TimeRange): void {
-        this.flamegraphOnUpdateStartedCallback();
-
-        this.httpClient.provide(timeRange)
-            .then(data => {
-                this.flamegraphOnZoomCallback(data);
-                this.flamegraphOnUpdateFinishedCallback();
-            });
-    }
-
-    public resetZoom(): void {
-        this.flamegraphOnUpdateStartedCallback();
-
-        this.httpClient.provide(null)
-            .then(data => {
-                this.flamegraphOnResetZoomCallback(data);
-                this.flamegraphOnUpdateFinishedCallback();
-            });
-    }
-
-    public updateWithSearch(expression: string): void {
-        this.flamegraphOnUpdateStartedCallback();
-        this.flamegraphOnSearchCallback(expression);
-        this.flamegraphOnUpdateFinishedCallback();
-    }
-
-    public resetSearch(): void {
-        this.flamegraphOnResetSearchCallback();
-    }
-
-    public updateModes(useThreadMode: boolean, useWeight: boolean): void {
-        if (this.httpClient instanceof PrimaryFlamegraphClient) {
-            this.httpClient.setUseThreadMode(useThreadMode);
-            this.httpClient.setUseWeight(useWeight);
-            this.initialize();
-        }
-    }
+  }
 }

@@ -20,10 +20,7 @@
   <LoadingState v-if="loading" message="Loading auto analysis..." />
 
   <div v-else>
-    <PageHeader
-      title="Auto Analysis"
-      icon="bi-robot"
-    >
+    <PageHeader title="Auto Analysis" icon="bi-robot">
       <!-- Idle State: Hero CTA -->
       <div v-if="phase === 'idle'" class="hero-card">
         <div class="hero-icon">
@@ -76,7 +73,9 @@
               <!-- Donut Chart -->
               <div class="col-lg-5 col-md-6">
                 <div class="chart-section">
-                  <h6 class="section-title"><i class="bi bi-pie-chart me-2"></i>Results Overview</h6>
+                  <h6 class="section-title">
+                    <i class="bi bi-pie-chart me-2"></i>Results Overview
+                  </h6>
                   <apexchart
                     v-if="rules.length > 0"
                     type="donut"
@@ -147,12 +146,20 @@
               <thead>
                 <tr>
                   <th class="col-rule">Rule</th>
-                  <th class="col-score" title="Severity score (0-100). Higher values indicate more significant findings.">Severity</th>
+                  <th
+                    class="col-score"
+                    title="Severity score (0-100). Higher values indicate more significant findings."
+                  >
+                    Severity
+                  </th>
                   <th class="col-actions text-end">Details</th>
                 </tr>
               </thead>
               <tbody>
-                <template v-for="(rule, index) in filteredAndSortedRules" :key="`${index}-${rule.rule}`">
+                <template
+                  v-for="(rule, index) in filteredAndSortedRules"
+                  :key="`${index}-${rule.rule}`"
+                >
                   <tr
                     class="rule-row"
                     :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
@@ -162,7 +169,10 @@
                       <div class="rule-cell">
                         <i
                           class="bi severity-icon"
-                          :class="[`bi-${getSeverityIcon(rule.severity)}`, getSeverityTextClass(rule.severity)]"
+                          :class="[
+                            `bi-${getSeverityIcon(rule.severity)}`,
+                            getSeverityTextClass(rule.severity)
+                          ]"
                         ></i>
                         <span class="rule-name">{{ rule.rule }}</span>
                       </div>
@@ -172,7 +182,10 @@
                         <div class="severity-bar-track">
                           <div
                             class="severity-bar-fill"
-                            :style="{ width: parseScore(rule.score) + '%', backgroundColor: getSeverityColor(rule.severity) }"
+                            :style="{
+                              width: parseScore(rule.score) + '%',
+                              backgroundColor: getSeverityColor(rule.severity)
+                            }"
                           ></div>
                         </div>
                         <span class="severity-bar-value">{{ parseScore(rule.score) }}</span>
@@ -271,14 +284,13 @@ const filteredAndSortedRules = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(r =>
-      r.rule.toLowerCase().includes(query) ||
-      r.summary?.toLowerCase().includes(query)
+    result = result.filter(
+      r => r.rule.toLowerCase().includes(query) || r.summary?.toLowerCase().includes(query)
     );
   }
 
-  return result.sort((a, b) =>
-    (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
+  return result.sort(
+    (a, b) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
   );
 });
 
@@ -380,34 +392,50 @@ function parseScore(score: string | null): number | null {
 
 function getSeverityIcon(severity: string): string {
   switch (severity) {
-    case 'OK': return 'check-circle-fill';
-    case 'WARNING': return 'exclamation-triangle-fill';
-    case 'INFO': return 'info-circle-fill';
-    case 'NA': return 'slash-circle-fill';
-    case 'IGNORE': return 'eye-slash-fill';
-    default: return 'question-circle-fill';
+    case 'OK':
+      return 'check-circle-fill';
+    case 'WARNING':
+      return 'exclamation-triangle-fill';
+    case 'INFO':
+      return 'info-circle-fill';
+    case 'NA':
+      return 'slash-circle-fill';
+    case 'IGNORE':
+      return 'eye-slash-fill';
+    default:
+      return 'question-circle-fill';
   }
 }
 
 function getSeverityTextClass(severity: string): string {
   switch (severity) {
-    case 'OK': return 'text-success';
-    case 'WARNING': return 'text-danger';
-    case 'INFO': return 'text-primary';
+    case 'OK':
+      return 'text-success';
+    case 'WARNING':
+      return 'text-danger';
+    case 'INFO':
+      return 'text-primary';
     case 'NA':
-    case 'IGNORE': return 'text-secondary';
-    default: return 'text-muted';
+    case 'IGNORE':
+      return 'text-secondary';
+    default:
+      return 'text-muted';
   }
 }
 
 function getSeverityColor(severity: string): string {
   switch (severity) {
-    case 'OK': return '#198754';
-    case 'WARNING': return '#dc3545';
-    case 'INFO': return '#0d6efd';
+    case 'OK':
+      return '#198754';
+    case 'WARNING':
+      return '#dc3545';
+    case 'INFO':
+      return '#0d6efd';
     case 'NA':
-    case 'IGNORE': return '#6c757d';
-    default: return '#6c757d';
+    case 'IGNORE':
+      return '#6c757d';
+    default:
+      return '#6c757d';
   }
 }
 </script>
@@ -421,7 +449,7 @@ function getSeverityColor(severity: string): string {
   padding: 48px 40px;
   background: var(--color-bg-card, #fff);
   border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-base, 0 0 6px rgba(0,0,0,0.1));
+  box-shadow: var(--shadow-base, 0 0 6px rgba(0, 0, 0, 0.1));
 }
 
 .hero-icon {
@@ -491,7 +519,7 @@ function getSeverityColor(severity: string): string {
   padding: 48px 40px;
   background: var(--color-bg-card, #fff);
   border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-base, 0 0 6px rgba(0,0,0,0.1));
+  box-shadow: var(--shadow-base, 0 0 6px rgba(0, 0, 0, 0.1));
 }
 
 .running-icon {
@@ -518,9 +546,18 @@ function getSeverityColor(severity: string): string {
 }
 
 @keyframes progress-indeterminate {
-  0% { width: 5%; margin-left: 0; }
-  50% { width: 40%; margin-left: 30%; }
-  100% { width: 5%; margin-left: 95%; }
+  0% {
+    width: 5%;
+    margin-left: 0;
+  }
+  50% {
+    width: 40%;
+    margin-left: 30%;
+  }
+  100% {
+    width: 5%;
+    margin-left: 95%;
+  }
 }
 
 .progress-track {
@@ -677,11 +714,19 @@ function getSeverityColor(severity: string): string {
   cursor: pointer;
 }
 
-.rule-row.severity-warning { border-left: 3px solid var(--color-danger); }
-.rule-row.severity-info { border-left: 3px solid #0d6efd; }
-.rule-row.severity-ok { border-left: 3px solid var(--color-success); }
+.rule-row.severity-warning {
+  border-left: 3px solid var(--color-danger);
+}
+.rule-row.severity-info {
+  border-left: 3px solid #0d6efd;
+}
+.rule-row.severity-ok {
+  border-left: 3px solid var(--color-success);
+}
 .rule-row.severity-na,
-.rule-row.severity-ignore { border-left: 3px solid #6c757d; }
+.rule-row.severity-ignore {
+  border-left: 3px solid #6c757d;
+}
 
 .rule-name {
   font-weight: 500;

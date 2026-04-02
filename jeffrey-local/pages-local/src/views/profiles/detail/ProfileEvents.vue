@@ -1,10 +1,5 @@
 <template>
-    <PageHeader 
-      title="Events"
-      description="View and analyze profile events"
-      icon="bi-collection"
-    >
-
+  <PageHeader title="Events" description="View and analyze profile events" icon="bi-collection">
     <!-- Event Type Selector -->
     <div class="mb-4">
       <div v-if="!selectedEventType || showEventTypeList">
@@ -12,25 +7,29 @@
           <div class="input-group search-container">
             <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
             <input
-                id="searchFilter"
-                type="text"
-                class="form-control search-input"
-                v-model="searchTerm"
-                placeholder="Filter event types..."
-                aria-label="Filter event types"
-                autocomplete="off"
-            >
-            <button 
-              v-if="searchTerm" 
-              class="btn btn-outline-secondary clear-btn" 
+              id="searchFilter"
+              type="text"
+              class="form-control search-input"
+              v-model="searchTerm"
+              placeholder="Filter event types..."
+              aria-label="Filter event types"
+              autocomplete="off"
+            />
+            <button
+              v-if="searchTerm"
+              class="btn btn-outline-secondary clear-btn"
               type="button"
-              @click="searchTerm = ''">
+              @click="searchTerm = ''"
+            >
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
         </div>
 
-        <div class="event-type-list" :class="{ 'limit-height': selectedEventType && showEventTypeList }">
+        <div
+          class="event-type-list"
+          :class="{ 'limit-height': selectedEventType && showEventTypeList }"
+        >
           <div v-if="loading" class="text-center py-3">
             <div class="spinner-border spinner-border-sm" role="status">
               <span class="visually-hidden">Loading...</span>
@@ -43,11 +42,11 @@
           </div>
           <div v-else class="list-group">
             <button
-                v-for="eventType in filteredEventTypes"
-                :key="eventType.code"
-                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                :class="{ 'active': selectedEventType?.code === eventType.code }"
-                @click="selectAndHideList(eventType)"
+              v-for="eventType in filteredEventTypes"
+              :key="eventType.code"
+              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+              :class="{ active: selectedEventType?.code === eventType.code }"
+              @click="selectAndHideList(eventType)"
             >
               <div>
                 <div class="fw-medium">{{ eventType.name }}</div>
@@ -68,9 +67,25 @@
           <span class="text-muted ms-2">({{ selectedEventType.code }})</span>
         </span>
         <div class="d-flex align-items-center">
-          <Badge :value="`${selectedEventType.count} samples`" variant="blue" size="xs" class="me-2" />
-          <Badge v-if="eventData.length > 200" :value="`Showing 200 of ${eventData.length} rows`" variant="cyan" size="xs" icon="bi-info-circle" class="me-3" />
-          <button v-if="!showEventTypeList" class="btn btn-sm btn-outline-secondary" @click="toggleEventTypeList">
+          <Badge
+            :value="`${selectedEventType.count} samples`"
+            variant="blue"
+            size="xs"
+            class="me-2"
+          />
+          <Badge
+            v-if="eventData.length > 200"
+            :value="`Showing 200 of ${eventData.length} rows`"
+            variant="cyan"
+            size="xs"
+            icon="bi-info-circle"
+            class="me-3"
+          />
+          <button
+            v-if="!showEventTypeList"
+            class="btn btn-sm btn-outline-secondary"
+            @click="toggleEventTypeList"
+          >
             <i class="bi bi-pencil"></i> Change
           </button>
         </div>
@@ -98,25 +113,33 @@
                   <th v-for="column in eventColumns" :key="column.field">
                     <div class="d-flex flex-column">
                       <!-- Column header -->
-                      <div class="d-flex align-items-center mb-1" 
-                           :class="{ 'sortable': isSortableField(column.type) }"
-                           @click="isSortableField(column.type) && toggleSort(column.field)">
+                      <div
+                        class="d-flex align-items-center mb-1"
+                        :class="{ sortable: isSortableField(column.type) }"
+                        @click="isSortableField(column.type) && toggleSort(column.field)"
+                      >
                         <span>{{ column.header }}</span>
                         <span v-if="isSortableField(column.type)" class="ms-1">
-                          <i v-if="sortConfig && sortConfig.field === column.field" 
-                             :class="sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'"></i>
+                          <i
+                            v-if="sortConfig && sortConfig.field === column.field"
+                            :class="
+                              sortConfig.direction === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'
+                            "
+                          ></i>
                           <i v-else class="bi bi-sort text-muted"></i>
                         </span>
                       </div>
-                      
+
                       <!-- Filter input for string columns -->
                       <div v-if="isStringField(column.field, column.type)" class="column-filter">
-                        <input type="text" 
-                               class="form-control form-control-sm filter-input"
-                               :placeholder="'Filter...'" 
-                               v-model="columnFilters[column.field]"
-                               @click.stop
-                               @input="applyFilters">
+                        <input
+                          type="text"
+                          class="form-control form-control-sm filter-input"
+                          :placeholder="'Filter...'"
+                          v-model="columnFilters[column.field]"
+                          @click.stop
+                          @input="applyFilters"
+                        />
                       </div>
                     </div>
                   </th>
@@ -126,7 +149,9 @@
                 <tr class="leaf-row" v-for="(event, index) in limitedEventData" :key="index">
                   <td v-for="column in eventColumns" :key="column.field" class="event-cell">
                     <div class="event-name-cell">
-                      <span class="event-value">{{ FormattingService.format(event[column.field], column.type || '') }}</span>
+                      <span class="event-value">{{
+                        FormattingService.format(event[column.field], column.type || '')
+                      }}</span>
                     </div>
                   </td>
                 </tr>
@@ -140,12 +165,12 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import EventViewerClient from '@/services/api/EventViewerClient';
 import EventTypeDescription from '@/services/api/model/EventTypeDescription';
 import EventFieldDescription from '@/services/api/model/EventFieldDescription';
 import FormattingService from '@/services/FormattingService';
-import {useRoute} from "vue-router";
+import { useRoute } from 'vue-router';
 
 import PageHeader from '@/components/layout/PageHeader.vue';
 import Badge from '@/components/Badge.vue';
@@ -165,7 +190,7 @@ const eventColumns = ref<EventFieldDescription[]>([]);
 const eventData = ref<Record<string, string | number>[]>([]);
 const loadingEventData = ref(false);
 const columnFilters = ref<Record<string, string>>({});
-const sortConfig = ref<{field: string, direction: 'asc' | 'desc'} | null>(null);
+const sortConfig = ref<{ field: string; direction: 'asc' | 'desc' } | null>(null);
 
 // Computed properties
 const nonZeroEventTypes = computed(() => {
@@ -175,28 +200,28 @@ const nonZeroEventTypes = computed(() => {
 const filteredEventTypes = computed(() => {
   // First, filter out event types with zero count
   const baseList = nonZeroEventTypes.value;
-  
+
   if (!searchTerm.value) {
     return baseList;
   }
 
   const search = searchTerm.value.toLowerCase();
-  return baseList.filter(eventType =>
-      eventType.name.toLowerCase().includes(search) ||
-      eventType.code.toLowerCase().includes(search)
+  return baseList.filter(
+    eventType =>
+      eventType.name.toLowerCase().includes(search) || eventType.code.toLowerCase().includes(search)
   );
 });
 
 // Function to determine if a field is string-related
 function isStringField(_fieldName: string, fieldType?: string): boolean {
   if (!fieldType) return true;
-  return resolveType(fieldType) === "text";
+  return resolveType(fieldType) === 'text';
 }
 
 // Apply filters and sorting to event data
 const filteredEventData = computed(() => {
   let result = [...eventData.value];
-  
+
   // Apply column filters (only for string columns)
   if (Object.keys(columnFilters.value).length > 0) {
     for (const [field, filterValue] of Object.entries(columnFilters.value)) {
@@ -212,18 +237,18 @@ const filteredEventData = computed(() => {
       }
     }
   }
-  
+
   // Apply sorting if configured
   if (sortConfig.value) {
     const { field, direction } = sortConfig.value;
     result.sort((a, b) => {
       const valueA = a[field];
       const valueB = b[field];
-      
+
       // Handle undefined or null values
       if (valueA === undefined || valueA === null) return direction === 'asc' ? -1 : 1;
       if (valueB === undefined || valueB === null) return direction === 'asc' ? 1 : -1;
-      
+
       // Compare based on type
       if (typeof valueA === 'number' && typeof valueB === 'number') {
         return direction === 'asc' ? valueA - valueB : valueB - valueA;
@@ -235,7 +260,7 @@ const filteredEventData = computed(() => {
       }
     });
   }
-  
+
   return result;
 });
 
@@ -256,7 +281,7 @@ function applyFilters() {
 function isSortableField(fieldType?: string): boolean {
   if (!fieldType) return false;
   const type = resolveType(fieldType);
-  return type === "numeric";
+  return type === 'numeric';
 }
 
 // Toggle sorting for a column
@@ -270,29 +295,28 @@ function toggleSort(field: string) {
   }
 }
 
-
 async function selectEventType(eventType: EventTypeDescription) {
   selectedEventType.value = eventType;
-  
+
   if (eventType && eventType.code) {
     loadingEventData.value = true;
     try {
       const client = new EventViewerClient(profileId);
-      
+
       // Load columns information
       eventColumns.value = await client.eventColumns(eventType.code);
 
       // Load event data
       eventData.value = await client.events(eventType.code);
-      
+
       // Reset column filters
       columnFilters.value = {};
-      
+
       // Check if startTime column exists and set it as default sort if it does
-      const startTimeColumn = eventColumns.value.find(col =>
-        col.field === 'startTime' && col.type != null && resolveType(col.type) === 'numeric'
+      const startTimeColumn = eventColumns.value.find(
+        col => col.field === 'startTime' && col.type != null && resolveType(col.type) === 'numeric'
       );
-      
+
       if (startTimeColumn) {
         sortConfig.value = { field: 'startTime', direction: 'desc' };
       } else {
@@ -336,17 +360,17 @@ function resolveType(jfrType: string) {
   // => text, numeric, date
 
   if (
-      jfrType === "jdk.jfr.Unsigned"
-      || jfrType === "jdk.jfr.Timestamp"
-      || jfrType === "jdk.jfr.DataAmount"
-      || jfrType === "jdk.jfr.MemoryAddress"
-      || jfrType === "jdk.jfr.Frequency"
-      || jfrType === "jdk.jfr.Timespan"
-      || jfrType === "jdk.jfr.Percentage") {
-
-    return "numeric"
+    jfrType === 'jdk.jfr.Unsigned' ||
+    jfrType === 'jdk.jfr.Timestamp' ||
+    jfrType === 'jdk.jfr.DataAmount' ||
+    jfrType === 'jdk.jfr.MemoryAddress' ||
+    jfrType === 'jdk.jfr.Frequency' ||
+    jfrType === 'jdk.jfr.Timespan' ||
+    jfrType === 'jdk.jfr.Percentage'
+  ) {
+    return 'numeric';
   } else {
-    return "text"
+    return 'text';
   }
 }
 
@@ -366,15 +390,15 @@ onMounted(async () => {
     if (savedEventTypeJson) {
       try {
         const savedEventType = JSON.parse(savedEventTypeJson);
-        
+
         // Find the matching event type in our loaded list to ensure it exists
         const matchingEventType = eventTypes.value.find(et => et.code === savedEventType.code);
-        
+
         if (matchingEventType) {
           // Select this event type
           await selectEventType(matchingEventType);
           showEventTypeList.value = false;
-          
+
           // Clear the localStorage entry to prevent it from being used again on refresh
           localStorage.removeItem('selectedEventType');
         } else {
@@ -444,7 +468,6 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 
 .leaf-row:hover {
   background-color: var(--color-light);

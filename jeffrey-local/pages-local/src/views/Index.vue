@@ -10,7 +10,7 @@
       <div class="container-fluid">
         <div class="hero-content">
           <div class="hero-logo-container">
-            <img src="/jeffrey-icon.svg" alt="Jeffrey Logo" class="hero-logo">
+            <img src="/jeffrey-icon.svg" alt="Jeffrey Logo" class="hero-logo" />
           </div>
           <div>
             <div class="hero-title-row">
@@ -29,7 +29,6 @@
     <div class="container-fluid px-4">
       <router-view />
     </div>
-
   </div>
 </template>
 
@@ -53,7 +52,13 @@ onMounted(async () => {
 
 <style scoped>
 .hero-header {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 70%, var(--color-primary) 100%);
+  background: linear-gradient(
+    135deg,
+    #1e1b4b 0%,
+    #312e81 40%,
+    #4338ca 70%,
+    var(--color-primary) 100%
+  );
   padding: 16px 0;
   position: relative;
   overflow: hidden;

@@ -1,7 +1,6 @@
 import Utils from './Utils';
 
 describe('Utils', () => {
-
   describe('capitalize', () => {
     it('capitalizes first letter', () => {
       expect(Utils.capitalize('hello')).toBe('Hello');
@@ -99,7 +98,7 @@ describe('Utils', () => {
     it('converts seconds and millis arrays to TimeRange', () => {
       const result = Utils.toTimeRange([10, 500], [20, 750], true);
       expect(result.start).toBe(10500); // 10*1000 + 500
-      expect(result.end).toBe(20750);   // 20*1000 + 750
+      expect(result.end).toBe(20750); // 20*1000 + 750
       expect(result.absoluteTime).toBe(true);
     });
 

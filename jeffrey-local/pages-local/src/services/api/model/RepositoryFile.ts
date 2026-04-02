@@ -16,17 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RecordingFileType from "@/services/api/model/RecordingFileType.ts";
+import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import RecordingFileType from '@/services/api/model/RecordingFileType.ts';
 
 export default class RepositoryFile {
-    constructor(
-        public id: string,
-        public name: string,
-        public createdAt: number,
-        public status: RecordingStatus,
-        public size: number,
-        public fileType: RecordingFileType,
-    ) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public createdAt: number,
+    public status: RecordingStatus,
+    public size: number,
+    public fileType: RecordingFileType
+  ) {}
 }

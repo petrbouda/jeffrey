@@ -16,13 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 export default class AnalysisResult {
-    constructor(
-        public rule: string,
-        public severity: string,
-        public explanation: string,
-        public summary: string,
-        public solution: string,
-        public score: string
-    ) {
-    }
+  constructor(
+    public rule: string,
+    public severity: string,
+    public explanation: string,
+    public summary: string,
+    public solution: string,
+    public score: string
+  ) {}
 }

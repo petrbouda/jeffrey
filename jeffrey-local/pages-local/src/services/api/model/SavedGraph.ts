@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BothGraphData from "@/services/api/model/BothGraphData";
-import SavedGraphMetadata from "@/services/api/model/SavedGraphMetadata";
+import BothGraphData from '@/services/api/model/BothGraphData';
+import SavedGraphMetadata from '@/services/api/model/SavedGraphMetadata';
 
 export default class SavedGraph {
-    constructor(
-        public metadata: SavedGraphMetadata,
-        public content: BothGraphData) {
-    }
+  constructor(
+    public metadata: SavedGraphMetadata,
+    public content: BothGraphData
+  ) {}
 }

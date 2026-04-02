@@ -1,25 +1,20 @@
 <template>
   <GenericModal
-      modal-id="mirrorWorkspaceModal"
-      :show="show"
-      title="Connect Remote Workspace"
-      icon="bi-cloud-download"
-      size="xl"
-      :show-footer="true"
-      @update:show="$emit('update:show', $event)"
-      @shown="handleShown"
-      @hidden="handleHidden"
+    modal-id="mirrorWorkspaceModal"
+    :show="show"
+    title="Connect Remote Workspace"
+    icon="bi-cloud-download"
+    size="xl"
+    :show-footer="true"
+    @update:show="$emit('update:show', $event)"
+    @shown="handleShown"
+    @hidden="handleHidden"
   >
     <template #footer>
       <button type="button" class="btn btn-light" @click="$emit('update:show', false)">
         Cancel
       </button>
-      <button
-          type="button"
-          class="btn btn-primary"
-          @click="mirrorWorkspace"
-          :disabled="isLoading"
-      >
+      <button type="button" class="btn btn-primary" @click="mirrorWorkspace" :disabled="isLoading">
         <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
         <i v-if="!isLoading" class="bi bi-arrow-down-circle me-1"></i>
         Connect Workspace
@@ -50,40 +45,44 @@
         <div class="field-hostname">
           <label class="form-label fw-medium small mb-1">Hostname</label>
           <div class="input-group hostname-input-group">
-              <span class="input-group-text">
-                <i class="bi bi-globe"></i>
-              </span>
+            <span class="input-group-text">
+              <i class="bi bi-globe"></i>
+            </span>
             <input
-                type="text"
-                class="form-control"
-                v-model="hostname"
-                placeholder="prod-jeffrey.company.com"
-                @keydown.enter.prevent="handleEnterKey"
+              type="text"
+              class="form-control"
+              v-model="hostname"
+              placeholder="prod-jeffrey.company.com"
+              @keydown.enter.prevent="handleEnterKey"
             />
           </div>
         </div>
         <div class="field-port">
           <label class="form-label fw-medium small mb-1">Port</label>
           <input
-              type="number"
-              class="form-control text-end port-input"
-              v-model.number="port"
-              placeholder="443"
-              min="1"
-              max="65535"
-              @keydown.enter.prevent="handleEnterKey"
+            type="number"
+            class="form-control text-end port-input"
+            v-model.number="port"
+            placeholder="443"
+            min="1"
+            max="65535"
+            @keydown.enter.prevent="handleEnterKey"
           />
         </div>
       </div>
 
       <div class="d-flex justify-content-end mb-3">
         <button
-            type="button"
-            class="btn btn-outline-info"
-            @click="loadRemoteWorkspaces"
-            :disabled="!connectionValid || loadingWorkspaces"
+          type="button"
+          class="btn btn-outline-info"
+          @click="loadRemoteWorkspaces"
+          :disabled="!connectionValid || loadingWorkspaces"
         >
-          <span v-if="loadingWorkspaces" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          <span
+            v-if="loadingWorkspaces"
+            class="spinner-border spinner-border-sm me-2"
+            role="status"
+          ></span>
           <i v-else class="bi bi-cloud-arrow-down me-1"></i>
           {{ loadingWorkspaces ? 'Loading...' : 'Load Workspaces' }}
         </button>
@@ -98,26 +97,31 @@
           Select Workspaces to Connect
         </label>
         <p class="text-muted small mb-3">
-          Choose one or more workspaces from <strong>{{ displayAddress }}</strong> to connect remotely.
+          Choose one or more workspaces from <strong>{{ displayAddress }}</strong> to connect
+          remotely.
         </p>
       </div>
 
       <!-- Remote Workspaces Grid -->
       <div v-if="remoteWorkspaces.length > 0" class="remote-workspaces-grid">
         <div
-            v-for="workspace in remoteWorkspaces"
-            :key="workspace.id"
-            class="remote-workspace-card"
-            :class="{ 'selected': selectedWorkspaceIds.includes(workspace.id) }"
-            @click="toggleWorkspaceSelection(workspace.id)"
+          v-for="workspace in remoteWorkspaces"
+          :key="workspace.id"
+          class="remote-workspace-card"
+          :class="{ selected: selectedWorkspaceIds.includes(workspace.id) }"
+          @click="toggleWorkspaceSelection(workspace.id)"
         >
           <div class="workspace-card-content">
             <div class="workspace-card-header">
               <div class="workspace-name-container">
                 <div class="workspace-selection-icon">
                   <i
-                      :class="selectedWorkspaceIds.includes(workspace.id) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"
-                      class="selection-icon"
+                    :class="
+                      selectedWorkspaceIds.includes(workspace.id)
+                        ? 'bi bi-check-circle-fill'
+                        : 'bi bi-circle'
+                    "
+                    class="selection-icon"
                   ></i>
                 </div>
                 <div class="workspace-info">
@@ -127,10 +131,10 @@
                       <h6 class="workspace-name">{{ workspace.name }}</h6>
                     </div>
                     <Badge
-                        :value="`${workspace.projectCount} projects`"
-                        variant="teal"
-                        size="xs"
-                        :uppercase="false"
+                      :value="`${workspace.projectCount} projects`"
+                      variant="teal"
+                      size="xs"
+                      :uppercase="false"
                     />
                   </div>
                 </div>
@@ -147,16 +151,14 @@
       <div v-else class="text-center py-4">
         <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
         <h6 class="text-muted">No workspaces found</h6>
-        <p class="text-muted small mb-0">The remote Jeffrey instance has no available workspaces to connect.</p>
+        <p class="text-muted small mb-0">
+          The remote Jeffrey instance has no available workspaces to connect.
+        </p>
       </div>
 
       <!-- Back Button -->
       <div class="d-flex justify-content-start mt-3">
-        <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            @click="goBackToUrlInput"
-        >
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="goBackToUrlInput">
           <i class="bi bi-arrow-left me-1"></i>
           Change Address
         </button>
@@ -171,12 +173,12 @@
 </template>
 
 <script setup lang="ts">
-import {computed, ref} from 'vue';
+import { computed, ref } from 'vue';
 import GenericModal from '@/components/GenericModal.vue';
 import Badge from '@/components/Badge.vue';
 import Workspace from '@/services/api/model/Workspace';
 import ToastService from '@/services/ToastService';
-import RemoteWorkspaceClient from "@/services/api/RemoteWorkspaceClient.ts";
+import RemoteWorkspaceClient from '@/services/api/RemoteWorkspaceClient.ts';
 
 const remoteWorkspaceClient = new RemoteWorkspaceClient();
 
@@ -238,15 +240,22 @@ const loadRemoteWorkspaces = async () => {
 
   try {
     // Call the backend API to get available workspaces to add as remote
-    remoteWorkspaces.value = await remoteWorkspaceClient.listRemote(hostname.value.trim(), port.value);
+    remoteWorkspaces.value = await remoteWorkspaceClient.listRemote(
+      hostname.value.trim(),
+      port.value
+    );
     showWorkspaceSelection.value = true;
 
     if (remoteWorkspaces.value.length === 0) {
-      ToastService.info('No Workspaces Found', 'The remote Jeffrey instance has no available workspaces.');
+      ToastService.info(
+        'No Workspaces Found',
+        'The remote Jeffrey instance has no available workspaces.'
+      );
     }
   } catch (error) {
     console.error('Failed to load remote workspaces:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to connect to the remote Jeffrey instance';
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Failed to connect to the remote Jeffrey instance';
   } finally {
     loadingWorkspaces.value = false;
   }
@@ -288,19 +297,22 @@ const mirrorWorkspace = async () => {
 
   isLoading.value = true;
   try {
-    const selectedWorkspaces = remoteWorkspaces.value.filter(w => selectedWorkspaceIds.value.includes(w.id));
+    const selectedWorkspaces = remoteWorkspaces.value.filter(w =>
+      selectedWorkspaceIds.value.includes(w.id)
+    );
     if (selectedWorkspaces.length === 0) {
       throw new Error('Selected workspaces not found');
     }
 
     await remoteWorkspaceClient.createRemote(
-        hostname.value.trim(),
-        port.value,
-        selectedWorkspaceIds.value
+      hostname.value.trim(),
+      port.value,
+      selectedWorkspaceIds.value
     );
 
     const selectedWorkspaceNames = selectedWorkspaces.map(w => w.name).join('", "');
-    const successMessage = selectedWorkspaces.length === 1
+    const successMessage =
+      selectedWorkspaces.length === 1
         ? `"${selectedWorkspaceNames}" workspace has been connected successfully`
         : `"${selectedWorkspaceNames}" workspaces have been connected successfully`;
 
@@ -450,13 +462,15 @@ const handleHidden = () => {
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04),
-  0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(56, 178, 172, 0.15),
-    0 2px 8px rgba(56, 178, 172, 0.1);
+    box-shadow:
+      0 6px 16px rgba(56, 178, 172, 0.15),
+      0 2px 8px rgba(56, 178, 172, 0.1);
     border-color: rgba(56, 178, 172, 0.3);
   }
 
@@ -464,8 +478,9 @@ const handleHidden = () => {
     background: linear-gradient(135deg, #38b2ac, #319795);
     border-color: #319795;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(56, 178, 172, 0.3),
-    0 2px 8px rgba(56, 178, 172, 0.2);
+    box-shadow:
+      0 6px 20px rgba(56, 178, 172, 0.3),
+      0 2px 8px rgba(56, 178, 172, 0.2);
 
     .workspace-name {
       color: white;
@@ -556,7 +571,6 @@ const handleHidden = () => {
   margin: 0;
   margin-left: 26px; /* Align with workspace name, accounting for icon + gap */
 }
-
 
 /* Load button styling */
 .btn-outline-info {

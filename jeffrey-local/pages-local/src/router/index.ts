@@ -305,7 +305,8 @@ const profileChildRoutes = [
   {
     path: 'technologies/jdbc/slowest-statements',
     name: 'profile-technologies-jdbc-slowest-statements',
-    component: () => import('@/views/profiles/detail/technologies/ProfileJdbcSlowestStatements.vue'),
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileJdbcSlowestStatements.vue'),
     meta: { layout: 'profile' }
   },
   {
@@ -323,25 +324,22 @@ const profileChildRoutes = [
   {
     path: 'technologies/method-tracing/timeseries',
     name: 'profile-technologies-method-tracing-timeseries',
-    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingTimeseries.vue'),
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileMethodTracingTimeseries.vue'),
     meta: { layout: 'profile' }
   },
   {
     path: 'technologies/method-tracing/distribution',
     name: 'profile-technologies-method-tracing-distribution',
-    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingDistribution.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'technologies/method-tracing/overview',
-    name: 'profile-technologies-method-tracing-overview',
-    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingOverview.vue'),
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileMethodTracingDistribution.vue'),
     meta: { layout: 'profile' }
   },
   {
     path: 'technologies/method-tracing/flamegraph',
     name: 'profile-technologies-method-tracing-flamegraph',
-    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingFlamegraph.vue'),
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileMethodTracingFlamegraph.vue'),
     meta: { layout: 'profile' }
   },
   {
@@ -353,7 +351,8 @@ const profileChildRoutes = [
   {
     path: 'technologies/method-tracing/cumulated',
     name: 'profile-technologies-method-tracing-cumulated',
-    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTracingCumulated.vue'),
+    component: () =>
+      import('@/views/profiles/detail/technologies/ProfileMethodTracingCumulated.vue'),
     meta: { layout: 'profile' }
   },
   {
@@ -459,7 +458,7 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/global/SettingsView.vue')
-        },
+        }
       ]
     },
     // Legacy redirect for old projects URL
@@ -507,7 +506,8 @@ const router = createRouter({
                 {
                   path: '',
                   name: 'project-default',
-                  redirect: to => `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances`
+                  redirect: to =>
+                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances`
                 },
                 {
                   path: 'settings',
@@ -518,7 +518,8 @@ const router = createRouter({
                 {
                   path: 'profiles',
                   name: 'project-profiles',
-                  redirect: to => `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
+                  redirect: to =>
+                    `/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/recordings`
                 },
                 {
                   path: 'recordings',
@@ -535,7 +536,8 @@ const router = createRouter({
                 {
                   path: 'profiler-settings',
                   name: 'project-profiler-settings',
-                  component: () => import('@/views/projects/detail/ProjectProfilerSettingsView.vue'),
+                  component: () =>
+                    import('@/views/projects/detail/ProjectProfilerSettingsView.vue'),
                   meta: { layout: 'project' }
                 },
                 {
@@ -553,13 +555,15 @@ const router = createRouter({
                 {
                   path: 'instances',
                   name: 'project-instances-overview',
-                  component: () => import('@/views/projects/detail/instances/InstancesOverview.vue'),
+                  component: () =>
+                    import('@/views/projects/detail/instances/InstancesOverview.vue'),
                   meta: { layout: 'project' }
                 },
                 {
                   path: 'instances/timeline',
                   name: 'project-instances-timeline',
-                  component: () => import('@/views/projects/detail/instances/InstancesTimeline.vue'),
+                  component: () =>
+                    import('@/views/projects/detail/instances/InstancesTimeline.vue'),
                   meta: { layout: 'project' }
                 },
                 {
@@ -589,7 +593,7 @@ const router = createRouter({
       redirect: to => {
         const profileId = to.params.profileId;
         const pathMatch = to.params.pathMatch;
-        const subPath = Array.isArray(pathMatch) ? pathMatch.join('/') : (pathMatch || 'overview');
+        const subPath = Array.isArray(pathMatch) ? pathMatch.join('/') : pathMatch || 'overview';
         return `/profiles/${profileId}/${subPath}`;
       }
     },

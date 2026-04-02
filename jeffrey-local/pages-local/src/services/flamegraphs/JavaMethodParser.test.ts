@@ -1,7 +1,6 @@
 import JavaMethodParser from './JavaMethodParser';
 
 describe('JavaMethodParser', () => {
-
   describe('parse', () => {
     it('returns null for empty/null input', () => {
       expect(JavaMethodParser.parse('')).toBeNull();

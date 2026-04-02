@@ -20,20 +20,19 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Project from '@/services/api/model/Project';
 
 export default class WorkspaceProjectsClient extends BasePlatformClient {
+  constructor(workspaceId: string) {
+    super(`/workspaces/${workspaceId}/projects`);
+  }
 
-    constructor(workspaceId: string) {
-        super(`/workspaces/${workspaceId}/projects`);
-    }
+  async list(): Promise<Project[]> {
+    return super.get<Project[]>();
+  }
 
-    async list(): Promise<Project[]> {
-        return super.get<Project[]>();
+  async create(name: string, templateId?: string): Promise<Project> {
+    const content: any = { name: name };
+    if (templateId) {
+      content.templateId = templateId;
     }
-
-    async create(name: string, templateId?: string): Promise<Project> {
-        const content: any = {name: name};
-        if (templateId) {
-            content.templateId = templateId;
-        }
-        return super.post<Project>('', content);
-    }
+    return super.post<Project>('', content);
+  }
 }

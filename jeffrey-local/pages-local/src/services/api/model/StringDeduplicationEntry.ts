@@ -20,8 +20,8 @@
  * Represents a single entry in string deduplication analysis.
  */
 export default interface StringDeduplicationEntry {
-    content: string;
-    count: number;
-    arraySize: number;
-    savings: number;
+  content: string;
+  count: number;
+  arraySize: number;
+  savings: number;
 }

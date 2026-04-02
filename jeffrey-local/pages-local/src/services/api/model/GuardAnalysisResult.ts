@@ -16,18 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GuardVisualization from "@/services/api/model/GuardVisualization";
+import GuardVisualization from '@/services/api/model/GuardVisualization';
 
 export default class GuardAnalysisResult {
-    constructor(
-        public rule: string,
-        public severity: string,
-        public explanation: string,
-        public summary: string,
-        public solution: string,
-        public score: string,
-        public category: string,
-        public visualization: GuardVisualization,
-        public group: string) {
-    }
+  constructor(
+    public rule: string,
+    public severity: string,
+    public explanation: string,
+    public summary: string,
+    public solution: string,
+    public score: string,
+    public category: string,
+    public visualization: GuardVisualization,
+    public group: string
+  ) {}
 }

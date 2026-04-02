@@ -11,11 +11,18 @@ function makeData(maxvalue: number, series: SubSecondSerie[]): SubSecondData {
 }
 
 describe('computeDifference', () => {
-
   it('returns all zeros when primary equals secondary', () => {
-    const serie = makeSerie('row0', [[0, 10], [1, 20]]);
+    const serie = makeSerie('row0', [
+      [0, 10],
+      [1, 20]
+    ]);
     const primary = makeData(20, [serie]);
-    const secondary = makeData(20, [makeSerie('row0', [[0, 10], [1, 20]])]);
+    const secondary = makeData(20, [
+      makeSerie('row0', [
+        [0, 10],
+        [1, 20]
+      ])
+    ]);
 
     const result = computeDifference(primary, secondary);
 
@@ -27,8 +34,18 @@ describe('computeDifference', () => {
   });
 
   it('returns positive differences when primary > secondary', () => {
-    const primary = makeData(30, [makeSerie('row0', [[0, 30], [1, 20]])]);
-    const secondary = makeData(10, [makeSerie('row0', [[0, 10], [1, 10]])]);
+    const primary = makeData(30, [
+      makeSerie('row0', [
+        [0, 30],
+        [1, 20]
+      ])
+    ]);
+    const secondary = makeData(10, [
+      makeSerie('row0', [
+        [0, 10],
+        [1, 10]
+      ])
+    ]);
 
     const result = computeDifference(primary, secondary);
 
@@ -39,8 +56,18 @@ describe('computeDifference', () => {
   });
 
   it('returns negative differences when secondary > primary', () => {
-    const primary = makeData(10, [makeSerie('row0', [[0, 5], [1, 10]])]);
-    const secondary = makeData(30, [makeSerie('row0', [[0, 15], [1, 30]])]);
+    const primary = makeData(10, [
+      makeSerie('row0', [
+        [0, 5],
+        [1, 10]
+      ])
+    ]);
+    const secondary = makeData(30, [
+      makeSerie('row0', [
+        [0, 15],
+        [1, 30]
+      ])
+    ]);
 
     const result = computeDifference(primary, secondary);
 
@@ -50,7 +77,13 @@ describe('computeDifference', () => {
   });
 
   it('handles primary having more data points than secondary', () => {
-    const primary = makeData(10, [makeSerie('row0', [[0, 10], [1, 20], [2, 30]])]);
+    const primary = makeData(10, [
+      makeSerie('row0', [
+        [0, 10],
+        [1, 20],
+        [2, 30]
+      ])
+    ]);
     const secondary = makeData(10, [makeSerie('row0', [[0, 10]])]);
 
     const result = computeDifference(primary, secondary);
@@ -64,7 +97,10 @@ describe('computeDifference', () => {
     const primary = makeData(10, [makeSerie('row0', [[0, 10]])]);
     const secondary = makeData(10, [
       makeSerie('row0', [[0, 10]]),
-      makeSerie('row1', [[0, 5], [1, 15]])
+      makeSerie('row1', [
+        [0, 5],
+        [1, 15]
+      ])
     ]);
 
     const result = computeDifference(primary, secondary);

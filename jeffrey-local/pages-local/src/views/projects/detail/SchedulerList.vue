@@ -345,7 +345,6 @@ const getJobDisplayInfo = (job: JobInfo): JobDisplayInfo | null => {
             @create-job="handleCreateJob"
           />
         </div>
-
       </div>
     </div>
 

@@ -17,17 +17,17 @@
  */
 
 export default class HttpUriInfo {
-    constructor(
-        public uri: string,
-        public requestCount: number,
-        public maxResponseTime: number,
-        public p99ResponseTime: number,
-        public p95ResponseTime: number,
-        public successRate: number,
-        public count4xx: number,
-        public count5xx: number,
-        public totalBytesTransferred: number,
-        public totalBytesReceived: number,
-        public totalBytesSent: number) {
-    }
+  constructor(
+    public uri: string,
+    public requestCount: number,
+    public maxResponseTime: number,
+    public p99ResponseTime: number,
+    public p95ResponseTime: number,
+    public successRate: number,
+    public count4xx: number,
+    public count5xx: number,
+    public totalBytesTransferred: number,
+    public totalBytesReceived: number,
+    public totalBytesSent: number
+  ) {}
 }

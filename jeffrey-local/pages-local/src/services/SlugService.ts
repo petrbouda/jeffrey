@@ -21,38 +21,37 @@
  * Used for generating project names, workspace IDs, etc.
  */
 export default class SlugService {
-
-    /**
-     * Generates a slug from a label.
-     * Converts to lowercase, replaces spaces with dashes, removes special characters.
-     *
-     * @param label - The human-readable label (e.g., "My New Project")
-     * @returns The generated slug (e.g., "my-new-project")
-     */
-    static generateSlug(label: string): string {
-        if (!label) {
-            return '';
-        }
-        return label
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric characters except spaces and dashes
-            .replace(/\s+/g, '-') // Replace spaces with dashes
-            .replace(/-+/g, '-') // Replace multiple consecutive dashes with single dash
-            .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+  /**
+   * Generates a slug from a label.
+   * Converts to lowercase, replaces spaces with dashes, removes special characters.
+   *
+   * @param label - The human-readable label (e.g., "My New Project")
+   * @returns The generated slug (e.g., "my-new-project")
+   */
+  static generateSlug(label: string): string {
+    if (!label) {
+      return '';
     }
+    return label
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric characters except spaces and dashes
+      .replace(/\s+/g, '-') // Replace spaces with dashes
+      .replace(/-+/g, '-') // Replace multiple consecutive dashes with single dash
+      .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+  }
 
-    /**
-     * Validates and cleans a manually entered slug.
-     * Only allows lowercase alphanumeric characters and dashes.
-     *
-     * @param slug - The slug to validate/clean
-     * @returns The cleaned slug
-     */
-    static validateSlug(slug: string): string {
-        return slug
-            .toLowerCase()
-            .replace(/[^a-z0-9-]/g, '') // Remove anything that's not alphanumeric or dash
-            .replace(/-+/g, '-') // Replace multiple consecutive dashes with single dash
-            .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
-    }
+  /**
+   * Validates and cleans a manually entered slug.
+   * Only allows lowercase alphanumeric characters and dashes.
+   *
+   * @param slug - The slug to validate/clean
+   * @returns The cleaned slug
+   */
+  static validateSlug(slug: string): string {
+    return slug
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '') // Remove anything that's not alphanumeric or dash
+      .replace(/-+/g, '-') // Replace multiple consecutive dashes with single dash
+      .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+  }
 }

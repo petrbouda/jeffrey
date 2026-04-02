@@ -109,15 +109,24 @@ const formatTimestamp = (millis: number | null | undefined): string => {
 </script>
 
 <template>
-  <div class="recording-file-row" :class="[...getRowClasses(), props.compact ? 'recording-file-row-compact p-1' : 'p-2']">
+  <div
+    class="recording-file-row"
+    :class="[...getRowClasses(), props.compact ? 'recording-file-row-compact p-1' : 'p-2']"
+  >
     <div class="d-flex align-items-center justify-content-between">
       <div class="d-flex align-items-center">
         <slot name="before" />
-        <div :class="props.compact ? 'recording-file-icon-small me-2' : 'recording-file-icon-medium me-2'">
+        <div
+          :class="
+            props.compact ? 'recording-file-icon-small me-2' : 'recording-file-icon-medium me-2'
+          "
+        >
           <i class="bi" :class="getFileTypeIcon(props.fileType)"></i>
         </div>
         <div>
-          <div :class="props.compact ? 'recording-file-name-compact' : 'recording-file-name'">{{ props.filename }}</div>
+          <div :class="props.compact ? 'recording-file-name-compact' : 'recording-file-name'">
+            {{ props.filename }}
+          </div>
           <div :class="['d-flex', 'align-items-center', props.compact ? 'mt-0' : 'mt-1']">
             <Badge
               :value="Utils.formatFileType(props.fileType)"
@@ -130,7 +139,9 @@ const formatTimestamp = (millis: number | null | undefined): string => {
             <span class="recording-file-timestamp ms-2" v-if="props.timestamp">
               <i class="bi bi-clock me-1"></i>{{ formatTimestamp(props.timestamp) }}
             </span>
-            <span class="recording-file-description ms-2" v-if="props.description">{{ props.description }}</span>
+            <span class="recording-file-description ms-2" v-if="props.description">{{
+              props.description
+            }}</span>
             <slot name="extra-badges" />
           </div>
         </div>

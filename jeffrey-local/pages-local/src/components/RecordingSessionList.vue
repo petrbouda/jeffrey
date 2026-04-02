@@ -1,47 +1,47 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
-import {useNavigation} from '@/composables/useNavigation';
-import {downloadAssistantStore} from '@/stores/assistants';
-import ProjectRepositoryClient from "@/services/api/ProjectRepositoryClient.ts";
-import Utils from "@/services/Utils";
-import {ToastService} from "@/services/ToastService";
-import RecordingSession from "@/services/api/model/RecordingSession.ts";
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RecordingFileType from "@/services/api/model/RecordingFileType.ts";
-import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
+import { computed, ref, watch } from 'vue';
+import { useNavigation } from '@/composables/useNavigation';
+import { downloadAssistantStore } from '@/stores/assistants';
+import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient.ts';
+import Utils from '@/services/Utils';
+import { ToastService } from '@/services/ToastService';
+import RecordingSession from '@/services/api/model/RecordingSession.ts';
+import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import RecordingFileType from '@/services/api/model/RecordingFileType.ts';
+import RepositoryFile from '@/services/api/model/RepositoryFile.ts';
 import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import Badge from '@/components/Badge.vue';
 import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@/components/SectionHeaderBar.vue';
 import type { Variant } from '@/types/ui';
-import FormattingService from "@/services/FormattingService.ts";
+import FormattingService from '@/services/FormattingService.ts';
 import TimelineBar from '@/components/TimelineBar.vue';
 
 interface Props {
-  sessions: RecordingSession[]
-  workspaceId: string
-  projectId: string
-  isRemoteWorkspace: boolean
-  showInstanceLink?: boolean
-  headerText?: string
-  isCollectorOnly?: boolean
+  sessions: RecordingSession[];
+  workspaceId: string;
+  projectId: string;
+  isRemoteWorkspace: boolean;
+  showInstanceLink?: boolean;
+  headerText?: string;
+  isCollectorOnly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showInstanceLink: true,
   headerText: 'Recording Sessions',
-  isCollectorOnly: false,
+  isCollectorOnly: false
 });
 
 const emit = defineEmits<{
-  (e: 'refresh'): void
+  (e: 'refresh'): void;
 }>();
 
 const toast = ToastService;
-const {generateInstanceUrl} = useNavigation();
+const { generateInstanceUrl } = useNavigation();
 
-const repositoryService = computed(() =>
-    new ProjectRepositoryClient(props.workspaceId, props.projectId)
+const repositoryService = computed(
+  () => new ProjectRepositoryClient(props.workspaceId, props.projectId)
 );
 
 // --- Session UI state ---
@@ -71,10 +71,23 @@ interface FileGroupEntry {
   totalSize: number;
 }
 
-type ArtifactTypeGroup = 'JFR_RECORDING' | 'HEAP_DUMP' | 'PERF_COUNTERS' | 'JVM_LOG' | 'APP_LOG' | 'HS_JVM_ERROR_LOG' | 'UNKNOWN';
+type ArtifactTypeGroup =
+  | 'JFR_RECORDING'
+  | 'HEAP_DUMP'
+  | 'PERF_COUNTERS'
+  | 'JVM_LOG'
+  | 'APP_LOG'
+  | 'HS_JVM_ERROR_LOG'
+  | 'UNKNOWN';
 
 const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
-  'JFR_RECORDING', 'HEAP_DUMP', 'PERF_COUNTERS', 'JVM_LOG', 'APP_LOG', 'HS_JVM_ERROR_LOG', 'UNKNOWN',
+  'JFR_RECORDING',
+  'HEAP_DUMP',
+  'PERF_COUNTERS',
+  'JVM_LOG',
+  'APP_LOG',
+  'HS_JVM_ERROR_LOG',
+  'UNKNOWN'
 ];
 
 const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
@@ -87,17 +100,20 @@ const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
   [RecordingFileType.JVM_LOG]: 'JVM_LOG',
   [RecordingFileType.APP_LOG]: 'APP_LOG',
   [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
-  [RecordingFileType.UNKNOWN]: 'UNKNOWN',
+  [RecordingFileType.UNKNOWN]: 'UNKNOWN'
 };
 
-const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: Variant; fileType: string }> = {
-  'JFR_RECORDING':    { name: 'JFR Recordings',     variant: 'primary', fileType: 'JFR' },
-  'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
-  'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },
-  'JVM_LOG':          { name: 'JVM Logs',            variant: 'green',   fileType: 'JVM_LOG' },
-  'APP_LOG':          { name: 'Application Logs',     variant: 'brown',   fileType: 'APP_LOG' },
-  'HS_JVM_ERROR_LOG': { name: 'HotSpot Error Logs',  variant: 'red',     fileType: 'HS_JVM_ERROR_LOG' },
-  'UNKNOWN':          { name: 'Other Files',          variant: 'grey',    fileType: 'UNKNOWN' },
+const TYPE_GROUP_DISPLAY: Record<
+  ArtifactTypeGroup,
+  { name: string; variant: Variant; fileType: string }
+> = {
+  JFR_RECORDING: { name: 'JFR Recordings', variant: 'primary', fileType: 'JFR' },
+  HEAP_DUMP: { name: 'Heap Dumps', variant: 'purple', fileType: 'HEAP_DUMP' },
+  PERF_COUNTERS: { name: 'Perf Counters', variant: 'blue', fileType: 'PERF_COUNTERS' },
+  JVM_LOG: { name: 'JVM Logs', variant: 'green', fileType: 'JVM_LOG' },
+  APP_LOG: { name: 'Application Logs', variant: 'brown', fileType: 'APP_LOG' },
+  HS_JVM_ERROR_LOG: { name: 'HotSpot Error Logs', variant: 'red', fileType: 'HS_JVM_ERROR_LOG' },
+  UNKNOWN: { name: 'Other Files', variant: 'grey', fileType: 'UNKNOWN' }
 };
 
 interface TypeGroupPanel {
@@ -125,7 +141,12 @@ const sortedSessions = computed(() => {
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
-    if (file.fileType === RecordingFileType.JFR || file.fileType === RecordingFileType.JFR_LZ4 || file.fileType === RecordingFileType.ASPROF) return 1;
+    if (
+      file.fileType === RecordingFileType.JFR ||
+      file.fileType === RecordingFileType.JFR_LZ4 ||
+      file.fileType === RecordingFileType.ASPROF
+    )
+      return 1;
     return 0;
   };
 
@@ -151,7 +172,7 @@ const initializeExpandedState = () => {
 
   props.sessions.forEach(session => {
     expandedSessions.value[session.id] =
-        session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
+      session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
 
     if (visibleFilesCount.value[session.id] === undefined) {
       visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
@@ -167,13 +188,16 @@ const initializeExpandedState = () => {
     if (showMultiSelectActions.value[session.id] === undefined) {
       showMultiSelectActions.value[session.id] = false;
     }
-
   });
 };
 
-watch(() => props.sessions, () => {
-  initializeExpandedState();
-}, { immediate: true });
+watch(
+  () => props.sessions,
+  () => {
+    initializeExpandedState();
+  },
+  { immediate: true }
+);
 
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
@@ -259,7 +283,8 @@ const toggleSourceSelection = (sessionId: string, sourceId: string) => {
   if (!selectedRepositoryFile.value[sessionId]) {
     selectedRepositoryFile.value[sessionId] = {};
   }
-  selectedRepositoryFile.value[sessionId][sourceId] = !selectedRepositoryFile.value[sessionId][sourceId];
+  selectedRepositoryFile.value[sessionId][sourceId] =
+    !selectedRepositoryFile.value[sessionId][sourceId];
 };
 
 const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
@@ -323,16 +348,22 @@ const copyAndMerge = async (sessionId: string) => {
 
     if (props.isRemoteWorkspace) {
       const fileIds = session.files.map(f => f.id);
-      await downloadAssistantStore.startDownload(props.workspaceId, props.projectId, sessionId, fileIds, async () => {
-        emit('refresh');
-      });
+      await downloadAssistantStore.startDownload(
+        props.workspaceId,
+        props.projectId,
+        sessionId,
+        fileIds,
+        async () => {
+          emit('refresh');
+        }
+      );
     } else {
       await repositoryService.value.copyRecordingSession(session, true);
       toast.success('Merge & Copy', `Successfully merged and copied session ${session.id}`);
       emit('refresh');
     }
   } catch (error: any) {
-    console.error("Error merging and copying session:", error);
+    console.error('Error merging and copying session:', error);
     toast.error('Merge & Copy', error.message || 'Failed to merge and copy recording session');
   }
 };
@@ -342,8 +373,8 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
     const session = props.sessions.find(s => s.id === sessionId);
     if (!session) return;
 
-    const selectedSources = session.files.filter(source =>
-        selectedRepositoryFile.value[sessionId][source.id]
+    const selectedSources = session.files.filter(
+      source => selectedRepositoryFile.value[sessionId][source.id]
     );
 
     if (selectedSources.length === 0) {
@@ -353,24 +384,30 @@ const downloadSelectedSources = async (sessionId: string, merge: boolean) => {
 
     if (props.isRemoteWorkspace) {
       const fileIds = selectedSources.map(f => f.id);
-      await downloadAssistantStore.startDownload(props.workspaceId, props.projectId, sessionId, fileIds, async () => {
-        emit('refresh');
-        toggleSelectAllSources(sessionId, false);
-      });
+      await downloadAssistantStore.startDownload(
+        props.workspaceId,
+        props.projectId,
+        sessionId,
+        fileIds,
+        async () => {
+          emit('refresh');
+          toggleSelectAllSources(sessionId, false);
+        }
+      );
     } else {
       await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources, merge);
       toast.success(
-          merge ? 'Merge & Copy' : 'Copy Selected',
-          `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
+        merge ? 'Merge & Copy' : 'Copy Selected',
+        `Successfully ${merge ? 'merged and copied' : 'copied'} ${selectedSources.length} recording(s)`
       );
       emit('refresh');
       toggleSelectAllSources(sessionId, false);
     }
   } catch (error: any) {
-    console.error("Error processing selected recordings:", error);
+    console.error('Error processing selected recordings:', error);
     toast.error(
-        merge ? 'Merge & Copy' : 'Copy Selected',
-        error.message || `Failed to ${merge ? 'merge and copy' : 'copy'} selected recordings`
+      merge ? 'Merge & Copy' : 'Copy Selected',
+      error.message || `Failed to ${merge ? 'merge and copy' : 'copy'} selected recordings`
     );
   }
 };
@@ -379,8 +416,8 @@ const deleteSelectedSources = async (sessionId: string) => {
   const session = props.sessions.find(s => s.id === sessionId);
   if (!session) return;
 
-  const selectedSources = session.files.filter(source =>
-      selectedRepositoryFile.value[sessionId][source.id]
+  const selectedSources = session.files.filter(
+    source => selectedRepositoryFile.value[sessionId][source.id]
   );
 
   if (selectedSources.length === 0) {
@@ -402,8 +439,8 @@ const confirmDeleteSelectedFiles = async () => {
   deletingSelectedFiles.value = true;
 
   try {
-    const selectedSources = session.files.filter(source =>
-        selectedRepositoryFile.value[sessionId][source.id]
+    const selectedSources = session.files.filter(
+      source => selectedRepositoryFile.value[sessionId][source.id]
     );
 
     await repositoryService.value.deleteSelectedRepositoryFile(sessionId, selectedSources);
@@ -413,7 +450,7 @@ const confirmDeleteSelectedFiles = async () => {
     toggleSelectAllSources(sessionId, false);
     deleteSelectedFilesDialog.value = false;
   } catch (error: any) {
-    console.error("Error deleting selected recordings:", error);
+    console.error('Error deleting selected recordings:', error);
     toast.error('Delete Selected', error.message || 'Failed to delete selected recordings');
   } finally {
     deletingSelectedFiles.value = false;
@@ -444,7 +481,7 @@ const confirmDeleteSession = async () => {
     emit('refresh');
     deleteSessionDialog.value = false;
   } catch (error: any) {
-    console.error("Error deleting recording session:", error);
+    console.error('Error deleting recording session:', error);
     toast.error('Delete All', error.message || 'Failed to delete recording session');
   } finally {
     deletingSession.value = false;
@@ -507,7 +544,11 @@ const groupRotatedFiles = (sortedFiles: RepositoryFile[]): FileGroupEntry[] => {
 };
 
 const isRecordingFileType = (fileType: string): boolean => {
-  return fileType === RecordingFileType.JFR || fileType === RecordingFileType.JFR_LZ4 || fileType === RecordingFileType.ASPROF;
+  return (
+    fileType === RecordingFileType.JFR ||
+    fileType === RecordingFileType.JFR_LZ4 ||
+    fileType === RecordingFileType.ASPROF
+  );
 };
 
 const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] => {
@@ -538,7 +579,9 @@ const getRemainingRecordingGroupCount = (session: RecordingSession): number => {
   return getRecordingGroupedFiles(session).length - limit;
 };
 
-const getArtifactGroupMap = (session: RecordingSession): Map<ArtifactTypeGroup, RepositoryFile[]> => {
+const getArtifactGroupMap = (
+  session: RecordingSession
+): Map<ArtifactTypeGroup, RepositoryFile[]> => {
   const sortedFiles = getSortedRecordings(session);
   const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
   for (const file of sortedFiles) {
@@ -566,7 +609,7 @@ const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
       display: TYPE_GROUP_DISPLAY[groupKey],
       files,
       fileCount: files.length,
-      totalSize: files.reduce((sum, f) => sum + f.size, 0),
+      totalSize: files.reduce((sum, f) => sum + f.size, 0)
     });
   }
   return panels;
@@ -628,7 +671,10 @@ const isRotatedGroupExpanded = (sessionId: string, primaryName: string): boolean
 const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) => {
   const classes = [];
 
-  if (selectedRepositoryFile.value[sessionId] && selectedRepositoryFile.value[sessionId][source.id]) {
+  if (
+    selectedRepositoryFile.value[sessionId] &&
+    selectedRepositoryFile.value[sessionId][source.id]
+  ) {
     classes.push('source-selected');
   }
 
@@ -650,24 +696,30 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
   <div class="col-12" v-if="sessions.length > 0">
     <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
       <!-- Session header -->
-      <div class="folder-row rounded"
-           :class="getSessionStatusClass(session)"
-           @click="toggleSession(session.id)">
+      <div
+        class="folder-row rounded"
+        :class="getSessionStatusClass(session)"
+        @click="toggleSession(session.id)"
+      >
         <!-- Identity section -->
         <div class="session-identity">
           <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
               <div class="session-icon-square me-3" :class="getSessionIconClass(session)">
-                <i class="bi" :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                <i
+                  class="bi"
+                  :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"
+                ></i>
               </div>
               <div>
                 <div class="d-flex align-items-center gap-2">
                   <template v-if="showInstanceLink">
                     <span class="session-name-label">Instance:</span>
                     <router-link
-                        :to="generateInstanceUrl(session.instanceId)"
-                        class="instance-link"
-                        @click.stop>
+                      :to="generateInstanceUrl(session.instanceId)"
+                      class="instance-link"
+                      @click.stop
+                    >
                       {{ parseSessionName(session.name).hostname }}
                     </router-link>
                     <span class="session-separator">/</span>
@@ -679,43 +731,54 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <span class="session-id-part">{{ session.id }}</span>
                 </div>
                 <div class="session-meta">
-                  <span><i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources</span>
+                  <span
+                    ><i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources</span
+                  >
                 </div>
               </div>
             </div>
             <div class="d-flex align-items-center gap-1">
               <button
-                  v-if="!isCollectorOnly"
-                  class="btn btn-sm btn-outline-primary"
-                  type="button"
-                  title="Merge and Copy Recordings"
-                  @click.stop="copyAndMerge(session.id)">
+                v-if="!isCollectorOnly"
+                class="btn btn-sm btn-outline-primary"
+                type="button"
+                title="Merge and Copy Recordings"
+                @click.stop="copyAndMerge(session.id)"
+              >
                 <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
               </button>
               <button
-                  v-if="session.status === RecordingStatus.FINISHED"
-                  class="btn btn-sm btn-outline-danger"
-                  type="button"
-                  title="Delete Session"
-                  @click.stop="deleteAll(session.id)">
+                v-if="session.status === RecordingStatus.FINISHED"
+                class="btn btn-sm btn-outline-danger"
+                type="button"
+                title="Delete Session"
+                @click.stop="deleteAll(session.id)"
+              >
                 <i class="bi bi-trash"></i>
               </button>
               <button
-                  class="action-btn action-menu-btn ms-1"
-                  :class="{'active': showMultiSelectActions[session.id]}"
-                  type="button"
-                  title="Toggle multi-select mode"
-                  @click.stop="toggleSelectionMode(session.id)">
-                <i class="bi"
-                   :class="{'bi-check2-square': showMultiSelectActions[session.id], 'bi-square': !showMultiSelectActions[session.id]}"></i>
+                class="action-btn action-menu-btn ms-1"
+                :class="{ active: showMultiSelectActions[session.id] }"
+                type="button"
+                title="Toggle multi-select mode"
+                @click.stop="toggleSelectionMode(session.id)"
+              >
+                <i
+                  class="bi"
+                  :class="{
+                    'bi-check2-square': showMultiSelectActions[session.id],
+                    'bi-square': !showMultiSelectActions[session.id]
+                  }"
+                ></i>
               </button>
               <button
-                  v-if="session.profilerSettings"
-                  class="action-btn action-menu-btn ms-1"
-                  :class="{'active': expandedProfilerSettings[session.id]}"
-                  type="button"
-                  title="Show profiler configuration"
-                  @click.stop="toggleProfilerSettings(session.id)">
+                v-if="session.profilerSettings"
+                class="action-btn action-menu-btn ms-1"
+                :class="{ active: expandedProfilerSettings[session.id] }"
+                type="button"
+                title="Show profiler configuration"
+                @click.stop="toggleProfilerSettings(session.id)"
+              >
                 <i class="bi bi-gear-fill"></i>
               </button>
             </div>
@@ -723,84 +786,118 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         </div>
 
         <!-- Timeline section -->
-        <TimelineBar :createdAt="session.createdAt" :finishedAt="session.finishedAt" :duration="session.duration" />
+        <TimelineBar
+          :createdAt="session.createdAt"
+          :finishedAt="session.finishedAt"
+          :duration="session.duration"
+        />
       </div>
 
       <!-- Session recordings (shown when expanded) -->
       <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
         <!-- Profiler Configuration Section -->
-        <div v-if="expandedProfilerSettings[session.id] && session.profilerSettings"
-             class="profiler-config-controls d-flex align-items-center mb-2">
+        <div
+          v-if="expandedProfilerSettings[session.id] && session.profilerSettings"
+          class="profiler-config-controls d-flex align-items-center mb-2"
+        >
           <i class="bi bi-gear-fill me-2 text-primary"></i>
           <code
             class="raw-command-code mb-0 clickable"
             @click.stop="copyProfilerSettings(session.profilerSettings)"
-            title="Click to copy">
+            title="Click to copy"
+          >
             {{ session.profilerSettings }}
           </code>
         </div>
 
         <!-- Multi-select controls -->
-        <div v-if="showMultiSelectActions[session.id]"
-             class="multi-select-controls d-flex justify-content-between align-items-center mb-2">
+        <div
+          v-if="showMultiSelectActions[session.id]"
+          class="multi-select-controls d-flex justify-content-between align-items-center mb-2"
+        >
           <div class="d-flex align-items-center">
             <button
-                class="btn btn-sm select-all-btn me-2"
-                @click.stop="toggleSelectAllSources(session.id, true)"
-                title="Select all recordings">
+              class="btn btn-sm select-all-btn me-2"
+              @click.stop="toggleSelectAllSources(session.id, true)"
+              title="Select all recordings"
+            >
               <i class="bi bi-check2-square me-1"></i>Select All
             </button>
             <button
-                class="btn btn-sm clear-btn"
-                @click.stop="toggleSelectAllSources(session.id, false)"
-                :disabled="getSelectedCount(session.id) === 0"
-                title="Clear selection">
+              class="btn btn-sm clear-btn"
+              @click.stop="toggleSelectAllSources(session.id, false)"
+              :disabled="getSelectedCount(session.id) === 0"
+              title="Clear selection"
+            >
               <i class="bi bi-x-lg me-1"></i>Clear
             </button>
           </div>
 
           <div class="d-flex align-items-center gap-2">
-            <Badge v-if="getSelectedCount(session.id) > 0" :value="`${getSelectedCount(session.id)} selected`"
-                   variant="secondary" size="xs" class="me-2"/>
+            <Badge
+              v-if="getSelectedCount(session.id) > 0"
+              :value="`${getSelectedCount(session.id)} selected`"
+              variant="secondary"
+              size="xs"
+              class="me-2"
+            />
             <button
-                v-if="!isCollectorOnly"
-                class="btn btn-sm btn-outline-primary"
-                @click.stop="downloadSelectedSources(session.id, true)"
-                :disabled="getSelectedCount(session.id) === 0"
-                title="Merge and copy selected recordings">
+              v-if="!isCollectorOnly"
+              class="btn btn-sm btn-outline-primary"
+              @click.stop="downloadSelectedSources(session.id, true)"
+              :disabled="getSelectedCount(session.id) === 0"
+              title="Merge and copy selected recordings"
+            >
               <i class="bi bi-folder-symlink me-1"></i>Merge &amp; Copy
             </button>
             <button
-                v-if="!isRemoteWorkspace"
-                class="btn btn-sm btn-outline-danger"
-                @click.stop="deleteSelectedSources(session.id)"
-                :disabled="getSelectedCount(session.id) === 0"
-                title="Delete selected recordings">
+              v-if="!isRemoteWorkspace"
+              class="btn btn-sm btn-outline-danger"
+              @click.stop="deleteSelectedSources(session.id)"
+              :disabled="getSelectedCount(session.id) === 0"
+              title="Delete selected recordings"
+            >
               <i class="bi bi-trash me-1"></i>Delete Selected
             </button>
           </div>
         </div>
 
         <!-- Artifact type panels (non-recording types with > 1 file) -->
-        <div v-for="panel in getTypeGroupPanels(session)" :key="panel.groupKey" class="type-panel mb-2">
+        <div
+          v-for="panel in getTypeGroupPanels(session)"
+          :key="panel.groupKey"
+          class="type-panel mb-2"
+        >
           <!-- Type panel header -->
-          <div class="type-panel-header-wrapper" @click="toggleTypePanel(session.id, panel.groupKey)">
+          <div
+            class="type-panel-header-wrapper"
+            @click="toggleTypePanel(session.id, panel.groupKey)"
+          >
             <RecordingFileRow
               :filename="panel.display.name"
               :fileType="panel.display.fileType"
               :sizeInBytes="panel.totalSize"
             >
               <template #before>
-                <i class="bi me-1 type-panel-chevron"
-                   :class="isTypePanelExpanded(session.id, panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                <div class="form-check file-form-check me-2"
-                     v-if="showMultiSelectActions[session.id]">
+                <i
+                  class="bi me-1 type-panel-chevron"
+                  :class="
+                    isTypePanelExpanded(session.id, panel.groupKey)
+                      ? 'bi-chevron-down'
+                      : 'bi-chevron-right'
+                  "
+                ></i>
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id]"
+                >
                   <input
-                      class="form-check-input file-checkbox"
-                      type="checkbox"
-                      :checked="isAllGroupFilesSelected(session.id, panel)"
-                      @change="toggleGroupSelection(session.id, panel)"
-                      @click.stop>
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :checked="isAllGroupFilesSelected(session.id, panel)"
+                    @change="toggleGroupSelection(session.id, panel)"
+                    @click.stop
+                  />
                 </div>
               </template>
               <template #extra-badges>
@@ -814,8 +911,10 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           <!-- Type panel body (flat file list) -->
           <div v-if="isTypePanelExpanded(session.id, panel.groupKey)" class="type-panel-body">
             <template v-for="file in getVisiblePanelFiles(panel, session.id)" :key="file.id">
-              <div class="source-status-wrapper mb-2 rounded"
-                   :class="getSourceStatusWrapperClass(file, session.id)">
+              <div
+                class="source-status-wrapper mb-2 rounded"
+                :class="getSourceStatusWrapperClass(file, session.id)"
+              >
                 <RecordingFileRow
                   :filename="file.name"
                   :fileType="file.fileType"
@@ -824,21 +923,31 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   :status="file.status"
                 >
                   <template #before>
-                    <div class="form-check file-form-check me-2"
-                         v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)">
+                    <div
+                      class="form-check file-form-check me-2"
+                      v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)"
+                    >
                       <input
-                          class="form-check-input file-checkbox"
-                          type="checkbox"
-                          :id="'source-' + file.id"
-                          :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][file.id]"
-                          @change="() => toggleSourceSelection(session.id, file.id)"
-                          @click.stop>
+                        class="form-check-input file-checkbox"
+                        type="checkbox"
+                        :id="'source-' + file.id"
+                        :checked="
+                          selectedRepositoryFile[session.id] &&
+                          selectedRepositoryFile[session.id][file.id]
+                        "
+                        @change="() => toggleSourceSelection(session.id, file.id)"
+                        @click.stop
+                      />
                     </div>
                   </template>
                   <template #extra-badges>
-                    <Badge v-if="file.status === RecordingStatus.UNKNOWN"
-                           :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
-                           class="ms-1"/>
+                    <Badge
+                      v-if="file.status === RecordingStatus.UNKNOWN"
+                      :value="Utils.capitalize(file.status.toLowerCase())"
+                      variant="purple"
+                      size="xxs"
+                      class="ms-1"
+                    />
                   </template>
                   <template #actions>
                     <button
@@ -856,9 +965,12 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
             <!-- Show More per panel -->
             <div v-if="hasMoreInPanel(panel, session.id)" class="text-center mt-1 mb-2">
-              <button class="btn btn-sm btn-outline-primary show-more-btn"
-                      @click.stop="showMoreInPanel(session.id, panel.groupKey, panel.fileCount)">
-                <i class="bi bi-chevron-down me-1"></i>Show {{ getRemainingInPanel(panel, session.id) }} more
+              <button
+                class="btn btn-sm btn-outline-primary show-more-btn"
+                @click.stop="showMoreInPanel(session.id, panel.groupKey, panel.fileCount)"
+              >
+                <i class="bi bi-chevron-down me-1"></i>Show
+                {{ getRemainingInPanel(panel, session.id) }} more
               </button>
             </div>
           </div>
@@ -866,8 +978,10 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
         <!-- Standalone artifact files (non-recording types with exactly 1 file) -->
         <template v-for="file in getStandaloneArtifactFiles(session)" :key="file.id">
-          <div class="source-status-wrapper mb-2 rounded"
-               :class="getSourceStatusWrapperClass(file, session.id)">
+          <div
+            class="source-status-wrapper mb-2 rounded"
+            :class="getSourceStatusWrapperClass(file, session.id)"
+          >
             <RecordingFileRow
               :filename="file.name"
               :fileType="file.fileType"
@@ -876,21 +990,31 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               :status="file.status"
             >
               <template #before>
-                <div class="form-check file-form-check me-2"
-                     v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)">
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)"
+                >
                   <input
-                      class="form-check-input file-checkbox"
-                      type="checkbox"
-                      :id="'source-' + file.id"
-                      :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][file.id]"
-                      @change="() => toggleSourceSelection(session.id, file.id)"
-                      @click.stop>
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :id="'source-' + file.id"
+                    :checked="
+                      selectedRepositoryFile[session.id] &&
+                      selectedRepositoryFile[session.id][file.id]
+                    "
+                    @change="() => toggleSourceSelection(session.id, file.id)"
+                    @click.stop
+                  />
                 </div>
               </template>
               <template #extra-badges>
-                <Badge v-if="file.status === RecordingStatus.UNKNOWN"
-                       :value="Utils.capitalize(file.status.toLowerCase())" variant="purple" size="xxs"
-                       class="ms-1"/>
+                <Badge
+                  v-if="file.status === RecordingStatus.UNKNOWN"
+                  :value="Utils.capitalize(file.status.toLowerCase())"
+                  variant="purple"
+                  size="xxs"
+                  class="ms-1"
+                />
               </template>
               <template #actions>
                 <button
@@ -909,8 +1033,10 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <!-- Recording files (flat with rotation grouping) -->
         <template v-for="entry in getVisibleRecordingGroups(session)" :key="entry.primary.id">
           <!-- Primary row -->
-          <div class="source-status-wrapper mb-2 rounded"
-               :class="getSourceStatusWrapperClass(entry.primary, session.id)">
+          <div
+            class="source-status-wrapper mb-2 rounded"
+            :class="getSourceStatusWrapperClass(entry.primary, session.id)"
+          >
             <RecordingFileRow
               :filename="entry.primary.name"
               :fileType="entry.primary.fileType"
@@ -923,28 +1049,54 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   v-if="entry.children.length > 0"
                   class="rotation-toggle-btn me-1"
                   @click.stop="toggleRotatedGroup(session.id, entry.primary.name)"
-                  :title="isRotatedGroupExpanded(session.id, entry.primary.name) ? 'Collapse rotated files' : 'Expand rotated files'"
+                  :title="
+                    isRotatedGroupExpanded(session.id, entry.primary.name)
+                      ? 'Collapse rotated files'
+                      : 'Expand rotated files'
+                  "
                 >
-                  <i class="bi" :class="isRotatedGroupExpanded(session.id, entry.primary.name) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                  <i
+                    class="bi"
+                    :class="
+                      isRotatedGroupExpanded(session.id, entry.primary.name)
+                        ? 'bi-chevron-down'
+                        : 'bi-chevron-right'
+                    "
+                  ></i>
                 </button>
-                <div class="form-check file-form-check me-2"
-                     v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(entry.primary)">
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(entry.primary)"
+                >
                   <input
-                      class="form-check-input file-checkbox"
-                      type="checkbox"
-                      :id="'source-' + entry.primary.id"
-                      :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][entry.primary.id]"
-                      @change="() => toggleSourceSelection(session.id, entry.primary.id)"
-                      @click.stop>
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :id="'source-' + entry.primary.id"
+                    :checked="
+                      selectedRepositoryFile[session.id] &&
+                      selectedRepositoryFile[session.id][entry.primary.id]
+                    "
+                    @change="() => toggleSourceSelection(session.id, entry.primary.id)"
+                    @click.stop
+                  />
                 </div>
               </template>
               <template #extra-badges>
-                <Badge v-if="entry.primary.status === RecordingStatus.UNKNOWN"
-                       :value="Utils.capitalize(entry.primary.status.toLowerCase())" variant="purple" size="xxs"
-                       class="ms-1"/>
-                <Badge v-if="entry.children.length > 0"
-                       :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
-                       variant="grey" size="xxs" class="ms-1" :uppercase="false"/>
+                <Badge
+                  v-if="entry.primary.status === RecordingStatus.UNKNOWN"
+                  :value="Utils.capitalize(entry.primary.status.toLowerCase())"
+                  variant="purple"
+                  size="xxs"
+                  class="ms-1"
+                />
+                <Badge
+                  v-if="entry.children.length > 0"
+                  :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
+                  variant="grey"
+                  size="xxs"
+                  class="ms-1"
+                  :uppercase="false"
+                />
               </template>
               <template #actions>
                 <button
@@ -960,10 +1112,17 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           </div>
 
           <!-- Rotated children (when expanded) -->
-          <template v-if="entry.children.length > 0 && isRotatedGroupExpanded(session.id, entry.primary.name)">
-            <div v-for="child in entry.children" :key="child.id"
-                 class="rotated-child-row mb-2 rounded"
-                 :class="getSourceStatusWrapperClass(child, session.id)">
+          <template
+            v-if="
+              entry.children.length > 0 && isRotatedGroupExpanded(session.id, entry.primary.name)
+            "
+          >
+            <div
+              v-for="child in entry.children"
+              :key="child.id"
+              class="rotated-child-row mb-2 rounded"
+              :class="getSourceStatusWrapperClass(child, session.id)"
+            >
               <RecordingFileRow
                 :filename="child.name"
                 :fileType="child.fileType"
@@ -972,21 +1131,31 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 :status="child.status"
               >
                 <template #before>
-                  <div class="form-check file-form-check me-2"
-                       v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(child)">
+                  <div
+                    class="form-check file-form-check me-2"
+                    v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(child)"
+                  >
                     <input
-                        class="form-check-input file-checkbox"
-                        type="checkbox"
-                        :id="'source-' + child.id"
-                        :checked="selectedRepositoryFile[session.id] && selectedRepositoryFile[session.id][child.id]"
-                        @change="() => toggleSourceSelection(session.id, child.id)"
-                        @click.stop>
+                      class="form-check-input file-checkbox"
+                      type="checkbox"
+                      :id="'source-' + child.id"
+                      :checked="
+                        selectedRepositoryFile[session.id] &&
+                        selectedRepositoryFile[session.id][child.id]
+                      "
+                      @change="() => toggleSourceSelection(session.id, child.id)"
+                      @click.stop
+                    />
                   </div>
                 </template>
                 <template #extra-badges>
-                  <Badge v-if="child.status === RecordingStatus.UNKNOWN"
-                         :value="Utils.capitalize(child.status.toLowerCase())" variant="purple" size="xxs"
-                         class="ms-1"/>
+                  <Badge
+                    v-if="child.status === RecordingStatus.UNKNOWN"
+                    :value="Utils.capitalize(child.status.toLowerCase())"
+                    variant="purple"
+                    size="xxs"
+                    class="ms-1"
+                  />
                 </template>
                 <template #actions>
                   <button
@@ -1005,9 +1174,12 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
         <!-- Show More for recordings -->
         <div v-if="hasMoreRecordingGroups(session)" class="text-center mt-1 mb-2">
-          <button class="btn btn-sm btn-outline-primary show-more-btn"
-                  @click.stop="showMoreRecordingGroups(session.id)">
-            <i class="bi bi-chevron-down me-1"></i>Show {{ getRemainingRecordingGroupCount(session) }} more files
+          <button
+            class="btn btn-sm btn-outline-primary show-more-btn"
+            @click.stop="showMoreRecordingGroups(session.id)"
+          >
+            <i class="bi bi-chevron-down me-1"></i>Show
+            {{ getRemainingRecordingGroupCount(session) }} more files
           </button>
         </div>
       </div>
@@ -1016,28 +1188,28 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
   <!-- Delete Session Confirmation Modal -->
   <ConfirmationDialog
-      v-model:show="deleteSessionDialog"
-      title="Confirm Deletion"
-      message="Are you sure you want to delete this recording session?"
-      sub-message="This action cannot be undone."
-      confirm-label="Delete Session"
-      confirm-button-class="btn-danger"
-      confirm-button-id="deleteSessionButton"
-      modal-id="deleteSessionModal"
-      @confirm="confirmDeleteSession"
+    v-model:show="deleteSessionDialog"
+    title="Confirm Deletion"
+    message="Are you sure you want to delete this recording session?"
+    sub-message="This action cannot be undone."
+    confirm-label="Delete Session"
+    confirm-button-class="btn-danger"
+    confirm-button-id="deleteSessionButton"
+    modal-id="deleteSessionModal"
+    @confirm="confirmDeleteSession"
   />
 
   <!-- Delete Selected Files Confirmation Modal -->
   <ConfirmationDialog
-      v-model:show="deleteSelectedFilesDialog"
-      title="Confirm Deletion"
-      message="Are you sure you want to delete the selected recordings?"
-      sub-message="This action cannot be undone."
-      confirm-label="Delete Selected"
-      confirm-button-class="btn-danger"
-      confirm-button-id="deleteSelectedFilesButton"
-      modal-id="deleteSelectedFilesModal"
-      @confirm="confirmDeleteSelectedFiles"
+    v-model:show="deleteSelectedFilesDialog"
+    title="Confirm Deletion"
+    message="Are you sure you want to delete the selected recordings?"
+    sub-message="This action cannot be undone."
+    confirm-label="Delete Selected"
+    confirm-button-class="btn-danger"
+    confirm-button-id="deleteSelectedFilesButton"
+    modal-id="deleteSelectedFilesModal"
+    @confirm="confirmDeleteSelectedFiles"
   />
 </template>
 

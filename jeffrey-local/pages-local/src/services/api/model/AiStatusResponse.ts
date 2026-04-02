@@ -17,7 +17,7 @@
  */
 
 export default interface AiStatusResponse {
-    enabled: boolean;
-    provider: string | null;
-    configured: boolean;
+  enabled: boolean;
+  provider: string | null;
+  configured: boolean;
 }

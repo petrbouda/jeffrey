@@ -5,8 +5,8 @@
       <div>
         <h5 class="alert-heading mb-3">Feature Under Development</h5>
         <p class="mb-3">
-          Profiler Settings for Remote workspaces will be available in a future release
-          when exposed via the Public API.
+          Profiler Settings for Remote workspaces will be available in a future release when exposed
+          via the Public API.
         </p>
 
         <div class="feature-info mb-3">

@@ -19,42 +19,35 @@
 <template>
   <!-- Floating Button (visible when panel is closed or minimized) -->
   <AssistantMinimizedButton
-      v-if="!isOpen || !isExpanded"
-      :icon="minimizedIcon"
-      :status="minimizedStatus"
-      :is-spinning="isSpinningIcon"
-      :order="2"
-      @click="handleButtonClick"
-      title="Quick Analysis"
+    v-if="!isOpen || !isExpanded"
+    :icon="minimizedIcon"
+    :status="minimizedStatus"
+    :is-spinning="isSpinningIcon"
+    :order="2"
+    @click="handleButtonClick"
+    title="Quick Analysis"
   />
 
   <!-- Expanded State - Panel -->
   <AssistantPanel
-      :is-open="isOpen"
-      :is-expanded="isExpanded"
-      width="460px"
-      header-gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-      :show-backdrop="true"
-      @close="$emit('close')"
+    :is-open="isOpen"
+    :is-expanded="isExpanded"
+    width="460px"
+    header-gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+    :show-backdrop="true"
+    @close="$emit('close')"
   >
     <template #header-icon>
       <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
     </template>
 
-    <template #header-title>
-      Quick Analysis
-    </template>
+    <template #header-title> Quick Analysis </template>
 
     <template #header-actions>
       <button class="btn-icon" @click="$emit('minimize')" title="Minimize">
         <i class="bi bi-dash-lg"></i>
       </button>
-      <button
-          v-if="!isProcessing"
-          class="btn-icon"
-          @click="$emit('close')"
-          title="Close"
-      >
+      <button v-if="!isProcessing" class="btn-icon" @click="$emit('close')" title="Close">
         <i class="bi bi-x-lg"></i>
       </button>
     </template>
@@ -63,32 +56,40 @@
       <div class="quick-analysis-body">
         <!-- Dropzone -->
         <div
-            class="dropzone"
-            :class="{ 'drag-over': isDragOver, 'processing': isProcessing, 'has-file': selectedFile }"
-            @click="triggerFileInput"
-            @drop.prevent="handleFileDrop"
-            @dragenter.prevent="isDragOver = true"
-            @dragover.prevent
-            @dragleave.prevent="isDragOver = false"
+          class="dropzone"
+          :class="{ 'drag-over': isDragOver, processing: isProcessing, 'has-file': selectedFile }"
+          @click="triggerFileInput"
+          @drop.prevent="handleFileDrop"
+          @dragenter.prevent="isDragOver = true"
+          @dragover.prevent
+          @dragleave.prevent="isDragOver = false"
         >
           <input
-              ref="fileInputRef"
-              type="file"
-              accept=".jfr,.lz4,.hprof,.gz"
-              class="file-input-hidden"
-              @change="handleFileSelect"
-          >
+            ref="fileInputRef"
+            type="file"
+            accept=".jfr,.lz4,.hprof,.gz"
+            class="file-input-hidden"
+            @change="handleFileSelect"
+          />
 
           <!-- Default state -->
           <template v-if="!isProcessing && !selectedFile">
             <i class="bi bi-cloud-upload dropzone-icon"></i>
             <span class="dropzone-text">Drop your JFR or Heap Dump file here</span>
-            <span class="dropzone-subtext">or click to select (.jfr, .jfr.lz4, .hprof, .hprof.gz)</span>
+            <span class="dropzone-subtext"
+              >or click to select (.jfr, .jfr.lz4, .hprof, .hprof.gz)</span
+            >
           </template>
 
           <!-- File selected state -->
           <template v-else-if="!isProcessing && selectedFile">
-            <i :class="selectedFileType === 'hprof' ? 'bi bi-database file-icon' : 'bi bi-file-earmark-binary file-icon'"></i>
+            <i
+              :class="
+                selectedFileType === 'hprof'
+                  ? 'bi bi-database file-icon'
+                  : 'bi bi-file-earmark-binary file-icon'
+              "
+            ></i>
             <span class="file-name">{{ selectedFile.name }}</span>
             <span class="file-size">{{ formatBytes(selectedFile.size) }}</span>
             <button class="btn-start" @click.stop="$emit('start-analysis')">
@@ -130,13 +131,19 @@
           </div>
           <div class="recent-list">
             <div
-                v-for="recording in recentRecordings"
-                :key="recording.id"
-                class="recent-item"
-                @click="recording.hasProfile ? $emit('open-profile', recording.profileId) : undefined"
+              v-for="recording in recentRecordings"
+              :key="recording.id"
+              class="recent-item"
+              @click="recording.hasProfile ? $emit('open-profile', recording.profileId) : undefined"
             >
               <div class="item-info">
-                <i :class="isHeapDumpRecording(recording) ? 'bi bi-database item-icon' : 'bi bi-graph-up item-icon'"></i>
+                <i
+                  :class="
+                    isHeapDumpRecording(recording)
+                      ? 'bi bi-database item-icon'
+                      : 'bi bi-graph-up item-icon'
+                  "
+                ></i>
                 <div class="item-details">
                   <span class="item-name">{{ recording.filename }}</span>
                   <span class="item-meta">
@@ -150,7 +157,11 @@
                 <button class="btn-open" title="Open profile">
                   <i class="bi bi-arrow-right"></i>
                 </button>
-                <button class="btn-delete" @click.stop="$emit('delete-recording', recording.id)" title="Delete recording">
+                <button
+                  class="btn-delete"
+                  @click.stop="$emit('delete-recording', recording.id)"
+                  title="Delete recording"
+                >
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -174,7 +185,10 @@ import FormattingService from '@/services/FormattingService';
 import type QuickRecording from '@/services/api/model/QuickRecording';
 import AssistantPanel from '@/components/assistants/AssistantPanel.vue';
 import AssistantMinimizedButton from '@/components/assistants/AssistantMinimizedButton.vue';
-import type { QuickAnalysisStatus, QuickAnalysisFileType } from '@/stores/assistants/quickAnalysisAssistantStore';
+import type {
+  QuickAnalysisStatus,
+  QuickAnalysisFileType
+} from '@/stores/assistants/quickAnalysisAssistantStore';
 
 interface Props {
   isOpen: boolean;
@@ -416,7 +430,9 @@ const handleButtonClick = () => {
 }
 
 @keyframes spinner-rotate {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .processing-file {

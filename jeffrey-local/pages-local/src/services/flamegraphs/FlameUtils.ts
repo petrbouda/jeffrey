@@ -16,24 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import Flamegraph from "@/services/flamegraphs/Flamegraph";
+import Flamegraph from '@/services/flamegraphs/Flamegraph';
 
 export default class FlameUtils {
-
-    static canvasResize(flamegraph: Flamegraph, minusPadding = 0) {
-        let w = document.getElementById("flamegraphCanvas")!.parentElement!.clientWidth
-        if (flamegraph != null) {
-            flamegraph.resizeWidthCanvas(w - minusPadding)
-        }
+  static canvasResize(flamegraph: Flamegraph, minusPadding = 0) {
+    let w = document.getElementById('flamegraphCanvas')!.parentElement!.clientWidth;
+    if (flamegraph != null) {
+      flamegraph.resizeWidthCanvas(w - minusPadding);
     }
+  }
 
-    static registerAdjustableScrollableComponent(flamegraph: Flamegraph, scrollableComponent: string | null) {
-        if (scrollableComponent != null) {
-            let el = document.querySelector("#" + scrollableComponent)!
-            el.addEventListener("scroll", () => {
-                flamegraph.updateScrollPositionY(el.scrollTop)
-                flamegraph.removeHighlight()
-            });
-        }
+  static registerAdjustableScrollableComponent(
+    flamegraph: Flamegraph,
+    scrollableComponent: string | null
+  ) {
+    if (scrollableComponent != null) {
+      let el = document.querySelector('#' + scrollableComponent)!;
+      el.addEventListener('scroll', () => {
+        flamegraph.updateScrollPositionY(el.scrollTop);
+        flamegraph.removeHighlight();
+      });
     }
+  }
 }

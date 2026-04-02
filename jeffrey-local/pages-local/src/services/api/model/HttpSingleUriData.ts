@@ -16,22 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-import HttpHeader from "@/services/profile/custom/http/HttpHeader.ts";
-import HttpUriInfo from "@/services/profile/custom/http/HttpUriInfo.ts";
-import HttpStatusStats from "@/services/profile/custom/http/HttpStatusStats.ts";
-import HttpMethodStats from "@/services/profile/custom/http/HttpMethodStats.ts";
-import HttpSlowRequest from "@/services/profile/custom/http/HttpSlowRequest.ts";
-import Serie from "@/services/timeseries/model/Serie.ts";
+import HttpHeader from '@/services/profile/custom/http/HttpHeader.ts';
+import HttpUriInfo from '@/services/profile/custom/http/HttpUriInfo.ts';
+import HttpStatusStats from '@/services/profile/custom/http/HttpStatusStats.ts';
+import HttpMethodStats from '@/services/profile/custom/http/HttpMethodStats.ts';
+import HttpSlowRequest from '@/services/profile/custom/http/HttpSlowRequest.ts';
+import Serie from '@/services/timeseries/model/Serie.ts';
 
 export default class HttpSingleUriData {
-    constructor(
-        public header: HttpHeader,
-        public uri: HttpUriInfo,
-        public statusCodes: HttpStatusStats[],
-        public methods: HttpMethodStats[],
-        public slowRequests: HttpSlowRequest[],
-        public responseTimeSerie: Serie,
-        public requestCountSerie: Serie) {
-    }
+  constructor(
+    public header: HttpHeader,
+    public uri: HttpUriInfo,
+    public statusCodes: HttpStatusStats[],
+    public methods: HttpMethodStats[],
+    public slowRequests: HttpSlowRequest[],
+    public responseTimeSerie: Serie,
+    public requestCountSerie: Serie
+  ) {}
 }

@@ -236,12 +236,8 @@ const props = withDefaults(defineProps<Props>(), {
 const isPrimary = computed(() => props.graphMode === GraphType.PRIMARY);
 
 // Show native events only for primary flamegraph mode (not subsecond)
-const showNativeEvents = computed(() =>
-  isPrimary.value && props.routeName === 'flamegraph'
-);
+const showNativeEvents = computed(() => isPrimary.value && props.routeName === 'flamegraph');
 
 // Show blocking events only for primary flamegraph mode (not subsecond)
-const showBlockingEvents = computed(() =>
-  isPrimary.value && props.routeName === 'flamegraph'
-);
+const showBlockingEvents = computed(() => isPrimary.value && props.routeName === 'flamegraph');
 </script>

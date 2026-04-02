@@ -23,52 +23,49 @@
     title="GC Pause Event Details"
     icon="bi-pause-circle"
     size="xl"
-    @update:show="$emit('update:show', $event)">
-    
+    @update:show="$emit('update:show', $event)"
+  >
     <div v-if="event" class="pause-details">
       <!-- Event Info Header -->
       <div class="pause-info-header mb-4">
         <div class="d-flex align-items-center gap-3 mb-2">
-          <Badge 
-            :value="`GC ID: ${event.gcId}`"
-            variant="primary"
-            size="m"
-          />
-          <Badge 
+          <Badge :value="`GC ID: ${event.gcId}`" variant="primary" size="m" />
+          <Badge
             v-if="event.collectorName"
             :value="event.collectorName"
             :variant="getGenerationTypeBadgeVariant(event.generationType)"
             size="m"
           />
-          <Badge
-            v-if="event.type"
-            :value="event.type"
-            variant="secondary"
-            size="m"
-          />
+          <Badge v-if="event.type" :value="event.type" variant="secondary" size="m" />
         </div>
         <div class="pause-metrics">
           <div class="metric-item">
             <i class="bi bi-clock"></i>
             <span class="metric-label">Duration:</span>
             <span class="metric-value text-danger fw-bold">{{
-                FormattingService.formatDuration2Units(event.duration)
-              }}</span>
+              FormattingService.formatDuration2Units(event.duration)
+            }}</span>
           </div>
           <div class="metric-item">
             <i class="bi bi-pause-circle"></i>
             <span class="metric-label">Sum of Pauses:</span>
-            <span class="metric-value">{{ FormattingService.formatDuration2Units(event.sumOfPauses) }}</span>
+            <span class="metric-value">{{
+              FormattingService.formatDuration2Units(event.sumOfPauses)
+            }}</span>
           </div>
           <div class="metric-item">
             <i class="bi bi-stopwatch"></i>
             <span class="metric-label">Longest Pause:</span>
-            <span class="metric-value">{{ FormattingService.formatDuration2Units(event.longestPause) }}</span>
+            <span class="metric-value">{{
+              FormattingService.formatDuration2Units(event.longestPause)
+            }}</span>
           </div>
           <div class="metric-item">
             <i class="bi bi-calendar-event"></i>
             <span class="metric-label">Timestamp:</span>
-            <span class="metric-value">{{ FormattingService.formatTimestamp(event.timestamp) }}</span>
+            <span class="metric-value">{{
+              FormattingService.formatTimestamp(event.timestamp)
+            }}</span>
           </div>
         </div>
       </div>
@@ -107,9 +104,10 @@
             <div class="memory-value">{{ FormattingService.formatBytes(event.beforeGC) }}</div>
             <div class="memory-bar">
               <div class="progress">
-                <div class="progress-bar bg-warning" 
-                     :style="{ width: getMemoryPercentage(event.beforeGC, event.heapSize) + '%' }">
-                </div>
+                <div
+                  class="progress-bar bg-warning"
+                  :style="{ width: getMemoryPercentage(event.beforeGC, event.heapSize) + '%' }"
+                ></div>
               </div>
             </div>
           </div>
@@ -118,20 +116,24 @@
             <div class="memory-value">{{ FormattingService.formatBytes(event.afterGC) }}</div>
             <div class="memory-bar">
               <div class="progress">
-                <div class="progress-bar bg-success" 
-                     :style="{ width: getMemoryPercentage(event.afterGC, event.heapSize) + '%' }">
-                </div>
+                <div
+                  class="progress-bar bg-success"
+                  :style="{ width: getMemoryPercentage(event.afterGC, event.heapSize) + '%' }"
+                ></div>
               </div>
             </div>
           </div>
           <div class="memory-item">
             <div class="memory-label">Memory Freed</div>
-            <div class="memory-value text-success fw-bold">{{ FormattingService.formatBytes(event.freed) }}</div>
+            <div class="memory-value text-success fw-bold">
+              {{ FormattingService.formatBytes(event.freed) }}
+            </div>
             <div class="memory-bar">
               <div class="progress">
-                <div class="progress-bar bg-info" 
-                     :style="{ width: getMemoryPercentage(event.freed, event.heapSize) + '%' }">
-                </div>
+                <div
+                  class="progress-bar bg-info"
+                  :style="{ width: getMemoryPercentage(event.freed, event.heapSize) + '%' }"
+                ></div>
               </div>
             </div>
           </div>
@@ -148,11 +150,17 @@
             <div class="efficiency-label">Memory Change</div>
             <div class="efficiency-value">
               <div class="d-flex align-items-center">
-                <div class="progress flex-grow-1 me-3" style="height: 20px;">
-                  <div class="progress-bar" 
-                      :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
-                      :style="{ width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%' }">
-                    <span class="progress-text">{{ getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1) }}%</span>
+                <div class="progress flex-grow-1 me-3" style="height: 20px">
+                  <div
+                    class="progress-bar"
+                    :class="getDifferenceBarClass(event.beforeGC, event.afterGC)"
+                    :style="{ width: getDifferencePercentage(event.beforeGC, event.afterGC) + '%' }"
+                  >
+                    <span class="progress-text"
+                      >{{
+                        getDifferencePercentage(event.beforeGC, event.afterGC).toFixed(1)
+                      }}%</span
+                    >
                   </div>
                 </div>
               </div>
@@ -228,7 +236,6 @@ const getMemoryPercentage = (used: number, total: number) => {
   border-radius: 8px;
   border: 1px solid var(--card-border-color);
 }
-
 
 .pause-metrics {
   display: flex;
@@ -366,7 +373,7 @@ const getMemoryPercentage = (used: number, total: number) => {
   font-size: 0.75rem;
   font-weight: 600;
   color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 768px) {

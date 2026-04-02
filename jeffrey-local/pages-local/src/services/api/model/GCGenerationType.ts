@@ -17,8 +17,8 @@
  */
 
 enum GCGenerationType {
-    YOUNG = "YOUNG",
-    OLD = "OLD",
+  YOUNG = 'YOUNG',
+  OLD = 'OLD'
 }
 
 export default GCGenerationType;

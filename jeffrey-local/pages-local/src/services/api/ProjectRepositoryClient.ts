@@ -18,62 +18,69 @@
 
 import BasePlatformClient from '@/services/api/BasePlatformClient';
 import HttpUtils from '@/services/HttpUtils';
-import RecordingSession from "@/services/api/model/RecordingSession.ts";
-import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
-import RepositoryStatistics from "@/services/api/model/RepositoryStatistics.ts";
+import RecordingSession from '@/services/api/model/RecordingSession.ts';
+import RepositoryFile from '@/services/api/model/RepositoryFile.ts';
+import RepositoryStatistics from '@/services/api/model/RepositoryStatistics.ts';
 
 export default class ProjectRepositoryClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/repository`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/repository`);
-    }
+  listRecordingSessions(): Promise<RecordingSession[]> {
+    return super.get<RecordingSession[]>('/sessions');
+  }
 
-    listRecordingSessions(): Promise<RecordingSession[]> {
-        return super.get<RecordingSession[]>('/sessions');
-    }
+  getRepositoryStatistics(): Promise<RepositoryStatistics> {
+    return super.get<RepositoryStatistics>('/statistics');
+  }
 
-    getRepositoryStatistics(): Promise<RepositoryStatistics> {
-        return super.get<RepositoryStatistics>('/statistics');
-    }
+  copyRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
+    const content = {
+      sessionId: recordingSession.id,
+      merge: merge
+    };
 
-    copyRecordingSession(recordingSession: RecordingSession, merge: boolean): Promise<void> {
-        const content = {
-            sessionId: recordingSession.id,
-            merge: merge,
-        }
+    return super.post<void>('/sessions/download', content);
+  }
 
-        return super.post<void>('/sessions/download', content);
-    }
+  deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
+    return super.del<void>('/sessions/' + recordingSession.id);
+  }
 
-    deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
-        return super.del<void>('/sessions/' + recordingSession.id);
-    }
+  copySelectedRepositoryFile(
+    sessionId: string,
+    files: RepositoryFile[],
+    merge: boolean
+  ): Promise<void> {
+    const ids: string[] = files.map(it => it.id);
+    const content = {
+      sessionId: sessionId,
+      recordingIds: ids,
+      merge: merge
+    };
 
-    copySelectedRepositoryFile(sessionId: string, files: RepositoryFile[], merge: boolean): Promise<void> {
-        const ids: string[] = files.map(it => it.id)
-        const content = {
-            sessionId: sessionId,
-            recordingIds: ids,
-            merge: merge,
-        }
+    return super.post<void>('/recordings/download', content);
+  }
 
-        return super.post<void>('/recordings/download', content);
-    }
+  deleteSelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
+    const ids: string[] = files.map(it => it.id);
+    const content = {
+      sessionId: sessionId,
+      recordingIds: ids
+    };
 
-    deleteSelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
-        const ids: string[] = files.map(it => it.id)
-        const content = {
-            sessionId: sessionId,
-            recordingIds: ids,
-        }
+    return super.post<void>('/recordings/delete', content);
+  }
 
-        return super.post<void>('/recordings/delete', content);
-    }
-
-    async downloadFile(sessionId: string, fileId: string): Promise<void> {
-        const downloadUrl = this.baseUrl + '/sessions/' + sessionId + '/files/'
-            + encodeURIComponent(fileId) + '/download';
-        return HttpUtils.downloadFile(downloadUrl, fileId);
-    }
-
+  async downloadFile(sessionId: string, fileId: string): Promise<void> {
+    const downloadUrl =
+      this.baseUrl +
+      '/sessions/' +
+      sessionId +
+      '/files/' +
+      encodeURIComponent(fileId) +
+      '/download';
+    return HttpUtils.downloadFile(downloadUrl, fileId);
+  }
 }

@@ -23,21 +23,30 @@
       <div>
         <h5 class="alert-heading mb-3">Method Tracing Dashboard Unavailable</h5>
         <p class="mb-3">
-          Method Tracing dashboard is not available because there are no <code>jdk.MethodTrace</code> events
-          in this profile. These events can be emitted by Async-Profiler or directly using JFR configuration.
+          Method Tracing dashboard is not available because there are no
+          <code>jdk.MethodTrace</code> events in this profile. These events can be emitted by
+          Async-Profiler or directly using JFR configuration.
         </p>
 
         <div class="feature-benefits mb-3">
           <h6 class="mb-2">What you need to do:</h6>
           <ul class="mb-0">
             <li>
-              Go to <router-link to="/profiler-settings" class="text-decoration-none fw-semibold">
+              Go to
+              <router-link to="/profiler-settings" class="text-decoration-none fw-semibold">
                 <i class="bi bi-gear me-1"></i>Profiler Settings
-              </router-link> to configure method tracing for your AsyncProfiler agent
+              </router-link>
+              to configure method tracing for your AsyncProfiler agent
             </li>
-            <li>Enable <code>jdk.MethodTrace</code> event with your desired filter patterns (e.g., <code>trace=java.nio.ByteBuffer.allocateDirect</code>)</li>
+            <li>
+              Enable <code>jdk.MethodTrace</code> event with your desired filter patterns (e.g.,
+              <code>trace=java.nio.ByteBuffer.allocateDirect</code>)
+            </li>
             <li>Profile your application with the configured agent</li>
-            <li>The dashboard will automatically become available once <code>jdk.MethodTrace</code> events are detected</li>
+            <li>
+              The dashboard will automatically become available once
+              <code>jdk.MethodTrace</code> events are detected
+            </li>
           </ul>
         </div>
 
@@ -46,7 +55,11 @@
           <p class="mb-0 small text-muted">
             <i class="bi bi-github me-1"></i>
             For detailed information about method tracing in Async-Profiler, see:
-            <a href="https://github.com/async-profiler/async-profiler/discussions/1497" target="_blank" class="text-decoration-none">
+            <a
+              href="https://github.com/async-profiler/async-profiler/discussions/1497"
+              target="_blank"
+              class="text-decoration-none"
+            >
               async-profiler/discussions/1497
             </a>
           </p>
@@ -56,8 +69,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
 .feature-disabled-state {

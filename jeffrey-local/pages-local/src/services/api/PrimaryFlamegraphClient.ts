@@ -16,129 +16,137 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GlobalVars from "@/services/GlobalVars";
-import axios from "axios";
-import HttpUtils from "@/services/HttpUtils";
-import FlamegraphData from "@/services/api/model/FlamegraphData";
-import FlamegraphClient from "@/services/api/FlamegraphClient";
-import ThreadInfo from "@/services/thread/model/ThreadInfo";
-import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
-import BothGraphData from "@/services/api/model/BothGraphData";
-import TimeRange from "@/services/api/model/TimeRange";
-import GraphComponents from "@/services/api/model/GraphComponents";
-import ProtobufConverter from "@/services/flamegraphs/ProtobufConverter";
+import GlobalVars from '@/services/GlobalVars';
+import axios from 'axios';
+import HttpUtils from '@/services/HttpUtils';
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import FlamegraphClient from '@/services/api/FlamegraphClient';
+import ThreadInfo from '@/services/thread/model/ThreadInfo';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import BothGraphData from '@/services/api/model/BothGraphData';
+import TimeRange from '@/services/api/model/TimeRange';
+import GraphComponents from '@/services/api/model/GraphComponents';
+import ProtobufConverter from '@/services/flamegraphs/ProtobufConverter';
 
 export default class PrimaryFlamegraphClient extends FlamegraphClient {
+  private readonly baseUrl: string;
+  private readonly eventType: string;
+  private useThreadMode: boolean;
+  private useWeight: boolean | null;
+  private readonly excludeNonJavaSamples: boolean;
+  private readonly excludeIdleSamples: boolean;
+  private readonly onlyUnsafeAllocationSamples: boolean;
+  private readonly threadInfo: ThreadInfo | null;
 
-    private readonly baseUrl: string;
-    private readonly eventType: string;
-    private useThreadMode: boolean;
-    private useWeight: boolean | null;
-    private readonly excludeNonJavaSamples: boolean;
-    private readonly excludeIdleSamples: boolean;
-    private readonly onlyUnsafeAllocationSamples: boolean;
-    private readonly threadInfo: ThreadInfo | null;
+  constructor(
+    profileId: string,
+    eventType: string,
+    useThreadMode: boolean,
+    useWeight: boolean | null,
+    excludeNonJavaSamples: boolean,
+    excludeIdleSamples: boolean,
+    onlyUnsafeAllocationSamples: boolean,
+    threadInfo: ThreadInfo | null
+  ) {
+    super();
+    this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph';
+    this.eventType = eventType;
+    this.useThreadMode = useThreadMode;
+    this.useWeight = useWeight;
+    this.excludeNonJavaSamples = excludeNonJavaSamples;
+    this.excludeIdleSamples = excludeIdleSamples;
+    this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
+    this.threadInfo = threadInfo;
+  }
 
-    constructor(
-        profileId: string,
-        eventType: string,
-        useThreadMode: boolean,
-        useWeight: boolean | null,
-        excludeNonJavaSamples: boolean,
-        excludeIdleSamples: boolean,
-        onlyUnsafeAllocationSamples: boolean,
-        threadInfo: ThreadInfo | null) {
+  provideBoth(
+    components: GraphComponents,
+    timeRange: TimeRange | null,
+    search: string | null
+  ): Promise<BothGraphData> {
+    const content = {
+      eventType: this.eventType,
+      useWeight: this.useWeight,
+      useThreadMode: this.useThreadMode,
+      timeRange: timeRange,
+      search: search,
+      excludeNonJavaSamples: this.excludeNonJavaSamples,
+      excludeIdleSamples: this.excludeIdleSamples,
+      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+      threadInfo: this.threadInfo,
+      components: components
+    };
 
-        super();
-        this.baseUrl = GlobalVars.internalUrl + '/profiles/' + profileId + '/flamegraph'
-        this.eventType = eventType;
-        this.useThreadMode = useThreadMode;
-        this.useWeight = useWeight;
-        this.excludeNonJavaSamples = excludeNonJavaSamples;
-        this.excludeIdleSamples = excludeIdleSamples;
-        this.onlyUnsafeAllocationSamples = onlyUnsafeAllocationSamples;
-        this.threadInfo = threadInfo
-    }
+    // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
+    return axios
+      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
+      .then(response => ProtobufConverter.decode(response.data));
+  }
 
-    provideBoth(components: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData> {
-      const content = {
-        eventType: this.eventType,
-        useWeight: this.useWeight,
-        useThreadMode: this.useThreadMode,
-        timeRange: timeRange,
-        search: search,
-        excludeNonJavaSamples: this.excludeNonJavaSamples,
-        excludeIdleSamples: this.excludeIdleSamples,
-        onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-        threadInfo: this.threadInfo,
-        components: components
-      };
+  provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
+    const content = {
+      eventType: this.eventType,
+      useWeight: this.useWeight,
+      useThreadMode: this.useThreadMode,
+      timeRange: timeRange,
+      excludeNonJavaSamples: this.excludeNonJavaSamples,
+      excludeIdleSamples: this.excludeIdleSamples,
+      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+      threadInfo: this.threadInfo,
+      components: GraphComponents.FLAMEGRAPH_ONLY
+    };
 
-      // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
-      return axios
-        .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-        .then(response => ProtobufConverter.decode(response.data));
-    }
+    // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
+    return axios
+      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
+      .then(response => ProtobufConverter.decode(response.data))
+      .then(data => data.flamegraph);
+  }
 
-    provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
-      const content = {
-        eventType: this.eventType,
-        useWeight: this.useWeight,
-        useThreadMode: this.useThreadMode,
-        timeRange: timeRange,
-        excludeNonJavaSamples: this.excludeNonJavaSamples,
-        excludeIdleSamples: this.excludeIdleSamples,
-        onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-        threadInfo: this.threadInfo,
-        components: GraphComponents.FLAMEGRAPH_ONLY
-      };
+  provideTimeseries(search: string | null): Promise<TimeseriesData> {
+    const content = {
+      eventType: this.eventType,
+      useWeight: this.useWeight,
+      search: search,
+      excludeNonJavaSamples: this.excludeNonJavaSamples,
+      excludeIdleSamples: this.excludeIdleSamples,
+      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+      threadInfo: this.threadInfo,
+      components: GraphComponents.TIMESERIES_ONLY
+    };
 
-      // Use Protocol Buffers for most efficient serialization (50-60% smaller than JSON)
-      return axios
-        .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-        .then(response => ProtobufConverter.decode(response.data))
-        .then(data => data.flamegraph);
-    }
+    return axios
+      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
+      .then(response => ProtobufConverter.decode(response.data))
+      .then(data => data.timeseries);
+  }
 
-    provideTimeseries(search: string | null): Promise<TimeseriesData> {
-        const content = {
-            eventType: this.eventType,
-            useWeight: this.useWeight,
-            search: search,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-            threadInfo: this.threadInfo,
-            components: GraphComponents.TIMESERIES_ONLY,
-        };
+  save(
+    components: GraphComponents,
+    flamegraphName: string,
+    timeRange: TimeRange | null
+  ): Promise<void> {
+    const content = {
+      flamegraphName: flamegraphName,
+      eventType: this.eventType,
+      timeRange: timeRange,
+      useThreadMode: this.useThreadMode,
+      excludeNonJavaSamples: this.excludeNonJavaSamples,
+      excludeIdleSamples: this.excludeIdleSamples,
+      onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
+      components: components
+    };
 
-        return axios.post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-            .then(response => ProtobufConverter.decode(response.data))
-            .then(data => data.timeseries);
-    }
+    return axios
+      .post<void>(this.baseUrl + '/repository', content, HttpUtils.JSON_HEADERS)
+      .then(HttpUtils.RETURN_DATA);
+  }
 
+  setUseThreadMode(value: boolean): void {
+    this.useThreadMode = value;
+  }
 
-    save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void> {
-        const content = {
-            flamegraphName: flamegraphName,
-            eventType: this.eventType,
-            timeRange: timeRange,
-            useThreadMode: this.useThreadMode,
-            excludeNonJavaSamples: this.excludeNonJavaSamples,
-            excludeIdleSamples: this.excludeIdleSamples,
-            onlyUnsafeAllocationSamples: this.onlyUnsafeAllocationSamples,
-            components: components,
-        };
-
-        return axios.post<void>(this.baseUrl + '/repository', content, HttpUtils.JSON_HEADERS)
-            .then(HttpUtils.RETURN_DATA);
-    }
-
-    setUseThreadMode(value: boolean): void {
-        this.useThreadMode = value;
-    }
-
-    setUseWeight(value: boolean | null): void {
-        this.useWeight = value;
-    }
+  setUseWeight(value: boolean | null): void {
+    this.useWeight = value;
+  }
 }

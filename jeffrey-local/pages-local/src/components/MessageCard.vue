@@ -30,13 +30,12 @@ function formatTime(createdAt: number): string {
 </script>
 
 <template>
-  <div
-    class="message-card"
-    :class="'severity-bg-' + message.severity.toLowerCase()"
-  >
+  <div class="message-card" :class="'severity-bg-' + message.severity.toLowerCase()">
     <div class="message-card-title">{{ message.title }}</div>
     <div class="message-card-meta">
-      <span class="meta-badge" :class="'severity-badge-' + message.severity.toLowerCase()">{{ message.category }}</span>
+      <span class="meta-badge" :class="'severity-badge-' + message.severity.toLowerCase()">{{
+        message.category
+      }}</span>
       <span class="meta-item"><i class="bi bi-geo-alt"></i> {{ message.source }}</span>
       <span class="meta-item"><i class="bi bi-clock"></i> {{ formatTime(message.createdAt) }}</span>
     </div>

@@ -22,16 +22,15 @@ import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesT
 import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileHeapMemoryClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'heap-memory');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'heap-memory');
-    }
+  public getOverview(): Promise<HeapMemoryOverviewData> {
+    return this.get<HeapMemoryOverviewData>('');
+  }
 
-    public getOverview(): Promise<HeapMemoryOverviewData> {
-        return this.get<HeapMemoryOverviewData>('');
-    }
-
-    public getTimeseries(timeseriesType: HeapMemoryTimeseriesType): Promise<Serie> {
-        return this.get<Serie>('/timeseries', { timeseriesType });
-    }
+  public getTimeseries(timeseriesType: HeapMemoryTimeseriesType): Promise<Serie> {
+    return this.get<Serie>('/timeseries', { timeseriesType });
+  }
 }

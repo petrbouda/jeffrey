@@ -1,9 +1,9 @@
 <template>
   <div>
     <CustomDisabledFeatureAlert
-        v-if="isGrpcDashboardDisabled"
-        :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-        eventType="gRPC exchange"
+      v-if="isGrpcDashboardDisabled"
+      :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
+      eventType="gRPC exchange"
     />
 
     <div v-else>
@@ -20,10 +20,11 @@
       </div>
 
       <div v-if="trafficData" class="dashboard-container">
-        <GrpcTrafficStats :header="trafficData.header"/>
+        <GrpcTrafficStats :header="trafficData.header" />
         <GrpcLargestCalls
-            :calls="sortedLargestCalls"
-            :total-call-count="trafficData.header.callCount || 0"/>
+          :calls="sortedLargestCalls"
+          :total-call-count="trafficData.header.callCount || 0"
+        />
       </div>
 
       <div v-else-if="!isLoading && !error" class="p-4 text-center">
@@ -35,11 +36,11 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import GrpcLargestCalls from '@/components/grpc/GrpcLargestCalls.vue';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
-import type {GrpcTrafficData} from '@/services/api/ProfileGrpcClient';
+import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import GrpcTrafficStats from '@/components/grpc/GrpcTrafficStats.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
@@ -60,7 +61,8 @@ const error = ref<string | null>(null);
 const mode = (route.query.mode as 'client' | 'server') || 'server';
 
 const isGrpcDashboardDisabled = computed(() => {
-  const featureType = mode === 'client' ? FeatureType.GRPC_CLIENT_DASHBOARD : FeatureType.GRPC_SERVER_DASHBOARD;
+  const featureType =
+    mode === 'client' ? FeatureType.GRPC_CLIENT_DASHBOARD : FeatureType.GRPC_SERVER_DASHBOARD;
   return props.disabledFeatures.includes(featureType);
 });
 

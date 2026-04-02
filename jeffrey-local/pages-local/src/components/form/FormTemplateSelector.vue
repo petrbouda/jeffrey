@@ -3,11 +3,11 @@
     <label class="col-sm-3 col-form-label fw-medium">{{ label }}</label>
     <div class="col-sm-9">
       <div class="d-flex flex-wrap gap-2">
-        <div 
-          v-for="template in templates" 
+        <div
+          v-for="template in templates"
           :key="template.id"
           class="template-option p-2 rounded-3 border"
-          :class="{'selected': modelValue === template.id}"
+          :class="{ selected: modelValue === template.id }"
           @click="selectTemplate(template.id)"
         >
           <div class="d-flex align-items-center">
@@ -16,9 +16,7 @@
           </div>
         </div>
       </div>
-      <div class="text-muted small mt-2">
-        <i class="bi bi-info-circle me-1"></i>{{ helpText }}
-      </div>
+      <div class="text-muted small mt-2"><i class="bi bi-info-circle me-1"></i>{{ helpText }}</div>
     </div>
   </div>
 </template>

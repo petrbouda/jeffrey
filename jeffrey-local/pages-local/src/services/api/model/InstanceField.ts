@@ -17,10 +17,10 @@
  */
 
 export default interface InstanceField {
-    name: string;
-    type: string;
-    value: string;
-    isPrimitive: boolean;
-    referencedObjectId: number | null;
-    referencedClassName: string | null;
+  name: string;
+  type: string;
+  value: string;
+  isPrimitive: boolean;
+  referencedObjectId: number | null;
+  referencedClassName: string | null;
 }

@@ -19,46 +19,51 @@
 import axios from 'axios';
 import BasePlatformClient from '@/services/api/BasePlatformClient';
 import HttpUtils from '@/services/HttpUtils';
-import ProfilerSettings from "@/services/api/model/ProfilerSettings.ts";
+import ProfilerSettings from '@/services/api/model/ProfilerSettings.ts';
 
 /**
  * Client for global profiler settings API.
  * Used for managing settings at global, workspace, or project level from a central location.
  */
 export default class GlobalProfilerClient extends BasePlatformClient {
+  constructor() {
+    super('/profiler/settings');
+  }
 
-    constructor() {
-        super('/profiler/settings');
-    }
+  /**
+   * Upsert settings at any level (global, workspace, or project)
+   */
+  upsert(
+    workspaceId: string | null,
+    projectId: string | null,
+    agentSettings: string
+  ): Promise<void> {
+    const content = {
+      workspaceId: workspaceId,
+      projectId: projectId,
+      agentSettings: agentSettings
+    };
+    return super.post<void>('', content);
+  }
 
-    /**
-     * Upsert settings at any level (global, workspace, or project)
-     */
-    upsert(workspaceId: string | null, projectId: string | null, agentSettings: string): Promise<void> {
-        const content = {
-            workspaceId: workspaceId,
-            projectId: projectId,
-            agentSettings: agentSettings,
-        };
-        return super.post<void>('', content);
-    }
+  /**
+   * Fetch all settings across all levels
+   */
+  fetchAll(): Promise<ProfilerSettings[]> {
+    return super.get<ProfilerSettings[]>();
+  }
 
-    /**
-     * Fetch all settings across all levels
-     */
-    fetchAll(): Promise<ProfilerSettings[]> {
-        return super.get<ProfilerSettings[]>();
-    }
-
-    /**
-     * Delete settings at a specific level
-     */
-    delete(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
-        return axios.delete(this.baseUrl, {
-            params: {
-                workspaceId: workspaceId,
-                projectId: projectId
-            }
-        }).then(HttpUtils.RETURN_DATA);
-    }
+  /**
+   * Delete settings at a specific level
+   */
+  delete(workspaceId: string | null, projectId: string | null): Promise<ProfilerSettings> {
+    return axios
+      .delete(this.baseUrl, {
+        params: {
+          workspaceId: workspaceId,
+          projectId: projectId
+        }
+      })
+      .then(HttpUtils.RETURN_DATA);
+  }
 }

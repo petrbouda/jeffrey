@@ -5,7 +5,7 @@
       cardType === 'required' ? 'required-card' : 'optional-card',
       {
         'card-enabled': isEnabled,
-        'card-collapsed': collapsible ? !isExpanded : (!isEnabled && cardType !== 'required')
+        'card-collapsed': collapsible ? !isExpanded : !isEnabled && cardType !== 'required'
       },
       `theme-${colorTheme}`
     ]"
@@ -30,20 +30,26 @@
             class="toggle-input"
             :checked="isEnabled"
             @change="$emit('toggle', $event.target.checked)"
-          >
+          />
           <span class="toggle-slider"></span>
         </label>
-        <i v-if="collapsible" :class="`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'} collapse-icon`"></i>
+        <i
+          v-if="collapsible"
+          :class="`bi ${isExpanded ? 'bi-chevron-up' : 'bi-chevron-down'} collapse-icon`"
+        ></i>
       </div>
     </div>
-    <div v-if="collapsible ? isExpanded : (isEnabled || cardType === 'required')" class="config-card-body">
+    <div
+      v-if="collapsible ? isExpanded : isEnabled || cardType === 'required'"
+      class="config-card-body"
+    >
       <slot></slot>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css'
+import '@/styles/shared-components.css';
 
 interface Props {
   title: string;
@@ -241,7 +247,9 @@ const handleHeaderClick = () => {
 .collapse-icon {
   color: var(--color-text-muted);
   font-size: 0.9rem;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
   flex-shrink: 0;
 }
 

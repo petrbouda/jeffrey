@@ -18,19 +18,15 @@
 
 <template>
   <Teleport to="body">
-    <div
-        v-if="isOpen && isExpanded"
-        class="assistant-panel"
-        :style="panelStyles"
-    >
+    <div v-if="isOpen && isExpanded" class="assistant-panel" :style="panelStyles">
       <!-- Optional Backdrop -->
       <div
-          v-if="showBackdrop"
-          class="panel-backdrop"
-          :class="{ visible: isExpanded }"
-          @click="$emit('close')"
-          @dragover.prevent
-          @drop.prevent
+        v-if="showBackdrop"
+        class="panel-backdrop"
+        :class="{ visible: isExpanded }"
+        @click="$emit('close')"
+        @dragover.prevent
+        @drop.prevent
       ></div>
 
       <div class="panel-content" :style="contentStyles">

@@ -17,11 +17,11 @@
  */
 
 export default interface CumulatedStats {
-    className: string;
-    methodName: string | null;
-    invocationCount: number;
-    totalDuration: number;
-    avgDuration: number;
-    maxDuration: number;
-    percentOfTotal: number;
+  className: string;
+  methodName: string | null;
+  invocationCount: number;
+  totalDuration: number;
+  avgDuration: number;
+  maxDuration: number;
+  percentOfTotal: number;
 }

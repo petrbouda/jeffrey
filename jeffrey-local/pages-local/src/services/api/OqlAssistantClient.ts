@@ -26,26 +26,25 @@ import ChatMessage from '@/services/api/model/ChatMessage';
  * Provides methods for checking AI status and sending chat messages for OQL generation.
  */
 export default class OqlAssistantClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'heap/oql-assistant');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'heap/oql-assistant');
-    }
+  /**
+   * Get the current status of the AI assistant.
+   * @returns Promise resolving to the AI status including enabled state, configuration, and provider
+   */
+  public getStatus(): Promise<AiStatusResponse> {
+    return this.get<AiStatusResponse>('/status');
+  }
 
-    /**
-     * Get the current status of the AI assistant.
-     * @returns Promise resolving to the AI status including enabled state, configuration, and provider
-     */
-    public getStatus(): Promise<AiStatusResponse> {
-        return this.get<AiStatusResponse>('/status');
-    }
-
-    /**
-     * Send a chat message to get an OQL query response.
-     * @param message - The user's natural language message
-     * @param history - The conversation history for context
-     * @returns Promise resolving to the AI response with generated OQL
-     */
-    public chat(message: string, history: ChatMessage[]): Promise<OqlChatResponse> {
-        return this.post<OqlChatResponse>('/chat', { message, history });
-    }
+  /**
+   * Send a chat message to get an OQL query response.
+   * @param message - The user's natural language message
+   * @param history - The conversation history for context
+   * @returns Promise resolving to the AI response with generated OQL
+   */
+  public chat(message: string, history: ChatMessage[]): Promise<OqlChatResponse> {
+    return this.post<OqlChatResponse>('/chat', { message, history });
+  }
 }

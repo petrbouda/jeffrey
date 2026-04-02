@@ -19,20 +19,20 @@
 import ManualGCCalls from './ManualGCCalls';
 
 export default class GCHeader {
-    constructor(
-        public totalCollections: number,
-        public youngCollections: number,
-        public oldCollections: number,
-        public fullCollections: number,
-        public maxPauseTime: number,
-        public p95PauseTime: number,
-        public p99PauseTime: number,
-        public totalMemoryFreed: number,
-        public avgMemoryFreed: number,
-        public gcThroughput: number,
-        public gcOverhead: number,
-        public totalGcTime: number,
-        public collectionFrequency: number,
-        public manualGCCalls: ManualGCCalls
-    ) {}
+  constructor(
+    public totalCollections: number,
+    public youngCollections: number,
+    public oldCollections: number,
+    public fullCollections: number,
+    public maxPauseTime: number,
+    public p95PauseTime: number,
+    public p99PauseTime: number,
+    public totalMemoryFreed: number,
+    public avgMemoryFreed: number,
+    public gcThroughput: number,
+    public gcOverhead: number,
+    public totalGcTime: number,
+    public collectionFrequency: number,
+    public manualGCCalls: ManualGCCalls
+  ) {}
 }

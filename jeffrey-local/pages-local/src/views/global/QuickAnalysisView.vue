@@ -20,11 +20,15 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-lightning-charge" title="Quick Analysis" :badge="allRecordings.length">
+        <MainCardHeader
+          icon="bi bi-lightning-charge"
+          title="Quick Analysis"
+          :badge="allRecordings.length"
+        >
           <template #actions>
             <div v-if="allRecordings.length > 0" class="page-search">
               <i class="bi bi-search"></i>
-              <input v-model="searchText" type="text" placeholder="Search...">
+              <input v-model="searchText" type="text" placeholder="Search..." />
             </div>
             <button class="page-header-btn" @click="showCreateGroupModal = true">
               <i class="bi bi-folder-plus"></i>
@@ -37,16 +41,16 @@
       <!-- Upload panel -->
       <div class="qa-upload-section">
         <FileUploadPanel
-            :files="uploadFiles"
-            :progress="uploadProgress"
-            :groups="allGroups"
-            :selected-group-id="selectedGroupId"
-            :is-uploading="isUploading"
-            @update:files="uploadFiles = $event"
-            @update:selected-group-id="selectedGroupId = $event"
-            @upload="uploadRecordings"
-            @clear="clearFiles"
-            @remove="removeFile"
+          :files="uploadFiles"
+          :progress="uploadProgress"
+          :groups="allGroups"
+          :selected-group-id="selectedGroupId"
+          :is-uploading="isUploading"
+          @update:files="uploadFiles = $event"
+          @update:selected-group-id="selectedGroupId = $event"
+          @upload="uploadRecordings"
+          @clear="clearFiles"
+          @remove="removeFile"
         />
       </div>
 
@@ -61,47 +65,64 @@
         <div v-if="groupedSections.length > 0" class="qa-profile-list">
           <template v-for="section in groupedSections" :key="section.id">
             <div class="qa-group">
-              <div class="recording-group-header"
-                  :class="{ 'recording-group-drop-target': dragOverGroupId === (section.id ?? '__ungrouped__') }"
-                  @click="section.collapsed = !section.collapsed"
-                  @dragover="onDragOver($event, section.id)"
-                  @dragleave="onDragLeave($event, section.id)"
-                  @drop="onDrop($event, section.id)">
-                <i :class="section.collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-down'" class="recording-group-chevron"></i>
+              <div
+                class="recording-group-header"
+                :class="{
+                  'recording-group-drop-target': dragOverGroupId === (section.id ?? '__ungrouped__')
+                }"
+                @click="section.collapsed = !section.collapsed"
+                @dragover="onDragOver($event, section.id)"
+                @dragleave="onDragLeave($event, section.id)"
+                @drop="onDrop($event, section.id)"
+              >
+                <i
+                  :class="section.collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-down'"
+                  class="recording-group-chevron"
+                ></i>
                 <span class="recording-group-name">{{ section.name }}</span>
                 <span class="recording-group-count">{{ section.recordings.length }}</span>
                 <div v-if="section.id" class="recording-group-actions" @click.stop>
-                  <button class="recording-group-action-btn recording-group-action-delete" @click="confirmDeleteGroup(section.id)" title="Delete group">
+                  <button
+                    class="recording-group-action-btn recording-group-action-delete"
+                    @click="confirmDeleteGroup(section.id)"
+                    title="Delete group"
+                  >
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
               </div>
-              <div v-if="!section.collapsed && section.recordings.length === 0" class="recording-group-empty">
+              <div
+                v-if="!section.collapsed && section.recordings.length === 0"
+                class="recording-group-empty"
+              >
                 <span>No recordings</span>
               </div>
-              <div v-if="!section.collapsed && section.recordings.length > 0" class="recording-group-items">
+              <div
+                v-if="!section.collapsed && section.recordings.length > 0"
+                class="recording-group-items"
+              >
                 <RecordingCard
-                    v-for="recording in section.recordings"
-                    :key="recording.id"
-                    :recording-id="recording.id"
-                    :name="recording.profileName ?? recording.filename"
-                    :size-in-bytes="recording.sizeInBytes"
-                    :duration-in-millis="recording.durationInMillis"
-                    :uploaded-at="recording.uploadedAt"
-                    :source-type="recording.eventSource"
-                    :has-profile="recording.hasProfile"
-                    :profile-id="recording.profileId"
-                    :profile-size-in-bytes="recording.profileSizeInBytes"
-                    :profile-modified="recording.profileModified"
-                    :analyzing="analyzingRecordings.has(recording.id)"
-                    :draggable="true"
-                    @click="handleCardClick(recording)"
-                    @create-profile="analyzeRecording(recording.id)"
-                    @open-profile="openProfile(recording)"
-                    @edit-profile="startEditProfile(recording)"
-                    @delete-profile="deleteProfileFromRecording(recording.id)"
-                    @delete-recording="deleteRecording(recording.id)"
-                    @dragend="onDragEnd"
+                  v-for="recording in section.recordings"
+                  :key="recording.id"
+                  :recording-id="recording.id"
+                  :name="recording.profileName ?? recording.filename"
+                  :size-in-bytes="recording.sizeInBytes"
+                  :duration-in-millis="recording.durationInMillis"
+                  :uploaded-at="recording.uploadedAt"
+                  :source-type="recording.eventSource"
+                  :has-profile="recording.hasProfile"
+                  :profile-id="recording.profileId"
+                  :profile-size-in-bytes="recording.profileSizeInBytes"
+                  :profile-modified="recording.profileModified"
+                  :analyzing="analyzingRecordings.has(recording.id)"
+                  :draggable="true"
+                  @click="handleCardClick(recording)"
+                  @create-profile="analyzeRecording(recording.id)"
+                  @open-profile="openProfile(recording)"
+                  @edit-profile="startEditProfile(recording)"
+                  @delete-profile="deleteProfileFromRecording(recording.id)"
+                  @delete-recording="deleteRecording(recording.id)"
+                  @dragend="onDragEnd"
                 />
               </div>
             </div>
@@ -110,50 +131,46 @@
 
         <!-- Empty state -->
         <EmptyState
-            v-else-if="allRecordings.length === 0 && allGroups.length === 0"
-            icon="bi-lightning-charge"
-            title="No recordings yet"
-            description="Drop a JFR or heap dump file above to get started"
+          v-else-if="allRecordings.length === 0 && allGroups.length === 0"
+          icon="bi-lightning-charge"
+          title="No recordings yet"
+          description="Drop a JFR or heap dump file above to get started"
         />
 
         <!-- No filter matches -->
-        <EmptyState
-            v-else
-            icon="bi-search"
-            title="No recordings match your search"
-        />
+        <EmptyState v-else icon="bi-search" title="No recordings match your search" />
       </div>
     </MainCard>
 
     <!-- Create Group modal -->
     <EditNameModal
-        v-if="showCreateGroupModal"
-        v-model="newGroupName"
-        title="New Group"
-        placeholder="Enter group name"
-        submit-label="Create"
-        @submit="createGroup"
-        @close="showCreateGroupModal = false"
+      v-if="showCreateGroupModal"
+      v-model="newGroupName"
+      title="New Group"
+      placeholder="Enter group name"
+      submit-label="Create"
+      @submit="createGroup"
+      @close="showCreateGroupModal = false"
     />
 
     <!-- Edit Profile modal -->
     <EditNameModal
-        v-if="editingRecording"
-        v-model="editProfileName"
-        @submit="updateProfileName"
-        @close="editingRecording = null"
+      v-if="editingRecording"
+      v-model="editProfileName"
+      @submit="updateProfileName"
+      @close="editingRecording = null"
     />
 
     <!-- Delete Group confirmation -->
     <ConfirmationDialog
-        :show="!!deletingGroupId"
-        title="Delete Group"
-        message="This will delete the group and all its recordings (including created profiles). This action cannot be undone."
-        confirm-label="Delete"
-        confirm-button-class="btn-danger"
-        @confirm="deleteGroup"
-        @cancel="deletingGroupId = null"
-        @update:show="deletingGroupId = null"
+      :show="!!deletingGroupId"
+      title="Delete Group"
+      message="This will delete the group and all its recordings (including created profiles). This action cannot be undone."
+      confirm-label="Delete"
+      confirm-button-class="btn-danger"
+      @confirm="deleteGroup"
+      @cancel="deletingGroupId = null"
+      @update:show="deletingGroupId = null"
     />
   </div>
 </template>
@@ -190,7 +207,9 @@ interface UploadProgressEntry {
 // State
 const uploadFiles = ref<File[]>([]);
 const uploadProgress = ref<Record<string, UploadProgressEntry>>({});
-const isUploading = computed(() => Object.values(uploadProgress.value).some(p => p.status === 'uploading'));
+const isUploading = computed(() =>
+  Object.values(uploadProgress.value).some(p => p.status === 'uploading')
+);
 const errorMessage = ref<string | null>(null);
 const allRecordings = ref<QuickRecording[]>([]);
 const allGroups = ref<QuickGroup[]>([]);
@@ -209,7 +228,7 @@ const editingRecording = ref<QuickRecording | null>(null);
 const editProfileName = ref('');
 
 // Reset group name when modal opens
-watch(showCreateGroupModal, (val) => {
+watch(showCreateGroupModal, val => {
   if (val) {
     newGroupName.value = '';
   }
@@ -249,44 +268,50 @@ const groupedSections = computed(() => {
     return Math.max(...recs.map(r => r.uploadedAt));
   };
   const groupIds = [...groupMap.keys()]
-      .filter((k): k is string => k !== null)
-      .sort((a, b) => newestUpload(b) - newestUpload(a));
+    .filter((k): k is string => k !== null)
+    .sort((a, b) => newestUpload(b) - newestUpload(a));
 
   for (const groupId of groupIds) {
-    sections.push(reactive({
-      id: groupId,
-      name: groupNameMap.get(groupId) || 'Unknown Group',
-      recordings: groupMap.get(groupId)!.sort((a, b) => {
+    sections.push(
+      reactive({
+        id: groupId,
+        name: groupNameMap.get(groupId) || 'Unknown Group',
+        recordings: groupMap.get(groupId)!.sort((a, b) => {
           if (a.hasProfile !== b.hasProfile) return a.hasProfile ? -1 : 1;
           return b.uploadedAt - a.uploadedAt;
         }),
-      collapsed: false,
-    }));
+        collapsed: false
+      })
+    );
   }
 
   // Empty groups (no recordings but still exist)
   for (const group of allGroups.value) {
     if (!groupMap.has(group.id)) {
-      sections.push(reactive({
-        id: group.id,
-        name: group.name,
-        recordings: [],
-        collapsed: false,
-      }));
+      sections.push(
+        reactive({
+          id: group.id,
+          name: group.name,
+          recordings: [],
+          collapsed: false
+        })
+      );
     }
   }
 
   // Ungrouped last
   if (groupMap.has(null)) {
-    sections.push(reactive({
-      id: null,
-      name: 'Ungrouped',
-      recordings: groupMap.get(null)!.sort((a, b) => {
+    sections.push(
+      reactive({
+        id: null,
+        name: 'Ungrouped',
+        recordings: groupMap.get(null)!.sort((a, b) => {
           if (a.hasProfile !== b.hasProfile) return a.hasProfile ? -1 : 1;
           return b.uploadedAt - a.uploadedAt;
         }),
-      collapsed: false,
-    }));
+        collapsed: false
+      })
+    );
   }
 
   return sections;
@@ -315,7 +340,7 @@ const uploadRecordings = async () => {
   }
   uploadProgress.value = newProgress;
 
-  const uploadPromises = uploadFiles.value.map(async (file) => {
+  const uploadPromises = uploadFiles.value.map(async file => {
     try {
       uploadProgress.value[file.name].status = 'uploading';
 
@@ -426,7 +451,10 @@ const startEditProfile = (recording: QuickRecording) => {
 const updateProfileName = async () => {
   if (!editingRecording.value || !editProfileName.value.trim()) return;
   try {
-    await quickAnalysisClient.updateProfileName(editingRecording.value.id, editProfileName.value.trim());
+    await quickAnalysisClient.updateProfileName(
+      editingRecording.value.id,
+      editProfileName.value.trim()
+    );
     editingRecording.value = null;
     await loadData();
   } catch {
@@ -459,7 +487,7 @@ const loadData = async () => {
   try {
     const [recordings, groups] = await Promise.all([
       quickAnalysisClient.listRecordings(),
-      quickAnalysisClient.listGroups(),
+      quickAnalysisClient.listGroups()
     ]);
     allRecordings.value = recordings;
     allGroups.value = groups;
@@ -513,7 +541,6 @@ const onDragEnd = () => {
 
 <style scoped>
 @import '@/styles/shared-components.css';
-
 
 /* Upload section */
 .qa-upload-section {

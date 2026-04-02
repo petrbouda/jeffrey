@@ -17,7 +17,7 @@
  */
 
 export default class GlobalVars {
-    static internalUrl = '/api/internal'
+  static internalUrl = '/api/internal';
 
-    static SAP_EVENT_LINK = 'https://sap.github.io/jfrevents/25.html'
+  static SAP_EVENT_LINK = 'https://sap.github.io/jfrevents/25.html';
 }

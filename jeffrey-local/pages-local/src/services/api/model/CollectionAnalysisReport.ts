@@ -1,33 +1,33 @@
 export interface FillDistribution {
-    empty: number;
-    low: number;
-    medium: number;
-    high: number;
-    full: number;
+  empty: number;
+  low: number;
+  medium: number;
+  high: number;
+  full: number;
 }
 
 export interface CollectionStats {
-    collectionType: string;
-    totalCount: number;
-    emptyCount: number;
-    totalWastedBytes: number;
-    avgFillRatio: number;
-    fillDistribution: FillDistribution;
+  collectionType: string;
+  totalCount: number;
+  emptyCount: number;
+  totalWastedBytes: number;
+  avgFillRatio: number;
+  fillDistribution: FillDistribution;
 }
 
 export interface ClassWasteEntry {
-    ownerClassName: string;
-    collectionCount: number;
-    emptyCount: number;
-    wastedBytes: number;
-    collectionTypeCounts: Record<string, number>;
+  ownerClassName: string;
+  collectionCount: number;
+  emptyCount: number;
+  wastedBytes: number;
+  collectionTypeCounts: Record<string, number>;
 }
 
 export default interface CollectionAnalysisReport {
-    totalCollections: number;
-    totalEmptyCount: number;
-    totalWastedBytes: number;
-    overallFillDistribution: FillDistribution;
-    byType: CollectionStats[];
-    wasteByClass: ClassWasteEntry[];
+  totalCollections: number;
+  totalEmptyCount: number;
+  totalWastedBytes: number;
+  overallFillDistribution: FillDistribution;
+  byType: CollectionStats[];
+  wasteByClass: ClassWasteEntry[];
 }

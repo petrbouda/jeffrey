@@ -58,8 +58,8 @@ const isTracingDisabled = computed(() => {
 const overviewData = ref<MethodTracingOverviewData | null>(null);
 
 // Flamegraph infrastructure
-let graphUpdater: GraphUpdater;
-let flamegraphTooltip: FlamegraphTooltip;
+const graphUpdater = ref<GraphUpdater | null>(null);
+const flamegraphTooltip = ref<FlamegraphTooltip | null>(null);
 
 // Configuration - reactive for dynamic updates
 const useThreadMode = ref(false);
@@ -96,18 +96,19 @@ onBeforeMount(async () => {
     EventTypes.METHOD_TRACE,
     useThreadMode.value,
     useWeight.value,
-    false,  // excludeNonJavaSamples
-    false,  // excludeIdleSamples
-    false,  // onlyUnsafeAllocationSamples
-    null    // threadInfo
+    false, // excludeNonJavaSamples
+    false, // excludeIdleSamples
+    false, // onlyUnsafeAllocationSamples
+    null // threadInfo
   );
 
-  graphUpdater = new FullGraphUpdater(flamegraphClient, true);
-  graphUpdater.setTimeseriesSearchEnabled(true);
-  flamegraphTooltip = FlamegraphTooltipFactory.create(
+  const updater = new FullGraphUpdater(flamegraphClient, true);
+  updater.setTimeseriesSearchEnabled(true);
+  graphUpdater.value = updater;
+  flamegraphTooltip.value = FlamegraphTooltipFactory.create(
     EventTypes.METHOD_TRACE,
     useWeight.value,
-    false  // isDifferential
+    false // isDifferential
   );
 });
 </script>
@@ -117,7 +118,10 @@ onBeforeMount(async () => {
     <!-- Feature Disabled State -->
     <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
-    <div v-else style="padding-left: 5px; padding-right: 5px">
+    <div
+      v-else-if="graphUpdater && flamegraphTooltip"
+      style="padding-left: 5px; padding-right: 5px"
+    >
       <!-- Stats Cards -->
       <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
 
@@ -136,7 +140,9 @@ onBeforeMount(async () => {
       <!-- Timeseries Chart -->
       <TimeSeriesChart
         :graph-updater="graphUpdater"
-        :primary-axis-type="TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, EventTypes.METHOD_TRACE)"
+        :primary-axis-type="
+          TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeight, EventTypes.METHOD_TRACE)
+        "
         :visible-minutes="60"
         :zoom-enabled="true"
         time-unit="seconds"

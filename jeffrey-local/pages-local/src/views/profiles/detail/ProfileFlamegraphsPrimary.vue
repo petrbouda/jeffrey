@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import GraphType from "@/services/flamegraphs/GraphType";
+import GraphType from '@/services/flamegraphs/GraphType';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';

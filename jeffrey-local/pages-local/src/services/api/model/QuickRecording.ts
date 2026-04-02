@@ -17,16 +17,16 @@
  */
 
 export default interface QuickRecording {
-    id: string;
-    filename: string;
-    groupId: string | null;
-    eventSource: string;
-    sizeInBytes: number;
-    uploadedAt: number;
-    durationInMillis: number;
-    profileId: string | null;
-    hasProfile: boolean;
-    profileSizeInBytes: number;
-    profileModified: boolean;
-    profileName: string | null;
+  id: string;
+  filename: string;
+  groupId: string | null;
+  eventSource: string;
+  sizeInBytes: number;
+  uploadedAt: number;
+  durationInMillis: number;
+  profileId: string | null;
+  hasProfile: boolean;
+  profileSizeInBytes: number;
+  profileModified: boolean;
+  profileName: string | null;
 }

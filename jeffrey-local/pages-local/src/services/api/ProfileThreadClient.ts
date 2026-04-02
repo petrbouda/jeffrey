@@ -22,20 +22,19 @@ import ThreadStatisticsResponse from '@/services/api/model/ThreadStatisticsRespo
 import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileThreadClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'thread');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'thread');
-    }
+  public list(): Promise<ThreadResponse> {
+    return this.get<ThreadResponse>('');
+  }
 
-    public list(): Promise<ThreadResponse> {
-        return this.get<ThreadResponse>('');
-    }
+  public statistics(): Promise<ThreadStatisticsResponse> {
+    return this.get<ThreadStatisticsResponse>('/statistics');
+  }
 
-    public statistics(): Promise<ThreadStatisticsResponse> {
-        return this.get<ThreadStatisticsResponse>('/statistics');
-    }
-
-    public timeseries(): Promise<Serie> {
-        return this.get<Serie>('/timeseries');
-    }
+  public timeseries(): Promise<Serie> {
+    return this.get<Serie>('/timeseries');
+  }
 }

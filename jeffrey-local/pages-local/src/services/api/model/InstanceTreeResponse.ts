@@ -19,8 +19,8 @@
 import InstanceTreeNode from './InstanceTreeNode';
 
 export default interface InstanceTreeResponse {
-    root: InstanceTreeNode | null;
-    children: InstanceTreeNode[];
-    hasMore: boolean;
-    totalCount: number;
+  root: InstanceTreeNode | null;
+  children: InstanceTreeNode[];
+  hasMore: boolean;
+  totalCount: number;
 }

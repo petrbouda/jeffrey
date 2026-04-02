@@ -17,15 +17,15 @@
  */
 
 export default class HttpSlowRequest {
-    constructor(
-        public uri: string,
-        public method: string,
-        public responseTime: number,
-        public statusCode: number,
-        public requestSize: number,
-        public responseSize: number,
-        public host: string,
-        public port: number,
-        public timestamp: number) {
-    }
+  constructor(
+    public uri: string,
+    public method: string,
+    public responseTime: number,
+    public statusCode: number,
+    public requestSize: number,
+    public responseSize: number,
+    public host: string,
+    public port: number,
+    public timestamp: number
+  ) {}
 }

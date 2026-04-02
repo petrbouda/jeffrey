@@ -57,7 +57,9 @@
             <div class="compact-stat-metrics">
               <div class="metric-item">
                 <span class="metric-label">Total Size</span>
-                <span class="metric-value">{{ FormattingService.formatBytes(repositoryStatistics.totalSize) }}</span>
+                <span class="metric-value">{{
+                  FormattingService.formatBytes(repositoryStatistics.totalSize)
+                }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Total Files</span>
@@ -65,7 +67,9 @@
               </div>
               <div class="metric-item">
                 <span class="metric-label">Biggest Session</span>
-                <span class="metric-value">{{ FormattingService.formatBytes(repositoryStatistics.biggestSessionSize) }}</span>
+                <span class="metric-value">{{
+                  FormattingService.formatBytes(repositoryStatistics.biggestSessionSize)
+                }}</span>
               </div>
             </div>
           </div>
@@ -86,33 +90,57 @@
               </div>
               <div class="metric-item">
                 <span class="metric-label">JFR Files</span>
-                <span class="metric-value" style="color: #5e64ff">{{ repositoryStatistics.jfrFiles ?? 0 }}</span>
-                <span class="metric-value metric-size" style="color: #5e64ff">{{ FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0) }}</span>
+                <span class="metric-value" style="color: #5e64ff">{{
+                  repositoryStatistics.jfrFiles ?? 0
+                }}</span>
+                <span class="metric-value metric-size" style="color: #5e64ff">{{
+                  FormattingService.formatBytes(repositoryStatistics.jfrSize ?? 0)
+                }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Heap Dumps</span>
-                <span class="metric-value" style="color: #6f42c1">{{ repositoryStatistics.heapDumpFiles ?? 0 }}</span>
-                <span class="metric-value metric-size" style="color: #6f42c1">{{ FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0) }}</span>
+                <span class="metric-value" style="color: #6f42c1">{{
+                  repositoryStatistics.heapDumpFiles ?? 0
+                }}</span>
+                <span class="metric-value metric-size" style="color: #6f42c1">{{
+                  FormattingService.formatBytes(repositoryStatistics.heapDumpSize ?? 0)
+                }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">JVM Logs</span>
-                <span class="metric-value" style="color: #14b8a6">{{ repositoryStatistics.logFiles ?? 0 }}</span>
-                <span class="metric-value metric-size" style="color: #14b8a6">{{ FormattingService.formatBytes(repositoryStatistics.logSize ?? 0) }}</span>
+                <span class="metric-value" style="color: #14b8a6">{{
+                  repositoryStatistics.logFiles ?? 0
+                }}</span>
+                <span class="metric-value metric-size" style="color: #14b8a6">{{
+                  FormattingService.formatBytes(repositoryStatistics.logSize ?? 0)
+                }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Application Logs</span>
-                <span class="metric-value" style="color: #8b5e3c">{{ repositoryStatistics.appLogFiles ?? 0 }}</span>
-                <span class="metric-value metric-size" style="color: #8b5e3c">{{ FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0) }}</span>
+                <span class="metric-value" style="color: #8b5e3c">{{
+                  repositoryStatistics.appLogFiles ?? 0
+                }}</span>
+                <span class="metric-value metric-size" style="color: #8b5e3c">{{
+                  FormattingService.formatBytes(repositoryStatistics.appLogSize ?? 0)
+                }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">JVM Error Logs</span>
-                <span class="metric-value" style="color: #c62828">{{ repositoryStatistics.errorLogFiles ?? 0 }}</span>
-                <span class="metric-value metric-size" style="color: #c62828">{{ FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0) }}</span>
+                <span class="metric-value" style="color: #c62828">{{
+                  repositoryStatistics.errorLogFiles ?? 0
+                }}</span>
+                <span class="metric-value metric-size" style="color: #c62828">{{
+                  FormattingService.formatBytes(repositoryStatistics.errorLogSize ?? 0)
+                }}</span>
               </div>
               <div class="metric-item">
                 <span class="metric-label">Other Files</span>
-                <span class="metric-value" style="color: #6c757d">{{ repositoryStatistics.otherFiles ?? 0 }}</span>
-                <span class="metric-value metric-size" style="color: #6c757d">{{ FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0) }}</span>
+                <span class="metric-value" style="color: #6c757d">{{
+                  repositoryStatistics.otherFiles ?? 0
+                }}</span>
+                <span class="metric-value metric-size" style="color: #6c757d">{{
+                  FormattingService.formatBytes(repositoryStatistics.otherSize ?? 0)
+                }}</span>
               </div>
             </div>
           </div>
@@ -145,31 +173,41 @@
           class="btn btn-sm"
           :class="statusFilter === '' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = ''"
-        >All</button>
+        >
+          All
+        </button>
         <button
           type="button"
           class="btn btn-sm"
           :class="statusFilter === 'PENDING' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = 'PENDING'"
-        >Pending</button>
+        >
+          Pending
+        </button>
         <button
           type="button"
           class="btn btn-sm"
           :class="statusFilter === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = 'ACTIVE'"
-        >Active</button>
+        >
+          Active
+        </button>
         <button
           type="button"
           class="btn btn-sm"
           :class="statusFilter === 'FINISHED' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = 'FINISHED'"
-        >Finished</button>
+        >
+          Finished
+        </button>
         <button
           type="button"
           class="btn btn-sm"
           :class="statusFilter === 'EXPIRED' ? 'btn-primary' : 'btn-outline-secondary'"
           @click="statusFilter = 'EXPIRED'"
-        >Expired</button>
+        >
+          Expired
+        </button>
       </div>
     </div>
 
@@ -230,7 +268,11 @@
           </div>
 
           <!-- Bottom timeline section -->
-          <TimelineBar :createdAt="instance.createdAt" :finishedAt="instance.finishedAt" :duration="instance.duration" />
+          <TimelineBar
+            :createdAt="instance.createdAt"
+            :finishedAt="instance.finishedAt"
+            :duration="instance.duration"
+          />
         </router-link>
       </div>
     </div>
@@ -312,9 +354,7 @@ const filteredInstances = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(instance =>
-      instance.hostname.toLowerCase().includes(query)
-    );
+    result = result.filter(instance => instance.hostname.toLowerCase().includes(query));
   }
 
   return result;
@@ -558,7 +598,6 @@ onMounted(async () => {
   .metric-value {
     font-size: 0.75rem;
   }
-
 }
 
 @media (max-width: 576px) {

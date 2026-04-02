@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import GuardFramePath from "@/services/api/model/GuardFramePath";
+import GuardFramePath from '@/services/api/model/GuardFramePath';
 
 export default class GuardMarker {
-    constructor(
-        public markerType: string,
-        public framePath: GuardFramePath) {
-    }
+  constructor(
+    public markerType: string,
+    public framePath: GuardFramePath
+  ) {}
 }

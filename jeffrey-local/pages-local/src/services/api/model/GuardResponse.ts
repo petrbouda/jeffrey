@@ -16,12 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-import GuardAnalysisResult from "@/services/api/model/GuardAnalysisResult";
+import GuardAnalysisResult from '@/services/api/model/GuardAnalysisResult';
 
 export default class GuardResponse {
-    constructor(
-        public category: string,
-        public results: GuardAnalysisResult[]) {
-    }
+  constructor(
+    public category: string,
+    public results: GuardAnalysisResult[]
+  ) {}
 }

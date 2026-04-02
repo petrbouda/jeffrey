@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from 'vue';
+import { ref } from 'vue';
 import RecordingFileRow from '@/components/RecordingFileRow.vue';
 import RecordingFileType from '@/services/api/model/RecordingFileType';
 import type { Variant } from '@/types/ui';
@@ -13,14 +13,27 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: 'download', recordingId: string, fileId: string): void
+  (e: 'download', recordingId: string, fileId: string): void;
 }>();
 
 // --- Type grouping constants ---
-type ArtifactTypeGroup = 'JFR_RECORDING' | 'HEAP_DUMP' | 'PERF_COUNTERS' | 'JVM_LOG' | 'APP_LOG' | 'HS_JVM_ERROR_LOG' | 'UNKNOWN';
+type ArtifactTypeGroup =
+  | 'JFR_RECORDING'
+  | 'HEAP_DUMP'
+  | 'PERF_COUNTERS'
+  | 'JVM_LOG'
+  | 'APP_LOG'
+  | 'HS_JVM_ERROR_LOG'
+  | 'UNKNOWN';
 
 const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
-  'JFR_RECORDING', 'HEAP_DUMP', 'PERF_COUNTERS', 'JVM_LOG', 'APP_LOG', 'HS_JVM_ERROR_LOG', 'UNKNOWN',
+  'JFR_RECORDING',
+  'HEAP_DUMP',
+  'PERF_COUNTERS',
+  'JVM_LOG',
+  'APP_LOG',
+  'HS_JVM_ERROR_LOG',
+  'UNKNOWN'
 ];
 
 const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
@@ -33,17 +46,20 @@ const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
   [RecordingFileType.JVM_LOG]: 'JVM_LOG',
   [RecordingFileType.APP_LOG]: 'APP_LOG',
   [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
-  [RecordingFileType.UNKNOWN]: 'UNKNOWN',
+  [RecordingFileType.UNKNOWN]: 'UNKNOWN'
 };
 
-const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, { name: string; variant: Variant; fileType: string }> = {
-  'JFR_RECORDING':    { name: 'JFR Recordings',     variant: 'primary', fileType: 'JFR' },
-  'HEAP_DUMP':        { name: 'Heap Dumps',          variant: 'purple',  fileType: 'HEAP_DUMP' },
-  'PERF_COUNTERS':    { name: 'Perf Counters',       variant: 'blue',    fileType: 'PERF_COUNTERS' },
-  'JVM_LOG':          { name: 'JVM Logs',            variant: 'green',   fileType: 'JVM_LOG' },
-  'APP_LOG':          { name: 'Application Logs',     variant: 'brown',   fileType: 'APP_LOG' },
-  'HS_JVM_ERROR_LOG': { name: 'HotSpot Error Logs',  variant: 'red',     fileType: 'HS_JVM_ERROR_LOG' },
-  'UNKNOWN':          { name: 'Other Files',          variant: 'grey',    fileType: 'UNKNOWN' },
+const TYPE_GROUP_DISPLAY: Record<
+  ArtifactTypeGroup,
+  { name: string; variant: Variant; fileType: string }
+> = {
+  JFR_RECORDING: { name: 'JFR Recordings', variant: 'primary', fileType: 'JFR' },
+  HEAP_DUMP: { name: 'Heap Dumps', variant: 'purple', fileType: 'HEAP_DUMP' },
+  PERF_COUNTERS: { name: 'Perf Counters', variant: 'blue', fileType: 'PERF_COUNTERS' },
+  JVM_LOG: { name: 'JVM Logs', variant: 'green', fileType: 'JVM_LOG' },
+  APP_LOG: { name: 'Application Logs', variant: 'brown', fileType: 'APP_LOG' },
+  HS_JVM_ERROR_LOG: { name: 'HotSpot Error Logs', variant: 'red', fileType: 'HS_JVM_ERROR_LOG' },
+  UNKNOWN: { name: 'Other Files', variant: 'grey', fileType: 'UNKNOWN' }
 };
 
 interface TypeGroupPanel {
@@ -92,7 +108,7 @@ const getTypeGroupPanels = (files: RecordingFile[]): TypeGroupPanel[] => {
       display: TYPE_GROUP_DISPLAY[groupKey],
       files: groupFiles,
       fileCount: groupFiles.length,
-      totalSize: groupFiles.reduce((sum, f) => sum + f.sizeInBytes, 0),
+      totalSize: groupFiles.reduce((sum, f) => sum + f.sizeInBytes, 0)
     });
   }
   return panels;
@@ -113,7 +129,11 @@ const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
 
 <template>
   <!-- Type Group Panels (2+ files of same type) -->
-  <div v-for="panel in getTypeGroupPanels(props.files)" :key="panel.groupKey" class="type-panel mb-2">
+  <div
+    v-for="panel in getTypeGroupPanels(props.files)"
+    :key="panel.groupKey"
+    class="type-panel mb-2"
+  >
     <div class="type-panel-header-wrapper" @click="toggleTypePanel(panel.groupKey)">
       <RecordingFileRow
         :filename="panel.display.name"
@@ -121,8 +141,10 @@ const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
         :sizeInBytes="panel.totalSize"
       >
         <template #before>
-          <i class="bi me-1 type-panel-chevron"
-             :class="isTypePanelExpanded(panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+          <i
+            class="bi me-1 type-panel-chevron"
+            :class="isTypePanelExpanded(panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"
+          ></i>
         </template>
         <template #extra-badges>
           <span class="recording-file-size ms-2">

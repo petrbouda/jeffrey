@@ -17,15 +17,14 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import GuardResponse from "@/services/api/model/GuardResponse.ts";
+import GuardResponse from '@/services/api/model/GuardResponse.ts';
 
 export default class GuardianClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'guardian');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'guardian');
-    }
-
-    list(): Promise<GuardResponse[]> {
-        return super.get<GuardResponse[]>('');
-    }
+  list(): Promise<GuardResponse[]> {
+    return super.get<GuardResponse[]>('');
+  }
 }

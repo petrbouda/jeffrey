@@ -36,23 +36,40 @@
                   class="job-icon-sm me-2 d-flex align-items-center justify-content-center"
                   :class="getJobDisplayInfo(job)?.iconBg"
                 >
-                  <i class="bi" :class="[getJobDisplayInfo(job)?.icon, getJobDisplayInfo(job)?.iconColor]"></i>
+                  <i
+                    class="bi"
+                    :class="[getJobDisplayInfo(job)?.icon, getJobDisplayInfo(job)?.iconColor]"
+                  ></i>
                 </div>
                 <div>
                   <div class="fw-medium">
                     {{ getJobDisplayInfo(job)?.title }}
-                    <Badge v-if="!job.enabled" value="Disabled" variant="orange" size="xs" class="ms-2" />
+                    <Badge
+                      v-if="!job.enabled"
+                      value="Disabled"
+                      variant="orange"
+                      size="xs"
+                      class="ms-2"
+                    />
                   </div>
                 </div>
               </template>
               <template v-else>
-                <div class="job-icon-sm me-2 d-flex align-items-center justify-content-center bg-secondary-soft">
+                <div
+                  class="job-icon-sm me-2 d-flex align-items-center justify-content-center bg-secondary-soft"
+                >
                   <i class="bi bi-gear text-secondary"></i>
                 </div>
                 <div>
                   <div class="fw-medium">
                     {{ job.jobType }}
-                    <Badge v-if="!job.enabled" value="Disabled" variant="orange" size="xs" class="ms-2" />
+                    <Badge
+                      v-if="!job.enabled"
+                      value="Disabled"
+                      variant="orange"
+                      size="xs"
+                      class="ms-2"
+                    />
                   </div>
                 </div>
               </template>

@@ -30,5 +30,10 @@ export function useCollectorOnlyMode() {
     collectorOnlyMode.value = modeMap.get(projectId) ?? false;
   }
 
-  return { collectorOnlyMode, setCollectorOnlyMode, getCollectorOnlyMode, activateCollectorOnlyMode };
+  return {
+    collectorOnlyMode,
+    setCollectorOnlyMode,
+    getCollectorOnlyMode,
+    activateCollectorOnlyMode
+  };
 }

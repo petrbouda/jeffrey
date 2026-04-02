@@ -17,29 +17,28 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import EventType from "@/services/viewer/model/EventType.ts";
-import EventFieldDescription from "@/services/viewer/model/EventFieldDescription.ts";
-import EventTypeDescription from "@/services/viewer/model/EventTypeDescription.ts";
+import EventType from '@/services/viewer/model/EventType.ts';
+import EventFieldDescription from '@/services/viewer/model/EventFieldDescription.ts';
+import EventTypeDescription from '@/services/viewer/model/EventTypeDescription.ts';
 
 export default class EventViewerClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'viewer');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'viewer');
-    }
+  eventTypes(): Promise<EventTypeDescription[]> {
+    return super.get<EventTypeDescription[]>('/events/types');
+  }
 
-    eventTypes(): Promise<EventTypeDescription[]> {
-        return super.get<EventTypeDescription[]>('/events/types');
-    }
+  eventTypesTree(): Promise<EventType[]> {
+    return super.get<EventType[]>('/events/types/tree');
+  }
 
-    eventTypesTree(): Promise<EventType[]> {
-        return super.get<EventType[]>('/events/types/tree');
-    }
+  events(eventType: string): Promise<Record<string, string | number>[]> {
+    return super.get<Record<string, string | number>[]>('/events/' + eventType);
+  }
 
-    events(eventType: string): Promise<Record<string, string | number>[]> {
-        return super.get<Record<string, string | number>[]>('/events/' + eventType);
-    }
-
-    eventColumns(eventType: string): Promise<EventFieldDescription[]> {
-        return super.get<EventFieldDescription[]>('/events/' + eventType + '/columns');
-    }
+  eventColumns(eventType: string): Promise<EventFieldDescription[]> {
+    return super.get<EventFieldDescription[]>('/events/' + eventType + '/columns');
+  }
 }

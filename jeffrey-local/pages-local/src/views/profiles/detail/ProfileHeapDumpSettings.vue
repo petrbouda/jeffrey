@@ -2,311 +2,373 @@
   <div>
     <!-- Delete Heap Dump Confirmation Modal -->
     <ConfirmationDialog
-        v-model:show="deleteHeapDumpDialog"
-        title="Delete Heap Dump"
-        message="Are you sure you want to delete the heap dump?"
-        sub-message="This will remove all heap dump files including the cache. This action cannot be undone."
-        confirm-label="Delete"
-        confirm-button-class="btn-danger"
-        confirm-button-id="deleteHeapDumpButton"
-        modal-id="deleteHeapDumpModal"
-        @confirm="confirmDeleteHeapDump"
+      v-model:show="deleteHeapDumpDialog"
+      title="Delete Heap Dump"
+      message="Are you sure you want to delete the heap dump?"
+      sub-message="This will remove all heap dump files including the cache. This action cannot be undone."
+      confirm-label="Delete"
+      confirm-button-class="btn-danger"
+      confirm-button-id="deleteHeapDumpButton"
+      modal-id="deleteHeapDumpModal"
+      @confirm="confirmDeleteHeapDump"
     />
 
     <LoadingState v-if="loading" message="Loading heap dump status..." />
 
     <div v-else-if="!heapExists">
-    <PageHeader
+      <PageHeader
         title="Heap Dump Overview"
         description="Memory analysis summary and processing status"
-        icon="bi-memory">
-    </PageHeader>
+        icon="bi-memory"
+      >
+      </PageHeader>
 
-    <!-- Upload Dropzone -->
-    <div
+      <!-- Upload Dropzone -->
+      <div
         ref="dropzoneRef"
         class="upload-dropzone p-4"
-        :class="{ 'active': dragActive, 'has-file': uploadFile, 'clickable': !uploadFile }"
+        :class="{ active: dragActive, 'has-file': uploadFile, clickable: !uploadFile }"
         tabindex="0"
         @dragover="handleDragOver"
         @dragleave="handleDragLeave"
         @drop="handleDrop"
         @click="handleDropzoneClick"
         @keyup.enter="handleEnterKey"
-    >
-      <!-- No file selected -->
-      <div v-if="!uploadFile" class="text-center py-4">
-        <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
-        <h5>Drag & Drop Heap Dump Here</h5>
-        <p class="text-muted small mb-3">or click anywhere to browse files</p>
-        <input
+      >
+        <!-- No file selected -->
+        <div v-if="!uploadFile" class="text-center py-4">
+          <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
+          <h5>Drag & Drop Heap Dump Here</h5>
+          <p class="text-muted small mb-3">or click anywhere to browse files</p>
+          <input
             type="file"
             ref="fileInputRef"
             id="heapDumpFileInput"
             class="d-none"
             accept=".hprof,.hprof.gz"
             @change="handleFileSelect"
-        >
-        <label for="heapDumpFileInput" class="btn btn-primary" @click.stop>
-          <i class="bi bi-folder me-2"></i>Browse Files
-        </label>
-      </div>
-
-      <!-- File selected -->
-      <div v-else>
-        <div class="d-flex justify-content-between mb-3">
-          <div>
-            <h6 class="mb-0"><i class="bi bi-file-earmark-binary me-2"></i>Selected File</h6>
-          </div>
-          <div>
-            <button class="btn btn-success btn-sm me-2" @click="uploadHeapDump" :disabled="uploading">
-              <i class="bi bi-cloud-upload me-1"></i>Upload
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" @click="removeFile" :disabled="uploading">
-              <i class="bi bi-x-lg me-1"></i>Clear
-            </button>
-          </div>
+          />
+          <label for="heapDumpFileInput" class="btn btn-primary" @click.stop>
+            <i class="bi bi-folder me-2"></i>Browse Files
+          </label>
         </div>
 
-        <div class="file-item p-2">
-          <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
-              <i class="bi bi-file-earmark-binary text-primary me-2 fs-5"></i>
-              <div>
-                <div class="fw-bold">{{ uploadFile.name }}</div>
-                <div class="text-muted small">{{ FormattingService.formatBytes(uploadFile.size) }}</div>
-              </div>
+        <!-- File selected -->
+        <div v-else>
+          <div class="d-flex justify-content-between mb-3">
+            <div>
+              <h6 class="mb-0"><i class="bi bi-file-earmark-binary me-2"></i>Selected File</h6>
             </div>
-            <span v-if="!uploading" class="text-muted small">Press <kbd>Enter</kbd> to upload</span>
+            <div>
+              <button
+                class="btn btn-success btn-sm me-2"
+                @click="uploadHeapDump"
+                :disabled="uploading"
+              >
+                <i class="bi bi-cloud-upload me-1"></i>Upload
+              </button>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                @click="removeFile"
+                :disabled="uploading"
+              >
+                <i class="bi bi-x-lg me-1"></i>Clear
+              </button>
+            </div>
           </div>
 
-          <div v-if="uploading" class="mt-2">
-            <div class="progress">
-              <div
+          <div class="file-item p-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <i class="bi bi-file-earmark-binary text-primary me-2 fs-5"></i>
+                <div>
+                  <div class="fw-bold">{{ uploadFile.name }}</div>
+                  <div class="text-muted small">
+                    {{ FormattingService.formatBytes(uploadFile.size) }}
+                  </div>
+                </div>
+              </div>
+              <span v-if="!uploading" class="text-muted small"
+                >Press <kbd>Enter</kbd> to upload</span
+              >
+            </div>
+
+            <div v-if="uploading" class="mt-2">
+              <div class="progress">
+                <div
                   class="progress-bar progress-bar-striped progress-bar-animated"
                   role="progressbar"
                   :style="{ width: uploadProgress + '%' }"
                   :aria-valuenow="uploadProgress"
                   aria-valuemin="0"
-                  aria-valuemax="100">
-                {{ uploadProgress }}%
+                  aria-valuemax="100"
+                >
+                  {{ uploadProgress }}%
+                </div>
+              </div>
+              <div class="text-center mt-1 small text-primary">
+                <i class="bi bi-arrow-clockwise me-1"></i>Uploading...
               </div>
             </div>
-            <div class="text-center mt-1 small text-primary">
-              <i class="bi bi-arrow-clockwise me-1"></i>Uploading...
-            </div>
           </div>
         </div>
       </div>
+
+      <!-- Initialization Error Panel -->
+      <transition name="slide-fade">
+        <div v-if="initError" class="upload-error-panel">
+          <div class="error-panel-content">
+            <div class="error-icon-wrapper">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div class="error-details">
+              <h5 class="error-title">Heap Dump Initialization Failed</h5>
+              <p class="error-message">{{ initError }}</p>
+              <div class="error-suggestions">
+                <h6><i class="bi bi-lightbulb me-2"></i>Possible Solutions</h6>
+                <ul>
+                  <li>
+                    Verify the original heap dump file is valid using <code>jhat</code> or VisualVM
+                  </li>
+                  <li>Ensure the heap dump process completed successfully without interruption</li>
+                  <li>The file may have been truncated during upload - try uploading again</li>
+                  <li>For large files (>2GB), ensure sufficient server resources are available</li>
+                </ul>
+              </div>
+            </div>
+            <button class="error-dismiss-btn" @click="dismissInitError" title="Dismiss">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      </transition>
     </div>
 
-    <!-- Initialization Error Panel -->
-    <transition name="slide-fade">
-      <div v-if="initError" class="upload-error-panel">
-        <div class="error-panel-content">
-          <div class="error-icon-wrapper">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-          </div>
-          <div class="error-details">
-            <h5 class="error-title">Heap Dump Initialization Failed</h5>
-            <p class="error-message">{{ initError }}</p>
-            <div class="error-suggestions">
-              <h6><i class="bi bi-lightbulb me-2"></i>Possible Solutions</h6>
-              <ul>
-                <li>Verify the original heap dump file is valid using <code>jhat</code> or VisualVM</li>
-                <li>Ensure the heap dump process completed successfully without interruption</li>
-                <li>The file may have been truncated during upload - try uploading again</li>
-                <li>For large files (>2GB), ensure sufficient server resources are available</li>
-              </ul>
-            </div>
-          </div>
-          <button class="error-dismiss-btn" @click="dismissInitError" title="Dismiss">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-      </div>
-    </transition>
-  </div>
+    <ErrorState v-else-if="error" :message="error" />
 
-  <ErrorState v-else-if="error" :message="error" />
-
-  <div v-else>
-    <PageHeader
+    <div v-else>
+      <PageHeader
         title="Heap Dump Overview"
         description="Memory analysis summary and processing status"
-        icon="bi-memory">
-    </PageHeader>
+        icon="bi-memory"
+      >
+      </PageHeader>
 
-    <!-- Summary Stats -->
-    <StatsTable v-if="lastSummary" :metrics="summaryMetrics" class="mb-4" />
+      <!-- Summary Stats -->
+      <StatsTable v-if="lastSummary" :metrics="summaryMetrics" class="mb-4" />
 
-    <!-- Heap Dump Corruption Recovery Panel -->
-    <transition name="slide-fade">
-      <div v-if="needsSanitization && !processing" class="sanitize-panel">
-        <div class="sanitize-panel-content">
-          <div class="sanitize-icon-wrapper">
-            <i class="bi bi-wrench-adjustable"></i>
+      <!-- Heap Dump Corruption Recovery Panel -->
+      <transition name="slide-fade">
+        <div v-if="needsSanitization && !processing" class="sanitize-panel">
+          <div class="sanitize-panel-content">
+            <div class="sanitize-icon-wrapper">
+              <i class="bi bi-wrench-adjustable"></i>
+            </div>
+            <div class="sanitize-details">
+              <h5 class="sanitize-title">Heap Dump Needs Repair</h5>
+              <p class="sanitize-message">
+                The heap dump file appears to be corrupted, likely due to an ungraceful JVM shutdown
+                (OOMKill, SIGKILL, or crash). The file structure is incomplete but may be
+                recoverable.
+              </p>
+              <div class="sanitize-info">
+                <h6><i class="bi bi-info-circle me-2"></i>What will happen</h6>
+                <ul>
+                  <li>The repair tool will scan the binary file and fix structural issues</li>
+                  <li>Missing end markers and truncated records will be corrected</li>
+                  <li>A repaired copy will be created (original is preserved)</li>
+                  <li>Some objects near the end of the file may be lost</li>
+                </ul>
+              </div>
+              <div class="sanitize-actions">
+                <button
+                  class="btn btn-warning-gradient"
+                  @click="sanitizeHeapDump"
+                  :disabled="sanitizing"
+                >
+                  <span v-if="sanitizing">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Repairing...
+                  </span>
+                  <span v-else> <i class="bi bi-wrench me-2"></i>Repair &amp; Initialize </span>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm ms-2" @click="deleteHeapDump">
+                  <i class="bi bi-trash me-1"></i>Delete Instead
+                </button>
+              </div>
+            </div>
+            <button class="sanitize-dismiss-btn" @click="dismissSanitize" title="Dismiss">
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
-          <div class="sanitize-details">
-            <h5 class="sanitize-title">Heap Dump Needs Repair</h5>
-            <p class="sanitize-message">
-              The heap dump file appears to be corrupted, likely due to an ungraceful JVM shutdown
-              (OOMKill, SIGKILL, or crash). The file structure is incomplete but may be recoverable.
+        </div>
+      </transition>
+
+      <!-- Initialize Card - Not Processed State -->
+      <div
+        v-if="!cacheReady && !processing && !lastSummary && !needsSanitization"
+        class="init-section"
+      >
+        <div class="init-main-card">
+          <div class="init-header">
+            <div class="init-header-icon">
+              <i class="bi bi-cpu"></i>
+            </div>
+            <h4>Heap Dump Not Initialized</h4>
+            <p>
+              Process the heap dump to build indexes and enable memory analysis features. This may
+              take a few minutes for large heap dumps.
             </p>
-            <div class="sanitize-info">
-              <h6><i class="bi bi-info-circle me-2"></i>What will happen</h6>
-              <ul>
-                <li>The repair tool will scan the binary file and fix structural issues</li>
-                <li>Missing end markers and truncated records will be corrected</li>
-                <li>A repaired copy will be created (original is preserved)</li>
-                <li>Some objects near the end of the file may be lost</li>
-              </ul>
-            </div>
-            <div class="sanitize-actions">
-              <button class="btn btn-warning-gradient" @click="sanitizeHeapDump" :disabled="sanitizing">
-                <span v-if="sanitizing">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Repairing...
-                </span>
-                <span v-else>
-                  <i class="bi bi-wrench me-2"></i>Repair &amp; Initialize
-                </span>
-              </button>
-              <button class="btn btn-outline-secondary btn-sm ms-2" @click="deleteHeapDump">
-                <i class="bi bi-trash me-1"></i>Delete Instead
-              </button>
-            </div>
           </div>
-          <button class="sanitize-dismiss-btn" @click="dismissSanitize" title="Dismiss">
-            <i class="bi bi-x-lg"></i>
+          <button class="ready-card action primary init-panel-btn" @click="processHeapDump">
+            <div class="ready-card-icon primary large">
+              <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+            <div class="ready-card-content">
+              <h6>Initialize Heap Dump</h6>
+              <p>Build indexes and prepare for analysis</p>
+            </div>
           </button>
-        </div>
-      </div>
-    </transition>
-
-    <!-- Initialize Card - Not Processed State -->
-    <div v-if="!cacheReady && !processing && !lastSummary && !needsSanitization" class="init-section">
-      <div class="init-main-card">
-        <div class="init-header">
-          <div class="init-header-icon">
-            <i class="bi bi-cpu"></i>
-          </div>
-          <h4>Heap Dump Not Initialized</h4>
-          <p>Process the heap dump to build indexes and enable memory analysis features. This may take a few minutes for large heap dumps.</p>
-        </div>
-        <button class="ready-card action primary init-panel-btn" @click="processHeapDump">
-          <div class="ready-card-icon primary large">
-            <i class="bi bi-lightning-charge-fill"></i>
-          </div>
-          <div class="ready-card-content">
-            <h6>Initialize Heap Dump</h6>
-            <p>Build indexes and prepare for analysis</p>
-          </div>
-        </button>
-        <div class="init-options">
-          <div class="init-options-row">
-            <div class="init-option-group">
-              <label class="option-label mb-2">Pre-computation</label>
-              <label class="form-check">
-                <input type="checkbox" class="form-check-input" v-model="includeDominatorTree">
-                <span class="form-check-label">
-                  Dominator Tree
-                  <small class="text-muted d-block">Computes retained sizes upfront. Can be slow for large heaps.</small>
-                </span>
-              </label>
-            </div>
-            <div class="init-option-delimiter"></div>
-            <div class="init-option-group">
-              <label class="option-label mb-2">Compressed Oops</label>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="compressedOops" id="coopsAuto" value="auto" v-model="compressedOopsChoice">
-                <label class="form-check-label" for="coopsAuto">
-                  Auto-detect <small class="text-muted">(recommended)</small>
+          <div class="init-options">
+            <div class="init-options-row">
+              <div class="init-option-group">
+                <label class="option-label mb-2">Pre-computation</label>
+                <label class="form-check">
+                  <input type="checkbox" class="form-check-input" v-model="includeDominatorTree" />
+                  <span class="form-check-label">
+                    Dominator Tree
+                    <small class="text-muted d-block"
+                      >Computes retained sizes upfront. Can be slow for large heaps.</small
+                    >
+                  </span>
                 </label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="compressedOops" id="coopsEnabled" value="enabled" v-model="compressedOopsChoice">
-                <label class="form-check-label" for="coopsEnabled">Enabled</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="compressedOops" id="coopsDisabled" value="disabled" v-model="compressedOopsChoice">
-                <label class="form-check-label" for="coopsDisabled">Disabled</label>
+              <div class="init-option-delimiter"></div>
+              <div class="init-option-group">
+                <label class="option-label mb-2">Compressed Oops</label>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="compressedOops"
+                    id="coopsAuto"
+                    value="auto"
+                    v-model="compressedOopsChoice"
+                  />
+                  <label class="form-check-label" for="coopsAuto">
+                    Auto-detect <small class="text-muted">(recommended)</small>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="compressedOops"
+                    id="coopsEnabled"
+                    value="enabled"
+                    v-model="compressedOopsChoice"
+                  />
+                  <label class="form-check-label" for="coopsEnabled">Enabled</label>
+                </div>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="compressedOops"
+                    id="coopsDisabled"
+                    value="disabled"
+                    v-model="compressedOopsChoice"
+                  />
+                  <label class="form-check-label" for="coopsDisabled">Disabled</label>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <button class="ready-card action" @click="deleteHeapDump">
-        <div class="ready-card-icon">
-          <i class="bi bi-trash"></i>
-        </div>
-        <div class="ready-card-content">
-          <h6>Delete Heap Dump</h6>
-          <p>Remove heap dump file</p>
-        </div>
-      </button>
-    </div>
-
-    <!-- Processing Progress -->
-    <div v-if="processing" class="processing-card">
-      <div class="processing-header">
-        <h4>Initializing Heap Dump</h4>
-        <p class="processing-hint">Please wait while we analyze the heap structure...</p>
-      </div>
-
-      <div class="steps-container">
-        <div
-          v-for="(step, index) in processingSteps"
-          :key="step.id"
-          class="step-item"
-          :class="step.status"
-        >
-          <div class="step-top">
-            <div class="step-indicator">
-              <i v-if="step.status === 'completed'" class="bi bi-check-circle-fill text-success"></i>
-              <i v-else-if="step.status === 'skipped'" class="bi bi-dash-circle text-secondary"></i>
-              <div v-else-if="step.status === 'in_progress'" class="spinner-border spinner-border-sm text-primary" role="status">
-                <span class="visually-hidden">Processing...</span>
-              </div>
-              <i v-else class="bi bi-circle text-muted"></i>
-            </div>
-            <div class="step-connector" v-if="index < processingSteps.length - 1"></div>
+        <button class="ready-card action" @click="deleteHeapDump">
+          <div class="ready-card-icon">
+            <i class="bi bi-trash"></i>
           </div>
-          <span class="step-label">{{ step.label }}<span v-if="step.status === 'skipped'" class="skipped-badge">skipped</span></span>
-        </div>
+          <div class="ready-card-content">
+            <h6>Delete Heap Dump</h6>
+            <p>Remove heap dump file</p>
+          </div>
+        </button>
       </div>
-    </div>
 
-    <!-- Success State with Management Actions -->
-    <div v-if="cacheReady && lastSummary" class="ready-section">
-      <div class="ready-card success">
-        <div class="ready-card-icon success">
-          <i class="bi bi-check-lg"></i>
+      <!-- Processing Progress -->
+      <div v-if="processing" class="processing-card">
+        <div class="processing-header">
+          <h4>Initializing Heap Dump</h4>
+          <p class="processing-hint">Please wait while we analyze the heap structure...</p>
         </div>
-        <div class="ready-card-content">
-          <h6>Heap Dump Ready</h6>
-          <p>Analysis complete. Use the sidebar to explore memory insights.</p>
+
+        <div class="steps-container">
+          <div
+            v-for="(step, index) in processingSteps"
+            :key="step.id"
+            class="step-item"
+            :class="step.status"
+          >
+            <div class="step-top">
+              <div class="step-indicator">
+                <i
+                  v-if="step.status === 'completed'"
+                  class="bi bi-check-circle-fill text-success"
+                ></i>
+                <i
+                  v-else-if="step.status === 'skipped'"
+                  class="bi bi-dash-circle text-secondary"
+                ></i>
+                <div
+                  v-else-if="step.status === 'in_progress'"
+                  class="spinner-border spinner-border-sm text-primary"
+                  role="status"
+                >
+                  <span class="visually-hidden">Processing...</span>
+                </div>
+                <i v-else class="bi bi-circle text-muted"></i>
+              </div>
+              <div class="step-connector" v-if="index < processingSteps.length - 1"></div>
+            </div>
+            <span class="step-label"
+              >{{ step.label
+              }}<span v-if="step.status === 'skipped'" class="skipped-badge">skipped</span></span
+            >
+          </div>
         </div>
       </div>
-      <button class="ready-card action" @click="clearCache">
-        <div class="ready-card-icon">
-          <i class="bi bi-arrow-repeat"></i>
+
+      <!-- Success State with Management Actions -->
+      <div v-if="cacheReady && lastSummary" class="ready-section">
+        <div class="ready-card success">
+          <div class="ready-card-icon success">
+            <i class="bi bi-check-lg"></i>
+          </div>
+          <div class="ready-card-content">
+            <h6>Heap Dump Ready</h6>
+            <p>Analysis complete. Use the sidebar to explore memory insights.</p>
+          </div>
         </div>
-        <div class="ready-card-content">
-          <h6>Clear Cache</h6>
-          <p>Rebuild indexes on next analysis</p>
-        </div>
-      </button>
-      <button class="ready-card action danger" @click="deleteHeapDump">
-        <div class="ready-card-icon danger">
-          <i class="bi bi-trash"></i>
-        </div>
-        <div class="ready-card-content">
-          <h6>Delete Heap Dump</h6>
-          <p>Remove heap dump and cached data</p>
-        </div>
-      </button>
+        <button class="ready-card action" @click="clearCache">
+          <div class="ready-card-icon">
+            <i class="bi bi-arrow-repeat"></i>
+          </div>
+          <div class="ready-card-content">
+            <h6>Clear Cache</h6>
+            <p>Rebuild indexes on next analysis</p>
+          </div>
+        </button>
+        <button class="ready-card action danger" @click="deleteHeapDump">
+          <div class="ready-card-icon danger">
+            <i class="bi bi-trash"></i>
+          </div>
+          <div class="ready-card-content">
+            <h6>Delete Heap Dump</h6>
+            <p>Remove heap dump and cached data</p>
+          </div>
+        </button>
+      </div>
     </div>
-  </div>
   </div>
 </template>
 
@@ -367,7 +429,11 @@ const getProcessingSteps = (): ProcessingStep[] => {
     { id: 'index', label: 'Building indexes', status: 'pending' },
     { id: 'strings', label: 'Analyzing strings', status: 'pending' },
     { id: 'threads', label: 'Analyzing threads', status: 'pending' },
-    { id: 'dominator', label: 'Computing dominator tree', status: includeDominatorTree.value ? 'pending' : 'skipped' },
+    {
+      id: 'dominator',
+      label: 'Computing dominator tree',
+      status: includeDominatorTree.value ? 'pending' : 'skipped'
+    },
     { id: 'biggest', label: 'Finding biggest objects', status: 'pending' },
     { id: 'collections', label: 'Analyzing collections', status: 'pending' },
     { id: 'leaks', label: 'Detecting leak suspects', status: 'pending' }
@@ -463,9 +529,12 @@ const processHeapDump = async () => {
 
     // Step 3: Index (resolve compressed oops + build indexes)
     startStep('index');
-    const compressedOopsOverride = compressedOopsChoice.value === 'enabled' ? true
-        : compressedOopsChoice.value === 'disabled' ? false
-        : undefined;
+    const compressedOopsOverride =
+      compressedOopsChoice.value === 'enabled'
+        ? true
+        : compressedOopsChoice.value === 'disabled'
+          ? false
+          : undefined;
     const summary = await client.initialize(compressedOopsOverride);
     lastSummary.value = summary;
     heapConfig.value = await client.getConfig();
@@ -545,7 +614,10 @@ const confirmDeleteHeapDump = async () => {
     lastSummary.value = null;
     heapConfig.value = null;
     MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
-    ToastService.success('Heap Dump Deleted', 'Heap dump and cache have been removed successfully.');
+    ToastService.success(
+      'Heap Dump Deleted',
+      'Heap dump and cache have been removed successfully.'
+    );
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to delete heap dump';
   }

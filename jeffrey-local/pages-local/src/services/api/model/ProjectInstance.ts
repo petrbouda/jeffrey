@@ -19,18 +19,17 @@
 export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED' | 'EXPIRED';
 
 export default class ProjectInstance {
-    constructor(
-        public id: string,
-        public hostname: string,
-        public projectId: string,
-        public status: ProjectInstanceStatus,
-        public createdAt: number,
-        public duration: number,
-        public sessionCount: number,
-        public activeSessionId?: string,
-        public finishedAt?: number,
-        public expiringAt?: number,
-        public expiredAt?: number,
-    ) {
-    }
+  constructor(
+    public id: string,
+    public hostname: string,
+    public projectId: string,
+    public status: ProjectInstanceStatus,
+    public createdAt: number,
+    public duration: number,
+    public sessionCount: number,
+    public activeSessionId?: string,
+    public finishedAt?: number,
+    public expiringAt?: number,
+    public expiredAt?: number
+  ) {}
 }

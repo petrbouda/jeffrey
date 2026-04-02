@@ -17,15 +17,15 @@
  */
 
 export default class JdbcStatementInfo {
-    constructor(
-        public statementGroup: string,
-        public sqlPattern: string,
-        public executionCount: number,
-        public maxExecutionTime: number,
-        public p99ExecutionTime: number,
-        public p95ExecutionTime: number,
-        public totalRowsProcessed: number,
-        public errorCount: number,
-        public successRate: number,
-    ) {}
+  constructor(
+    public statementGroup: string,
+    public sqlPattern: string,
+    public executionCount: number,
+    public maxExecutionTime: number,
+    public p99ExecutionTime: number,
+    public p95ExecutionTime: number,
+    public totalRowsProcessed: number,
+    public errorCount: number,
+    public successRate: number
+  ) {}
 }

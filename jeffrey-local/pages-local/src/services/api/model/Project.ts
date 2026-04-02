@@ -16,23 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
+import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
 
 export default class Project {
-    constructor(
-        public id: string,
-        public name: string,
-        public label: string | null,
-        public createdAt: number,
-        public profileCount: number,
-        public workspaceId: string,
-        public status: RecordingStatus,
-        public recordingCount: number,
-        public sessionCount: number,
-        public isBlocked: boolean) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public label: string | null,
+    public createdAt: number,
+    public profileCount: number,
+    public workspaceId: string,
+    public status: RecordingStatus,
+    public recordingCount: number,
+    public sessionCount: number,
+    public isBlocked: boolean
+  ) {}
 
-    static displayName(project: Project): string {
-        return project.label?.trim() ? project.label : project.name;
-    }
+  static displayName(project: Project): string {
+    return project.label?.trim() ? project.label : project.name;
+  }
 }

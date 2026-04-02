@@ -20,28 +20,27 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import SettingsResponse from '@/services/api/model/SettingsResponse';
 
 export default class ProjectSettingsClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/settings`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/settings`);
-    }
+  updateName(name: string): Promise<void> {
+    return super.post<void>('', { name });
+  }
 
-    updateName(name: string): Promise<void> {
-        return super.post<void>('', { name });
-    }
+  get(): Promise<SettingsResponse> {
+    return super.get<SettingsResponse>();
+  }
 
-    get(): Promise<SettingsResponse> {
-        return super.get<SettingsResponse>();
-    }
+  block(): Promise<void> {
+    return super.post<void>('/block', {});
+  }
 
-    block(): Promise<void> {
-        return super.post<void>('/block', {});
-    }
+  unblock(): Promise<void> {
+    return super.post<void>('/unblock', {});
+  }
 
-    unblock(): Promise<void> {
-        return super.post<void>('/unblock', {});
-    }
-
-    updateStreaming(streamingEnabled: boolean | null): Promise<void> {
-        return super.post<void>('/streaming', { streamingEnabled });
-    }
+  updateStreaming(streamingEnabled: boolean | null): Promise<void> {
+    return super.post<void>('/streaming', { streamingEnabled });
+  }
 }

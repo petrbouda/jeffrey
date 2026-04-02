@@ -22,24 +22,23 @@ import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement';
 import Serie from '@/services/timeseries/model/Serie';
 
 export default class ProfileJdbcStatementClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'jdbc/statement/overview');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'jdbc/statement/overview');
-    }
+  public getOverview(): Promise<JdbcOverviewData> {
+    return this.get<JdbcOverviewData>('');
+  }
 
-    public getOverview(): Promise<JdbcOverviewData> {
-        return this.get<JdbcOverviewData>('');
-    }
+  public getOverviewGroup(group: string | null): Promise<JdbcOverviewData> {
+    return this.get<JdbcOverviewData>('/single', { group });
+  }
 
-    public getOverviewGroup(group: string | null): Promise<JdbcOverviewData> {
-        return this.get<JdbcOverviewData>('/single', { group });
-    }
+  public getTimeseries(group: string, statementName: string): Promise<Serie[]> {
+    return this.get<Serie[]>('/timeseries', { group, statementName });
+  }
 
-    public getTimeseries(group: string, statementName: string): Promise<Serie[]> {
-        return this.get<Serie[]>('/timeseries', { group, statementName });
-    }
-
-    public getSlowestStatements(group: string, statementName: string): Promise<JdbcSlowStatement[]> {
-        return this.get<JdbcSlowStatement[]>('/slowest', { group, statementName });
-    }
+  public getSlowestStatements(group: string, statementName: string): Promise<JdbcSlowStatement[]> {
+    return this.get<JdbcSlowStatement[]>('/slowest', { group, statementName });
+  }
 }

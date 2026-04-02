@@ -19,43 +19,36 @@
 <template>
   <!-- Minimized State - Floating Button -->
   <AssistantMinimizedButton
-      v-if="isOpen && !isExpanded"
-      :icon="minimizedIcon"
-      :progress="aggregateProgress"
-      :badge-text="badgeText"
-      :status="minimizedStatus"
-      :is-spinning="isSpinningIcon"
-      :order="1"
-      @click="$emit('expand')"
-      title="Click to expand downloads"
+    v-if="isOpen && !isExpanded"
+    :icon="minimizedIcon"
+    :progress="aggregateProgress"
+    :badge-text="badgeText"
+    :status="minimizedStatus"
+    :is-spinning="isSpinningIcon"
+    :order="1"
+    @click="$emit('expand')"
+    title="Click to expand downloads"
   />
 
   <!-- Expanded State - Panel -->
   <AssistantPanel
-      :is-open="isOpen"
-      :is-expanded="isExpanded"
-      width="480px"
-      :show-backdrop="false"
-      @close="$emit('close')"
+    :is-open="isOpen"
+    :is-expanded="isExpanded"
+    width="480px"
+    :show-backdrop="false"
+    @close="$emit('close')"
   >
     <template #header-icon>
       <i class="bi bi-cloud-download me-2"></i>
     </template>
 
-    <template #header-title>
-      Download Assistant
-    </template>
+    <template #header-title> Download Assistant </template>
 
     <template #header-actions>
       <button class="btn-icon" @click="$emit('minimize')" title="Minimize">
         <i class="bi bi-dash-lg"></i>
       </button>
-      <button
-          v-if="!hasActiveDownloads"
-          class="btn-icon"
-          @click="$emit('close')"
-          title="Close all"
-      >
+      <button v-if="!hasActiveDownloads" class="btn-icon" @click="$emit('close')" title="Close all">
         <i class="bi bi-x-lg"></i>
       </button>
     </template>
@@ -64,10 +57,10 @@
       <div class="download-body">
         <!-- Download Cards -->
         <div
-            v-for="download in downloads"
-            :key="download.taskId"
-            class="download-card"
-            :class="{ 'download-complete': isDownloadComplete(download) }"
+          v-for="download in downloads"
+          :key="download.taskId"
+          class="download-card"
+          :class="{ 'download-complete': isDownloadComplete(download) }"
         >
           <!-- Download Header -->
           <div class="download-card-header">
@@ -76,12 +69,14 @@
               <span class="session-name">{{ download.sessionName || download.taskId }}</span>
             </div>
             <div class="download-card-actions">
-              <span class="download-file-count">{{ download.completedFiles }}/{{ download.totalFiles }}</span>
+              <span class="download-file-count"
+                >{{ download.completedFiles }}/{{ download.totalFiles }}</span
+              >
               <button
-                  v-if="isDownloadComplete(download)"
-                  class="btn-close-card"
-                  @click="$emit('close-download', download.taskId)"
-                  title="Remove"
+                v-if="isDownloadComplete(download)"
+                class="btn-close-card"
+                @click="$emit('close-download', download.taskId)"
+                title="Remove"
               >
                 <i class="bi bi-x"></i>
               </button>
@@ -91,9 +86,12 @@
           <!-- Progress Bar -->
           <div class="progress download-progress">
             <div
-                class="progress-bar progress-bar-striped"
-                :class="[getProgressBarClass(download), { 'progress-bar-animated': !isDownloadComplete(download) }]"
-                :style="{ width: fileCountPercent(download) + '%' }"
+              class="progress-bar progress-bar-striped"
+              :class="[
+                getProgressBarClass(download),
+                { 'progress-bar-animated': !isDownloadComplete(download) }
+              ]"
+              :style="{ width: fileCountPercent(download) + '%' }"
             ></div>
           </div>
 
@@ -106,11 +104,7 @@
                   <i class="bi bi-download me-1"></i>Downloading
                 </span>
               </div>
-              <div
-                  v-for="file in download.activeDownloads"
-                  :key="file.fileName"
-                  class="file-item"
-              >
+              <div v-for="file in download.activeDownloads" :key="file.fileName" class="file-item">
                 <i class="bi bi-file-earmark me-1 text-primary"></i>
                 <span class="file-name">{{ file.fileName }}</span>
                 <span class="file-size-active">{{ formatBytes(file.downloadedBytes) }}</span>
@@ -125,11 +119,7 @@
                   <i class="bi bi-clock me-1"></i>Pending
                 </span>
               </div>
-              <div
-                  v-for="file in download.pendingDownloads"
-                  :key="file.fileName"
-                  class="file-item"
-              >
+              <div v-for="file in download.pendingDownloads" :key="file.fileName" class="file-item">
                 <i class="bi bi-file-earmark me-1 text-muted"></i>
                 <span class="file-name">{{ file.fileName }}</span>
                 <span class="file-size-pending">{{ formatBytes(file.fileSize) }}</span>
@@ -144,9 +134,9 @@
                 </span>
               </div>
               <div
-                  v-for="file in download.completedDownloads"
-                  :key="file.fileName"
-                  class="file-item"
+                v-for="file in download.completedDownloads"
+                :key="file.fileName"
+                class="file-item"
               >
                 <i class="bi bi-file-earmark-check me-1 text-success"></i>
                 <span class="file-name">{{ file.fileName }}</span>
@@ -158,19 +148,25 @@
             <div class="download-footer">
               <div class="download-status">
                 <span :class="getStatusClass(download)">
-                  <span v-if="!isDownloadComplete(download)" class="spinner-border spinner-border-sm me-1"></span>
+                  <span
+                    v-if="!isDownloadComplete(download)"
+                    class="spinner-border spinner-border-sm me-1"
+                  ></span>
                   {{ getStatusMessage(download) }}
                 </span>
-                <span v-if="download.status === DownloadTaskStatus.COMPLETED" class="recording-note">
+                <span
+                  v-if="download.status === DownloadTaskStatus.COMPLETED"
+                  class="recording-note"
+                >
                   New Recording created
                 </span>
               </div>
 
               <!-- Cancel Button -->
               <button
-                  v-if="canCancelDownload(download)"
-                  class="btn btn-sm btn-outline-danger"
-                  @click="$emit('cancel-download', download.taskId)"
+                v-if="canCancelDownload(download)"
+                class="btn btn-sm btn-outline-danger"
+                @click="$emit('cancel-download', download.taskId)"
               >
                 <i class="bi bi-x-lg me-1"></i>
                 Cancel
@@ -270,14 +266,18 @@ const fileCountPercent = (download: DownloadProgress): number => {
 const formatBytes = (bytes: number) => FormattingService.formatBytes(bytes);
 
 const isDownloadComplete = (download: DownloadProgress): boolean => {
-  return download.status === DownloadTaskStatus.COMPLETED ||
-      download.status === DownloadTaskStatus.FAILED ||
-      download.status === DownloadTaskStatus.CANCELLED;
+  return (
+    download.status === DownloadTaskStatus.COMPLETED ||
+    download.status === DownloadTaskStatus.FAILED ||
+    download.status === DownloadTaskStatus.CANCELLED
+  );
 };
 
 const canCancelDownload = (download: DownloadProgress): boolean => {
-  return download.status === DownloadTaskStatus.PENDING ||
-      download.status === DownloadTaskStatus.DOWNLOADING;
+  return (
+    download.status === DownloadTaskStatus.PENDING ||
+    download.status === DownloadTaskStatus.DOWNLOADING
+  );
 };
 
 const getProgressBarClass = (download: DownloadProgress): string => {
@@ -559,8 +559,12 @@ const getStatusClass = (download: DownloadProgress): string => {
 
 /* Animations */
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spin {

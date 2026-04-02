@@ -17,7 +17,7 @@
  */
 
 export default interface AiAnalysisResponse {
-    content: string;
-    suggestions: string[];
-    toolsUsed: string[];
+  content: string;
+  suggestions: string[];
+  toolsUsed: string[];
 }

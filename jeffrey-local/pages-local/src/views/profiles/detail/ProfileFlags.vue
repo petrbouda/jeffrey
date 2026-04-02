@@ -5,9 +5,9 @@
 
   <div v-else>
     <PageHeader
-        title="JVM Flags"
-        description="JVM configuration flags captured during profiling"
-        icon="bi-flag"
+      title="JVM Flags"
+      description="JVM configuration flags captured during profiling"
+      icon="bi-flag"
     />
 
     <div v-if="flagsData">
@@ -15,31 +15,26 @@
       <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
       <!-- Tabbed Content Section -->
-      <ChartSectionWithTabs
-          icon="flag"
-          :tabs="analysisTabs"
-          :full-width="true"
-          id-prefix="flags-"
-      >
+      <ChartSectionWithTabs icon="flag" :tabs="analysisTabs" :full-width="true" id-prefix="flags-">
         <!-- Dashboard Tab -->
         <template #dashboard>
           <!-- Filter Input -->
           <div class="mb-4">
-            <div class="input-group search-container" style="max-width: 400px;">
+            <div class="input-group search-container" style="max-width: 400px">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
               <input
-                  type="text"
-                  class="form-control search-input"
-                  placeholder="Filter by flag name..."
-                  v-model="searchTerm"
-                  autocomplete="off"
+                type="text"
+                class="form-control search-input"
+                placeholder="Filter by flag name..."
+                v-model="searchTerm"
+                autocomplete="off"
               />
               <button
-                  v-if="searchTerm"
-                  class="btn btn-outline-secondary clear-btn"
-                  type="button"
-                  @click="searchTerm = ''"
-                  title="Clear filter"
+                v-if="searchTerm"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchTerm = ''"
+                title="Clear filter"
               >
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -55,39 +50,39 @@
               <thead>
                 <tr>
                   <SortableTableHeader
-                      column="name"
-                      label="Flag Name"
-                      :sort-column="sortColumn"
-                      :sort-direction="sortDirection"
-                      @sort="toggleSort"
+                    column="name"
+                    label="Flag Name"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    @sort="toggleSort"
                   />
                   <SortableTableHeader
-                      column="value"
-                      label="Value"
-                      :sort-column="sortColumn"
-                      :sort-direction="sortDirection"
-                      @sort="toggleSort"
+                    column="value"
+                    label="Value"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    @sort="toggleSort"
                   />
                   <SortableTableHeader
-                      column="type"
-                      label="Type"
-                      :sort-column="sortColumn"
-                      :sort-direction="sortDirection"
-                      @sort="toggleSort"
+                    column="type"
+                    label="Type"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    @sort="toggleSort"
                   />
                   <SortableTableHeader
-                      column="origin"
-                      label="Origin"
-                      :sort-column="sortColumn"
-                      :sort-direction="sortDirection"
-                      @sort="toggleSort"
+                    column="origin"
+                    label="Origin"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    @sort="toggleSort"
                   />
                   <SortableTableHeader
-                      column="changed"
-                      label="Changed"
-                      :sort-column="sortColumn"
-                      :sort-direction="sortDirection"
-                      @sort="toggleSort"
+                    column="changed"
+                    label="Changed"
+                    :sort-column="sortColumn"
+                    :sort-direction="sortDirection"
+                    @sort="toggleSort"
                   />
                 </tr>
               </thead>
@@ -99,25 +94,37 @@
                       <div class="flag-name-wrapper">
                         <div class="flag-name-row">
                           <button
-                              v-if="flag.hasChanged"
-                              class="expand-btn"
-                              type="button"
-                              @click="toggleExpand(flag.name)"
-                              :title="isExpanded(flag.name) ? 'Collapse' : 'Show change history'"
+                            v-if="flag.hasChanged"
+                            class="expand-btn"
+                            type="button"
+                            @click="toggleExpand(flag.name)"
+                            :title="isExpanded(flag.name) ? 'Collapse' : 'Show change history'"
                           >
-                            <i class="bi" :class="isExpanded(flag.name) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                            <i
+                              class="bi"
+                              :class="
+                                isExpanded(flag.name) ? 'bi-chevron-down' : 'bi-chevron-right'
+                              "
+                            ></i>
                           </button>
                           <code class="flag-name">{{ flag.name }}</code>
                         </div>
-                        <p v-if="flag.description"
-                           class="flag-description"
-                           :class="{ 'with-expand-offset': flag.hasChanged }">
+                        <p
+                          v-if="flag.description"
+                          class="flag-description"
+                          :class="{ 'with-expand-offset': flag.hasChanged }"
+                        >
                           {{ flag.description }}
                         </p>
                       </div>
                     </td>
                     <td class="flag-value">
-                      <span :class="{ 'boolean-true': flag.type === 'Boolean' && flag.value === 'true', 'boolean-false': flag.type === 'Boolean' && flag.value === 'false' }">
+                      <span
+                        :class="{
+                          'boolean-true': flag.type === 'Boolean' && flag.value === 'true',
+                          'boolean-false': flag.type === 'Boolean' && flag.value === 'false'
+                        }"
+                      >
                         {{ formatFlagValue(flag) }}
                       </span>
                     </td>
@@ -125,15 +132,14 @@
                       <Badge :value="flag.type" :variant="getTypeVariant(flag.type)" size="s" />
                     </td>
                     <td>
-                      <Badge :value="flag.origin" :variant="getOriginVariant(flag.origin)" size="s" />
+                      <Badge
+                        :value="flag.origin"
+                        :variant="getOriginVariant(flag.origin)"
+                        size="s"
+                      />
                     </td>
                     <td>
-                      <Badge
-                          v-if="flag.hasChanged"
-                          value="Yes"
-                          variant="orange"
-                          size="s"
-                      />
+                      <Badge v-if="flag.hasChanged" value="Yes" variant="orange" size="s" />
                       <Badge v-else value="No" variant="grey" size="s" />
                     </td>
                   </tr>
@@ -148,12 +154,14 @@
                         </div>
                         <div class="change-history-list">
                           <div
-                              v-for="(change, idx) in flag.changeHistory"
-                              :key="idx"
-                              class="change-item"
-                              :class="{ 'current-value': idx === 0 }"
+                            v-for="(change, idx) in flag.changeHistory"
+                            :key="idx"
+                            class="change-item"
+                            :class="{ 'current-value': idx === 0 }"
                           >
-                            <span class="change-timestamp">{{ formatTimestamp(change.timestamp) }}</span>
+                            <span class="change-timestamp">{{
+                              formatTimestamp(change.timestamp)
+                            }}</span>
                             <span class="change-value">{{ change.value }}</span>
                             <Badge v-if="idx === 0" value="current" variant="green" size="xs" />
                           </div>
@@ -188,9 +196,12 @@
 
             <!-- Intro -->
             <div class="about-intro">
-              <p>JVM flags are command-line options that control various aspects of the Java Virtual Machine's behavior
-                and performance. JFR (Java Flight Recorder) captures these flags during recording, providing insights
-                into how the JVM is configured and how it operates during runtime.</p>
+              <p>
+                JVM flags are command-line options that control various aspects of the Java Virtual
+                Machine's behavior and performance. JFR (Java Flight Recorder) captures these flags
+                during recording, providing insights into how the JVM is configured and how it
+                operates during runtime.
+              </p>
             </div>
 
             <!-- Flag Origins Section -->
@@ -201,42 +212,68 @@
 
             <div class="feature-grid">
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #5e64ff 0%, #7c4dff 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #5e64ff 0%, #7c4dff 100%)"
+                >
                   <i class="bi bi-terminal"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Command Line</h6>
-                  <p>Flags explicitly set via <code>-XX:</code> arguments when starting the JVM. These represent intentional configuration choices by the administrator or developer.</p>
+                  <p>
+                    Flags explicitly set via <code>-XX:</code> arguments when starting the JVM.
+                    These represent intentional configuration choices by the administrator or
+                    developer.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%)"
+                >
                   <i class="bi bi-gear-wide-connected"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Management</h6>
-                  <p>Flags modified at runtime through JMX (Java Management Extensions) or diagnostic commands like <code>jcmd</code>. These may change during the recording.</p>
+                  <p>
+                    Flags modified at runtime through JMX (Java Management Extensions) or diagnostic
+                    commands like <code>jcmd</code>. These may change during the recording.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, var(--color-success) 0%, #20c997 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, var(--color-success) 0%, #20c997 100%)"
+                >
                   <i class="bi bi-cpu"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Ergonomic</h6>
-                  <p>Flags automatically tuned by the JVM based on the system's hardware resources (CPU, memory) and workload characteristics. The JVM optimizes these for best performance.</p>
+                  <p>
+                    Flags automatically tuned by the JVM based on the system's hardware resources
+                    (CPU, memory) and workload characteristics. The JVM optimizes these for best
+                    performance.
+                  </p>
                 </div>
               </div>
 
               <div class="feature-card">
-                <div class="feature-icon" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+                <div
+                  class="feature-icon"
+                  style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%)"
+                >
                   <i class="bi bi-box"></i>
                 </div>
                 <div class="feature-content">
                   <h6>Default</h6>
-                  <p>Flags using their built-in default values as defined in the JVM implementation. These weren't explicitly set or modified by any other mechanism.</p>
+                  <p>
+                    Flags using their built-in default values as defined in the JVM implementation.
+                    These weren't explicitly set or modified by any other mechanism.
+                  </p>
                 </div>
               </div>
             </div>
@@ -302,9 +339,11 @@
               </div>
               <div class="note-content">
                 <strong>Changed Flags</strong>
-                <p class="mb-0">Flags marked as "Changed" had their values modified during the recording period,
-                  typically via JMX or diagnostic commands. The dashboard shows the latest value along with
-                  previous values for tracking configuration drift.</p>
+                <p class="mb-0">
+                  Flags marked as "Changed" had their values modified during the recording period,
+                  typically via JMX or diagnostic commands. The dashboard shows the latest value
+                  along with previous values for tracking configuration drift.
+                </p>
               </div>
             </div>
           </div>
@@ -317,7 +356,10 @@
         <i class="bi bi-info-circle me-3 fs-4"></i>
         <div>
           <h6 class="mb-1">No JVM Flags Available</h6>
-          <p class="mb-0 small">No JVM flag events were found in this profile. This may occur if the JFR recording was configured without flag events.</p>
+          <p class="mb-0 small">
+            No JVM flag events were found in this profile. This may occur if the JFR recording was
+            configured without flag events.
+          </p>
         </div>
       </div>
     </div>
@@ -377,7 +419,6 @@ const analysisTabs = [
   { id: 'about', label: 'How It Works', icon: 'info-circle' }
 ];
 
-
 // Computed metrics for StatsTable
 const summaryMetrics = computed(() => {
   if (!flagsData.value) return [];
@@ -392,7 +433,7 @@ const summaryMetrics = computed(() => {
       icon: 'arrow-repeat',
       title: 'Changed Flags',
       value: flagsData.value.changedFlags.toString(),
-      variant: flagsData.value.changedFlags > 0 ? 'warning' as const : 'info' as const
+      variant: flagsData.value.changedFlags > 0 ? ('warning' as const) : ('info' as const)
     }
   ];
 });
@@ -454,11 +495,11 @@ const toggleSort = (column: string) => {
 
 const getTypeVariant = (type: string): Variant => {
   const typeMap: Record<string, Variant> = {
-    'Boolean': 'blue',
-    'Int': 'purple',
-    'Long': 'purple',
-    'UnsignedInt': 'orange',
-    'String': 'teal'
+    Boolean: 'blue',
+    Int: 'purple',
+    Long: 'purple',
+    UnsignedInt: 'orange',
+    String: 'teal'
   };
   return typeMap[type] || 'grey';
 };
@@ -466,9 +507,9 @@ const getTypeVariant = (type: string): Variant => {
 const getOriginVariant = (origin: string): Variant => {
   const originMap: Record<string, Variant> = {
     'Command line': 'indigo',
-    'Management': 'yellow',
-    'Ergonomic': 'green',
-    'Default': 'grey'
+    Management: 'yellow',
+    Ergonomic: 'green',
+    Default: 'grey'
   };
   return originMap[origin] || 'grey';
 };
@@ -690,7 +731,9 @@ onMounted(() => {
   background: white;
   border: 1px solid var(--card-border-color);
   border-radius: 8px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .feature-card:hover {
@@ -833,7 +876,9 @@ onMounted(() => {
   width: 20px;
   height: 20px;
   border-radius: 4px;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .expand-btn:hover {

@@ -22,25 +22,25 @@ import StringDeduplicationEntry from './StringDeduplicationEntry';
  * Represents a JVM flag related to String handling.
  */
 export interface JvmStringFlag {
-    name: string;
-    value: string;
-    type: string;
-    origin: string;
-    description: string;
+  name: string;
+  value: string;
+  type: string;
+  origin: string;
+  description: string;
 }
 
 /**
  * Complete report for string deduplication analysis.
  */
 export default interface StringAnalysisReport {
-    totalStrings: number;
-    totalStringShallowSize: number;
-    uniqueArrays: number;
-    sharedArrays: number;
-    totalSharedStrings: number;
-    memorySavedByDedup: number;
-    potentialSavings: number;
-    alreadyDeduplicated: StringDeduplicationEntry[];
-    opportunities: StringDeduplicationEntry[];
-    jvmFlags: JvmStringFlag[];
+  totalStrings: number;
+  totalStringShallowSize: number;
+  uniqueArrays: number;
+  sharedArrays: number;
+  totalSharedStrings: number;
+  memorySavedByDedup: number;
+  potentialSavings: number;
+  alreadyDeduplicated: StringDeduplicationEntry[];
+  opportunities: StringDeduplicationEntry[];
+  jvmFlags: JvmStringFlag[];
 }

@@ -6,21 +6,21 @@
   >
     <AiDisabledFeatureAlert v-if="status && !isAvailable" />
     <AiAnalysisPanel
-        v-else
-        :is-loading="isLoading"
-        :error="error"
-        :status="status"
-        :messages="messages"
-        :is-available="isAvailable"
-        :has-messages="hasMessages"
-        placeholder="Ask about this heap dump..."
-        welcome-title="Ask anything about your heap dump"
-        :prompt-sections="promptSections"
-        @send="sendMessage"
-        @prompt-click="(prompt: string) => useSuggestion(prompt)"
-        @suggestion="useSuggestion"
-        @clear-history="clearHistory"
-        @clear-error="clearError"
+      v-else
+      :is-loading="isLoading"
+      :error="error"
+      :status="status"
+      :messages="messages"
+      :is-available="isAvailable"
+      :has-messages="hasMessages"
+      placeholder="Ask about this heap dump..."
+      welcome-title="Ask anything about your heap dump"
+      :prompt-sections="promptSections"
+      @send="sendMessage"
+      @prompt-click="(prompt: string) => useSuggestion(prompt)"
+      @suggestion="useSuggestion"
+      @clear-history="clearHistory"
+      @clear-error="clearError"
     />
   </PageHeader>
 </template>

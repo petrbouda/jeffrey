@@ -30,7 +30,7 @@ export const getGenerationTypeBadgeVariant = (generationType: GCGenerationType) 
 };
 
 export const getConcurrentBadgeVariant = (isConcurrent: boolean) => {
-  return isConcurrent ? 'success' as const : 'warning' as const;
+  return isConcurrent ? ('success' as const) : ('warning' as const);
 };
 
 export const getConcurrentBadgeValue = (isConcurrent: boolean) => {

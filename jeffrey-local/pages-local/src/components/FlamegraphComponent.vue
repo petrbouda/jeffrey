@@ -17,31 +17,31 @@
   -->
 
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref} from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import Flamegraph from '@/services/flamegraphs/Flamegraph';
-import FlameUtils from "@/services/flamegraphs/FlameUtils";
-import Utils from "@/services/Utils";
-import FlamegraphContextMenu from "@/services/flamegraphs/FlamegraphContextMenu";
-import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import FlamegraphData from "@/services/api/model/FlamegraphData";
-import GuardMatched from "@/services/api/model/GuardMatched";
-import SettingsClient from "@/services/api/SettingsClient";
-import MessageBus from "@/services/MessageBus.ts";
-import LoadingIndicator from "@/components/LoadingIndicator.vue";
+import FlameUtils from '@/services/flamegraphs/FlameUtils';
+import Utils from '@/services/Utils';
+import FlamegraphContextMenu from '@/services/flamegraphs/FlamegraphContextMenu';
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import GuardMatched from '@/services/api/model/GuardMatched';
+import SettingsClient from '@/services/api/SettingsClient';
+import MessageBus from '@/services/MessageBus.ts';
+import LoadingIndicator from '@/components/LoadingIndicator.vue';
 
 const props = defineProps<{
-  withTimeseries: boolean
-  useWeight: boolean
-  useGuardian: any | null
-  scrollableWrapperClass: string | null
-  flamegraphTooltip: FlamegraphTooltip
-  graphUpdater: GraphUpdater
-}>()
+  withTimeseries: boolean;
+  useWeight: boolean;
+  useGuardian: any | null;
+  scrollableWrapperClass: string | null;
+  flamegraphTooltip: FlamegraphTooltip;
+  graphUpdater: GraphUpdater;
+}>();
 
 const emit = defineEmits<{
-  loaded: []
-}>()
+  loaded: [];
+}>();
 const guardMatched = ref<GuardMatched | null>(null);
 
 // Track current search term for zoom updates
@@ -51,8 +51,8 @@ let currentSearchValue: string | null = null;
 let resizeTimer: number | null = null;
 // ------------------------
 
-let flamegraph: Flamegraph
-let defaultTwoLineMode: boolean | null = null
+let flamegraph: Flamegraph;
+let defaultTwoLineMode: boolean | null = null;
 
 const canvasWidth = ref('100%');
 const twoLineMode = ref(false);
@@ -129,7 +129,7 @@ function handleDocumentClick(event: MouseEvent) {
   }
 }
 
-const preloaderActive = ref(false)
+const preloaderActive = ref(false);
 
 // Handle window resize event
 function handleResize(event: any) {
@@ -137,7 +137,7 @@ function handleResize(event: any) {
     event.preventDefault();
   }
 
-  canvasWidth.value = "0%"
+  canvasWidth.value = '0%';
   if (resizeTimer) {
     clearTimeout(resizeTimer);
   }
@@ -150,8 +150,9 @@ function handleResize(event: any) {
         removeWidth = 32;
       }
 
-      let clientWidth = (flamegraphCanvas.value.parentElement?.clientWidth as number) - removeWidth || 0;
-      canvasWidth.value = "" + clientWidth;
+      let clientWidth =
+        (flamegraphCanvas.value.parentElement?.clientWidth as number) - removeWidth || 0;
+      canvasWidth.value = '' + clientWidth;
       flamegraph.resizeWidthCanvas(clientWidth);
     }
   }, 200);
@@ -162,7 +163,7 @@ onMounted(() => {
   MessageBus.on(MessageBus.SIDEBAR_CHANGED, handleResize);
 
   if (props.useGuardian != null && props.useGuardian.matched != null) {
-    guardMatched.value = props.useGuardian.matched
+    guardMatched.value = props.useGuardian.matched;
   }
 
   // Set initial context menu state
@@ -173,7 +174,7 @@ onMounted(() => {
 
   let flamegraphUpdate = (data: FlamegraphData) => {
     if (flamegraph != null) {
-      flamegraph.close()
+      flamegraph.close();
     }
 
     // Ensure canvas ref is available
@@ -188,52 +189,65 @@ onMounted(() => {
       hide: () => hideContextMenu()
     };
 
-    flamegraph = new Flamegraph(data, flamegraphCanvas.value, props.flamegraphTooltip, customContextMenu, props.useWeight);
+    flamegraph = new Flamegraph(
+      data,
+      flamegraphCanvas.value,
+      props.flamegraphTooltip,
+      customContextMenu,
+      props.useWeight
+    );
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
 
     // Apply default text mode from settings
     if (defaultTwoLineMode === null) {
-      new SettingsClient().fetchByCategory('visualization').then(settings => {
-        const mode = settings.find(s => s.name === 'jeffrey.local.visualization.flamegraph.frame-text-mode')
-        defaultTwoLineMode = mode?.value === 'two-line'
-        if (defaultTwoLineMode) {
-          twoLineMode.value = true
-          flamegraph.setTwoLineMode(true)
-        }
-      }).catch(() => { defaultTwoLineMode = false })
+      new SettingsClient()
+        .fetchByCategory('visualization')
+        .then(settings => {
+          const mode = settings.find(
+            s => s.name === 'jeffrey.local.visualization.flamegraph.frame-text-mode'
+          );
+          defaultTwoLineMode = mode?.value === 'two-line';
+          if (defaultTwoLineMode) {
+            twoLineMode.value = true;
+            flamegraph.setTwoLineMode(true);
+          }
+        })
+        .catch(() => {
+          defaultTwoLineMode = false;
+        });
     } else if (defaultTwoLineMode) {
-      twoLineMode.value = true
-      flamegraph.setTwoLineMode(true)
+      twoLineMode.value = true;
+      flamegraph.setTwoLineMode(true);
     }
 
     // Initialize context menu items after flamegraph is available
     contextMenuItems.value = FlamegraphContextMenu.resolve(
-        () => props.graphUpdater.updateWithSearch(flamegraph.getContextFrame()?.title || ''),
-        () => flamegraph.resetZoom()
+      () => props.graphUpdater.updateWithSearch(flamegraph.getContextFrame()?.title || ''),
+      () => flamegraph.resetZoom()
     );
   };
 
   let zoomUpdate = (data: FlamegraphData) => {
-    flamegraphUpdate(data)
-    search(currentSearchValue)
-  }
+    flamegraphUpdate(data);
+    search(currentSearchValue);
+  };
 
   props.graphUpdater.registerFlamegraphCallbacks(
-      () => preloaderActive.value = true,
-      () => {
-        preloaderActive.value = false
-        emit('loaded')
-      },
-      flamegraphUpdate,
-      search,
-      () => {
-        flamegraph.resetSearch();
-        currentSearchValue = null;
-      },
-      zoomUpdate,
-      zoomUpdate
-  )
+    () => (preloaderActive.value = true),
+    () => {
+      preloaderActive.value = false;
+      emit('loaded');
+    },
+    flamegraphUpdate,
+    search,
+    () => {
+      flamegraph.resetSearch();
+      currentSearchValue = null;
+    },
+    zoomUpdate,
+    zoomUpdate
+  );
 
   // Add window resize event listener
   window.addEventListener('resize', handleResize);
@@ -258,40 +272,54 @@ onUnmounted(() => {
 
 function search(value: string | null) {
   if (Utils.isNotBlank(value)) {
-    currentSearchValue = value!.trim()
+    currentSearchValue = value!.trim();
     const matched = flamegraph.search(currentSearchValue);
     props.graphUpdater.reportMatched(matched);
   } else {
-    currentSearchValue = null
+    currentSearchValue = null;
   }
 }
 </script>
 
 <template>
-  <LoadingIndicator v-if="preloaderActive" text="Generating Flamegraph..."/>
+  <LoadingIndicator v-if="preloaderActive" text="Generating Flamegraph..." />
 
   <div class="flamegraph-toolbar">
     <div class="view-toggle">
-      <button class="toggle-btn text-btn" :class="{ active: !twoLineMode }" @click="setDisplayMode(false)">
+      <button
+        class="toggle-btn text-btn"
+        :class="{ active: !twoLineMode }"
+        @click="setDisplayMode(false)"
+      >
         Single-line
       </button>
-      <button class="toggle-btn text-btn" :class="{ active: twoLineMode }" @click="setDisplayMode(true)">
+      <button
+        class="toggle-btn text-btn"
+        :class="{ active: twoLineMode }"
+        @click="setDisplayMode(true)"
+      >
         Two-line
       </button>
     </div>
   </div>
   <canvas ref="flamegraphCanvas" id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
-  <div class="card p-2 border-1 bg-gray-50" style="visibility:hidden; position:absolute" id="flamegraphTooltip"></div>
+  <div
+    class="card p-2 border-1 bg-gray-50"
+    style="visibility: hidden; position: absolute"
+    id="flamegraphTooltip"
+  ></div>
 
   <!-- Bootstrap-styled Context Menu -->
   <div class="dropdown-menu custom-context-menu" ref="contextMenu" id="flamegraphContextMenu">
-    <button v-for="(item, index) in contextMenuItems"
-            :key="index"
-            :v-if="!item.separator"
-            class="dropdown-item d-flex align-items-center"
-            type="button"
-            @click="handleContextMenuItemClick(item)">
+    <button
+      v-for="(item, index) in contextMenuItems"
+      :key="index"
+      :v-if="!item.separator"
+      class="dropdown-item d-flex align-items-center"
+      type="button"
+      @click="handleContextMenuItemClick(item)"
+    >
       <i v-if="item.icon" class="bi me-2" :class="getBootstrapIcon(item.icon)"></i>
       {{ item.label }}
     </button>
@@ -382,5 +410,4 @@ function search(value: string | null) {
   text-decoration: none;
   background-color: var(--color-light);
 }
-
 </style>

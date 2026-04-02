@@ -18,11 +18,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import Utils from "@/services/Utils";
-import ProjectSchedulerClient from "@/services/api/ProjectSchedulerClient";
-import { JobType } from "@/services/api/model/JobType";
-import ToastService from "@/services/ToastService";
-import GenericModal from "@/components/GenericModal.vue";
+import Utils from '@/services/Utils';
+import ProjectSchedulerClient from '@/services/api/ProjectSchedulerClient';
+import { JobType } from '@/services/api/model/JobType';
+import ToastService from '@/services/ToastService';
+import GenericModal from '@/components/GenericModal.vue';
 
 const props = defineProps<{
   show: boolean;
@@ -108,33 +108,31 @@ const handleSubmit = async () => {
 };
 
 // Reset form when modal opens
-watch(() => props.show, (show) => {
-  if (show) {
-    resetForm();
+watch(
+  () => props.show,
+  show => {
+    if (show) {
+      resetForm();
+    }
   }
-});
+);
 </script>
 
 <template>
   <GenericModal
-      modal-id="projectInstanceSessionCleanerModal"
-      :show="show"
-      :title="modalTitle"
-      icon="bi-trash"
-      size="lg"
-      :show-footer="true"
-      @update:show="$emit('update:show', $event)"
+    modal-id="projectInstanceSessionCleanerModal"
+    :show="show"
+    :title="modalTitle"
+    icon="bi-trash"
+    size="lg"
+    :show-footer="true"
+    @update:show="$emit('update:show', $event)"
   >
     <template #footer>
       <button type="button" class="btn btn-light" @click="$emit('update:show', false)">
         Cancel
       </button>
-      <button
-          type="button"
-          class="btn btn-primary"
-          @click="handleSubmit"
-          :disabled="loading"
-      >
+      <button type="button" class="btn btn-primary" @click="handleSubmit" :disabled="loading">
         <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
         <i v-if="!loading" class="bi bi-save me-1"></i>
         Save Job
@@ -154,13 +152,13 @@ watch(() => props.show, (show) => {
       <label for="duration" class="col-sm-3 col-form-label fw-medium">Max Age</label>
       <div class="col-sm-9">
         <input
-            id="duration"
-            type="number"
-            class="form-control"
-            v-model.number="duration"
-            :min="1"
-            placeholder="Enter duration"
-            autocomplete="off"
+          id="duration"
+          type="number"
+          class="form-control"
+          v-model.number="duration"
+          :min="1"
+          placeholder="Enter duration"
+          autocomplete="off"
         />
       </div>
     </div>
@@ -169,10 +167,14 @@ watch(() => props.show, (show) => {
       <label class="col-sm-3 col-form-label fw-medium">Time Unit</label>
       <div class="col-sm-9">
         <div class="btn-group" role="group" aria-label="Time units">
-          <button type="button" class="btn"
-                  v-for="unit in timeUnits" :key="unit"
-                  :class="selectedTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
-                  @click="selectedTimeUnit = unit">
+          <button
+            type="button"
+            class="btn"
+            v-for="unit in timeUnits"
+            :key="unit"
+            :class="selectedTimeUnit === unit ? 'btn-primary' : 'btn-outline-primary'"
+            @click="selectedTimeUnit = unit"
+          >
             {{ unit }}
           </button>
         </div>

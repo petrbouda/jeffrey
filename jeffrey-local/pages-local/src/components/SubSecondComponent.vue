@@ -17,32 +17,32 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeUnmount, onMounted, onUnmounted, ref, watch} from 'vue';
+import { onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
 import HeatmapGraph from '@/services/subsecond/HeatmapGraph';
 import DifferenceHeatmapGraph from '@/services/subsecond/DifferenceHeatmapGraph';
-import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
-import DifferenceHeatmapTooltip from "@/services/subsecond/DifferenceHeatmapTooltip";
-import MessageBus from "@/services/MessageBus";
-import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
-import TimeRange from "@/services/api/model/TimeRange";
-import {computeDifference} from "@/services/subsecond/SubSecondDifferenceUtils";
-import SubSecondData from "@/services/subsecond/model/SubSecondData";
+import HeatmapTooltip from '@/services/subsecond/HeatmapTooltip';
+import DifferenceHeatmapTooltip from '@/services/subsecond/DifferenceHeatmapTooltip';
+import MessageBus from '@/services/MessageBus';
+import SubSecondDataProvider from '@/services/subsecond/SubSecondDataProvider';
+import TimeRange from '@/services/api/model/TimeRange';
+import { computeDifference } from '@/services/subsecond/SubSecondDifferenceUtils';
+import SubSecondData from '@/services/subsecond/model/SubSecondData';
 
 const props = defineProps<{
-  primaryDataProvider: SubSecondDataProvider
-  primarySelectedCallback: any,
-  secondaryDataProvider: SubSecondDataProvider | null
-  secondarySelectedCallback: any | null,
-  tooltip: HeatmapTooltip,
-  eventType: string,
-  useWeight: boolean
-}>()
+  primaryDataProvider: SubSecondDataProvider;
+  primarySelectedCallback: any;
+  secondaryDataProvider: SubSecondDataProvider | null;
+  secondarySelectedCallback: any | null;
+  tooltip: HeatmapTooltip;
+  eventType: string;
+  useWeight: boolean;
+}>();
 
 let primaryHeatmap: HeatmapGraph | null = null;
 let secondaryHeatmap: HeatmapGraph | null = null;
 let differenceHeatmap: DifferenceHeatmapGraph | null = null;
 
-let heatmapComponent: HTMLElement
+let heatmapComponent: HTMLElement;
 let resizeTimer: number | null = null;
 
 const initialized = ref(false);
@@ -77,11 +77,11 @@ function createOffsetCallback(callback: any) {
 onMounted(() => {
   MessageBus.on(MessageBus.SIDEBAR_CHANGED, () => handleResize(null, 200));
 
-  heatmapComponent = document.getElementById("heatmaps")!
-  handleResize(null)
+  heatmapComponent = document.getElementById('heatmaps')!;
+  handleResize(null);
 
   // Add window resize event listener
-  window.addEventListener('resize', (event) => handleResize(event));
+  window.addEventListener('resize', event => handleResize(event));
 
   initializeHeatmaps();
   MessageBus.on(MessageBus.SUBSECOND_SELECTION_CLEAR, () => heatmapsCleanup());
@@ -104,7 +104,7 @@ function handleResize(event: any, delay: number = 100) {
     event.preventDefault();
   }
 
-  heatmapComponent.style.width = "0px";
+  heatmapComponent.style.width = '0px';
   if (resizeTimer) {
     clearTimeout(resizeTimer);
   }
@@ -112,69 +112,69 @@ function handleResize(event: any, delay: number = 100) {
   resizeTimer = window.setTimeout(() => {
     // 75 cumulative padding to avoid browser's scrollbar
     let clientWidth = (heatmapComponent?.parentElement?.clientWidth as number) - 75 || 0;
-    heatmapComponent.style.width = clientWidth + "px";
+    heatmapComponent.style.width = clientWidth + 'px';
   }, delay);
 }
 
 onBeforeUnmount(() => {
-  const primary = document.getElementById("primary");
+  const primary = document.getElementById('primary');
   if (primary != null) {
     primary.innerHTML = '';
   }
 
-  const secondary = document.getElementById("secondary");
+  const secondary = document.getElementById('secondary');
   if (secondary != null) {
     secondary.innerHTML = '';
   }
 
-  const difference = document.getElementById("difference");
+  const difference = document.getElementById('difference');
   if (difference != null) {
     difference.innerHTML = '';
   }
-})
+});
 
 onUnmounted(() => {
-  heatmapsCleanup()
+  heatmapsCleanup();
   MessageBus.off(MessageBus.SUBSECOND_SELECTION_CLEAR);
-  MessageBus.off(MessageBus.SIDEBAR_CHANGED)
-})
+  MessageBus.off(MessageBus.SIDEBAR_CHANGED);
+});
 
-window.addEventListener("resize", () => {
-  heatmapsCleanup()
+window.addEventListener('resize', () => {
+  heatmapsCleanup();
 });
 
 function heatmapsCleanup() {
   if (primaryHeatmap != null) {
-    primaryHeatmap.cleanup()
+    primaryHeatmap.cleanup();
   }
   if (secondaryHeatmap != null) {
-    secondaryHeatmap.cleanup()
+    secondaryHeatmap.cleanup();
   }
   if (differenceHeatmap != null) {
-    differenceHeatmap.cleanup()
+    differenceHeatmap.cleanup();
   }
 }
 
 function destroyAllHeatmaps() {
   if (primaryHeatmap != null) {
-    primaryHeatmap.destroy()
+    primaryHeatmap.destroy();
     primaryHeatmap = null;
   }
   if (secondaryHeatmap != null) {
-    secondaryHeatmap.destroy()
+    secondaryHeatmap.destroy();
     secondaryHeatmap = null;
   }
   if (differenceHeatmap != null) {
-    differenceHeatmap.destroy()
+    differenceHeatmap.destroy();
     differenceHeatmap = null;
   }
 
   // Clear containers
-  const primary = document.getElementById("primary");
+  const primary = document.getElementById('primary');
   if (primary) primary.innerHTML = '';
-  const secondary = document.getElementById("secondary");
+  const secondary = document.getElementById('secondary');
   if (secondary) secondary.innerHTML = '';
-  const difference = document.getElementById("difference");
+  const difference = document.getElementById('difference');
   if (difference) difference.innerHTML = '';
 }
 
@@ -184,13 +184,20 @@ const initializeHeatmaps = (timeRange?: TimeRange) => {
   currentTimeRange = timeRange;
 
   if (props.secondaryDataProvider == null) {
-    props.primaryDataProvider.provide(timeRange)
-        .then((subSecondData) => {
-          primaryHeatmap = new HeatmapGraph('primary', subSecondData, heatmapComponent, createOffsetCallback(props.primarySelectedCallback), props.tooltip);
-          primaryHeatmap.render();
-        })
-        .catch((error) => console.error('Error loading primary heatmap data:', error))
-        .finally(() => initialized.value = true);
+    props.primaryDataProvider
+      .provide(timeRange)
+      .then(subSecondData => {
+        primaryHeatmap = new HeatmapGraph(
+          'primary',
+          subSecondData,
+          heatmapComponent,
+          createOffsetCallback(props.primarySelectedCallback),
+          props.tooltip
+        );
+        primaryHeatmap.render();
+      })
+      .catch(error => console.error('Error loading primary heatmap data:', error))
+      .finally(() => (initialized.value = true));
   } else {
     downloadAndProcessHeatmaps(timeRange);
   }
@@ -209,23 +216,23 @@ function downloadAndProcessHeatmaps(timeRange?: TimeRange) {
     props.primaryDataProvider.provide(timeRange),
     props.secondaryDataProvider?.provide(timeRange)
   ])
-      .then(([primaryData, secondaryData]) => {
-        if (!primaryData || !secondaryData) {
-          throw new Error("Failed to load heatmap data");
-        }
+    .then(([primaryData, secondaryData]) => {
+      if (!primaryData || !secondaryData) {
+        throw new Error('Failed to load heatmap data');
+      }
 
-        // Cache the data for mode switching
-        cachedPrimaryData = primaryData;
-        cachedSecondaryData = secondaryData;
+      // Cache the data for mode switching
+      cachedPrimaryData = primaryData;
+      cachedSecondaryData = secondaryData;
 
-        if (mode.value === 'difference') {
-          renderDifferenceHeatmap(primaryData, secondaryData);
-        } else {
-          renderAbsoluteHeatmaps(primaryData, secondaryData);
-        }
-      })
-      .catch((error) => console.error('Error loading heatmap data:', error))
-      .finally(() => initialized.value = true);
+      if (mode.value === 'difference') {
+        renderDifferenceHeatmap(primaryData, secondaryData);
+      } else {
+        renderAbsoluteHeatmaps(primaryData, secondaryData);
+      }
+    })
+    .catch(error => console.error('Error loading heatmap data:', error))
+    .finally(() => (initialized.value = true));
 }
 
 function renderAbsoluteHeatmaps(primaryData: SubSecondData, secondaryData: SubSecondData) {
@@ -235,11 +242,21 @@ function renderAbsoluteHeatmaps(primaryData: SubSecondData, secondaryData: SubSe
   secondaryData.maxvalue = maxvalue;
 
   primaryHeatmap = new HeatmapGraph(
-      'primary', primaryData, heatmapComponent, createOffsetCallback(props.primarySelectedCallback), props.tooltip);
+    'primary',
+    primaryData,
+    heatmapComponent,
+    createOffsetCallback(props.primarySelectedCallback),
+    props.tooltip
+  );
   primaryHeatmap.render();
 
   secondaryHeatmap = new HeatmapGraph(
-      'secondary', secondaryData, heatmapComponent, createOffsetCallback(props.secondarySelectedCallback), props.tooltip);
+    'secondary',
+    secondaryData,
+    heatmapComponent,
+    createOffsetCallback(props.secondarySelectedCallback),
+    props.tooltip
+  );
   secondaryHeatmap.render();
 }
 
@@ -248,13 +265,13 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
   const diffTooltip = new DifferenceHeatmapTooltip(props.eventType, props.useWeight);
 
   differenceHeatmap = new DifferenceHeatmapGraph(
-      'difference',
-      diffResult.data,
-      diffResult.minValue,
-      diffResult.maxValue,
-      heatmapComponent,
-      createOffsetCallback(props.primarySelectedCallback),
-      diffTooltip
+    'difference',
+    diffResult.data,
+    diffResult.minValue,
+    diffResult.maxValue,
+    heatmapComponent,
+    createOffsetCallback(props.primarySelectedCallback),
+    diffTooltip
   );
   differenceHeatmap.render();
 }
@@ -265,16 +282,16 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
   <div v-if="isDifferential" class="d-flex justify-content-center mb-2">
     <div class="btn-group" role="group">
       <button
-          type="button"
-          :class="['btn', 'btn-sm', mode === 'difference' ? 'btn-primary' : 'btn-outline-primary']"
-          @click="mode = 'difference'"
+        type="button"
+        :class="['btn', 'btn-sm', mode === 'difference' ? 'btn-primary' : 'btn-outline-primary']"
+        @click="mode = 'difference'"
       >
         Difference
       </button>
       <button
-          type="button"
-          :class="['btn', 'btn-sm', mode === 'absolute' ? 'btn-primary' : 'btn-outline-primary']"
-          @click="mode = 'absolute'"
+        type="button"
+        :class="['btn', 'btn-sm', mode === 'absolute' ? 'btn-primary' : 'btn-outline-primary']"
+        @click="mode = 'absolute'"
       >
         Absolute
       </button>
@@ -283,7 +300,11 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 
   <!-- Bootstrap Spinner Preloader -->
   <div v-show="!initialized">
-    <div id="preloaderComponent" class="d-flex justify-content-center align-items-center" style="min-height: 200px;">
+    <div
+      id="preloaderComponent"
+      class="d-flex justify-content-center align-items-center"
+      style="min-height: 200px"
+    >
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
@@ -303,27 +324,26 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
   <!-- Fixed centered legend for difference mode -->
   <div v-if="isDifferential && mode === 'difference'" class="heatmap-legend">
     <div class="legend-item">
-      <span class="legend-color" style="background-color: #155724;"></span>
+      <span class="legend-color" style="background-color: #155724"></span>
       <span class="legend-label">Large Decrease</span>
     </div>
     <div class="legend-item">
-      <span class="legend-color" style="background-color: #28a745;"></span>
+      <span class="legend-color" style="background-color: #28a745"></span>
       <span class="legend-label">Decrease</span>
     </div>
     <div class="legend-item">
-      <span class="legend-color" style="background-color: #E6E6E6; border: 1px solid #ccc;"></span>
+      <span class="legend-color" style="background-color: #e6e6e6; border: 1px solid #ccc"></span>
       <span class="legend-label">No Change</span>
     </div>
     <div class="legend-item">
-      <span class="legend-color" style="background-color: #dc3545;"></span>
+      <span class="legend-color" style="background-color: #dc3545"></span>
       <span class="legend-label">Increase</span>
     </div>
     <div class="legend-item">
-      <span class="legend-color" style="background-color: #721c24;"></span>
+      <span class="legend-color" style="background-color: #721c24"></span>
       <span class="legend-label">Large Increase</span>
     </div>
   </div>
-
 </template>
 
 <style>
@@ -332,7 +352,7 @@ function renderDifferenceHeatmap(primaryData: SubSecondData, secondaryData: SubS
 }
 
 .apexcharts-xaxistooltip {
-  display: none
+  display: none;
 }
 </style>
 

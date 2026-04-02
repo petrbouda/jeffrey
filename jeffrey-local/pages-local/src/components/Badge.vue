@@ -1,12 +1,27 @@
 <template>
-  <span class="badge" :class="[sizeClass, variantClass, keyValueClass, uppercaseClass, { 'badge-borderless': borderless }, props.class]">
+  <span
+    class="badge"
+    :class="[
+      sizeClass,
+      variantClass,
+      keyValueClass,
+      uppercaseClass,
+      { 'badge-borderless': borderless },
+      props.class
+    ]"
+  >
     <template v-if="isKeyValueMode">
       <i v-if="icon" :class="icon" class="badge-icon"></i>
       <span class="badge-key">{{ keyLabel }}:</span>
       <span class="badge-value">{{ value }}</span>
     </template>
     <template v-else>
-      <i v-if="icon" :class="icon" style="width: 0.5rem; height: 0.5rem; margin-right: 5px" class="badge-icon"></i>
+      <i
+        v-if="icon"
+        :class="icon"
+        style="width: 0.5rem; height: 0.5rem; margin-right: 5px"
+        class="badge-icon"
+      ></i>
       {{ value }}
     </template>
   </span>
@@ -14,7 +29,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Size, Variant } from "@/types/ui.ts";
+import type { Size, Variant } from '@/types/ui.ts';
 
 interface Props {
   value?: string | number;
@@ -38,8 +53,8 @@ const isKeyValueMode = computed(() => props.keyLabel !== undefined);
 
 const sizeClass = computed(() => `badge-${props.size}`);
 const variantClass = computed(() => `badge-${props.variant}`);
-const keyValueClass = computed(() => isKeyValueMode.value ? 'badge-key-value' : '');
-const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase');
+const keyValueClass = computed(() => (isKeyValueMode.value ? 'badge-key-value' : ''));
+const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercase'));
 </script>
 
 <style scoped>
@@ -99,7 +114,6 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
   min-height: 2.5rem;
   line-height: 1.2;
 }
-
 
 .badge-light {
   background-color: #fafafa;
@@ -418,5 +432,4 @@ const uppercaseClass = computed(() => props.uppercase ? '' : 'badge-no-uppercase
 .badge.badge-no-uppercase {
   text-transform: none;
 }
-
 </style>

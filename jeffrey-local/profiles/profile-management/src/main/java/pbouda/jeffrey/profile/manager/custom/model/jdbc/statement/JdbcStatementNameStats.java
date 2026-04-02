@@ -18,5 +18,5 @@
 
 package pbouda.jeffrey.profile.manager.custom.model.jdbc.statement;
 
-public record JdbcStatementNameStats(String label, long value) {
+public record JdbcStatementNameStats(String label, long value, long p99ExecutionTime) {
 }

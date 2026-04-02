@@ -1,9 +1,5 @@
 <template>
-  <div
-    class="workspace-selection-card"
-    :class="cardClasses"
-    @click="$emit('select')"
-  >
+  <div class="workspace-selection-card" :class="cardClasses" @click="$emit('select')">
     <div class="workspace-card-content">
       <div class="workspace-card-header">
         <div class="workspace-name-container">
@@ -40,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import Badge from '@/components/Badge.vue';
 
 interface Props {
@@ -63,9 +59,9 @@ defineEmits<{
 }>();
 
 const cardClasses = computed(() => ({
-  'active': props.selected,
+  active: props.selected,
   'status-unavailable': props.status === 'UNAVAILABLE',
-  'status-offline': props.status === 'OFFLINE',
+  'status-offline': props.status === 'OFFLINE'
 }));
 
 const iconClass = computed(() => {

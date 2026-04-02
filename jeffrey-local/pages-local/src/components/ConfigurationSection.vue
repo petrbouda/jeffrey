@@ -44,7 +44,9 @@ defineProps<Props>();
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--card-border-color);
   overflow: hidden;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
 }
 
 .config-section:hover {

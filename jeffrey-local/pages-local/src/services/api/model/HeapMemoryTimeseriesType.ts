@@ -17,8 +17,8 @@
  */
 
 enum HeapMemoryTimeseriesType {
-    HEAP_BEFORE_AFTER_GC = "HEAP_BEFORE_AFTER_GC",
-    ALLOCATION = "ALLOCATION",
+  HEAP_BEFORE_AFTER_GC = 'HEAP_BEFORE_AFTER_GC',
+  ALLOCATION = 'ALLOCATION'
 }
 
-export default HeapMemoryTimeseriesType
+export default HeapMemoryTimeseriesType;

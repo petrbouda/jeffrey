@@ -21,7 +21,11 @@
     <!-- Events Timeline -->
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-clock-history" title="Events Timeline" :badge="filteredEvents.length">
+        <MainCardHeader
+          icon="bi bi-clock-history"
+          title="Events Timeline"
+          :badge="filteredEvents.length"
+        >
           <template #actions>
             <select class="page-filter-select" v-model="selectedEventType" @change="filterEvents">
               <option value="">All Events</option>
@@ -34,89 +38,102 @@
             </select>
             <div class="page-search">
               <i class="bi bi-search"></i>
-              <input v-model="searchQuery" type="text" placeholder="Search..." @input="filterEvents">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search..."
+                @input="filterEvents"
+              />
             </div>
           </template>
         </MainCardHeader>
       </template>
 
-        <!-- Loading indicator -->
-        <LoadingState v-if="loading" message="Loading workspace events..." />
+      <!-- Loading indicator -->
+      <LoadingState v-if="loading" message="Loading workspace events..." />
 
-        <!-- Error state -->
-        <div v-else-if="errorMessage" class="error-state">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          <h5>Failed to load events</h5>
-          <p>{{ errorMessage }}</p>
-          <button class="btn btn-primary" @click="refreshEvents">
-            <i class="bi bi-arrow-clockwise me-2"></i>Retry
-          </button>
-        </div>
+      <!-- Error state -->
+      <div v-else-if="errorMessage" class="error-state">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <h5>Failed to load events</h5>
+        <p>{{ errorMessage }}</p>
+        <button class="btn btn-primary" @click="refreshEvents">
+          <i class="bi bi-arrow-clockwise me-2"></i>Retry
+        </button>
+      </div>
 
-        <!-- Events list -->
-        <div v-else-if="filteredEvents.length > 0" class="events-list">
-          <div 
-            v-for="event in filteredEvents" 
-            :key="event.eventId" 
-            class="event-row"
-            @click="showEventDetails(event)"
-          >
-            <div class="event-main">
-              <div class="event-details">
-                <div class="event-first-line">
-                  <Badge 
-                    :value="EventContentParser.getEventDisplayName(event.eventType)"
-                    :variant="getEventBadgeVariant(event.eventType)"
-                    size="s"
-                    :uppercase="false"
-                  />
-                  <span class="event-ids">
-                    {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }}
-                  </span>
-                  <div class="event-time-info">
-                    <span class="event-time-full">{{ FormattingService.formatTimestamp(event.originCreatedAt) }}</span>
-                    <span class="event-time-relative">{{ FormattingService.formatRelativeTime(event.originCreatedAt) }}</span>
-                  </div>
+      <!-- Events list -->
+      <div v-else-if="filteredEvents.length > 0" class="events-list">
+        <div
+          v-for="event in filteredEvents"
+          :key="event.eventId"
+          class="event-row"
+          @click="showEventDetails(event)"
+        >
+          <div class="event-main">
+            <div class="event-details">
+              <div class="event-first-line">
+                <Badge
+                  :value="EventContentParser.getEventDisplayName(event.eventType)"
+                  :variant="getEventBadgeVariant(event.eventType)"
+                  size="s"
+                  :uppercase="false"
+                />
+                <span class="event-ids">
+                  {{ event.originEventId }} • {{ event.projectId }} • {{ event.workspaceId }}
+                </span>
+                <div class="event-time-info">
+                  <span class="event-time-full">{{
+                    FormattingService.formatTimestamp(event.originCreatedAt)
+                  }}</span>
+                  <span class="event-time-relative">{{
+                    FormattingService.formatRelativeTime(event.originCreatedAt)
+                  }}</span>
                 </div>
-                <div class="event-second-line">
-                  <span class="event-created-by">
-                    <i class="bi bi-person-fill me-1"></i>{{ event.createdBy }}
-                  </span>
-                </div>
-                <div class="event-content-pairs">
-                  <span 
-                    v-for="(value, key) in getMainContentPairs(event)" 
-                    :key="key"
-                    class="content-pair"
+              </div>
+              <div class="event-second-line">
+                <span class="event-created-by">
+                  <i class="bi bi-person-fill me-1"></i>{{ event.createdBy }}
+                </span>
+              </div>
+              <div class="event-content-pairs">
+                <span
+                  v-for="(value, key) in getMainContentPairs(event)"
+                  :key="key"
+                  class="content-pair"
+                >
+                  <span class="content-key">{{ key }}:</span>
+                  <span class="content-value">{{ value }}</span>
+                </span>
+
+                <!-- Attributes for PROJECT_CREATED events -->
+                <template v-if="getAttributesPairs(event)">
+                  <span
+                    v-for="(value, key) in getAttributesPairs(event)"
+                    :key="`attr-${key}`"
+                    class="content-pair attribute-pair"
                   >
                     <span class="content-key">{{ key }}:</span>
                     <span class="content-value">{{ value }}</span>
                   </span>
-                  
-                  <!-- Attributes for PROJECT_CREATED events -->
-                  <template v-if="getAttributesPairs(event)">
-                    <span
-                      v-for="(value, key) in getAttributesPairs(event)"
-                      :key="`attr-${key}`"
-                      class="content-pair attribute-pair"
-                    >
-                      <span class="content-key">{{ key }}:</span>
-                      <span class="content-value">{{ value }}</span>
-                    </span>
-                  </template>
-                </div>
+                </template>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Empty state -->
-        <EmptyState
-          v-else
-          icon="bi-journal-text"
-          title="No Events Found"
-          :description="selectedWorkspace ? 'No events found for the selected workspace.' : 'No events match your current filters.'"
-        />
+      <!-- Empty state -->
+      <EmptyState
+        v-else
+        icon="bi-journal-text"
+        title="No Events Found"
+        :description="
+          selectedWorkspace
+            ? 'No events found for the selected workspace.'
+            : 'No events match your current filters.'
+        "
+      />
     </MainCard>
 
     <!-- Event Details Modal -->
@@ -124,8 +141,14 @@
       modal-id="eventDetailsModal"
       :show="showEventDetailsModal"
       @update:show="showEventDetailsModal = $event"
-      :title="selectedEvent ? EventContentParser.getEventDisplayName(selectedEvent.eventType) : 'Event Details'"
-      :icon="selectedEvent ? EventContentParser.getEventIcon(selectedEvent.eventType) : 'bi-journal-text'"
+      :title="
+        selectedEvent
+          ? EventContentParser.getEventDisplayName(selectedEvent.eventType)
+          : 'Event Details'
+      "
+      :icon="
+        selectedEvent ? EventContentParser.getEventIcon(selectedEvent.eventType) : 'bi-journal-text'
+      "
       size="lg"
     >
       <div v-if="selectedEvent" class="event-modal-content">
@@ -155,7 +178,9 @@
           <div class="info-row">
             <div class="info-pair">
               <span class="label">Created:</span>
-              <span class="value">{{ FormattingService.formatTimestamp(selectedEvent.originCreatedAt) }}</span>
+              <span class="value">{{
+                FormattingService.formatTimestamp(selectedEvent.originCreatedAt)
+              }}</span>
             </div>
           </div>
         </div>
@@ -167,7 +192,9 @@
       </div>
 
       <template #footer>
-        <button type="button" class="btn btn-secondary" @click="showEventDetailsModal = false">Close</button>
+        <button type="button" class="btn btn-secondary" @click="showEventDetailsModal = false">
+          Close
+        </button>
       </template>
     </GenericModal>
   </div>
@@ -233,17 +260,17 @@ const refreshEvents = async () => {
   try {
     const workspaceId = selectedWorkspace.value;
     events.value = await workspaceClient.getEvents(workspaceId);
-    
+
     // Sort events by timestamp (youngest to oldest)
     events.value.sort((a, b) => b.originCreatedAt - a.originCreatedAt);
-    
+
     // Update workspace event counts
     workspaces.value.forEach(workspace => {
-      workspace.eventCount = events.value.filter(event => 
-        event.workspaceId === workspace.id
+      workspace.eventCount = events.value.filter(
+        event => event.workspaceId === workspace.id
       ).length;
     });
-    
+
     filteredEvents.value = [...events.value];
   } catch (error) {
     console.error('Failed to load events:', error);
@@ -283,10 +310,11 @@ const filterEvents = () => {
   // Filter by search query
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(event => 
-      EventContentParser.getEventDescription(event).toLowerCase().includes(query) ||
-      event.originEventId.toLowerCase().includes(query) ||
-      event.projectId.toLowerCase().includes(query)
+    filtered = filtered.filter(
+      event =>
+        EventContentParser.getEventDescription(event).toLowerCase().includes(query) ||
+        event.originEventId.toLowerCase().includes(query) ||
+        event.projectId.toLowerCase().includes(query)
     );
   }
 
@@ -306,7 +334,7 @@ const formatEventContent = (event: WorkspaceEvent) => {
 const getMainContentPairs = (event: WorkspaceEvent) => {
   const content = EventContentParser.parseContent(event);
   const pairs: Record<string, string> = {};
-  
+
   if (event.eventType === WorkspaceEventType.PROJECT_CREATED) {
     // Show only main fields, not attributes
     if (content.projectName && content.projectName.trim()) {
@@ -339,13 +367,13 @@ const getMainContentPairs = (event: WorkspaceEvent) => {
       } else {
         stringValue = String(value);
       }
-      
+
       if (stringValue && stringValue.trim()) {
         pairs[key] = stringValue;
       }
     });
   }
-  
+
   return pairs;
 };
 
@@ -354,17 +382,17 @@ const getAttributesPairs = (event: WorkspaceEvent) => {
   if (event.eventType !== WorkspaceEventType.PROJECT_CREATED) {
     return null;
   }
-  
+
   const content = EventContentParser.parseContent(event);
   if (!content.attributes || typeof content.attributes !== 'object') {
     return null;
   }
-  
+
   const pairs: Record<string, string> = {};
   Object.entries(content.attributes).forEach(([key, value]) => {
     pairs[key] = String(value);
   });
-  
+
   return Object.keys(pairs).length > 0 ? pairs : null;
 };
 
@@ -415,7 +443,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #ffffff, #fafbff);
   border-radius: 8px;
   border: 1px solid rgba(94, 100, 255, 0.08);
-  box-shadow: 
+  box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -423,7 +451,7 @@ onMounted(async () => {
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 
+    box-shadow:
       0 2px 8px rgba(0, 0, 0, 0.08),
       0 1px 4px rgba(94, 100, 255, 0.15);
     border-color: rgba(94, 100, 255, 0.2);
@@ -578,7 +606,7 @@ onMounted(async () => {
 }
 
 .value {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.8rem;
   color: var(--color-text, #374151);
   font-weight: 500;
@@ -612,8 +640,7 @@ onMounted(async () => {
   max-height: 250px;
   overflow-y: auto;
   margin: 0;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   line-height: 1.4;
 }
-
 </style>

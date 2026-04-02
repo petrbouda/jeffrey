@@ -48,7 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
   deletingProfile: false,
   expandable: false,
   expanded: false,
-  draggable: false,
+  draggable: false
 });
 
 const emit = defineEmits<{
@@ -63,7 +63,10 @@ const emit = defineEmits<{
 }>();
 
 const isTransitional = () =>
-    props.analyzing || props.creatingProfile || props.deletingProfile || (props.hasProfile && !props.profileEnabled);
+  props.analyzing ||
+  props.creatingProfile ||
+  props.deletingProfile ||
+  (props.hasProfile && !props.profileEnabled);
 
 const handleClick = () => {
   if (!isTransitional()) {
@@ -84,14 +87,15 @@ const formatRelativeTime = (timestamp: number) => {
 
 <template>
   <div
-      class="rec-card"
-      :class="{
-        'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
-        'rec-card--analyzing': analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
-        'rec-card--deleting': deletingProfile,
-        'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
-      }"
-      @click="handleClick"
+    class="rec-card"
+    :class="{
+      'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
+      'rec-card--analyzing':
+        analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
+      'rec-card--deleting': deletingProfile,
+      'rec-card--heap-dump': sourceType === 'HEAP_DUMP'
+    }"
+    @click="handleClick"
   >
     <!-- Two-column layout: left (name + metadata), right (actions) -->
     <div class="rec-card__body">
@@ -99,8 +103,8 @@ const formatRelativeTime = (timestamp: number) => {
       <div class="rec-card__info">
         <div class="rec-card__line1">
           <i
-              class="rec-card__icon"
-              :class="sourceType === 'HEAP_DUMP' ? 'bi bi-database' : 'bi bi-file-earmark-binary'"
+            class="rec-card__icon"
+            :class="sourceType === 'HEAP_DUMP' ? 'bi bi-database' : 'bi bi-file-earmark-binary'"
           ></i>
           <span class="rec-card__name">{{ name }}</span>
         </div>
@@ -108,7 +112,9 @@ const formatRelativeTime = (timestamp: number) => {
           <span class="rec-card__meta">{{ FormattingService.formatBytes(sizeInBytes) }}</span>
           <template v-if="durationInMillis > 0">
             <span class="rec-card__sep">&middot;</span>
-            <span class="rec-card__meta">{{ FormattingService.formatDurationInMillis2Units(durationInMillis) }}</span>
+            <span class="rec-card__meta">{{
+              FormattingService.formatDurationInMillis2Units(durationInMillis)
+            }}</span>
           </template>
           <span class="rec-card__sep">&middot;</span>
           <span class="rec-card__meta">{{ formatRelativeTime(uploadedAt) }}</span>
@@ -137,10 +143,10 @@ const formatRelativeTime = (timestamp: number) => {
       <div class="rec-card__actions">
         <!-- Files toggle -->
         <button
-            v-if="expandable && fileCount != null && fileCount > 0"
-            class="rec-card__files-toggle"
-            :class="{ 'rec-card__files-toggle--active': expanded }"
-            @click.stop="emit('toggle-expand')"
+          v-if="expandable && fileCount != null && fileCount > 0"
+          class="rec-card__files-toggle"
+          :class="{ 'rec-card__files-toggle--active': expanded }"
+          @click.stop="emit('toggle-expand')"
         >
           <i class="bi bi-files"></i>
           {{ fileCount }} file{{ fileCount !== 1 ? 's' : '' }}
@@ -149,9 +155,9 @@ const formatRelativeTime = (timestamp: number) => {
 
         <!-- Not analyzed: Analyze button -->
         <button
-            v-if="!hasProfile && !analyzing && !creatingProfile"
-            class="rec-card__btn rec-card__btn--analyze"
-            @click.stop="emit('create-profile')"
+          v-if="!hasProfile && !analyzing && !creatingProfile"
+          class="rec-card__btn rec-card__btn--analyze"
+          @click.stop="emit('create-profile')"
         >
           <i class="bi bi-play-fill"></i>
           Analyze
@@ -164,22 +170,28 @@ const formatRelativeTime = (timestamp: number) => {
         </span>
 
         <!-- Deleting spinner -->
-        <span v-else-if="deletingProfile" class="rec-card__btn rec-card__btn--spinner rec-card__btn--spinner-danger">
+        <span
+          v-else-if="deletingProfile"
+          class="rec-card__btn rec-card__btn--spinner rec-card__btn--spinner-danger"
+        >
           <div class="rec-card__spinner rec-card__spinner--danger"></div>
           Deleting...
         </span>
 
         <!-- Initializing (has profile but not enabled yet) -->
-        <span v-else-if="hasProfile && !profileEnabled" class="rec-card__btn rec-card__btn--spinner">
+        <span
+          v-else-if="hasProfile && !profileEnabled"
+          class="rec-card__btn rec-card__btn--spinner"
+        >
           <div class="rec-card__spinner"></div>
           Initializing...
         </span>
 
         <!-- Analyzed + enabled: Open Profile -->
         <button
-            v-else-if="hasProfile && profileEnabled"
-            class="rec-card__btn rec-card__btn--open"
-            @click.stop="emit('open-profile')"
+          v-else-if="hasProfile && profileEnabled"
+          class="rec-card__btn rec-card__btn--open"
+          @click.stop="emit('open-profile')"
         >
           Open Profile
           <i class="bi bi-arrow-right"></i>
@@ -187,36 +199,36 @@ const formatRelativeTime = (timestamp: number) => {
 
         <!-- Action icon buttons -->
         <button
-            v-if="hasProfile && profileEnabled && !deletingProfile"
-            class="rec-card__action-btn"
-            @click.stop="emit('edit-profile')"
-            title="Edit Profile"
+          v-if="hasProfile && profileEnabled && !deletingProfile"
+          class="rec-card__action-btn"
+          @click.stop="emit('edit-profile')"
+          title="Edit Profile"
         >
           <i class="bi bi-pencil"></i>
         </button>
         <button
-            v-if="hasProfile && !deletingProfile"
-            class="rec-card__action-btn rec-card__action-btn--danger"
-            @click.stop="emit('delete-profile')"
-            title="Delete Profile"
+          v-if="hasProfile && !deletingProfile"
+          class="rec-card__action-btn rec-card__action-btn--danger"
+          @click.stop="emit('delete-profile')"
+          title="Delete Profile"
         >
           <i class="bi bi-person-x"></i>
         </button>
         <button
-            class="rec-card__action-btn rec-card__action-btn--danger"
-            @click.stop="emit('delete-recording')"
-            title="Delete"
+          class="rec-card__action-btn rec-card__action-btn--danger"
+          @click.stop="emit('delete-recording')"
+          title="Delete"
         >
           <i class="bi bi-trash"></i>
         </button>
         <div
-            v-if="draggable"
-            class="rec-card__drag-handle"
-            draggable="true"
-            title="Drag to move to another group"
-            @dragstart="onDragStart"
-            @dragend="emit('dragend')"
-            @click.stop
+          v-if="draggable"
+          class="rec-card__drag-handle"
+          draggable="true"
+          title="Drag to move to another group"
+          @dragstart="onDragStart"
+          @dragend="emit('dragend')"
+          @click.stop
         >
           <i class="bi bi-grip-vertical"></i>
         </div>
@@ -334,8 +346,13 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 @keyframes rec-card-pulse {
-  0%, 100% { background: var(--color-light); }
-  50% { background: #f0f2ff; }
+  0%,
+  100% {
+    background: var(--color-light);
+  }
+  50% {
+    background: #f0f2ff;
+  }
 }
 
 /* Two-column body */
@@ -529,7 +546,9 @@ const formatRelativeTime = (timestamp: number) => {
 }
 
 @keyframes rec-card-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Hover-revealed action buttons */

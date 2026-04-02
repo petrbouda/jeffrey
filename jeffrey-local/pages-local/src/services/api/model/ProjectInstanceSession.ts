@@ -17,13 +17,12 @@
  */
 
 export default class ProjectInstanceSession {
-    constructor(
-        public id: string,
-        public repositoryId: string,
-        public createdAt: number,
-        public duration: number,
-        public finishedAt?: number,
-        public isActive?: boolean,
-    ) {
-    }
+  constructor(
+    public id: string,
+    public repositoryId: string,
+    public createdAt: number,
+    public duration: number,
+    public finishedAt?: number,
+    public isActive?: boolean
+  ) {}
 }

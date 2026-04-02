@@ -17,8 +17,8 @@
  */
 
 export default interface ConcurrentPhase {
-    name: string;
-    duration: number;
-    timestamp: number;
-    timestampFromStart: number;
+  name: string;
+  duration: number;
+  timestamp: number;
+  timestampFromStart: number;
 }

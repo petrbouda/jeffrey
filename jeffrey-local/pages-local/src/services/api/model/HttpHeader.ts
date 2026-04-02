@@ -17,16 +17,16 @@
  */
 
 export default class HttpHeader {
-    constructor(
-        public requestCount: number,
-        public maxResponseTime: number,
-        public p99ResponseTime: number,
-        public p95ResponseTime: number,
-        public successRate: number,
-        public count5xx: number,
-        public count4xx: number,
-        public totalBytesTransferred: number,
-        public totalBytesReceived: number,
-        public totalBytesSent: number) {
-    }
+  constructor(
+    public requestCount: number,
+    public maxResponseTime: number,
+    public p99ResponseTime: number,
+    public p95ResponseTime: number,
+    public successRate: number,
+    public count5xx: number,
+    public count4xx: number,
+    public totalBytesTransferred: number,
+    public totalBytesReceived: number,
+    public totalBytesSent: number
+  ) {}
 }

@@ -16,29 +16,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import EventTypes from "@/services/EventTypes";
-import DifferentialFlamegraphTooltip from "@/services/flamegraphs/tooltips/DifferentialFlamegraphTooltip";
-import BasicFlamegraphTooltip from "@/services/flamegraphs/tooltips/BasicFlamegraphTooltip";
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
+import EventTypes from '@/services/EventTypes';
+import DifferentialFlamegraphTooltip from '@/services/flamegraphs/tooltips/DifferentialFlamegraphTooltip';
+import BasicFlamegraphTooltip from '@/services/flamegraphs/tooltips/BasicFlamegraphTooltip';
 
 export default class FlamegraphTooltipFactory {
-
-    static create(eventType: string, useWeight: boolean, isDifferential: boolean): FlamegraphTooltip {
-        if (isDifferential) {
-            return new DifferentialFlamegraphTooltip(eventType, useWeight)
-        } else if (EventTypes.isExecutionEventType(eventType)) {
-            return new BasicFlamegraphTooltip(eventType, useWeight, null, null, true)
-        } else if (EventTypes.isAllocationEventType(eventType)
-            || EventTypes.isMallocAllocationEventType(eventType)
-            || EventTypes.isNativeLeakEventType(eventType)) {
-
-            return new BasicFlamegraphTooltip(eventType, useWeight, "Allocated", FlamegraphTooltip.format_bytes)
-        } else if (EventTypes.isMethodTraceEventType(eventType)) {
-            return new BasicFlamegraphTooltip(eventType, useWeight, "Latency", FlamegraphTooltip.format_duration)
-        } else if (EventTypes.isBlockingEventType(eventType)) {
-            return new BasicFlamegraphTooltip(eventType, useWeight, "Blocked Time", FlamegraphTooltip.format_duration)
-        } else {
-            return new BasicFlamegraphTooltip(eventType, useWeight)
-        }
+  static create(eventType: string, useWeight: boolean, isDifferential: boolean): FlamegraphTooltip {
+    if (isDifferential) {
+      return new DifferentialFlamegraphTooltip(eventType, useWeight);
+    } else if (EventTypes.isExecutionEventType(eventType)) {
+      return new BasicFlamegraphTooltip(eventType, useWeight, null, null, true);
+    } else if (
+      EventTypes.isAllocationEventType(eventType) ||
+      EventTypes.isMallocAllocationEventType(eventType) ||
+      EventTypes.isNativeLeakEventType(eventType)
+    ) {
+      return new BasicFlamegraphTooltip(
+        eventType,
+        useWeight,
+        'Allocated',
+        FlamegraphTooltip.format_bytes
+      );
+    } else if (EventTypes.isMethodTraceEventType(eventType)) {
+      return new BasicFlamegraphTooltip(
+        eventType,
+        useWeight,
+        'Latency',
+        FlamegraphTooltip.format_duration
+      );
+    } else if (EventTypes.isBlockingEventType(eventType)) {
+      return new BasicFlamegraphTooltip(
+        eventType,
+        useWeight,
+        'Blocked Time',
+        FlamegraphTooltip.format_duration
+      );
+    } else {
+      return new BasicFlamegraphTooltip(eventType, useWeight);
     }
+  }
 }

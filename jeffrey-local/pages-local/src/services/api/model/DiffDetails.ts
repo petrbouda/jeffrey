@@ -17,10 +17,10 @@
  */
 
 export default class DiffDetails {
-    constructor(
-        public samples: number,
-        public weight: number,
-        public percentSamples: number,
-        public percentWeight: number) {
-    }
+  constructor(
+    public samples: number,
+    public weight: number,
+    public percentSamples: number,
+    public percentWeight: number
+  ) {}
 }

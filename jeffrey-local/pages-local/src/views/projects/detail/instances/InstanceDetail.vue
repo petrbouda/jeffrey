@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -49,10 +49,10 @@ import ProjectInstanceClient from '@/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@/services/api/ProjectRepositoryClient';
 import ProjectInstance from '@/services/api/model/ProjectInstance';
 import RecordingSession from '@/services/api/model/RecordingSession';
-import {useNavigation} from '@/composables/useNavigation';
+import { useNavigation } from '@/composables/useNavigation';
 import '@/styles/shared-components.css';
 
-const {workspaceId, projectId, instanceId} = useNavigation();
+const { workspaceId, projectId, instanceId } = useNavigation();
 
 // Collector-only mode is never active in local mode
 const isCollectorOnly = computed(() => {
@@ -87,13 +87,9 @@ const fetchSessions = async () => {
 onMounted(async () => {
   const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
-  const [inst] = await Promise.all([
-    client.find(instanceId.value!),
-    fetchSessions(),
-  ]);
+  const [inst] = await Promise.all([client.find(instanceId.value!), fetchSessions()]);
 
   instance.value = inst || null;
   loading.value = false;
 });
 </script>
-

@@ -5,7 +5,9 @@
         <div class="step-type-info">
           <i class="bi bi-ui-checks-grid"></i>
           <span>ASYNC-PROFILER AGENT BUILDER</span>
-          <span class="header-description">Open to get more information about Async-Profiler Agent Configuration</span>
+          <span class="header-description"
+            >Open to get more information about Async-Profiler Agent Configuration</span
+          >
         </div>
         <div class="help-toggle">
           <i :class="isHelpExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
@@ -16,10 +18,17 @@
       <div v-if="isHelpExpanded" class="step-header-content">
         <div class="help-content">
           <h4>AsyncProfiler Documentation & Resources</h4>
-          <p>Learn more about AsyncProfiler configuration and profiling techniques from the official documentation:</p>
+          <p>
+            Learn more about AsyncProfiler configuration and profiling techniques from the official
+            documentation:
+          </p>
 
           <div class="help-sections">
-            <a href="https://github.com/async-profiler/async-profiler/blob/master/docs/ProfilingModes.md" target="_blank" class="help-section help-link-card clickable-card">
+            <a
+              href="https://github.com/async-profiler/async-profiler/blob/master/docs/ProfilingModes.md"
+              target="_blank"
+              class="help-section help-link-card clickable-card"
+            >
               <h5><i class="bi bi-book"></i> Profiling Modes</h5>
               <p>Information about profiling modes</p>
               <div class="source-type">
@@ -28,7 +37,11 @@
               </div>
             </a>
 
-            <a href="https://github.com/async-profiler/async-profiler/blob/master/docs/ProfilerOptions.md" target="_blank" class="help-section help-link-card clickable-card">
+            <a
+              href="https://github.com/async-profiler/async-profiler/blob/master/docs/ProfilerOptions.md"
+              target="_blank"
+              class="help-section help-link-card clickable-card"
+            >
               <h5><i class="bi bi-gear"></i> Profiler Options</h5>
               <p>Information about Profiling Options</p>
               <div class="source-type">
@@ -37,7 +50,11 @@
               </div>
             </a>
 
-            <a href="https://github.com/async-profiler/async-profiler/pull/1435" target="_blank" class="help-section help-link-card clickable-card">
+            <a
+              href="https://github.com/async-profiler/async-profiler/pull/1435"
+              target="_blank"
+              class="help-section help-link-card clickable-card"
+            >
               <h5><i class="bi bi-search"></i> Method Tracing Instrumentation</h5>
               <p>Information about Instrumentation for Method Tracing</p>
               <div class="source-type">
@@ -46,7 +63,11 @@
               </div>
             </a>
 
-            <a href="https://github.com/async-profiler/async-profiler/discussions/1497" target="_blank" class="help-section help-link-card clickable-card">
+            <a
+              href="https://github.com/async-profiler/async-profiler/discussions/1497"
+              target="_blank"
+              class="help-section help-link-card clickable-card"
+            >
               <h5><i class="bi bi-chat-dots"></i> Method Tracing Blog</h5>
               <p>Blog about Method Tracing</p>
               <div class="source-type">
@@ -66,37 +87,50 @@
         <!-- Builder Mode Content -->
         <div class="config-output-content builder-mode-content">
           <form class="parameter-panel" @submit.prevent="generateConfig">
-
             <!-- Required Configuration Section -->
             <div class="config-section required-section">
               <div class="section-header">
-                <h6 class="section-title">
-                  Mandatory Options
-                </h6>
+                <h6 class="section-title">Mandatory Options</h6>
               </div>
               <div class="config-cards-stack">
                 <!-- Agent Path Card -->
                 <ConfigCard
-                    title="Agent Path"
-                    subtitle="Path to the AsyncProfiler shared library"
-                    icon="bi-folder-fill"
-                    card-type="required"
-                    :is-enabled="true"
-                    color-theme="blue"
-                    :collapsible="true"
-                    :is-expanded="mandatoryPanelsExpanded.agentPath"
-                    @toggle-collapse="mandatoryPanelsExpanded.agentPath = !mandatoryPanelsExpanded.agentPath"
+                  title="Agent Path"
+                  subtitle="Path to the AsyncProfiler shared library"
+                  icon="bi-folder-fill"
+                  card-type="required"
+                  :is-enabled="true"
+                  color-theme="blue"
+                  :collapsible="true"
+                  :is-expanded="mandatoryPanelsExpanded.agentPath"
+                  @toggle-collapse="
+                    mandatoryPanelsExpanded.agentPath = !mandatoryPanelsExpanded.agentPath
+                  "
                 >
                   <div class="interval-block">
                     <div class="agent-mode-selector">
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="agentMode" id="agentJeffrey" value="jeffrey" v-model="agentMode">
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="agentMode"
+                          id="agentJeffrey"
+                          value="jeffrey"
+                          v-model="agentMode"
+                        />
                         <label class="form-check-label" for="agentJeffrey">
                           Use Agent provided by Jeffrey
                         </label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="agentMode" id="agentCustom" value="custom" v-model="agentMode">
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="agentMode"
+                          id="agentCustom"
+                          value="custom"
+                          v-model="agentMode"
+                        />
                         <label class="form-check-label" for="agentCustom">
                           Specify Custom Agent Path
                         </label>
@@ -109,62 +143,71 @@
 
                     <div v-if="agentMode === 'custom'">
                       <input
-                          type="text"
-                          class="form-control"
-                          v-model="config.agentPathCustom"
-                          placeholder="/path/to/libasyncProfiler.so"
-                      >
-                      <div class="form-help">Path to your custom AsyncProfiler shared library (.so file).</div>
+                        type="text"
+                        class="form-control"
+                        v-model="config.agentPathCustom"
+                        placeholder="/path/to/libasyncProfiler.so"
+                      />
+                      <div class="form-help">
+                        Path to your custom AsyncProfiler shared library (.so file).
+                      </div>
                     </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Output File Pattern Card -->
                 <ConfigCard
-                    title="Output File Pattern"
-                    subtitle="Where AsyncProfiler writes generated profiles"
-                    icon="bi-file-earmark-code"
-                    card-type="required"
-                    :is-enabled="true"
-                    color-theme="yellow"
-                    :collapsible="true"
-                    :is-expanded="mandatoryPanelsExpanded.outputFile"
-                    @toggle-collapse="mandatoryPanelsExpanded.outputFile = !mandatoryPanelsExpanded.outputFile"
+                  title="Output File Pattern"
+                  subtitle="Where AsyncProfiler writes generated profiles"
+                  icon="bi-file-earmark-code"
+                  card-type="required"
+                  :is-enabled="true"
+                  color-theme="yellow"
+                  :collapsible="true"
+                  :is-expanded="mandatoryPanelsExpanded.outputFile"
+                  @toggle-collapse="
+                    mandatoryPanelsExpanded.outputFile = !mandatoryPanelsExpanded.outputFile
+                  "
                 >
                   <div class="form-group">
                     <input
-                        type="text"
-                        class="form-control"
-                        v-model="config.file"
-                        placeholder="<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr"
-                        required
-                    >
-                    <div class="form-help">Output file pattern (%t = timestamp, %p = PID, %n{MAX} = sequence number, %{ENV} - environment variable)</div>
+                      type="text"
+                      class="form-control"
+                      v-model="config.file"
+                      placeholder="<<JEFFREY_CURRENT_SESSION>>/profile-%t.jfr"
+                      required
+                    />
+                    <div class="form-help">
+                      Output file pattern (%t = timestamp, %p = PID, %n{MAX} = sequence number,
+                      %{ENV} - environment variable)
+                    </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Loop Duration Card -->
                 <ConfigCard
-                    title="Loop Duration"
-                    subtitle="Used for continuous profiling, it generates files in a regular time interval"
-                    icon="bi-arrow-repeat"
-                    card-type="required"
-                    :is-enabled="true"
-                    color-theme="yellow"
-                    :collapsible="true"
-                    :is-expanded="mandatoryPanelsExpanded.loopDuration"
-                    @toggle-collapse="mandatoryPanelsExpanded.loopDuration = !mandatoryPanelsExpanded.loopDuration"
+                  title="Loop Duration"
+                  subtitle="Used for continuous profiling, it generates files in a regular time interval"
+                  icon="bi-arrow-repeat"
+                  card-type="required"
+                  :is-enabled="true"
+                  color-theme="yellow"
+                  :collapsible="true"
+                  :is-expanded="mandatoryPanelsExpanded.loopDuration"
+                  @toggle-collapse="
+                    mandatoryPanelsExpanded.loopDuration = !mandatoryPanelsExpanded.loopDuration
+                  "
                 >
                   <div class="form-group">
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model="config.loopValue"
-                          min="1"
-                          placeholder="15"
-                          required
-                      >
+                        type="number"
+                        class="form-control"
+                        v-model="config.loopValue"
+                        min="1"
+                        placeholder="15"
+                        required
+                      />
                       <select class="form-select select-with-indicator" v-model="config.loopUnit">
                         <option value="s">Seconds</option>
                         <option value="m">Minutes</option>
@@ -172,7 +215,10 @@
                         <option value="d">Days</option>
                       </select>
                     </div>
-                    <div class="form-help">Specifies time when the current JFR file is dumped and starts writing to a new one.  (default 15 minutes)</div>
+                    <div class="form-help">
+                      Specifies time when the current JFR file is dumped and starts writing to a new
+                      one. (default 15 minutes)
+                    </div>
                   </div>
                 </ConfigCard>
               </div>
@@ -181,19 +227,17 @@
             <!-- Event Options Section -->
             <div class="config-section optional-section">
               <div class="section-header">
-                <h6 class="section-title">
-                  Event Options
-                </h6>
+                <h6 class="section-title">Event Options</h6>
               </div>
 
               <div class="config-cards-stack">
                 <!-- Event Type Card -->
                 <ConfigCard
-                    title="CPU Profiling"
-                    subtitle="Find hotpaths where the application spends time on CPU"
-                    icon="bi-activity"
-                    :is-enabled="optionStates.event"
-                    @toggle="optionStates.event = $event"
+                  title="CPU Profiling"
+                  subtitle="Find hotpaths where the application spends time on CPU"
+                  icon="bi-activity"
+                  :is-enabled="optionStates.event"
+                  @toggle="optionStates.event = $event"
                 >
                   <div class="form-group">
                     <select class="form-control select-with-indicator" v-model="config.event">
@@ -203,28 +247,38 @@
                     <div class="form-help">Select a CPU profiling mode.</div>
                     <div class="event-extra-hint">
                       <span class="hint-label">ctimer</span>
-                      <span class="hint-text">CPU profiling without kernel stacks. Use when perf_events are unavailable (e.g. in containers).</span>
+                      <span class="hint-text"
+                        >CPU profiling without kernel stacks. Use when perf_events are unavailable
+                        (e.g. in containers).</span
+                      >
                     </div>
                     <div class="event-extra-hint">
                       <span class="hint-label">cpu</span>
-                      <span class="hint-text">CPU profiling with kernel stacks via perf_events on Linux (requires it to be enabled). Falls back to other sampling modes depending on the OS.</span>
+                      <span class="hint-text"
+                        >CPU profiling with kernel stacks via perf_events on Linux (requires it to
+                        be enabled). Falls back to other sampling modes depending on the OS.</span
+                      >
                     </div>
                     <div class="interval-block">
                       <label class="interval-label">Sampling Interval</label>
                       <div class="input-group">
                         <input
-                            type="number"
-                            class="form-control"
-                            v-model.number="config.intervalValue"
-                            placeholder="10"
+                          type="number"
+                          class="form-control"
+                          v-model.number="config.intervalValue"
+                          placeholder="10"
+                        />
+                        <select
+                          class="form-select select-with-indicator"
+                          v-model="config.intervalUnit"
                         >
-                        <select class="form-select select-with-indicator" v-model="config.intervalUnit">
                           <option value="us">Micros</option>
                           <option value="ms">Millis</option>
                         </select>
                       </div>
-                      <div class="form-help">Default is 10 ms. Controls how frequently samples are collected for
-                        the selected CPU mode.
+                      <div class="form-help">
+                        Default is 10 ms. Controls how frequently samples are collected for the
+                        selected CPU mode.
                       </div>
                     </div>
                   </div>
@@ -232,103 +286,114 @@
 
                 <!-- Allocation Profiling Card -->
                 <ConfigCard
-                    title="Allocation Profiling"
-                    subtitle="Find where objects are allocated in the heap"
-                    icon="bi-box-seam"
-                    :is-enabled="optionStates.alloc"
-                    @toggle="optionStates.alloc = $event"
+                  title="Allocation Profiling"
+                  subtitle="Find where objects are allocated in the heap"
+                  icon="bi-box-seam"
+                  :is-enabled="optionStates.alloc"
+                  @toggle="optionStates.alloc = $event"
                 >
                   <div class="interval-block">
                     <label class="interval-label">Sampling Allocation Threshold</label>
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model.number="config.allocValue"
-                          placeholder="2"
-                      >
+                        type="number"
+                        class="form-control"
+                        v-model.number="config.allocValue"
+                        placeholder="2"
+                      />
                       <select class="form-select select-with-indicator" v-model="config.allocUnit">
                         <option value="mb">MB</option>
                         <option value="kb">kB</option>
                       </select>
                     </div>
-                    <div class="form-help">TLAB-driven sampling that receives notifications when objects are
-                      allocated in new TLABs or via slow paths outside TLAB. Adjusting the threshold means
-                      taking a sample after specified amount of allocated space on average.
+                    <div class="form-help">
+                      TLAB-driven sampling that receives notifications when objects are allocated in
+                      new TLABs or via slow paths outside TLAB. Adjusting the threshold means taking
+                      a sample after specified amount of allocated space on average.
                     </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Lock Profiling Card -->
                 <ConfigCard
-                    title="Lock Profiling"
-                    subtitle="Capture contended monitors and locks"
-                    icon="bi-shield-lock"
-                    :is-enabled="optionStates.lock"
-                    @toggle="optionStates.lock = $event"
+                  title="Lock Profiling"
+                  subtitle="Capture contended monitors and locks"
+                  icon="bi-shield-lock"
+                  :is-enabled="optionStates.lock"
+                  @toggle="optionStates.lock = $event"
                 >
                   <div class="interval-block">
                     <label class="interval-label">Sampling Threshold</label>
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model.number="config.lockThresholdValue"
-                          placeholder="0">
-                      <select class="form-select select-with-indicator" v-model="config.lockThresholdUnit">
+                        type="number"
+                        class="form-control"
+                        v-model.number="config.lockThresholdValue"
+                        placeholder="0"
+                      />
+                      <select
+                        class="form-select select-with-indicator"
+                        v-model="config.lockThresholdUnit"
+                      >
                         <option value="us">Micros</option>
                         <option value="ms">Millis</option>
                         <option value="s">Seconds</option>
                       </select>
                     </div>
-                    <div class="form-help">Set a wait threshold, locks shorter than the threshold are ignored (captures all if empty).
+                    <div class="form-help">
+                      Set a wait threshold, locks shorter than the threshold are ignored (captures
+                      all if empty).
                     </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Wall Clock Card -->
                 <ConfigCard
-                    title="Wall-Clock Profiling"
-                    subtitle="Find where the application spends time including I/O and waits"
-                    icon="bi-clock"
-                    :is-enabled="optionStates.wall"
-                    @toggle="optionStates.wall = $event"
+                  title="Wall-Clock Profiling"
+                  subtitle="Find where the application spends time including I/O and waits"
+                  icon="bi-clock"
+                  :is-enabled="optionStates.wall"
+                  @toggle="optionStates.wall = $event"
                 >
                   <div class="interval-block">
                     <label class="interval-label">Sampling Interval</label>
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model.number="config.wallValue"
-                          placeholder="10"
-                      >
+                        type="number"
+                        class="form-control"
+                        v-model.number="config.wallValue"
+                        placeholder="10"
+                      />
                       <select class="form-select select-with-indicator" v-model="config.wallUnit">
                         <option value="us">Micros</option>
                         <option value="ms">Millis</option>
                         <option value="s">Seconds</option>
                       </select>
                     </div>
-                    <div class="form-help">Default is 10 ms. Controls how frequently wall clock samples are
-                      collected.
+                    <div class="form-help">
+                      Default is 10 ms. Controls how frequently wall clock samples are collected.
                     </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Method Tracing Card -->
                 <ConfigCard
-                    title="Method Tracing"
-                    subtitle="Trace specific Java methods and JVM methods"
-                    icon="bi-search"
-                    :is-enabled="optionStates.methodTracing"
-                    @toggle="optionStates.methodTracing = $event"
+                  title="Method Tracing"
+                  subtitle="Trace specific Java methods and JVM methods"
+                  icon="bi-search"
+                  :is-enabled="optionStates.methodTracing"
+                  @toggle="optionStates.methodTracing = $event"
                 >
                   <div class="interval-block">
                     <!-- Existing Patterns List -->
                     <div class="interval-block">
                       <label class="interval-label">Active Method Patterns</label>
                       <div v-if="config.methodPatterns.length > 0">
-                        <div v-for="(pattern, index) in config.methodPatterns" :key="index" class="method-pattern-item">
+                        <div
+                          v-for="(pattern, index) in config.methodPatterns"
+                          :key="index"
+                          class="method-pattern-item"
+                        >
                           <div class="pattern-display">
                             <div class="pattern-value">{{ pattern }}</div>
                             <div class="pattern-preview">{{ `trace=${pattern}` }}</div>
@@ -345,7 +410,9 @@
                       </div>
                       <div v-else class="no-patterns-message">
                         <i class="bi bi-info-circle"></i>
-                        <span>No method patterns defined. Add patterns to trace specific methods.</span>
+                        <span
+                          >No method patterns defined. Add patterns to trace specific methods.</span
+                        >
                       </div>
                     </div>
 
@@ -354,11 +421,11 @@
                       <label class="interval-label">Add Method Pattern</label>
                       <div class="input-group">
                         <input
-                            type="text"
-                            class="form-control"
-                            v-model="newMethodPattern"
-                            @keyup.enter="addPattern"
-                        >
+                          type="text"
+                          class="form-control"
+                          v-model="newMethodPattern"
+                          @keyup.enter="addPattern"
+                        />
                         <button
                           type="button"
                           class="btn-add-pattern form-select"
@@ -370,44 +437,58 @@
                         </button>
                       </div>
                       <div class="form-help">Java Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
-                      <div class="form-help">Native Methods: Java_java_lang_Throwable_fillInStackTrace</div>
-                      <div class="form-help">JVM Methods: G1CollectedHeap::humongous_obj_allocate, JVM_StartThread</div>
+                      <div class="form-help">
+                        Native Methods: Java_java_lang_Throwable_fillInStackTrace
+                      </div>
+                      <div class="form-help">
+                        JVM Methods: G1CollectedHeap::humongous_obj_allocate, JVM_StartThread
+                      </div>
                     </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Native Memory Card -->
                 <ConfigCard
-                    title="Native Memory Profiling"
-                    subtitle="Profile malloc/free and mmap calls"
-                    icon="bi-memory"
-                    :is-enabled="optionStates.nativeMem"
-                    @toggle="optionStates.nativeMem = $event"
+                  title="Native Memory Profiling"
+                  subtitle="Profile malloc/free and mmap calls"
+                  icon="bi-memory"
+                  :is-enabled="optionStates.nativeMem"
+                  @toggle="optionStates.nativeMem = $event"
                 >
                   <div class="interval-block">
                     <label class="interval-label">Sampling Threshold</label>
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model.number="config.nativeMemValue"
-                          placeholder="512"
+                        type="number"
+                        class="form-control"
+                        v-model.number="config.nativeMemValue"
+                        placeholder="512"
+                      />
+                      <select
+                        class="form-select select-with-indicator"
+                        v-model="config.nativeMemUnit"
                       >
-                      <select class="form-select select-with-indicator" v-model="config.nativeMemUnit">
                         <option value="mb">MB</option>
                         <option value="kb">kB</option>
                       </select>
                     </div>
-                    <div class="form-help">Minimum allocation size to profile. Use 0 for all allocations.</div>
+                    <div class="form-help">
+                      Minimum allocation size to profile. Use 0 for all allocations.
+                    </div>
 
                     <div class="interval-block">
                       <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="omitFree" v-model="config.nativeMemOmitFree">
-                        <label class="form-check-label" for="omitFree">
-                          Omit free() events
-                        </label>
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="omitFree"
+                          v-model="config.nativeMemOmitFree"
+                        />
+                        <label class="form-check-label" for="omitFree"> Omit free() events </label>
                       </div>
-                      <div class="form-help">Only record allocation events, skip free() calls for better performance.</div>
+                      <div class="form-help">
+                        Only record allocation events, skip free() calls for better performance.
+                      </div>
                     </div>
                   </div>
                 </ConfigCard>
@@ -417,110 +498,141 @@
             <!-- Advanced Options Section -->
             <div class="config-section optional-section">
               <div class="section-header">
-                <h6 class="section-title">
-                  Advanced Options
-                </h6>
+                <h6 class="section-title">Advanced Options</h6>
               </div>
 
               <div class="config-cards-stack">
                 <!-- JFR Sync Card -->
                 <ConfigCard
-                    title="JFR Synchronization"
-                    subtitle="Merge AsyncProfiler events with JFR recording"
-                    icon="bi-arrow-down-up"
-                    :is-enabled="optionStates.jfrsync"
-                    @toggle="optionStates.jfrsync = $event"
-                    data-jfr-sync-card
+                  title="JFR Synchronization"
+                  subtitle="Merge AsyncProfiler events with JFR recording"
+                  icon="bi-arrow-down-up"
+                  :is-enabled="optionStates.jfrsync"
+                  @toggle="optionStates.jfrsync = $event"
+                  data-jfr-sync-card
                 >
                   <div class="interval-block">
                     <label class="interval-label">Predefined JFC modes</label>
                     <div class="agent-mode-selector">
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="jfcMode" id="jfcDefault" value="default" v-model="config.jfcMode">
-                        <label class="form-check-label" for="jfcDefault">
-                          default
-                        </label>
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="jfcMode"
+                          id="jfcDefault"
+                          value="default"
+                          v-model="config.jfcMode"
+                        />
+                        <label class="form-check-label" for="jfcDefault"> default </label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="jfcMode" id="jfcProfile" value="profile" v-model="config.jfcMode">
-                        <label class="form-check-label" for="jfcProfile">
-                          profile
-                        </label>
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="jfcMode"
+                          id="jfcProfile"
+                          value="profile"
+                          v-model="config.jfcMode"
+                        />
+                        <label class="form-check-label" for="jfcProfile"> profile </label>
                       </div>
                       <div class="form-check">
-                        <input class="form-check-input" type="radio" name="jfcMode" id="jfcCustom" value="custom" v-model="config.jfcMode">
+                        <input
+                          class="form-check-input"
+                          type="radio"
+                          name="jfcMode"
+                          id="jfcCustom"
+                          value="custom"
+                          v-model="config.jfcMode"
+                        />
                         <label class="form-check-label custom-option-label" for="jfcCustom">
                           custom configuration JFC file
                         </label>
                       </div>
                     </div>
-                    <div class="form-help">Select predefined JFC (Java Flight Recorder Configuration) modes or use custom path.</div>
+                    <div class="form-help">
+                      Select predefined JFC (Java Flight Recorder Configuration) modes or use custom
+                      path.
+                    </div>
                   </div>
 
                   <div v-if="config.jfcMode === 'custom'" class="interval-block">
                     <label class="interval-label">JFR Custom Configuration Path</label>
                     <input
-                        type="text"
-                        class="form-control"
-                        v-model="config.jfrsyncFile"
-                        placeholder="path/to/recording.jfc"
-                    >
-                    <div class="form-help">Synchronizes JFR from Async-Profiler with JFR from JDK.</div>
+                      type="text"
+                      class="form-control"
+                      v-model="config.jfrsyncFile"
+                      placeholder="path/to/recording.jfc"
+                    />
+                    <div class="form-help">
+                      Synchronizes JFR from Async-Profiler with JFR from JDK.
+                    </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Chunk Size Card -->
                 <ConfigCard
-                    title="Chunk Size"
-                    subtitle="Maximum size of each JFR chunk file"
-                    icon="bi-file-binary"
-                    :is-enabled="optionStates.chunksize"
-                    @toggle="optionStates.chunksize = $event"
-                    data-chunk-size-card
+                  title="Chunk Size"
+                  subtitle="Maximum size of each JFR chunk file"
+                  icon="bi-file-binary"
+                  :is-enabled="optionStates.chunksize"
+                  @toggle="optionStates.chunksize = $event"
+                  data-chunk-size-card
                 >
                   <div class="interval-block">
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model.number="config.chunksizeValue"
-                          min="1"
-                          placeholder="5"
+                        type="number"
+                        class="form-control"
+                        v-model.number="config.chunksizeValue"
+                        min="1"
+                        placeholder="5"
+                      />
+                      <select
+                        class="form-select select-with-indicator"
+                        v-model="config.chunksizeUnit"
                       >
-                      <select class="form-select select-with-indicator" v-model="config.chunksizeUnit">
                         <option value="k">kB</option>
                         <option value="m">MB</option>
                         <option value="g">GB</option>
                       </select>
                     </div>
-                    <div class="form-help">Default of Async-Profiler is 100 MB. A new chunk starts after the specified size.</div>
+                    <div class="form-help">
+                      Default of Async-Profiler is 100 MB. A new chunk starts after the specified
+                      size.
+                    </div>
                   </div>
                 </ConfigCard>
 
                 <!-- Chunk Time Card -->
                 <ConfigCard
-                    title="Chunk Time"
-                    subtitle="Maximum duration of each JFR chunk"
-                    icon="bi-clock-history"
-                    :is-enabled="optionStates.chunktime"
-                    @toggle="optionStates.chunktime = $event"
+                  title="Chunk Time"
+                  subtitle="Maximum duration of each JFR chunk"
+                  icon="bi-clock-history"
+                  :is-enabled="optionStates.chunktime"
+                  @toggle="optionStates.chunktime = $event"
                 >
                   <div class="interval-block">
                     <div class="input-group">
                       <input
-                          type="number"
-                          class="form-control"
-                          v-model.number="config.chunktimeValue"
-                          min="1"
-                          placeholder="1"
+                        type="number"
+                        class="form-control"
+                        v-model.number="config.chunktimeValue"
+                        min="1"
+                        placeholder="1"
+                      />
+                      <select
+                        class="form-select select-with-indicator"
+                        v-model="config.chunktimeUnit"
                       >
-                      <select class="form-select select-with-indicator" v-model="config.chunktimeUnit">
                         <option value="s">Seconds</option>
                         <option value="m">Minutes</option>
                         <option value="h">Hours</option>
                       </select>
                     </div>
-                    <div class="form-help">Default is 1 hour. A new chunk starts after the specified time.</div>
+                    <div class="form-help">
+                      Default is 1 hour. A new chunk starts after the specified time.
+                    </div>
                   </div>
                 </ConfigCard>
               </div>
@@ -542,35 +654,25 @@
             <div class="token-summary">
               <span class="token-summary-title">Active parameters</span>
               <div class="token-chip-group">
-                <span
-                    v-for="token in builderTokens"
-                    :key="token.key"
-                    class="token-chip"
-                >
+                <span v-for="token in builderTokens" :key="token.key" class="token-chip">
                   <span class="token-chip-label">{{ token.label }}</span>
                   <code class="token-chip-value">{{ token.value }}</code>
                 </span>
               </div>
             </div>
             <div class="config-output-content compact-output" @click="copyToClipboard">
-              <code class="config-output-text">{{ generatedConfig || 'No configuration generated yet.' }}</code>
+              <code class="config-output-text">{{
+                generatedConfig || 'No configuration generated yet.'
+              }}</code>
             </div>
 
             <!-- Builder Actions -->
             <div class="builder-actions">
-              <button
-                type="button"
-                class="btn-cancel-builder"
-                @click="$emit('cancel')"
-              >
+              <button type="button" class="btn-cancel-builder" @click="$emit('cancel')">
                 <i class="bi bi-x-circle"></i>
                 Cancel
               </button>
-              <button
-                type="button"
-                class="btn-accept-command"
-                @click="acceptCommand"
-              >
+              <button type="button" class="btn-accept-command" @click="acceptCommand">
                 <i class="bi bi-check-circle"></i>
                 Accept Command
               </button>
@@ -596,7 +698,10 @@
           </div>
           <div class="warning-content">
             <div class="warning-message">
-              <span class="warning-text"><span class="font-bold">Chunk Size</span> helps with parallelization of JFR processing with multiple threads</span>
+              <span class="warning-text"
+                ><span class="font-bold">Chunk Size</span> helps with parallelization of JFR
+                processing with multiple threads</span
+              >
             </div>
           </div>
         </div>
@@ -619,7 +724,10 @@
           </div>
           <div class="warning-content">
             <div class="warning-message">
-              <span class="warning-text"><span class="font-bold">JFR Synchronization</span> merges AsyncProfiler events with JDK's JFR recording for richer profiling data</span>
+              <span class="warning-text"
+                ><span class="font-bold">JFR Synchronization</span> merges AsyncProfiler events with
+                JDK's JFR recording for richer profiling data</span
+              >
             </div>
           </div>
         </div>
@@ -661,7 +769,14 @@ const mandatoryPanelsExpanded = ref({
 });
 
 // Use the profiler configuration composable
-const { config, optionStates, builderTokens, generateFromBuilder, addMethodPattern, removeMethodPattern } = useProfilerConfig();
+const {
+  config,
+  optionStates,
+  builderTokens,
+  generateFromBuilder,
+  addMethodPattern,
+  removeMethodPattern
+} = useProfilerConfig();
 
 // New pattern input
 const newMethodPattern = ref('');
@@ -670,9 +785,13 @@ const newMethodPattern = ref('');
 const generatedConfig = ref('');
 
 // Watch for changes and auto-generate
-watch([config, optionStates], () => {
-  generateConfig();
-}, { deep: true });
+watch(
+  [config, optionStates],
+  () => {
+    generateConfig();
+  },
+  { deep: true }
+);
 
 // Generate configuration
 const generateConfig = () => {
@@ -783,7 +902,9 @@ generateConfig();
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 24px;
 }
@@ -811,7 +932,6 @@ generateConfig();
   background: linear-gradient(135deg, #4c52ff, #3f46ff);
   box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
 }
-
 
 .header-primary {
   background: linear-gradient(135deg, var(--color-primary), #4c52ff);
@@ -1349,14 +1469,14 @@ generateConfig();
 .pattern-value {
   font-weight: 600;
   color: var(--color-text);
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.9rem;
 }
 
 .pattern-preview {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-style: italic;
 }
 
@@ -1426,7 +1546,10 @@ generateConfig();
   background: rgba(248, 250, 252, 0.85);
   font-size: 0.8rem;
   color: var(--color-text);
-  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   cursor: default;
 }
 
@@ -1479,7 +1602,10 @@ generateConfig();
   font-size: 0.8rem;
   line-height: 1.5;
   color: var(--color-dark);
-  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   cursor: pointer;
 }
 
@@ -1490,7 +1616,7 @@ generateConfig();
 }
 
 .config-output-text {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.8rem;
   color: var(--color-text);
   line-height: 1.6;
@@ -1592,7 +1718,9 @@ generateConfig();
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

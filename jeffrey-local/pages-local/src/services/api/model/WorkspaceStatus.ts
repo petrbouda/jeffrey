@@ -17,10 +17,10 @@
  */
 
 enum WorkspaceStatus {
-    AVAILABLE = "AVAILABLE",
-    UNAVAILABLE = "UNAVAILABLE",
-    OFFLINE = "OFFLINE",
-    UNKNOWN = "UNKNOWN",
+  AVAILABLE = 'AVAILABLE',
+  UNAVAILABLE = 'UNAVAILABLE',
+  OFFLINE = 'OFFLINE',
+  UNKNOWN = 'UNKNOWN'
 }
 
-export default WorkspaceStatus
+export default WorkspaceStatus;

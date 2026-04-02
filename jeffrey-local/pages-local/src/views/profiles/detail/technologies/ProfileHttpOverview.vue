@@ -2,9 +2,9 @@
   <div>
     <!-- Feature Disabled State -->
     <CustomDisabledFeatureAlert
-        v-if="isHttpDashboardDisabled"
-        :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
-        eventType="HTTP exchange"
+      v-if="isHttpDashboardDisabled"
+      :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+      eventType="HTTP exchange"
     />
 
     <div v-else>
@@ -17,9 +17,7 @@
 
       <!-- Error state -->
       <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">
-          Error loading HTTP data: {{ error }}
-        </div>
+        <div class="alert alert-danger" role="alert">Error loading HTTP data: {{ error }}</div>
       </div>
 
       <!-- Dashboard content -->
@@ -31,27 +29,31 @@
 
         <!-- HTTP Metrics Timeline -->
         <HttpTimeseries
-            :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
-            :request-count-data="httpOverviewData?.requestCountSerie.data || []"/>
+          :response-time-data="httpOverviewData?.responseTimeSerie.data || []"
+          :request-count-data="httpOverviewData?.requestCountSerie.data || []"
+        />
 
         <!-- HTTP Endpoints List -->
         <HttpEndpointList
-            :endpoints="httpOverviewData?.uris || []"
-            :selected-endpoint="selectedEndpoint"
-            @endpoint-click="navigateToUri"/>
+          :endpoints="httpOverviewData?.uris || []"
+          :selected-endpoint="selectedEndpoint"
+          @endpoint-click="navigateToUri"
+        />
 
         <!-- Status Codes and Methods Distribution -->
         <HttpDistributionCharts
-            title="HTTP Distribution"
-            icon="pie-chart"
-            :status-codes="httpOverviewData?.statusCodes || []"
-            :methods="httpOverviewData?.methods || []"
-            :total-requests="httpOverviewData?.header.requestCount || 0"/>
+          title="HTTP Distribution"
+          icon="pie-chart"
+          :status-codes="httpOverviewData?.statusCodes || []"
+          :methods="httpOverviewData?.methods || []"
+          :total-requests="httpOverviewData?.header.requestCount || 0"
+        />
 
         <!-- Slowest HTTP Requests -->
         <HttpSlowestRequests
-            :requests="getSortedSlowRequests()"
-            :total-request-count="httpOverviewData?.header.requestCount || 0"/>
+          :requests="getSortedSlowRequests()"
+          :total-request-count="httpOverviewData?.header.requestCount || 0"
+        />
       </div>
 
       <!-- No data state -->
@@ -64,8 +66,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import HttpTimeseries from '@/components/http/HttpTimeseries.vue';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import HttpEndpointList from '@/components/http/HttpEndpointList.vue';
@@ -76,7 +78,6 @@ import StatsTable from '@/components/StatsTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';
-
 
 // Define props
 interface Props {
@@ -101,7 +102,8 @@ const mode = (route.query.mode as 'client' | 'server') || 'server';
 
 // Check if HTTP dashboard is disabled
 const isHttpDashboardDisabled = computed(() => {
-  const featureType = mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
+  const featureType =
+    mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
   return props.disabledFeatures.includes(featureType);
 });
 
@@ -133,11 +135,11 @@ const metricsData = computed(() => {
       breakdown: [
         {
           label: 'P99',
-          value: FormattingService.formatDuration2Units(header.p99ResponseTime),
+          value: FormattingService.formatDuration2Units(header.p99ResponseTime)
         },
         {
           label: 'P95',
-          value: FormattingService.formatDuration2Units(header.p95ResponseTime),
+          value: FormattingService.formatDuration2Units(header.p95ResponseTime)
         }
       ]
     },
@@ -145,7 +147,12 @@ const metricsData = computed(() => {
       icon: 'check-circle-fill',
       title: 'Success Rate',
       value: `${((header.successRate || 0) * 100).toFixed(1)}%`,
-      variant: (header.successRate || 0) === 1 ? 'success' as const : header.count5xx > 0 ? 'danger' as const : 'warning' as const,
+      variant:
+        (header.successRate || 0) === 1
+          ? ('success' as const)
+          : header.count5xx > 0
+            ? ('danger' as const)
+            : ('warning' as const),
       breakdown: [
         {
           label: '4xx Errors',
@@ -162,17 +169,24 @@ const metricsData = computed(() => {
     {
       icon: 'arrow-left-right',
       title: 'Data Transferred',
-      value: header.totalBytesTransferred < 0 ? '?' : FormattingService.formatBytes(header.totalBytesTransferred),
+      value:
+        header.totalBytesTransferred < 0
+          ? '?'
+          : FormattingService.formatBytes(header.totalBytesTransferred),
       variant: 'info' as const,
       breakdown: [
         {
           label: 'Received',
-          value: header.totalBytesReceived < 0 ? '?' : FormattingService.formatBytes(header.totalBytesReceived),
+          value:
+            header.totalBytesReceived < 0
+              ? '?'
+              : FormattingService.formatBytes(header.totalBytesReceived),
           color: '#34A853'
         },
         {
           label: 'Sent',
-          value: header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent),
+          value:
+            header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent),
           color: '#34A853'
         }
       ]
@@ -182,7 +196,6 @@ const metricsData = computed(() => {
 
 // Client initialization
 const client = new ProfileHttpClient(mode, route.params.profileId as string);
-
 
 // Helper functions
 const getSortedSlowRequests = () => {
@@ -196,10 +209,9 @@ const getSortedSlowRequests = () => {
 const navigateToUri = (uri: string) => {
   router.push({
     name: 'profile-technologies-http-endpoints',
-    query: {uri: encodeURIComponent(uri), mode: mode}
+    query: { uri: encodeURIComponent(uri), mode: mode }
   });
 };
-
 
 // Lifecycle methods
 const loadHttpData = async () => {
@@ -212,7 +224,6 @@ const loadHttpData = async () => {
 
     // Wait for DOM updates
     await nextTick();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading HTTP data:', err);
@@ -227,8 +238,6 @@ onMounted(() => {
     loadHttpData();
   }
 });
-
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

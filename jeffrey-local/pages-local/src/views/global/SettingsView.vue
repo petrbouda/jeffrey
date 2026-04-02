@@ -1,227 +1,282 @@
 <template>
   <div>
     <MainCard>
-    <template #header>
-      <MainCardHeader icon="bi bi-sliders" title="Settings" />
-    </template>
+      <template #header>
+        <MainCardHeader icon="bi bi-sliders" title="Settings" />
+      </template>
 
-    <!-- Restart Banner -->
-    <div v-if="restartRequired" class="restart-banner">
-      <i class="bi bi-exclamation-triangle"></i>
-      <span>Settings have been modified. Restart the application to apply changes.</span>
-    </div>
-
-    <!-- Encryption Warning -->
-    <div v-if="encryptionMode === 'USER_BOUND'" class="encryption-warning">
-      <i class="bi bi-info-circle"></i>
-      <span>Machine-specific encryption unavailable. Secrets are encrypted with user-level binding only.</span>
-    </div>
-
-    <!-- Tabs -->
-    <div class="settings-tabs">
-      <button
-        class="settings-tab"
-        :class="{ active: activeTab === 'ai' }"
-        @click="activeTab = 'ai'">
-        <i class="bi bi-robot"></i>
-        AI Configuration
-      </button>
-      <button
-        class="settings-tab"
-        :class="{ active: activeTab === 'general' }"
-        @click="activeTab = 'general'">
-        <i class="bi bi-gear"></i>
-        General
-      </button>
-      <button
-        class="settings-tab"
-        :class="{ active: activeTab === 'visualization' }"
-        @click="activeTab = 'visualization'">
-        <i class="bi bi-bar-chart"></i>
-        Visualization
-      </button>
-    </div>
-
-    <!-- AI Configuration Tab -->
-    <div v-if="activeTab === 'ai'" class="settings-content">
-      <div class="content-header-with-toggle">
-        <div class="toggle-area">
-          <span class="toggle-label">Enable AI</span>
-          <label class="toggle-switch">
-            <input type="checkbox" class="toggle-input" v-model="aiToggle" @change="onAiToggleChange" />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
+      <!-- Restart Banner -->
+      <div v-if="restartRequired" class="restart-banner">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span>Settings have been modified. Restart the application to apply changes.</span>
       </div>
 
-      <div class="settings-form-grid" :class="{ 'settings-form-disabled': !aiEnabled }">
-        <div class="settings-form-group">
-          <label class="settings-label">Provider</label>
-          <select :value="settings.get('jeffrey.local.ai.provider')" @change="setSetting('jeffrey.local.ai.provider', ($event.target as HTMLSelectElement).value)" class="form-control select-with-indicator" :disabled="!aiEnabled">
-            <option value="claude">Claude (Anthropic)</option>
-            <option value="chatgpt">ChatGPT (OpenAI)</option>
-          </select>
+      <!-- Encryption Warning -->
+      <div v-if="encryptionMode === 'USER_BOUND'" class="encryption-warning">
+        <i class="bi bi-info-circle"></i>
+        <span
+          >Machine-specific encryption unavailable. Secrets are encrypted with user-level binding
+          only.</span
+        >
+      </div>
+
+      <!-- Tabs -->
+      <div class="settings-tabs">
+        <button
+          class="settings-tab"
+          :class="{ active: activeTab === 'ai' }"
+          @click="activeTab = 'ai'"
+        >
+          <i class="bi bi-robot"></i>
+          AI Configuration
+        </button>
+        <button
+          class="settings-tab"
+          :class="{ active: activeTab === 'general' }"
+          @click="activeTab = 'general'"
+        >
+          <i class="bi bi-gear"></i>
+          General
+        </button>
+        <button
+          class="settings-tab"
+          :class="{ active: activeTab === 'visualization' }"
+          @click="activeTab = 'visualization'"
+        >
+          <i class="bi bi-bar-chart"></i>
+          Visualization
+        </button>
+      </div>
+
+      <!-- AI Configuration Tab -->
+      <div v-if="activeTab === 'ai'" class="settings-content">
+        <div class="content-header-with-toggle">
+          <div class="toggle-area">
+            <span class="toggle-label">Enable AI</span>
+            <label class="toggle-switch">
+              <input
+                type="checkbox"
+                class="toggle-input"
+                v-model="aiToggle"
+                @change="onAiToggleChange"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
-        <div class="settings-form-group">
-          <label class="settings-label">Model</label>
-          <input
-            type="text"
-            :value="settings.get('jeffrey.local.ai.model')"
-            @input="setSetting('jeffrey.local.ai.model', ($event.target as HTMLInputElement).value)"
-            class="form-control"
-            :disabled="!aiEnabled"
-            placeholder="Enter model name" />
-        </div>
-        <div class="settings-form-group">
-          <label class="settings-label">API Key</label>
-          <div class="password-wrap">
+
+        <div class="settings-form-grid" :class="{ 'settings-form-disabled': !aiEnabled }">
+          <div class="settings-form-group">
+            <label class="settings-label">Provider</label>
+            <select
+              :value="settings.get('jeffrey.local.ai.provider')"
+              @change="
+                setSetting('jeffrey.local.ai.provider', ($event.target as HTMLSelectElement).value)
+              "
+              class="form-control select-with-indicator"
+              :disabled="!aiEnabled"
+            >
+              <option value="claude">Claude (Anthropic)</option>
+              <option value="chatgpt">ChatGPT (OpenAI)</option>
+            </select>
+          </div>
+          <div class="settings-form-group">
+            <label class="settings-label">Model</label>
             <input
-              :type="showApiKey ? 'text' : 'password'"
-              :value="settings.get('jeffrey.local.ai.api-key')"
-              @input="setSetting('jeffrey.local.ai.api-key', ($event.target as HTMLInputElement).value)"
+              type="text"
+              :value="settings.get('jeffrey.local.ai.model')"
+              @input="
+                setSetting('jeffrey.local.ai.model', ($event.target as HTMLInputElement).value)
+              "
               class="form-control"
               :disabled="!aiEnabled"
-              placeholder="Enter your API key" />
-            <button class="toggle-eye" @click="showApiKey = !showApiKey">
-              <i :class="showApiKey ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-            </button>
+              placeholder="Enter model name"
+            />
           </div>
-          <div class="settings-hint">
-            <i class="bi bi-lock"></i> Encrypted at rest with machine-bound key
-          </div>
-        </div>
-        <div class="settings-form-group">
-          <label class="settings-label">Max Tokens</label>
-          <input
-            type="number"
-            :value="settings.get('jeffrey.local.ai.max-tokens')"
-            @input="setSetting('jeffrey.local.ai.max-tokens', ($event.target as HTMLInputElement).value)"
-            class="form-control"
-            :disabled="!aiEnabled"
-            placeholder="128000" />
-          <div class="settings-hint">Maximum token limit per AI request</div>
-        </div>
-      </div>
-
-      <div v-if="currentModels.length > 0" class="models-reference" :class="{ 'settings-form-disabled': !aiEnabled }">
-        <h4 class="models-reference-title">Available Models</h4>
-        <table class="models-table">
-          <thead>
-            <tr>
-              <th>Model</th>
-              <th>Max Output Tokens</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="model in currentModels"
-              :key="model.id"
-              class="model-row"
-              :class="{ 'model-row-selected': settings.get('jeffrey.local.ai.model') === model.id }"
-              @click="selectModel(model)">
-              <td>{{ model.id }}</td>
-              <td>{{ model.maxTokens.toLocaleString() }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="settings-actions">
-        <button class="btn-primary" @click="saveAiSettings" :disabled="saving || !aiEnabled">
-          {{ saving ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- General Tab -->
-    <div v-if="activeTab === 'general'" class="settings-content">
-      <div class="settings-form-grid settings-form-grid-single">
-        <div class="settings-form-group">
-          <label class="settings-label">Log Level</label>
-          <select :value="settings.get('logging.level.pbouda.jeffrey')" @change="setSetting('logging.level.pbouda.jeffrey', ($event.target as HTMLSelectElement).value)" class="form-control select-with-indicator" style="max-width: 300px;">
-            <option value="INFO">INFO</option>
-            <option value="DEBUG">DEBUG</option>
-            <option value="TRACE">TRACE</option>
-          </select>
-          <div class="settings-hint">Requires restart to take effect</div>
-        </div>
-      </div>
-
-      <div class="settings-actions">
-        <button class="btn-primary" @click="saveGeneralSettings" :disabled="saving">
-          {{ saving ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Visualization Tab -->
-    <div v-if="activeTab === 'visualization'" class="settings-content">
-      <div class="settings-form-grid settings-form-grid-single">
-        <div class="settings-form-group">
-          <label class="settings-label">Flamegraph — Minimum Frame Threshold (%)</label>
-          <input
-            type="number"
-            :value="settings.get('jeffrey.local.visualization.flamegraph.min-frame-threshold-pct')"
-            @input="setSetting('jeffrey.local.visualization.flamegraph.min-frame-threshold-pct', ($event.target as HTMLInputElement).value)"
-            class="form-control"
-            style="max-width: 300px;"
-            min="0"
-            max="100"
-            step="0.01"
-            placeholder="0.05" />
-          <div class="settings-hint">
-            Frames representing less than this percentage of total samples will be hidden from flamegraphs.
-            Set to 0 to show all frames. Default: 0.05%
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-form-grid settings-form-grid-single" style="margin-top: 20px">
-        <div class="settings-form-group">
-          <label class="settings-label">Flamegraph — Frame Text Mode</label>
-          <div class="settings-hint" style="margin-bottom: 10px">
-            Choose the default text rendering for flamegraph frames. Can also be toggled per-flamegraph.
-          </div>
-          <div class="frame-mode-cards">
-            <div
-              class="frame-mode-card"
-              :class="{ selected: frameTextMode === 'single-line' }"
-              @click="frameTextMode = 'single-line'">
-              <canvas ref="previewSingleLine" class="frame-mode-preview"></canvas>
-              <div class="frame-mode-label">Single-line</div>
+          <div class="settings-form-group">
+            <label class="settings-label">API Key</label>
+            <div class="password-wrap">
+              <input
+                :type="showApiKey ? 'text' : 'password'"
+                :value="settings.get('jeffrey.local.ai.api-key')"
+                @input="
+                  setSetting('jeffrey.local.ai.api-key', ($event.target as HTMLInputElement).value)
+                "
+                class="form-control"
+                :disabled="!aiEnabled"
+                placeholder="Enter your API key"
+              />
+              <button class="toggle-eye" @click="showApiKey = !showApiKey">
+                <i :class="showApiKey ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+              </button>
             </div>
-            <div
-              class="frame-mode-card"
-              :class="{ selected: frameTextMode === 'two-line' }"
-              @click="frameTextMode = 'two-line'">
-              <canvas ref="previewTwoLine" class="frame-mode-preview"></canvas>
-              <div class="frame-mode-label">Two-line</div>
+            <div class="settings-hint">
+              <i class="bi bi-lock"></i> Encrypted at rest with machine-bound key
             </div>
           </div>
+          <div class="settings-form-group">
+            <label class="settings-label">Max Tokens</label>
+            <input
+              type="number"
+              :value="settings.get('jeffrey.local.ai.max-tokens')"
+              @input="
+                setSetting('jeffrey.local.ai.max-tokens', ($event.target as HTMLInputElement).value)
+              "
+              class="form-control"
+              :disabled="!aiEnabled"
+              placeholder="128000"
+            />
+            <div class="settings-hint">Maximum token limit per AI request</div>
+          </div>
+        </div>
+
+        <div
+          v-if="currentModels.length > 0"
+          class="models-reference"
+          :class="{ 'settings-form-disabled': !aiEnabled }"
+        >
+          <h4 class="models-reference-title">Available Models</h4>
+          <table class="models-table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Max Output Tokens</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="model in currentModels"
+                :key="model.id"
+                class="model-row"
+                :class="{
+                  'model-row-selected': settings.get('jeffrey.local.ai.model') === model.id
+                }"
+                @click="selectModel(model)"
+              >
+                <td>{{ model.id }}</td>
+                <td>{{ model.maxTokens.toLocaleString() }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-primary" @click="saveAiSettings" :disabled="saving || !aiEnabled">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
         </div>
       </div>
 
-      <div class="settings-actions">
-        <button class="btn-primary" @click="saveVisualizationSettings" :disabled="saving">
-          {{ saving ? 'Saving...' : 'Save Changes' }}
-        </button>
+      <!-- General Tab -->
+      <div v-if="activeTab === 'general'" class="settings-content">
+        <div class="settings-form-grid settings-form-grid-single">
+          <div class="settings-form-group">
+            <label class="settings-label">Log Level</label>
+            <select
+              :value="settings.get('logging.level.pbouda.jeffrey')"
+              @change="
+                setSetting(
+                  'logging.level.pbouda.jeffrey',
+                  ($event.target as HTMLSelectElement).value
+                )
+              "
+              class="form-control select-with-indicator"
+              style="max-width: 300px"
+            >
+              <option value="INFO">INFO</option>
+              <option value="DEBUG">DEBUG</option>
+              <option value="TRACE">TRACE</option>
+            </select>
+            <div class="settings-hint">Requires restart to take effect</div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-primary" @click="saveGeneralSettings" :disabled="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
       </div>
-    </div>
+
+      <!-- Visualization Tab -->
+      <div v-if="activeTab === 'visualization'" class="settings-content">
+        <div class="settings-form-grid settings-form-grid-single">
+          <div class="settings-form-group">
+            <label class="settings-label">Flamegraph — Minimum Frame Threshold (%)</label>
+            <input
+              type="number"
+              :value="
+                settings.get('jeffrey.local.visualization.flamegraph.min-frame-threshold-pct')
+              "
+              @input="
+                setSetting(
+                  'jeffrey.local.visualization.flamegraph.min-frame-threshold-pct',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              style="max-width: 300px"
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="0.05"
+            />
+            <div class="settings-hint">
+              Frames representing less than this percentage of total samples will be hidden from
+              flamegraphs. Set to 0 to show all frames. Default: 0.05%
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-form-grid settings-form-grid-single" style="margin-top: 20px">
+          <div class="settings-form-group">
+            <label class="settings-label">Flamegraph — Frame Text Mode</label>
+            <div class="settings-hint" style="margin-bottom: 10px">
+              Choose the default text rendering for flamegraph frames. Can also be toggled
+              per-flamegraph.
+            </div>
+            <div class="frame-mode-cards">
+              <div
+                class="frame-mode-card"
+                :class="{ selected: frameTextMode === 'single-line' }"
+                @click="frameTextMode = 'single-line'"
+              >
+                <canvas ref="previewSingleLine" class="frame-mode-preview"></canvas>
+                <div class="frame-mode-label">Single-line</div>
+              </div>
+              <div
+                class="frame-mode-card"
+                :class="{ selected: frameTextMode === 'two-line' }"
+                @click="frameTextMode = 'two-line'"
+              >
+                <canvas ref="previewTwoLine" class="frame-mode-preview"></canvas>
+                <div class="frame-mode-label">Two-line</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-primary" @click="saveVisualizationSettings" :disabled="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
     </MainCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import '@/styles/form-utilities.css'
-import '@/styles/shared-components.css'
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import SettingsClient from '@/services/api/SettingsClient'
-import MainCard from '@/components/MainCard.vue'
-import MainCardHeader from '@/components/MainCardHeader.vue'
+import '@/styles/form-utilities.css';
+import '@/styles/shared-components.css';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import SettingsClient from '@/services/api/SettingsClient';
+import MainCard from '@/components/MainCard.vue';
+import MainCardHeader from '@/components/MainCardHeader.vue';
 
 interface ModelInfo {
-  id: string
-  maxTokens: number
+  id: string;
+  maxTokens: number;
 }
 
 const claudeModels: ModelInfo[] = [
@@ -230,8 +285,8 @@ const claudeModels: ModelInfo[] = [
   { id: 'claude-haiku-4-5-20251001', maxTokens: 64000 },
   { id: 'claude-sonnet-4-5-20250929', maxTokens: 64000 },
   { id: 'claude-opus-4-5-20251101', maxTokens: 64000 },
-  { id: 'claude-sonnet-4-20250514', maxTokens: 64000 },
-]
+  { id: 'claude-sonnet-4-20250514', maxTokens: 64000 }
+];
 
 const chatgptModels: ModelInfo[] = [
   { id: 'gpt-4o', maxTokens: 16384 },
@@ -240,218 +295,251 @@ const chatgptModels: ModelInfo[] = [
   { id: 'gpt-4.1-mini', maxTokens: 32768 },
   { id: 'o3', maxTokens: 100000 },
   { id: 'o3-mini', maxTokens: 100000 },
-  { id: 'o4-mini', maxTokens: 100000 },
-]
+  { id: 'o4-mini', maxTokens: 100000 }
+];
 
-const client = new SettingsClient()
+const client = new SettingsClient();
 
-const activeTab = ref('ai')
-watch(activeTab, (tab) => {
+const activeTab = ref('ai');
+watch(activeTab, tab => {
   if (tab === 'visualization') {
-    nextTick(() => drawPreviews())
+    nextTick(() => drawPreviews());
   }
-})
-const restartRequired = ref(false)
-const showApiKey = ref(false)
-const saving = ref(false)
-const encryptionMode = ref('')
+});
+const restartRequired = ref(false);
+const showApiKey = ref(false);
+const saving = ref(false);
+const encryptionMode = ref('');
 
-const settings = reactive(new Map<string, string>())
-const frameTextMode = ref('single-line')
+const settings = reactive(new Map<string, string>());
+const frameTextMode = ref('single-line');
 
-const previewSingleLine = ref<HTMLCanvasElement | null>(null)
-const previewTwoLine = ref<HTMLCanvasElement | null>(null)
+const previewSingleLine = ref<HTMLCanvasElement | null>(null);
+const previewTwoLine = ref<HTMLCanvasElement | null>(null);
 
-const aiToggle = ref(false)
-const aiEnabled = computed(() => aiToggle.value)
+const aiToggle = ref(false);
+const aiEnabled = computed(() => aiToggle.value);
 
 const currentModels = computed(() => {
-  const provider = settings.get('jeffrey.local.ai.provider')
-  if (provider === 'claude') return claudeModels
-  if (provider === 'chatgpt') return chatgptModels
-  return []
-})
+  const provider = settings.get('jeffrey.local.ai.provider');
+  if (provider === 'claude') return claudeModels;
+  if (provider === 'chatgpt') return chatgptModels;
+  return [];
+});
 
 function setSetting(name: string, value: string) {
-  settings.set(name, value)
+  settings.set(name, value);
 }
 
 function selectModel(model: ModelInfo) {
-  settings.set('jeffrey.local.ai.model', model.id)
-  settings.set('jeffrey.local.ai.max-tokens', String(model.maxTokens))
+  settings.set('jeffrey.local.ai.model', model.id);
+  settings.set('jeffrey.local.ai.max-tokens', String(model.maxTokens));
 }
 
 onMounted(async () => {
   try {
-    const [fetched, status] = await Promise.all([
-      client.fetchAll(),
-      client.fetchStatus()
-    ])
+    const [fetched, status] = await Promise.all([client.fetchAll(), client.fetchStatus()]);
 
-    restartRequired.value = status.restartRequired
-    encryptionMode.value = status.encryptionMode
+    restartRequired.value = status.restartRequired;
+    encryptionMode.value = status.encryptionMode;
 
     for (const setting of fetched) {
-      settings.set(setting.name, setting.value)
+      settings.set(setting.name, setting.value);
     }
 
-    aiToggle.value = settings.get('jeffrey.local.ai.provider') !== 'none'
-    frameTextMode.value = settings.get('jeffrey.local.visualization.flamegraph.frame-text-mode') || 'single-line'
+    aiToggle.value = settings.get('jeffrey.local.ai.provider') !== 'none';
+    frameTextMode.value =
+      settings.get('jeffrey.local.visualization.flamegraph.frame-text-mode') || 'single-line';
 
-    nextTick(() => drawPreviews())
+    nextTick(() => drawPreviews());
   } catch (e) {
-    console.error('Failed to load settings', e)
+    console.error('Failed to load settings', e);
   }
-})
+});
 
 function drawPreviews() {
-  drawSingleLinePreview()
-  drawTwoLinePreview()
+  drawSingleLinePreview();
+  drawTwoLinePreview();
 }
 
-function setupCanvas(canvas: HTMLCanvasElement, cssWidth: number, cssHeight: number): CanvasRenderingContext2D {
-  const dpr = devicePixelRatio || 1
-  canvas.style.width = cssWidth + 'px'
-  canvas.style.height = cssHeight + 'px'
-  canvas.width = cssWidth * dpr
-  canvas.height = cssHeight * dpr
-  const ctx = canvas.getContext('2d')!
-  ctx.scale(dpr, dpr)
-  return ctx
+function setupCanvas(
+  canvas: HTMLCanvasElement,
+  cssWidth: number,
+  cssHeight: number
+): CanvasRenderingContext2D {
+  const dpr = devicePixelRatio || 1;
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  const ctx = canvas.getContext('2d')!;
+  ctx.scale(dpr, dpr);
+  return ctx;
 }
 
-const PREVIEW_WIDTH = 320
-const PREVIEW_HEIGHT = 90
-const PREVIEW_COLORS = ['#94f25a', '#94f25a', '#cce880']
+const PREVIEW_WIDTH = 320;
+const PREVIEW_HEIGHT = 90;
+const PREVIEW_COLORS = ['#94f25a', '#94f25a', '#cce880'];
 
 function drawSingleLinePreview() {
-  const canvas = previewSingleLine.value
-  if (!canvas) return
-  const ctx = setupCanvas(canvas, PREVIEW_WIDTH, PREVIEW_HEIGHT)
-  const fh = 20
-  const FONT_N = '11px -apple-system, BlinkMacSystemFont, sans-serif'
-  const FONT_B = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif'
-  const FONT_I = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif'
-  const packages = ['org.apache.catalina.core.', 'org.apache.catalina.core.', 'org.apache.catalina.authenticator.']
-  const classes = ['StandardEngineValve', 'StandardHostValve', 'AuthenticatorBase']
-  const methods = ['.invoke', '.invoke', '.invoke']
+  const canvas = previewSingleLine.value;
+  if (!canvas) return;
+  const ctx = setupCanvas(canvas, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+  const fh = 20;
+  const FONT_N = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+  const FONT_B = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+  const FONT_I = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif';
+  const packages = [
+    'org.apache.catalina.core.',
+    'org.apache.catalina.core.',
+    'org.apache.catalina.authenticator.'
+  ];
+  const classes = ['StandardEngineValve', 'StandardHostValve', 'AuthenticatorBase'];
+  const methods = ['.invoke', '.invoke', '.invoke'];
 
-  ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+  ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
   for (let i = 0; i < 3; i++) {
-    const y = i * fh + (PREVIEW_HEIGHT - 3 * fh) / 2
-    ctx.fillStyle = PREVIEW_COLORS[i]
-    ctx.fillRect(0, y, PREVIEW_WIDTH, fh)
-    ctx.strokeStyle = 'white'
-    ctx.lineWidth = 1
-    ctx.strokeRect(0, y, PREVIEW_WIDTH, fh)
+    const y = i * fh + (PREVIEW_HEIGHT - 3 * fh) / 2;
+    ctx.fillStyle = PREVIEW_COLORS[i];
+    ctx.fillRect(0, y, PREVIEW_WIDTH, fh);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, y, PREVIEW_WIDTH, fh);
 
-    let cx = 3
-    ctx.fillStyle = 'rgba(0,0,0,0.7)'
-    ctx.font = FONT_N
-    ctx.fillText(packages[i], cx, y + 14)
-    cx += ctx.measureText(packages[i]).width
+    let cx = 3;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.font = FONT_N;
+    ctx.fillText(packages[i], cx, y + 14);
+    cx += ctx.measureText(packages[i]).width;
 
-    ctx.fillStyle = '#000'
-    ctx.font = FONT_B
-    ctx.fillText(classes[i], cx, y + 14)
-    cx += ctx.measureText(classes[i]).width
+    ctx.fillStyle = '#000';
+    ctx.font = FONT_B;
+    ctx.fillText(classes[i], cx, y + 14);
+    cx += ctx.measureText(classes[i]).width;
 
-    ctx.fillStyle = '#000'
-    ctx.font = FONT_I
-    ctx.fillText(methods[i], cx, y + 14)
+    ctx.fillStyle = '#000';
+    ctx.font = FONT_I;
+    ctx.fillText(methods[i], cx, y + 14);
   }
 }
 
 function drawTwoLinePreview() {
-  const canvas = previewTwoLine.value
-  if (!canvas) return
-  const ctx = setupCanvas(canvas, PREVIEW_WIDTH, PREVIEW_HEIGHT)
-  const fh = 30
-  const classes = ['StandardEngineValve', 'StandardHostValve', 'AuthenticatorBase']
-  const methods = ['.invoke', '.invoke', '.invoke']
-  const packages = ['org.apache.catalina.core', 'org.apache.catalina.core', 'org.apache.catalina.authenticator']
+  const canvas = previewTwoLine.value;
+  if (!canvas) return;
+  const ctx = setupCanvas(canvas, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+  const fh = 30;
+  const classes = ['StandardEngineValve', 'StandardHostValve', 'AuthenticatorBase'];
+  const methods = ['.invoke', '.invoke', '.invoke'];
+  const packages = [
+    'org.apache.catalina.core',
+    'org.apache.catalina.core',
+    'org.apache.catalina.authenticator'
+  ];
 
-  ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT)
+  ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
   for (let i = 0; i < 3; i++) {
-    const y = i * fh
-    ctx.fillStyle = PREVIEW_COLORS[i]
-    ctx.fillRect(0, y, PREVIEW_WIDTH, fh)
-    ctx.strokeStyle = 'white'
-    ctx.lineWidth = 1
-    ctx.strokeRect(0, y, PREVIEW_WIDTH, fh)
+    const y = i * fh;
+    ctx.fillStyle = PREVIEW_COLORS[i];
+    ctx.fillRect(0, y, PREVIEW_WIDTH, fh);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, y, PREVIEW_WIDTH, fh);
 
     // Line 1: bold Class + italic .method
-    let cx = 7
-    ctx.fillStyle = '#000'
-    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif'
-    ctx.fillText(classes[i], cx, y + 13)
-    cx += ctx.measureText(classes[i]).width
+    let cx = 7;
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(classes[i], cx, y + 13);
+    cx += ctx.measureText(classes[i]).width;
 
-    ctx.font = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif'
-    ctx.fillText(methods[i], cx, y + 13)
+    ctx.font = 'italic 11px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(methods[i], cx, y + 13);
 
     // Line 2: package
-    ctx.fillStyle = 'rgba(0,0,0,0.7)'
-    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif'
-    ctx.fillText(packages[i], 7, y + 25, PREVIEW_WIDTH - 12)
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(packages[i], 7, y + 25, PREVIEW_WIDTH - 12);
   }
 }
 
 async function onAiToggleChange() {
   if (!aiToggle.value) {
-    saving.value = true
+    saving.value = true;
     try {
-      await client.upsert('ai', 'jeffrey.local.ai.provider', 'none', false)
-      settings.set('jeffrey.local.ai.provider', 'none')
-      restartRequired.value = true
+      await client.upsert('ai', 'jeffrey.local.ai.provider', 'none', false);
+      settings.set('jeffrey.local.ai.provider', 'none');
+      restartRequired.value = true;
     } catch (e) {
-      console.error('Failed to disable AI', e)
-      aiToggle.value = true
+      console.error('Failed to disable AI', e);
+      aiToggle.value = true;
     } finally {
-      saving.value = false
+      saving.value = false;
     }
   } else {
-    if (settings.get('jeffrey.local.ai.provider') === 'none' || !settings.get('jeffrey.local.ai.provider')) {
-      settings.set('jeffrey.local.ai.provider', 'claude')
-      settings.set('jeffrey.local.ai.model', 'claude-opus-4-6')
+    if (
+      settings.get('jeffrey.local.ai.provider') === 'none' ||
+      !settings.get('jeffrey.local.ai.provider')
+    ) {
+      settings.set('jeffrey.local.ai.provider', 'claude');
+      settings.set('jeffrey.local.ai.model', 'claude-opus-4-6');
     }
   }
 }
 
 async function saveAiSettings() {
-  saving.value = true
+  saving.value = true;
   try {
-    const apiKey = settings.get('jeffrey.local.ai.api-key') || ''
+    const apiKey = settings.get('jeffrey.local.ai.api-key') || '';
     await Promise.all([
-      client.upsert('ai', 'jeffrey.local.ai.provider', settings.get('jeffrey.local.ai.provider') || '', false),
-      client.upsert('ai', 'jeffrey.local.ai.model', settings.get('jeffrey.local.ai.model') || '', false),
-      client.upsert('ai', 'jeffrey.local.ai.max-tokens', settings.get('jeffrey.local.ai.max-tokens') || '', false),
+      client.upsert(
+        'ai',
+        'jeffrey.local.ai.provider',
+        settings.get('jeffrey.local.ai.provider') || '',
+        false
+      ),
+      client.upsert(
+        'ai',
+        'jeffrey.local.ai.model',
+        settings.get('jeffrey.local.ai.model') || '',
+        false
+      ),
+      client.upsert(
+        'ai',
+        'jeffrey.local.ai.max-tokens',
+        settings.get('jeffrey.local.ai.max-tokens') || '',
+        false
+      ),
       ...(apiKey && !apiKey.includes('****')
         ? [client.upsert('ai', 'jeffrey.local.ai.api-key', apiKey, true)]
         : [])
-    ])
-    restartRequired.value = true
+    ]);
+    restartRequired.value = true;
   } catch (e) {
-    console.error('Failed to save AI settings', e)
+    console.error('Failed to save AI settings', e);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function saveGeneralSettings() {
-  saving.value = true
+  saving.value = true;
   try {
-    await client.upsert('logging', 'logging.level.pbouda.jeffrey', settings.get('logging.level.pbouda.jeffrey') || '', false)
-    restartRequired.value = true
+    await client.upsert(
+      'logging',
+      'logging.level.pbouda.jeffrey',
+      settings.get('logging.level.pbouda.jeffrey') || '',
+      false
+    );
+    restartRequired.value = true;
   } catch (e) {
-    console.error('Failed to save general settings', e)
+    console.error('Failed to save general settings', e);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function saveVisualizationSettings() {
-  saving.value = true
+  saving.value = true;
   try {
     await Promise.all([
       client.upsert(
@@ -466,12 +554,12 @@ async function saveVisualizationSettings() {
         frameTextMode.value,
         false
       )
-    ])
-    restartRequired.value = true
+    ]);
+    restartRequired.value = true;
   } catch (e) {
-    console.error('Failed to save visualization settings', e)
+    console.error('Failed to save visualization settings', e);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 </script>
@@ -768,5 +856,4 @@ async function saveVisualizationSettings() {
   margin-top: 8px;
   text-align: center;
 }
-
 </style>

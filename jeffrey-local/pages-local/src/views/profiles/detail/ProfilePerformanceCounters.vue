@@ -1,14 +1,12 @@
 <template>
   <!-- Performance Counters Not Available State -->
-  <PerformanceCountersNotAvailableAlert
-      v-if="isPerformanceCountersDisabled"
-  />
+  <PerformanceCountersNotAvailableAlert v-if="isPerformanceCountersDisabled" />
 
   <PageHeader
-      v-else
-      title="Performance Counters"
-      description="Overview of JVM/HotSpot Performance Counters and Metrics"
-      icon="bi-speedometer2"
+    v-else
+    title="Performance Counters"
+    description="Overview of JVM/HotSpot Performance Counters and Metrics"
+    icon="bi-speedometer2"
   >
     <!-- Loading state -->
     <div v-if="loading" class="row">
@@ -22,7 +20,11 @@
     </div>
 
     <!-- Empty state -->
-    <EmptyState v-else-if="allCounters.length === 0" icon="bi-speedometer" title="No performance counters available" />
+    <EmptyState
+      v-else-if="allCounters.length === 0"
+      icon="bi-speedometer"
+      title="No performance counters available"
+    />
 
     <!-- Content state -->
     <div v-else class="row">
@@ -54,18 +56,18 @@
           <div class="mb-3">
             <div class="input-group search-container">
               <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-              <input 
-                type="text" 
-                class="form-control search-input" 
-                placeholder="Filter counters..." 
+              <input
+                type="text"
+                class="form-control search-input"
+                placeholder="Filter counters..."
                 v-model="searchQuery"
                 @input="filterCounters"
                 aria-label="Filter counters"
                 autocomplete="off"
-              >
-              <button 
-                v-if="searchQuery" 
-                class="btn btn-outline-secondary clear-btn" 
+              />
+              <button
+                v-if="searchQuery"
+                class="btn btn-outline-secondary clear-btn"
                 type="button"
                 @click="clearSearch"
               >
@@ -79,85 +81,115 @@
             <div class="card-body p-0">
               <table class="table table-sm table-hover mb-0 counter-tree-table">
                 <thead>
-                <tr>
-                  <th>Counter</th>
-                  <th>Value</th>
-                  <th class="text-center">
-                    <div class="d-flex justify-content-end align-items-center">
-                      <div class="tree-controls">
-                        <button class="btn btn-sm btn-outline-primary btn-xs px-1" @click="collapseAll" title="Collapse All">
-                          <i class="bi bi-arrows-collapse"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1" @click="expandAll" title="Expand All">
-                          <i class="bi bi-arrows-expand"></i>
-                        </button>
+                  <tr>
+                    <th>Counter</th>
+                    <th>Value</th>
+                    <th class="text-center">
+                      <div class="d-flex justify-content-end align-items-center">
+                        <div class="tree-controls">
+                          <button
+                            class="btn btn-sm btn-outline-primary btn-xs px-1"
+                            @click="collapseAll"
+                            title="Collapse All"
+                          >
+                            <i class="bi bi-arrows-collapse"></i>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-outline-primary btn-xs px-1 ms-1"
+                            @click="expandAll"
+                            title="Expand All"
+                          >
+                            <i class="bi bi-arrows-expand"></i>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </th>
-                </tr>
+                    </th>
+                  </tr>
                 </thead>
                 <tbody>
-                <!-- Category nodes (folders) -->
-                <template v-for="category in organizedCounters" :key="category.name">
-                  <tr class="parent-row">
-                    <td>
-                      <div class="d-flex align-items-center counter-name-cell">
-                        <!-- Expand/collapse icon for parent nodes -->
-                        <button class="btn btn-sm expand-btn p-0 me-2"
-                                @click="toggleExpand(category.name)">
-                          <i class="bi" :class="isExpanded(category.name) ? 'bi-dash-square' : 'bi-plus-square'"></i>
-                        </button>
-
-                        <!-- Category name -->
-                        <span class="counter-category">{{ getCategoryLabel(category.name) }}</span>
-                      </div>
-                    </td>
-                    <td></td>
-                    <td></td>
-                  </tr>
-
-                  <!-- Counter items (when category is expanded) -->
-                  <template v-if="isExpanded(category.name)" v-for="counter in category.counters" :key="`${category.name}-${counter.key}`">
-                    <tr class="leaf-row">
+                  <!-- Category nodes (folders) -->
+                  <template v-for="category in organizedCounters" :key="category.name">
+                    <tr class="parent-row">
                       <td>
                         <div class="d-flex align-items-center counter-name-cell">
-                          <!-- Indentation for counter items -->
-                          <div class="tree-indent" style="width: 20px;"></div>
+                          <!-- Expand/collapse icon for parent nodes -->
+                          <button
+                            class="btn btn-sm expand-btn p-0 me-2"
+                            @click="toggleExpand(category.name)"
+                          >
+                            <i
+                              class="bi"
+                              :class="
+                                isExpanded(category.name) ? 'bi-dash-square' : 'bi-plus-square'
+                              "
+                            ></i>
+                          </button>
 
-                          <!-- Counter leaf indicator -->
-                          <span class="tree-leaf-icon me-2">
-                            <i class="bi bi-circle-fill"></i>
-                          </span>
-
-                          <!-- Counter name -->
-                          <span class="counter-key" :title="counter.key">{{ formatCounterKey(counter.key) }}</span>
-                          
-                          <!-- Question mark icon with description tooltip -->
-                          <i v-if="counter.description" 
-                             class="bi bi-question-circle-fill ms-2 description-icon" 
-                             :title="counter.description"
-                             data-bs-toggle="tooltip" 
-                             data-bs-placement="top">
-                          </i>
-                          
-                          <!-- JVM and Java badges -->
-                          <span v-if="getBadgeForKey(counter.key)" 
-                                class="badge ms-3"
-                                :class="getBadgeClass(counter.key)">
-                            {{ getBadgeForKey(counter.key) }}
-                          </span>
+                          <!-- Category name -->
+                          <span class="counter-category">{{
+                            getCategoryLabel(category.name)
+                          }}</span>
                         </div>
                       </td>
-                      <td>
-                        <span class="counter-value">{{ counter.formattedValue }}</span>
-                        <span v-if="counter.formattedValue !== counter.value" class="text-muted ms-2 small">
-                          (raw: {{ counter.value }})
-                        </span>
-                      </td>
+                      <td></td>
                       <td></td>
                     </tr>
+
+                    <!-- Counter items (when category is expanded) -->
+                    <template
+                      v-if="isExpanded(category.name)"
+                      v-for="counter in category.counters"
+                      :key="`${category.name}-${counter.key}`"
+                    >
+                      <tr class="leaf-row">
+                        <td>
+                          <div class="d-flex align-items-center counter-name-cell">
+                            <!-- Indentation for counter items -->
+                            <div class="tree-indent" style="width: 20px"></div>
+
+                            <!-- Counter leaf indicator -->
+                            <span class="tree-leaf-icon me-2">
+                              <i class="bi bi-circle-fill"></i>
+                            </span>
+
+                            <!-- Counter name -->
+                            <span class="counter-key" :title="counter.key">{{
+                              formatCounterKey(counter.key)
+                            }}</span>
+
+                            <!-- Question mark icon with description tooltip -->
+                            <i
+                              v-if="counter.description"
+                              class="bi bi-question-circle-fill ms-2 description-icon"
+                              :title="counter.description"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                            >
+                            </i>
+
+                            <!-- JVM and Java badges -->
+                            <span
+                              v-if="getBadgeForKey(counter.key)"
+                              class="badge ms-3"
+                              :class="getBadgeClass(counter.key)"
+                            >
+                              {{ getBadgeForKey(counter.key) }}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="counter-value">{{ counter.formattedValue }}</span>
+                          <span
+                            v-if="counter.formattedValue !== counter.value"
+                            class="text-muted ms-2 small"
+                          >
+                            (raw: {{ counter.value }})
+                          </span>
+                        </td>
+                        <td></td>
+                      </tr>
+                    </template>
                   </template>
-                </template>
                 </tbody>
               </table>
             </div>
@@ -170,7 +202,10 @@
           </div>
 
           <!-- Counter stats -->
-          <div v-if="organizedCounters.length > 0 && allCounters.length !== filteredCounters.length" class="mb-3 text-muted small">
+          <div
+            v-if="organizedCounters.length > 0 && allCounters.length !== filteredCounters.length"
+            class="mb-3 text-muted small"
+          >
             Showing {{ filteredCounters.length }} of {{ allCounters.length }} counters
           </div>
         </div>
@@ -180,13 +215,13 @@
 </template>
 
 <script setup lang="ts">
-import {useRoute} from "vue-router";
+import { useRoute } from 'vue-router';
 
 import { onMounted, ref, computed, nextTick } from 'vue';
 import * as bootstrap from 'bootstrap';
 import ProfilePerformanceCountersClient from '@/services/api/ProfilePerformanceCountersClient';
-import PerformanceCounter from "@/services/api/model/PerformanceCounter.ts";
-import PerformanceCounterEnhanced from "@/services/api/model/PerformanceCounterEnhanced.ts";
+import PerformanceCounter from '@/services/api/model/PerformanceCounter.ts';
+import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterEnhanced.ts';
 import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -224,21 +259,21 @@ const categories = computed(() => {
   allCounters.value.forEach(counter => {
     uniqueCategories.add(counter.category);
   });
-  
+
   return Array.from(uniqueCategories).sort();
 });
 
 // Organized counters by category
 const organizedCounters = computed(() => {
   const result: { name: string; counters: PerformanceCounterEnhanced[] }[] = [];
-  
+
   // Process each category
   for (const category of categories.value) {
     // Filter counters for this category
     const categoryCounters = filteredCounters.value.filter(
       counter => counter.category === category
     );
-    
+
     // Only include categories that have counters matching the current filters
     if (categoryCounters.length > 0) {
       result.push({
@@ -247,7 +282,7 @@ const organizedCounters = computed(() => {
       });
     }
   }
-  
+
   // Sort categories by name
   return result.sort((a, b) => {
     return getCategoryLabel(a.name).localeCompare(getCategoryLabel(b.name));
@@ -260,11 +295,13 @@ const loadPerformanceCounters = async () => {
   try {
     // Use the ProfilePerformanceCountersClient to fetch real data
     const profileId = route.params.profileId as string;
-    const counters: PerformanceCounterEnhanced[] = await new ProfilePerformanceCountersClient(profileId).getAll();
-    
+    const counters: PerformanceCounterEnhanced[] = await new ProfilePerformanceCountersClient(
+      profileId
+    ).getAll();
+
     // Process counters to use the second part of the key for category determination
-    allCounters.value = counters
-    
+    allCounters.value = counters;
+
     // All categories start collapsed by default
     filterCounters();
   } catch (error) {
@@ -276,20 +313,21 @@ const loadPerformanceCounters = async () => {
 
 const filterCounters = () => {
   let result = [...allCounters.value];
-  
+
   // Filter by search query
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(counter => 
-      counter.key.toLowerCase().includes(query) || 
-      getCategoryLabel(counter.category).toLowerCase().includes(query)
+    result = result.filter(
+      counter =>
+        counter.key.toLowerCase().includes(query) ||
+        getCategoryLabel(counter.category).toLowerCase().includes(query)
     );
-    
+
     // Auto-expand categories that have matching counters
     if (result.length > 0) {
       // Get the categories of counters that match the search
       const matchingCategories = new Set(result.map(counter => counter.category));
-      
+
       // Expand these categories
       matchingCategories.forEach(category => {
         expandedCategories.value.add(category);
@@ -301,11 +339,11 @@ const filterCounters = () => {
   result.sort((a, b) => {
     let valueA = a[sortField.value as keyof PerformanceCounter] as string;
     let valueB = b[sortField.value as keyof PerformanceCounter] as string;
-    
+
     // For sorting values numerically when appropriate
     if (sortField.value === 'value' && !isNaN(Number(valueA)) && !isNaN(Number(valueB))) {
-      return sortDirection.value === 'asc' 
-        ? Number(valueA) - Number(valueB) 
+      return sortDirection.value === 'asc'
+        ? Number(valueA) - Number(valueB)
         : Number(valueB) - Number(valueA);
     }
 
@@ -314,7 +352,7 @@ const filterCounters = () => {
       ? String(valueA).localeCompare(String(valueB))
       : String(valueB).localeCompare(String(valueA));
   });
-  
+
   filteredCounters.value = result;
 };
 
@@ -331,18 +369,18 @@ const formatCounterKey = (key: string): string => {
 const getCategoryLabel = (category: string): string => {
   // Map category codes to readable labels
   const categoryMap: Record<string, string> = {
-    'ci': 'JIT Compiler',
-    'cls': 'ClassLoader',  // Changed from 'Bytecode' to 'ClassLoader'
-    'classloader': 'ClassLoader',
-    'property': 'Property',
-    'rt': 'Runtime',
-    'threads': 'Threads',
-    'gc': 'Garbage Collector',
-    'os': 'Operating System',
-    'zip': 'ZIP',
-    'urlClassLoader': 'ClassLoader',
+    ci: 'JIT Compiler',
+    cls: 'ClassLoader', // Changed from 'Bytecode' to 'ClassLoader'
+    classloader: 'ClassLoader',
+    property: 'Property',
+    rt: 'Runtime',
+    threads: 'Threads',
+    gc: 'Garbage Collector',
+    os: 'Operating System',
+    zip: 'ZIP',
+    urlClassLoader: 'ClassLoader'
   };
-  
+
   return categoryMap[category] || category;
 };
 
@@ -405,7 +443,7 @@ onMounted(() => {
   if (!isPerformanceCountersDisabled.value) {
     loadPerformanceCounters();
   }
-  
+
   // Initialize Bootstrap tooltips after the DOM has been updated
   nextTick(() => {
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -553,7 +591,7 @@ onMounted(() => {
 }
 
 .bg-orange {
-  background-color: #FFA500; /* Orange color */
+  background-color: #ffa500; /* Orange color */
 }
 
 /* Description icon style */

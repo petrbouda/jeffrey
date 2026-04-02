@@ -38,10 +38,13 @@
         </button>
         <nav aria-label="Instance navigation">
           <ol class="breadcrumb mb-0">
-            <li v-for="(entry, index) in navigationHistory" :key="index"
-                class="breadcrumb-item">
-              <a href="#" @click.prevent="navigateToHistoryEntry(index)"
-                 class="text-decoration-none" :title="entry.className">
+            <li v-for="(entry, index) in navigationHistory" :key="index" class="breadcrumb-item">
+              <a
+                href="#"
+                @click.prevent="navigateToHistoryEntry(index)"
+                class="text-decoration-none"
+                :title="entry.className"
+              >
                 {{ simpleClassName(entry.className) }}
               </a>
             </li>
@@ -72,7 +75,9 @@
             <span class="label">Class:</span>
             <div class="class-name-block">
               <span class="class-simple-name">{{ simpleClassName(instance.className) }}</span>
-              <span v-if="packageName(instance.className)" class="class-package-name">{{ packageName(instance.className) }}</span>
+              <span v-if="packageName(instance.className)" class="class-package-name">{{
+                packageName(instance.className)
+              }}</span>
             </div>
           </div>
           <div class="info-row">
@@ -113,7 +118,9 @@
             </div>
           </div>
           <div class="value-content">
-            <code class="value-text">{{ truncateValue(instance.stringValue ?? instance.value, 200) }}</code>
+            <code class="value-text">{{
+              truncateValue(instance.stringValue ?? instance.value, 200)
+            }}</code>
           </div>
         </div>
 
@@ -138,20 +145,43 @@
                   <td class="field-name-cell">
                     <div class="field-name">{{ field.name }}</div>
                     <div class="field-type-line">
-                      <code class="field-type-simple">{{ simpleType(field.referencedClassName ?? field.type) }}</code>
-                      <span v-if="typePackage(field.referencedClassName ?? field.type)" class="field-type-package">{{ typePackage(field.referencedClassName ?? field.type) }}</span>
+                      <code class="field-type-simple">{{
+                        simpleType(field.referencedClassName ?? field.type)
+                      }}</code>
+                      <span
+                        v-if="typePackage(field.referencedClassName ?? field.type)"
+                        class="field-type-package"
+                        >{{ typePackage(field.referencedClassName ?? field.type) }}</span
+                      >
                     </div>
-                    <div v-if="field.referencedObjectId || fieldDisplayValue(field)" class="field-identity-line">
-                      <span v-if="field.referencedObjectId" class="field-object-id">{{ FormattingService.formatObjectId(field.referencedObjectId) }}</span>
-                      <span v-if="field.referencedObjectId && fieldDisplayValue(field)" class="field-identity-sep">&middot;</span>
-                      <span v-if="fieldDisplayValue(field)" class="field-value-inline" :class="fieldValueClass(field)">{{ fieldDisplayValue(field) }}</span>
+                    <div
+                      v-if="field.referencedObjectId || fieldDisplayValue(field)"
+                      class="field-identity-line"
+                    >
+                      <span v-if="field.referencedObjectId" class="field-object-id">{{
+                        FormattingService.formatObjectId(field.referencedObjectId)
+                      }}</span>
+                      <span
+                        v-if="field.referencedObjectId && fieldDisplayValue(field)"
+                        class="field-identity-sep"
+                        >&middot;</span
+                      >
+                      <span
+                        v-if="fieldDisplayValue(field)"
+                        class="field-value-inline"
+                        :class="fieldValueClass(field)"
+                        >{{ fieldDisplayValue(field) }}</span
+                      >
                     </div>
                   </td>
                   <td class="field-nav-cell">
-                    <a v-if="field.referencedObjectId"
-                       href="#" class="nav-icon-link"
-                       @click.prevent="navigateToInstance(field.referencedObjectId)"
-                       title="Navigate to instance">
+                    <a
+                      v-if="field.referencedObjectId"
+                      href="#"
+                      class="nav-icon-link"
+                      @click.prevent="navigateToInstance(field.referencedObjectId)"
+                      title="Navigate to instance"
+                    >
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>
                   </td>
@@ -183,20 +213,43 @@
                   <td class="field-name-cell">
                     <div class="field-name">{{ field.name }}</div>
                     <div class="field-type-line">
-                      <code class="field-type-simple">{{ simpleType(field.referencedClassName ?? field.type) }}</code>
-                      <span v-if="typePackage(field.referencedClassName ?? field.type)" class="field-type-package">{{ typePackage(field.referencedClassName ?? field.type) }}</span>
+                      <code class="field-type-simple">{{
+                        simpleType(field.referencedClassName ?? field.type)
+                      }}</code>
+                      <span
+                        v-if="typePackage(field.referencedClassName ?? field.type)"
+                        class="field-type-package"
+                        >{{ typePackage(field.referencedClassName ?? field.type) }}</span
+                      >
                     </div>
-                    <div v-if="field.referencedObjectId || fieldDisplayValue(field)" class="field-identity-line">
-                      <span v-if="field.referencedObjectId" class="field-object-id">{{ FormattingService.formatObjectId(field.referencedObjectId) }}</span>
-                      <span v-if="field.referencedObjectId && fieldDisplayValue(field)" class="field-identity-sep">&middot;</span>
-                      <span v-if="fieldDisplayValue(field)" class="field-value-inline" :class="fieldValueClass(field)">{{ fieldDisplayValue(field) }}</span>
+                    <div
+                      v-if="field.referencedObjectId || fieldDisplayValue(field)"
+                      class="field-identity-line"
+                    >
+                      <span v-if="field.referencedObjectId" class="field-object-id">{{
+                        FormattingService.formatObjectId(field.referencedObjectId)
+                      }}</span>
+                      <span
+                        v-if="field.referencedObjectId && fieldDisplayValue(field)"
+                        class="field-identity-sep"
+                        >&middot;</span
+                      >
+                      <span
+                        v-if="fieldDisplayValue(field)"
+                        class="field-value-inline"
+                        :class="fieldValueClass(field)"
+                        >{{ fieldDisplayValue(field) }}</span
+                      >
                     </div>
                   </td>
                   <td class="field-nav-cell">
-                    <a v-if="field.referencedObjectId"
-                       href="#" class="nav-icon-link"
-                       @click.prevent="navigateToInstance(field.referencedObjectId)"
-                       title="Navigate to instance">
+                    <a
+                      v-if="field.referencedObjectId"
+                      href="#"
+                      class="nav-icon-link"
+                      @click.prevent="navigateToInstance(field.referencedObjectId)"
+                      title="Navigate to instance"
+                    >
                       <i class="bi bi-box-arrow-up-right"></i>
                     </a>
                   </td>
@@ -357,17 +410,21 @@ const loadInstanceDetail = async () => {
 };
 
 // When the prop objectId changes from outside, reset history and sync internal state
-watch([() => props.isOpen, () => props.objectId], async ([isOpen, objectId]) => {
-  if (isOpen && objectId) {
-    navigationHistory.value = [];
-    internalObjectId.value = objectId;
-    await loadInstanceDetail();
-  } else if (!isOpen) {
-    instance.value = null;
-    navigationHistory.value = [];
-    internalObjectId.value = null;
-  }
-}, { immediate: true });
+watch(
+  [() => props.isOpen, () => props.objectId],
+  async ([isOpen, objectId]) => {
+    if (isOpen && objectId) {
+      navigationHistory.value = [];
+      internalObjectId.value = objectId;
+      await loadInstanceDetail();
+    } else if (!isOpen) {
+      instance.value = null;
+      navigationHistory.value = [];
+      internalObjectId.value = null;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

@@ -22,56 +22,55 @@ import CreateWorkspaceRequest from '@/services/api/model/CreateWorkspaceRequest'
 import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 
 export default class WorkspaceClient extends BasePlatformClient {
+  constructor() {
+    super('/workspaces');
+  }
 
-    constructor() {
-        super('/workspaces');
-    }
+  /**
+   * Get all workspaces
+   * GET /api/workspaces
+   */
+  async list(excludeRemote: boolean = false): Promise<Workspace[]> {
+    return super.get<Workspace[]>('', { excludeRemote: excludeRemote });
+  }
 
-    /**
-     * Get all workspaces
-     * GET /api/workspaces
-     */
-    async list(excludeRemote: boolean = false): Promise<Workspace[]> {
-        return super.get<Workspace[]>('', {excludeRemote: excludeRemote});
-    }
+  /**
+   * Get a single workspace by ID
+   * GET /api/workspaces/{workspaceId}
+   */
+  async getById(workspaceId: string): Promise<Workspace> {
+    return super.get<Workspace>(`/${workspaceId}`);
+  }
 
-    /**
-     * Get a single workspace by ID
-     * GET /api/workspaces/{workspaceId}
-     */
-    async getById(workspaceId: string): Promise<Workspace> {
-        return super.get<Workspace>(`/${workspaceId}`);
-    }
+  /**
+   * Create a new workspace
+   * POST /api/workspaces
+   */
+  async create(request: CreateWorkspaceRequest): Promise<Workspace> {
+    return super.post<Workspace>('', request);
+  }
 
-    /**
-     * Create a new workspace
-     * POST /api/workspaces
-     */
-    async create(request: CreateWorkspaceRequest): Promise<Workspace> {
-        return super.post<Workspace>('', request);
-    }
+  /**
+   * Delete a workspace by ID
+   * DELETE /api/workspaces/{workspaceId}
+   */
+  async delete(workspaceId: string): Promise<void> {
+    return super.del<void>(`/${workspaceId}`);
+  }
 
-    /**
-     * Delete a workspace by ID
-     * DELETE /api/workspaces/{workspaceId}
-     */
-    async delete(workspaceId: string): Promise<void> {
-        return super.del<void>(`/${workspaceId}`);
-    }
+  /**
+   * Get events for a specific workspace
+   * GET /api/workspaces/{workspaceId}/events
+   */
+  async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
+    return super.get<WorkspaceEvent[]>(`/${workspaceId}/events`);
+  }
 
-    /**
-     * Get events for a specific workspace
-     * GET /api/workspaces/{workspaceId}/events
-     */
-    async getEvents(workspaceId: string): Promise<WorkspaceEvent[]> {
-        return super.get<WorkspaceEvent[]>(`/${workspaceId}/events`);
-    }
-
-    /**
-     * Update streaming enabled setting for a workspace
-     * POST /api/workspaces/{workspaceId}/streaming
-     */
-    async updateStreaming(workspaceId: string, streamingEnabled: boolean | null): Promise<void> {
-        return super.post<void>(`/${workspaceId}/streaming`, { streamingEnabled });
-    }
+  /**
+   * Update streaming enabled setting for a workspace
+   * POST /api/workspaces/{workspaceId}/streaming
+   */
+  async updateStreaming(workspaceId: string, streamingEnabled: boolean | null): Promise<void> {
+    return super.post<void>(`/${workspaceId}/streaming`, { streamingEnabled });
+  }
 }

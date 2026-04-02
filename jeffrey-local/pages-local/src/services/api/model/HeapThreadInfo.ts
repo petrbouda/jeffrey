@@ -17,9 +17,9 @@
  */
 
 export default interface HeapThreadInfo {
-    objectId: number;
-    name: string;
-    daemon: boolean;
-    priority: number;
-    retainedSize?: number;
+  objectId: number;
+  name: string;
+  daemon: boolean;
+  priority: number;
+  retainedSize?: number;
 }

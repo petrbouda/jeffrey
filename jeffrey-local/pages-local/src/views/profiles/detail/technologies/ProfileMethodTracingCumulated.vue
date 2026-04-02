@@ -22,116 +22,117 @@
     <TracingDisabledFeatureAlert v-if="isTracingDisabled" />
 
     <div v-else>
-
       <!-- Mode Toggle -->
       <div class="controls-bar mb-4">
-      <div class="segmented-control">
-        <button
-          type="button"
-          class="segment"
-          :class="{ active: mode === 'method' }"
-          @click="setMode('method')"
-        >
-          <i class="bi bi-code-slash"></i>
-          By Method
-        </button>
-        <button
-          type="button"
-          class="segment"
-          :class="{ active: mode === 'class' }"
-          @click="setMode('class')"
-        >
-          <i class="bi bi-box"></i>
-          By Class
-        </button>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <LoadingState v-if="loading" message="Loading cumulated traces..." />
-
-    <!-- Error State -->
-    <ErrorState v-else-if="error" :message="error" @retry="loadData" />
-
-    <!-- Empty State -->
-    <EmptyState
-      v-else-if="!data || data.items.length === 0"
-      title="No Cumulated Data"
-      message="No method tracing events were recorded in this profile."
-      icon="bi-layers"
-    />
-
-    <!-- Data Content -->
-    <div v-else>
-      <!-- Stats Summary -->
-      <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
-
-      <!-- Cumulated Data Table -->
-      <ChartSection :title="tableTitle" icon="list-ol" :full-width="true">
-        <template #header-actions>
-          <div class="input-group search-container" style="width: 280px;">
-            <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
-            <input
-              type="text"
-              class="form-control search-input"
-              :placeholder="mode === 'method' ? 'Filter by class or method...' : 'Filter by class...'"
-              v-model="searchQuery"
-            />
-            <button
-              v-if="searchQuery"
-              class="btn btn-outline-secondary clear-btn"
-              type="button"
-              @click="searchQuery = ''"
-            >
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-        </template>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead>
-              <tr>
-                <th>{{ mode === 'method' ? 'Method' : 'Class' }}</th>
-                <th class="text-end">Invocations</th>
-                <th class="text-end">Total Time</th>
-                <th class="text-end">Avg Time</th>
-                <th class="text-end">Max Time</th>
-                <th class="text-end">% of Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in filteredItems" :key="getItemKey(item)">
-                <td class="method-cell">
-                  <template v-if="mode === 'method'">
-                    <span class="method-name">{{ item.methodName || '&lt;init&gt;' }}</span>
-                    <span class="class-name">{{ item.className }}</span>
-                  </template>
-                  <template v-else>
-                    <span class="method-name">{{ getSimpleClassName(item.className) }}</span>
-                    <span class="class-name">{{ getPackageName(item.className) }}</span>
-                  </template>
-                </td>
-                <td class="text-end">
-                  {{ FormattingService.formatNumber(item.invocationCount) }}
-                </td>
-                <td class="text-end">
-                  {{ FormattingService.formatDuration2Units(item.totalDuration) }}
-                </td>
-                <td class="text-end">
-                  {{ FormattingService.formatDuration2Units(item.avgDuration) }}
-                </td>
-                <td class="text-end">
-                  {{ FormattingService.formatDuration2Units(item.maxDuration) }}
-                </td>
-                <td class="text-end">
-                  <Badge :value="item.percentOfTotal.toFixed(1) + '%'" variant="blue" size="xs" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="segmented-control">
+          <button
+            type="button"
+            class="segment"
+            :class="{ active: mode === 'method' }"
+            @click="setMode('method')"
+          >
+            <i class="bi bi-code-slash"></i>
+            By Method
+          </button>
+          <button
+            type="button"
+            class="segment"
+            :class="{ active: mode === 'class' }"
+            @click="setMode('class')"
+          >
+            <i class="bi bi-box"></i>
+            By Class
+          </button>
         </div>
-      </ChartSection>
-    </div>
+      </div>
+
+      <!-- Loading State -->
+      <LoadingState v-if="loading" message="Loading cumulated traces..." />
+
+      <!-- Error State -->
+      <ErrorState v-else-if="error" :message="error" @retry="loadData" />
+
+      <!-- Empty State -->
+      <EmptyState
+        v-else-if="!data || data.items.length === 0"
+        title="No Cumulated Data"
+        message="No method tracing events were recorded in this profile."
+        icon="bi-layers"
+      />
+
+      <!-- Data Content -->
+      <div v-else>
+        <!-- Stats Summary -->
+        <MethodTracingOverviewStats v-if="overviewData" :header="overviewData.header" />
+
+        <!-- Cumulated Data Table -->
+        <ChartSection :title="tableTitle" icon="list-ol" :full-width="true">
+          <template #header-actions>
+            <div class="input-group search-container" style="width: 280px">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <input
+                type="text"
+                class="form-control search-input"
+                :placeholder="
+                  mode === 'method' ? 'Filter by class or method...' : 'Filter by class...'
+                "
+                v-model="searchQuery"
+              />
+              <button
+                v-if="searchQuery"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchQuery = ''"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </template>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>{{ mode === 'method' ? 'Method' : 'Class' }}</th>
+                  <th class="text-end">Invocations</th>
+                  <th class="text-end">Total Time</th>
+                  <th class="text-end">Avg Time</th>
+                  <th class="text-end">Max Time</th>
+                  <th class="text-end">% of Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in filteredItems" :key="getItemKey(item)">
+                  <td class="method-cell">
+                    <template v-if="mode === 'method'">
+                      <span class="method-name">{{ item.methodName || '&lt;init&gt;' }}</span>
+                      <span class="class-name">{{ item.className }}</span>
+                    </template>
+                    <template v-else>
+                      <span class="method-name">{{ getSimpleClassName(item.className) }}</span>
+                      <span class="class-name">{{ getPackageName(item.className) }}</span>
+                    </template>
+                  </td>
+                  <td class="text-end">
+                    {{ FormattingService.formatNumber(item.invocationCount) }}
+                  </td>
+                  <td class="text-end">
+                    {{ FormattingService.formatDuration2Units(item.totalDuration) }}
+                  </td>
+                  <td class="text-end">
+                    {{ FormattingService.formatDuration2Units(item.avgDuration) }}
+                  </td>
+                  <td class="text-end">
+                    {{ FormattingService.formatDuration2Units(item.maxDuration) }}
+                  </td>
+                  <td class="text-end">
+                    <Badge :value="item.percentOfTotal.toFixed(1) + '%'" variant="blue" size="xs" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ChartSection>
+      </div>
     </div>
   </div>
 </template>
@@ -201,9 +202,7 @@ const filteredItems = computed(() => {
 
 // Methods
 function getItemKey(item: CumulatedStats): string {
-  return item.methodName
-    ? `${item.className}#${item.methodName}`
-    : item.className;
+  return item.methodName ? `${item.className}#${item.methodName}` : item.className;
 }
 
 function getSimpleClassName(fullClassName: string): string {
@@ -295,7 +294,9 @@ onMounted(() => {
 .segmented-control .segment.active {
   background: #fff;
   color: #1a73e8;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .segmented-control .segment i {

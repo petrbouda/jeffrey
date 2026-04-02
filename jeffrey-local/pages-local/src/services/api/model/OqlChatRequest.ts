@@ -19,6 +19,6 @@
 import ChatMessage from '@/services/api/model/ChatMessage';
 
 export default interface OqlChatRequest {
-    message: string;
-    history: ChatMessage[];
+  message: string;
+  history: ChatMessage[];
 }

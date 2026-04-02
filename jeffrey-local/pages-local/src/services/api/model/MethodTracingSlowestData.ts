@@ -20,6 +20,6 @@ import MethodTracingSlowestHeader from '@/services/api/model/MethodTracingSlowes
 import SlowestMethodTrace from '@/services/api/model/SlowestMethodTrace';
 
 export default interface MethodTracingSlowestData {
-    header: MethodTracingSlowestHeader;
-    slowestTraces: SlowestMethodTrace[];
+  header: MethodTracingSlowestHeader;
+  slowestTraces: SlowestMethodTrace[];
 }

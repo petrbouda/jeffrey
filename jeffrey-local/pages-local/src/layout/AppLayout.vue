@@ -1,21 +1,25 @@
 <template>
   <div class="main-container">
     <AppTopbar />
-    
+
     <!-- Only show sidebar for non-profile layouts -->
     <div class="d-flex vh-100">
       <div class="sidebar-container" v-if="sidebarActive && !isProfileLayout">
         <AppSidebar />
       </div>
-      
+
       <div class="content-container flex-grow-1">
         <div class="w-100">
           <router-view />
         </div>
       </div>
     </div>
-    
-    <div v-if="sidebarActive && !isProfileLayout" class="sidebar-overlay d-md-none" @click="sidebarActive = false"></div>
+
+    <div
+      v-if="sidebarActive && !isProfileLayout"
+      class="sidebar-overlay d-md-none"
+      @click="sidebarActive = false"
+    ></div>
   </div>
 </template>
 
@@ -39,9 +43,9 @@ onMounted(() => {
   if (window.innerWidth < 768) {
     sidebarActive.value = false;
   }
-  
+
   bindOutsideClickListener();
-  
+
   // Make sidebar toggle accessible to Topbar component
   window.toggleSidebar = () => {
     sidebarActive.value = !sidebarActive.value;
@@ -74,13 +78,13 @@ const isOutsideClicked = (event: Event) => {
   const target = event.target as HTMLElement;
   const sidebarEl = document.querySelector('.sidebar');
   const topbarEl = document.querySelector('.navbar-toggler');
-  
+
   if (!sidebarEl || !topbarEl) return false;
-  
+
   return !(
-    sidebarEl.contains(target) || 
-    topbarEl.contains(target) || 
-    sidebarEl === target || 
+    sidebarEl.contains(target) ||
+    topbarEl.contains(target) ||
+    sidebarEl === target ||
     topbarEl === target
   );
 };
@@ -128,7 +132,7 @@ const isOutsideClicked = (event: Event) => {
     height: calc(100vh - 64px);
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   }
-  
+
   .content-container {
     padding: 1rem;
   }

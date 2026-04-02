@@ -1,15 +1,18 @@
 <template>
   <div class="d-flex gap-3">
-    <div 
-      v-for="option in options" 
+    <div
+      v-for="option in options"
       :key="option.value"
-      class="option-card" 
-      :class="{'selected': modelValue === option.value}"
+      class="option-card"
+      :class="{ selected: modelValue === option.value }"
       @click="selectOption(option.value)"
     >
       <div class="option-content">
         <div class="option-header">
-          <i v-if="option.icon" :class="['bi', option.icon, option.iconColor || 'text-primary', 'me-2']"></i>
+          <i
+            v-if="option.icon"
+            :class="['bi', option.icon, option.iconColor || 'text-primary', 'me-2']"
+          ></i>
           <span class="option-title">{{ option.label }}</span>
         </div>
         <div v-if="option.description" class="option-description">
@@ -55,13 +58,13 @@ const selectOption = (value: string) => {
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.02);
 
   &:hover:not(.selected) {
     transform: translateY(-2px);
-    box-shadow: 
+    box-shadow:
       0 6px 16px rgba(0, 0, 0, 0.06),
       0 2px 8px rgba(94, 100, 255, 0.1);
     border-color: rgba(94, 100, 255, 0.2);
@@ -71,7 +74,7 @@ const selectOption = (value: string) => {
     background: linear-gradient(135deg, #eef2ff, #f8faff);
     border-color: var(--color-primary);
     transform: translateY(-1px);
-    box-shadow: 
+    box-shadow:
       0 6px 20px rgba(94, 100, 255, 0.15),
       0 2px 8px rgba(94, 100, 255, 0.1);
   }

@@ -17,11 +17,11 @@
  */
 
 export default interface MethodStats {
-    className: string;
-    methodName: string;
-    invocationCount: number;
-    totalDuration: number;
-    avgDuration: number;
-    maxDuration: number;
-    percentOfTotal: number;
+  className: string;
+  methodName: string;
+  invocationCount: number;
+  totalDuration: number;
+  avgDuration: number;
+  maxDuration: number;
+  percentOfTotal: number;
 }

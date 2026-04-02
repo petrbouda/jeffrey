@@ -20,17 +20,13 @@
   <div class="tree-node">
     <!-- Node Row -->
     <div
-        class="node-row"
-        :style="{ paddingLeft: depth * 20 + 'px' }"
-        :class="{ 'expandable': node.hasChildren, 'root-node': node.relationshipType === 'ROOT' }"
-        @click="handleSelect"
+      class="node-row"
+      :style="{ paddingLeft: depth * 20 + 'px' }"
+      :class="{ expandable: node.hasChildren, 'root-node': node.relationshipType === 'ROOT' }"
+      @click="handleSelect"
     >
       <!-- Expand/Collapse Toggle -->
-      <button
-          v-if="node.hasChildren"
-          class="expand-btn"
-          @click.stop="toggleExpand"
-      >
+      <button v-if="node.hasChildren" class="expand-btn" @click.stop="toggleExpand">
         <i class="bi" :class="isExpanded ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
       </button>
       <span v-else class="expand-placeholder"></span>
@@ -41,9 +37,7 @@
       </span>
 
       <!-- Field Name -->
-      <span v-if="node.fieldName" class="field-name">
-        {{ node.fieldName }}:
-      </span>
+      <span v-if="node.fieldName" class="field-name"> {{ node.fieldName }}: </span>
 
       <!-- Class Name -->
       <code class="class-name">{{ simpleClassName }}</code>
@@ -62,23 +56,23 @@
     <!-- Children (Lazy Loaded) -->
     <div v-if="isExpanded && loadedChildren.length > 0" class="node-children">
       <InstanceTreeNodeItem
-          v-for="child in loadedChildren"
-          :key="child.objectId"
-          :node="child"
-          :mode="mode"
-          :depth="depth + 1"
-          :client="client"
-          @select="(node: InstanceTreeNode) => emit('select', node)"
-          @load-more="() => emit('load-more')"
+        v-for="child in loadedChildren"
+        :key="child.objectId"
+        :node="child"
+        :mode="mode"
+        :depth="depth + 1"
+        :client="client"
+        @select="(node: InstanceTreeNode) => emit('select', node)"
+        @load-more="() => emit('load-more')"
       />
 
       <!-- Load More Button -->
       <button
-          v-if="childrenHasMore"
-          class="btn btn-sm btn-outline-primary load-more-btn"
-          :style="{ marginLeft: (depth + 1) * 20 + 24 + 'px' }"
-          @click="loadMoreChildNodes"
-          :disabled="loadingMore"
+        v-if="childrenHasMore"
+        class="btn btn-sm btn-outline-primary load-more-btn"
+        :style="{ marginLeft: (depth + 1) * 20 + 24 + 'px' }"
+        @click="loadMoreChildNodes"
+        :disabled="loadingMore"
       >
         <span v-if="loadingMore" class="spinner-border spinner-border-sm me-1"></span>
         <i v-else class="bi bi-plus-circle me-1"></i>
@@ -89,22 +83,22 @@
     <!-- Provided children for root node -->
     <div v-else-if="isExpanded && children && children.length > 0" class="node-children">
       <InstanceTreeNodeItem
-          v-for="child in children"
-          :key="child.objectId"
-          :node="child"
-          :mode="mode"
-          :depth="depth + 1"
-          :client="client"
-          @select="(node: InstanceTreeNode) => emit('select', node)"
-          @load-more="() => emit('load-more')"
+        v-for="child in children"
+        :key="child.objectId"
+        :node="child"
+        :mode="mode"
+        :depth="depth + 1"
+        :client="client"
+        @select="(node: InstanceTreeNode) => emit('select', node)"
+        @load-more="() => emit('load-more')"
       />
 
       <!-- Load More Button for root children -->
       <button
-          v-if="hasMore"
-          class="btn btn-sm btn-outline-primary load-more-btn"
-          :style="{ marginLeft: (depth + 1) * 20 + 24 + 'px' }"
-          @click="$emit('load-more')"
+        v-if="hasMore"
+        class="btn btn-sm btn-outline-primary load-more-btn"
+        :style="{ marginLeft: (depth + 1) * 20 + 24 + 'px' }"
+        @click="$emit('load-more')"
       >
         <i class="bi bi-plus-circle me-1"></i>
         Load more...
@@ -112,7 +106,11 @@
     </div>
 
     <!-- Loading Indicator -->
-    <div v-if="loadingChildren" class="loading-children" :style="{ marginLeft: (depth + 1) * 20 + 'px' }">
+    <div
+      v-if="loadingChildren"
+      class="loading-children"
+      :style="{ marginLeft: (depth + 1) * 20 + 'px' }"
+    >
       <span class="spinner-border spinner-border-sm me-2"></span>
       Loading...
     </div>
@@ -214,7 +212,8 @@ const loadChildren = async () => {
   loadingChildren.value = true;
 
   try {
-    const response = props.mode === 'REFERRERS'
+    const response =
+      props.mode === 'REFERRERS'
         ? await props.client.getReferrers(props.node.objectId)
         : await props.client.getReachables(props.node.objectId);
 
@@ -234,7 +233,8 @@ const loadMoreChildNodes = async () => {
   loadingMore.value = true;
 
   try {
-    const response = props.mode === 'REFERRERS'
+    const response =
+      props.mode === 'REFERRERS'
         ? await props.client.getReferrers(props.node.objectId, 50, loadedChildren.value.length)
         : await props.client.getReachables(props.node.objectId, 50, loadedChildren.value.length);
 
@@ -252,9 +252,13 @@ const handleSelect = () => {
 };
 
 // Auto-expand root node
-watch(() => props.expanded, (newVal) => {
-  isExpanded.value = newVal;
-}, { immediate: true });
+watch(
+  () => props.expanded,
+  newVal => {
+    isExpanded.value = newVal;
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

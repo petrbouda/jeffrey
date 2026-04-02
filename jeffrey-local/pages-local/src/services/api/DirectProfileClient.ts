@@ -41,7 +41,6 @@ export interface ProfileListResponse {
  * Works with /api/internal/profiles endpoints without requiring workspaceId/projectId.
  */
 export default class DirectProfileClient extends BasePlatformClient {
-
   constructor() {
     super('/profiles');
   }

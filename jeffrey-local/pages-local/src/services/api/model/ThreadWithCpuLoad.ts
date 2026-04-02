@@ -19,9 +19,9 @@
 import ThreadInfo from './ThreadInfo';
 
 export default class ThreadWithCpuLoad {
-    constructor(
-        public timestamp: number,
-        public threadInfo: ThreadInfo,
-        public cpuLoad: number) {
-    }
+  constructor(
+    public timestamp: number,
+    public threadInfo: ThreadInfo,
+    public cpuLoad: number
+  ) {}
 }

@@ -26,27 +26,30 @@ import ChatMessage from '@/services/api/model/ChatMessage';
  * Provides methods for checking AI status and sending chat messages for JFR analysis.
  */
 export default class AiAnalysisClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'ai-analysis');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'ai-analysis');
-    }
+  /**
+   * Get the current status of the AI analysis assistant.
+   * @returns Promise resolving to the AI status including availability and provider
+   */
+  public getStatus(): Promise<AiStatusResponse> {
+    return this.get<AiStatusResponse>('/status');
+  }
 
-    /**
-     * Get the current status of the AI analysis assistant.
-     * @returns Promise resolving to the AI status including availability and provider
-     */
-    public getStatus(): Promise<AiStatusResponse> {
-        return this.get<AiStatusResponse>('/status');
-    }
-
-    /**
-     * Send a chat message to get an AI analysis response.
-     * @param message - The user's natural language message
-     * @param history - The conversation history for context
-     * @param canModify - Whether data modifications are allowed
-     * @returns Promise resolving to the AI response with analysis results
-     */
-    public chat(message: string, history: ChatMessage[], canModify: boolean = false): Promise<AiAnalysisResponse> {
-        return this.post<AiAnalysisResponse>('/chat', { message, history, canModify });
-    }
+  /**
+   * Send a chat message to get an AI analysis response.
+   * @param message - The user's natural language message
+   * @param history - The conversation history for context
+   * @param canModify - Whether data modifications are allowed
+   * @returns Promise resolving to the AI response with analysis results
+   */
+  public chat(
+    message: string,
+    history: ChatMessage[],
+    canModify: boolean = false
+  ): Promise<AiAnalysisResponse> {
+    return this.post<AiAnalysisResponse>('/chat', { message, history, canModify });
+  }
 }

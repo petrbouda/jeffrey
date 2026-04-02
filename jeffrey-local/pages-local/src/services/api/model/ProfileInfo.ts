@@ -17,13 +17,13 @@
  */
 
 export default class ProfileInfo {
-    constructor(
-        public id: string,
-        public name: string,
-        public projectId: string,
-        public createdAt: string,
-        public profilingStartedAt: String,
-        public profilingFinishedAt: String,
-        public enabled: boolean) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public projectId: string,
+    public createdAt: string,
+    public profilingStartedAt: String,
+    public profilingFinishedAt: String,
+    public enabled: boolean
+  ) {}
 }

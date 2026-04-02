@@ -6,21 +6,21 @@
         <label class="sort-label">Sort by:</label>
         <div class="btn-group" role="group">
           <button
-              v-for="option in sortOptions"
-              :key="option.key"
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              :class="{ active: currentSort === option.key }"
-              @click="onSortChange(option.key)"
+            v-for="option in sortOptions"
+            :key="option.key"
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            :class="{ active: currentSort === option.key }"
+            @click="onSortChange(option.key)"
           >
             {{ option.label }}
           </button>
         </div>
       </div>
       <button
-          v-if="endpoints.length > maxDisplayedEndpoints"
-          @click="showAllEndpoints = !showAllEndpoints"
-          class="btn btn-sm btn-outline-secondary"
+        v-if="endpoints.length > maxDisplayedEndpoints"
+        @click="showAllEndpoints = !showAllEndpoints"
+        class="btn btn-sm btn-outline-secondary"
       >
         {{ showAllEndpoints ? 'Show Less' : `Show All (${endpoints.length})` }}
       </button>
@@ -29,14 +29,16 @@
     <!-- Endpoint Cards -->
     <div class="endpoint-cards">
       <div
-          v-for="endpoint in displayedEndpoints"
-          :key="endpoint.uri"
-          class="ep-card"
-          @click="handleEndpointClick(endpoint)"
+        v-for="endpoint in displayedEndpoints"
+        :key="endpoint.uri"
+        class="ep-card"
+        @click="handleEndpointClick(endpoint)"
       >
         <!-- Left: Request Count Pill -->
         <div class="ep-count-pill">
-          <span class="ep-count-num">{{ FormattingService.formatNumber(endpoint.requestCount) }}</span>
+          <span class="ep-count-num">{{
+            FormattingService.formatNumber(endpoint.requestCount)
+          }}</span>
           <span class="ep-count-label">requests</span>
         </div>
 
@@ -51,11 +53,43 @@
             </span>
           </div>
           <div class="ep-metrics">
-            <Badge key-label="Max" :value="FormattingService.formatDuration2Units(endpoint.maxResponseTime)" variant="info" size="s" borderless />
-            <Badge key-label="P99" :value="FormattingService.formatDuration2Units(endpoint.p99ResponseTime)" variant="info" size="s" borderless />
-            <Badge key-label="P95" :value="FormattingService.formatDuration2Units(endpoint.p95ResponseTime)" variant="info" size="s" borderless />
-            <Badge v-if="endpoint.totalBytesReceived >= 0" key-label="Recv" :value="FormattingService.formatBytes(endpoint.totalBytesReceived)" variant="secondary" size="s" borderless />
-            <Badge v-if="endpoint.totalBytesSent >= 0" key-label="Sent" :value="FormattingService.formatBytes(endpoint.totalBytesSent)" variant="secondary" size="s" borderless />
+            <Badge
+              key-label="Max"
+              :value="FormattingService.formatDuration2Units(endpoint.maxResponseTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="P99"
+              :value="FormattingService.formatDuration2Units(endpoint.p99ResponseTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              key-label="P95"
+              :value="FormattingService.formatDuration2Units(endpoint.p95ResponseTime)"
+              variant="info"
+              size="s"
+              borderless
+            />
+            <Badge
+              v-if="endpoint.totalBytesReceived >= 0"
+              key-label="Recv"
+              :value="FormattingService.formatBytes(endpoint.totalBytesReceived)"
+              variant="secondary"
+              size="s"
+              borderless
+            />
+            <Badge
+              v-if="endpoint.totalBytesSent >= 0"
+              key-label="Sent"
+              :value="FormattingService.formatBytes(endpoint.totalBytesSent)"
+              variant="secondary"
+              size="s"
+              borderless
+            />
           </div>
         </div>
 
@@ -77,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, computed} from 'vue';
+import { ref, computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
 
@@ -103,7 +137,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  endpointClick: [uri: string]
+  endpointClick: [uri: string];
 }>();
 
 const showAllEndpoints = ref(false);
@@ -111,11 +145,23 @@ const currentSort = ref('maxResponseTime');
 const maxDisplayedEndpoints = 10;
 
 const sortOptions = [
-  {key: 'maxResponseTime', label: 'MAX', compare: (a: Endpoint, b: Endpoint) => b.maxResponseTime - a.maxResponseTime},
-  {key: 'p95ResponseTime', label: 'P95', compare: (a: Endpoint, b: Endpoint) => b.p95ResponseTime - a.p95ResponseTime},
-  {key: 'count4xx', label: '4xx', compare: (a: Endpoint, b: Endpoint) => b.count4xx - a.count4xx},
-  {key: 'count5xx', label: '5xx', compare: (a: Endpoint, b: Endpoint) => b.count5xx - a.count5xx},
-  {key: 'requestCount', label: 'Requests', compare: (a: Endpoint, b: Endpoint) => b.requestCount - a.requestCount}
+  {
+    key: 'maxResponseTime',
+    label: 'MAX',
+    compare: (a: Endpoint, b: Endpoint) => b.maxResponseTime - a.maxResponseTime
+  },
+  {
+    key: 'p95ResponseTime',
+    label: 'P95',
+    compare: (a: Endpoint, b: Endpoint) => b.p95ResponseTime - a.p95ResponseTime
+  },
+  { key: 'count4xx', label: '4xx', compare: (a: Endpoint, b: Endpoint) => b.count4xx - a.count4xx },
+  { key: 'count5xx', label: '5xx', compare: (a: Endpoint, b: Endpoint) => b.count5xx - a.count5xx },
+  {
+    key: 'requestCount',
+    label: 'Requests',
+    compare: (a: Endpoint, b: Endpoint) => b.requestCount - a.requestCount
+  }
 ];
 
 const sortedEndpoints = computed(() => {
@@ -125,7 +171,9 @@ const sortedEndpoints = computed(() => {
 });
 
 const displayedEndpoints = computed(() => {
-  return showAllEndpoints.value ? sortedEndpoints.value : sortedEndpoints.value.slice(0, maxDisplayedEndpoints);
+  return showAllEndpoints.value
+    ? sortedEndpoints.value
+    : sortedEndpoints.value.slice(0, maxDisplayedEndpoints);
 });
 
 const parseUri = (uri: string) => {
@@ -180,7 +228,9 @@ const onSortChange = (key: string) => {
   border: 1px solid var(--card-border-color);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .ep-card:hover {

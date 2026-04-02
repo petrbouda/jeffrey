@@ -17,7 +17,7 @@
  */
 
 export default interface MethodTracingSlowestHeader {
-    p99Duration: number;
-    p95Duration: number;
-    uniqueMethodCount: number;
+  p99Duration: number;
+  p95Duration: number;
+  uniqueMethodCount: number;
 }

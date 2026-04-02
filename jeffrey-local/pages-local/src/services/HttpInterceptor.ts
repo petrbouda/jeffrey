@@ -17,7 +17,11 @@
  */
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { ErrorResponse, isErrorResponse, isNotFoundError } from '@/services/api/model/ErrorResponse';
+import {
+  ErrorResponse,
+  isErrorResponse,
+  isNotFoundError
+} from '@/services/api/model/ErrorResponse';
 import { ToastService } from '@/services/ToastService';
 
 /**
@@ -182,7 +186,8 @@ async function responseErrorInterceptor(error: AxiosError): Promise<never> {
 
     const errorResponse = await parseErrorResponse(data);
 
-    const message = errorResponse?.message ||
+    const message =
+      errorResponse?.message ||
       (typeof data === 'string' ? data : `Request failed with status ${statusCode}`);
 
     apiError = new ApiError(message, statusCode, errorResponse);
@@ -223,7 +228,7 @@ export function registerHttpInterceptors(): void {
   // Response interceptor for error handling
   axios.interceptors.response.use(
     // Success handler - pass through unchanged
-    (response) => response,
+    response => response,
     // Error handler
     responseErrorInterceptor
   );

@@ -17,9 +17,9 @@
  */
 
 export default class ManualGCCalls {
-    constructor(
-        public totalTime: number,
-        public systemGCCalls: number,
-        public diagnosticCommandCalls: number
-    ) {}
+  constructor(
+    public totalTime: number,
+    public systemGCCalls: number,
+    public diagnosticCommandCalls: number
+  ) {}
 }

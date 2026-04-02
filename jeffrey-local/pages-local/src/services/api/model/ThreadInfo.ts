@@ -17,9 +17,9 @@
  */
 
 export default class ThreadInfo {
-    constructor(
-        public name: string,
-        public javaId: number,
-        public osId: string) {
-    }
+  constructor(
+    public name: string,
+    public javaId: number,
+    public osId: string
+  ) {}
 }

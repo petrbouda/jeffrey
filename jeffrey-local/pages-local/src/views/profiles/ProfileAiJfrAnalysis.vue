@@ -6,32 +6,39 @@
   >
     <AiDisabledFeatureAlert v-if="status && !isAvailable" />
     <AiAnalysisPanel
-        v-else
-        ref="panelRef"
-        :is-loading="isLoading"
-        :error="error"
-        :status="status"
-        :messages="messages"
-        :is-available="isAvailable"
-        :has-messages="hasMessages"
-        placeholder="Ask about this JFR profile..."
-        welcome-title="Ask anything about your JFR profile"
-        :prompt-sections="promptSections"
-        @send="sendMessage"
-        @prompt-click="handlePromptClick"
-        @suggestion="useSuggestion"
-        @clear-history="clearHistory"
-        @clear-error="clearError"
+      v-else
+      ref="panelRef"
+      :is-loading="isLoading"
+      :error="error"
+      :status="status"
+      :messages="messages"
+      :is-available="isAvailable"
+      :has-messages="hasMessages"
+      placeholder="Ask about this JFR profile..."
+      welcome-title="Ask anything about your JFR profile"
+      :prompt-sections="promptSections"
+      @send="sendMessage"
+      @prompt-click="handlePromptClick"
+      @suggestion="useSuggestion"
+      @clear-history="clearHistory"
+      @clear-error="clearError"
     >
       <template #panel-actions>
         <div class="modify-toggle" :class="{ active: canModify }">
-          <div class="modify-toggle-inner" :title="canModify ? 'Data modification is enabled' : 'Enable to allow AI to modify profile data'">
+          <div
+            class="modify-toggle-inner"
+            :title="
+              canModify
+                ? 'Data modification is enabled'
+                : 'Enable to allow AI to modify profile data'
+            "
+          >
             <label class="toggle-switch">
               <input
-                  type="checkbox"
-                  class="toggle-input"
-                  v-model="canModify"
-                  :disabled="!isAvailable"
+                type="checkbox"
+                class="toggle-input"
+                v-model="canModify"
+                :disabled="!isAvailable"
               />
               <span class="toggle-slider"></span>
             </label>
@@ -47,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css'
+import '@/styles/shared-components.css';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAiAnalysis } from '@/composables/useAiAnalysis';

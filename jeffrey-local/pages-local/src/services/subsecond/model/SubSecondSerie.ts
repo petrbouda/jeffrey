@@ -17,9 +17,9 @@
  */
 
 export default class SubSecondSerie {
-    constructor(
-        public name: string,
-        public group: string,
-        public data: number[][]) {
-    }
+  constructor(
+    public name: string,
+    public group: string,
+    public data: number[][]
+  ) {}
 }

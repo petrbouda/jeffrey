@@ -24,8 +24,8 @@
         <h5 class="alert-heading mb-3">Performance Counters Unavailable</h5>
         <p class="mb-3">
           The Performance Counters dashboard is not available because this profile does not contain
-          HotSpot performance counter data/file. Performance counters provide low-level JVM metrics that are
-          useful for detailed performance analysis.
+          HotSpot performance counter data/file. Performance counters provide low-level JVM metrics
+          that are useful for detailed performance analysis.
         </p>
 
         <div class="feature-benefits mb-3">

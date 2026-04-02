@@ -17,6 +17,6 @@
  */
 
 export default interface GCRootSummary {
-    rootsByType: Record<string, number>;
-    totalRoots: number;
+  rootsByType: Record<string, number>;
+  totalRoots: number;
 }

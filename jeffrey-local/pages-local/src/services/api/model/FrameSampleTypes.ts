@@ -17,10 +17,10 @@
  */
 
 export default class FrameSampleTypes {
-    constructor(
-        public inlined: number,
-        public c1: number,
-        public interpret: number,
-        public jit: number) {
-    }
+  constructor(
+    public inlined: number,
+    public c1: number,
+    public interpret: number,
+    public jit: number
+  ) {}
 }

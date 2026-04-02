@@ -3,11 +3,11 @@
     <div ref="chartRef" :style="{ height: height + 'px' }"></div>
     <table v-if="legendItems.length > 0" class="legend-table">
       <tbody>
-      <tr v-for="(item, index) in legendItems" :key="index">
-        <td><span class="legend-dot" :style="{ backgroundColor: item.color }"></span></td>
-        <td>{{ item.label }}</td>
-        <td class="text-end font-monospace">{{ item.value }}</td>
-      </tr>
+        <tr v-for="(item, index) in legendItems" :key="index">
+          <td><span class="legend-dot" :style="{ backgroundColor: item.color }"></span></td>
+          <td>{{ item.label }}</td>
+          <td class="text-end font-monospace">{{ item.value }}</td>
+        </tr>
       </tbody>
     </table>
   </BasePanel>
@@ -24,21 +24,24 @@ export interface LegendItem {
   value: string;
 }
 
-const props = withDefaults(defineProps<{
-  title: string;
-  series: number[];
-  labels: string[];
-  colors: string[];
-  legendItems?: LegendItem[];
-  totalLabel?: string;
-  totalValue: string;
-  tooltipFormatter: (val: number) => string;
-  height?: number;
-}>(), {
-  legendItems: () => [],
-  totalLabel: 'Total',
-  height: 250
-});
+const props = withDefaults(
+  defineProps<{
+    title: string;
+    series: number[];
+    labels: string[];
+    colors: string[];
+    legendItems?: LegendItem[];
+    totalLabel?: string;
+    totalValue: string;
+    tooltipFormatter: (val: number) => string;
+    height?: number;
+  }>(),
+  {
+    legendItems: () => [],
+    totalLabel: 'Total',
+    height: 250
+  }
+);
 
 const chartRef = ref<HTMLElement | null>(null);
 let chart: ApexCharts | null = null;
@@ -95,7 +98,9 @@ const renderChart = async () => {
   chart.render();
 };
 
-watch(() => [props.series, props.labels, props.colors, props.totalValue], renderChart, { deep: true });
+watch(() => [props.series, props.labels, props.colors, props.totalValue], renderChart, {
+  deep: true
+});
 
 onMounted(renderChart);
 

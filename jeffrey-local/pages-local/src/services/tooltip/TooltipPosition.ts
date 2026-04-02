@@ -17,6 +17,8 @@
  */
 
 export default class TooltipPosition {
-    constructor(public offsetX: number, public offsetY: number) {
-    }
+  constructor(
+    public offsetX: number,
+    public offsetY: number
+  ) {}
 }

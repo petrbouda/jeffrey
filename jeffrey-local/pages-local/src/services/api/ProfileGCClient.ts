@@ -23,20 +23,19 @@ import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 export default class ProfileGCClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'gc');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'gc');
-    }
+  public getOverview(): Promise<GCOverviewData> {
+    return this.get<GCOverviewData>('');
+  }
 
-    public getOverview(): Promise<GCOverviewData> {
-        return this.get<GCOverviewData>('');
-    }
+  public getTimeseries(timeseriesType: GCTimeseriesType): Promise<TimeseriesData> {
+    return this.get<TimeseriesData>('/timeseries', { timeseriesType });
+  }
 
-    public getTimeseries(timeseriesType: GCTimeseriesType): Promise<TimeseriesData> {
-        return this.get<TimeseriesData>('/timeseries', { timeseriesType });
-    }
-
-    public getConfiguration(): Promise<GCConfigurationData> {
-        return this.get<GCConfigurationData>('/configuration');
-    }
+  public getConfiguration(): Promise<GCConfigurationData> {
+    return this.get<GCConfigurationData>('/configuration');
+  }
 }

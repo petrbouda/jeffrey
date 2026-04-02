@@ -16,11 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import SubSecondData from "@/services/subsecond/model/SubSecondData";
-import TimeRange from "@/services/api/model/TimeRange";
+import SubSecondData from '@/services/subsecond/model/SubSecondData';
+import TimeRange from '@/services/api/model/TimeRange';
 
 export default abstract class SubSecondDataProvider {
-
-    abstract provide(timeRange?: TimeRange): Promise<SubSecondData>
-
+  abstract provide(timeRange?: TimeRange): Promise<SubSecondData>;
 }

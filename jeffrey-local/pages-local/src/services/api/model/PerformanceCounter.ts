@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import PerformanceCounterDataType from "@/services/api/model/PerformanceCounterDataType.ts";
+import PerformanceCounterDataType from '@/services/api/model/PerformanceCounterDataType.ts';
 
 export default class PerformanceCounter {
-    constructor(
-        public key: string,
-        public value: string,
-        public datatype?: PerformanceCounterDataType,
-        public description?: string) {
-    }
+  constructor(
+    public key: string,
+    public value: string,
+    public datatype?: PerformanceCounterDataType,
+    public description?: string
+  ) {}
 }

@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import EventSummaryDetail from "@/services/api/model/EventSummaryDetail";
+import EventSummaryDetail from '@/services/api/model/EventSummaryDetail';
 
 export default class EventSummary {
-    constructor(
-        public code: string,
-        public label: string,
-        public primary: EventSummaryDetail,
-        public secondary: EventSummaryDetail | null) {
-    }
+  constructor(
+    public code: string,
+    public label: string,
+    public primary: EventSummaryDetail,
+    public secondary: EventSummaryDetail | null
+  ) {}
 }

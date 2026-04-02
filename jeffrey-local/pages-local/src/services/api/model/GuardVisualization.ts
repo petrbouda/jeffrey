@@ -16,17 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-import GuardMatched from "@/services/api/model/GuardMatched";
-import GuardMarker from "@/services/api/model/GuardMarker";
+import GuardMatched from '@/services/api/model/GuardMatched';
+import GuardMarker from '@/services/api/model/GuardMarker';
 
 export default class GuardVisualization {
-    constructor(
-        public primaryProfileId: string,
-        public eventType: string,
-        public useWeight: boolean,
-        public withTimeseries: boolean,
-        public matched: GuardMatched,
-        public markers: GuardMarker[]) {
-    }
+  constructor(
+    public primaryProfileId: string,
+    public eventType: string,
+    public useWeight: boolean,
+    public withTimeseries: boolean,
+    public matched: GuardMatched,
+    public markers: GuardMarker[]
+  ) {}
 }

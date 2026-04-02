@@ -1,7 +1,6 @@
 import TimeConverter from './TimeConverter';
 
 describe('TimeConverter', () => {
-
   describe('toChartTime', () => {
     it('converts seconds to milliseconds', () => {
       const converter = new TimeConverter('seconds');

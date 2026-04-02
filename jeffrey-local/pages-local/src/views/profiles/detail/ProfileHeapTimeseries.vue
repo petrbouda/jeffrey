@@ -11,7 +11,6 @@
       icon="bi-graph-up-arrow"
     />
 
-
     <!-- Heap Memory Timeseries Section -->
     <ChartSectionWithTabs
       icon="memory"

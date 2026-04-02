@@ -16,13 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {computed} from 'vue';
-import RepositoryStatistics from "@/services/api/model/RepositoryStatistics.ts";
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import Utils from "@/services/Utils";
+import { computed } from 'vue';
+import RepositoryStatistics from '@/services/api/model/RepositoryStatistics.ts';
+import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import Utils from '@/services/Utils';
 import Badge from '@/components/Badge.vue';
-import FormattingService from "@/services/FormattingService.ts";
-import type {Variant} from "@/types/ui.ts";
+import FormattingService from '@/services/FormattingService.ts';
+import type { Variant } from '@/types/ui.ts';
 
 interface Props {
   statistics: RepositoryStatistics | null;
@@ -62,9 +62,12 @@ const lastActivityTime = computed(() => {
             <div class="metric-item">
               <span class="metric-label">Latest Status</span>
               <span class="metric-value">
-                  <Badge :value="Utils.capitalize(statistics.sessionStatus.toLowerCase())"
-                         :variant="getStatusVariant(statistics.sessionStatus)" size="xxs"/>
-                </span>
+                <Badge
+                  :value="Utils.capitalize(statistics.sessionStatus.toLowerCase())"
+                  :variant="getStatusVariant(statistics.sessionStatus)"
+                  size="xxs"
+                />
+              </span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Total Sessions</span>
@@ -88,7 +91,9 @@ const lastActivityTime = computed(() => {
           <div class="compact-stat-metrics">
             <div class="metric-item">
               <span class="metric-label">Total Size</span>
-              <span class="metric-value">{{ FormattingService.formatBytes(statistics.totalSize) }}</span>
+              <span class="metric-value">{{
+                FormattingService.formatBytes(statistics.totalSize)
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Total Files</span>
@@ -96,7 +101,9 @@ const lastActivityTime = computed(() => {
             </div>
             <div class="metric-item">
               <span class="metric-label">Biggest Session</span>
-              <span class="metric-value">{{ FormattingService.formatBytes(statistics.biggestSessionSize) }}</span>
+              <span class="metric-value">{{
+                FormattingService.formatBytes(statistics.biggestSessionSize)
+              }}</span>
             </div>
           </div>
         </div>
@@ -118,32 +125,44 @@ const lastActivityTime = computed(() => {
             <div class="metric-item">
               <span class="metric-label">JFR Files</span>
               <span class="metric-value text-primary">{{ statistics.jfrFiles }}</span>
-              <span class="metric-value metric-size text-primary">{{ FormattingService.formatBytes(statistics.jfrSize ?? 0) }}</span>
+              <span class="metric-value metric-size text-primary">{{
+                FormattingService.formatBytes(statistics.jfrSize ?? 0)
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Heap Dumps</span>
               <span class="metric-value text-danger">{{ statistics.heapDumpFiles }}</span>
-              <span class="metric-value metric-size text-danger">{{ FormattingService.formatBytes(statistics.heapDumpSize ?? 0) }}</span>
+              <span class="metric-value metric-size text-danger">{{
+                FormattingService.formatBytes(statistics.heapDumpSize ?? 0)
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">JVM Logs</span>
               <span class="metric-value text-warning">{{ statistics.logFiles }}</span>
-              <span class="metric-value metric-size text-warning">{{ FormattingService.formatBytes(statistics.logSize ?? 0) }}</span>
+              <span class="metric-value metric-size text-warning">{{
+                FormattingService.formatBytes(statistics.logSize ?? 0)
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Application Logs</span>
               <span class="metric-value" style="color: #8b5e3c">{{ statistics.appLogFiles }}</span>
-              <span class="metric-value metric-size" style="color: #8b5e3c">{{ FormattingService.formatBytes(statistics.appLogSize ?? 0) }}</span>
+              <span class="metric-value metric-size" style="color: #8b5e3c">{{
+                FormattingService.formatBytes(statistics.appLogSize ?? 0)
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">JVM Error Logs</span>
               <span class="metric-value text-danger-emphasis">{{ statistics.errorLogFiles }}</span>
-              <span class="metric-value metric-size text-danger-emphasis">{{ FormattingService.formatBytes(statistics.errorLogSize ?? 0) }}</span>
+              <span class="metric-value metric-size text-danger-emphasis">{{
+                FormattingService.formatBytes(statistics.errorLogSize ?? 0)
+              }}</span>
             </div>
             <div class="metric-item">
               <span class="metric-label">Other Files</span>
               <span class="metric-value">{{ statistics.otherFiles }}</span>
-              <span class="metric-value metric-size">{{ FormattingService.formatBytes(statistics.otherSize ?? 0) }}</span>
+              <span class="metric-value metric-size">{{
+                FormattingService.formatBytes(statistics.otherSize ?? 0)
+              }}</span>
             </div>
           </div>
         </div>
@@ -161,14 +180,16 @@ const lastActivityTime = computed(() => {
   padding: 12px 16px;
   height: 100%;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04),
-  0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .compact-stat-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06),
-  0 2px 4px rgba(94, 100, 255, 0.1);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.06),
+    0 2px 4px rgba(94, 100, 255, 0.1);
   border-color: rgba(94, 100, 255, 0.15);
 }
 

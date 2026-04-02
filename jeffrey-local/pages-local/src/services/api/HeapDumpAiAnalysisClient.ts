@@ -26,26 +26,25 @@ import ChatMessage from '@/services/api/model/ChatMessage';
  * Provides methods for checking AI status and sending chat messages for heap dump analysis.
  */
 export default class HeapDumpAiAnalysisClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'heap/ai-analysis');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'heap/ai-analysis');
-    }
+  /**
+   * Get the current status of the AI heap dump analysis assistant.
+   * @returns Promise resolving to the AI status including availability and provider
+   */
+  public getStatus(): Promise<AiStatusResponse> {
+    return this.get<AiStatusResponse>('/status');
+  }
 
-    /**
-     * Get the current status of the AI heap dump analysis assistant.
-     * @returns Promise resolving to the AI status including availability and provider
-     */
-    public getStatus(): Promise<AiStatusResponse> {
-        return this.get<AiStatusResponse>('/status');
-    }
-
-    /**
-     * Send a chat message to get an AI heap dump analysis response.
-     * @param message - The user's natural language message
-     * @param history - The conversation history for context
-     * @returns Promise resolving to the AI response with analysis results
-     */
-    public chat(message: string, history: ChatMessage[]): Promise<AiAnalysisResponse> {
-        return this.post<AiAnalysisResponse>('/chat', { message, history });
-    }
+  /**
+   * Send a chat message to get an AI heap dump analysis response.
+   * @param message - The user's natural language message
+   * @param history - The conversation history for context
+   * @returns Promise resolving to the AI response with analysis results
+   */
+  public chat(message: string, history: ChatMessage[]): Promise<AiAnalysisResponse> {
+    return this.post<AiAnalysisResponse>('/chat', { message, history });
+  }
 }

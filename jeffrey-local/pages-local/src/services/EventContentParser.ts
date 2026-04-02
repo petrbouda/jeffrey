@@ -20,118 +20,118 @@ import WorkspaceEvent from '@/services/api/model/WorkspaceEvent';
 import WorkspaceEventType from '@/services/api/model/WorkspaceEventType';
 
 export interface ProjectCreatedContent {
-    projectName: string;
-    repositoryType: string;
-    attributes: Record<string, string>;
+  projectName: string;
+  repositoryType: string;
+  attributes: Record<string, string>;
 }
 
 export interface SessionCreatedContent {
-    sessionId: string;
-    relativePath: string;
-    workspacesPath: string;
+  sessionId: string;
+  relativePath: string;
+  workspacesPath: string;
 }
 
 export interface ProjectDeletedContent {
-    projectName: string;
-    deletedAt: string;
-    reason?: string;
+  projectName: string;
+  deletedAt: string;
+  reason?: string;
 }
 
 export interface SessionDeletedContent {
-    sessionId: string;
-    deletedAt: string;
-    reason?: string;
+  sessionId: string;
+  deletedAt: string;
+  reason?: string;
 }
 
 export interface ProjectInstanceCreatedContent {
-    relativeInstancePath: string;
+  relativeInstancePath: string;
 }
 
 export class EventContentParser {
-    static parseContent(event: WorkspaceEvent): any {
-        try {
-            return JSON.parse(event.content);
-        } catch (error) {
-            console.warn('Failed to parse event content:', error);
-            return { raw: event.content };
-        }
+  static parseContent(event: WorkspaceEvent): any {
+    try {
+      return JSON.parse(event.content);
+    } catch (error) {
+      console.warn('Failed to parse event content:', error);
+      return { raw: event.content };
     }
+  }
 
-    static getEventDescription(event: WorkspaceEvent): string {
-        const content = this.parseContent(event);
+  static getEventDescription(event: WorkspaceEvent): string {
+    const content = this.parseContent(event);
 
-        switch (event.eventType) {
-            case WorkspaceEventType.PROJECT_CREATED:
-                return `Project "${content.projectName}" created with ${content.repositoryType} repository`;
-            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
-                return `Instance "${content.relativeInstancePath}" created`;
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
-                return `Session "${content.sessionId}" created in ${content.relativePath}`;
-            case WorkspaceEventType.PROJECT_DELETED:
-                return `Project "${content.projectName}" deleted`;
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-                return `Session "${content.sessionId}" deleted`;
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
-                return 'Session finished';
-            default:
-                return 'Unknown event type';
-        }
+    switch (event.eventType) {
+      case WorkspaceEventType.PROJECT_CREATED:
+        return `Project "${content.projectName}" created with ${content.repositoryType} repository`;
+      case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+        return `Instance "${content.relativeInstancePath}" created`;
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
+        return `Session "${content.sessionId}" created in ${content.relativePath}`;
+      case WorkspaceEventType.PROJECT_DELETED:
+        return `Project "${content.projectName}" deleted`;
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
+        return `Session "${content.sessionId}" deleted`;
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
+        return 'Session finished';
+      default:
+        return 'Unknown event type';
     }
+  }
 
-    static getEventIcon(eventType: WorkspaceEventType): string {
-        switch (eventType) {
-            case WorkspaceEventType.PROJECT_CREATED:
-                return 'bi-folder-plus';
-            case WorkspaceEventType.PROJECT_DELETED:
-                return 'bi-folder-x';
-            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
-                return 'bi-box';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
-                return 'bi-play-circle';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-                return 'bi-stop-circle';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
-                return 'bi-stop-circle-fill';
-            default:
-                return 'bi-question-circle';
-        }
+  static getEventIcon(eventType: WorkspaceEventType): string {
+    switch (eventType) {
+      case WorkspaceEventType.PROJECT_CREATED:
+        return 'bi-folder-plus';
+      case WorkspaceEventType.PROJECT_DELETED:
+        return 'bi-folder-x';
+      case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+        return 'bi-box';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
+        return 'bi-play-circle';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
+        return 'bi-stop-circle';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
+        return 'bi-stop-circle-fill';
+      default:
+        return 'bi-question-circle';
     }
+  }
 
-    static getEventColor(eventType: WorkspaceEventType): string {
-        switch (eventType) {
-            case WorkspaceEventType.PROJECT_CREATED:
-                return 'success';
-            case WorkspaceEventType.PROJECT_DELETED:
-                return 'danger';
-            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
-                return 'info';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
-                return 'primary';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-                return 'warning';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
-                return 'info';
-            default:
-                return 'secondary';
-        }
+  static getEventColor(eventType: WorkspaceEventType): string {
+    switch (eventType) {
+      case WorkspaceEventType.PROJECT_CREATED:
+        return 'success';
+      case WorkspaceEventType.PROJECT_DELETED:
+        return 'danger';
+      case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+        return 'info';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
+        return 'primary';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
+        return 'warning';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
+        return 'info';
+      default:
+        return 'secondary';
     }
+  }
 
-    static getEventDisplayName(eventType: WorkspaceEventType): string {
-        switch (eventType) {
-            case WorkspaceEventType.PROJECT_CREATED:
-                return 'Project Created';
-            case WorkspaceEventType.PROJECT_DELETED:
-                return 'Project Deleted';
-            case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
-                return 'Instance Created';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
-                return 'Session Created';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
-                return 'Session Deleted';
-            case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
-                return 'Session Finished';
-            default:
-                return 'Unknown Event';
-        }
+  static getEventDisplayName(eventType: WorkspaceEventType): string {
+    switch (eventType) {
+      case WorkspaceEventType.PROJECT_CREATED:
+        return 'Project Created';
+      case WorkspaceEventType.PROJECT_DELETED:
+        return 'Project Deleted';
+      case WorkspaceEventType.PROJECT_INSTANCE_CREATED:
+        return 'Instance Created';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED:
+        return 'Session Created';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED:
+        return 'Session Deleted';
+      case WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED:
+        return 'Session Finished';
+      default:
+        return 'Unknown Event';
     }
+  }
 }

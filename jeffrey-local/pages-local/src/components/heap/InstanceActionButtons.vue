@@ -1,24 +1,24 @@
 <template>
   <div v-if="objectId !== null" class="instance-action-buttons">
     <button
-        class="btn btn-action"
-        title="Show Referrers (who references this)"
-        @click="$emit('showReferrers', objectId)"
+      class="btn btn-action"
+      title="Show Referrers (who references this)"
+      @click="$emit('showReferrers', objectId)"
     >
       <i class="bi bi-box-arrow-in-left"></i>
     </button>
     <button
-        class="btn btn-action"
-        title="Show Reachables (what this references)"
-        @click="$emit('showReachables', objectId)"
+      class="btn btn-action"
+      title="Show Reachables (what this references)"
+      @click="$emit('showReachables', objectId)"
     >
       <i class="bi bi-box-arrow-right"></i>
     </button>
     <button
-        v-if="showGcRootPath"
-        class="btn btn-action"
-        title="Path to GC Root"
-        @click="$emit('showGCRootPath', objectId)"
+      v-if="showGcRootPath"
+      class="btn btn-action"
+      title="Path to GC Root"
+      @click="$emit('showGCRootPath', objectId)"
     >
       <i class="bi bi-signpost-2"></i>
     </button>
@@ -32,7 +32,7 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-  showGcRootPath: true,
+  showGcRootPath: true
 });
 
 defineEmits<{

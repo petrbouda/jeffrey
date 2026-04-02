@@ -12,11 +12,11 @@
 </template>
 
 <script setup lang="ts">
-import '@/styles/shared-components.css'
+import '@/styles/shared-components.css';
 
 defineProps<{
-  icon: string
-  title: string
-  badge?: number
-}>()
+  icon: string;
+  title: string;
+  badge?: number;
+}>();
 </script>

@@ -16,20 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import RecordingStatus from "@/services/api/model/RecordingStatus.ts";
-import RepositoryFile from "@/services/api/model/RepositoryFile.ts";
+import RecordingStatus from '@/services/api/model/RecordingStatus.ts';
+import RepositoryFile from '@/services/api/model/RepositoryFile.ts';
 
 export default class RecordingSession {
-    constructor(
-        public id: string,
-        public name: string,
-        public instanceId: string,
-        public createdAt: number,
-        public finishedAt: number | null,
-        public status: RecordingStatus,
-        public profilerSettings: string,
-        public duration: number,
-        public files: RepositoryFile[],
-    ) {
-    }
+  constructor(
+    public id: string,
+    public name: string,
+    public instanceId: string,
+    public createdAt: number,
+    public finishedAt: number | null,
+    public status: RecordingStatus,
+    public profilerSettings: string,
+    public duration: number,
+    public files: RepositoryFile[]
+  ) {}
 }

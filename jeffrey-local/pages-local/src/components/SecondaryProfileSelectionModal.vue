@@ -60,9 +60,12 @@
       <!-- Left Sidebar: Tree -->
       <div class="tree-sidebar">
         <!-- Quick Analysis node -->
-        <div v-if="quickAnalysisNode" class="tree-node tree-node-quick"
-             :class="{ active: selectedWorkspaceId === QUICK_ANALYSIS_WORKSPACE_ID }"
-             @click="selectWorkspace(QUICK_ANALYSIS_WORKSPACE_ID)">
+        <div
+          v-if="quickAnalysisNode"
+          class="tree-node tree-node-quick"
+          :class="{ active: selectedWorkspaceId === QUICK_ANALYSIS_WORKSPACE_ID }"
+          @click="selectWorkspace(QUICK_ANALYSIS_WORKSPACE_ID)"
+        >
           <div class="tree-node-header">
             <i class="bi bi-lightning-charge-fill tree-node-icon-quick"></i>
             <span class="tree-node-name">Quick Analysis</span>
@@ -72,12 +75,18 @@
 
         <!-- Regular workspace nodes -->
         <div v-for="ws in regularWorkspaceTree" :key="ws.id" class="tree-group">
-          <div class="tree-node"
-               :class="{ active: selectedWorkspaceId === ws.id && selectedProjectKey?.projectId === ws.id }"
-               @click="toggleWorkspaceExpand(ws.id)">
+          <div
+            class="tree-node"
+            :class="{
+              active: selectedWorkspaceId === ws.id && selectedProjectKey?.projectId === ws.id
+            }"
+            @click="toggleWorkspaceExpand(ws.id)"
+          >
             <div class="tree-node-header">
-              <i class="bi tree-expand-icon"
-                 :class="expandedWorkspaces.has(ws.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+              <i
+                class="bi tree-expand-icon"
+                :class="expandedWorkspaces.has(ws.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
+              ></i>
               <span class="tree-node-name">{{ ws.name }}</span>
               <span v-if="ws.id === props.workspaceId" class="current-dot"></span>
               <span class="tree-node-count">({{ ws.profileCount }})</span>
@@ -85,10 +94,17 @@
           </div>
           <!-- Project children -->
           <div v-if="expandedWorkspaces.has(ws.id)" class="tree-children">
-            <div v-for="proj in ws.projects" :key="proj.id"
-                 class="tree-child"
-                 :class="{ active: selectedProjectKey?.workspaceId === ws.id && selectedProjectKey?.projectId === proj.id }"
-                 @click="selectProject(ws.id, proj.id)">
+            <div
+              v-for="proj in ws.projects"
+              :key="proj.id"
+              class="tree-child"
+              :class="{
+                active:
+                  selectedProjectKey?.workspaceId === ws.id &&
+                  selectedProjectKey?.projectId === proj.id
+              }"
+              @click="selectProject(ws.id, proj.id)"
+            >
               <span class="tree-child-name">{{ proj.name }}</span>
               <span class="tree-child-count">({{ proj.profileCount }})</span>
             </div>
@@ -112,7 +128,11 @@
             <i class="bi bi-file-earmark-bar-graph"></i>
           </div>
           <p class="mt-2 mb-0">
-            {{ profileSearchQuery ? 'No matching profiles in this project' : 'No profiles in this project' }}
+            {{
+              profileSearchQuery
+                ? 'No matching profiles in this project'
+                : 'No profiles in this project'
+            }}
           </p>
         </div>
 
@@ -123,13 +143,16 @@
             <span class="profile-content-header-count">({{ selectedProjectProfiles.length }})</span>
           </div>
           <div class="profile-cards-list">
-            <div v-for="profile in selectedProjectProfiles" :key="profile.id"
-                 class="profile-card"
-                 :class="{
-                   selected: selectedProfile?.id === profile.id,
-                   primary: isPrimaryProfile(profile)
-                 }"
-                 @click="selectProfile(profile)">
+            <div
+              v-for="profile in selectedProjectProfiles"
+              :key="profile.id"
+              class="profile-card"
+              :class="{
+                selected: selectedProfile?.id === profile.id,
+                primary: isPrimaryProfile(profile)
+              }"
+              @click="selectProfile(profile)"
+            >
               <div class="profile-card-indicator">
                 <i v-if="selectedProfile?.id === profile.id" class="bi bi-check-circle-fill"></i>
                 <i v-else class="bi bi-circle"></i>
@@ -144,7 +167,9 @@
                 <div class="profile-card-meta">
                   <span>{{ FormattingService.formatDate(profile.createdAt) }}</span>
                   <span class="meta-separator"></span>
-                  <span>{{ FormattingService.formatDurationInMillis2Units(profile.durationInMillis) }}</span>
+                  <span>{{
+                    FormattingService.formatDurationInMillis2Units(profile.durationInMillis)
+                  }}</span>
                   <span class="meta-separator"></span>
                   <span>{{ FormattingService.formatBytes(profile.sizeInBytes) }}</span>
                 </div>
@@ -170,9 +195,7 @@
             <i class="bi bi-x-circle me-1"></i>
             Clear
           </button>
-          <button type="button" class="btn btn-cancel" @click="closeModal">
-            Cancel
-          </button>
+          <button type="button" class="btn btn-cancel" @click="closeModal">Cancel</button>
           <button
             type="button"
             class="btn btn-select-profile"
@@ -247,7 +270,9 @@ const selectedProjectKey = ref<{ workspaceId: string; projectId: string } | null
 const expandedWorkspaces = ref<Set<string>>(new Set());
 
 // Saved state for search restore
-const savedSelectionState = ref<{ selected: { workspaceId: string; projectId: string } | null } | null>(null);
+const savedSelectionState = ref<{
+  selected: { workspaceId: string; projectId: string } | null;
+} | null>(null);
 
 // Computed: which workspace is currently selected
 const selectedWorkspaceId = computed(() => selectedProjectKey.value?.workspaceId ?? null);
@@ -257,15 +282,16 @@ const filteredProfiles = computed(() => {
   let profiles = allProfiles.value;
   if (profileSearchQuery.value) {
     const query = profileSearchQuery.value.toLowerCase();
-    profiles = profiles.filter(p =>
-      p.name.toLowerCase().includes(query)
-    );
+    profiles = profiles.filter(p => p.name.toLowerCase().includes(query));
   }
   return profiles;
 });
 
 const workspaceTree = computed((): WorkspaceNode[] => {
-  const wsMap = new Map<string, { id: string; name: string; projects: Map<string, { id: string; name: string; count: number }> }>();
+  const wsMap = new Map<
+    string,
+    { id: string; name: string; projects: Map<string, { id: string; name: string; count: number }> }
+  >();
 
   for (const profile of filteredProfiles.value) {
     if (!wsMap.has(profile.workspaceId)) {
@@ -334,22 +360,26 @@ const selectedProjectName = computed(() => {
 const selectedProjectProfiles = computed(() => {
   if (!selectedProjectKey.value) return [];
   return filteredProfiles.value.filter(
-    p => p.workspaceId === selectedProjectKey.value!.workspaceId &&
-         p.projectId === selectedProjectKey.value!.projectId
+    p =>
+      p.workspaceId === selectedProjectKey.value!.workspaceId &&
+      p.projectId === selectedProjectKey.value!.projectId
   );
 });
 
 const hasValidSelection = computed(() => {
-  return selectedProfile.value !== null &&
-    selectedProfile.value.id !== props.currentProfileId;
+  return selectedProfile.value !== null && selectedProfile.value.id !== props.currentProfileId;
 });
 
 // Watch modal open
-watch(() => props.show, (newShow) => {
-  if (newShow) {
-    initializeModal();
-  }
-}, { immediate: true });
+watch(
+  () => props.show,
+  newShow => {
+    if (newShow) {
+      initializeModal();
+    }
+  },
+  { immediate: true }
+);
 
 // Watch search query for auto-select and auto-expand
 watch(profileSearchQuery, (newQuery, oldQuery) => {
@@ -371,8 +401,9 @@ watch(profileSearchQuery, (newQuery, oldQuery) => {
     // If current selection has no matches, auto-select workspace of first match
     if (selectedProjectKey.value) {
       const hasMatches = filteredProfiles.value.some(
-        p => p.workspaceId === selectedProjectKey.value!.workspaceId &&
-             p.projectId === selectedProjectKey.value!.projectId
+        p =>
+          p.workspaceId === selectedProjectKey.value!.workspaceId &&
+          p.projectId === selectedProjectKey.value!.projectId
       );
       if (!hasMatches && filteredProfiles.value.length > 0) {
         const first = filteredProfiles.value[0];
@@ -415,7 +446,10 @@ const initializeModal = async () => {
     const existing = allProfiles.value.find(p => p.id === props.currentSecondaryProfileId);
     if (existing) {
       selectedProfile.value = existing;
-      selectedProjectKey.value = { workspaceId: existing.workspaceId, projectId: existing.projectId };
+      selectedProjectKey.value = {
+        workspaceId: existing.workspaceId,
+        projectId: existing.projectId
+      };
       if (existing.workspaceId !== QUICK_ANALYSIS_WORKSPACE_ID) {
         expandedWorkspaces.value.add(existing.workspaceId);
       }
@@ -474,7 +508,7 @@ const selectProject = (wsId: string, projId: string) => {
 
 const selectProfile = (profile: ProfileListResponse) => {
   if (profile.id === props.currentProfileId) {
-    ToastService.error("Selection failed", "Cannot select primary profile as secondary profile");
+    ToastService.error('Selection failed', 'Cannot select primary profile as secondary profile');
     return;
   }
   selectedProfile.value = profile;
@@ -511,8 +545,6 @@ const closeModal = () => {
 const isPrimaryProfile = (profile: ProfileListResponse) => {
   return profile.id === props.currentProfileId;
 };
-
-
 </script>
 
 <style scoped>
@@ -637,7 +669,9 @@ const isPrimaryProfile = (profile: ProfileListResponse) => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {

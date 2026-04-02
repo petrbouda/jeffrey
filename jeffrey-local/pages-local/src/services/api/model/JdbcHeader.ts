@@ -17,12 +17,12 @@
  */
 
 export default class JdbcHeader {
-    constructor(
-        public statementCount: number,
-        public maxExecutionTime: number,
-        public p99ExecutionTime: number,
-        public p95ExecutionTime: number,
-        public successRate: number,
-        public errorCount: number,
-    ) {}
+  constructor(
+    public statementCount: number,
+    public maxExecutionTime: number,
+    public p99ExecutionTime: number,
+    public p95ExecutionTime: number,
+    public successRate: number,
+    public errorCount: number
+  ) {}
 }

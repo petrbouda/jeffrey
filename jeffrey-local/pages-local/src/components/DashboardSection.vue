@@ -44,7 +44,11 @@ const metricsData = computed(() => {
       icon: 'check-circle',
       title: 'Success Rate',
       value: `${((header.successRate || 0) * 100).toFixed(1)}%`,
-      variant: ((header.successRate || 0) === 1 ? 'success' : header.count5xx > 0 ? 'danger' : 'warning') as const,
+      variant: ((header.successRate || 0) === 1
+        ? 'success'
+        : header.count5xx > 0
+          ? 'danger'
+          : 'warning') as const,
       breakdown: [
         {
           label: '4xx Errors',
@@ -61,16 +65,23 @@ const metricsData = computed(() => {
     {
       icon: 'arrow-down-up',
       title: 'Data Transferred',
-      value: header.totalBytesTransferred < 0 ? '?' : FormattingService.formatBytes(header.totalBytesTransferred),
+      value:
+        header.totalBytesTransferred < 0
+          ? '?'
+          : FormattingService.formatBytes(header.totalBytesTransferred),
       variant: 'info' as const,
       breakdown: [
         {
           label: 'Received',
-          value: header.totalBytesReceived < 0 ? '?' : FormattingService.formatBytes(header.totalBytesReceived)
+          value:
+            header.totalBytesReceived < 0
+              ? '?'
+              : FormattingService.formatBytes(header.totalBytesReceived)
         },
         {
           label: 'Sent',
-          value: header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent)
+          value:
+            header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent)
         }
       ]
     }

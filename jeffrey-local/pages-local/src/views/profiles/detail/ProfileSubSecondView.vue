@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import {onBeforeMount, ref} from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 
 interface Props {
@@ -29,29 +29,29 @@ interface Props {
 defineProps<Props>();
 import MessageBus from '@/services/MessageBus';
 import Utils from '@/services/Utils';
-import FlamegraphComponent from "@/components/FlamegraphComponent.vue";
-import SearchBarComponent from "@/components/SearchBarComponent.vue";
-import TimeSeriesChart from "@/components/TimeSeriesChart.vue";
-import router from "@/router";
-import GraphType from "@/services/flamegraphs/GraphType";
-import SubSecondComponent from "@/components/SubSecondComponent.vue";
-import {useRoute} from "vue-router";
+import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
+import SearchBarComponent from '@/components/SearchBarComponent.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import router from '@/router';
+import GraphType from '@/services/flamegraphs/GraphType';
+import SubSecondComponent from '@/components/SubSecondComponent.vue';
+import { useRoute } from 'vue-router';
 
-import FlamegraphClient from "@/services/api/FlamegraphClient";
-import PrimaryFlamegraphClient from "@/services/api/PrimaryFlamegraphClient";
-import DifferentialFlamegraphClient from "@/services/api/DifferentialFlamegraphClient";
-import FlamegraphTooltip from "@/services/flamegraphs/tooltips/FlamegraphTooltip";
-import FlamegraphTooltipFactory from "@/services/flamegraphs/tooltips/FlamegraphTooltipFactory";
-import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
-import SubSecondDataProviderImpl from "@/services/subsecond/SubSecondDataProviderImpl";
-import HeatmapTooltip from "@/services/subsecond/HeatmapTooltip";
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import OnlyFlamegraphGraphUpdater from "@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater";
-import TimeRange from "@/services/api/model/TimeRange";
-import TimeseriesEventAxeFormatter from "@/services/timeseries/TimeseriesEventAxeFormatter";
+import FlamegraphClient from '@/services/api/FlamegraphClient';
+import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
+import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
+import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
+import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
+import SubSecondDataProvider from '@/services/subsecond/SubSecondDataProvider';
+import SubSecondDataProviderImpl from '@/services/subsecond/SubSecondDataProviderImpl';
+import HeatmapTooltip from '@/services/subsecond/HeatmapTooltip';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater';
+import TimeRange from '@/services/api/model/TimeRange';
+import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import GenericModal from '@/components/GenericModal.vue';
 
-const route = useRoute()
+const route = useRoute();
 
 const showDialog = ref<boolean>(false);
 const subSecondRef = ref<InstanceType<typeof SubSecondComponent> | null>(null);
@@ -63,9 +63,9 @@ const eventType = ref<string>('');
 const useWeight = ref(false);
 const isDifferential = ref(false);
 
-let graphUpdater: GraphUpdater
-let flamegraphTooltip: FlamegraphTooltip
-let timeseriesClient: PrimaryFlamegraphClient | DifferentialFlamegraphClient
+let graphUpdater: GraphUpdater;
+let flamegraphTooltip: FlamegraphTooltip;
+let timeseriesClient: PrimaryFlamegraphClient | DifferentialFlamegraphClient;
 
 function scrollToTop() {
   const wrapper = document.querySelector('.flamegraphModal');
@@ -74,9 +74,8 @@ function scrollToTop() {
   }
 }
 
-
-let primarySubSecondDataProvider: SubSecondDataProvider
-let secondarySubSecondDataProvider: SubSecondDataProvider | null = null
+let primarySubSecondDataProvider: SubSecondDataProvider;
+let secondarySubSecondDataProvider: SubSecondDataProvider | null = null;
 
 onBeforeMount(() => {
   // Read query params here where the route is guaranteed to be resolved
@@ -89,9 +88,9 @@ onBeforeMount(() => {
 
   // Validate required query parameter
   if (!eventTypeValue) {
-    console.error('SubSecondView: eventType query parameter is required')
-    router.back()
-    return
+    console.error('SubSecondView: eventType query parameter is required');
+    router.back();
+    return;
   }
 
   // Set reactive refs for template
@@ -106,61 +105,66 @@ onBeforeMount(() => {
   }
 
   primarySubSecondDataProvider = new SubSecondDataProviderImpl(
-      route.params.profileId as string,
-      eventTypeValue,
-      useWeightValue,
-  )
+    route.params.profileId as string,
+    eventTypeValue,
+    useWeightValue
+  );
 
   if (isDifferentialValue) {
     secondarySubSecondDataProvider = new SubSecondDataProviderImpl(
-        SecondaryProfileService.id() as string,
-        eventTypeValue,
-        useWeightValue,
-    )
+      SecondaryProfileService.id() as string,
+      eventTypeValue,
+      useWeightValue
+    );
   }
 
-  let flamegraphClient: FlamegraphClient
+  let flamegraphClient: FlamegraphClient;
   if (isPrimaryValue) {
     flamegraphClient = new PrimaryFlamegraphClient(
-        route.params.profileId as string,
-        eventTypeValue,
-        false,
-        useWeightValue,
-        false,
-        false,
-        false,
-        null
-    )
-    timeseriesClient = flamegraphClient as PrimaryFlamegraphClient
+      route.params.profileId as string,
+      eventTypeValue,
+      false,
+      useWeightValue,
+      false,
+      false,
+      false,
+      null
+    );
+    timeseriesClient = flamegraphClient as PrimaryFlamegraphClient;
   } else {
     flamegraphClient = new DifferentialFlamegraphClient(
-        route.params.profileId as string,
-        SecondaryProfileService.id() as string,
-        eventTypeValue,
-        useWeightValue,
-        false,
-        false,
-        false,
-    )
-    timeseriesClient = flamegraphClient as DifferentialFlamegraphClient
+      route.params.profileId as string,
+      SecondaryProfileService.id() as string,
+      eventTypeValue,
+      useWeightValue,
+      false,
+      false,
+      false
+    );
+    timeseriesClient = flamegraphClient as DifferentialFlamegraphClient;
   }
 
-  graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, false)
-  flamegraphTooltip = FlamegraphTooltipFactory.create(eventTypeValue, useWeightValue, !isPrimaryValue)
+  graphUpdater = new OnlyFlamegraphGraphUpdater(flamegraphClient, false);
+  flamegraphTooltip = FlamegraphTooltipFactory.create(
+    eventTypeValue,
+    useWeightValue,
+    !isPrimaryValue
+  );
 
   // Fetch timeseries data for the brush chart
-  timeseriesClient.provideTimeseries(null)
-      .then(data => {
-        if (data.series && data.series.length > 0) {
-          timeseriesData.value = data.series[0].data
-          // Extract secondary series if in differential mode
-          if (data.series.length > 1) {
-            timeseriesSecondaryData.value = data.series[1].data
-          }
+  timeseriesClient
+    .provideTimeseries(null)
+    .then(data => {
+      if (data.series && data.series.length > 0) {
+        timeseriesData.value = data.series[0].data;
+        // Extract secondary series if in differential mode
+        if (data.series.length > 1) {
+          timeseriesSecondaryData.value = data.series[1].data;
         }
-      })
-      .catch(error => console.error('Error loading timeseries data:', error))
-})
+      }
+    })
+    .catch(error => console.error('Error loading timeseries data:', error));
+});
 
 function createOnSelectedCallback() {
   return function (startTime: number[], endTime: number[]) {
@@ -171,12 +175,12 @@ function createOnSelectedCallback() {
 
 function showFlamegraph(timeRange: TimeRange) {
   // Show the flamegraph dialog
-  showDialog.value = true
+  showDialog.value = true;
 
   MessageBus.emit(MessageBus.SUBSECOND_SELECTION_CLEAR, {});
 
   setTimeout(() => {
-    graphUpdater.updateWithZoom(timeRange)
+    graphUpdater.updateWithZoom(timeRange);
   }, 200);
 }
 
@@ -186,9 +190,9 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
   if (payload.isZoomed) {
     // Convert from seconds to milliseconds for backend API
     const newTimeRange = new TimeRange(
-        Math.floor(payload.start * 1000),
-        Math.ceil(payload.end * 1000),
-        false
+      Math.floor(payload.start * 1000),
+      Math.ceil(payload.end * 1000),
+      false
     );
 
     // Reload heatmap with new time range
@@ -202,8 +206,8 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
 
 <template>
   <div>
-  <div style="padding-left: 5px; padding-right: 5px">
-    <TimeSeriesChart
+    <div style="padding-left: 5px; padding-right: 5px">
+      <TimeSeriesChart
         v-if="timeseriesData"
         :primary-data="timeseriesData"
         :secondary-data="timeseriesSecondaryData"
@@ -215,10 +219,10 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
         :fixed-window-minutes="5"
         time-unit="seconds"
         @update:timeRange="onTimeRangeChange"
-    />
-  </div>
+      />
+    </div>
 
-  <SubSecondComponent
+    <SubSecondComponent
       ref="subSecondRef"
       :primary-data-provider="primarySubSecondDataProvider"
       :primary-selected-callback="createOnSelectedCallback()"
@@ -227,22 +231,29 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
       :tooltip="new HeatmapTooltip(eventType!, useWeight)"
       :event-type="eventType!"
       :use-weight="useWeight"
-  />
+    />
 
-  <GenericModal
+    <GenericModal
       modal-id="flamegraphModal"
       :show="showDialog"
       size="fullscreen"
       :show-footer="false"
-      @update:show="showDialog = $event">
-    <template #header>
-      <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
-    </template>
-    <SearchBarComponent
+      @update:show="showDialog = $event"
+    >
+      <template #header>
+        <button
+          type="button"
+          class="btn-close"
+          @click="showDialog = false"
+          aria-label="Close"
+        ></button>
+      </template>
+      <SearchBarComponent
         v-if="showDialog"
         :graph-updater="graphUpdater"
-        :with-timeseries="false"/>
-    <FlamegraphComponent
+        :with-timeseries="false"
+      />
+      <FlamegraphComponent
         v-if="showDialog"
         :with-timeseries="false"
         :use-weight="useWeight"
@@ -250,8 +261,8 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
         scrollable-wrapper-class="flamegraphModal"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"
-        @loaded="scrollToTop"/>
-  </GenericModal>
+        @loaded="scrollToTop"
+      />
+    </GenericModal>
   </div>
 </template>
-

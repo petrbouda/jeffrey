@@ -1,8 +1,8 @@
 <template>
   <th
-      :class="['sortable-header', { 'active': isActive, 'text-end': align === 'end' }]"
-      :style="width ? { width } : undefined"
-      @click="$emit('sort', column)"
+    :class="['sortable-header', { active: isActive, 'text-end': align === 'end' }]"
+    :style="width ? { width } : undefined"
+    @click="$emit('sort', column)"
   >
     <span class="header-content" :class="{ 'justify-end': align === 'end' }">
       <slot>{{ label }}</slot>

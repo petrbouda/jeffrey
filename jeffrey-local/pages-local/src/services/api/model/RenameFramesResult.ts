@@ -17,5 +17,5 @@
  */
 
 export default interface RenameFramesResult {
-  renamedFrames: number
+  renamedFrames: number;
 }

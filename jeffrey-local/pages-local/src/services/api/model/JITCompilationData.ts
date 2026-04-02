@@ -17,16 +17,16 @@
  */
 
 export default class JITCompilationData {
-    constructor(
-        public compileCount: number,
-        public bailoutCount: number,
-        public invalidatedCount: number,
-        public osrCompileCount: number,
-        public standardCompileCount: number,
-        public nmethodsSize: number,
-        public nmethodCodeSize: number,
-        public peakTimeSpent: number,
-        public totalTimeSpent: number,
-        public compileMethodThreshold: number) {
-    }
+  constructor(
+    public compileCount: number,
+    public bailoutCount: number,
+    public invalidatedCount: number,
+    public osrCompileCount: number,
+    public standardCompileCount: number,
+    public nmethodsSize: number,
+    public nmethodCodeSize: number,
+    public peakTimeSpent: number,
+    public totalTimeSpent: number,
+    public compileMethodThreshold: number
+  ) {}
 }

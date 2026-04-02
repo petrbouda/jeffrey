@@ -17,189 +17,196 @@
  */
 
 export default class FormattingService {
+  static UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
 
-    static UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
+  // eslint-disable-next-line no-loss-of-precision
+  static LONG_MAX: number = 9223372036854775807;
+  static NO_TIMESTAMP: number = -9223372036854776000;
 
-    // eslint-disable-next-line no-loss-of-precision
-    static LONG_MAX: number = 9223372036854775807;
-    static NO_TIMESTAMP: number = -9223372036854776000;
+  static format(value: any, jfrType: string) {
+    if (jfrType === 'jdk.jfr.MemoryAddress') {
+      return '0x' + parseInt(value).toString(16).toUpperCase();
+    } else if (jfrType === 'jdk.jfr.DataAmount') {
+      return FormattingService.formatBytes(parseInt(value));
+    } else if (jfrType === 'jdk.jfr.Percentage') {
+      return FormattingService.formatPercentage(parseFloat(value));
+    } else if (jfrType === 'jdk.jfr.Timestamp') {
+      return FormattingService.formatTimestamp(value);
+    } else if (jfrType === 'jdk.jfr.Timespan') {
+      return FormattingService.formatDuration2Units(value);
+    } else if (jfrType === 'Class') {
+      return FormattingService.formatClass(value);
+    } else if (jfrType === 'Thread') {
+      return FormattingService.formatThread(value);
+    } else if (jfrType === 'Boolean') {
+      return FormattingService.formatBoolean(value);
+    } else {
+      if (value === null) {
+        return '-';
+      }
+      return value;
+    }
+  }
 
-    static format(value: any, jfrType: string) {
-        if (jfrType === "jdk.jfr.MemoryAddress") {
-            return "0x" + parseInt(value).toString(16).toUpperCase()
-        } else if (jfrType === "jdk.jfr.DataAmount") {
-            return FormattingService.formatBytes(parseInt(value))
-        } else if (jfrType === "jdk.jfr.Percentage") {
-            return FormattingService.formatPercentage(parseFloat(value));
-        } else if (jfrType === "jdk.jfr.Timestamp") {
-            return FormattingService.formatTimestamp(value)
-        } else if (jfrType === "jdk.jfr.Timespan") {
-            return FormattingService.formatDuration2Units(value)
-        } else if (jfrType === "Class") {
-            return FormattingService.formatClass(value)
-        } else if (jfrType === "Thread") {
-            return FormattingService.formatThread(value)
-        } else if (jfrType === "Boolean") {
-            return FormattingService.formatBoolean(value)
-        } else {
-            if (value === null) {
-                return "-"
-            }
-            return value
-        }
+  static formatBytes(bytes: number) {
+    if (bytes < 0) {
+      return bytes + '';
     }
 
-    static formatBytes(bytes: number) {
-        if (bytes < 0) {
-            return bytes + '';
-        }
-
-        if (bytes == 0) {
-            return "0.00 B";
-        }
-
-        let e = Math.floor(Math.log(bytes) / Math.log(1024));
-        return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + FormattingService.UNITS[e];
+    if (bytes == 0) {
+      return '0.00 B';
     }
 
-    static formatPercentage(value: number) {
-        const percentage = (value * 100).toFixed(2)
-        return percentage + "%"
+    let e = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + FormattingService.UNITS[e];
+  }
+
+  static formatPercentage(value: number) {
+    const percentage = (value * 100).toFixed(2);
+    return percentage + '%';
+  }
+
+  static formatClass(value: string | null): string {
+    if (value === null) {
+      return '-';
+    } else {
+      return value;
+    }
+  }
+
+  static formatThread(value: string): string {
+    if (value === null) {
+      return '-';
+    } else {
+      return value;
+    }
+  }
+
+  static formatBoolean(value: boolean | null) {
+    if (value === null) {
+      return '-';
+    } else {
+      return value;
+    }
+  }
+
+  static formatDurationInMillis2Units(nanos: number): string {
+    return FormattingService.formatDuration2Units(nanos * 1_000_000);
+  }
+
+  static formatDuration(nanos: number): string {
+    if (nanos === undefined || nanos === null || nanos < 0) {
+      return '-';
+    } else if (nanos === FormattingService.LONG_MAX) {
+      return '∞';
+    } else if (nanos === 0) {
+      return '0';
     }
 
-    static formatClass(value: string | null): string {
-        if (value === null) {
-            return "-"
-        } else {
-            return value
-        }
-    }
-
-    static formatThread(value: string): string {
-        if (value === null) {
-            return "-"
-        } else {
-            return value
-        }
-    }
-
-    static formatBoolean(value: boolean | null) {
-        if (value === null) {
-            return "-"
-        } else {
-            return value
-        }
-    }
-
-    static formatDurationInMillis2Units(nanos: number): string {
-        return FormattingService.formatDuration2Units(nanos * 1_000_000)
+    const time = {
+      d: Math.floor(nanos / 86_400_000_000_000),
+      h: Math.floor(nanos / 3_600_000_000_000) % 24,
+      m: Math.floor(nanos / 60_000_000_000) % 60,
+      s: Math.floor(nanos / 1_000_000_000) % 60,
+      ms: Math.floor(nanos / 1_000_000) % 1_000,
+      us: Math.floor(nanos / 1_000) % 1_000,
+      ns: Math.floor(nanos) % 1_000
     };
+    return Object.entries(time)
+      .filter(val => val[1] !== 0)
+      .map(([key, val]) => `${val}${key}`)
+      .join(' ');
+  }
 
-    static formatDuration(nanos: number): string {
-        if (nanos === undefined || nanos === null || nanos < 0) {
-            return "-"
-        } else if (nanos === FormattingService.LONG_MAX) {
-            return "∞"
-        } else if (nanos === 0) {
-            return "0"
-        }
+  static formatDuration2Units(nanos: number) {
+    const durationString = FormattingService.formatDuration(nanos);
+    return durationString.split(' ').slice(0, 2).join(' ');
+  }
 
-        const time = {
-            d: Math.floor(nanos / 86_400_000_000_000),
-            h: Math.floor(nanos / 3_600_000_000_000) % 24,
-            m: Math.floor(nanos / 60_000_000_000) % 60,
-            s: Math.floor(nanos / 1_000_000_000) % 60,
-            ms: Math.floor(nanos / 1_000_000) % 1_000,
-            us: Math.floor(nanos / 1_000) % 1_000,
-            ns: Math.floor(nanos) % 1_000
-        };
-        return Object.entries(time)
-            .filter(val => val[1] !== 0)
-            .map(([key, val]) => `${val}${key}`)
-            .join(' ');
-    };
+  static formatTimestamp(millis: number): string {
+    if (millis === undefined || millis === null || millis === FormattingService.NO_TIMESTAMP) {
+      return '-';
+    } else if (millis === 0) {
+      return '0';
+    } else {
+      return new Date(millis).toISOString().replace('T', ' ');
+    }
+  }
 
-    static formatDuration2Units(nanos: number) {
-        const durationString = FormattingService.formatDuration(nanos)
-        return durationString.split(' ').slice(0, 2).join(' ')
-    };
+  static formatNumber(num: number): string {
+    if (num === undefined || num === null) {
+      return '-';
+    }
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  }
 
-    static formatTimestamp(millis: number): string {
-        if (millis === undefined || millis === null || millis === FormattingService.NO_TIMESTAMP) {
-            return "-"
-        } else if (millis === 0) {
-            return "0"
-        } else {
-            return new Date(millis).toISOString().replace('T', ' ');
-        }
-    };
-
-    static formatNumber(num: number): string {
-        if (num === undefined || num === null) {
-            return "-";
-        }
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-        return num.toString();
+  static formatRelativeTime(timestamp: number | undefined): string {
+    if (!timestamp || timestamp === FormattingService.NO_TIMESTAMP) {
+      return 'Unknown';
     }
 
-    static formatRelativeTime(timestamp: number | undefined): string {
-        if (!timestamp || timestamp === FormattingService.NO_TIMESTAMP) {
-            return "Unknown";
-        }
+    const now = new Date();
+    const diffMs = now.getTime() - timestamp;
 
-        const now = new Date();
-        const diffMs = now.getTime() - timestamp;
-
-        if (diffMs < 60000) { // less than 1 minute
-            const seconds = Math.floor(diffMs / 1000);
-            return seconds <= 1 ? 'just now' : `${seconds} secs ago`;
-        } else if (diffMs < 3600000) { // less than 1 hour
-            const minutes = Math.floor(diffMs / 60000);
-            return minutes === 1 ? '1 min ago' : `${minutes} mins ago`;
-        } else if (diffMs < 86400000) { // less than 1 day
-            const hours = Math.floor(diffMs / 3600000);
-            return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-        } else {
-            const days = Math.floor(diffMs / 86400000);
-            return days === 1 ? '1 day ago' : `${days} days ago`;
-        }
+    if (diffMs < 60000) {
+      // less than 1 minute
+      const seconds = Math.floor(diffMs / 1000);
+      return seconds <= 1 ? 'just now' : `${seconds} secs ago`;
+    } else if (diffMs < 3600000) {
+      // less than 1 hour
+      const minutes = Math.floor(diffMs / 60000);
+      return minutes === 1 ? '1 min ago' : `${minutes} mins ago`;
+    } else if (diffMs < 86400000) {
+      // less than 1 day
+      const hours = Math.floor(diffMs / 3600000);
+      return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+    } else {
+      const days = Math.floor(diffMs / 86400000);
+      return days === 1 ? '1 day ago' : `${days} days ago`;
     }
+  }
 
-    static formatTimestampUTC(millis: number | undefined | null): string {
-        if (!millis) return '-';
-        return new Date(millis).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
-    }
+  static formatTimestampUTC(millis: number | undefined | null): string {
+    if (!millis) return '-';
+    return new Date(millis)
+      .toISOString()
+      .replace('T', ' ')
+      .replace(/\.\d{3}Z$/, ' UTC');
+  }
 
-    static formatDate(dateString: string): string {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
+  static formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
 
-    static formatDateTime(date: Date): string {
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
-               `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-    }
+  static formatDateTime(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return (
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+      `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    );
+  }
 
-    static formatObjectId(objectId: number): string {
-        return '@' + objectId.toString(16);
-    }
+  static formatObjectId(objectId: number): string {
+    return '@' + objectId.toString(16);
+  }
 
-    static formatDurationFromMillis(startMs: number, endMs: number | null | undefined): string {
-        if (!startMs || !endMs) return '\u2014';
-        const durationMs = endMs - startMs;
-        if (durationMs <= 0) return '\u2014';
-        return FormattingService.formatDurationInMillis2Units(durationMs);
-    }
+  static formatDurationFromMillis(startMs: number, endMs: number | null | undefined): string {
+    if (!startMs || !endMs) return '\u2014';
+    const durationMs = endMs - startMs;
+    if (durationMs <= 0) return '\u2014';
+    return FormattingService.formatDurationInMillis2Units(durationMs);
+  }
 
-    static formatObjectParams(params: Record<string, string>): string {
-        const entries = Object.entries(params);
-        if (entries.length === 0) return '';
-        return entries.map(([k, v]) => `${k}=${v}`).join(', ');
-    }
+  static formatObjectParams(params: Record<string, string>): string {
+    const entries = Object.entries(params);
+    if (entries.length === 0) return '';
+    return entries.map(([k, v]) => `${k}=${v}`).join(', ');
+  }
 }

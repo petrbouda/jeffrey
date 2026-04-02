@@ -16,23 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadRectangle from "./ThreadRectangle";
+import ThreadRectangle from './ThreadRectangle';
 
 export default class ThreadGroup {
-    segments: ThreadRectangle[] = [];
-    start: number = -1;
-    end: number = -1;
+  segments: ThreadRectangle[] = [];
+  start: number = -1;
+  end: number = -1;
 
-    constructor(firstSegment: any) {
-        this.segments.push(firstSegment);
-        this.start = firstSegment.rect.x;
-        this.end = this.start + firstSegment.rect.width;
-    }
+  constructor(firstSegment: any) {
+    this.segments.push(firstSegment);
+    this.start = firstSegment.rect.x;
+    this.end = this.start + firstSegment.rect.width;
+  }
 
-    addSegment(segment: any): void {
-        this.segments.push(segment);
-        this.end = segment.end;
-    }
+  addSegment(segment: any): void {
+    this.segments.push(segment);
+    this.end = segment.end;
+  }
 }
-
-

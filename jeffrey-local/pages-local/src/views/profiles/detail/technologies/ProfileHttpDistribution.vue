@@ -1,9 +1,9 @@
 <template>
   <div>
     <CustomDisabledFeatureAlert
-        v-if="isHttpDashboardDisabled"
-        :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
-        eventType="HTTP exchange"
+      v-if="isHttpDashboardDisabled"
+      :title="mode === 'client' ? 'HTTP Client Dashboard' : 'HTTP Server Dashboard'"
+      eventType="HTTP exchange"
     />
 
     <div v-else>
@@ -14,19 +14,18 @@
       </div>
 
       <div v-else-if="error" class="p-4 text-center">
-        <div class="alert alert-danger" role="alert">
-          Error loading HTTP data: {{ error }}
-        </div>
+        <div class="alert alert-danger" role="alert">Error loading HTTP data: {{ error }}</div>
       </div>
 
       <div v-if="httpOverviewData" class="dashboard-container">
-        <HttpOverviewStats :header="httpOverviewData.header"/>
+        <HttpOverviewStats :header="httpOverviewData.header" />
         <HttpDistributionCharts
-            title="HTTP Distribution"
-            icon="pie-chart"
-            :status-codes="httpOverviewData.statusCodes || []"
-            :methods="httpOverviewData.methods || []"
-            :total-requests="httpOverviewData.header.requestCount || 0"/>
+          title="HTTP Distribution"
+          icon="pie-chart"
+          :status-codes="httpOverviewData.statusCodes || []"
+          :methods="httpOverviewData.methods || []"
+          :total-requests="httpOverviewData.header.requestCount || 0"
+        />
       </div>
 
       <div v-else-if="!isLoading && !error" class="p-4 text-center">
@@ -38,8 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import HttpDistributionCharts from '@/components/http/HttpDistributionCharts.vue';
 import ProfileHttpClient from '@/services/api/ProfileHttpClient';
 import HttpOverviewData from '@/services/api/model/HttpOverviewData';
@@ -63,7 +62,8 @@ const error = ref<string | null>(null);
 const mode = (route.query.mode as 'client' | 'server') || 'server';
 
 const isHttpDashboardDisabled = computed(() => {
-  const featureType = mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
+  const featureType =
+    mode === 'client' ? FeatureType.HTTP_CLIENT_DASHBOARD : FeatureType.HTTP_SERVER_DASHBOARD;
   return props.disabledFeatures.includes(featureType);
 });
 

@@ -138,36 +138,39 @@
 
       <!-- Flamegraph Modal -->
       <GenericModal
-          modal-id="flamegraphModal"
-          :show="showFlamegraphModal"
-          size="fullscreen"
-          :show-footer="false"
-          @update:show="showFlamegraphModal = $event">
+        modal-id="flamegraphModal"
+        :show="showFlamegraphModal"
+        size="fullscreen"
+        :show-footer="false"
+        @update:show="showFlamegraphModal = $event"
+      >
         <template #header>
-          <button type="button" class="btn-close" @click="showFlamegraphModal = false" aria-label="Close"></button>
+          <button
+            type="button"
+            class="btn-close"
+            @click="showFlamegraphModal = false"
+            aria-label="Close"
+          ></button>
         </template>
         <div id="scrollable-wrapper" class="p-3" v-if="showFlamegraphModal">
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <TimeSeriesChart
-              :graph-updater="graphUpdater"
-              :primary-axis-type="
-                TimeseriesEventAxeFormatter.resolveAxisFormatter(
-                  useWeightForModal,
-                  selectedEventCode
-                )
-              "
-              :visible-minutes="60"
-              :zoom-enabled="true"
-              time-unit="seconds"
+            :graph-updater="graphUpdater"
+            :primary-axis-type="
+              TimeseriesEventAxeFormatter.resolveAxisFormatter(useWeightForModal, selectedEventCode)
+            "
+            :visible-minutes="60"
+            :zoom-enabled="true"
+            time-unit="seconds"
           />
           <FlamegraphComponent
-              :with-timeseries="true"
-              :use-weight="useWeightForModal"
-              :use-guardian="null"
-              scrollableWrapperClass="scrollable-wrapper"
-              :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"
-              @loaded="scrollToTop"
+            :with-timeseries="true"
+            :use-weight="useWeightForModal"
+            :use-guardian="null"
+            scrollableWrapperClass="scrollable-wrapper"
+            :flamegraph-tooltip="flamegraphTooltip"
+            :graph-updater="graphUpdater"
+            @loaded="scrollToTop"
           />
         </div>
       </GenericModal>
@@ -229,7 +232,6 @@ const topAllocatingThreads = ref<AllocatingThread[]>([]);
 // CPU Load Threads - now using real data from ThreadStatisticsResponse
 const topUserCpuThreads = ref<ThreadWithCpuLoad[]>([]);
 const topSystemCpuThreads = ref<ThreadWithCpuLoad[]>([]);
-
 
 // State for allocation type from ThreadStatisticsResponse
 const allocationType = ref<string>('');
@@ -318,7 +320,6 @@ const loadThreadStatistics = async (): Promise<void> => {
     chartLoading.value = false;
   }
 };
-
 
 const viewThreadAllocationFlamegraph = (thread: AllocatingThread) => {
   // Use the allocationType from ThreadStatisticsResponse instead of hardcoded value

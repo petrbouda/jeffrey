@@ -21,9 +21,9 @@ import CumulatedStats from './CumulatedStats';
 export type CumulationMode = 'BY_METHOD' | 'BY_CLASS';
 
 export default interface MethodTracingCumulatedData {
-    mode: CumulationMode;
-    totalInvocations: number;
-    totalDuration: number;
-    uniqueCount: number;
-    items: CumulatedStats[];
+  mode: CumulationMode;
+  totalInvocations: number;
+  totalDuration: number;
+  uniqueCount: number;
+  items: CumulatedStats[];
 }

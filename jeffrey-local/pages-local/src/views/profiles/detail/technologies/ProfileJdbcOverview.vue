@@ -101,7 +101,6 @@ import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatur
 import FeatureType from '@/services/api/model/FeatureType';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 
-
 // Define props
 interface Props {
   disabledFeatures?: FeatureType[];

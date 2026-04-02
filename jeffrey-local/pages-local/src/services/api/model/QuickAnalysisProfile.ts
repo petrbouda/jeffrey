@@ -17,11 +17,11 @@
  */
 
 export default interface QuickAnalysisProfile {
-    id: string;
-    name: string;
-    groupName: string | null;
-    createdAt: string;
-    eventSource: string;
-    durationInMillis: number;
-    sizeInBytes: number;
+  id: string;
+  name: string;
+  groupName: string | null;
+  createdAt: string;
+  eventSource: string;
+  durationInMillis: number;
+  sizeInBytes: number;
 }

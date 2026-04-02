@@ -16,19 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FlamegraphData from "@/services/api/model/FlamegraphData";
-import TimeseriesData from "@/services/timeseries/model/TimeseriesData";
-import TimeRange from "@/services/api/model/TimeRange";
-import BothGraphData from "@/services/api/model/BothGraphData";
-import GraphComponents from "@/services/api/model/GraphComponents";
+import FlamegraphData from '@/services/api/model/FlamegraphData';
+import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import TimeRange from '@/services/api/model/TimeRange';
+import BothGraphData from '@/services/api/model/BothGraphData';
+import GraphComponents from '@/services/api/model/GraphComponents';
 
 export default abstract class FlamegraphClient {
+  abstract provideBoth(
+    composition: GraphComponents,
+    timeRange: TimeRange | null,
+    search: string | null
+  ): Promise<BothGraphData>;
 
-    abstract provideBoth(composition: GraphComponents, timeRange: TimeRange | null, search: string | null): Promise<BothGraphData>
+  abstract provide(timeRange: TimeRange | null): Promise<FlamegraphData>;
 
-    abstract provide(timeRange: TimeRange | null): Promise<FlamegraphData>
+  abstract provideTimeseries(search: string | null): Promise<TimeseriesData>;
 
-    abstract provideTimeseries(search: string | null): Promise<TimeseriesData>
-
-    abstract save(components: GraphComponents, flamegraphName: string, timeRange: TimeRange | null): Promise<void>
+  abstract save(
+    components: GraphComponents,
+    flamegraphName: string,
+    timeRange: TimeRange | null
+  ): Promise<void>;
 }

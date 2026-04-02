@@ -1,13 +1,16 @@
 <template>
   <div v-if="requests.length > 0" class="slowest-list">
-    <div v-for="request in displayedRequests"
-         :key="request.timestamp"
-         class="slowest-row">
+    <div v-for="request in displayedRequests" :key="request.timestamp" class="slowest-row">
       <div class="left-accent" :class="getAccentClass(request.statusCode)"></div>
       <div class="row-content">
         <div class="row-header">
           <div class="row-header-left">
-            <Badge :value="request.method" :variant="getMethodVariant(request.method)" size="s" borderless />
+            <Badge
+              :value="request.method"
+              :variant="getMethodVariant(request.method)"
+              size="s"
+              borderless
+            />
             <div class="uri-path" :title="request.uri">
               <span class="uri-sep">/</span>
               <span v-for="(part, index) in parseUri(request.uri)" :key="index" class="uri-part">
@@ -18,21 +21,42 @@
             </div>
           </div>
           <div class="time-bar-wrap">
-            <span class="time-bar-value">{{ FormattingService.formatDuration2Units(request.responseTime) }}</span>
+            <span class="time-bar-value">{{
+              FormattingService.formatDuration2Units(request.responseTime)
+            }}</span>
             <div class="time-bar-track">
-              <div class="time-bar-fill" :style="{ width: getTimePercentage(request.responseTime) + '%' }"></div>
+              <div
+                class="time-bar-fill"
+                :style="{ width: getTimePercentage(request.responseTime) + '%' }"
+              ></div>
             </div>
           </div>
         </div>
         <div class="row-details">
-          <span class="detail-chip"><i class="bi bi-clock"></i> {{ FormattingService.formatTimestamp(request.timestamp).replace('T', ' ') }}</span>
+          <span class="detail-chip"
+            ><i class="bi bi-clock"></i>
+            {{ FormattingService.formatTimestamp(request.timestamp).replace('T', ' ') }}</span
+          >
           <span class="detail-dot">&middot;</span>
-          <Badge :value="request.statusCode.toString()" :variant="getStatusVariant(request.statusCode)" size="xs" borderless />
+          <Badge
+            :value="request.statusCode.toString()"
+            :variant="getStatusVariant(request.statusCode)"
+            size="xs"
+            borderless
+          />
           <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"><i class="bi bi-hdd-network"></i> {{ request.host }}:{{ request.port }}</span>
+          <span class="detail-chip"
+            ><i class="bi bi-hdd-network"></i> {{ request.host }}:{{ request.port }}</span
+          >
           <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"><i class="bi bi-arrow-up"></i> {{ FormattingService.formatBytes(request.requestSize) }}</span>
-          <span class="detail-chip"><i class="bi bi-arrow-down"></i> {{ FormattingService.formatBytes(request.responseSize) }}</span>
+          <span class="detail-chip"
+            ><i class="bi bi-arrow-up"></i>
+            {{ FormattingService.formatBytes(request.requestSize) }}</span
+          >
+          <span class="detail-chip"
+            ><i class="bi bi-arrow-down"></i>
+            {{ FormattingService.formatBytes(request.responseSize) }}</span
+          >
         </div>
       </div>
     </div>
@@ -40,10 +64,10 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService.ts';
 import Badge from '@/components/Badge.vue';
-import type {Variant} from '@/types/ui';
+import type { Variant } from '@/types/ui';
 
 interface SlowRequest {
   uri: string;
@@ -97,7 +121,12 @@ const parseUri = (uri: string) => {
 
 const getMethodVariant = (method: string): Variant => {
   const variants: Record<string, Variant> = {
-    get: 'blue', post: 'green', put: 'yellow', delete: 'red', patch: 'grey', options: 'purple'
+    get: 'blue',
+    post: 'green',
+    put: 'yellow',
+    delete: 'red',
+    patch: 'grey',
+    options: 'purple'
   };
   return variants[method.toLowerCase()] || 'secondary';
 };
@@ -255,7 +284,6 @@ const getStatusVariant = (status: number): Variant => {
   font-size: 0.8rem;
   line-height: 1;
 }
-
 
 @media (max-width: 768px) {
   .row-header {

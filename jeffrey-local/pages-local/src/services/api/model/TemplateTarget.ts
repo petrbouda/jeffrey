@@ -17,8 +17,8 @@
  */
 
 enum TemplateTarget {
-    PROJECT = "PROJECT",
-    GLOBAL_SCHEDULER = "GLOBAL_SCHEDULER",
+  PROJECT = 'PROJECT',
+  GLOBAL_SCHEDULER = 'GLOBAL_SCHEDULER'
 }
 
 export default TemplateTarget;

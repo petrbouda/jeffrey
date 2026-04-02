@@ -25,32 +25,32 @@ import HttpUtils from '@/services/HttpUtils';
  * Provides common HTTP methods with standard JSON headers.
  */
 export default abstract class BasePlatformClient {
-    protected readonly baseUrl: string;
+  protected readonly baseUrl: string;
 
-    constructor(baseUrl: string) {
-        this.baseUrl = GlobalVars.internalUrl + baseUrl;
-    }
+  constructor(baseUrl: string) {
+    this.baseUrl = GlobalVars.internalUrl + baseUrl;
+  }
 
-    protected get<T>(path: string = '', params?: Record<string, any>): Promise<T> {
-        const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-        const config = params
-            ? HttpUtils.JSON_ACCEPT_WITH_PARAMS(params)
-            : HttpUtils.JSON_ACCEPT_HEADER;
-        return axios.get<T>(url, config).then(HttpUtils.RETURN_DATA);
-    }
+  protected get<T>(path: string = '', params?: Record<string, any>): Promise<T> {
+    const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
+    const config = params
+      ? HttpUtils.JSON_ACCEPT_WITH_PARAMS(params)
+      : HttpUtils.JSON_ACCEPT_HEADER;
+    return axios.get<T>(url, config).then(HttpUtils.RETURN_DATA);
+  }
 
-    protected post<T>(path: string = '', body?: any): Promise<T> {
-        const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-        return axios.post<T>(url, body, HttpUtils.JSON_HEADERS).then(HttpUtils.RETURN_DATA);
-    }
+  protected post<T>(path: string = '', body?: any): Promise<T> {
+    const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
+    return axios.post<T>(url, body, HttpUtils.JSON_HEADERS).then(HttpUtils.RETURN_DATA);
+  }
 
-    protected put<T>(path: string = '', body?: any): Promise<T> {
-        const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-        return axios.put<T>(url, body, HttpUtils.JSON_HEADERS).then(HttpUtils.RETURN_DATA);
-    }
+  protected put<T>(path: string = '', body?: any): Promise<T> {
+    const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
+    return axios.put<T>(url, body, HttpUtils.JSON_HEADERS).then(HttpUtils.RETURN_DATA);
+  }
 
-    protected del<T>(path: string = ''): Promise<T> {
-        const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
-        return axios.delete<T>(url, HttpUtils.JSON_ACCEPT_HEADER).then(HttpUtils.RETURN_DATA);
-    }
+  protected del<T>(path: string = ''): Promise<T> {
+    const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
+    return axios.delete<T>(url, HttpUtils.JSON_ACCEPT_HEADER).then(HttpUtils.RETURN_DATA);
+  }
 }

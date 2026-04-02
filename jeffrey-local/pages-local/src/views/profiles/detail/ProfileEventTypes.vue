@@ -222,28 +222,29 @@
 
     <!-- Flamegraph Modal -->
     <GenericModal
-        modal-id="flamegraphModal"
-        :show="showFlamegraphDialog"
-        :title="selectedEventCode"
-        size="fullscreen"
-        :show-footer="false"
-        @update:show="showFlamegraphDialog = $event">
+      modal-id="flamegraphModal"
+      :show="showFlamegraphDialog"
+      :title="selectedEventCode"
+      size="fullscreen"
+      :show-footer="false"
+      @update:show="showFlamegraphDialog = $event"
+    >
       <div id="scrollable-wrapper" class="p-3" v-if="showFlamegraphDialog">
         <TimeSeriesChart
-            :graph-updater="graphUpdater"
-            :primary-axis-type="AxisFormatType.NUMBER"
-            :visible-minutes="60"
-            :zoom-enabled="true"
-            time-unit="seconds"
+          :graph-updater="graphUpdater"
+          :primary-axis-type="AxisFormatType.NUMBER"
+          :visible-minutes="60"
+          :zoom-enabled="true"
+          time-unit="seconds"
         />
         <FlamegraphComponent
-            :with-timeseries="true"
-            :use-weight="false"
-            :use-guardian="null"
-            scrollableWrapperClass="scrollable-wrapper"
-            :flamegraph-tooltip="flamegraphTooltip"
-            :graph-updater="graphUpdater"
-            @loaded="scrollToTop"
+          :with-timeseries="true"
+          :use-weight="false"
+          :use-guardian="null"
+          scrollableWrapperClass="scrollable-wrapper"
+          :flamegraph-tooltip="flamegraphTooltip"
+          :graph-updater="graphUpdater"
+          @loaded="scrollToTop"
         />
       </div>
     </GenericModal>
@@ -307,14 +308,14 @@ const summaryMetrics = computed(() => [
     icon: 'bar-chart-line',
     title: 'Total Events',
     value: formatNumber(totalEventCount.value),
-    variant: 'highlight' as const,
+    variant: 'highlight' as const
   },
   {
     icon: 'list-check',
     title: 'Event Types',
     value: formatNumber(totalEventTypes.value),
-    variant: 'info' as const,
-  },
+    variant: 'info' as const
+  }
 ]);
 
 // Flamegraph modal state

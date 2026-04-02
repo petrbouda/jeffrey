@@ -12,9 +12,9 @@
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="search"
-      message="The heap dump needs to be initialized before you can view leak suspects."
+    v-else-if="!cacheReady"
+    icon="search"
+    message="The heap dump needs to be initialized before you can view leak suspects."
   />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -22,15 +22,18 @@
   <!-- Analysis Not Yet Run -->
   <div v-else-if="!analysisExists && !analysisRunning">
     <PageHeader
-        title="Leak Suspects"
-        description="Automated analysis to identify potential memory leaks"
-        icon="bi-bug"
+      title="Leak Suspects"
+      description="Automated analysis to identify potential memory leaks"
+      icon="bi-bug"
     />
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
       <div class="flex-grow-1">
         <h6 class="mb-1">Leak Suspects Analysis Not Available</h6>
-        <p class="mb-2 small">Run the analysis to identify objects and classes that may indicate memory leaks based on heuristic detection.</p>
+        <p class="mb-2 small">
+          Run the analysis to identify objects and classes that may indicate memory leaks based on
+          heuristic detection.
+        </p>
         <button class="btn btn-primary btn-sm" @click="runAnalysis">
           <i class="bi bi-play-fill me-1"></i>
           Run Leak Analysis
@@ -42,9 +45,9 @@
   <!-- Analysis Running -->
   <div v-else-if="analysisRunning">
     <PageHeader
-        title="Leak Suspects"
-        description="Automated analysis to identify potential memory leaks"
-        icon="bi-bug"
+      title="Leak Suspects"
+      description="Automated analysis to identify potential memory leaks"
+      icon="bi-bug"
     />
     <div class="alert alert-info d-flex align-items-center">
       <div class="spinner-border spinner-border-sm me-3" role="status"></div>
@@ -58,9 +61,9 @@
   <!-- Results -->
   <div v-else-if="report">
     <PageHeader
-        title="Leak Suspects"
-        description="Automated analysis to identify potential memory leaks"
-        icon="bi-bug"
+      title="Leak Suspects"
+      description="Automated analysis to identify potential memory leaks"
+      icon="bi-bug"
     />
 
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
@@ -69,16 +72,17 @@
     <div v-if="report.suspects.length === 0" class="text-center text-muted py-5">
       <i class="bi bi-shield-check fs-1 mb-3 d-block text-success"></i>
       <h6>No Leak Suspects Detected</h6>
-      <p class="small">The heuristic analysis did not find any objects or classes that indicate potential memory leaks.</p>
+      <p class="small">
+        The heuristic analysis did not find any objects or classes that indicate potential memory
+        leaks.
+      </p>
     </div>
 
     <!-- Suspect cards -->
     <div v-else class="suspects-list">
       <div v-for="suspect in report.suspects" :key="suspect.rank" class="suspect-card">
         <div class="suspect-header">
-          <div class="suspect-rank" :class="getSeverityClass(suspect)">
-            #{{ suspect.rank }}
-          </div>
+          <div class="suspect-rank" :class="getSeverityClass(suspect)">#{{ suspect.rank }}</div>
           <div class="suspect-title">
             <h6 class="mb-0">{{ simpleClassName(suspect.className) }}</h6>
             <span class="text-muted small">{{ suspect.className }}</span>
@@ -93,11 +97,15 @@
           <div class="suspect-stats">
             <div class="stat-item">
               <span class="stat-label">Retained Size</span>
-              <span class="stat-value font-monospace">{{ FormattingService.formatBytes(suspect.retainedSize) }}</span>
+              <span class="stat-value font-monospace">{{
+                FormattingService.formatBytes(suspect.retainedSize)
+              }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Instances</span>
-              <span class="stat-value font-monospace">{{ FormattingService.formatNumber(suspect.instanceCount) }}</span>
+              <span class="stat-value font-monospace">{{
+                FormattingService.formatNumber(suspect.instanceCount)
+              }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Accumulation</span>
@@ -112,11 +120,11 @@
 
           <!-- Heap percentage bar -->
           <div class="suspect-bar">
-            <div class="progress" style="height: 8px;">
+            <div class="progress" style="height: 8px">
               <div
-                  class="progress-bar"
-                  :class="getBarClass(suspect)"
-                  :style="{ width: Math.min(suspect.heapPercentage, 100) + '%' }"
+                class="progress-bar"
+                :class="getBarClass(suspect)"
+                :style="{ width: Math.min(suspect.heapPercentage, 100) + '%' }"
               ></div>
             </div>
           </div>
@@ -124,10 +132,10 @@
           <!-- Actions -->
           <div class="suspect-actions" v-if="suspect.objectId">
             <InstanceActionButtons
-                :object-id="suspect.objectId"
-                @show-referrers="openTreeModal($event, 'REFERRERS')"
-                @show-reachables="openTreeModal($event, 'REACHABLES')"
-                @show-g-c-root-path="openGCRootPath"
+              :object-id="suspect.objectId"
+              @show-referrers="openTreeModal($event, 'REFERRERS')"
+              @show-reachables="openTreeModal($event, 'REACHABLES')"
+              @show-g-c-root-path="openGCRootPath"
             />
           </div>
         </div>
@@ -136,14 +144,13 @@
 
     <!-- Modals -->
     <InstanceTreeModal
-        v-if="treeModalObjectId !== null"
-        :show="showTreeModal"
-        :object-id="treeModalObjectId"
-        :initial-mode="treeModalMode"
-        :profile-id="profileId"
-        @close="showTreeModal = false"
+      v-if="treeModalObjectId !== null"
+      :show="showTreeModal"
+      :object-id="treeModalObjectId"
+      :initial-mode="treeModalMode"
+      :profile-id="profileId"
+      @close="showTreeModal = false"
     />
-
   </div>
 </template>
 
@@ -185,7 +192,7 @@ const summaryMetrics = computed(() => {
       icon: 'bug',
       title: 'Suspects Found',
       value: report.value.suspects.length,
-      variant: report.value.suspects.length > 0 ? 'danger' as const : 'success' as const
+      variant: report.value.suspects.length > 0 ? ('danger' as const) : ('success' as const)
     },
     {
       icon: 'hdd',
@@ -212,7 +219,6 @@ const getBarClass = (suspect: LeakSuspect): string => {
   if (suspect.heapPercentage >= 15) return 'bg-warning';
   return 'bg-info';
 };
-
 
 const openTreeModal = (objectId: number, mode: 'REFERRERS' | 'REACHABLES') => {
   treeModalObjectId.value = objectId;
@@ -250,10 +256,16 @@ const loadData = async () => {
     client = new HeapDumpClient(profileId);
 
     heapExists.value = await client.exists();
-    if (!heapExists.value) { loading.value = false; return; }
+    if (!heapExists.value) {
+      loading.value = false;
+      return;
+    }
 
     cacheReady.value = await client.isCacheReady();
-    if (!cacheReady.value) { loading.value = false; return; }
+    if (!cacheReady.value) {
+      loading.value = false;
+      return;
+    }
 
     await loadAnalysis();
   } catch (err) {

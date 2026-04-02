@@ -6,24 +6,27 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="bar-chart-steps"
-      message="The heap dump needs to be initialized before you can view the class histogram. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="bar-chart-steps"
+    message="The heap dump needs to be initialized before you can view the class histogram. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-        title="Class Histogram"
-        description="Memory usage breakdown by class"
-        icon="bi-bar-chart-steps"
+      title="Class Histogram"
+      description="Memory usage breakdown by class"
+      icon="bi-bar-chart-steps"
     />
 
     <!-- Summary Metrics -->
@@ -34,7 +37,11 @@
       <div class="row align-items-center">
         <div class="col-auto">
           <label class="form-label mb-0 me-2">Top:</label>
-          <select v-model="histogramTopN" class="form-select form-select-sm d-inline-block select-narrow" @change="loadHistogram">
+          <select
+            v-model="histogramTopN"
+            class="form-select form-select-sm d-inline-block select-narrow"
+            @change="loadHistogram"
+          >
             <option :value="50">50</option>
             <option :value="100">100</option>
             <option :value="200">200</option>
@@ -48,15 +55,19 @@
     </div>
 
     <!-- Data Table -->
-    <EmptyState v-if="histogramData.length === 0" icon="bi-bar-chart" title="No histogram data available" />
+    <EmptyState
+      v-if="histogramData.length === 0"
+      icon="bi-bar-chart"
+      title="No histogram data available"
+    />
     <div v-else class="table-card">
       <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
           <thead>
-          <tr>
-            <th style="width: 50px;">#</th>
-            <th>Class Name</th>
-            <SortableTableHeader
+            <tr>
+              <th style="width: 50px">#</th>
+              <th>Class Name</th>
+              <SortableTableHeader
                 column="COUNT"
                 label="Instances"
                 :sort-column="histogramSortBy"
@@ -64,8 +75,8 @@
                 align="end"
                 width="120px"
                 @sort="handleSort"
-            />
-            <SortableTableHeader
+              />
+              <SortableTableHeader
                 column="SIZE"
                 label="Total Size"
                 :sort-column="histogramSortBy"
@@ -73,33 +84,42 @@
                 align="end"
                 width="120px"
                 @sort="handleSort"
-            />
-            <th style="width: 200px;">% of Max</th>
-          </tr>
+              />
+              <th style="width: 200px">% of Max</th>
+            </tr>
           </thead>
           <tbody>
-          <tr v-for="(entry, index) in histogramData" :key="entry.className">
-            <td class="text-muted">{{ index + 1 }}</td>
-            <td>
-              <div class="class-info">
-                <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                <span class="package-name">{{ packageName(entry.className) }}</span>
-              </div>
-            </td>
-            <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.instanceCount) }}</td>
-            <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.totalSize) }}</td>
-            <td>
-              <div class="d-flex align-items-center gap-2">
-                <div class="progress flex-grow-1" style="height: 6px;">
-                  <div
-                      class="progress-bar"
-                      :style="{ width: getDistributionPercentage(entry) + '%', backgroundColor: '#4285F4' }"
-                  ></div>
+            <tr v-for="(entry, index) in histogramData" :key="entry.className">
+              <td class="text-muted">{{ index + 1 }}</td>
+              <td>
+                <div class="class-info">
+                  <code class="class-name">{{ simpleClassName(entry.className) }}</code>
+                  <span class="package-name">{{ packageName(entry.className) }}</span>
                 </div>
-                <small class="text-muted" style="min-width: 45px;">{{ getDistributionPercentage(entry).toFixed(1) }}%</small>
-              </div>
-            </td>
-          </tr>
+              </td>
+              <td class="text-end font-monospace">
+                {{ FormattingService.formatNumber(entry.instanceCount) }}
+              </td>
+              <td class="text-end font-monospace text-warning">
+                {{ FormattingService.formatBytes(entry.totalSize) }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px">
+                    <div
+                      class="progress-bar"
+                      :style="{
+                        width: getDistributionPercentage(entry) + '%',
+                        backgroundColor: '#4285F4'
+                      }"
+                    ></div>
+                  </div>
+                  <small class="text-muted" style="min-width: 45px"
+                    >{{ getDistributionPercentage(entry).toFixed(1) }}%</small
+                  >
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -210,7 +230,6 @@ const handleSort = (column: string) => {
   loadHistogram();
 };
 
-
 const scrollToTop = () => {
   const workspaceContent = document.querySelector('.workspace-content');
   if (workspaceContent) {
@@ -247,7 +266,6 @@ const loadData = async () => {
 
     summary.value = summaryData;
     histogramData.value = histogramResult;
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load class histogram';
     console.error('Error loading class histogram:', err);
@@ -332,7 +350,6 @@ onMounted(() => {
 .select-narrow {
   width: 80px;
 }
-
 
 .progress {
   background-color: var(--card-border-color);

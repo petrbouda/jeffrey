@@ -17,8 +17,8 @@
  */
 
 export default class HeatmapPoint {
-    constructor(
-        public seriesIndex: number,
-        public dataPointIndex: number) {
-    }
+  constructor(
+    public seriesIndex: number,
+    public dataPointIndex: number
+  ) {}
 }

@@ -18,12 +18,12 @@
 
 <template>
   <div class="mb-4">
-    <StatsTable :metrics="metricsData"/>
+    <StatsTable :metrics="metricsData" />
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import StatsTable from '@/components/StatsTable.vue';
 import type MethodTracingHeader from '@/services/api/model/MethodTracingHeader';
 import FormattingService from '@/services/FormattingService';
@@ -47,7 +47,13 @@ const metricsData = computed(() => {
       title: 'Total Duration',
       value: FormattingService.formatDuration2Units(header.totalDuration),
       variant: 'highlight' as const,
-      breakdown: [{ label: 'Avg', value: FormattingService.formatDuration2Units(header.avgDuration), color: '#FBBC05' }]
+      breakdown: [
+        {
+          label: 'Avg',
+          value: FormattingService.formatDuration2Units(header.avgDuration),
+          color: '#FBBC05'
+        }
+      ]
     },
     {
       icon: 'clock-fill',
@@ -56,7 +62,7 @@ const metricsData = computed(() => {
       variant: 'warning' as const,
       breakdown: [
         { label: 'P99', value: FormattingService.formatDuration2Units(header.p99Duration) },
-        { label: 'P95', value: FormattingService.formatDuration2Units(header.p95Duration) },
+        { label: 'P95', value: FormattingService.formatDuration2Units(header.p95Duration) }
       ]
     },
     {
@@ -65,7 +71,7 @@ const metricsData = computed(() => {
       value: header.uniqueMethodCount,
       variant: 'success' as const,
       breakdown: []
-    },
+    }
   ];
 });
 </script>

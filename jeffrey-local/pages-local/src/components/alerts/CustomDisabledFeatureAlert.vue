@@ -5,10 +5,10 @@
       <div>
         <h5 class="alert-heading mb-3">{{ title }} Unavailable</h5>
         <p class="mb-3">
-          {{ title }} is not available because of missing {{ eventType }} events in this profile.
-          To enable this dashboard, you need to include the Jeffrey Events library in your application.
+          {{ title }} is not available because of missing {{ eventType }} events in this profile. To
+          enable this dashboard, you need to include the Jeffrey Events library in your application.
         </p>
-        
+
         <div class="feature-benefits mb-3">
           <h6 class="mb-2">What you need to do:</h6>
           <ul class="mb-0">
@@ -18,8 +18,12 @@
               <div class="example-link mt-1">
                 <small class="text-muted">
                   <i class="bi bi-github me-1"></i>
-                  See implementation examples: 
-                  <a href="https://github.com/petrbouda/jeffrey-testapp" target="_blank" class="text-decoration-none">
+                  See implementation examples:
+                  <a
+                    href="https://github.com/petrbouda/jeffrey-testapp"
+                    target="_blank"
+                    class="text-decoration-none"
+                  >
                     jeffrey-testapp
                   </a>
                 </small>
@@ -33,8 +37,12 @@
         <div class="next-steps">
           <h6 class="mb-2">Maven Dependency:</h6>
           <p class="mb-2 small text-muted">
-            Events are available on Maven Central: 
-            <a href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events" target="_blank" class="text-decoration-none">
+            Events are available on Maven Central:
+            <a
+              href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events"
+              target="_blank"
+              class="text-decoration-none"
+            >
               https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events
             </a>
           </p>

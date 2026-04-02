@@ -145,8 +145,7 @@ const filteredAlerts = computed(() => {
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase();
       return (
-        alert.message.toLowerCase().includes(query) ||
-        alert.type.toLowerCase().includes(query)
+        alert.message.toLowerCase().includes(query) || alert.type.toLowerCase().includes(query)
       );
     }
 
@@ -162,15 +161,23 @@ const displayedAlerts = computed(() => {
 const hasMore = computed(() => filteredAlerts.value.length > displayLimit.value);
 
 // Computed: TOTAL alert counts by severity (all alerts, for StatsTable)
-const totalCriticalCount = computed(() => alerts.value.filter(a => a.severity === 'CRITICAL').length);
+const totalCriticalCount = computed(
+  () => alerts.value.filter(a => a.severity === 'CRITICAL').length
+);
 const totalHighCount = computed(() => alerts.value.filter(a => a.severity === 'HIGH').length);
 const totalMediumCount = computed(() => alerts.value.filter(a => a.severity === 'MEDIUM').length);
 const totalLowCount = computed(() => alerts.value.filter(a => a.severity === 'LOW').length);
 
 // Computed: time-filtered alert counts by severity (for severity bar)
-const criticalCount = computed(() => timeFilteredAlerts.value.filter(a => a.severity === 'CRITICAL').length);
-const highCount = computed(() => timeFilteredAlerts.value.filter(a => a.severity === 'HIGH').length);
-const mediumCount = computed(() => timeFilteredAlerts.value.filter(a => a.severity === 'MEDIUM').length);
+const criticalCount = computed(
+  () => timeFilteredAlerts.value.filter(a => a.severity === 'CRITICAL').length
+);
+const highCount = computed(
+  () => timeFilteredAlerts.value.filter(a => a.severity === 'HIGH').length
+);
+const mediumCount = computed(
+  () => timeFilteredAlerts.value.filter(a => a.severity === 'MEDIUM').length
+);
 const lowCount = computed(() => timeFilteredAlerts.value.filter(a => a.severity === 'LOW').length);
 
 // Computed: StatsTable metrics (showing TOTAL counts, grouped)
@@ -201,7 +208,6 @@ const alertMetrics = computed(() => [
 const getAlertKey = (alert: ImportantMessage, index: number): string => {
   return `${alert.type}-${alert.createdAt}-${index}`;
 };
-
 </script>
 
 <template>
@@ -224,7 +230,13 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
         <div class="severity-card time">
           <i class="bi bi-clock"></i>
           <select v-model="selectedTimeRange" class="time-select-inline">
-            <option v-for="option in timeRangeOptions" :key="option.minutes" :value="option.minutes">{{ option.label }}</option>
+            <option
+              v-for="option in timeRangeOptions"
+              :key="option.minutes"
+              :value="option.minutes"
+            >
+              {{ option.label }}
+            </option>
           </select>
         </div>
         <div class="severity-card critical">
@@ -267,10 +279,7 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center gap-2">
-            <select
-              v-model="selectedSeverity"
-              class="form-select form-select-sm filter-select"
-            >
+            <select v-model="selectedSeverity" class="form-select form-select-sm filter-select">
               <option value="">All Severities</option>
               <option value="CRITICAL">Critical</option>
               <option value="HIGH">High</option>
@@ -285,17 +294,29 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
                 class="form-control search-input"
                 placeholder="Search alerts..."
               />
-              <button v-if="searchQuery" class="btn btn-outline-secondary clear-btn" type="button" @click="searchQuery = ''">
+              <button
+                v-if="searchQuery"
+                class="btn btn-outline-secondary clear-btn"
+                type="button"
+                @click="searchQuery = ''"
+              >
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
           </div>
           <div class="d-flex align-items-center">
-            <Badge :value="'Showing ' + displayedAlerts.length + ' of ' + filteredAlerts.length + ' alerts'" variant="cyan" size="xs" icon="bi bi-info-circle" :uppercase="false" />
+            <Badge
+              :value="
+                'Showing ' + displayedAlerts.length + ' of ' + filteredAlerts.length + ' alerts'
+              "
+              variant="cyan"
+              size="xs"
+              icon="bi bi-info-circle"
+              :uppercase="false"
+            />
           </div>
         </div>
         <div class="card-body p-0">
-
           <!-- Alerts List -->
           <div v-if="filteredAlerts.length > 0" class="alert-list">
             <MessageCard
@@ -315,8 +336,12 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
 
           <!-- Load More Footer -->
           <div v-if="filteredAlerts.length > 0" class="load-more-footer">
-            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">Load More</button>
-            <span class="load-more-count">Showing {{ displayedAlerts.length }} of {{ filteredAlerts.length }} alerts</span>
+            <button v-if="hasMore" class="btn btn-sm btn-outline-secondary" @click="loadMore">
+              Load More
+            </button>
+            <span class="load-more-count"
+              >Showing {{ displayedAlerts.length }} of {{ filteredAlerts.length }} alerts</span
+            >
           </div>
         </div>
       </div>
@@ -354,10 +379,18 @@ const getAlertKey = (alert: ImportantMessage, index: number): string => {
   margin-right: auto;
 }
 
-.severity-card.critical .card-count { color: var(--color-danger-hover); }
-.severity-card.high .card-count { color: #ea580c; }
-.severity-card.medium .card-count { color: #ca8a04; }
-.severity-card.low .card-count { color: #0891b2; }
+.severity-card.critical .card-count {
+  color: var(--color-danger-hover);
+}
+.severity-card.high .card-count {
+  color: #ea580c;
+}
+.severity-card.medium .card-count {
+  color: #ca8a04;
+}
+.severity-card.low .card-count {
+  color: #0891b2;
+}
 
 .card-count {
   font-weight: 700;

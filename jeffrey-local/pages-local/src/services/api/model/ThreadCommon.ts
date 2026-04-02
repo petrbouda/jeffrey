@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ThreadMetadata from "@/services/api/model/ThreadMetadata";
+import ThreadMetadata from '@/services/api/model/ThreadMetadata';
 
 export default class ThreadCommon {
-    constructor(
-        public totalDuration: number,
-        public containsWallClock: boolean,
-        public metadata: ThreadMetadata) {
-    }
+  constructor(
+    public totalDuration: number,
+    public containsWallClock: boolean,
+    public metadata: ThreadMetadata
+  ) {}
 }

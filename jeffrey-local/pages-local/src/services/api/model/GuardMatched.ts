@@ -17,9 +17,9 @@
  */
 
 export default class GuardMatched {
-    constructor(
-        public severity:string,
-        public color: string,
-        public percent: number) {
-    }
+  constructor(
+    public severity: string,
+    public color: string,
+    public percent: number
+  ) {}
 }

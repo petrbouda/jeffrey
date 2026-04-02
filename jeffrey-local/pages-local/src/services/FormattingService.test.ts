@@ -1,7 +1,6 @@
 import FormattingService from './FormattingService';
 
 describe('FormattingService', () => {
-
   describe('formatBytes', () => {
     it('returns "0.00 B" for zero', () => {
       expect(FormattingService.formatBytes(0)).toBe('0.00 B');

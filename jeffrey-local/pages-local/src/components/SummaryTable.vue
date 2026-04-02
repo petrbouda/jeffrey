@@ -1,10 +1,10 @@
 <template>
   <table class="summary-table">
     <tbody>
-    <tr v-for="(item, index) in items" :key="index">
-      <td>{{ item.label }}</td>
-      <td>{{ item.value }}</td>
-    </tr>
+      <tr v-for="(item, index) in items" :key="index">
+        <td>{{ item.label }}</td>
+        <td>{{ item.value }}</td>
+      </tr>
     </tbody>
   </table>
 </template>

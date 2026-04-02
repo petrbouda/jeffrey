@@ -16,18 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import SubSecondData from "@/services/subsecond/model/SubSecondData";
-import SubSecondDataProvider from "@/services/subsecond/SubSecondDataProvider";
+import SubSecondData from '@/services/subsecond/model/SubSecondData';
+import SubSecondDataProvider from '@/services/subsecond/SubSecondDataProvider';
 
 export default class StaticSubSecondDataProvider implements SubSecondDataProvider {
+  private readonly content: SubSecondData;
 
-    private readonly content: SubSecondData;
+  constructor(content: SubSecondData) {
+    this.content = content;
+  }
 
-    constructor(content: SubSecondData) {
-        this.content = content;
-    }
-
-    provide(): Promise<SubSecondData> {
-        return Promise.resolve(this.content);
-    }
+  provide(): Promise<SubSecondData> {
+    return Promise.resolve(this.content);
+  }
 }

@@ -1,8 +1,6 @@
 <template>
   <div v-if="calls.length > 0" class="slowest-list">
-    <div v-for="call in displayedCalls"
-         :key="call.timestamp"
-         class="slowest-row">
+    <div v-for="call in displayedCalls" :key="call.timestamp" class="slowest-row">
       <div class="left-accent" :class="getAccentClass(call.status)"></div>
       <div class="row-content">
         <div class="row-header">
@@ -22,15 +20,34 @@
           </div>
         </div>
         <div class="row-details">
-          <span class="detail-chip"><i class="bi bi-clock"></i> {{ FormattingService.formatTimestamp(call.timestamp).replace('T', ' ') }}</span>
+          <span class="detail-chip"
+            ><i class="bi bi-clock"></i>
+            {{ FormattingService.formatTimestamp(call.timestamp).replace('T', ' ') }}</span
+          >
           <span class="detail-dot">&middot;</span>
-          <Badge :value="call.status" :variant="getStatusVariant(call.status)" size="xs" borderless />
+          <Badge
+            :value="call.status"
+            :variant="getStatusVariant(call.status)"
+            size="xs"
+            borderless
+          />
           <span class="detail-dot">&middot;</span>
-          <span v-if="showTotalSize" class="detail-chip"><i class="bi bi-box"></i> {{ FormattingService.formatBytes(call.requestSize + call.responseSize) }}</span>
-          <span v-else class="detail-chip"><i class="bi bi-hdd-network"></i> {{ call.host }}:{{ call.port }}</span>
+          <span v-if="showTotalSize" class="detail-chip"
+            ><i class="bi bi-box"></i>
+            {{ FormattingService.formatBytes(call.requestSize + call.responseSize) }}</span
+          >
+          <span v-else class="detail-chip"
+            ><i class="bi bi-hdd-network"></i> {{ call.host }}:{{ call.port }}</span
+          >
           <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"><i class="bi bi-arrow-up"></i> {{ FormattingService.formatBytes(call.requestSize) }}</span>
-          <span class="detail-chip"><i class="bi bi-arrow-down"></i> {{ FormattingService.formatBytes(call.responseSize) }}</span>
+          <span class="detail-chip"
+            ><i class="bi bi-arrow-up"></i>
+            {{ FormattingService.formatBytes(call.requestSize) }}</span
+          >
+          <span class="detail-chip"
+            ><i class="bi bi-arrow-down"></i>
+            {{ FormattingService.formatBytes(call.responseSize) }}</span
+          >
         </div>
       </div>
     </div>
@@ -38,10 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 import FormattingService from '@/services/FormattingService';
 import Badge from '@/components/Badge.vue';
-import type {Variant} from '@/types/ui';
+import type { Variant } from '@/types/ui';
 
 interface GrpcCall {
   service: string;
@@ -73,7 +90,7 @@ const displayedCalls = computed(() => {
 });
 
 const getBarValue = (call: GrpcCall): number => {
-  return props.showTotalSize ? (call.requestSize + call.responseSize) : call.responseTime;
+  return props.showTotalSize ? call.requestSize + call.responseSize : call.responseTime;
 };
 
 const maxBarValue = computed(() => {
@@ -87,8 +104,8 @@ const getBarPercentage = (call: GrpcCall): number => {
 
 const formatBarValue = (call: GrpcCall): string => {
   return props.showTotalSize
-      ? FormattingService.formatBytes(call.requestSize + call.responseSize)
-      : FormattingService.formatDuration2Units(call.responseTime);
+    ? FormattingService.formatBytes(call.requestSize + call.responseSize)
+    : FormattingService.formatDuration2Units(call.responseTime);
 };
 
 const getPackageName = (fullName: string): string => {
@@ -103,23 +120,37 @@ const getSimpleName = (fullName: string): string => {
 
 const getAccentClass = (status: string): string => {
   switch (status) {
-    case 'OK': return 'accent-success';
+    case 'OK':
+      return 'accent-success';
     case 'CANCELLED':
-    case 'INVALID_ARGUMENT': case 'NOT_FOUND': case 'ALREADY_EXISTS':
-    case 'PERMISSION_DENIED': case 'FAILED_PRECONDITION': case 'OUT_OF_RANGE':
-    case 'UNAUTHENTICATED': return 'accent-warning';
-    default: return 'accent-danger';
+    case 'INVALID_ARGUMENT':
+    case 'NOT_FOUND':
+    case 'ALREADY_EXISTS':
+    case 'PERMISSION_DENIED':
+    case 'FAILED_PRECONDITION':
+    case 'OUT_OF_RANGE':
+    case 'UNAUTHENTICATED':
+      return 'accent-warning';
+    default:
+      return 'accent-danger';
   }
 };
 
 const getStatusVariant = (status: string): Variant => {
   switch (status) {
-    case 'OK': return 'success';
+    case 'OK':
+      return 'success';
     case 'CANCELLED':
-    case 'INVALID_ARGUMENT': case 'NOT_FOUND': case 'ALREADY_EXISTS':
-    case 'PERMISSION_DENIED': case 'FAILED_PRECONDITION': case 'OUT_OF_RANGE':
-    case 'UNAUTHENTICATED': return 'warning';
-    default: return 'danger';
+    case 'INVALID_ARGUMENT':
+    case 'NOT_FOUND':
+    case 'ALREADY_EXISTS':
+    case 'PERMISSION_DENIED':
+    case 'FAILED_PRECONDITION':
+    case 'OUT_OF_RANGE':
+    case 'UNAUTHENTICATED':
+      return 'warning';
+    default:
+      return 'danger';
   }
 };
 </script>
@@ -151,9 +182,15 @@ const getStatusVariant = (status: string): Variant => {
   margin-right: 1rem;
 }
 
-.accent-success { background: var(--color-success); }
-.accent-warning { background: var(--color-warning); }
-.accent-danger { background: var(--color-danger); }
+.accent-success {
+  background: var(--color-success);
+}
+.accent-warning {
+  background: var(--color-warning);
+}
+.accent-danger {
+  background: var(--color-danger);
+}
 
 .row-content {
   flex: 1;

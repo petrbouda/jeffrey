@@ -6,15 +6,18 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="diagram-3"
-      message="The heap dump needs to be initialized before you can view class loader analysis. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="diagram-3"
+    message="The heap dump needs to be initialized before you can view class loader analysis. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -22,16 +25,19 @@
   <!-- Analysis Not Yet Run -->
   <div v-else-if="!analysisExists && !analysisRunning">
     <PageHeader
-        title="Class Loader Analysis"
-        description="Analyze class loaders and detect duplicate classes"
-        icon="bi-diagram-3"
+      title="Class Loader Analysis"
+      description="Analyze class loaders and detect duplicate classes"
+      icon="bi-diagram-3"
     />
 
     <div class="alert alert-warning d-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-3 fs-4"></i>
       <div class="flex-grow-1">
         <h6 class="mb-1">Class Loader Analysis Not Available</h6>
-        <p class="mb-2 small">The class loader analysis was not found. This can happen if the heap dump was initialized before this feature was added. You can run the analysis now.</p>
+        <p class="mb-2 small">
+          The class loader analysis was not found. This can happen if the heap dump was initialized
+          before this feature was added. You can run the analysis now.
+        </p>
         <button class="btn btn-primary btn-sm" @click="runAnalysis">
           <i class="bi bi-play-fill me-1"></i>
           Run Class Loader Analysis
@@ -43,9 +49,9 @@
   <!-- Analysis Running -->
   <div v-else-if="analysisRunning">
     <PageHeader
-        title="Class Loader Analysis"
-        description="Analyze class loaders and detect duplicate classes"
-        icon="bi-diagram-3"
+      title="Class Loader Analysis"
+      description="Analyze class loaders and detect duplicate classes"
+      icon="bi-diagram-3"
     />
 
     <div class="alert alert-info d-flex align-items-center">
@@ -62,9 +68,9 @@
   <!-- Analysis Results -->
   <div v-else>
     <PageHeader
-        title="Class Loader Analysis"
-        description="Analyze class loaders and detect duplicate classes"
-        icon="bi-diagram-3"
+      title="Class Loader Analysis"
+      description="Analyze class loaders and detect duplicate classes"
+      icon="bi-diagram-3"
     />
 
     <!-- Summary Metrics -->
@@ -72,11 +78,11 @@
 
     <!-- Tabbed Analysis Section -->
     <ChartSectionWithTabs
-        icon="diagram-3"
-        :tabs="analysisTabs"
-        :full-width="true"
-        id-prefix="classloader-"
-        @tab-change="onTabChange"
+      icon="diagram-3"
+      :tabs="analysisTabs"
+      :full-width="true"
+      id-prefix="classloader-"
+      @tab-change="onTabChange"
     >
       <!-- Class Loaders Tab -->
       <template #class-loaders>
@@ -84,7 +90,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.classLoaders.length }} class loaders</small>
+                <small class="text-muted"
+                  >Showing {{ report.classLoaders.length }} class loaders</small
+                >
               </div>
             </div>
           </div>
@@ -92,10 +100,10 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <th>Class Loader Class</th>
-                  <SortableTableHeader
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <th>Class Loader Class</th>
+                    <SortableTableHeader
                       column="classCount"
                       label="Class Count"
                       :sort-column="loaderSortColumn"
@@ -103,8 +111,8 @@
                       align="end"
                       width="120px"
                       @sort="toggleLoaderSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="totalClassSize"
                       label="Total Class Size"
                       :sort-column="loaderSortColumn"
@@ -112,8 +120,8 @@
                       align="end"
                       width="140px"
                       @sort="toggleLoaderSort"
-                  />
-                  <SortableTableHeader
+                    />
+                    <SortableTableHeader
                       column="retainedSize"
                       label="Retained Size"
                       :sort-column="loaderSortColumn"
@@ -121,34 +129,49 @@
                       align="end"
                       width="140px"
                       @sort="toggleLoaderSort"
-                  />
-                  <th style="width: 180px;">% of Max</th>
-                </tr>
+                    />
+                    <th style="width: 180px">% of Max</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedClassLoaders" :key="entry.objectId">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <div class="class-info">
-                      <code class="class-name">{{ simpleClassName(entry.classLoaderClassName) }}</code>
-                      <span class="package-name">{{ packageName(entry.classLoaderClassName) }}</span>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatNumber(entry.classCount) }}</td>
-                  <td class="text-end font-monospace">{{ FormattingService.formatBytes(entry.totalClassSize) }}</td>
-                  <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(entry.retainedSize) }}</td>
-                  <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <div class="progress flex-grow-1" style="height: 6px;">
-                        <div
-                            class="progress-bar"
-                            :style="{ width: getLoaderPercentage(entry) + '%', backgroundColor: '#4285F4' }"
-                        ></div>
+                  <tr v-for="(entry, index) in sortedClassLoaders" :key="entry.objectId">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <div class="class-info">
+                        <code class="class-name">{{
+                          simpleClassName(entry.classLoaderClassName)
+                        }}</code>
+                        <span class="package-name">{{
+                          packageName(entry.classLoaderClassName)
+                        }}</span>
                       </div>
-                      <small class="text-muted" style="min-width: 45px;">{{ getLoaderPercentage(entry).toFixed(1) }}%</small>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatNumber(entry.classCount) }}
+                    </td>
+                    <td class="text-end font-monospace">
+                      {{ FormattingService.formatBytes(entry.totalClassSize) }}
+                    </td>
+                    <td class="text-end font-monospace text-warning">
+                      {{ FormattingService.formatBytes(entry.retainedSize) }}
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height: 6px">
+                          <div
+                            class="progress-bar"
+                            :style="{
+                              width: getLoaderPercentage(entry) + '%',
+                              backgroundColor: '#4285F4'
+                            }"
+                          ></div>
+                        </div>
+                        <small class="text-muted" style="min-width: 45px"
+                          >{{ getLoaderPercentage(entry).toFixed(1) }}%</small
+                        >
+                      </div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -166,7 +189,9 @@
           <div class="filter-controls mb-3">
             <div class="row align-items-center">
               <div class="col-auto ms-auto">
-                <small class="text-muted">Showing {{ report.duplicateClasses.length }} duplicate classes</small>
+                <small class="text-muted"
+                  >Showing {{ report.duplicateClasses.length }} duplicate classes</small
+                >
               </div>
             </div>
           </div>
@@ -174,10 +199,10 @@
             <div class="table-responsive">
               <table class="table table-sm table-hover mb-0">
                 <thead>
-                <tr>
-                  <th style="width: 50px;">#</th>
-                  <th>Class Name</th>
-                  <SortableTableHeader
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <th>Class Name</th>
+                    <SortableTableHeader
                       column="loaderCount"
                       label="Loader Count"
                       :sort-column="dupSortColumn"
@@ -185,28 +210,28 @@
                       align="end"
                       width="120px"
                       @sort="toggleDupSort"
-                  />
-                  <th>Class Loader Names</th>
-                </tr>
+                    />
+                    <th>Class Loader Names</th>
+                  </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(entry, index) in sortedDuplicateClasses" :key="entry.className">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <div class="class-info">
-                      <code class="class-name">{{ simpleClassName(entry.className) }}</code>
-                      <span class="package-name">{{ packageName(entry.className) }}</span>
-                    </div>
-                  </td>
-                  <td class="text-end font-monospace">
-                    <span :class="entry.loaderCount > 2 ? 'badge bg-warning text-dark' : ''">
-                      {{ entry.loaderCount }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="loader-names">{{ entry.classLoaderNames.join(', ') }}</span>
-                  </td>
-                </tr>
+                  <tr v-for="(entry, index) in sortedDuplicateClasses" :key="entry.className">
+                    <td class="text-muted">{{ index + 1 }}</td>
+                    <td>
+                      <div class="class-info">
+                        <code class="class-name">{{ simpleClassName(entry.className) }}</code>
+                        <span class="package-name">{{ packageName(entry.className) }}</span>
+                      </div>
+                    </td>
+                    <td class="text-end font-monospace">
+                      <span :class="entry.loaderCount > 2 ? 'badge bg-warning text-dark' : ''">
+                        {{ entry.loaderCount }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="loader-names">{{ entry.classLoaderNames.join(', ') }}</span>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -218,7 +243,6 @@
         </div>
       </template>
     </ChartSectionWithTabs>
-
   </div>
 </template>
 
@@ -282,7 +306,7 @@ const summaryMetrics = computed(() => {
       icon: 'files',
       title: 'Duplicate Class Count',
       value: FormattingService.formatNumber(report.value.duplicateClassCount),
-      variant: report.value.duplicateClassCount > 0 ? 'warning' as const : 'success' as const
+      variant: report.value.duplicateClassCount > 0 ? ('warning' as const) : ('success' as const)
     }
   ];
 });
@@ -409,7 +433,6 @@ const loadData = async () => {
     }
 
     await loadAnalysis();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load class loader analysis';
     console.error('Error loading class loader analysis:', err);

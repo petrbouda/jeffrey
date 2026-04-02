@@ -30,46 +30,55 @@
     <MainCard>
       <template #header>
         <!-- Compact Workspace Context Bar (sticky header) -->
-        <div v-if="isWorkspaceScoped || getSelectedWorkspace()" class="workspace-context-bar" :class="getContextBarClass">
+        <div
+          v-if="isWorkspaceScoped || getSelectedWorkspace()"
+          class="workspace-context-bar"
+          :class="getContextBarClass"
+        >
           <div class="context-bar-info">
-            <span class="workspace-name">{{ getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id }}</span>
+            <span class="workspace-name">{{
+              getSelectedWorkspace()?.name ?? getSelectedWorkspace()?.id
+            }}</span>
             <span class="context-divider">•</span>
             <span class="workspace-meta">{{ getProjectCountText() }}</span>
             <span class="context-divider">•</span>
-            <span class="workspace-created">Created {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span>
+            <span class="workspace-created"
+              >Created
+              {{ FormattingService.formatRelativeTime(getSelectedWorkspace()?.createdAt) }}</span
+            >
           </div>
           <div class="context-bar-actions">
             <div class="context-search">
               <i class="bi bi-search"></i>
               <input
-                  type="text"
-                  v-model="searchQuery"
-                  placeholder="Search..."
-                  @input="filterProjects"
-              >
+                type="text"
+                v-model="searchQuery"
+                placeholder="Search..."
+                @input="filterProjects"
+              />
             </div>
             <button
-                v-if="hasBlockedProjects"
-                class="context-btn"
-                :class="{ active: showBlockedProjects }"
-                @click="toggleBlockedProjects"
-                :title="showBlockedProjects ? 'Hide blocked projects' : 'Show blocked projects'"
+              v-if="hasBlockedProjects"
+              class="context-btn"
+              :class="{ active: showBlockedProjects }"
+              @click="toggleBlockedProjects"
+              :title="showBlockedProjects ? 'Hide blocked projects' : 'Show blocked projects'"
             >
               <i class="bi bi-eye-slash"></i>
             </button>
             <button
-                class="context-btn"
-                :class="getStreamingButtonClass()"
-                @click="cycleWorkspaceStreaming"
-                :title="getStreamingTooltip()"
+              class="context-btn"
+              :class="getStreamingButtonClass()"
+              @click="cycleWorkspaceStreaming"
+              :title="getStreamingTooltip()"
             >
               <i class="bi bi-broadcast"></i>
             </button>
             <button
-                class="context-btn danger"
-                @click="handleDeleteWorkspace()"
-                :disabled="!canDeleteWorkspace()"
-                :title="getDeleteTooltip()"
+              class="context-btn danger"
+              @click="handleDeleteWorkspace()"
+              :disabled="!canDeleteWorkspace()"
+              :title="getDeleteTooltip()"
             >
               <i class="bi bi-trash"></i>
             </button>
@@ -82,107 +91,125 @@
           <span>Select a workspace to view projects</span>
         </div>
       </template>
-        <!-- Offline Workspace Info -->
-        <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="workspace-offline-info mb-4">
-          <div class="alert alert-danger d-flex align-items-center">
-            <i class="bi bi-wifi-off me-2 fs-5"></i>
-            <div>
-              <strong>Remote workspace is offline</strong><br>
-              <small class="text-muted">Existing live projects are shown below. Virtual projects cannot be loaded from the remote Jeffrey instance until connection is restored.</small>
-            </div>
+      <!-- Offline Workspace Info -->
+      <div
+        v-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE"
+        class="workspace-offline-info mb-4"
+      >
+        <div class="alert alert-danger d-flex align-items-center">
+          <i class="bi bi-wifi-off me-2 fs-5"></i>
+          <div>
+            <strong>Remote workspace is offline</strong><br />
+            <small class="text-muted"
+              >Existing live projects are shown below. Virtual projects cannot be loaded from the
+              remote Jeffrey instance until connection is restored.</small
+            >
           </div>
         </div>
+      </div>
 
-        <!-- Unavailable Workspace — removed from server -->
-        <div v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE" class="workspace-status-banner unavailable-banner mb-4">
-          <div class="banner-content">
-            <i class="bi bi-folder-x banner-icon"></i>
-            <div class="banner-text">
-              <strong>This workspace has been removed from the remote server</strong>
-              <span class="banner-hint">All local data (profiles, recordings) will be deleted when you remove this workspace.</span>
-            </div>
-          </div>
-          <button class="btn-action btn-action-secondary" @click="handleDeleteWorkspace()">
-            <i class="bi bi-trash3"></i>
-            Delete Workspace
-          </button>
-        </div>
-
-        <!-- Offline Workspace — server unreachable -->
-        <div v-else-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE" class="workspace-status-banner offline-banner mb-4">
-          <div class="banner-content">
-            <i class="bi bi-wifi-off banner-icon"></i>
-            <div class="banner-text">
-              <strong>Cannot reach the remote server</strong>
-              <span class="banner-hint">The server may be down or there is a network issue. Projects cannot be loaded.</span>
-            </div>
-          </div>
-          <button class="btn-action btn-action-secondary" @click="refreshProjects">
-            <i class="bi bi-arrow-clockwise"></i>
-            Retry
-          </button>
-        </div>
-
-        <!-- Loading indicator -->
-        <div v-if="loading" class="text-center py-4">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <p class="mt-2">Loading projects from server...</p>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="errorMessage" class="text-center py-4">
-          <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
-          <h5>Failed to load projects</h5>
-          <p class="text-muted">{{ errorMessage }}</p>
-          <button class="btn btn-primary mt-2" @click="refreshProjects">
-            <i class="bi bi-arrow-clockwise me-2"></i>Retry
-          </button>
-        </div>
-
-        <!-- Projects Grid -->
-        <div v-else-if="filteredProjects.length > 0" class="row g-4">
-          <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4">
-            <ProjectCard
-              :project="project"
-              :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"
-            />
+      <!-- Unavailable Workspace — removed from server -->
+      <div
+        v-if="getSelectedWorkspace()?.status === WorkspaceStatus.UNAVAILABLE"
+        class="workspace-status-banner unavailable-banner mb-4"
+      >
+        <div class="banner-content">
+          <i class="bi bi-folder-x banner-icon"></i>
+          <div class="banner-text">
+            <strong>This workspace has been removed from the remote server</strong>
+            <span class="banner-hint"
+              >All local data (profiles, recordings) will be deleted when you remove this
+              workspace.</span
+            >
           </div>
         </div>
+        <button class="btn-action btn-action-secondary" @click="handleDeleteWorkspace()">
+          <i class="bi bi-trash3"></i>
+          Delete Workspace
+        </button>
+      </div>
 
-        <!-- Empty state -->
-        <EmptyState
-            v-else-if="!errorMessage"
-            icon="bi-folder-plus"
-            title="No projects found"
-            :description="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE
-              ? 'Remote workspace is offline. Projects would be shown here when the connection is restored.'
-              : 'Projects in this workspace are synchronized from external source'"
-        />
+      <!-- Offline Workspace — server unreachable -->
+      <div
+        v-else-if="getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE"
+        class="workspace-status-banner offline-banner mb-4"
+      >
+        <div class="banner-content">
+          <i class="bi bi-wifi-off banner-icon"></i>
+          <div class="banner-text">
+            <strong>Cannot reach the remote server</strong>
+            <span class="banner-hint"
+              >The server may be down or there is a network issue. Projects cannot be loaded.</span
+            >
+          </div>
+        </div>
+        <button class="btn-action btn-action-secondary" @click="refreshProjects">
+          <i class="bi bi-arrow-clockwise"></i>
+          Retry
+        </button>
+      </div>
+
+      <!-- Loading indicator -->
+      <div v-if="loading" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading projects from server...</p>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="errorMessage" class="text-center py-4">
+        <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
+        <h5>Failed to load projects</h5>
+        <p class="text-muted">{{ errorMessage }}</p>
+        <button class="btn btn-primary mt-2" @click="refreshProjects">
+          <i class="bi bi-arrow-clockwise me-2"></i>Retry
+        </button>
+      </div>
+
+      <!-- Projects Grid -->
+      <div v-else-if="filteredProjects.length > 0" class="row g-4">
+        <div v-for="project in filteredProjects" :key="project.id" class="col-12 col-md-6 col-lg-4">
+          <ProjectCard
+            :project="project"
+            :workspace-id="isWorkspaceScoped ? workspaceId : selectedWorkspace"
+          />
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <EmptyState
+        v-else-if="!errorMessage"
+        icon="bi-folder-plus"
+        title="No projects found"
+        :description="
+          getSelectedWorkspace()?.status === WorkspaceStatus.OFFLINE
+            ? 'Remote workspace is offline. Projects would be shown here when the connection is restored.'
+            : 'Projects in this workspace are synchronized from external source'
+        "
+      />
     </MainCard>
   </div>
 
   <!-- Modal Components -->
   <RemoteWorkspaceModal
-      v-model:show="showRemoteWorkspaceModal"
-      @workspace-added="handleWorkspaceAdded"
+    v-model:show="showRemoteWorkspaceModal"
+    @workspace-added="handleWorkspaceAdded"
   />
 
   <ConfirmationDialog
-      v-model:show="showDeleteWorkspaceModal"
-      title="Delete Workspace"
-      :message="deleteWorkspaceMessage"
-      :sub-message="deleteWorkspaceSubMessage"
-      confirm-label="Delete"
-      confirm-button-class="btn-danger"
-      @confirm="confirmDeleteWorkspace"
+    v-model:show="showDeleteWorkspaceModal"
+    title="Delete Workspace"
+    :message="deleteWorkspaceMessage"
+    :sub-message="deleteWorkspaceSubMessage"
+    confirm-label="Delete"
+    confirm-button-class="btn-danger"
+    @confirm="confirmDeleteWorkspace"
   />
-
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
@@ -192,16 +219,16 @@ import ConfirmationDialog from '@/components/ConfirmationDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import ToastService from '@/services/ToastService';
 import FormattingService from '@/services/FormattingService';
-import ProjectsClient from "@/services/api/ProjectsClient.ts";
-import WorkspaceProjectsClient from "@/services/api/WorkspaceProjectsClient.ts";
-import Project from "@/services/api/model/Project.ts";
-import WorkspaceClient from "@/services/api/WorkspaceClient.ts";
+import ProjectsClient from '@/services/api/ProjectsClient.ts';
+import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient.ts';
+import Project from '@/services/api/model/Project.ts';
+import WorkspaceClient from '@/services/api/WorkspaceClient.ts';
 
 const workspaceClient = new WorkspaceClient();
 const projectsClient = new ProjectsClient();
-import Workspace from "@/services/api/model/Workspace.ts";
-import WorkspaceStatus from "@/services/api/model/WorkspaceStatus.ts";
-import {useRoute} from 'vue-router';
+import Workspace from '@/services/api/model/Workspace.ts';
+import WorkspaceStatus from '@/services/api/model/WorkspaceStatus.ts';
+import { useRoute } from 'vue-router';
 
 // Get workspace context directly from route params (not useNavigation, which has a profileStore fallback)
 const route = useRoute();
@@ -345,7 +372,6 @@ const handleWorkspaceAdded = async () => {
   await refreshProjects();
 };
 
-
 // Get project count for workspace
 const getWorkspaceProjectCount = (workspaceId: string) => {
   const workspace = workspaces.value.find(w => w.id === workspaceId);
@@ -384,7 +410,6 @@ onMounted(async () => {
   }
 });
 
-
 const filterProjects = () => {
   let result = projects.value;
 
@@ -396,9 +421,7 @@ const filterProjects = () => {
   // Apply search filter
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(project =>
-        project.name.toLowerCase().includes(query)
-    );
+    result = result.filter(project => project.name.toLowerCase().includes(query));
   }
 
   filteredProjects.value = result;
@@ -470,7 +493,8 @@ const getStreamingTooltip = (): string => {
   const workspace = getSelectedWorkspace();
   if (!workspace) return '';
   if (workspace.streamingEnabled === true) return 'Streaming: enabled (click to disable)';
-  if (workspace.streamingEnabled === false) return 'Streaming: disabled (click to reset to inherited)';
+  if (workspace.streamingEnabled === false)
+    return 'Streaming: disabled (click to reset to inherited)';
   return 'Streaming: inherited from global (click to enable)';
 };
 
@@ -517,7 +541,10 @@ const confirmDeleteWorkspace = async () => {
     await refreshWorkspaces();
     resolveWorkspaceStatuses();
 
-    ToastService.success('Workspace Deleted', `Workspace "${workspace.name}" has been deleted successfully.`);
+    ToastService.success(
+      'Workspace Deleted',
+      `Workspace "${workspace.name}" has been deleted successfully.`
+    );
   } catch (error) {
     console.error('Failed to delete workspace:', error);
     ToastService.error('Failed to delete workspace', 'Could not delete workspace.');
@@ -850,5 +877,4 @@ const confirmDeleteWorkspace = async () => {
     width: 120px;
   }
 }
-
 </style>

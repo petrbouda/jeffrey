@@ -5,7 +5,11 @@
         <div class="command-display-label">
           <i class="bi bi-terminal-fill"></i>
           <span>{{ label }}</span>
-          <span v-if="level" class="settings-level-badge" :class="'settings-level-' + level.toLowerCase()">
+          <span
+            v-if="level"
+            class="settings-level-badge"
+            :class="'settings-level-' + level.toLowerCase()"
+          >
             {{ level }}
           </span>
         </div>
@@ -13,11 +17,11 @@
       <div class="command-display-actions">
         <slot name="header-actions">
           <button
-              v-if="deletable"
-              class="command-display-btn command-display-btn--danger"
-              @click.stop="$emit('delete')"
-              :disabled="deleting"
-              title="Delete settings"
+            v-if="deletable"
+            class="command-display-btn command-display-btn--danger"
+            @click.stop="$emit('delete')"
+            :disabled="deleting"
+            title="Delete settings"
           >
             <span v-if="deleting" class="spinner-border spinner-border-sm" role="status"></span>
             <template v-else><i class="bi bi-trash"></i></template>
@@ -62,7 +66,7 @@ const props = withDefaults(defineProps<Props>(), {
   level: null,
   deletable: false,
   deleting: false,
-  emptyMessage: 'No settings configured',
+  emptyMessage: 'No settings configured'
 });
 
 defineEmits<{
@@ -191,7 +195,7 @@ async function copy() {
 .command-display-content {
   padding: 12px 14px;
   font-size: var(--font-size-sm, 0.7rem);
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-weight: 500;
   color: var(--color-text, #374151);
   overflow-wrap: anywhere;

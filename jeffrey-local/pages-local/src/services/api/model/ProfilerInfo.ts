@@ -17,11 +17,10 @@
  */
 
 export default class ProfilerInfo {
-    constructor(
-        public profilerId: string,
-        public workspaceId: string,
-        public projectId: string,
-        public agentSettings: string,
-    ) {
-    }
+  constructor(
+    public profilerId: string,
+    public workspaceId: string,
+    public projectId: string,
+    public agentSettings: string
+  ) {}
 }

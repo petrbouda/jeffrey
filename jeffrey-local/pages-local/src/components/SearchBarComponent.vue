@@ -17,29 +17,32 @@
   -->
 
 <script setup lang="ts">
-import {onMounted, ref} from 'vue';
-import GraphUpdater from "@/services/flamegraphs/updater/GraphUpdater";
-import Utils from "@/services/Utils";
+import { onMounted, ref } from 'vue';
+import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
+import Utils from '@/services/Utils';
 import '@/styles/shared-components.css';
 
-const props = withDefaults(defineProps<{
-  graphUpdater: GraphUpdater
-  withTimeseries: boolean
-  showModeControls?: boolean
-  threadModeLabel?: string
-  weightModeLabel?: string
-  initialThreadMode?: boolean
-  initialUseWeight?: boolean
-}>(), {
-  showModeControls: false,
-  threadModeLabel: 'Thread Mode',
-  weightModeLabel: 'Use Weight',
-  initialThreadMode: false,
-  initialUseWeight: true
-})
+const props = withDefaults(
+  defineProps<{
+    graphUpdater: GraphUpdater;
+    withTimeseries: boolean;
+    showModeControls?: boolean;
+    threadModeLabel?: string;
+    weightModeLabel?: string;
+    initialThreadMode?: boolean;
+    initialUseWeight?: boolean;
+  }>(),
+  {
+    showModeControls: false,
+    threadModeLabel: 'Thread Mode',
+    weightModeLabel: 'Use Weight',
+    initialThreadMode: false,
+    initialUseWeight: true
+  }
+);
 
 const emit = defineEmits<{
-  (e: 'modeChange', useThreadMode: boolean, useWeight: boolean): void
+  (e: 'modeChange', useThreadMode: boolean, useWeight: boolean): void;
 }>();
 
 const searchValue = ref<string | null>(null);
@@ -57,15 +60,15 @@ function onModeChange() {
 
 onMounted(() => {
   props.graphUpdater.registerSearchBarCallbacks(
-      () => isLoading.value = true,
-      () => isLoading.value = false,
-      (matched: string | null) => searchMatched.value = matched
-  )
+    () => (isLoading.value = true),
+    () => (isLoading.value = false),
+    (matched: string | null) => (searchMatched.value = matched)
+  );
 });
 
 function search() {
   if (Utils.isNotBlank(searchValue.value)) {
-    props.graphUpdater.updateWithSearch(searchValue.value!.trim())
+    props.graphUpdater.updateWithSearch(searchValue.value!.trim());
   }
 }
 
@@ -96,14 +99,24 @@ function resetTimeseriesZoom() {
             <div class="mode-toggle">
               <span class="mode-label">{{ threadModeLabel }}</span>
               <label class="toggle-switch">
-                <input type="checkbox" class="toggle-input" v-model="useThreadMode" @change="onModeChange()">
+                <input
+                  type="checkbox"
+                  class="toggle-input"
+                  v-model="useThreadMode"
+                  @change="onModeChange()"
+                />
                 <span class="toggle-slider"></span>
               </label>
             </div>
             <div class="mode-toggle">
               <span class="mode-label">{{ weightModeLabel }}</span>
               <label class="toggle-switch">
-                <input type="checkbox" class="toggle-input" v-model="useWeight" @change="onModeChange()">
+                <input
+                  type="checkbox"
+                  class="toggle-input"
+                  v-model="useWeight"
+                  @change="onModeChange()"
+                />
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -114,22 +127,33 @@ function resetTimeseriesZoom() {
         <div class="flex-grow-1"></div>
 
         <div class="d-flex align-items-center me-3" v-if="isLoading">
-          <div class="spinner-border spinner-border-sm text-primary" style="height: 18px; width: 18px" role="status">
+          <div
+            class="spinner-border spinner-border-sm text-primary"
+            style="height: 18px; width: 18px"
+            role="status"
+          >
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <span class="matched-badge"
-              @click="resetSearch()"
-              v-if="searchMatched != null"
-              title="Click to reset search">
+        <span
+          class="matched-badge"
+          @click="resetSearch()"
+          v-if="searchMatched != null"
+          title="Click to reset search"
+        >
           {{ searchMatched }}%
         </span>
       </div>
 
       <div class="col-6 d-flex">
         <div class="input-group">
-          <input type="text" class="form-control" v-model="searchValue" @keydown.enter="search"
-                 placeholder="Search">
+          <input
+            type="text"
+            class="form-control"
+            v-model="searchValue"
+            @keydown.enter="search"
+            placeholder="Search"
+          />
           <button class="btn btn-primary d-flex align-items-center" @click="search()">
             <i class="bi bi-arrow-right"></i>
           </button>

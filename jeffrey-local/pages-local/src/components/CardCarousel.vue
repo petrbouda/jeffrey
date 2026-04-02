@@ -1,7 +1,7 @@
 <template>
   <div class="card-carousel">
     <!-- Navigation moved to category header -->
-    
+
     <Carousel
       ref="carousel"
       :items-to-show="itemsToShow"
@@ -42,19 +42,19 @@ const showNavigation = computed(() => {
 
 const breakpoints = {
   0: {
-    itemsToShow: 1,
+    itemsToShow: 1
   },
   576: {
-    itemsToShow: 2,
+    itemsToShow: 2
   },
   768: {
-    itemsToShow: 2,
+    itemsToShow: 2
   },
   992: {
-    itemsToShow: 3,
+    itemsToShow: 3
   },
   1200: {
-    itemsToShow: 4,
+    itemsToShow: 4
   }
 };
 
@@ -71,12 +71,12 @@ const updateItemsToShow = () => {
   } else {
     itemsToShow.value = 4;
   }
-  
+
   // Apply maximum items limit if specified
   if (props.maxItems && itemsToShow.value > props.maxItems) {
     itemsToShow.value = props.maxItems;
   }
-  
+
   // Set itemsToShow to match the actual number of items, but always at least 1
   if (props.items && props.items.length < itemsToShow.value) {
     itemsToShow.value = Math.max(1, props.items.length);
@@ -100,7 +100,7 @@ const slideNext = () => {
 onMounted(() => {
   updateItemsToShow();
   window.addEventListener('resize', updateItemsToShow);
-  
+
   // Set up external navigation buttons if provided
   if (props.prevButtonId) {
     const prevButton = document.getElementById(props.prevButtonId);
@@ -108,7 +108,7 @@ onMounted(() => {
       prevButton.addEventListener('click', slidePrev);
     }
   }
-  
+
   if (props.nextButtonId) {
     const nextButton = document.getElementById(props.nextButtonId);
     if (nextButton) {
@@ -120,14 +120,14 @@ onMounted(() => {
 // Clean up event listeners
 onUnmounted(() => {
   window.removeEventListener('resize', updateItemsToShow);
-  
+
   if (props.prevButtonId) {
     const prevButton = document.getElementById(props.prevButtonId);
     if (prevButton) {
       prevButton.removeEventListener('click', slidePrev);
     }
   }
-  
+
   if (props.nextButtonId) {
     const nextButton = document.getElementById(props.nextButtonId);
     if (nextButton) {
@@ -136,12 +136,16 @@ onUnmounted(() => {
   }
 });
 
-watch(() => props.items, () => {
-  // Force carousel to update after items change
-  nextTick(() => {
-    updateItemsToShow();
-  });
-}, { deep: true });
+watch(
+  () => props.items,
+  () => {
+    // Force carousel to update after items change
+    nextTick(() => {
+      updateItemsToShow();
+    });
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>

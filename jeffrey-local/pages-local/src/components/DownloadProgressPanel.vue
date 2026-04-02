@@ -33,10 +33,10 @@
               <i class="bi bi-dash-lg"></i>
             </button>
             <button
-                v-if="!hasActiveDownloads"
-                class="btn-icon"
-                @click="$emit('close')"
-                title="Close all"
+              v-if="!hasActiveDownloads"
+              class="btn-icon"
+              @click="$emit('close')"
+              title="Close all"
             >
               <i class="bi bi-x-lg"></i>
             </button>
@@ -46,10 +46,10 @@
         <!-- Body - List of Downloads -->
         <div class="panel-body">
           <div
-              v-for="download in downloads"
-              :key="download.taskId"
-              class="download-card"
-              :class="{ 'download-complete': isDownloadComplete(download) }"
+            v-for="download in downloads"
+            :key="download.taskId"
+            class="download-card"
+            :class="{ 'download-complete': isDownloadComplete(download) }"
           >
             <!-- Download Header -->
             <div class="download-card-header">
@@ -58,12 +58,14 @@
                 <span class="session-name">{{ download.sessionName || download.taskId }}</span>
               </div>
               <div class="download-card-actions">
-                <span class="download-file-count">{{ download.completedFiles }}/{{ download.totalFiles }}</span>
+                <span class="download-file-count"
+                  >{{ download.completedFiles }}/{{ download.totalFiles }}</span
+                >
                 <button
-                    v-if="isDownloadComplete(download)"
-                    class="btn-close-card"
-                    @click="$emit('close-download', download.taskId)"
-                    title="Remove"
+                  v-if="isDownloadComplete(download)"
+                  class="btn-close-card"
+                  @click="$emit('close-download', download.taskId)"
+                  title="Remove"
                 >
                   <i class="bi bi-x"></i>
                 </button>
@@ -73,9 +75,12 @@
             <!-- Progress Bar -->
             <div class="progress download-progress">
               <div
-                  class="progress-bar progress-bar-striped"
-                  :class="[getProgressBarClass(download), { 'progress-bar-animated': !isDownloadComplete(download) }]"
-                  :style="{ width: fileCountPercent(download) + '%' }"
+                class="progress-bar progress-bar-striped"
+                :class="[
+                  getProgressBarClass(download),
+                  { 'progress-bar-animated': !isDownloadComplete(download) }
+                ]"
+                :style="{ width: fileCountPercent(download) + '%' }"
               ></div>
             </div>
 
@@ -89,9 +94,9 @@
                   </span>
                 </div>
                 <div
-                    v-for="file in download.activeDownloads"
-                    :key="file.fileName"
-                    class="file-item"
+                  v-for="file in download.activeDownloads"
+                  :key="file.fileName"
+                  class="file-item"
                 >
                   <i class="bi bi-file-earmark me-1 text-primary"></i>
                   <span class="file-name">{{ file.fileName }}</span>
@@ -107,9 +112,9 @@
                   </span>
                 </div>
                 <div
-                    v-for="file in download.completedDownloads"
-                    :key="file.fileName"
-                    class="file-item"
+                  v-for="file in download.completedDownloads"
+                  :key="file.fileName"
+                  class="file-item"
                 >
                   <i class="bi bi-file-earmark-check me-1 text-success"></i>
                   <span class="file-name">{{ file.fileName }}</span>
@@ -121,19 +126,25 @@
               <div class="download-footer">
                 <div class="download-status">
                   <span :class="getStatusClass(download)">
-                    <span v-if="!isDownloadComplete(download)" class="spinner-border spinner-border-sm me-1"></span>
+                    <span
+                      v-if="!isDownloadComplete(download)"
+                      class="spinner-border spinner-border-sm me-1"
+                    ></span>
                     {{ getStatusMessage(download) }}
                   </span>
-                  <span v-if="download.status === DownloadTaskStatus.COMPLETED" class="recording-note">
+                  <span
+                    v-if="download.status === DownloadTaskStatus.COMPLETED"
+                    class="recording-note"
+                  >
                     New Recording created
                   </span>
                 </div>
 
                 <!-- Cancel Button -->
                 <button
-                    v-if="canCancelDownload(download)"
-                    class="btn btn-sm btn-outline-danger"
-                    @click="$emit('cancel-download', download.taskId)"
+                  v-if="canCancelDownload(download)"
+                  class="btn btn-sm btn-outline-danger"
+                  @click="$emit('cancel-download', download.taskId)"
                 >
                   <i class="bi bi-x-lg me-1"></i>
                   Cancel
@@ -159,36 +170,31 @@
 
     <!-- Minimized Indicator -->
     <div
-        v-if="isOpen && !isExpanded"
-        class="minimized-indicator"
-        :class="aggregateStatusClass"
-        @click="$emit('expand')"
-        title="Click to expand downloads"
+      v-if="isOpen && !isExpanded"
+      class="minimized-indicator"
+      :class="aggregateStatusClass"
+      @click="$emit('expand')"
+      title="Click to expand downloads"
     >
       <svg class="progress-ring" viewBox="0 0 56 56">
+        <circle class="progress-ring-bg" cx="28" cy="28" r="24" fill="none" stroke-width="3" />
         <circle
-            class="progress-ring-bg"
-            cx="28"
-            cy="28"
-            r="24"
-            fill="none"
-            stroke-width="3"
-        />
-        <circle
-            class="progress-ring-bar"
-            cx="28"
-            cy="28"
-            r="24"
-            fill="none"
-            stroke-width="3"
-            stroke-linecap="round"
-            :style="progressRingStyle"
+          class="progress-ring-bar"
+          cx="28"
+          cy="28"
+          r="24"
+          fill="none"
+          stroke-width="3"
+          stroke-linecap="round"
+          :style="progressRingStyle"
         />
       </svg>
       <i :class="aggregateIndicatorIcon" class="indicator-icon"></i>
       <span class="indicator-badge">
         <template v-if="downloads.length > 1">{{ downloads.length }}</template>
-        <template v-else-if="downloads.length === 1">{{ downloads[0].completedFiles }}/{{ downloads[0].totalFiles }}</template>
+        <template v-else-if="downloads.length === 1"
+          >{{ downloads[0].completedFiles }}/{{ downloads[0].totalFiles }}</template
+        >
         <template v-else>0</template>
       </span>
     </div>
@@ -221,14 +227,18 @@ const fileCountPercent = (download: DownloadProgress): number => {
 };
 
 const isDownloadComplete = (download: DownloadProgress): boolean => {
-  return download.status === DownloadTaskStatus.COMPLETED ||
-      download.status === DownloadTaskStatus.FAILED ||
-      download.status === DownloadTaskStatus.CANCELLED;
+  return (
+    download.status === DownloadTaskStatus.COMPLETED ||
+    download.status === DownloadTaskStatus.FAILED ||
+    download.status === DownloadTaskStatus.CANCELLED
+  );
 };
 
 const canCancelDownload = (download: DownloadProgress): boolean => {
-  return download.status === DownloadTaskStatus.PENDING ||
-      download.status === DownloadTaskStatus.DOWNLOADING;
+  return (
+    download.status === DownloadTaskStatus.PENDING ||
+    download.status === DownloadTaskStatus.DOWNLOADING
+  );
 };
 
 const getProgressBarClass = (download: DownloadProgress): string => {
@@ -629,7 +639,9 @@ const progressRingStyle = computed(() => {
   height: 60px;
   border-radius: 50%;
   background: white;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   z-index: 1040;
   transition: all 0.2s ease;
@@ -722,8 +734,12 @@ const progressRingStyle = computed(() => {
 
 /* Animations */
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spin {
@@ -732,8 +748,13 @@ const progressRingStyle = computed(() => {
 
 /* Pulse animation for pending state */
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .status-downloading .indicator-icon {

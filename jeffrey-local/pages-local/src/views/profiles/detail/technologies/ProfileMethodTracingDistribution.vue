@@ -42,22 +42,30 @@
         <MethodTracingOverviewStats :header="overviewData.header" />
 
         <!-- Method Distribution Charts -->
-        <div class="distribution-container">
-          <PieChart
-            title="Top Methods by Invocations"
-            icon="bar-chart-line"
-            :data="methodsByCount"
-            :total="totalInvocations"
-            :value-formatter="formatCount"
-          />
-          <PieChart
-            title="Top Methods by Duration"
-            icon="clock"
-            :data="methodsByDuration"
-            :total="totalDuration"
-            :value-formatter="formatDuration"
-          />
-        </div>
+        <DualPanel
+          title="Method Distribution"
+          icon="pie-chart"
+          left-title="Top Methods by Invocations"
+          right-title="Top Methods by Duration"
+        >
+          <template #left>
+            <DonutWithLegend
+              :data="invocationChartData"
+              :tooltip-formatter="
+                (val: number) => FormattingService.formatNumber(val) + ' invocations'
+              "
+            />
+          </template>
+          <template #right>
+            <DonutWithLegend
+              :data="durationChartData"
+              :tooltip-formatter="(val: number) => FormattingService.formatDuration2Units(val)"
+              :value-formatter="
+                (val: string) => FormattingService.formatDuration2Units(Number(val))
+              "
+            />
+          </template>
+        </DualPanel>
       </div>
     </div>
   </div>
@@ -67,7 +75,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
-import PieChart from '@/components/PieChart.vue';
+import DualPanel from '@/components/DualPanel.vue';
+import DonutWithLegend from '@/components/DonutWithLegend.vue';
+import type { DonutChartData } from '@/components/DonutWithLegend.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import ErrorState from '@/components/ErrorState.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -102,29 +112,42 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const overviewData = ref<MethodTracingOverviewData | null>(null);
 
+// Chart colors palette
+const CHART_COLORS = ['#5a9fd4', '#5cb85c', '#f0ad4e', '#d9534f', '#9b59b6', '#6c757d'];
+
 // Computed properties
-const methodsByCount = computed(() => {
-  if (!overviewData.value) return [];
-  return overviewData.value.topMethodsByCount.slice(0, 6).map(m => ({
-    label: getShortMethodName(m.className, m.methodName),
-    value: m.invocationCount
-  }));
+const invocationChartData = computed<DonutChartData>(() => {
+  if (!overviewData.value)
+    return { series: [], labels: [], colors: [], legendItems: [], totalValue: '0' };
+  const items = overviewData.value.topMethodsByCount.slice(0, 6);
+  return {
+    series: items.map(m => m.invocationCount),
+    labels: items.map(m => getShortMethodName(m.className, m.methodName)),
+    colors: items.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+    totalValue: FormattingService.formatNumber(overviewData.value.header.totalInvocations),
+    legendItems: items.map((m, i) => ({
+      color: CHART_COLORS[i % CHART_COLORS.length],
+      label: getShortMethodName(m.className, m.methodName),
+      value: FormattingService.formatNumber(m.invocationCount)
+    }))
+  };
 });
 
-const methodsByDuration = computed(() => {
-  if (!overviewData.value) return [];
-  return overviewData.value.topMethodsByDuration.slice(0, 6).map(m => ({
-    label: getShortMethodName(m.className, m.methodName),
-    value: m.totalDuration
-  }));
-});
-
-const totalInvocations = computed(() => {
-  return overviewData.value?.header.totalInvocations ?? 0;
-});
-
-const totalDuration = computed(() => {
-  return overviewData.value?.header.totalDuration ?? 0;
+const durationChartData = computed<DonutChartData>(() => {
+  if (!overviewData.value)
+    return { series: [], labels: [], colors: [], legendItems: [], totalValue: '0' };
+  const items = overviewData.value.topMethodsByDuration.slice(0, 6);
+  return {
+    series: items.map(m => m.totalDuration),
+    labels: items.map(m => getShortMethodName(m.className, m.methodName)),
+    colors: items.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]),
+    totalValue: FormattingService.formatDuration2Units(overviewData.value.header.totalDuration),
+    legendItems: items.map((m, i) => ({
+      color: CHART_COLORS[i % CHART_COLORS.length],
+      label: getShortMethodName(m.className, m.methodName),
+      value: FormattingService.formatDuration2Units(m.totalDuration)
+    }))
+  };
 });
 
 // Helper functions
@@ -133,9 +156,6 @@ function getShortMethodName(className: string, methodName: string): string {
   const shortClassName = classParts[classParts.length - 1];
   return methodName ? `${shortClassName}#${methodName}` : shortClassName;
 }
-
-const formatDuration = (value: number) => FormattingService.formatDuration2Units(value);
-const formatCount = (value: number) => FormattingService.formatNumber(value) + ' invocations';
 
 // Load data
 async function loadData() {
@@ -164,17 +184,5 @@ onMounted(() => {
 <style scoped>
 .dashboard-container {
   padding: 0;
-}
-
-.distribution-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-@media (max-width: 768px) {
-  .distribution-container {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

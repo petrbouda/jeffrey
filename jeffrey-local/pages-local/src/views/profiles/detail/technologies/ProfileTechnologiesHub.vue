@@ -11,17 +11,30 @@
           <div class="info-strip-text">
             <div class="info-strip-heading">How to enable these dashboards?</div>
             <div class="info-strip-sub">
-              Add <code>cafe.jeffrey-analyst:jeffrey-events:0.10.0</code> to your app to emit proper events — dashboards activate when events are detected.
+              Add <code>cafe.jeffrey-analyst:jeffrey-events:0.10.0</code> to your app to emit proper
+              events — dashboards activate when events are detected.
             </div>
           </div>
           <div class="info-strip-actions">
-            <a class="info-strip-btn info-strip-btn-ghost" href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events" target="_blank">
+            <a
+              class="info-strip-btn info-strip-btn-ghost"
+              href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events"
+              target="_blank"
+            >
               <i class="bi bi-box-seam"></i> Maven Central
             </a>
-            <a class="info-strip-btn info-strip-btn-ghost" href="/docs/jeffrey-jfr-events/overview" target="_blank">
+            <a
+              class="info-strip-btn info-strip-btn-ghost"
+              href="/docs/jeffrey-jfr-events/overview"
+              target="_blank"
+            >
               <i class="bi bi-book"></i> Docs
             </a>
-            <a class="info-strip-btn info-strip-btn-ghost" href="https://github.com/petrbouda/jeffrey-events" target="_blank">
+            <a
+              class="info-strip-btn info-strip-btn-ghost"
+              href="https://github.com/petrbouda/jeffrey-events"
+              target="_blank"
+            >
               <i class="bi bi-github"></i> Sources
             </a>
           </div>
@@ -29,11 +42,11 @@
       </div>
 
       <div
-          v-for="tech in sortedTechnologies"
-          :key="tech.id"
-          class="tech-card"
-          :class="{ disabled: tech.disabled }"
-          @click="navigateTo(tech)"
+        v-for="tech in sortedTechnologies"
+        :key="tech.id"
+        class="tech-card"
+        :class="{ disabled: tech.disabled }"
+        @click="navigateTo(tech)"
       >
         <div class="card-accent" :class="tech.colorClass"></div>
         <div class="card-body">
@@ -58,8 +71,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import FeatureType from '@/services/api/model/FeatureType';
 
 const props = defineProps<{
@@ -89,7 +102,7 @@ const technologies = [
     icon: 'bi-globe2',
     colorClass: 'color-http',
     route: `/profiles/${profileId}/technologies/http/timeseries?mode=server`,
-    featureType: FeatureType.HTTP_SERVER_DASHBOARD,
+    featureType: FeatureType.HTTP_SERVER_DASHBOARD
   },
   {
     id: 'http-client',
@@ -98,7 +111,7 @@ const technologies = [
     icon: 'bi-send',
     colorClass: 'color-http',
     route: `/profiles/${profileId}/technologies/http/timeseries?mode=client`,
-    featureType: FeatureType.HTTP_CLIENT_DASHBOARD,
+    featureType: FeatureType.HTTP_CLIENT_DASHBOARD
   },
   {
     id: 'grpc-server',
@@ -107,7 +120,7 @@ const technologies = [
     icon: 'bi-diagram-3',
     colorClass: 'color-grpc',
     route: `/profiles/${profileId}/technologies/grpc/timeseries?mode=server`,
-    featureType: FeatureType.GRPC_SERVER_DASHBOARD,
+    featureType: FeatureType.GRPC_SERVER_DASHBOARD
   },
   {
     id: 'grpc-client',
@@ -116,7 +129,7 @@ const technologies = [
     icon: 'bi-arrow-left-right',
     colorClass: 'color-grpc',
     route: `/profiles/${profileId}/technologies/grpc/timeseries?mode=client`,
-    featureType: FeatureType.GRPC_CLIENT_DASHBOARD,
+    featureType: FeatureType.GRPC_CLIENT_DASHBOARD
   },
   {
     id: 'jdbc',
@@ -125,7 +138,7 @@ const technologies = [
     icon: 'bi-database',
     colorClass: 'color-db',
     route: `/profiles/${profileId}/technologies/jdbc/timeseries`,
-    featureType: FeatureType.JDBC_STATEMENTS_DASHBOARD,
+    featureType: FeatureType.JDBC_STATEMENTS_DASHBOARD
   },
   {
     id: 'method-tracing',
@@ -134,14 +147,14 @@ const technologies = [
     icon: 'bi-speedometer2',
     colorClass: 'color-tracing',
     route: `/profiles/${profileId}/technologies/method-tracing/timeseries`,
-    featureType: FeatureType.TRACING_DASHBOARD,
-  },
+    featureType: FeatureType.TRACING_DASHBOARD
+  }
 ];
 
 const sortedTechnologies = computed<TechnologyCard[]>(() => {
   const cards = technologies.map(tech => ({
     ...tech,
-    disabled: props.disabledFeatures.includes(tech.featureType),
+    disabled: props.disabledFeatures.includes(tech.featureType)
   }));
   return cards.sort((a, b) => Number(a.disabled) - Number(b.disabled));
 });

@@ -20,12 +20,12 @@ import ConcurrentPhase from './ConcurrentPhase';
 import GCGenerationType from './GCGenerationType';
 
 export default interface ConcurrentEvent {
-    gcId: number;
-    collectorName: string;
-    generationType: GCGenerationType;
-    duration: number;
-    timestamp: number;
-    timestampFromStart: number;
-    sumOfPauses: number;
-    phases: ConcurrentPhase[];
+  gcId: number;
+  collectorName: string;
+  generationType: GCGenerationType;
+  duration: number;
+  timestamp: number;
+  timestampFromStart: number;
+  sumOfPauses: number;
+  phases: ConcurrentPhase[];
 }

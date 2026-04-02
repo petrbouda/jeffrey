@@ -20,22 +20,21 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import type { ImportantMessage } from '@/services/api/model/ImportantMessage';
 
 export default class ProjectMessagesClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/messages`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/messages`);
-    }
+  async getMessages(startMillis?: number, endMillis?: number): Promise<ImportantMessage[]> {
+    const params: Record<string, number> = {};
+    if (startMillis !== undefined) params.start = startMillis;
+    if (endMillis !== undefined) params.end = endMillis;
+    return super.get<ImportantMessage[]>('', params);
+  }
 
-    async getMessages(startMillis?: number, endMillis?: number): Promise<ImportantMessage[]> {
-        const params: Record<string, number> = {};
-        if (startMillis !== undefined) params.start = startMillis;
-        if (endMillis !== undefined) params.end = endMillis;
-        return super.get<ImportantMessage[]>('', params);
-    }
-
-    async getAlerts(startMillis?: number, endMillis?: number): Promise<ImportantMessage[]> {
-        const params: Record<string, number> = {};
-        if (startMillis !== undefined) params.start = startMillis;
-        if (endMillis !== undefined) params.end = endMillis;
-        return super.get<ImportantMessage[]>('/alerts', params);
-    }
+  async getAlerts(startMillis?: number, endMillis?: number): Promise<ImportantMessage[]> {
+    const params: Record<string, number> = {};
+    if (startMillis !== undefined) params.start = startMillis;
+    if (endMillis !== undefined) params.end = endMillis;
+    return super.get<ImportantMessage[]>('/alerts', params);
+  }
 }

@@ -19,15 +19,15 @@
 import WorkspaceEventType from './WorkspaceEventType';
 
 interface WorkspaceEvent {
-    eventId: number;
-    originEventId: string;
-    projectId: string;
-    workspaceId: string;
-    eventType: WorkspaceEventType;
-    content: string;
-    originCreatedAt: number;
-    createdAt: number;
-    createdBy: string;
+  eventId: number;
+  originEventId: string;
+  projectId: string;
+  workspaceId: string;
+  eventType: WorkspaceEventType;
+  content: string;
+  originCreatedAt: number;
+  createdAt: number;
+  createdBy: string;
 }
 
-export default WorkspaceEvent
+export default WorkspaceEvent;

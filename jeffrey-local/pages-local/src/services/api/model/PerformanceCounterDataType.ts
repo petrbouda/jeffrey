@@ -17,11 +17,11 @@
  */
 
 enum PerformanceCounterDataType {
-    count = "count",
-    string = "string",
-    timestamp = "timestamp",
-    bytes = "bytes",
-    duration = "duration",
+  count = 'count',
+  string = 'string',
+  timestamp = 'timestamp',
+  bytes = 'bytes',
+  duration = 'duration'
 }
 
-export default PerformanceCounterDataType
+export default PerformanceCounterDataType;

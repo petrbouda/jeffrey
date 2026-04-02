@@ -11,7 +11,6 @@
       icon="bi-graph-up-arrow"
     />
 
-
     <!-- Key Metrics Row -->
     <GCMetricsStatsRow :profile-id="route.params.profileId as string" />
 
@@ -29,7 +28,8 @@
         <div class="chart-description">
           <span class="chart-description-label">Shows:</span> Number of GC events per second
           <span class="chart-description-separator">|</span>
-          <span class="chart-description-label">Use case:</span> Identify periods of high GC activity and frequency patterns
+          <span class="chart-description-label">Use case:</span> Identify periods of high GC
+          activity and frequency patterns
         </div>
         <TimeSeriesChart
           :primary-data="youngGCData"
@@ -50,9 +50,11 @@
       <!-- Max Pause Tab -->
       <template #max-pause>
         <div class="chart-description">
-          <span class="chart-description-label">Shows:</span> Longest single pause within each second
+          <span class="chart-description-label">Shows:</span> Longest single pause within each
+          second
           <span class="chart-description-separator">|</span>
-          <span class="chart-description-label">Use case:</span> Find worst-case latency spikes that may affect user experience
+          <span class="chart-description-label">Use case:</span> Find worst-case latency spikes that
+          may affect user experience
         </div>
         <TimeSeriesChart
           :primary-data="youngGCData"
@@ -77,7 +79,8 @@
         <div class="chart-description">
           <span class="chart-description-label">Shows:</span> Total pause time per second
           <span class="chart-description-separator">|</span>
-          <span class="chart-description-label">Use case:</span> Measure overall GC overhead and throughput impact
+          <span class="chart-description-label">Use case:</span> Measure overall GC overhead and
+          throughput impact
         </div>
         <TimeSeriesChart
           :primary-data="youngGCData"

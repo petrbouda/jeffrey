@@ -6,24 +6,27 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="signpost-2"
-      message="The heap dump needs to be initialized before you can find paths to GC roots. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="signpost-2"
+    message="The heap dump needs to be initialized before you can find paths to GC roots. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-        title="Path to GC Root"
-        description="Find the reference chain from a specific object to its GC root"
-        icon="bi-signpost-2"
+      title="Path to GC Root"
+      description="Find the reference chain from a specific object to its GC root"
+      icon="bi-signpost-2"
     />
 
     <!-- Search Form -->
@@ -34,19 +37,23 @@
             <i class="bi bi-search search-icon"></i>
           </span>
           <input
-              id="objectIdInput"
-              v-model="objectIdInput"
-              type="text"
-              inputmode="numeric"
-              class="form-control"
-              placeholder="Object ID"
+            id="objectIdInput"
+            v-model="objectIdInput"
+            type="text"
+            inputmode="numeric"
+            class="form-control"
+            placeholder="Object ID"
           />
         </div>
         <label class="form-check mb-0 text-nowrap">
-          <input class="form-check-input" type="checkbox" v-model="excludeWeakRefs">
+          <input class="form-check-input" type="checkbox" v-model="excludeWeakRefs" />
           <span class="form-check-label small text-muted">Exclude weak refs</span>
         </label>
-        <button type="submit" class="btn btn-primary btn-sm text-nowrap" :disabled="!parsedObjectId() || searching">
+        <button
+          type="submit"
+          class="btn btn-primary btn-sm text-nowrap"
+          :disabled="!parsedObjectId() || searching"
+        >
           <span v-if="searching" class="spinner-border spinner-border-sm me-1" role="status"></span>
           <i v-else class="bi bi-signpost-2 me-1"></i>
           Find Paths
@@ -56,7 +63,7 @@
 
     <!-- Initial empty state -->
     <div v-if="!searched && !searching" class="text-center text-muted py-5">
-      <i class="bi bi-signpost-2 fs-1 d-block mb-3" style="opacity: 0.3;"></i>
+      <i class="bi bi-signpost-2 fs-1 d-block mb-3" style="opacity: 0.3"></i>
       <p class="mb-1">Enter an object ID to find its path to a GC root.</p>
       <p class="small">You can find object IDs in the Dominator Tree or OQL Query pages.</p>
     </div>
@@ -76,24 +83,33 @@
     <!-- No results -->
     <div v-else-if="paths.length === 0" class="text-center text-muted py-4">
       <i class="bi bi-x-circle fs-3 d-block mb-2"></i>
-      <p>No GC root path found for object <code>{{ searchedObjectId }}</code>.</p>
+      <p>
+        No GC root path found for object <code>{{ searchedObjectId }}</code
+        >.
+      </p>
     </div>
 
     <!-- Results -->
     <div v-else>
       <div class="d-flex align-items-center gap-2 mb-3">
-        <Badge :value="paths.length + ' path' + (paths.length !== 1 ? 's' : '')" variant="blue" size="xs" />
-        <span class="text-muted small">found for object <code>{{ searchedObjectId }}</code></span>
+        <Badge
+          :value="paths.length + ' path' + (paths.length !== 1 ? 's' : '')"
+          variant="blue"
+          size="xs"
+        />
+        <span class="text-muted small"
+          >found for object <code>{{ searchedObjectId }}</code></span
+        >
       </div>
       <GCRootPathVisualization :paths="paths" @select-object-id="onSelectObjectId" />
     </div>
 
     <InstanceDetailPanel
-        :is-open="!!selectedObjectId"
-        :object-id="selectedObjectId"
-        :client="heapClient"
-        @close="selectedObjectId = null"
-        @navigate="onNavigateInstance"
+      :is-open="!!selectedObjectId"
+      :object-id="selectedObjectId"
+      :client="heapClient"
+      @close="selectedObjectId = null"
+      @navigate="onNavigateInstance"
     />
   </div>
 </template>

@@ -17,19 +17,18 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import AnalysisResult from "@/services/api/model/AnalysisResult.ts";
+import AnalysisResult from '@/services/api/model/AnalysisResult.ts';
 
 export default class AutoAnalysisClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'analysis');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'analysis');
-    }
+  rules(): Promise<AnalysisResult[]> {
+    return super.get<AnalysisResult[]>('');
+  }
 
-    rules(): Promise<AnalysisResult[]> {
-        return super.get<AnalysisResult[]>('');
-    }
-
-    generate(): Promise<AnalysisResult[]> {
-        return super.post<AnalysisResult[]>('');
-    }
+  generate(): Promise<AnalysisResult[]> {
+    return super.post<AnalysisResult[]>('');
+  }
 }

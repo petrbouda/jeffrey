@@ -8,21 +8,24 @@
 
       <!-- OQL Query Block -->
       <OqlQueryBlock
-          v-if="message.oql"
-          :query="message.oql"
-          @apply="$emit('apply', message.oql)"
-          @run="$emit('run', message.oql)"
+        v-if="message.oql"
+        :query="message.oql"
+        @apply="$emit('apply', message.oql)"
+        @run="$emit('run', message.oql)"
       />
 
       <!-- Follow-up Suggestions -->
-      <div v-if="message.suggestedFollowups && message.suggestedFollowups.length > 0" class="suggestions">
+      <div
+        v-if="message.suggestedFollowups && message.suggestedFollowups.length > 0"
+        class="suggestions"
+      >
         <span class="suggestions-label">Try asking:</span>
         <div class="suggestion-chips">
           <button
-              v-for="(suggestion, index) in message.suggestedFollowups"
-              :key="index"
-              class="suggestion-chip"
-              @click="$emit('suggestion', suggestion)"
+            v-for="(suggestion, index) in message.suggestedFollowups"
+            :key="index"
+            class="suggestion-chip"
+            @click="$emit('suggestion', suggestion)"
           >
             {{ suggestion }}
           </button>

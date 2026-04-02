@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import JITCompilerType from "@/services/compilation/model/JITCompilerType.ts";
+import JITCompilerType from '@/services/compilation/model/JITCompilerType.ts';
 
 export default class JITLongCompilation {
-    constructor(
-        public compileId: number,
-        public compiler: JITCompilerType,
-        public method: string,
-        public compileLevel: number,
-        public succeded: boolean,
-        public isOsr: boolean,
-        public codeSize: number,
-        public duration: number) {
-    }
+  constructor(
+    public compileId: number,
+    public compiler: JITCompilerType,
+    public method: string,
+    public compileLevel: number,
+    public succeded: boolean,
+    public isOsr: boolean,
+    public codeSize: number,
+    public duration: number
+  ) {}
 }

@@ -36,7 +36,13 @@
       <!-- Group selector -->
       <div class="upload-group-row">
         <label class="upload-group-label">Target Group</label>
-        <select class="upload-group-select" :value="selectedGroupId" @change="emit('update:selectedGroupId', ($event.target as HTMLSelectElement).value || null)">
+        <select
+          class="upload-group-select"
+          :value="selectedGroupId"
+          @change="
+            emit('update:selectedGroupId', ($event.target as HTMLSelectElement).value || null)
+          "
+        >
           <option :value="''">No group</option>
           <option v-for="group in groups" :key="group.id" :value="group.id">
             {{ group.name }}
@@ -46,21 +52,21 @@
 
       <!-- Dropzone (when no files) -->
       <div
-          class="upload-dropzone"
-          :class="{ 'drag-over': dragActive, 'has-files': files.length > 0 }"
-          @dragover.prevent="dragActive = true"
-          @dragleave.prevent="dragActive = false"
-          @drop.prevent="handleDrop"
+        class="upload-dropzone"
+        :class="{ 'drag-over': dragActive, 'has-files': files.length > 0 }"
+        @dragover.prevent="dragActive = true"
+        @dragleave.prevent="dragActive = false"
+        @drop.prevent="handleDrop"
       >
         <div v-if="files.length === 0" class="dropzone-empty" @click="triggerFileInput">
           <input
-              ref="fileInputRef"
-              type="file"
-              :accept="acceptedFormats"
-              multiple
-              class="file-input-hidden"
-              @change="handleFileInput"
-          >
+            ref="fileInputRef"
+            type="file"
+            :accept="acceptedFormats"
+            multiple
+            class="file-input-hidden"
+            @change="handleFileInput"
+          />
           <i class="bi bi-cloud-upload dropzone-icon"></i>
           <span class="dropzone-text">Drop files here or click to browse</span>
         </div>
@@ -73,18 +79,23 @@
               Selected Files ({{ files.length }})
             </span>
             <div class="upload-file-actions">
-              <button class="upload-btn-add" @click="triggerFileInput" :disabled="isUploading" title="Add more files">
+              <button
+                class="upload-btn-add"
+                @click="triggerFileInput"
+                :disabled="isUploading"
+                title="Add more files"
+              >
                 <i class="bi bi-plus-lg"></i>
                 Add
               </button>
               <input
-                  ref="fileInputRef"
-                  type="file"
-                  :accept="acceptedFormats"
-                  multiple
-                  class="file-input-hidden"
-                  @change="handleFileInput"
-              >
+                ref="fileInputRef"
+                type="file"
+                :accept="acceptedFormats"
+                multiple
+                class="file-input-hidden"
+                @change="handleFileInput"
+              />
               <button class="upload-btn-clear" @click="emit('clear')" :disabled="isUploading">
                 Clear
               </button>
@@ -106,9 +117,9 @@
                 <div class="upload-progress">
                   <div class="upload-progress-track">
                     <div
-                        class="upload-progress-fill"
-                        :class="progress[file.name].status"
-                        :style="{ width: Math.min(progress[file.name].progress, 100) + '%' }"
+                      class="upload-progress-fill"
+                      :class="progress[file.name].status"
+                      :style="{ width: Math.min(progress[file.name].progress, 100) + '%' }"
                     ></div>
                   </div>
                 </div>
@@ -122,14 +133,17 @@
                   <template v-else-if="progress[file.name].status === 'uploading'">
                     {{ progress[file.name].progress }}%
                   </template>
-                  <template v-else>
-                    Pending
-                  </template>
+                  <template v-else> Pending </template>
                 </span>
               </template>
 
               <!-- Remove button -->
-              <button v-else class="upload-file-remove" @click="emit('remove', index)" title="Remove">
+              <button
+                v-else
+                class="upload-file-remove"
+                @click="emit('remove', index)"
+                title="Remove"
+              >
                 <i class="bi bi-x"></i>
               </button>
             </div>
@@ -169,7 +183,7 @@ const props = withDefaults(defineProps<Props>(), {
   selectedGroupId: null,
   acceptedFormats: '.jfr,.lz4,.hprof,.gz',
   formatHint: '.jfr  .lz4  .hprof  .hprof.gz',
-  isUploading: false,
+  isUploading: false
 });
 
 const expanded = ref(true);
@@ -290,8 +304,14 @@ const getFileIcon = (filename: string): string => {
 }
 
 @keyframes expandIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Group selector */
@@ -566,8 +586,13 @@ const getFileIcon = (filename: string): string => {
 }
 
 @keyframes progressPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .upload-status {

@@ -20,16 +20,15 @@ import BasePlatformClient from '@/services/api/BasePlatformClient';
 import Workspace from '@/services/api/model/Workspace';
 
 export default class RemoteWorkspaceClient extends BasePlatformClient {
+  constructor() {
+    super('/remote-workspaces');
+  }
 
-    constructor() {
-        super('/remote-workspaces');
-    }
+  async listRemote(hostname: string, port: number): Promise<Workspace[]> {
+    return super.post<Workspace[]>('/list', { hostname, port });
+  }
 
-    async listRemote(hostname: string, port: number): Promise<Workspace[]> {
-        return super.post<Workspace[]>('/list', {hostname, port});
-    }
-
-    async createRemote(hostname: string, port: number, workspaceIds: string[]): Promise<void> {
-        return super.post<void>('/create', {hostname, port, workspaceIds});
-    }
+  async createRemote(hostname: string, port: number, workspaceIds: string[]): Promise<void> {
+    return super.post<void>('/create', { hostname, port, workspaceIds });
+  }
 }

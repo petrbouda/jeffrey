@@ -26,7 +26,10 @@
       icon="bi-shield-check"
     >
       <!-- Summary Card with Chart and Prerequisites -->
-      <div class="summary-card mb-4" v-if="analysisRulesFlat.length > 0 || prerequisites.length > 0">
+      <div
+        class="summary-card mb-4"
+        v-if="analysisRulesFlat.length > 0 || prerequisites.length > 0"
+      >
         <div class="summary-card-body">
           <div class="row align-items-stretch">
             <!-- Donut Chart -->
@@ -93,7 +96,11 @@
                     <div class="prereq-header">
                       <i
                         class="bi"
-                        :class="prereq.severity === 'OK' ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-warning'"
+                        :class="
+                          prereq.severity === 'OK'
+                            ? 'bi-check-circle-fill text-success'
+                            : 'bi-exclamation-triangle-fill text-warning'
+                        "
                       ></i>
                       <span class="prereq-name">{{ prereq.rule }}</span>
                     </div>
@@ -154,11 +161,7 @@
           </div>
 
           <!-- Table Rows -->
-          <div
-            v-for="rule in filteredAndSortedRules"
-            :key="rule.id"
-            class="table-row-wrapper"
-          >
+          <div v-for="rule in filteredAndSortedRules" :key="rule.id" class="table-row-wrapper">
             <div
               class="table-row"
               :class="[`severity-${rule.severity?.toLowerCase() || 'default'}`]"
@@ -167,7 +170,10 @@
               <div class="col-status">
                 <i
                   class="bi"
-                  :class="[`bi-${getSeverityIcon(rule.severity)}`, getSeverityTextClass(rule.severity)]"
+                  :class="[
+                    `bi-${getSeverityIcon(rule.severity)}`,
+                    getSeverityTextClass(rule.severity)
+                  ]"
                 ></i>
               </div>
               <div class="col-rule">{{ rule.rule }}</div>
@@ -184,7 +190,10 @@
                   <div v-if="isPercentageScore(rule.score)" class="mini-progress">
                     <div
                       class="mini-progress-bar"
-                      :style="{ width: rule.score, backgroundColor: getSeverityColor(rule.severity) }"
+                      :style="{
+                        width: rule.score,
+                        backgroundColor: getSeverityColor(rule.severity)
+                      }"
                     ></div>
                   </div>
                 </div>
@@ -245,40 +254,46 @@
 
       <!-- Flamegraph Modal -->
       <GenericModal
-          modal-id="flamegraphModal"
-          :show="showFlamegraphDialog"
-          size="fullscreen"
-          :show-footer="false"
-          @update:show="showFlamegraphDialog = $event">
+        modal-id="flamegraphModal"
+        :show="showFlamegraphDialog"
+        size="fullscreen"
+        :show-footer="false"
+        @update:show="showFlamegraphDialog = $event"
+      >
         <template #header>
-          <button type="button" class="btn-close" @click="showFlamegraphDialog = false" aria-label="Close" />
+          <button
+            type="button"
+            class="btn-close"
+            @click="showFlamegraphDialog = false"
+            aria-label="Close"
+          />
         </template>
         <div
-            id="scrollable-wrapper"
-            class="px-2"
-            v-if="showFlamegraphDialog && activeVisualization"
+          id="scrollable-wrapper"
+          class="px-2"
+          v-if="showFlamegraphDialog && activeVisualization"
         >
           <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="true" />
           <TimeSeriesChart
-              :graph-updater="graphUpdater"
-              :primary-axis-type="
-                TimeseriesEventAxeFormatter.resolveAxisFormatter(
-                  activeVisualization.useWeight,
-                  activeVisualization.eventType
-                )
-              "
-              :visible-minutes="60"
-              :zoom-enabled="true"
-              time-unit="seconds"
+            :graph-updater="graphUpdater"
+            :primary-axis-type="
+              TimeseriesEventAxeFormatter.resolveAxisFormatter(
+                activeVisualization.useWeight,
+                activeVisualization.eventType
+              )
+            "
+            :visible-minutes="60"
+            :zoom-enabled="true"
+            time-unit="seconds"
           />
           <FlamegraphComponent
-              :with-timeseries="true"
-              :use-weight="activeVisualization.useWeight"
-              :use-guardian="activeVisualization"
-              scrollableWrapperClass="scrollable-wrapper"
-              :flamegraph-tooltip="flamegraphTooltip"
-              :graph-updater="graphUpdater"
-              @loaded="scrollToTop"
+            :with-timeseries="true"
+            :use-weight="activeVisualization.useWeight"
+            :use-guardian="activeVisualization"
+            scrollableWrapperClass="scrollable-wrapper"
+            :flamegraph-tooltip="flamegraphTooltip"
+            :graph-updater="graphUpdater"
+            @loaded="scrollToTop"
           />
         </div>
       </GenericModal>
@@ -370,18 +385,14 @@ const analysisRulesFlat = allRulesFlat;
 
 // Computed: Unique categories for filter dropdown (excluding Prerequisites)
 const categories = computed(() =>
-  [...new Set(guards.value
-    .filter(g => g.category !== PREREQUISITES_CATEGORY)
-    .map(g => g.category)
-  )].sort()
+  [
+    ...new Set(guards.value.filter(g => g.category !== PREREQUISITES_CATEGORY).map(g => g.category))
+  ].sort()
 );
 
 // Computed: Unique groups for filter dropdown
 const groups = computed(() =>
-  [...new Set(allRulesFlat.value
-    .map(r => r.group)
-    .filter((g): g is string => g != null)
-  )].sort()
+  [...new Set(allRulesFlat.value.map(r => r.group).filter((g): g is string => g != null))].sort()
 );
 
 // Computed: Filtered and sorted rules
@@ -406,17 +417,18 @@ const filteredAndSortedRules = computed(() => {
   // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    rules = rules.filter(r =>
-      r.rule.toLowerCase().includes(query) ||
-      r.category.toLowerCase().includes(query) ||
-      r.group?.toLowerCase().includes(query) ||
-      r.summary?.toLowerCase().includes(query)
+    rules = rules.filter(
+      r =>
+        r.rule.toLowerCase().includes(query) ||
+        r.category.toLowerCase().includes(query) ||
+        r.group?.toLowerCase().includes(query) ||
+        r.summary?.toLowerCase().includes(query)
     );
   }
 
   // Sort by severity (warnings first)
-  return rules.sort((a, b) =>
-    (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
+  return rules.sort(
+    (a, b) => (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
   );
 });
 
@@ -495,7 +507,8 @@ const chartSeries = computed(() => [
 
 // Lifecycle
 onMounted(() => {
-  new GuardianClient(route.params.profileId as string).list()
+  new GuardianClient(route.params.profileId as string)
+    .list()
     .then((data: GuardResponse[]) => {
       guards.value = data;
       loading.value = false;
@@ -503,7 +516,6 @@ onMounted(() => {
     .catch(() => {
       loading.value = false;
     });
-
 });
 
 // Helper Functions
@@ -523,34 +535,50 @@ function isPercentageScore(score: string | null): boolean {
 
 function getSeverityIcon(severity: string): string {
   switch (severity) {
-    case 'OK': return 'check-circle-fill';
-    case 'WARNING': return 'exclamation-triangle-fill';
-    case 'INFO': return 'info-circle-fill';
-    case 'NA': return 'slash-circle-fill';
-    case 'IGNORE': return 'eye-slash-fill';
-    default: return 'question-circle-fill';
+    case 'OK':
+      return 'check-circle-fill';
+    case 'WARNING':
+      return 'exclamation-triangle-fill';
+    case 'INFO':
+      return 'info-circle-fill';
+    case 'NA':
+      return 'slash-circle-fill';
+    case 'IGNORE':
+      return 'eye-slash-fill';
+    default:
+      return 'question-circle-fill';
   }
 }
 
 function getSeverityTextClass(severity: string): string {
   switch (severity) {
-    case 'OK': return 'text-success';
-    case 'WARNING': return 'text-danger';
-    case 'INFO': return 'text-primary';
+    case 'OK':
+      return 'text-success';
+    case 'WARNING':
+      return 'text-danger';
+    case 'INFO':
+      return 'text-primary';
     case 'NA':
-    case 'IGNORE': return 'text-secondary';
-    default: return 'text-muted';
+    case 'IGNORE':
+      return 'text-secondary';
+    default:
+      return 'text-muted';
   }
 }
 
 function getSeverityColor(severity: string): string {
   switch (severity) {
-    case 'OK': return '#198754';
-    case 'WARNING': return '#dc3545';
-    case 'INFO': return '#0d6efd';
+    case 'OK':
+      return '#198754';
+    case 'WARNING':
+      return '#dc3545';
+    case 'INFO':
+      return '#0d6efd';
     case 'NA':
-    case 'IGNORE': return '#6c757d';
-    default: return '#6c757d';
+    case 'IGNORE':
+      return '#6c757d';
+    default:
+      return '#6c757d';
   }
 }
 
@@ -582,7 +610,6 @@ function openFlamegraph(rule: FlatRule) {
     showFlamegraphDialog.value = true;
   }
 }
-
 
 function scrollToTop() {
   const wrapper = document.querySelector('.scrollable-wrapper');

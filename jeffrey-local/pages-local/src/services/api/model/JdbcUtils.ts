@@ -17,18 +17,18 @@
  */
 
 export default class JdbcUtils {
-    /**
-     * Cleans JDBC operation name by removing the "JDBC " prefix and " Statement" suffix
-     * 
-     * Examples:
-     * - "JDBC Query Statement" -> "Query"
-     * - "JDBC Insert Statement" -> "Insert"
-     * - "JDBC Generic Execute Statement" -> "Generic Execute"
-     * 
-     * @param operation The raw JDBC operation name
-     * @returns The cleaned operation name
-     */
-    public static cleanOperationName(operation: string): string {
-        return operation.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, '');
-    }
+  /**
+   * Cleans JDBC operation name by removing the "JDBC " prefix and " Statement" suffix
+   *
+   * Examples:
+   * - "JDBC Query Statement" -> "Query"
+   * - "JDBC Insert Statement" -> "Insert"
+   * - "JDBC Generic Execute Statement" -> "Generic Execute"
+   *
+   * @param operation The raw JDBC operation name
+   * @returns The cleaned operation name
+   */
+  public static cleanOperationName(operation: string): string {
+    return operation.replace(/^JDBC\s+/, '').replace(/\s+Statement$/, '');
+  }
 }

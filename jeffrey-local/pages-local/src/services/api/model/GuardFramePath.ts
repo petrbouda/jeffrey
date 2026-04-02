@@ -17,7 +17,5 @@
  */
 
 export default class GuardFramePath {
-    constructor(
-        public frames: string[]) {
-    }
+  constructor(public frames: string[]) {}
 }

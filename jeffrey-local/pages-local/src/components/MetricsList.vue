@@ -46,7 +46,7 @@
               <slot name="item-actions" :item="item"></slot>
             </div>
           </div>
-          
+
           <div v-if="showMetrics" class="item-metrics">
             <Badge
               v-for="metric in metrics"
@@ -57,7 +57,7 @@
               size="s"
             />
           </div>
-          
+
           <div v-if="showSubtitle" class="item-subtitle">
             <slot name="item-subtitle" :item="item">
               {{ getItemSubtitle(item) }}
@@ -90,48 +90,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import Badge from '@/components/Badge.vue'
-import type { Variant } from '@/types/ui'
+import { ref, computed } from 'vue';
+import Badge from '@/components/Badge.vue';
+import type { Variant } from '@/types/ui';
 
 export interface MetricDefinition {
-  key: string
-  label: string
-  type?: 'number' | 'duration' | 'bytes' | 'percentage' | 'text'
-  formatter?: (value: any) => string
-  class?: string | ((value: any, item: any) => string)
+  key: string;
+  label: string;
+  type?: 'number' | 'duration' | 'bytes' | 'percentage' | 'text';
+  formatter?: (value: any) => string;
+  class?: string | ((value: any, item: any) => string);
   threshold?: {
-    warning?: number
-    danger?: number
-  }
+    warning?: number;
+    danger?: number;
+  };
 }
 
 export interface SortOption {
-  key: string
-  label: string
-  compare?: (a: any, b: any) => number
+  key: string;
+  label: string;
+  compare?: (a: any, b: any) => number;
 }
 
 interface Props {
-  items: any[]
-  metrics?: MetricDefinition[]
-  sortOptions?: SortOption[]
-  defaultSort?: string
-  titleKey?: string
-  subtitleKey?: string
-  itemKey?: string | ((item: any, index: number) => string)
-  itemClass?: string | ((item: any, index: number) => string)
-  loading?: boolean
-  loadingText?: string
-  emptyText?: string
-  showControls?: boolean
-  showMetrics?: boolean
-  showSubtitle?: boolean
-  sortable?: boolean
-  selectable?: boolean
-  multiSelect?: boolean
-  compact?: boolean
-  striped?: boolean
+  items: any[];
+  metrics?: MetricDefinition[];
+  sortOptions?: SortOption[];
+  defaultSort?: string;
+  titleKey?: string;
+  subtitleKey?: string;
+  itemKey?: string | ((item: any, index: number) => string);
+  itemClass?: string | ((item: any, index: number) => string);
+  loading?: boolean;
+  loadingText?: string;
+  emptyText?: string;
+  showControls?: boolean;
+  showMetrics?: boolean;
+  showSubtitle?: boolean;
+  sortable?: boolean;
+  selectable?: boolean;
+  multiSelect?: boolean;
+  compact?: boolean;
+  striped?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -151,208 +151,207 @@ const props = withDefaults(defineProps<Props>(), {
   multiSelect: false,
   compact: false,
   striped: false
-})
+});
 
 const emit = defineEmits<{
-  'item-click': [item: any, index: number]
-  'item-select': [item: any, selected: boolean]
-  'sort-change': [sortKey: string]
-}>()
+  'item-click': [item: any, index: number];
+  'item-select': [item: any, selected: boolean];
+  'sort-change': [sortKey: string];
+}>();
 
 // Reactive state
-const currentSort = ref(props.defaultSort || props.sortOptions[0]?.key || '')
-const selectedItems = ref<Set<string>>(new Set())
+const currentSort = ref(props.defaultSort || props.sortOptions[0]?.key || '');
+const selectedItems = ref<Set<string>>(new Set());
 
 // Computed properties
 const listClasses = computed(() => ({
   'metrics-list-compact': props.compact,
   'metrics-list-striped': props.striped,
   'metrics-list-selectable': props.selectable
-}))
+}));
 
 const sortedItems = computed(() => {
   if (!currentSort.value || !props.sortable) {
-    return props.items
+    return props.items;
   }
 
-  const sortOption = props.sortOptions.find(opt => opt.key === currentSort.value)
+  const sortOption = props.sortOptions.find(opt => opt.key === currentSort.value);
   if (!sortOption) {
-    return props.items
+    return props.items;
   }
 
-  const sorted = [...props.items]
-  
+  const sorted = [...props.items];
+
   if (sortOption.compare) {
-    sorted.sort(sortOption.compare)
+    sorted.sort(sortOption.compare);
   } else {
     // Default sorting by the sort key
     sorted.sort((a, b) => {
-      const aVal = getMetricValue(a, currentSort.value)
-      const bVal = getMetricValue(b, currentSort.value)
-      
+      const aVal = getMetricValue(a, currentSort.value);
+      const bVal = getMetricValue(b, currentSort.value);
+
       // Sort in descending order by default for metrics
       if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return bVal - aVal
+        return bVal - aVal;
       }
-      
-      return String(bVal).localeCompare(String(aVal))
-    })
+
+      return String(bVal).localeCompare(String(aVal));
+    });
   }
-  
-  return sorted
-})
+
+  return sorted;
+});
 
 // Methods
 const getItemKey = (item: any, index: number): string => {
   if (typeof props.itemKey === 'function') {
-    return props.itemKey(item, index)
+    return props.itemKey(item, index);
   }
-  return item[props.itemKey] || index.toString()
-}
+  return item[props.itemKey] || index.toString();
+};
 
 const getItemClass = (item: any, index: number): string => {
-  const classes = []
-  
+  const classes = [];
+
   if (props.selectable) {
-    const itemId = getItemKey(item, index)
+    const itemId = getItemKey(item, index);
     if (selectedItems.value.has(itemId)) {
-      classes.push('selected')
+      classes.push('selected');
     }
   }
-  
+
   if (typeof props.itemClass === 'function') {
-    classes.push(props.itemClass(item, index))
+    classes.push(props.itemClass(item, index));
   } else if (props.itemClass) {
-    classes.push(props.itemClass)
+    classes.push(props.itemClass);
   }
-  
-  return classes.join(' ')
-}
+
+  return classes.join(' ');
+};
 
 const getItemTitle = (item: any): string => {
-  return item[props.titleKey] || ''
-}
+  return item[props.titleKey] || '';
+};
 
 const getItemSubtitle = (item: any): string => {
-  return item[props.subtitleKey] || ''
-}
+  return item[props.subtitleKey] || '';
+};
 
 const getMetricValue = (item: any, key: string): any => {
-  return key.split('.').reduce((obj, k) => obj?.[k], item)
-}
+  return key.split('.').reduce((obj, k) => obj?.[k], item);
+};
 
 const formatMetricValue = (value: any, metric: MetricDefinition): string => {
   if (metric.formatter) {
-    return metric.formatter(value)
+    return metric.formatter(value);
   }
-  
-  if (value == null) return '-'
-  
+
+  if (value == null) return '-';
+
   switch (metric.type) {
     case 'number':
-      return typeof value === 'number' ? value.toLocaleString() : String(value)
+      return typeof value === 'number' ? value.toLocaleString() : String(value);
     case 'duration':
-      return formatDuration(value)
+      return formatDuration(value);
     case 'bytes':
-      return formatBytes(value)
+      return formatBytes(value);
     case 'percentage':
-      return `${Number(value).toFixed(1)}%`
+      return `${Number(value).toFixed(1)}%`;
     default:
-      return String(value)
+      return String(value);
   }
-}
-
+};
 
 const getMetricVariant = (metric: MetricDefinition, item: any): Variant => {
-  const value = getMetricValue(item, metric.key)
-  
+  const value = getMetricValue(item, metric.key);
+
   // Special handling for HTTP status codes
   if (metric.key === 'statusCode' && typeof value === 'number') {
-    if (value >= 200 && value < 300) return 'success'  // 2xx - Success
-    if (value >= 300 && value < 400) return 'info'     // 3xx - Redirect
-    if (value >= 400 && value < 500) return 'warning'  // 4xx - Client Error
-    if (value >= 500) return 'danger'                  // 5xx - Server Error
-    return 'info' // Other status codes
+    if (value >= 200 && value < 300) return 'success'; // 2xx - Success
+    if (value >= 300 && value < 400) return 'info'; // 3xx - Redirect
+    if (value >= 400 && value < 500) return 'warning'; // 4xx - Client Error
+    if (value >= 500) return 'danger'; // 5xx - Server Error
+    return 'info'; // Other status codes
   }
-  
+
   // Check if there's a custom class function that might indicate variant
   if (metric.class) {
     if (typeof metric.class === 'function') {
-      const customClass = metric.class(value, item)
-      if (customClass.includes('primary')) return 'primary'
-      if (customClass.includes('info')) return 'info'
-      if (customClass.includes('secondary')) return 'secondary'
-      if (customClass.includes('success')) return 'success'
-      if (customClass.includes('warning')) return 'warning'
-      if (customClass.includes('danger')) return 'danger'
+      const customClass = metric.class(value, item);
+      if (customClass.includes('primary')) return 'primary';
+      if (customClass.includes('info')) return 'info';
+      if (customClass.includes('secondary')) return 'secondary';
+      if (customClass.includes('success')) return 'success';
+      if (customClass.includes('warning')) return 'warning';
+      if (customClass.includes('danger')) return 'danger';
     } else if (typeof metric.class === 'string') {
-      if (metric.class.includes('primary')) return 'primary'
-      if (metric.class.includes('info')) return 'info'
-      if (metric.class.includes('secondary')) return 'secondary'
-      if (metric.class.includes('success')) return 'success'
-      if (metric.class.includes('warning')) return 'warning'
-      if (metric.class.includes('danger')) return 'danger'
+      if (metric.class.includes('primary')) return 'primary';
+      if (metric.class.includes('info')) return 'info';
+      if (metric.class.includes('secondary')) return 'secondary';
+      if (metric.class.includes('success')) return 'success';
+      if (metric.class.includes('warning')) return 'warning';
+      if (metric.class.includes('danger')) return 'danger';
     }
   }
-  
+
   // Apply threshold-based variants
   if (metric.threshold && typeof value === 'number') {
     if (metric.threshold.danger && value >= metric.threshold.danger) {
-      return 'danger'
+      return 'danger';
     } else if (metric.threshold.warning && value >= metric.threshold.warning) {
-      return 'warning'
+      return 'warning';
     } else {
-      return 'success'
+      return 'success';
     }
   }
-  
+
   // Default to info variant
-  return 'info'
-}
+  return 'info';
+};
 
 const handleSort = (sortKey: string) => {
-  currentSort.value = sortKey
-  emit('sort-change', sortKey)
-}
+  currentSort.value = sortKey;
+  emit('sort-change', sortKey);
+};
 
 const onItemClick = (item: any, index: number) => {
   if (props.selectable) {
-    const itemId = getItemKey(item, index)
-    const isSelected = selectedItems.value.has(itemId)
-    
+    const itemId = getItemKey(item, index);
+    const isSelected = selectedItems.value.has(itemId);
+
     if (props.multiSelect) {
       if (isSelected) {
-        selectedItems.value.delete(itemId)
+        selectedItems.value.delete(itemId);
       } else {
-        selectedItems.value.add(itemId)
+        selectedItems.value.add(itemId);
       }
     } else {
-      selectedItems.value.clear()
+      selectedItems.value.clear();
       if (!isSelected) {
-        selectedItems.value.add(itemId)
+        selectedItems.value.add(itemId);
       }
     }
-    
-    emit('item-select', item, !isSelected)
+
+    emit('item-select', item, !isSelected);
   }
-  
-  emit('item-click', item, index)
-}
+
+  emit('item-click', item, index);
+};
 
 // Utility formatters
 const formatDuration = (ms: number): string => {
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  return `${(ms / 60000).toFixed(1)}m`
-}
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(1)}m`;
+};
 
 const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
-}
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
 </script>
 
 <style scoped>
@@ -455,7 +454,6 @@ const formatBytes = (bytes: number): string => {
   gap: var(--spacing-2);
 }
 
-
 .item-subtitle {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -505,39 +503,37 @@ const formatBytes = (bytes: number): string => {
   font-size: var(--font-size-base);
 }
 
-
 /* Responsive adjustments */
 @media (max-width: 767.98px) {
   .metrics-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .metrics-controls-left,
   .metrics-controls-right {
     justify-content: center;
   }
-  
+
   .sort-controls {
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-2);
   }
-  
+
   .btn-group {
     display: flex;
     flex-wrap: wrap;
     gap: var(--spacing-1);
   }
-  
+
   .item-header {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .item-metrics {
     justify-content: center;
   }
-  
 }
 </style>

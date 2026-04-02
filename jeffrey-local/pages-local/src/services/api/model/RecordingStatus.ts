@@ -17,9 +17,9 @@
  */
 
 enum RecordingStatus {
-    FINISHED = "FINISHED",
-    ACTIVE = "ACTIVE",
-    UNKNOWN = "UNKNOWN",
+  FINISHED = 'FINISHED',
+  ACTIVE = 'ACTIVE',
+  UNKNOWN = 'UNKNOWN'
 }
 
-export default RecordingStatus
+export default RecordingStatus;

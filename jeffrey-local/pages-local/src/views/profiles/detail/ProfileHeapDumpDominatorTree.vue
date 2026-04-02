@@ -6,128 +6,165 @@
       <i class="bi bi-info-circle me-3 fs-4"></i>
       <div>
         <h6 class="mb-1">No Heap Dump Available</h6>
-        <p class="mb-0 small">No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a heap dump and add it to the recording folder.</p>
+        <p class="mb-0 small">
+          No heap dump file (.hprof) was found for this profile. To analyze heap memory, generate a
+          heap dump and add it to the recording folder.
+        </p>
       </div>
     </div>
   </div>
 
   <HeapDumpNotInitialized
-      v-else-if="!cacheReady"
-      icon="diagram-3"
-      message="The heap dump needs to be initialized before you can view the dominator tree. This process builds indexes and prepares the data for analysis."
+    v-else-if="!cacheReady"
+    icon="diagram-3"
+    message="The heap dump needs to be initialized before you can view the dominator tree. This process builds indexes and prepares the data for analysis."
   />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <div v-else>
     <PageHeader
-        title="Dominator Tree"
-        description="Memory ownership hierarchy — who holds what"
-        icon="bi-diagram-3"
+      title="Dominator Tree"
+      description="Memory ownership hierarchy — who holds what"
+      icon="bi-diagram-3"
     />
 
     <!-- Summary Metrics -->
     <StatsTable :metrics="summaryMetrics" class="mb-4" />
 
     <!-- Data Table -->
-    <EmptyState v-if="treeData.length === 0" icon="bi-diagram-3" title="No dominator tree data available" />
+    <EmptyState
+      v-if="treeData.length === 0"
+      icon="bi-diagram-3"
+      title="No dominator tree data available"
+    />
     <div v-else class="table-card">
       <div class="table-responsive">
         <table class="table table-sm table-hover mb-0">
           <thead>
-          <tr>
-            <th style="width: 40%;">Class Name</th>
-            <th class="text-end" style="width: 120px;">Shallow Size</th>
-            <th class="text-end" style="width: 120px;">Retained Size</th>
-            <th style="width: 180px;">% of Parent</th>
-            <th style="width: 80px;"></th>
-          </tr>
+            <tr>
+              <th style="width: 40%">Class Name</th>
+              <th class="text-end" style="width: 120px">Shallow Size</th>
+              <th class="text-end" style="width: 120px">Retained Size</th>
+              <th style="width: 180px">% of Parent</th>
+              <th style="width: 80px"></th>
+            </tr>
           </thead>
           <tbody>
-          <tr v-for="(item, index) in treeData" :key="item.node.objectId + '-' + item.depth + '-' + index">
-            <!-- Load More row -->
-            <template v-if="item.isLoadMore">
-              <td colspan="5">
-                <div class="d-flex align-items-center gap-3" :style="{ paddingLeft: item.depth * 1.5 + 'rem' }">
-                  <span class="expand-placeholder me-1"></span>
-                  <span v-if="item.loading" class="spinner-border spinner-border-sm spinner-inline text-muted"></span>
-                  <template v-else>
-                    <button class="btn btn-load-more" @click="loadMoreChildren(item, index)">
-                      <i class="bi bi-plus-circle me-1"></i>
-                      Load 50 more
-                    </button>
-                    <button class="btn btn-load-more" @click="loadAllChildren(item, index)">
-                      <i class="bi bi-arrow-down-circle me-1"></i>
-                      Load all
-                    </button>
-                  </template>
-                </div>
-              </td>
-            </template>
-            <!-- Normal node row -->
-            <template v-else>
-            <!-- Class Name with expand/collapse -->
-            <td>
-              <div class="d-flex align-items-center" :style="{ paddingLeft: item.depth * 1.5 + 'rem' }">
-                <button
-                    v-if="item.node.hasChildren"
-                    class="btn btn-expand me-1"
-                    @click="toggleExpand(item, index)"
-                    :disabled="item.loading"
-                >
-                  <span v-if="item.loading" class="spinner-border spinner-border-sm spinner-inline"></span>
-                  <i v-else-if="item.expanded" class="bi bi-chevron-down"></i>
-                  <i v-else class="bi bi-chevron-right"></i>
-                </button>
-                <span v-else class="expand-placeholder me-1"></span>
-                <div class="class-info">
-                  <div class="class-name-line">
-                    <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
-                    <span class="package-name">{{ packageName(item.node.className) }}</span>
-                  </div>
-                  <div class="detail-line">
-                    <span v-if="item.node.fieldName" class="field-name">{{ item.node.fieldName }}</span>
-                    <span v-if="item.node.fieldName" class="detail-separator">·</span>
-                    <span class="object-id-text">{{ FormattingService.formatObjectId(item.node.objectId) }}</span>
-                    <template v-if="Object.keys(item.node.objectParams).length > 0">
-                      <span class="detail-separator">·</span>
-                      <span class="object-params-text">{{ FormattingService.formatObjectParams(item.node.objectParams) }}</span>
-                    </template>
-                    <template v-if="item.node.gcRootKind">
-                      <span class="detail-separator">·</span>
-                      <span class="gc-root-badge">{{ gcRootLabel(item.node.gcRootKind) }}</span>
-                    </template>
-                  </div>
-                </div>
-              </div>
-            </td>
-            <!-- Shallow Size -->
-            <td class="text-end font-monospace">{{ FormattingService.formatBytes(item.node.shallowSize) }}</td>
-            <!-- Retained Size -->
-            <td class="text-end font-monospace text-warning">{{ FormattingService.formatBytes(item.node.retainedSize) }}</td>
-            <!-- % of Parent -->
-            <td>
-              <div class="d-flex align-items-center gap-2">
-                <div class="progress flex-grow-1" style="height: 6px;">
+            <tr
+              v-for="(item, index) in treeData"
+              :key="item.node.objectId + '-' + item.depth + '-' + index"
+            >
+              <!-- Load More row -->
+              <template v-if="item.isLoadMore">
+                <td colspan="5">
                   <div
-                      class="progress-bar"
-                      :style="{ width: item.node.retainedPercent + '%', backgroundColor: getBarColor(item.node.retainedPercent) }"
-                  ></div>
-                </div>
-                <small class="text-muted" style="min-width: 45px;">{{ item.node.retainedPercent.toFixed(1) }}%</small>
-              </div>
-            </td>
-            <!-- Action Buttons -->
-            <td>
-              <InstanceActionButtons
-                  :object-id="item.node.objectId"
-                  @show-referrers="openTreeModal($event, 'REFERRERS')"
-                  @show-reachables="openTreeModal($event, 'REACHABLES')"
-                  @show-g-c-root-path="openGCRootPathModal"
-              />
-            </td>
-            </template>
-          </tr>
+                    class="d-flex align-items-center gap-3"
+                    :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
+                  >
+                    <span class="expand-placeholder me-1"></span>
+                    <span
+                      v-if="item.loading"
+                      class="spinner-border spinner-border-sm spinner-inline text-muted"
+                    ></span>
+                    <template v-else>
+                      <button class="btn btn-load-more" @click="loadMoreChildren(item, index)">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Load 50 more
+                      </button>
+                      <button class="btn btn-load-more" @click="loadAllChildren(item, index)">
+                        <i class="bi bi-arrow-down-circle me-1"></i>
+                        Load all
+                      </button>
+                    </template>
+                  </div>
+                </td>
+              </template>
+              <!-- Normal node row -->
+              <template v-else>
+                <!-- Class Name with expand/collapse -->
+                <td>
+                  <div
+                    class="d-flex align-items-center"
+                    :style="{ paddingLeft: item.depth * 1.5 + 'rem' }"
+                  >
+                    <button
+                      v-if="item.node.hasChildren"
+                      class="btn btn-expand me-1"
+                      @click="toggleExpand(item, index)"
+                      :disabled="item.loading"
+                    >
+                      <span
+                        v-if="item.loading"
+                        class="spinner-border spinner-border-sm spinner-inline"
+                      ></span>
+                      <i v-else-if="item.expanded" class="bi bi-chevron-down"></i>
+                      <i v-else class="bi bi-chevron-right"></i>
+                    </button>
+                    <span v-else class="expand-placeholder me-1"></span>
+                    <div class="class-info">
+                      <div class="class-name-line">
+                        <code class="class-name">{{ simpleClassName(item.node.className) }}</code>
+                        <span class="package-name">{{ packageName(item.node.className) }}</span>
+                      </div>
+                      <div class="detail-line">
+                        <span v-if="item.node.fieldName" class="field-name">{{
+                          item.node.fieldName
+                        }}</span>
+                        <span v-if="item.node.fieldName" class="detail-separator">·</span>
+                        <span class="object-id-text">{{
+                          FormattingService.formatObjectId(item.node.objectId)
+                        }}</span>
+                        <template v-if="Object.keys(item.node.objectParams).length > 0">
+                          <span class="detail-separator">·</span>
+                          <span class="object-params-text">{{
+                            FormattingService.formatObjectParams(item.node.objectParams)
+                          }}</span>
+                        </template>
+                        <template v-if="item.node.gcRootKind">
+                          <span class="detail-separator">·</span>
+                          <span class="gc-root-badge">{{ gcRootLabel(item.node.gcRootKind) }}</span>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <!-- Shallow Size -->
+                <td class="text-end font-monospace">
+                  {{ FormattingService.formatBytes(item.node.shallowSize) }}
+                </td>
+                <!-- Retained Size -->
+                <td class="text-end font-monospace text-warning">
+                  {{ FormattingService.formatBytes(item.node.retainedSize) }}
+                </td>
+                <!-- % of Parent -->
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 6px">
+                      <div
+                        class="progress-bar"
+                        :style="{
+                          width: item.node.retainedPercent + '%',
+                          backgroundColor: getBarColor(item.node.retainedPercent)
+                        }"
+                      ></div>
+                    </div>
+                    <small class="text-muted" style="min-width: 45px"
+                      >{{ item.node.retainedPercent.toFixed(1) }}%</small
+                    >
+                  </div>
+                </td>
+                <!-- Action Buttons -->
+                <td>
+                  <InstanceActionButtons
+                    :object-id="item.node.objectId"
+                    @show-referrers="openTreeModal($event, 'REFERRERS')"
+                    @show-reachables="openTreeModal($event, 'REACHABLES')"
+                    @show-g-c-root-path="openGCRootPathModal"
+                  />
+                </td>
+              </template>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -135,13 +172,12 @@
 
     <!-- Instance Tree Modal -->
     <InstanceTreeModal
-        :show="treeModalVisible"
-        :object-id="treeModalObjectId"
-        :initial-mode="treeModalMode"
-        :profile-id="profileId"
-        @update:show="treeModalVisible = $event"
+      :show="treeModalVisible"
+      :object-id="treeModalObjectId"
+      :initial-mode="treeModalMode"
+      :profile-id="profileId"
+      @update:show="treeModalVisible = $event"
     />
-
   </div>
 </template>
 
@@ -203,7 +239,7 @@ const summaryMetrics = computed(() => {
       icon: 'cpu',
       title: 'Compressed Oops',
       value: compressedOops.value ? 'Enabled' : 'Disabled',
-      variant: compressedOops.value ? 'success' as const : 'info' as const
+      variant: compressedOops.value ? ('success' as const) : ('info' as const)
     }
   ];
 });
@@ -228,7 +264,7 @@ const gcRootLabel = (kind: string): string => {
     'native stack': 'Native Stack',
     'thread block': 'Thread Block',
     'monitor used': 'Monitor',
-    'VM internal': 'VM Internal',
+    'VM internal': 'VM Internal'
   };
   return labels[kind] ?? kind;
 };
@@ -244,7 +280,17 @@ const CHILDREN_PAGE_SIZE = 50;
 const LOAD_ALL_LIMIT = 100000;
 
 const createLoadMoreItem = (parentObjectId: number, depth: number): TreeItem => ({
-  node: { objectId: 0, className: '', objectParams: {}, fieldName: null, shallowSize: 0, retainedSize: 0, retainedPercent: 0, hasChildren: false, gcRootKind: null },
+  node: {
+    objectId: 0,
+    className: '',
+    objectParams: {},
+    fieldName: null,
+    shallowSize: 0,
+    retainedSize: 0,
+    retainedPercent: 0,
+    hasChildren: false,
+    gcRootKind: null
+  },
   depth,
   expanded: false,
   loading: false,
@@ -275,7 +321,11 @@ const toggleExpand = async (item: TreeItem, index: number) => {
     // Expand: load first page of children
     item.loading = true;
     try {
-      const response: DominatorTreeResponse = await client.getDominatorTreeChildren(item.node.objectId, 0, CHILDREN_PAGE_SIZE);
+      const response: DominatorTreeResponse = await client.getDominatorTreeChildren(
+        item.node.objectId,
+        0,
+        CHILDREN_PAGE_SIZE
+      );
       const children: TreeItem[] = response.nodes.map(node => ({
         node,
         depth: item.depth + 1,
@@ -303,7 +353,10 @@ const toggleExpand = async (item: TreeItem, index: number) => {
   }
 };
 
-const findParent = (loadMoreIndex: number, parentObjectId: number): { item: TreeItem; index: number } | null => {
+const findParent = (
+  loadMoreIndex: number,
+  parentObjectId: number
+): { item: TreeItem; index: number } | null => {
   for (let i = loadMoreIndex - 1; i >= 0; i--) {
     if (treeData.value[i].node.objectId === parentObjectId) {
       return { item: treeData.value[i], index: i };
@@ -320,7 +373,9 @@ const loadMoreChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) =
   try {
     const offset = parent.item.loadedCount;
     const response: DominatorTreeResponse = await client.getDominatorTreeChildren(
-        parent.item.node.objectId, offset, CHILDREN_PAGE_SIZE
+      parent.item.node.objectId,
+      offset,
+      CHILDREN_PAGE_SIZE
     );
 
     const newChildren: TreeItem[] = response.nodes.map(node => ({
@@ -360,7 +415,9 @@ const loadAllChildren = async (loadMoreItem: TreeItem, loadMoreIndex: number) =>
   try {
     const offset = parent.item.loadedCount;
     const response: DominatorTreeResponse = await client.getDominatorTreeChildren(
-        parent.item.node.objectId, offset, LOAD_ALL_LIMIT
+      parent.item.node.objectId,
+      offset,
+      LOAD_ALL_LIMIT
     );
 
     const newChildren: TreeItem[] = response.nodes.map(node => ({
@@ -436,7 +493,6 @@ const loadData = async () => {
       hasMore: false,
       loadedCount: 0
     }));
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load dominator tree';
     console.error('Error loading dominator tree:', err);

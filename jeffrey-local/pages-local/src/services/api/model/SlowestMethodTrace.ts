@@ -17,8 +17,8 @@
  */
 
 export default interface SlowestMethodTrace {
-    className: string;
-    methodName: string;
-    duration: number;
-    threadName: string;
+  className: string;
+  methodName: string;
+  duration: number;
+  threadName: string;
 }

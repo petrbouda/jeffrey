@@ -17,9 +17,9 @@
  */
 
 enum GCTimeseriesType {
-    COUNT = "COUNT",
-    MAX_PAUSE = "MAX_PAUSE",
-    SUM_OF_PAUSES = "SUM_OF_PAUSES"
+  COUNT = 'COUNT',
+  MAX_PAUSE = 'MAX_PAUSE',
+  SUM_OF_PAUSES = 'SUM_OF_PAUSES'
 }
 
-export default GCTimeseriesType
+export default GCTimeseriesType;

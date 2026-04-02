@@ -21,51 +21,49 @@ import ProjectInstance from '@/services/api/model/ProjectInstance';
 import ProjectInstanceSession from '@/services/api/model/ProjectInstanceSession';
 
 export default class ProjectInstanceClient extends BasePlatformClient {
+  constructor(workspaceId: string, projectId: string) {
+    super(`/workspaces/${workspaceId}/projects/${projectId}/instances`);
+  }
 
-    constructor(workspaceId: string, projectId: string) {
-        super(`/workspaces/${workspaceId}/projects/${projectId}/instances`);
-    }
+  async list(): Promise<ProjectInstance[]> {
+    return super.get<any[]>().then(data => data.map(this.mapToInstance));
+  }
 
-    async list(): Promise<ProjectInstance[]> {
-        return super.get<any[]>()
-            .then(data => data.map(this.mapToInstance));
-    }
+  async find(instanceId: string): Promise<ProjectInstance | undefined> {
+    return super
+      .get<any>(`/${instanceId}`)
+      .then(data => this.mapToInstance(data))
+      .catch(() => undefined);
+  }
 
-    async find(instanceId: string): Promise<ProjectInstance | undefined> {
-        return super.get<any>(`/${instanceId}`)
-            .then(data => this.mapToInstance(data))
-            .catch(() => undefined);
-    }
+  async getSessions(instanceId: string): Promise<ProjectInstanceSession[]> {
+    return super.get<any[]>(`/${instanceId}/sessions`).then(data => data.map(this.mapToSession));
+  }
 
-    async getSessions(instanceId: string): Promise<ProjectInstanceSession[]> {
-        return super.get<any[]>(`/${instanceId}/sessions`)
-            .then(data => data.map(this.mapToSession));
-    }
+  private mapToInstance(data: any): ProjectInstance {
+    return new ProjectInstance(
+      data.id,
+      data.hostname,
+      data.projectId,
+      data.status,
+      data.createdAt,
+      data.duration ?? 0,
+      data.sessionCount || 0,
+      data.activeSessionId,
+      data.finishedAt ?? undefined,
+      data.expiringAt ?? undefined,
+      data.expiredAt ?? undefined
+    );
+  }
 
-    private mapToInstance(data: any): ProjectInstance {
-        return new ProjectInstance(
-            data.id,
-            data.hostname,
-            data.projectId,
-            data.status,
-            data.createdAt,
-            data.duration ?? 0,
-            data.sessionCount || 0,
-            data.activeSessionId,
-            data.finishedAt ?? undefined,
-            data.expiringAt ?? undefined,
-            data.expiredAt ?? undefined
-        );
-    }
-
-    private mapToSession(data: any): ProjectInstanceSession {
-        return new ProjectInstanceSession(
-            data.id,
-            data.repositoryId,
-            data.createdAt,
-            data.duration ?? 0,
-            data.finishedAt ?? undefined,
-            data.isActive
-        );
-    }
+  private mapToSession(data: any): ProjectInstanceSession {
+    return new ProjectInstanceSession(
+      data.id,
+      data.repositoryId,
+      data.createdAt,
+      data.duration ?? 0,
+      data.finishedAt ?? undefined,
+      data.isActive
+    );
+  }
 }

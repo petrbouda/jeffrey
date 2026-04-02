@@ -23,9 +23,9 @@ import AiAnalysisResponse from '@/services/api/model/AiAnalysisResponse';
 import ChatMessage from '@/services/api/model/ChatMessage';
 
 export interface AiAnalysisChatMessage extends ChatMessage {
-    suggestions?: string[];
-    toolsUsed?: string[];
-    durationSeconds?: number;
+  suggestions?: string[];
+  toolsUsed?: string[];
+  durationSeconds?: number;
 }
 
 /**
@@ -33,132 +33,136 @@ export interface AiAnalysisChatMessage extends ChatMessage {
  * Handles conversation history, message sending, and status management.
  */
 export function useAiAnalysis(profileId: string) {
-    const client = new AiAnalysisClient(profileId);
+  const client = new AiAnalysisClient(profileId);
 
+  // State
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
+  const status = ref<AiStatusResponse | null>(null);
+  const messages = ref<AiAnalysisChatMessage[]>([]);
+  const currentInput = ref('');
+  const canModify = ref(false);
+
+  // Computed
+  const isAvailable = computed(() => (status.value?.enabled && status.value?.configured) ?? false);
+
+  const hasMessages = computed(() => messages.value.length > 0);
+
+  const lastAssistantMessage = computed(() => {
+    for (let i = messages.value.length - 1; i >= 0; i--) {
+      if (messages.value[i].role === 'assistant') {
+        return messages.value[i];
+      }
+    }
+    return null;
+  });
+
+  /**
+   * Check the AI analysis assistant status.
+   */
+  const checkStatus = async (): Promise<void> => {
+    try {
+      error.value = null;
+      status.value = await client.getStatus();
+    } catch (e: any) {
+      error.value = e?.message || 'Failed to check AI status';
+      status.value = { available: false, provider: null, model: null };
+    }
+  };
+
+  /**
+   * Send a message to the AI analysis assistant.
+   * @param message - The user's message
+   */
+  const sendMessage = async (message: string): Promise<void> => {
+    if (!message.trim() || isLoading.value) {
+      return;
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    // Add user message to history
+    const userMessage: AiAnalysisChatMessage = {
+      role: 'user',
+      content: message.trim()
+    };
+    messages.value.push(userMessage);
+
+    try {
+      // Build history for API
+      const history: ChatMessage[] = messages.value.slice(0, -1).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const response: AiAnalysisResponse = await client.chat(
+        message.trim(),
+        history,
+        canModify.value
+      );
+
+      // Add assistant response to history
+      const assistantMessage: AiAnalysisChatMessage = {
+        role: 'assistant',
+        content: response.content,
+        suggestions: response.suggestions,
+        toolsUsed: response.toolsUsed
+      };
+      messages.value.push(assistantMessage);
+    } catch (e: any) {
+      error.value = e?.response?.data || e?.message || 'Failed to get response from AI assistant';
+      // Remove the user message if the request failed
+      messages.value.pop();
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  /**
+   * Clear the conversation history.
+   */
+  const clearHistory = (): void => {
+    messages.value = [];
+    error.value = null;
+  };
+
+  /**
+   * Clear the current error.
+   */
+  const clearError = (): void => {
+    error.value = null;
+  };
+
+  /**
+   * Use a suggested follow-up as the next message.
+   * @param followup - The follow-up suggestion to use
+   */
+  const useSuggestion = async (followup: string): Promise<void> => {
+    currentInput.value = followup;
+    await sendMessage(followup);
+    currentInput.value = '';
+  };
+
+  return {
     // State
-    const isLoading = ref(false);
-    const error = ref<string | null>(null);
-    const status = ref<AiStatusResponse | null>(null);
-    const messages = ref<AiAnalysisChatMessage[]>([]);
-    const currentInput = ref('');
-    const canModify = ref(false);
+    isLoading,
+    error,
+    status,
+    messages,
+    currentInput,
+    canModify,
 
     // Computed
-    const isAvailable = computed(() => (status.value?.enabled && status.value?.configured) ?? false);
+    isAvailable,
+    hasMessages,
+    lastAssistantMessage,
 
-    const hasMessages = computed(() => messages.value.length > 0);
-
-    const lastAssistantMessage = computed(() => {
-        for (let i = messages.value.length - 1; i >= 0; i--) {
-            if (messages.value[i].role === 'assistant') {
-                return messages.value[i];
-            }
-        }
-        return null;
-    });
-
-    /**
-     * Check the AI analysis assistant status.
-     */
-    const checkStatus = async (): Promise<void> => {
-        try {
-            error.value = null;
-            status.value = await client.getStatus();
-        } catch (e: any) {
-            error.value = e?.message || 'Failed to check AI status';
-            status.value = { available: false, provider: null, model: null };
-        }
-    };
-
-    /**
-     * Send a message to the AI analysis assistant.
-     * @param message - The user's message
-     */
-    const sendMessage = async (message: string): Promise<void> => {
-        if (!message.trim() || isLoading.value) {
-            return;
-        }
-
-        isLoading.value = true;
-        error.value = null;
-
-        // Add user message to history
-        const userMessage: AiAnalysisChatMessage = {
-            role: 'user',
-            content: message.trim()
-        };
-        messages.value.push(userMessage);
-
-        try {
-            // Build history for API
-            const history: ChatMessage[] = messages.value.slice(0, -1).map(m => ({
-                role: m.role,
-                content: m.content
-            }));
-
-            const response: AiAnalysisResponse = await client.chat(message.trim(), history, canModify.value);
-
-            // Add assistant response to history
-            const assistantMessage: AiAnalysisChatMessage = {
-                role: 'assistant',
-                content: response.content,
-                suggestions: response.suggestions,
-                toolsUsed: response.toolsUsed
-            };
-            messages.value.push(assistantMessage);
-        } catch (e: any) {
-            error.value = e?.response?.data || e?.message || 'Failed to get response from AI assistant';
-            // Remove the user message if the request failed
-            messages.value.pop();
-        } finally {
-            isLoading.value = false;
-        }
-    };
-
-    /**
-     * Clear the conversation history.
-     */
-    const clearHistory = (): void => {
-        messages.value = [];
-        error.value = null;
-    };
-
-    /**
-     * Clear the current error.
-     */
-    const clearError = (): void => {
-        error.value = null;
-    };
-
-    /**
-     * Use a suggested follow-up as the next message.
-     * @param followup - The follow-up suggestion to use
-     */
-    const useSuggestion = async (followup: string): Promise<void> => {
-        currentInput.value = followup;
-        await sendMessage(followup);
-        currentInput.value = '';
-    };
-
-    return {
-        // State
-        isLoading,
-        error,
-        status,
-        messages,
-        currentInput,
-        canModify,
-
-        // Computed
-        isAvailable,
-        hasMessages,
-        lastAssistantMessage,
-
-        // Actions
-        checkStatus,
-        sendMessage,
-        clearHistory,
-        clearError,
-        useSuggestion
-    };
+    // Actions
+    checkStatus,
+    sendMessage,
+    clearHistory,
+    clearError,
+    useSuggestion
+  };
 }

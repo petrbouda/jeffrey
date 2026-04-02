@@ -11,23 +11,25 @@
     <div v-else>
       <!-- Active Command Display -->
       <CommandDisplay
-          v-if="activeCommand"
-          :command="activeCommand"
-          :deletable="canDeleteCurrentConfig"
-          @delete="deleteCurrentConfig"
+        v-if="activeCommand"
+        :command="activeCommand"
+        :deletable="canDeleteCurrentConfig"
+        @delete="deleteCurrentConfig"
       >
         <template #header-left>
-          <SettingsBreadcrumbs :items="activeCommandBreadcrumbs"/>
+          <SettingsBreadcrumbs :items="activeCommandBreadcrumbs" />
         </template>
       </CommandDisplay>
 
       <!-- Uses Global Settings Note -->
       <CommandDisplay v-if="showUsesGlobalNote" :command="null">
         <template #header-left>
-          <SettingsBreadcrumbs :items="[
-            {icon: 'bi-globe2', label: 'Global', onClick: () => navigateToBreadcrumb('global')},
-            {icon: 'bi-folder-fill', label: usesGlobalWorkspaceName, active: true},
-          ]"/>
+          <SettingsBreadcrumbs
+            :items="[
+              { icon: 'bi-globe2', label: 'Global', onClick: () => navigateToBreadcrumb('global') },
+              { icon: 'bi-folder-fill', label: usesGlobalWorkspaceName, active: true }
+            ]"
+          />
         </template>
         <template #content>
           <div class="info-message">
@@ -43,14 +45,17 @@
       <!-- No Global Settings Note -->
       <CommandDisplay v-if="activeLevel === 'global' && !activeCommand" :command="null">
         <template #header-left>
-          <SettingsBreadcrumbs :items="[{icon: 'bi-globe2', label: 'Global', active: true}]"/>
+          <SettingsBreadcrumbs :items="[{ icon: 'bi-globe2', label: 'Global', active: true }]" />
         </template>
         <template #content>
           <div class="info-message">
             <i class="bi bi-info-circle"></i>
             <div>
               <strong>No Global Settings Configured</strong>
-              <p>No global configuration has been set. Configure settings in the 'Configure' tab to apply them globally.</p>
+              <p>
+                No global configuration has been set. Configure settings in the 'Configure' tab to
+                apply them globally.
+              </p>
             </div>
           </div>
         </template>
@@ -63,22 +68,22 @@
           <div
             class="scope-option-card"
             :class="{
-              'selected': activeLevel === 'global'
+              selected: activeLevel === 'global'
             }"
             @click="setActiveCommand('global', globalSettings?.agentSettings || null)"
           >
             <div class="scope-option-header">
-              <input
-                type="radio"
-                :checked="activeLevel === 'global'"
-                @click.stop
-              />
+              <input type="radio" :checked="activeLevel === 'global'" @click.stop />
               <div class="scope-option-info">
                 <i class="bi bi-globe2"></i>
                 <div>
                   <h6 class="scope-option-title">Global Configuration</h6>
                   <p class="scope-option-description">
-                    {{ globalSettings?.agentSettings ? 'Custom global settings configured' : 'No global settings configured' }}
+                    {{
+                      globalSettings?.agentSettings
+                        ? 'Custom global settings configured'
+                        : 'No global settings configured'
+                    }}
                   </p>
                 </div>
               </div>
@@ -110,7 +115,9 @@
 
       <!-- Projects with Custom Settings -->
       <div v-if="selectedWorkspaceId" class="project-selection-section">
-        <div class="workspace-section-title">Projects with Custom Settings in {{ selectedWorkspaceName }}</div>
+        <div class="workspace-section-title">
+          Projects with Custom Settings in {{ selectedWorkspaceName }}
+        </div>
 
         <div v-if="isLoadingProjects" class="loading-projects-message">
           <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
@@ -133,7 +140,15 @@
             :selected="activeLevel === 'project' && activeProjectId === project.id"
             selection-type="radio"
             badge="CUSTOM"
-            @select="setActiveCommand('project', project.agentSettings || null, selectedWorkspaceId, project.id, project.name)"
+            @select="
+              setActiveCommand(
+                'project',
+                project.agentSettings || null,
+                selectedWorkspaceId,
+                project.id,
+                project.name
+              )
+            "
           />
         </div>
       </div>
@@ -146,7 +161,7 @@ import { ref, computed, onMounted } from 'vue';
 import ProfilerSelectionCard from '@/components/settings/ProfilerSelectionCard.vue';
 import CommandDisplay from '@/components/settings/CommandDisplay.vue';
 import SettingsBreadcrumbs from '@/components/settings/SettingsBreadcrumbs.vue';
-import type {BreadcrumbItem} from '@/components/settings/SettingsBreadcrumbs.vue';
+import type { BreadcrumbItem } from '@/components/settings/SettingsBreadcrumbs.vue';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import GlobalProfilerClient from '@/services/api/GlobalProfilerClient';
 import ProjectsClient from '@/services/api/ProjectsClient';
@@ -193,18 +208,23 @@ const selectedWorkspaceName = computed(() => {
 
 const activeCommandBreadcrumbs = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = [
-    {icon: 'bi-globe2', label: 'Global', active: activeLevel.value === 'global', onClick: () => navigateToBreadcrumb('global')},
+    {
+      icon: 'bi-globe2',
+      label: 'Global',
+      active: activeLevel.value === 'global',
+      onClick: () => navigateToBreadcrumb('global')
+    }
   ];
   if (activeLevel.value === 'workspace' || activeLevel.value === 'project') {
     items.push({
       icon: 'bi-folder-fill',
       label: getWorkspaceName(activeWorkspaceId.value),
       active: activeLevel.value === 'workspace',
-      onClick: () => navigateToBreadcrumb('workspace'),
+      onClick: () => navigateToBreadcrumb('workspace')
     });
   }
   if (activeLevel.value === 'project') {
-    items.push({icon: 'bi-diagram-3-fill', label: activeProjectName.value, active: true});
+    items.push({ icon: 'bi-diagram-3-fill', label: activeProjectName.value, active: true });
   }
   return items;
 });
@@ -411,14 +431,17 @@ const loadProjectsWithOverrides = async (workspaceId: string) => {
 const handleWorkspaceDelete = async (workspace: WorkspaceWithSettings) => {
   // Only allow deletion of CUSTOM workspace settings
   if (!workspace.hasCustomSettings) {
-    ToastService.warning('Cannot Delete', 'Global settings cannot be deleted. You can only modify them in the Configure tab.');
+    ToastService.warning(
+      'Cannot Delete',
+      'Global settings cannot be deleted. You can only modify them in the Configure tab.'
+    );
     return;
   }
 
   // Confirm deletion
   const confirmed = confirm(
     `Are you sure you want to delete custom settings for workspace "${workspace.name}"?\n\n` +
-    'This will revert the workspace to using global settings.'
+      'This will revert the workspace to using global settings.'
   );
 
   if (!confirmed) {
@@ -429,7 +452,10 @@ const handleWorkspaceDelete = async (workspace: WorkspaceWithSettings) => {
     // Delete workspace settings (workspaceId set, projectId is null)
     await globalProfilerClient.delete(workspace.id, null);
 
-    ToastService.success('Deleted', `Custom settings for workspace "${workspace.name}" have been deleted.`);
+    ToastService.success(
+      'Deleted',
+      `Custom settings for workspace "${workspace.name}" have been deleted.`
+    );
 
     // Reload all settings and workspaces
     await loadAllSettings();
@@ -458,7 +484,7 @@ const handleProjectDelete = async (project: ProjectWithSettings) => {
   // Confirm deletion
   const confirmed = confirm(
     `Are you sure you want to delete custom settings for project "${project.name}"?\n\n` +
-    'This will revert the project to using workspace or global settings.'
+      'This will revert the project to using workspace or global settings.'
   );
 
   if (!confirmed) {
@@ -469,7 +495,10 @@ const handleProjectDelete = async (project: ProjectWithSettings) => {
     // Delete project settings (both workspaceId and projectId are set)
     await globalProfilerClient.delete(selectedWorkspaceId.value, project.id);
 
-    ToastService.success('Deleted', `Custom settings for project "${project.name}" have been deleted.`);
+    ToastService.success(
+      'Deleted',
+      `Custom settings for project "${project.name}" have been deleted.`
+    );
 
     // Reload all settings
     await loadAllSettings();
@@ -689,7 +718,6 @@ onMounted(async () => {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
-
 
 /* Project Selection - matching Apply Configuration */
 .project-selection-section {

@@ -10,10 +10,12 @@
           @input="$emit('update:modelValue', localCommand)"
         ></textarea>
         <div class="command-help">
-          You can manually enter your command or use the visual builder to construct it step by step.
+          You can manually enter your command or use the visual builder to construct it step by
+          step.
         </div>
         <div class="command-help">
-        Example: -agentpath:/path/to/libasyncProfiler.so=start,event=ctimer,wall=10ms,loop=15m,file=profile.jfr
+          Example:
+          -agentpath:/path/to/libasyncProfiler.so=start,event=ctimer,wall=10ms,loop=15m,file=profile.jfr
         </div>
       </div>
 
@@ -53,15 +55,18 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   'accept-command': [command: string];
-  'clear': [];
+  clear: [];
 }>();
 
 const localCommand = ref(props.modelValue);
 
 // Watch for external changes to modelValue
-watch(() => props.modelValue, (newValue) => {
-  localCommand.value = newValue;
-});
+watch(
+  () => props.modelValue,
+  newValue => {
+    localCommand.value = newValue;
+  }
+);
 
 const clearCommand = () => {
   localCommand.value = '';
@@ -109,7 +114,7 @@ const clearCommand = () => {
   border: 1px solid rgba(94, 100, 255, 0.15);
   border-radius: 8px;
   font-size: 0.85rem;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   background: #ffffff;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--color-text);

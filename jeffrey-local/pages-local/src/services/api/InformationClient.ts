@@ -19,12 +19,11 @@
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 
 export default class InformationClient extends BaseProfileClient {
+  constructor(profileId: string) {
+    super(profileId, 'information');
+  }
 
-    constructor(profileId: string) {
-        super(profileId, 'information');
-    }
-
-    info(): Promise<any> {
-        return super.get<any>('');
-    }
+  info(): Promise<any> {
+    return super.get<any>('');
+  }
 }

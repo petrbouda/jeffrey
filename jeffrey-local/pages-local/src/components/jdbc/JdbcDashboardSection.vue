@@ -40,7 +40,12 @@ const metricsData = computed(() => {
       icon: 'database',
       title: 'Total Statements',
       value: header.statementCount || 0,
-      variant: (header.successRate || 0) >= 0.99 ? 'info' as const : header.errorCount > 0 ? 'danger' as const : 'warning' as const,
+      variant:
+        (header.successRate || 0) >= 0.99
+          ? ('info' as const)
+          : header.errorCount > 0
+            ? ('danger' as const)
+            : ('warning' as const),
       breakdown: [
         {
           label: 'Success',

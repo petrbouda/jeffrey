@@ -19,31 +19,24 @@
 <template>
   <Teleport to="#assistant-minimized-container">
     <div
-        class="assistant-minimized-button"
-        :class="[statusClass, { pulsing: isPulsing }]"
-        :style="buttonStyle"
-        @click="$emit('click')"
-        :title="title"
+      class="assistant-minimized-button"
+      :class="[statusClass, { pulsing: isPulsing }]"
+      :style="buttonStyle"
+      @click="$emit('click')"
+      :title="title"
     >
       <!-- Progress Ring (SVG) -->
       <svg v-if="progress !== undefined" class="progress-ring" viewBox="0 0 56 56">
+        <circle class="progress-ring-bg" cx="28" cy="28" r="24" fill="none" stroke-width="3" />
         <circle
-            class="progress-ring-bg"
-            cx="28"
-            cy="28"
-            r="24"
-            fill="none"
-            stroke-width="3"
-        />
-        <circle
-            class="progress-ring-bar"
-            cx="28"
-            cy="28"
-            r="24"
-            fill="none"
-            stroke-width="3"
-            stroke-linecap="round"
-            :style="progressRingStyle"
+          class="progress-ring-bar"
+          cx="28"
+          cy="28"
+          r="24"
+          fill="none"
+          stroke-width="3"
+          stroke-linecap="round"
+          :style="progressRingStyle"
         />
       </svg>
 
@@ -119,7 +112,9 @@ const progressRingStyle = computed(() => {
   height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4), 0 2px 8px rgba(118, 75, 162, 0.3);
+  box-shadow:
+    0 4px 16px rgba(102, 126, 234, 0.4),
+    0 2px 8px rgba(118, 75, 162, 0.3);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -130,7 +125,9 @@ const progressRingStyle = computed(() => {
 
 .assistant-minimized-button:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.5), 0 4px 12px rgba(118, 75, 162, 0.4);
+  box-shadow:
+    0 6px 24px rgba(102, 126, 234, 0.5),
+    0 4px 12px rgba(118, 75, 162, 0.4);
 }
 
 /* Progress Ring */
@@ -234,8 +231,12 @@ const progressRingStyle = computed(() => {
 
 /* Animations */
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spin {
@@ -243,7 +244,8 @@ const progressRingStyle = computed(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
     border-color: #a78bfa;

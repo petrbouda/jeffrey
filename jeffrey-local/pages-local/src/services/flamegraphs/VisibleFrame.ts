@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import FrameRect from "@/services/flamegraphs/FrameRect";
-import Frame from "@/services/api/model/Frame";
+import FrameRect from '@/services/flamegraphs/FrameRect';
+import Frame from '@/services/api/model/Frame';
 
 export default class VisibleFrame {
-    constructor(
-        public rect: FrameRect,
-        public frame: Frame) {
-    }
+  constructor(
+    public rect: FrameRect,
+    public frame: Frame
+  ) {}
 }

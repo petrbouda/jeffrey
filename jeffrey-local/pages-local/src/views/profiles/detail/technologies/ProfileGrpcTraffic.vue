@@ -2,9 +2,9 @@
   <div>
     <!-- Feature Disabled State -->
     <CustomDisabledFeatureAlert
-        v-if="isGrpcDashboardDisabled"
-        :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
-        eventType="gRPC exchange"
+      v-if="isGrpcDashboardDisabled"
+      :title="mode === 'client' ? 'gRPC Client Dashboard' : 'gRPC Server Dashboard'"
+      eventType="gRPC exchange"
     />
 
     <div v-else>
@@ -24,7 +24,7 @@
 
       <!-- Dashboard content -->
       <div v-if="trafficData" class="dashboard-container">
-        <StatsTable :metrics="metricsData"/>
+        <StatsTable :metrics="metricsData" />
       </div>
 
       <!-- No data state -->
@@ -37,15 +37,14 @@
 </template>
 
 <script setup lang="ts">
-import {computed, nextTick, onMounted, ref} from 'vue';
-import {useRoute} from 'vue-router';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import ProfileGrpcClient from '@/services/api/ProfileGrpcClient';
-import type {GrpcTrafficData} from '@/services/api/ProfileGrpcClient';
+import type { GrpcTrafficData } from '@/services/api/ProfileGrpcClient';
 import StatsTable from '@/components/StatsTable.vue';
 import CustomDisabledFeatureAlert from '@/components/alerts/CustomDisabledFeatureAlert.vue';
 import FeatureType from '@/services/api/model/FeatureType';
 import FormattingService from '@/services/FormattingService';
-
 
 // Define props
 interface Props {
@@ -68,7 +67,8 @@ const mode = (route.query.mode as 'client' | 'server') || 'server';
 
 // Check if gRPC dashboard is disabled
 const isGrpcDashboardDisabled = computed(() => {
-  const featureType = mode === 'client' ? FeatureType.GRPC_CLIENT_DASHBOARD : FeatureType.GRPC_SERVER_DASHBOARD;
+  const featureType =
+    mode === 'client' ? FeatureType.GRPC_CLIENT_DASHBOARD : FeatureType.GRPC_SERVER_DASHBOARD;
   return props.disabledFeatures.includes(featureType);
 });
 
@@ -113,7 +113,8 @@ const metricsData = computed(() => {
       breakdown: [
         {
           label: 'Total Sent',
-          value: header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent),
+          value:
+            header.totalBytesSent < 0 ? '?' : FormattingService.formatBytes(header.totalBytesSent),
           color: '#FBBC05'
         }
       ]
@@ -126,7 +127,10 @@ const metricsData = computed(() => {
       breakdown: [
         {
           label: 'Total Received',
-          value: header.totalBytesReceived < 0 ? '?' : FormattingService.formatBytes(header.totalBytesReceived),
+          value:
+            header.totalBytesReceived < 0
+              ? '?'
+              : FormattingService.formatBytes(header.totalBytesReceived),
           color: '#FBBC05'
         }
       ]
@@ -148,7 +152,6 @@ const loadTrafficData = async () => {
 
     // Wait for DOM updates
     await nextTick();
-
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error occurred';
     console.error('Error loading gRPC traffic data:', err);
@@ -163,8 +166,6 @@ onMounted(() => {
     loadTrafficData();
   }
 });
-
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

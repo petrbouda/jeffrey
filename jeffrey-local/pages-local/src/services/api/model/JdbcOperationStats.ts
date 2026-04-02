@@ -17,8 +17,8 @@
  */
 
 export default class JdbcOperationStats {
-    constructor(
-        public label: string,
-        public value: number,
-    ) {}
+  constructor(
+    public label: string,
+    public value: number
+  ) {}
 }
