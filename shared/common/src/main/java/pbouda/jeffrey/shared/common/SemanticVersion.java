@@ -19,12 +19,23 @@
 package pbouda.jeffrey.shared.common;
 
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public record SemanticVersion(int major, int minor, int patch) implements Comparable<SemanticVersion> {
 
+    // Matches build number qualifier like "-b216", "-b1"
+    private static final Pattern BUILD_QUALIFIER = Pattern.compile("-b(\\d+)$");
+
     /**
      * Parses a version string into a {@link SemanticVersion}.
-     * Handles formats: "v1.2.3", "1.2.3", "1.2", "1.0-SNAPSHOT".
+     * <p>
+     * Handles formats:
+     * <ul>
+     *   <li>{@code "v1.2.3"}, {@code "1.2.3"} — standard semver</li>
+     *   <li>{@code "v0.6-b216"}, {@code "0.6-b216"} — build number used as patch</li>
+     *   <li>{@code "1.0-SNAPSHOT"} — qualifier stripped, treated as 1.0.0</li>
+     * </ul>
      * Returns empty for "Unknown", blank, or unparseable strings.
      */
     public static Optional<SemanticVersion> parse(String version) {
@@ -37,17 +48,25 @@ public record SemanticVersion(int major, int minor, int patch) implements Compar
             cleaned = cleaned.substring(1);
         }
 
-        // Strip qualifier (e.g., "-SNAPSHOT", "-RC1")
-        int dashIndex = cleaned.indexOf('-');
-        if (dashIndex > 0) {
-            cleaned = cleaned.substring(0, dashIndex);
+        // Check for build number qualifier (e.g., "0.6-b216" → major=0, minor=6, patch=216)
+        int buildNumber = -1;
+        Matcher buildMatcher = BUILD_QUALIFIER.matcher(cleaned);
+        if (buildMatcher.find()) {
+            buildNumber = Integer.parseInt(buildMatcher.group(1));
+            cleaned = cleaned.substring(0, buildMatcher.start());
+        } else {
+            // Strip non-build qualifiers (e.g., "-SNAPSHOT", "-RC1")
+            int dashIndex = cleaned.indexOf('-');
+            if (dashIndex > 0) {
+                cleaned = cleaned.substring(0, dashIndex);
+            }
         }
 
         String[] parts = cleaned.split("\\.");
         try {
             int major = Integer.parseInt(parts[0]);
             int minor = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
-            int patch = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+            int patch = buildNumber >= 0 ? buildNumber : (parts.length > 2 ? Integer.parseInt(parts[2]) : 0);
             return Optional.of(new SemanticVersion(major, minor, patch));
         } catch (NumberFormatException e) {
             return Optional.empty();
