@@ -26,12 +26,24 @@
 import { onMounted } from 'vue';
 import { DownloadAssistant, AssistantMinimizedContainer } from '@/components/assistants';
 import { downloadAssistantStore as downloadStore } from '@/stores/assistants';
+import VersionClient from '@/services/api/VersionClient';
+import { showUpdateCheckToast } from '@/services/UpdateCheckToast';
 
-onMounted(() => {
+onMounted(async () => {
   // Initialize Bootstrap tooltips
   if (window.bootstrap && window.bootstrap.Tooltip) {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
+  }
+
+  // Version update check
+  try {
+    const result = await new VersionClient().checkForUpdate();
+    if (result?.updateAvailable) {
+      showUpdateCheckToast(result);
+    }
+  } catch {
+    // silently ignore update check failures
   }
 });
 </script>

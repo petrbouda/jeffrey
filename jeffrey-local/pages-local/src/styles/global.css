@@ -158,6 +158,113 @@
   }
 }
 
+/* Update Check Toast */
+.update-check-toast {
+  min-width: 340px !important;
+  max-width: 400px !important;
+}
+
+.update-desc {
+  font-size: 12.5px;
+  color: #666;
+  margin-bottom: 0.6rem;
+}
+
+.update-warning-note {
+  font-size: 11px;
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 3px;
+  padding: 4px 8px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.update-version-cards {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.update-card {
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.update-card-current {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.update-card-latest-info {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
+.update-card-latest-warning {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.update-card-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.update-card-version {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.update-card-current .update-card-version {
+  color: #64748b;
+}
+
+.update-card-latest-info .update-card-version {
+  color: #0369a1;
+}
+
+.update-card-latest-warning .update-card-version {
+  color: #c2410c;
+}
+
+.update-card-chevron {
+  color: #cbd5e1;
+  font-size: 14px;
+  text-align: center;
+}
+
+.update-link {
+  font-size: 11.5px;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.update-link-info {
+  color: #0369a1;
+}
+
+.update-link-warning {
+  color: #c2410c;
+}
+
+.update-link:hover {
+  text-decoration: underline;
+}
+
 /* Flamegraph Grid - Shared responsive grid layout */
 .flamegraph-grid {
   display: grid;

@@ -41,12 +41,14 @@ import pbouda.jeffrey.provider.profile.DatabaseManagerResolver;
 import pbouda.jeffrey.provider.profile.DatabaseManagerResolverImpl;
 import pbouda.jeffrey.provider.profile.DuckDBProfilePersistenceProvider;
 import pbouda.jeffrey.provider.profile.ProfilePersistenceProvider;
+import pbouda.jeffrey.local.core.manager.GitHubReleaseChecker;
 import pbouda.jeffrey.shared.common.FrameResolutionMode;
 import pbouda.jeffrey.shared.common.StringUtils;
 import pbouda.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import pbouda.jeffrey.storage.recording.api.RecordingStorage;
 import pbouda.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
@@ -61,6 +63,14 @@ public class AppConfiguration {
     @Bean
     public Clock applicationClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    public GitHubReleaseChecker gitHubReleaseChecker(
+            ObjectMapper objectMapper,
+            Clock clock,
+            @Value("${jeffrey.local.update-check.enabled:true}") boolean enabled) {
+        return new GitHubReleaseChecker(objectMapper, clock, enabled);
     }
 
     @Bean

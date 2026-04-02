@@ -16,26 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from './BasePlatformClient';
+package pbouda.jeffrey.local.core.resources.response;
 
-export interface UpdateCheckResponse {
-  currentVersion: string;
-  latestVersion: string;
-  updateAvailable: boolean;
-  majorUpdate: boolean;
-  releaseUrl: string;
-}
-
-export default class VersionClient extends BasePlatformClient {
-  constructor() {
-    super('/version');
-  }
-
-  getVersion(): Promise<string> {
-    return this.get<{ version: string }>('').then(data => data.version);
-  }
-
-  checkForUpdate(): Promise<UpdateCheckResponse | null> {
-    return this.get<UpdateCheckResponse>('/update-check').catch(() => null);
-  }
+public record UpdateCheckResult(
+        String currentVersion,
+        String latestVersion,
+        boolean updateAvailable,
+        boolean majorUpdate,
+        String releaseUrl) {
 }

@@ -24,8 +24,10 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import pbouda.jeffrey.shared.common.JeffreyVersion;
 import pbouda.jeffrey.local.core.configuration.SettingsMetadata;
+import pbouda.jeffrey.local.core.manager.GitHubReleaseChecker;
 import pbouda.jeffrey.local.core.manager.SettingsManager;
 import pbouda.jeffrey.local.core.manager.qanalysis.QuickAnalysisManager;
 import pbouda.jeffrey.local.core.manager.workspace.WorkspacesManager;
@@ -49,6 +51,7 @@ public class RootInternalResource {
     private final Optional<QuickAnalysisManager> quickAnalysisManager;
     private final SettingsManager settingsManager;
     private final SettingsMetadata settingsMetadata;
+    private final GitHubReleaseChecker gitHubReleaseChecker;
     private final Clock clock;
 
     @Inject
@@ -60,6 +63,7 @@ public class RootInternalResource {
             Optional<QuickAnalysisManager> quickAnalysisManager,
             SettingsManager settingsManager,
             SettingsMetadata settingsMetadata,
+            GitHubReleaseChecker gitHubReleaseChecker,
             Clock clock) {
 
         this.remoteClientsFactory = remoteClientsFactory;
@@ -69,6 +73,7 @@ public class RootInternalResource {
         this.quickAnalysisManager = quickAnalysisManager;
         this.settingsManager = settingsManager;
         this.settingsMetadata = settingsMetadata;
+        this.gitHubReleaseChecker = gitHubReleaseChecker;
         this.clock = clock;
     }
 
@@ -118,5 +123,13 @@ public class RootInternalResource {
     @Path("/version")
     public Map<String, String> version() {
         return Map.of("version", JeffreyVersion.resolveJeffreyVersion());
+    }
+
+    @GET
+    @Path("/version/update-check")
+    public Response updateCheck() {
+        return gitHubReleaseChecker.check(JeffreyVersion.resolveJeffreyVersion())
+                .map(result -> Response.ok(result).build())
+                .orElseGet(() -> Response.noContent().build());
     }
 }
