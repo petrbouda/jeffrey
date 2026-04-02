@@ -142,22 +142,6 @@ const overviewMetrics = computed(() => {
 
   return [
     {
-      icon: 'server',
-      title: 'Host Information',
-      value: formatBytes(config.hostTotalMemory || 0),
-      variant: 'highlight' as const,
-      breakdown: [
-        {
-          label: 'Total Memory',
-          value: formatBytes(config.hostTotalMemory || 0)
-        },
-        {
-          label: 'Effective CPUs',
-          value: config.effectiveCpuCount?.toString() || 'N/A'
-        }
-      ]
-    },
-    {
       icon: 'memory',
       title: 'Memory Limits',
       value: getMemoryRequest(config),

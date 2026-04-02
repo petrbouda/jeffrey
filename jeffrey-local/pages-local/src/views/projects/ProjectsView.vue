@@ -33,7 +33,6 @@
         <div
           v-if="isWorkspaceScoped || getSelectedWorkspace()"
           class="workspace-context-bar"
-          :class="getContextBarClass"
         >
           <div class="context-bar-info">
             <span class="workspace-name">{{
@@ -66,14 +65,50 @@
             >
               <i class="bi bi-eye-slash"></i>
             </button>
-            <button
-              class="context-btn"
-              :class="getStreamingButtonClass()"
-              @click="cycleWorkspaceStreaming"
-              :title="getStreamingTooltip()"
-            >
-              <i class="bi bi-broadcast"></i>
-            </button>
+            <div class="settings-popover-wrapper">
+              <button
+                class="context-btn"
+                :class="{ active: showSettingsPopover }"
+                @click="showSettingsPopover = !showSettingsPopover"
+                title="Workspace settings"
+              >
+                <i class="bi bi-gear"></i>
+              </button>
+              <div v-if="showSettingsPopover" class="settings-popover">
+                <div class="settings-section">
+                  <div class="settings-section-title">
+                    <i class="bi bi-broadcast"></i> Streaming
+                  </div>
+                  <div class="stream-segmented">
+                    <button
+                      class="stream-seg"
+                      :class="{ 'active-on': getSelectedWorkspace()?.streamingEnabled === true }"
+                      @click="setWorkspaceStreaming(true)"
+                    >
+                      On
+                    </button>
+                    <button
+                      class="stream-seg"
+                      :class="{ 'active-off': getSelectedWorkspace()?.streamingEnabled === false }"
+                      @click="setWorkspaceStreaming(false)"
+                    >
+                      Off
+                    </button>
+                    <button
+                      class="stream-seg"
+                      :class="{
+                        'active-inherited':
+                          getSelectedWorkspace()?.streamingEnabled === null ||
+                          getSelectedWorkspace()?.streamingEnabled === undefined,
+                      }"
+                      @click="setWorkspaceStreaming(null)"
+                    >
+                      Inherited
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <button
               class="context-btn danger"
               @click="handleDeleteWorkspace()"
@@ -209,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ProjectCard from '@/components/ProjectCard.vue';
 import MainCard from '@/components/MainCard.vue';
 import MainCardHeader from '@/components/MainCardHeader.vue';
@@ -253,6 +288,7 @@ const loading = ref(true);
 // Modal state
 const showRemoteWorkspaceModal = ref(false);
 const showDeleteWorkspaceModal = ref(false);
+const showSettingsPopover = ref(false);
 const deleteWorkspaceMessage = ref('');
 const deleteWorkspaceSubMessage = ref('');
 
@@ -260,9 +296,6 @@ const deleteWorkspaceSubMessage = ref('');
 const getWorkspaceHeaderIcon = computed(() => 'bi bi-cloud-fill');
 
 const getWorkspaceHeaderLabel = computed(() => 'REMOTE');
-
-// Context bar styling computed properties
-const getContextBarClass = computed(() => 'context-bar-remote');
 
 const getTypeBadgeClass = computed(() => 'badge-remote');
 
@@ -396,8 +429,15 @@ const getWorkspaceDescription = (workspace: Workspace | undefined) => {
   }
 };
 
-// Fetch projects on component mount
+// Close settings popover on outside click
+const handleClickOutside = (e: MouseEvent) => {
+  if (!showSettingsPopover.value) return;
+  const wrapper = (e.target as HTMLElement).closest('.settings-popover-wrapper');
+  if (!wrapper) showSettingsPopover.value = false;
+};
+
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside);
   // In workspace-scoped mode, we only need to load projects
   if (isWorkspaceScoped.value) {
     await refreshProjects();
@@ -408,6 +448,10 @@ onMounted(async () => {
     // Resolve actual workspace statuses in parallel (non-blocking for UI)
     resolveWorkspaceStatuses();
   }
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 
 const filterProjects = () => {
@@ -479,46 +523,19 @@ const handleDeleteWorkspace = () => {
   showDeleteWorkspaceModal.value = true;
 };
 
-// Get workspace streaming button CSS class
-const getStreamingButtonClass = (): string => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return '';
-  if (workspace.streamingEnabled === true) return 'streaming-enabled';
-  if (workspace.streamingEnabled === false) return 'streaming-disabled';
-  return '';
-};
-
-// Get workspace streaming tooltip
-const getStreamingTooltip = (): string => {
-  const workspace = getSelectedWorkspace();
-  if (!workspace) return '';
-  if (workspace.streamingEnabled === true) return 'Streaming: enabled (click to disable)';
-  if (workspace.streamingEnabled === false)
-    return 'Streaming: disabled (click to reset to inherited)';
-  return 'Streaming: inherited from global (click to enable)';
-};
-
-// Cycle workspace streaming: null -> true -> false -> null
-const cycleWorkspaceStreaming = async () => {
+// Set workspace streaming to a specific state
+const setWorkspaceStreaming = async (state: boolean | null) => {
   const workspace = getSelectedWorkspace();
   if (!workspace) return;
-
-  let nextState: boolean | null;
-  if (workspace.streamingEnabled === null || workspace.streamingEnabled === undefined) {
-    nextState = true;
-  } else if (workspace.streamingEnabled === true) {
-    nextState = false;
-  } else {
-    nextState = null;
-  }
+  if (workspace.streamingEnabled === state) return;
 
   try {
-    await workspaceClient.updateStreaming(workspace.id, nextState);
-    workspace.streamingEnabled = nextState;
+    await workspaceClient.updateStreaming(workspace.id, state);
+    workspace.streamingEnabled = state;
 
-    if (nextState === true) {
+    if (state === true) {
       ToastService.success('Streaming Enabled', 'Workspace streaming has been enabled.');
-    } else if (nextState === false) {
+    } else if (state === false) {
       ToastService.success('Streaming Disabled', 'Workspace streaming has been disabled.');
     } else {
       ToastService.success('Streaming Reset', 'Workspace streaming reset to inherit from global.');
@@ -641,14 +658,9 @@ const confirmDeleteWorkspace = async () => {
   padding: 12px 16px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  border-left: 3px solid var(--color-primary);
   border-radius: 16px 16px 0 0;
   gap: 16px;
   flex-wrap: wrap;
-}
-
-.context-bar-remote {
-  border-left-color: var(--color-primary);
 }
 
 .context-bar-info {
@@ -724,7 +736,7 @@ const confirmDeleteWorkspace = async () => {
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 6px 10px;
-  width: 160px;
+  width: 200px;
   transition: all 0.2s ease;
 }
 
@@ -802,32 +814,86 @@ const confirmDeleteWorkspace = async () => {
   }
 }
 
-.context-btn.streaming-enabled {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #16a34a;
-
-  &:hover {
-    background: linear-gradient(135deg, #16a34a, #15803d);
-    color: white;
-    border-color: #15803d;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
-  }
+/* Settings popover */
+/* Settings popover */
+.settings-popover-wrapper {
+  position: relative;
 }
 
-.context-btn.streaming-disabled {
-  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
-  border-color: rgba(156, 163, 175, 0.3);
-  color: var(--color-text-light);
+.settings-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 16px 20px;
+  min-width: 260px;
+}
 
-  &:hover {
-    background: linear-gradient(135deg, #6b7280, #4b5563);
-    color: white;
-    border-color: var(--color-text);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.25);
-  }
+.settings-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-section-title i {
+  font-size: 0.85rem;
+  color: var(--color-primary);
+}
+
+/* Segmented control */
+.stream-segmented {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-light);
+  width: 100%;
+}
+
+.stream-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 5px;
+  padding: 7px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-light);
+  border: none;
+  background: transparent;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.stream-seg + .stream-seg {
+  border-left: 1px solid var(--color-border);
+}
+
+.stream-seg.active-on {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.stream-seg.active-off {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.stream-seg.active-inherited {
+  background: #eff6ff;
+  color: #3b82f6;
 }
 
 .context-btn i {
